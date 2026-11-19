@@ -34,7 +34,6 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
@@ -49,7 +48,7 @@ interface AggregateFlamegraphProps {
   profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
-  queryError?: RequestError | null;
+  queryError?: Error | null;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {

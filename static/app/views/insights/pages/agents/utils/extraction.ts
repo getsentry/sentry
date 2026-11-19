@@ -143,6 +143,11 @@ export function parseExtractionOutput(raw: unknown): ExtractionAnswer[] | null {
   }));
 }
 
+/** Whether a `gen_ai.operation.name` is the one of an extraction span. */
+export function isExtractionOperation(operationName: unknown): boolean {
+  return operationName === 'extract';
+}
+
 /**
  * Whether a span is an extraction, from its `gen_ai.operation.name`.
  */
@@ -151,9 +156,8 @@ export function isExtractionNode(
   attributes?: TraceItemResponseAttribute[],
   event?: EventTransaction
 ): boolean {
-  return (
-    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes) ===
-    'extract'
+  return isExtractionOperation(
+    getTraceNodeAttribute(SpanFields.GEN_AI_OPERATION_NAME, node, event, attributes)
   );
 }
 

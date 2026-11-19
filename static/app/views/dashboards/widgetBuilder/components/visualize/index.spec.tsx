@@ -22,6 +22,7 @@ import {
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useCustomMeasurements');
@@ -40,9 +41,7 @@ function TraceMetricsVisualize() {
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
@@ -1872,7 +1871,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['visibility-explore-view'],
           }),
           initialRouterConfig: {
             location: {
@@ -1975,7 +1974,7 @@ describe('Visualize', () => {
         </WidgetBuilderProvider>,
         {
           organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
+            features: ['visibility-explore-view'],
           }),
           initialRouterConfig: {
             location: {
@@ -2745,6 +2744,51 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'span.op'
     );
+  });
+
+  it('explains why adding a column is disabled at the metric cap', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: Array.from(
+              {length: MAX_METRICS_ALLOWED},
+              () => 'sum(value,alpha_metric,counter,none)'
+            ),
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const addColumn = await screen.findByRole('button', {name: 'Add Column'});
+    // The tooltip keeps the button hoverable, so it is aria-disabled instead
+    expect(addColumn).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(addColumn);
+    expect(
+      await screen.findByText(
+        `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+      )
+    ).toBeInTheDocument();
   });
 
   it('lets users switch trace metrics table columns between aggregates and fields', async () => {

@@ -47,8 +47,8 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
 
     def sign_in(self, user: User) -> None:
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Sign in']")
-        self.browser.element('[aria-label="Email"]').send_keys(user.email)
-        self.browser.element('[aria-label="Password"]').send_keys(PASSWORD)
+        self.browser.displayed_element('[aria-label="Email"]').send_keys(user.email)
+        self.browser.displayed_element('[aria-label="Password"]').send_keys(PASSWORD)
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Log in to Sentry']")
 
     def complete_dummy_sso(self, email: str) -> None:
@@ -104,10 +104,10 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
     @override_options({"auth.allow-registration": False})
     def test_create_account_and_accept_invite(self) -> None:
         invite_path = self.open_invite()
-        self.browser.element('input[name="name"]').send_keys("New User")
+        self.browser.displayed_element('input[name="name"]').send_keys("New User")
         email_input = self.browser.element('input[name="email"]')
         assert email_input.get_attribute("value") == self.member.email
-        self.browser.element('input[name="password"]').send_keys(PASSWORD)
+        self.browser.displayed_element('input[name="password"]').send_keys(PASSWORD)
         self.browser.click_when_visible(xpath="//button[normalize-space(.)='Create account']")
 
         self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
@@ -129,7 +129,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         invite_path = self.open_invite()
 
         self.sign_in(user)
-        self.browser.element('[aria-label="One-time password"]').send_keys(
+        self.browser.displayed_element('[aria-label="One-time password"]').send_keys(
             totp.make_otp().generate_otp()
         )
         self.browser.wait_until(xpath="//button[normalize-space(.)='Accept invitation']")
@@ -176,7 +176,7 @@ class AcceptOrganizationInviteTest(AcceptanceTestCase):
         self.browser.wait_until('[aria-label="One-time password"]')
 
         self.browser.driver.refresh()
-        self.browser.element('[aria-label="One-time password"]').send_keys(
+        self.browser.displayed_element('[aria-label="One-time password"]').send_keys(
             totp.make_otp().generate_otp()
         )
 

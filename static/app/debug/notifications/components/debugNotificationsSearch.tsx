@@ -2,6 +2,7 @@ import type {Key} from 'react';
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {type AriaComboBoxProps} from '@react-aria/combobox';
+import {VisuallyHidden} from '@react-aria/visually-hidden';
 import {Item} from '@react-stately/collections';
 import {useComboBoxState} from '@react-stately/combobox';
 import type {CollectionChildren} from '@react-types/shared';
@@ -105,9 +106,9 @@ function SearchComboBox<T extends SearchItem>(props: SearchComboBoxProps<T>) {
   const {className: _0, style: _1, size: nativeSize, ...nativeProps} = inputProps;
   return (
     <SearchContainer>
-      <label {...labelProps} className="sr-only">
+      <VisuallyHidden elementType="label" {...labelProps}>
         {props.label}
-      </label>
+      </VisuallyHidden>
       <InputGroup>
         <InputGroup.LeadingItems disablePointerEvents>
           <IconSearch />

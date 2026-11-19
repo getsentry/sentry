@@ -13,6 +13,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
+from sentry.search.eap.constants import QueryPriorities
 from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
@@ -25,11 +26,13 @@ class AggregateFieldData(TypedDict, total=False):
     chartType: int
     yAxes: list[str]
     groupBy: str
+    transformations: list[str]
 
 
 class VisualizeData(TypedDict):
     yAxes: list[str]
     chartType: NotRequired[int]
+    transformations: NotRequired[list[str]]
 
 
 class CrossEventData(TypedDict):
@@ -68,6 +71,7 @@ class ExploreSavedQueryInput(TypedDict):
     crossEvents: NotRequired[list[CrossEventData] | None]
     agent: NotRequired[list[str] | None]
     errorsOnly: NotRequired[bool | None]
+    queryPriority: NotRequired[int | None]
 
 
 class ExploreSavedQueryValidatedData(TypedDict):
@@ -75,13 +79,16 @@ class ExploreSavedQueryValidatedData(TypedDict):
     project_ids: list[int] | set[int]
     query: dict[str, object]
     dataset: int
+    query_priority: NotRequired[int | None]
 
 
 class VisualizeSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField())
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
 
@@ -94,7 +101,9 @@ class AggregateFieldSerializer(serializers.Serializer):
     chartType = serializers.IntegerField(required=False)
     yAxes = serializers.ListField(child=serializers.CharField(), required=False)
     transformations = serializers.ListField(
-        child=serializers.CharField(trim_whitespace=False), required=False
+        child=serializers.CharField(trim_whitespace=False),
+        required=False,
+        help_text="Ordered fill(...) and smooth(...) expressions. Use an empty list to clear the pipeline.",
     )
 
     # group bys
@@ -309,6 +318,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
         min_length=1,
         help_text="The Explore query definitions to save.",
     )
+    queryPriority = serializers.ChoiceField(
+        choices=QueryPriorities.as_text_choices(),
+        required=False,
+        allow_null=True,
+        help_text="The query priority. Supported values: `normal`, `faster`.",
+    )
 
     def validate_projects(self, projects: list[int]) -> set[int]:
         from sentry.api.validators import validate_project_ids
@@ -317,24 +332,24 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
 
     # Avoid including any side-effecting logic here, since this logic is also used when generating prebuilt queries on first read
     def validate(self, data: ExploreSavedQueryInput) -> ExploreSavedQueryValidatedData:
-        transformation_pipelines: list[Sequence[str]] = []
+        visualization_transformations: list[Sequence[str]] = []
         for query_data in data["query"]:
             for field in ("visualize", "aggregateField"):
                 for visualization in cast(
                     Sequence[Mapping[str, object]], query_data.get(field) or []
                 ):
                     if "transformations" in visualization:
-                        transformation_pipelines.append(
+                        visualization_transformations.append(
                             cast(Sequence[str], visualization["transformations"])
                         )
-        if transformation_pipelines and not features.has(
+        if visualization_transformations and not features.has(
             "organizations:explore-interpolation-and-smoothing",
             self.context["organization"],
             actor=self.context["user"],
         ):
             raise ParseError(detail="You do not have access to query transformations.")
 
-        for transformations in transformation_pipelines:
+        for transformations in visualization_transformations:
             with handle_query_errors():
                 parse_transformations(transformations)
 
@@ -425,9 +440,20 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
 
         dataset = cast(int, ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"]))
 
-        return {
+        validated: ExploreSavedQueryValidatedData = {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
             "dataset": dataset,
         }
+        if "queryPriority" in data:
+            validated["query_priority"] = data["queryPriority"]
+        return validated
+
+    def validate_queryPriority(self, query_priority: str | None) -> int | None:
+        if query_priority is None:
+            return None
+        priority = QueryPriorities.get_id_for_type_name(query_priority)
+        if priority is None:
+            raise ValidationError("Unknown query priority.")
+        return priority

@@ -518,22 +518,6 @@ export function getLogColors(level: SeverityLevel, theme: Theme) {
   }
 }
 
-export const LogsSidebarCollapseButton = styled(Button)<{sidebarOpen: boolean}>`
-  ${p =>
-    p.sidebarOpen &&
-    css`
-      margin-left: -17px;
-      border-top-left-radius: 0;
-      border-bottom-left-radius: 0;
-
-      &::after {
-        border-left-color: ${p.theme.tokens.border.primary};
-        border-top-left-radius: 0;
-        border-bottom-left-radius: 0;
-      }
-    `}
-`;
-
 export const FloatingBackToTopContainer = styled('div')<{
   inReplay?: boolean;
   position?: 'absolute' | 'fixed';

@@ -5,11 +5,16 @@ import {IconClose} from '@sentry/icons/close';
 import {IconSeer} from '@sentry/icons/seer';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Button} from '@sentry/scraps/button';
-import {Stack} from '@sentry/scraps/layout';
+import {Button, ButtonBar} from '@sentry/scraps/button';
+import {Flex, Stack} from '@sentry/scraps/layout';
 
+import {
+  AutofixOutOfCreditsAlert,
+  getAutofixContinueAction,
+} from 'sentry/components/events/autofix/autofixCredits';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
+  getAutofixArtifactFromSection,
   getOrderedAutofixSections,
   isCodeChangesSection,
   isCodingAgentsSection,
@@ -24,17 +29,18 @@ import {
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {AutofixStartCard} from './autofixStartCard';
 import {CodeChangesCard} from './codeChangesCard';
 import {CodingAgentsCard} from './codingAgentsCard';
-import {SeerDrawerNextStep} from './nextStep';
+import {SeerDrawerNextStep, SingleRunHandoffDropdown} from './nextStep';
 import {PullRequestsCard} from './pullRequestsCard';
 import {RootCauseCard} from './rootCauseCard';
 import {SeerEnableNotifications} from './seerEnableNotifications';
 import {SolutionCard} from './solutionCard';
-import {useToggleSingleRunChat} from './useToggleSingleRunChat';
+import {useIsSingleRunChatOpen, useOpenSingleRunChat} from './useToggleSingleRunChat';
 
 interface SeerDrawerContentProps {
   aiConfig: ReturnType<typeof useAiConfig>;
@@ -59,7 +65,13 @@ export function SeerDrawerContent({
     [autofix.runState]
   );
   const singleRun = isSingleRunAutofix(autofix.runState) ? autofix.runState : null;
-  const toggleSingleRunChat = useToggleSingleRunChat(getAutofixRunId(singleRun));
+  const singleRunId = getAutofixRunId(singleRun);
+  const openSingleRunChat = useOpenSingleRunChat();
+  const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
+  const singleRunRootCause = singleRun ? sections.find(isRootCauseSection) : undefined;
+  const singleRunHasRootCause =
+    defined(singleRunRootCause) &&
+    defined(getAutofixArtifactFromSection(singleRunRootCause));
 
   const isLoadingRun =
     autofix.isLoading || (autofix.isPolling && !autofix.runState?.blocks?.length);
@@ -72,12 +84,28 @@ export function SeerDrawerContent({
     );
   }
 
+  // One out-of-credits alert, at the top so it sits above any results. The
+  // triggers below it stay on screen, disabled.
   if (!autofix.runState && aiConfig.hasAutofix) {
-    return <AutofixStartCard autofix={autofix} group={group} />;
+    return (
+      <Stack gap="lg">
+        <AutofixOutOfCreditsAlert action="root_cause" reason="autofix-start" />
+        <AutofixStartCard autofix={autofix} group={group} />
+      </Stack>
+    );
   }
 
   return (
     <Stack gap="lg">
+      <AutofixOutOfCreditsAlert
+        action={getAutofixContinueAction({
+          isPolling: autofix.isPolling,
+          runState: autofix.runState,
+          sections,
+        })}
+        billingFeature={autofix.runState?.billing_feature}
+        reason="autofix-continue"
+      />
       <SeerDrawerArtifacts autofix={autofix} sections={sections} groupId={group.id} />
       {!isSingleRunAutofix(autofix.runState) &&
         (autofix.runState?.status === 'completed' ||
@@ -88,9 +116,30 @@ export function SeerDrawerContent({
         )}
       {singleRun && (
         <NextStepWrap isSticky={stickyNextStep}>
-          <Button variant="primary" icon={<IconSeer />} onClick={toggleSingleRunChat}>
-            {t('Open Autofix')}
-          </Button>
+          <Flex>
+            <ButtonBar>
+              <Button
+                variant="primary"
+                icon={<IconSeer />}
+                onClick={() =>
+                  singleRunId !== undefined && openSingleRunChat(singleRunId)
+                }
+                disabled={isSingleRunChatOpen}
+                tooltipProps={{
+                  title: isSingleRunChatOpen ? t('Chat is open') : undefined,
+                }}
+              >
+                {t('Open Autofix')}
+              </Button>
+              {singleRunHasRootCause && singleRunId !== undefined && (
+                <SingleRunHandoffDropdown
+                  autofix={autofix}
+                  group={group}
+                  runId={singleRunId}
+                />
+              )}
+            </ButtonBar>
+          </Flex>
         </NextStepWrap>
       )}
       {autofix.codingAgentErrors.map(({id, message}) => (

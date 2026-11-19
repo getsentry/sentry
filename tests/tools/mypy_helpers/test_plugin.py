@@ -289,7 +289,7 @@ Success: no issues found in 1 source file
     assert out == expected
 
 
-def test_drf_request_user_keeps_its_type_outside_sentry(tmp_path: pathlib.Path) -> None:
+def test_drf_request_user_includes_service_accounts_outside_sentry(tmp_path: pathlib.Path) -> None:
     # getsentry loads this plugin through a tools -> ../sentry/tools symlink
     tools = os.path.join(os.path.dirname(__file__), "../../../tools")
     os.symlink(os.path.realpath(tools), tmp_path / "tools")
@@ -300,7 +300,7 @@ reveal_type(x.user)
 """
     ret, out = call_mypy(src, cwd=str(tmp_path))
     assert ret == 0, out
-    assert "ServiceAccountPrincipal" not in out, out
+    assert "ServiceAccountPrincipal" in out, out
 
 
 def test_csp_response_attribute() -> None:
@@ -785,6 +785,123 @@ def view() -> Response[FooResponse] | Response[StatsPeriodErrorResponse]:
 """
     ret, out = call_mypy(src)
     assert ret == 0, out
+
+
+_LOOSE_ARM_SRC = """\
+from typing import Any, Final, Literal, NotRequired, TypedDict
+from rest_framework.response import Response
+
+RUN_IN_FLIGHT: Final = "run_in_flight"
+
+class ConflictResponse(TypedDict):
+    detail: str
+    code: NotRequired[Literal["run_in_flight", "repos_not_linked"]]
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> (
+    Response[ConflictResponse] | Response[DetailResponse] | Response[dict[str, Any]]
+):
+    return Response({BODY}, status=409)
+"""
+
+
+def test_response_union_loose_arm_rejects_wrong_literal_value() -> None:
+    """A `dict[str, Any]` arm (e.g. `ValidationErrorResponse`) accepts any
+    dict literal, so a body with a `code` outside its declared `Literal` used
+    to type-check through it. It must fail against the TypedDict arms."""
+    src = _LOOSE_ARM_SRC.replace("{BODY}", '{"detail": "x", "code": "bogus"}')
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "[response-body]" in out
+    assert '"ConflictResponse", "DetailResponse"' in out
+
+
+def test_response_union_loose_arm_rejects_typo_key() -> None:
+    src = _LOOSE_ARM_SRC.replace("{BODY}", '{"detial": "x"}')
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "[response-body]" in out
+
+
+def test_response_union_loose_arm_accepts_matching_literals() -> None:
+    for body in (
+        '{"detail": "x", "code": "run_in_flight"}',
+        '{"detail": "x", "code": RUN_IN_FLIGHT}',
+        '{"detail": "x"}',
+    ):
+        ret, out = call_mypy(_LOOSE_ARM_SRC.replace("{BODY}", body))
+        assert ret == 0, (body, out)
+
+
+def test_response_union_loose_arm_accepts_annotated_variable() -> None:
+    """Bodies that are deliberately loose opt out by not being a literal."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[DetailResponse] | Response[dict[str, Any]]:
+    errors: dict[str, Any] = {"field": ["This field is required."]}
+    return Response(errors, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret == 0, out
+
+
+def test_response_union_nested_dict_literal_matches_nested_typeddict() -> None:
+    """Nested dict literals are inferred against the nested TypedDict field,
+    so a correct nested body matches its arm instead of being reported."""
+    src = """\
+from typing import Any, TypedDict
+from rest_framework.response import Response
+
+class CodedErrorDetail(TypedDict):
+    message: str
+    code: str
+
+class CodedErrorResponse(TypedDict):
+    detail: CodedErrorDetail
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view(flag: bool) -> (
+    Response[CodedErrorResponse] | Response[DetailResponse] | Response[dict[str, Any]]
+):
+    if flag:
+        return Response({"detail": {"message": "m", "code": "c"}}, status=400)
+    return Response({"detail": {"message": "m", "cod": "c"}}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert out.count("[response-body]") == 1, out
+    assert ":19:" in out, out
+
+
+def test_response_union_no_loose_arm_reports_once() -> None:
+    """Without a loose arm mypy already reports the mismatch, so the plugin
+    adds no second error."""
+    src = """\
+from typing import TypedDict
+from rest_framework.response import Response
+
+class FooResponse(TypedDict):
+    x: int
+
+class DetailResponse(TypedDict):
+    detail: str
+
+def view() -> Response[FooResponse] | Response[DetailResponse]:
+    return Response({"wrong": "shape"}, status=400)
+"""
+    ret, out = call_mypy(src)
+    assert ret, out
+    assert "Incompatible return value type" in out
+    assert "[response-body]" not in out
 
 
 # -- Serializer auto-derive ----------------------------------------------------

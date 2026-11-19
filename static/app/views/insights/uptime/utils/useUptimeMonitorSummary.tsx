@@ -1,5 +1,6 @@
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {useQuery} from '@tanstack/react-query';
+
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {UptimeSummary} from 'sentry/views/detectors/components/uptime/types';
 
@@ -17,19 +18,16 @@ interface Options {
 export function useUptimeMonitorSummaries({detectorIds}: Options) {
   const organization = useOrganization();
 
-  return useApiQuery<Record<string, UptimeSummary>>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-summary/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  return useQuery(
+    apiOptions.as<Record<string, UptimeSummary>>()(
+      '/organizations/$organizationIdOrSlug/uptime-summary/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           uptimeDetectorId: detectorIds,
         },
-      },
-    ],
-    {
-      staleTime: 0,
-    }
+        staleTime: 0,
+      }
+    )
   );
 }

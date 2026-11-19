@@ -1,6 +1,5 @@
 import {Fragment} from 'react';
 import type {Location} from 'history';
-import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -8,10 +7,11 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {getDefaultPageFilterSelection} from 'sentry/components/pageFilters/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as qs from 'sentry/utils/url/qs';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 
 import type {RendererExtra} from './fieldRenderers';
@@ -76,7 +76,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -90,7 +90,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '24'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '24'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -104,7 +104,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -120,7 +120,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -137,7 +137,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -151,7 +151,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'Asia/Tokyo', clockDisplay: '24'}}>
+        <DateTimeProvider value={{timezone: 'Asia/Tokyo', clock: '24'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );
@@ -165,7 +165,7 @@ describe('Logs Field Renderers', () => {
       const result = TimestampRenderer!(props);
 
       render(
-        <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+        <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
           <Fragment>{result}</Fragment>
         </DateTimeProvider>
       );

@@ -20,6 +20,7 @@ import {
   CONVERSATIONS_DETAIL_SUB_PATH,
   EXPLORE_AGENTS_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
+import type {InboxRouteHandle} from 'sentry/views/inbox/types';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -610,7 +611,28 @@ function buildRoutes(): RouteObject[] {
       },
       path: 'attributes/',
       name: t('Attributes'),
-      component: make(() => import('sentry/views/settings/project/projectAttributes')),
+      children: [
+        {
+          index: true,
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributes')
+          ),
+        },
+        {
+          handle: {
+            settingsBreadcrumb: {
+              type: 'link',
+              label: t('Attributes'),
+              to: '/settings/:orgId/projects/:projectId/attributes/',
+            },
+          },
+          path: ':attributeType/:attributeName/',
+          name: t('Attribute Details'),
+          component: make(
+            () => import('sentry/views/settings/project/projectAttributeDetails')
+          ),
+        },
+      ],
     },
     {
       handle: {
@@ -3104,12 +3126,17 @@ function buildRoutes(): RouteObject[] {
     children: [
       {
         index: true,
+        component: make(() => import('sentry/views/inbox/inboxEmptyPreview')),
       },
       {
         path: 'issue/:id/',
+        component: make(() => import('sentry/views/inbox/inboxIssuePreview')),
+        handle: {inboxSubjectType: 'issue'} satisfies InboxRouteHandle,
       },
       {
         path: 'notebook/:id/',
+        component: make(() => import('sentry/views/inbox/inboxNotebookPreview')),
+        handle: {inboxSubjectType: 'notebook'} satisfies InboxRouteHandle,
       },
     ],
   };

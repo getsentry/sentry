@@ -1,10 +1,13 @@
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData} from 'sentry-test/performance/initializePerformanceData';
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EntryType} from 'sentry/types/event';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {
   makeEAPError,
   makeEAPSpan,
@@ -12,6 +15,7 @@ import {
 
 import {EventTraceView} from './eventTraceView';
 
+jest.mock('sentry/utils/analytics');
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
 }));
@@ -153,6 +157,118 @@ describe('EventTraceView', () => {
     render(<EventTraceView group={group} event={event} organization={organization} />);
 
     expect(await screen.findByText('Trace Preview')).toBeInTheDocument();
+  });
+
+  it('opens on Agent Activity when the error was raised inside an agent run', async () => {
+    const agentOrganization = {
+      ...organization,
+      features: [...organization.features, 'issue-details-agent-run'],
+    };
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: group.project.id, hasInsightsAgentMonitoring: true}),
+    ]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({dataset: 'spans'})],
+      body: {data: [{id: 'agent-span'}]},
+    });
+    MockApiClient.addMockResponse({
+      url: '/customers/org-slug/',
+      method: 'GET',
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/organizations/${organization.slug}/trace-meta/${traceId}/`,
+      body: {
+        errorsCount: 1,
+        logsCount: 0,
+        metricsCount: 0,
+        performanceIssuesCount: 0,
+        spansCount: 2,
+        spansCountMap: {},
+        uptimeCount: 0,
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [
+        makeEAPSpan({
+          event_id: 'agent-span',
+          op: 'gen_ai.invoke_agent',
+          name: 'gen_ai.invoke_agent',
+          description: 'invoke_agent support-agent',
+          is_transaction: true,
+          additional_attributes: {
+            'gen_ai.operation.type': 'agent',
+            'gen_ai.agent.name': 'support-agent',
+          },
+          children: [
+            makeEAPSpan({
+              event_id: 'tool-span',
+              op: 'gen_ai.execute_tool',
+              name: 'gen_ai.execute_tool',
+              description: 'execute_tool search_docs',
+              additional_attributes: {
+                'gen_ai.operation.type': 'tool',
+                'gen_ai.tool.name': 'search_docs',
+              },
+              errors: [makeEAPError({event_id: 'issue-5'})],
+            }),
+          ],
+        }),
+      ],
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/users/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/`,
+      body: [GroupFixture({id: '2', shortId: 'EXAMPLE-2'})],
+      headers: {'X-Hits': '1'},
+      match: [
+        MockApiClient.matchQuery({query: `trace:${traceId} !issue.id:${group.id}`}),
+      ],
+    });
+
+    render(
+      <EventTraceView group={group} event={event} organization={agentOrganization} />,
+      {organization: agentOrganization}
+    );
+
+    expect(screen.getByTestId('trace-view-skeleton')).toBeInTheDocument();
+    const steps = await screen.findByText('search_docs');
+    expect(screen.queryByTestId('trace-view-skeleton')).not.toBeInTheDocument();
+    // The trace's other issues sit below the view, outside the toggle.
+    const linkedIssues = screen.getByText('1 other issue appears in this trace.');
+    expect(
+      steps.compareDocumentPosition(linkedIssues) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(screen.getByRole('radio', {name: 'Agent Activity'})).toBeChecked();
+    expect(trackAnalytics).toHaveBeenCalledWith('issue_details.agent_run.viewed', {
+      organization: agentOrganization,
+    });
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'Waterfall'}));
+    expect(screen.getAllByText('1 other issue appears in this trace.')).toHaveLength(1);
+    expect(screen.getByRole('button', {name: 'View Full Trace'})).not.toHaveAttribute(
+      'href',
+      expect.stringContaining('tab=ai-spans')
+    );
+
+    // Switching back to Agent Activity doesn't count as another view.
+    await userEvent.click(screen.getByRole('radio', {name: 'Agent Activity'}));
+    expect(
+      jest
+        .mocked(trackAnalytics)
+        .mock.calls.filter(([key]) => key === 'issue_details.agent_run.viewed')
+    ).toHaveLength(1);
   });
 
   it('does not render the trace section when the trace_id is synthetic', () => {

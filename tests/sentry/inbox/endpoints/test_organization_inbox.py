@@ -1,8 +1,10 @@
+from dataclasses import asdict
 from datetime import timedelta
 from unittest.mock import patch
 
 import pytest
 from django.db import connections, router
+from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
 from django.urls import reverse
 from django.utils import timezone
@@ -19,7 +21,17 @@ from sentry.inbox.endpoints.organization_inbox_item_events import (
     OrganizationInboxItemEventsEndpoint,
 )
 from sentry.inbox.event_retention import cleanup_inbox_item_events
-from sentry.inbox.issue import ISSUE_PR_READY_FOR_REVIEW, IssuePRReadyForReviewData
+from sentry.inbox.issue import (
+    ISSUE_PR_READY_FOR_REVIEW,
+    IssueAssignedData,
+    IssueMentionedData,
+    IssuePRReadyForReviewData,
+)
+from sentry.inbox.notebook import (
+    NotebookCompletedData,
+    NotebookMentionedData,
+    NotebookParticipantAddedData,
+)
 from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
@@ -60,7 +72,7 @@ def test_delete_api_schema() -> None:
     assert "204" in operation["responses"]
     assert "content" not in operation["responses"]["204"]
     assert "requestBody" not in operation
-    assert {"id", "subject_type", "subject_id", "event_type", "is_read"} <= {
+    assert {"id", "subject_type", "subject_id", "event_type", "recipient", "is_read"} <= {
         parameter["name"] for parameter in operation["parameters"]
     }
 
@@ -75,7 +87,9 @@ class OrganizationInboxIndexTest(APITestCase):
 
     def test_list_is_personal_and_organization_scoped(self) -> None:
         item = self.create_inbox_item(subject_id=str(self.group.id))
-        self.create_inbox_item_event(inbox_item=item, data={"summary": "Assigned to you"})
+        self.create_inbox_item_event(
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+        )
         self.create_inbox_item(user=self.create_user())
         self.create_inbox_item(organization=self.create_organization())
         self.create_inbox_item(subject_id="removed", status=ObjectStatus.PENDING_DELETION)
@@ -85,6 +99,26 @@ class OrganizationInboxIndexTest(APITestCase):
         assert [entry["id"] for entry in response.data] == [str(item.id)]
         assert response.data[0]["title"] == self.group.title
         assert response.data[0]["subtitle"] == "Assigned to you"
+        assert response.data[0]["url"] == self.organization.absolute_url(
+            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/"
+        )
+
+    @override_settings(
+        SENTRY_ORGANIZATION_BASE_HOSTNAME="{slug}.sentry.io",
+        SENTRY_ORGANIZATION_URL_TEMPLATE="https://{hostname}",
+    )
+    @with_feature("system:multi-region")
+    def test_url_uses_organization_domain(self) -> None:
+        item = self.create_inbox_item(subject_id=str(self.group.id))
+        self.create_inbox_item_event(
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+        )
+
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data[0]["url"] == (
+            f"https://{self.organization.slug}.sentry.io/inbox/issue/{self.group.id}/"
+        )
 
     def test_recording_works_while_ui_is_off(self) -> None:
         with self.feature(
@@ -96,7 +130,6 @@ class OrganizationInboxIndexTest(APITestCase):
             ISSUE_PR_READY_FOR_REVIEW.record(
                 subject=self.group,
                 data=IssuePRReadyForReviewData(
-                    summary="Pull request ready for review",
                     pr_url="https://github.com/example/repo/pull/1",
                     seer_run_id=123,
                 ),
@@ -115,7 +148,7 @@ class OrganizationInboxIndexTest(APITestCase):
             self.create_inbox_item_event(
                 inbox_item=item,
                 type="issue.user_mentioned",
-                data={"summary": f"Event {index}", "comment_id": index},
+                data={"comment_id": index},
             )
             for index in range(103)
         ]
@@ -128,7 +161,7 @@ class OrganizationInboxIndexTest(APITestCase):
         assert response.data[0]["unreadEventCount"] == 100
         assert response.data[0]["latestEvent"]["id"] == str(events[-1].id)
         assert response.data[0]["latestEvent"]["data"]["commentId"] == "102"
-        assert response.data[0]["subtitle"] == "Event 102"
+        assert response.data[0]["subtitle"] == "Mentioned you in a comment"
 
         response = self.client.get(
             reverse(
@@ -151,7 +184,9 @@ class OrganizationInboxIndexTest(APITestCase):
         assert response.data == []
 
         item = self.create_inbox_item(subject_id=str(self.group.id))
-        self.create_inbox_item_event(inbox_item=item, data={"summary": "An assignment"})
+        self.create_inbox_item_event(
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+        )
         response = self.get_success_response(
             self.organization.slug, subject_type="issue", subject_id=str(self.group.id)
         )
@@ -162,15 +197,17 @@ class OrganizationInboxIndexTest(APITestCase):
         self.create_inbox_item_event(
             inbox_item=unread,
             type="issue.pr_ready_for_review",
-            data={"summary": "Pull request ready for review"},
+            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 1},
         )
         self.create_inbox_item_event(
             inbox_item=unread,
             type="issue.pr_ready_for_review",
-            data={"summary": "Another pull request ready for review"},
+            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 1},
         )
         read = self.create_inbox_item(subject_id="2", last_read_at=before_now(seconds=-10))
-        self.create_inbox_item_event(inbox_item=read, data={"summary": "Assigned to you"})
+        self.create_inbox_item_event(
+            inbox_item=read, data={"assignment_source": None, "activity_id": 1}
+        )
 
         response = self.get_success_response(
             self.organization.slug, is_read="false", event_type="issue.pr_ready_for_review"
@@ -191,13 +228,15 @@ class OrganizationInboxIndexTest(APITestCase):
     def test_assignment_event_filters(self) -> None:
         individual = self.create_inbox_item(subject_id="1")
         self.create_inbox_item_event(
-            inbox_item=individual, type="issue.user_assigned", data={"summary": "Assigned to you"}
+            inbox_item=individual,
+            type="issue.user_assigned",
+            data={"assignment_source": None, "activity_id": 1},
         )
         team = self.create_inbox_item(subject_id="2")
         self.create_inbox_item_event(
             inbox_item=team,
             type="issue.team_assigned",
-            data={"summary": "Assigned to your team"},
+            data={"assignment_source": None, "activity_id": 1},
         )
 
         response = self.get_success_response(
@@ -210,11 +249,94 @@ class OrganizationInboxIndexTest(APITestCase):
         )
         assert [entry["id"] for entry in response.data] == [str(team.id)]
 
+    def test_recipient_filter(self) -> None:
+        items_by_recipient: dict[str, list[str]] = {"team": [], "user": []}
+        for index, (recipient, event_type, data) in enumerate(
+            [
+                (
+                    "team",
+                    "issue.team_assigned",
+                    IssueAssignedData(assignment_source=None, activity_id=1),
+                ),
+                ("team", "issue.team_mentioned", IssueMentionedData(comment_id=1)),
+                ("team", "notebook.team_mentioned", NotebookMentionedData(comment_id=1)),
+                (
+                    "user",
+                    "issue.user_assigned",
+                    IssueAssignedData(assignment_source=None, activity_id=1),
+                ),
+                ("user", "issue.user_mentioned", IssueMentionedData(comment_id=1)),
+                (
+                    "user",
+                    "issue.pr_ready_for_review",
+                    IssuePRReadyForReviewData(pr_url="https://example.com/pr/1", seer_run_id=1),
+                ),
+                ("user", "notebook.completed", NotebookCompletedData(seer_run_id=1, generation=1)),
+                ("user", "notebook.user_mentioned", NotebookMentionedData(comment_id=1)),
+                ("user", "notebook.participant_added", NotebookParticipantAddedData()),
+            ]
+        ):
+            item = self.create_inbox_item(
+                subject_type=event_type.partition(".")[0], subject_id=str(index + 1)
+            )
+            self.create_inbox_item_event(inbox_item=item, type=event_type, data=asdict(data))
+            self.create_inbox_item_event(inbox_item=item, type=event_type, data=asdict(data))
+            items_by_recipient[recipient].append(str(item.id))
+        self.create_inbox_item_event(
+            inbox_item=self.create_inbox_item(user=self.create_user()),
+            type="issue.team_assigned",
+            data={"assignment_source": None, "activity_id": 1},
+        )
+        self.create_inbox_item_event(
+            inbox_item=self.create_inbox_item(organization=self.create_organization()),
+            type="issue.user_assigned",
+            data={"assignment_source": None, "activity_id": 1},
+        )
+
+        response = self.get_success_response(self.organization.slug, recipient="team")
+        assert {entry["id"] for entry in response.data} == set(items_by_recipient["team"])
+
+        response = self.get_success_response(self.organization.slug, recipient="user")
+        assert {entry["id"] for entry in response.data} == set(items_by_recipient["user"])
+
+        response = self.get_success_response(self.organization.slug, recipient=["team", "user"])
+        assert {entry["id"] for entry in response.data} == set(
+            items_by_recipient["team"] + items_by_recipient["user"]
+        )
+
+    def test_recipient_and_event_type_match_the_same_event(self) -> None:
+        item = self.create_inbox_item()
+        self.create_inbox_item_event(
+            inbox_item=item,
+            type="issue.team_mentioned",
+            data={"comment_id": 1},
+        )
+        self.create_inbox_item_event(
+            inbox_item=item,
+            type="issue.user_assigned",
+            data={"assignment_source": None, "activity_id": 1},
+        )
+
+        response = self.get_success_response(
+            self.organization.slug, recipient="team", event_type="issue.user_assigned"
+        )
+        assert response.data == []
+
+        response = self.get_success_response(
+            self.organization.slug, recipient="team", event_type="issue.team_mentioned"
+        )
+        assert [entry["id"] for entry in response.data] == [str(item.id)]
+
+        response = self.get_success_response(self.organization.slug, recipient="user")
+        assert [entry["id"] for entry in response.data] == [str(item.id)]
+
     def test_invalid_filters(self) -> None:
         for params in (
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
             {"event_type": ["issue.user_assigned", "unknown"]},
+            {"recipient": "unknown"},
+            {"recipient": ["team", "unknown"]},
             {"subject_id": "1"},
             {"subject_type": ["issue", "issue"], "subject_id": "1"},
             {"is_read": "unknown"},
@@ -240,7 +362,7 @@ class OrganizationInboxIndexTest(APITestCase):
         self.create_member(organization=self.organization, user=member, role="member", teams=[])
         item = self.create_inbox_item(user=member, subject_id=str(self.group.id))
         self.create_inbox_item_event(
-            inbox_item=item, actor=self.user, data={"summary": "Assigned to you"}
+            inbox_item=item, actor=self.user, data={"assignment_source": None, "activity_id": 1}
         )
         token = self.create_user_auth_token(user=member, scope_list=["org:read"])
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -279,7 +401,9 @@ class OrganizationInboxIndexTest(APITestCase):
             for index in range(4)
         ]
         for item in items:
-            self.create_inbox_item_event(inbox_item=item, data={"summary": "An assignment"})
+            self.create_inbox_item_event(
+                inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+            )
 
         first = self.get_success_response(self.organization.slug, per_page=2)
         assert [entry["id"] for entry in first.data] == [str(items[3].id), str(items[2].id)]
@@ -305,7 +429,9 @@ class OrganizationInboxIndexTest(APITestCase):
             for index in range(3)
         ]
         for item in items:
-            self.create_inbox_item_event(inbox_item=item, data={"summary": "An assignment"})
+            self.create_inbox_item_event(
+                inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+            )
 
         first = self.get_success_response(self.organization.slug, per_page=2)
         first_links = {
@@ -340,7 +466,9 @@ class OrganizationInboxIndexTest(APITestCase):
     def test_pagination_after_boundary_item_is_deleted(self) -> None:
         items = [self.create_inbox_item(subject_id=str(index)) for index in range(3)]
         for item in items:
-            self.create_inbox_item_event(inbox_item=item, data={"summary": "An assignment"})
+            self.create_inbox_item_event(
+                inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+            )
 
         first = self.get_success_response(self.organization.slug, per_page=1)
         assert [entry["id"] for entry in first.data] == [str(items[2].id)]
@@ -367,7 +495,9 @@ class OrganizationInboxUpdateTest(APITestCase):
     def test_mark_all_read_in_one_update(self) -> None:
         items = [self.create_inbox_item(subject_id=str(index)) for index in range(3)]
         for _ in range(2):
-            self.create_inbox_item_event(inbox_item=items[0], data={"summary": "Assigned to you"})
+            self.create_inbox_item_event(
+                inbox_item=items[0], data={"assignment_source": None, "activity_id": 1}
+            )
         other_user = self.create_inbox_item(user=self.create_user())
         other_org = self.create_inbox_item(organization=self.create_organization())
         removed = self.create_inbox_item(subject_id="removed", status=ObjectStatus.PENDING_DELETION)
@@ -507,6 +637,22 @@ class OrganizationInboxUpdateTest(APITestCase):
         assert target.last_read_at is not None
         assert other_event.last_read_at is None
 
+    def test_recipient_filter(self) -> None:
+        team = self.create_inbox_item(subject_id="team")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
+        user = self.create_inbox_item(subject_id="user")
+        self.create_inbox_item_event(inbox_item=user, type="issue.user_assigned")
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"recipient": "team"}, isRead=True
+        )
+
+        assert response.data == {"updatedCount": 1}
+        team.refresh_from_db()
+        user.refresh_from_db()
+        assert team.last_read_at is not None
+        assert user.last_read_at is None
+
     def test_subject_filter(self) -> None:
         target = self.create_inbox_item(subject_id="1")
         other = self.create_inbox_item(subject_id="2")
@@ -551,6 +697,7 @@ class OrganizationInboxUpdateTest(APITestCase):
     def test_invalid_filters(self) -> None:
         item = self.create_inbox_item()
         for filters in (
+            {"recipient": "invalid"},
             {"id": "invalid"},
             {"subject_type": "unknown"},
             {"event_type": "unknown"},
@@ -790,9 +937,28 @@ class OrganizationInboxDeleteTest(APITestCase):
         assert item.status == ObjectStatus.ACTIVE
         assert not CellScheduledDeletion.objects.filter(model_name="InboxItem").exists()
 
+    def test_recipient_filter(self) -> None:
+        team = self.create_inbox_item(subject_id="team")
+        self.create_inbox_item_event(inbox_item=team, type="issue.team_assigned")
+        user = self.create_inbox_item(subject_id="user")
+        self.create_inbox_item_event(inbox_item=user, type="issue.user_assigned")
+
+        self.get_success_response(self.organization.slug, qs_params={"recipient": "team"})
+
+        team.refresh_from_db()
+        user.refresh_from_db()
+        assert team.status == ObjectStatus.PENDING_DELETION
+        assert user.status == ObjectStatus.ACTIVE
+        assert list(
+            CellScheduledDeletion.objects.filter(model_name="InboxItem").values_list(
+                "object_id", flat=True
+            )
+        ) == [team.id]
+
     def test_invalid_filters_do_not_remove_items(self) -> None:
         item = self.create_inbox_item()
         for filters in (
+            {"recipient": "invalid"},
             {"id": "invalid"},
             {"subject_type": "unknown"},
             {"event_type": "unknown"},

@@ -131,8 +131,8 @@ class ScheduleField(ObjectField):
 
 
 class MissedMarginField(EmptyIntegerField):
-    def to_internal_value(self, value: Any) -> Any:
-        value = super().to_internal_value(value)
+    def to_internal_value(self, data: float | int | str) -> int:
+        value = super().to_internal_value(data)
 
         # XXX(epurkhiser): As part of GH-56526 we changed the minimum value
         # allowed for the checkin_margin to 1 from 0. Some monitors may still

@@ -27,6 +27,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -452,7 +453,7 @@ function OrganizationMembersList() {
         </SimpleTable>
       </Stack>
 
-      <Pagination pageLinks={membersPageLinks} />
+      <Pagination {...getPaginationProps(membersPageLinks)} />
     </Fragment>
   );
 }

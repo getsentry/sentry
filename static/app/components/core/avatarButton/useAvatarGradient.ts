@@ -1,7 +1,6 @@
-import color from 'color';
-
 import type {BaseAvatarProps} from '@sentry/scraps/avatar';
 
+import {hexToOklch, oklchToHex} from './color';
 import {useAvatarColors} from './useAvatarColors';
 
 interface Gradient {
@@ -9,30 +8,34 @@ interface Gradient {
   start: string;
 }
 
-// Keeps the avatar's hue and saturation but never gets brighter than
-// `ceiling`, so text designed against `ceiling` keeps its contrast.
-function getAvatarGradient(avatarColor: string, ceiling: string): Gradient {
-  const maxLuminosity = color(ceiling).luminosity();
-  let end = color(avatarColor);
-  while (end.luminosity() > maxLuminosity && end.lightness() > 0) {
-    end = end.lightness(Math.max(end.lightness() - 1, 0));
-  }
-  const start = end.lightness(Math.max(end.lightness() - 10, 0));
-  return {start: start.hex(), end: end.hex()};
+/**
+ * Darkens `avatarColor` until it is no lighter than `ceiling`, in OKLCH: the
+ * hue is kept, and so is the chroma (colorfulness) as far as sRGB can show it
+ * at the lower lightness. Darkening in RGB instead would keep the avatar's
+ * whitish tint and turn light colors muddy.
+ */
+function capLightness(avatarColor: string, ceiling: string): string {
+  const avatar = hexToOklch(avatarColor);
+  const target = hexToOklch(ceiling).l;
+  return avatar.l <= target ? avatarColor : oklchToHex({...avatar, l: target});
 }
 
 /**
- * A gradient in the avatar's color. Its end color is never brighter than
- * `defaultGradient.end`, so text that reads on the default gradient still
- * reads on this one. Returns `defaultGradient` while the avatar has no usable
- * color, for example while an image avatar is still being sampled.
+ * A gradient in the avatar's tint, each stop no lighter than the
+ * matching stop of `defaultGradient`, so text that reads on the default
+ * gradient still reads on this one. Returns `defaultGradient` while the avatar
+ * has no tint (an image avatar still being sampled, or a neutral logo).
  */
 export function useAvatarGradient(
   avatar: BaseAvatarProps | undefined,
   defaultGradient: Gradient
 ): Gradient {
-  const avatarColors = useAvatarColors(avatar);
-  return avatarColors.type === 'none'
-    ? defaultGradient
-    : getAvatarGradient(avatarColors.dominant, defaultGradient.end);
+  const {tint} = useAvatarColors(avatar);
+  if (!tint) {
+    return defaultGradient;
+  }
+  return {
+    start: capLightness(tint, defaultGradient.start),
+    end: capLightness(tint, defaultGradient.end),
+  };
 }

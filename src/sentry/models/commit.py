@@ -57,6 +57,7 @@ class Commit(Model):
             models.Index(fields=("repository_id", "date_added")),
             models.Index(fields=("author", "date_added")),
             models.Index(fields=("organization_id", "date_added")),
+            models.Index(fields=("date_added", "id")),
         )
         unique_together = (
             ("repository_id", "key"),

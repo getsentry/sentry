@@ -5,7 +5,6 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 import responses
-from django.test import override_settings
 from responses import matchers
 
 from fixtures.vsts import (
@@ -340,7 +339,6 @@ class VstsWebhookWorkItemTest(APITestCase):
             assert len(Activity.objects.filter(group_id=group.id)) == 0
 
     @responses.activate
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     def test_status_change_sets_viewer_context(self) -> None:
         """ViewerContext is set with correct org_id and actor_type during status sync."""
         captured_contexts: list[ViewerContext | None] = []

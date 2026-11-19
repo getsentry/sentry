@@ -1,14 +1,21 @@
 import {useState} from 'react';
 
+import type {ChartLayersControlProps} from 'sentry/components/charts/chartLayersControl';
+import {t} from 'sentry/locale';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useDroppedDataDrawer} from './drawer/useDroppedDataDrawer';
 import {hasDroppedData} from './buckets';
 import type {DroppedDataFilterNoteProps} from './droppedDataFilterNote';
-import type {DroppedDataLayerControlProps} from './droppedDataLayerControl';
+import {datasetNoun, droppedDataLabel} from './outcomes';
 import type {DroppedDataProps} from './types';
 import {useDroppedData, type UseDroppedDataParams} from './useDroppedData';
+
+export const DROPPED_DATA_LAYER = 'dropped-data';
 
 const SUPPORTED_DATASETS = new Set<DiscoverDatasets>([
   DiscoverDatasets.ERRORS,
@@ -22,6 +29,7 @@ interface UseDroppedDataLayerParams extends UseDroppedDataParams {
 }
 
 interface UseDroppedDataLayerOptions {
+  source: DroppedDataAnalyticsSource;
   enabled?: boolean;
   hidden?: boolean;
 }
@@ -29,7 +37,8 @@ interface UseDroppedDataLayerOptions {
 interface DroppedDataLayer {
   band: DroppedDataProps | undefined;
   filterNote: Pick<DroppedDataFilterNoteProps, 'dataset' | 'environments'> | undefined;
-  layerControl: DroppedDataLayerControlProps | undefined;
+  isLoading: boolean;
+  layerControl: ChartLayersControlProps | undefined;
 }
 
 /**
@@ -38,13 +47,19 @@ interface DroppedDataLayer {
  */
 export function useDroppedDataLayer(
   {environments, ...params}: UseDroppedDataLayerParams,
-  {enabled = true, hidden = false}: UseDroppedDataLayerOptions = {}
+  {source, enabled = true, hidden = false}: UseDroppedDataLayerOptions
 ): DroppedDataLayer {
+  const organization = useOrganization();
   const {dataset} = params;
   const isEnabled = enabled && SUPPORTED_DATASETS.has(dataset);
-  const {droppedEvents, acceptedEvents} = useDroppedData(params, {enabled: isEnabled});
+  const {droppedEvents, acceptedEvents, isLoading} = useDroppedData(params, {
+    enabled: isEnabled,
+  });
   const [isLayerOn, setIsLayerOn] = useState(true);
-  const openDroppedDataDrawer = useDroppedDataDrawer(params, {enabled: isEnabled});
+  const openDroppedDataDrawer = useDroppedDataDrawer(params, {
+    source,
+    enabled: isEnabled,
+  });
 
   const isLoaded = isEnabled && defined(droppedEvents);
   const canShowDroppedData = isEnabled && hasDroppedData(droppedEvents, acceptedEvents);
@@ -55,12 +70,32 @@ export function useDroppedDataLayer(
       ? {dataset, droppedEvents, acceptedEvents, onClick: openDroppedDataDrawer}
       : undefined,
     filterNote: isBandShown ? {dataset, environments} : undefined,
+    isLoading: isEnabled && isLayerOn && !hidden && isLoading,
     layerControl: isLoaded
       ? {
-          dataset,
-          hasDroppedData: canShowDroppedData,
-          showDroppedData: isLayerOn,
-          onChange: setIsLayerOn,
+          layers: [
+            {
+              value: DROPPED_DATA_LAYER,
+              label: droppedDataLabel(dataset),
+              selected: canShowDroppedData && isLayerOn,
+              disabled: !canShowDroppedData,
+              tooltip: canShowDroppedData
+                ? undefined
+                : t(
+                    'No significant dropped %s in this time range',
+                    datasetNoun(dataset, 2)
+                  ),
+            },
+          ],
+          onChange: (_value, selected) => {
+            setIsLayerOn(selected);
+            trackAnalytics('explore.dropped_data.layer_toggled', {
+              organization,
+              dataset,
+              source,
+              selected,
+            });
+          },
         }
       : undefined,
   };

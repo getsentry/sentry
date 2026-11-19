@@ -21,6 +21,7 @@ import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {useAlwaysMatchesCaseDetails} from 'sentry/views/explore/caseInsensitivityDefault';
 import {ToolbarSection} from 'sentry/views/explore/components/toolbar/styles';
 import {useAddToDashboard} from 'sentry/views/explore/hooks/useAddToDashboard';
 import {useGetSavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
@@ -47,6 +48,7 @@ import {
   hasConditionalAggregateFilter,
   withReadableConditionalFilter,
 } from 'sentry/views/explore/utils/conditionalAggregate';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {getSaveAsAlertMenuItem} from 'sentry/views/explore/utils/saveAsAlertMenuItem';
 import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
 
@@ -77,6 +79,9 @@ export function ToolbarSaveAs() {
     () => dedupeArray(visualizeFunctions.map(v => v.yAxis)),
     [visualizeFunctions]
   );
+  const yAxes = visualizes.map(visualize => visualize.yAxis);
+  const {alert: alertCaseDetails, dashboard: dashboardCaseDetails} =
+    useAlwaysMatchesCaseDetails({query, yAxes, groupBys, mode});
 
   const sortBys = mode === Mode.SAMPLES ? sampleSortBys : aggregateSortBys;
 
@@ -98,7 +103,7 @@ export function ToolbarSaveAs() {
       // The monitor form has no way to express an `_if` filter and silently falls back
       // to its default aggregate when given one, so don't offer a monitor that would
       // not match the series.
-      disabled: hasConditionalAggregateFilter(yAxis),
+      disabled: hasConditionalAggregateFilter(yAxis) || isHeatMapAggregate(yAxis),
       to: getAlertsUrl({
         project,
         query,
@@ -163,9 +168,14 @@ export function ToolbarSaveAs() {
     },
   });
 
-  items.push(
-    getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations})
-  );
+  items.push({
+    ...getSaveAsAlertMenuItem({
+      alertsUrls,
+      submenu: true,
+      disabled: hasTransformations,
+    }),
+    details: alertCaseDetails,
+  });
 
   const chartOptions = useMemo(() => {
     return visualizes.map((visualize, index) => {
@@ -174,6 +184,7 @@ export function ToolbarSaveAs() {
       return {
         key: String(index),
         label: func ? prettifyParsedFunction(func) : visualize.yAxis,
+        disabled: isHeatMapAggregate(visualize.yAxis),
         onAction: () => {
           trackAnalytics('trace_explorer.save_as', {
             save_type: 'dashboard',
@@ -189,7 +200,9 @@ export function ToolbarSaveAs() {
   items.push({
     key: 'add-to-dashboard',
     textValue: t('Dashboard widget'),
+    details: dashboardCaseDetails,
     submenu: chartOptions.length > 1 ? true : false,
+    disabled: chartOptions.length === 1 && chartOptions[0]!.disabled,
     label: t('Dashboard widget'),
     children: chartOptions.length > 1 ? chartOptions : undefined,
     onAction: () => {
@@ -207,7 +220,7 @@ export function ToolbarSaveAs() {
   });
 
   const shouldHighlightSaveButton = useMemo(() => {
-    if (isLoadingSavedQuery || savedQuery === undefined || savedQuery?.isPrebuilt) {
+    if (isLoadingSavedQuery || !savedQuery || savedQuery.isPrebuilt) {
       return false;
     }
     // The non comparison trace explorer view only supports a single query

@@ -1,4 +1,3 @@
-import mimetypes
 from collections.abc import Mapping
 from datetime import datetime
 from typing import Annotated, TypedDict
@@ -8,7 +7,6 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers import Serializer, register
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.eventattachment import EventAttachment
-from sentry.models.files.file import File
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -56,10 +54,3 @@ class EventAttachmentSerializer(Serializer[EventAttachmentSerializerResponse]):
             "headers": headers,
             "sha1": None,
         }
-
-
-def get_mimetype(file: File) -> str:
-    rv = file.headers.get("Content-Type")
-    if rv:
-        return rv.split(";")[0].strip()
-    return mimetypes.guess_type(file.name)[0] or "application/octet-stream"

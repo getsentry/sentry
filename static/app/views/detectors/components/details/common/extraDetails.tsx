@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -36,7 +36,7 @@ DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
     <Fragment>
       <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
       <DescriptionList.Details>
-        <DateTime date={detector.dateCreated} dateOnly year />
+        <DateTime date={detector.dateCreated} mode="date" year="always" />
       </DescriptionList.Details>
     </Fragment>
   );

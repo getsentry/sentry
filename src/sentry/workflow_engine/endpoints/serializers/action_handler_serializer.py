@@ -7,6 +7,7 @@ from sentry.apidocs.formats import Uuid, uuid_str
 from sentry.constants import SentryAppStatusName
 from sentry.rules.actions.notify_event_service import PLUGINS_WITH_FIRST_PARTY_EQUIVALENTS
 from sentry.sentry_apps.api.serializers.response_schemas import alert_rule_settings_schema
+from sentry.sentry_apps.generated_schema_types import SentryAppAlertRuleSettings
 from sentry.workflow_engine.types import ActionHandler
 
 # The JSON Schema keywords that action handlers' config and data schemas use.
@@ -58,7 +59,7 @@ class SentryAppContext(TypedDict):
     status: Annotated[SentryAppStatusName, ApiDescription("Status of the Sentry app")]
     settings: NotRequired[
         Annotated[
-            dict[str, Any],
+            SentryAppAlertRuleSettings,
             ApiDescription(
                 "Settings form for the action, from the app's alert rule action component"
             ),

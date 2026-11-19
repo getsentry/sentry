@@ -26,8 +26,8 @@ class RedisQuota(Quota):
     grace = 60
 
     def __init__(self, **options: object):
-        self.is_redis_cluster, self.cluster, options = get_dynamic_cluster_from_options(
-            "SENTRY_QUOTA_OPTIONS", options
+        _, self.cluster, options = get_dynamic_cluster_from_options(
+            "SENTRY_QUOTA_OPTIONS", options, decode_responses=True
         )
 
         super().__init__(**options)

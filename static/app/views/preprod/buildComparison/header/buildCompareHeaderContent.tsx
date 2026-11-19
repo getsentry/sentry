@@ -6,8 +6,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -62,7 +61,8 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
   const isSentryEmployee = useIsSentryEmployee();
 
   const sizeInfo = buildDetails?.size_info;
-  const project = ProjectsStore.getBySlug(buildDetails?.project_slug);
+  const projectSlug = buildDetails?.project_slug;
+  const project = projectSlug ? ProjectsStore.getBySlug(projectSlug) : undefined;
   const headBuildPath = headArtifactId
     ? getSizeBuildPath({
         organizationSlug: organization.slug,
@@ -88,7 +88,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       label: headArtifactId,
       to: headBuildPath,
       leadingGraphic: project && (
-        <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+        <ProjectsBadge
+          projectPlatforms={project.platform ? [project.platform] : ['default']}
+        />
       ),
     });
   }
@@ -121,16 +123,20 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           label: t('Build size'),
           items: [
             {
-              type: 'text',
-              label: installStat.label,
-              labelTooltip: installStat.tooltip,
+              label: {
+                type: 'text',
+                content: installStat.label,
+                tooltip: installStat.tooltip,
+              },
               value: formattedPrimaryMetricInstallSize(sizeInfo),
               isLoading,
             },
             {
-              type: 'text',
-              label: t('Bytes Transferred'),
-              labelTooltip: t('Over the network'),
+              label: {
+                type: 'text',
+                content: t('Bytes Transferred'),
+                tooltip: t('Over the network'),
+              },
               value: formattedPrimaryMetricDownloadSize(sizeInfo),
               isLoading,
             },
@@ -156,15 +162,7 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
         }}
         items={breadcrumbItems}
       />
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={buildCompareFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={buildCompareFeedbackOptions} />
       <BuildEntityHeader
         appInfo={buildDetails?.app_info}
         projectSlug={buildDetails?.project_slug ?? ''}

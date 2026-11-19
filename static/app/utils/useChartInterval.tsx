@@ -115,14 +115,14 @@ export function useChartInterval({
     timeRangeInHours,
   ]);
 
-  const setInterval = useCallback(
+  const setChartInterval = useCallback(
     (newInterval: string) => {
       setUrlInterval(newInterval, {history: 'push'});
     },
     [setUrlInterval]
   );
 
-  return [interval, setInterval, intervalOptions];
+  return [interval, setChartInterval, intervalOptions];
 }
 
 const ALL_INTERVAL_OPTIONS = [

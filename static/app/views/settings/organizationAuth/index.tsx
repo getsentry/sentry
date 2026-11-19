@@ -1,12 +1,12 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {AuthProvider} from 'sentry/types/auth';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {OrganizationAuthList} from './organizationAuthList';
@@ -18,27 +18,21 @@ function OrganizationAuth() {
     data: providerList,
     isLoading: loadingProviders,
     error: errorProviders,
-  } = useApiQuery<AuthProvider[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/auth-providers/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {staleTime: 0}
+  } = useQuery(
+    apiOptions.as<AuthProvider[]>()(
+      '/organizations/$organizationIdOrSlug/auth-providers/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
   const {
     data: provider,
     isLoading: loadingProvider,
     error: errorProvider,
-  } = useApiQuery<AuthProvider>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/auth-provider/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<AuthProvider>()('/organizations/$organizationIdOrSlug/auth-provider/', {
+      path: {organizationIdOrSlug: organization.slug},
       staleTime: 0,
-    }
+    })
   );
 
   const shouldRedirectToProvider = provider && organization.access.includes('org:write');

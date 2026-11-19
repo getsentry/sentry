@@ -1,5 +1,5 @@
 import {Fragment, useEffect} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -11,9 +11,7 @@ import type {
   ServerlessFunction,
 } from 'sentry/types/integrations';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {IntegrationServerlessRow} from './integrationServerlessRow';
@@ -31,21 +29,20 @@ export function IntegrationServerlessFunctions({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const queryKey: ApiQueryKey = [
-    getApiUrl(
-      '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
-      {
-        path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
-      }
-    ),
-  ];
+  const queryOptions = apiOptions.as<ServerlessFunction[]>()(
+    '/organizations/$organizationIdOrSlug/integrations/$integrationId/serverless-functions/',
+    {
+      path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
+      staleTime: 0,
+    }
+  );
   const {
     data: serverlessFunctions = [],
     isError,
     isPending,
     isSuccess,
     refetch,
-  } = useApiQuery<ServerlessFunction[]>(queryKey, {staleTime: 0});
+  } = useQuery(queryOptions);
 
   useEffect(() => {
     if (isSuccess) {
@@ -64,7 +61,7 @@ export function IntegrationServerlessFunctions({
       <Alert.Container>
         <Alert variant="info" showIcon={false}>
           {t(
-            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
+            'Manage your AWS Lambda Event Functions below. Only Node and Python runtimes are currently supported.'
           )}
         </Alert>
       </Alert.Container>
@@ -96,22 +93,24 @@ export function IntegrationServerlessFunctions({
               serverlessFunction={serverlessFn}
               integration={integration}
               onUpdate={(update: Partial<ServerlessFunction>) => {
-                setApiQueryData<ServerlessFunction[]>(
-                  queryClient,
-                  queryKey,
-                  existingServerlessFunctions => {
-                    if (!existingServerlessFunctions) {
-                      return;
-                    }
-                    const newServerlessFunctions = [...existingServerlessFunctions];
-                    const updatedFunction = {
-                      ...newServerlessFunctions[i]!,
-                      ...update,
-                    };
-                    newServerlessFunctions[i] = updatedFunction;
-                    return newServerlessFunctions;
+                queryClient.setQueryData(queryOptions.queryKey, previous => {
+                  const existingServerlessFunctions = previous?.json;
+
+                  if (!existingServerlessFunctions) {
+                    return previous;
                   }
-                );
+                  const newServerlessFunctions = [...existingServerlessFunctions];
+                  const updatedFunction = {
+                    ...newServerlessFunctions[i]!,
+                    ...update,
+                  };
+                  newServerlessFunctions[i] = updatedFunction;
+                  return {
+                    ...previous,
+                    headers: previous?.headers ?? {},
+                    json: newServerlessFunctions,
+                  };
+                });
               }}
             />
           ))

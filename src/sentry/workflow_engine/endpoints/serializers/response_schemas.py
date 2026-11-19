@@ -11,6 +11,7 @@ property without a description fails `make build-api-docs`.
 
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.apidocs.json_schemas import to_response_schema, union_schema
@@ -94,12 +95,50 @@ _CONDITION_DESCRIPTIONS: dict[str, dict[str, str]] = {
     },
 }
 # Operator conditions, such as gt or eq on a monitor, compare against a plain value.
-_OPERATOR_COMPARISONS = [{"type": "number"}, {"type": "string"}, {"type": "boolean"}]
+OPERATOR_COMPARISON_SCHEMA = {
+    "anyOf": [{"type": "number"}, {"type": "string"}, {"type": "boolean"}]
+}
 
 _ACTION_CONFIG_DESCRIPTIONS = {
     "target_type": "Kind of target the action notifies, such as specific, user or team",
     "target_identifier": "ID of the target, such as a channel, user or team ID",
     "target_display": "Display name of the target, such as a channel name",
+}
+
+_ACTION_DATA_DESCRIPTIONS = {
+    "settings": "Values of the Sentry App's alert rule settings form, each with a name and value",
+    "additional_fields.repo": "Repository to create the issue in, as owner/name",
+    "additional_fields.labels": "Labels to add to the issue",
+    "additional_fields.assignee": "User to assign the issue to",
+}
+
+# The data schemas leave these open. The ticket rule form and the legacy alert rule
+# actions that actions are migrated from pin them down, so the API schema does too.
+_TICKET_FORM_FIELD: dict[str, Any] = {
+    "type": "object",
+    "description": "A field of the ticket form, as the integration's issue config defines it",
+    "properties": {
+        "name": {"type": "string", "description": "Name of the field"},
+        "label": {"type": "string", "description": "Label of the field"},
+        "type": {"type": "string", "description": "Type of the field, such as select or text"},
+    },
+}
+_TICKET_FIELD_VALUE: dict[str, Any] = {
+    "anyOf": [
+        # Validators ignore `nullable` next to `anyOf`, so it sits on a branch.
+        {"type": "string", "nullable": True},
+        {"type": "number"},
+        {"type": "boolean"},
+        {"type": "array", "items": {"anyOf": [{"type": "string"}, {"type": "number"}]}},
+    ],
+    "description": "Value of the ticket form field with this name",
+}
+# Plugin and webhook actions have no data schema. They keep the string settings of the
+# legacy rule action they were migrated from, if any.
+_LEGACY_ACTION_DATA: dict[str, Any] = {
+    "type": "object",
+    "description": "Settings of the legacy alert rule action the action was migrated from",
+    "additionalProperties": {"type": "string"},
 }
 
 _DETECTOR_CONFIG_DESCRIPTIONS: dict[str, dict[str, str]] = {
@@ -124,69 +163,136 @@ _ERROR_DETECTOR_OPTIONS: dict[str, dict[str, Any]] = {
         "description": "Hours of inactivity after which the project's issues resolve. 0 to never",
     },
 }
-_EMPTY_CONFIG = {
+EMPTY_DETECTOR_CONFIG_SCHEMA = {
     "type": "object",
     "maxProperties": 0,
     "description": "Empty for monitor types without configuration",
 }
 
 
-def condition_comparison_schema() -> dict[str, Any]:
+def condition_comparison_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every registered condition handler's comparison JSON Schema, by condition type."""
     from sentry.workflow_engine.registry import condition_handler_registry
 
-    handlers = sorted(condition_handler_registry.registrations.items())
+    return [
+        (str(name), handler.comparison_json_schema)
+        for name, handler in sorted(condition_handler_registry.registrations.items())
+    ]
+
+
+def action_config_sources(*, api: bool) -> list[tuple[str, Mapping[str, Any]]]:
+    """
+    Every registered action handler's config JSON Schema, by action type. With `api`, the
+    schema of the config the API returns, which the handler's config transformer defines.
+    """
+    from sentry.workflow_engine.registry import action_handler_registry
+
+    sources: list[tuple[str, Mapping[str, Any]]] = []
+    for action_type, handler in sorted(action_handler_registry.registrations.items()):
+        transformer = handler.get_config_transformer() if api else None
+        sources.append(
+            (str(action_type), transformer.api_schema if transformer else handler.config_schema)
+        )
+    return sources
+
+
+def action_data_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every registered action handler's data JSON Schema, by action type."""
+    from sentry.workflow_engine.registry import action_handler_registry
+
+    return [
+        (str(action_type), handler.data_schema)
+        for action_type, handler in sorted(action_handler_registry.registrations.items())
+    ]
+
+
+def detector_config_sources() -> list[tuple[str, Mapping[str, Any]]]:
+    """Every detector type's config JSON Schema, by group type slug."""
+    from sentry.issues.grouptype import registry
+
+    sources: list[tuple[str, Mapping[str, Any]]] = []
+    for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
+        settings = group_type.detector_settings
+        if settings is not None and settings.config_schema:
+            sources.append((group_type.slug, settings.config_schema))
+    return sources
+
+
+def error_detector_options_schema() -> dict[str, Any]:
+    """The project options that error detectors serialize instead of their own config."""
+    from sentry.workflow_engine.models import Detector
+
+    options = {
+        option: _ERROR_DETECTOR_OPTIONS[option]
+        for option in Detector.error_detector_project_options.values()
+    }
+    return {"type": "object", "properties": options, "additionalProperties": False}
+
+
+def condition_comparison_schema() -> dict[str, Any]:
     return union_schema(
         [
-            *_OPERATOR_COMPARISONS,
+            OPERATOR_COMPARISON_SCHEMA,
             *(
                 to_response_schema(
-                    handler.comparison_json_schema,
-                    descriptions=_CONDITION_DESCRIPTIONS.get(str(name), {}),
+                    schema,
+                    descriptions=_CONDITION_DESCRIPTIONS.get(name, {}),
                     camel_case=True,
                 )
-                for name, handler in handlers
+                for name, schema in condition_comparison_sources()
             ),
         ]
     )
 
 
 def action_config_schema() -> dict[str, Any]:
-    from sentry.workflow_engine.registry import action_handler_registry
+    return union_schema(
+        to_response_schema(schema, descriptions=_ACTION_CONFIG_DESCRIPTIONS, camel_case=True)
+        for _, schema in action_config_sources(api=True)
+    )
 
-    schemas = []
-    for _, handler in sorted(action_handler_registry.registrations.items()):
-        transformer = handler.get_config_transformer()
-        source = transformer.api_schema if transformer else handler.config_schema
-        schemas.append(
-            to_response_schema(source, descriptions=_ACTION_CONFIG_DESCRIPTIONS, camel_case=True)
+
+def _pin_open_action_data(schema: dict[str, Any]) -> dict[str, Any]:
+    if not schema:
+        return _LEGACY_ACTION_DATA
+    properties = schema.get("properties", {})
+    if "dynamicFormFields" in properties:
+        properties["dynamicFormFields"] = {
+            **properties["dynamicFormFields"],
+            "items": _TICKET_FORM_FIELD,
+        }
+    additional_fields = properties.get("additionalFields")
+    if additional_fields is not None and not additional_fields.get("properties"):
+        properties["additionalFields"] = {
+            **additional_fields,
+            "additionalProperties": _TICKET_FIELD_VALUE,
+        }
+    return schema
+
+
+def action_data_schema() -> dict[str, Any]:
+    return union_schema(
+        _pin_open_action_data(
+            to_response_schema(schema, descriptions=_ACTION_DATA_DESCRIPTIONS, camel_case=True)
         )
-    return union_schema(schemas)
+        for _, schema in action_data_sources()
+    )
 
 
 def detector_config_schema() -> dict[str, Any]:
     from sentry.grouping.grouptype import ErrorGroupType
-    from sentry.issues.grouptype import registry
-    from sentry.workflow_engine.models import Detector
 
-    error_options = {
-        option: _ERROR_DETECTOR_OPTIONS[option]
-        for option in Detector.error_detector_project_options.values()
-    }
     schemas = [
-        _EMPTY_CONFIG,
-        to_response_schema(
-            {"type": "object", "properties": error_options, "additionalProperties": False},
-            camel_case=True,
-        ),
+        EMPTY_DETECTOR_CONFIG_SCHEMA,
+        to_response_schema(error_detector_options_schema(), camel_case=True),
     ]
-    for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
-        settings = group_type.detector_settings
-        if group_type is ErrorGroupType or settings is None or not settings.config_schema:
+    for slug, schema in detector_config_sources():
+        if slug == ErrorGroupType.slug:
             continue
         schemas.append(
             to_response_schema(
-                settings.config_schema,
-                descriptions=_DETECTOR_CONFIG_DESCRIPTIONS.get(group_type.slug, {}),
+                schema,
+                descriptions=_DETECTOR_CONFIG_DESCRIPTIONS.get(slug, {}),
                 camel_case=True,
             )
         )

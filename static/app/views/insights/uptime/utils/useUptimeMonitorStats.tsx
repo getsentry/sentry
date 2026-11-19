@@ -1,6 +1,7 @@
+import {useQuery} from '@tanstack/react-query';
+
 import type {TimeWindowConfig} from 'sentry/components/checkInTimeline/types';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {CheckStatusBucket} from 'sentry/views/detectors/components/uptime/types';
 
@@ -32,21 +33,15 @@ export function useUptimeMonitorStats({detectorIds, timeWindowConfig}: Options) 
 
   const organization = useOrganization();
 
-  return useApiQuery<Result>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/uptime-stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        query: {
-          uptimeDetectorId: detectorIds,
-          ...selectionQuery,
-        },
+  return useQuery({
+    ...apiOptions.as<Result>()('/organizations/$organizationIdOrSlug/uptime-stats/', {
+      path: {organizationIdOrSlug: organization.slug},
+      query: {
+        uptimeDetectorId: detectorIds,
+        ...selectionQuery,
       },
-    ],
-    {
       staleTime: 0,
-      enabled: rollupConfig.totalBuckets > 0,
-    }
-  );
+    }),
+    enabled: rollupConfig.totalBuckets > 0,
+  });
 }

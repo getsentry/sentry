@@ -145,6 +145,9 @@ class GroupActivitySchemaTest(TestCase):
             ActivityType.SEER_PR_READY_FOR_REVIEW: [
                 {"run_id": 1, "pull_requests": SEER_PULL_REQUESTS}
             ],
+            ActivityType.SEER_STOPPED: [
+                {"run_id": 1, "reason": "The API key expired.", "suggestion": "Rotate the key."}
+            ],
             ActivityType.SEER_ITERATION_STARTED: [{"run_id": 1, "referrer": "slack"}],
             ActivityType.SEER_ITERATION_COMPLETED: [
                 {"run_id": 1, "iteration_index": 2, "pull_requests": SEER_PULL_REQUESTS}
@@ -178,6 +181,14 @@ class GroupActivitySchemaTest(TestCase):
                     {"reference": "event", "claim": "The request failed.", "source": "event"}
                 ],
                 "source_event_id": EVENT_ID,
+            },
+            GroupActionType.INVESTIGATION_LINKED: {
+                "notebook_id": self.create_notebook(
+                    organization=self.organization, title="Checkout latency"
+                ).id,
+                "hypothesis_id": "h-1",
+                "hypothesis_statement": "Payment retries exhaust the pool",
+                "reason": "Its timeouts start with the deploy.",
             },
         }
 

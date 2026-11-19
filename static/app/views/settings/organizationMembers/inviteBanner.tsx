@@ -7,6 +7,7 @@ import {IconMail} from '@sentry/icons/mail';
 import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {InfoTip} from '@sentry/scraps/info';
@@ -19,7 +20,6 @@ import {openInviteMissingMembersModal} from 'sentry/actionCreators/modal';
 import {promptsCheck, promptsUpdate} from 'sentry/actionCreators/prompts';
 import {Card} from 'sentry/components/card';
 import {Carousel} from 'sentry/components/carousel';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {FloatingFeedbackButton} from 'sentry/components/feedbackButton/floatingFeedbackButton';
 import {t, tct} from 'sentry/locale';
 import type {MissingMember, OrgRole} from 'sentry/types/organization';

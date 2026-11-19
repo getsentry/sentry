@@ -1,15 +1,33 @@
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from enum import StrEnum
+from typing import Literal
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+    SeerBillingFeature,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsRequest,
+    CheckSeerCreditsResponse,
 )
 
 from sentry import features, seer_credit
 from sentry.models.organization import Organization
+
+# Seer's failure_reason and pr_creation_error_code when the org ran out of credits.
+OUT_OF_CREDITS = "out_of_credits"
+
+
+SeerCreditDenialReason = Literal["not_enough_credits", "daily_cap_exceeded"]
+
+# Unspecified and unknown reasons map to None, so a reason added to the proto
+# before this mapping doesn't leak an enum name into the API.
+_DENIAL_REASONS: dict[CheckSeerCreditsResponse.DenialReason.ValueType, SeerCreditDenialReason] = {
+    CheckSeerCreditsResponse.DENIAL_REASON_NOT_ENOUGH_CREDITS: "not_enough_credits",
+    CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED: "daily_cap_exceeded",
+}
 
 
 class SeerOperation(StrEnum):
@@ -19,61 +37,66 @@ class SeerOperation(StrEnum):
     AUTOFIX_CODE_CHANGES = "autofix_code_changes"
     AUTOFIX_OPEN_PR = "autofix_open_pr"
     AUTOFIX_PR_ITERATION = "autofix_pr_iteration"
+    AUTOFIX_SINGLE_RUN_REPLY = "autofix_single_run_reply"
 
 
-class SeerFeature(StrEnum):
-    """Seer features as tagged on LLM proxy calls, which billing maps to data categories."""
-
-    AUTOFIX = "autofix"
-    EXPLORER = "explorer"
-
-
-@dataclass(frozen=True)
-class SeerOperationConfig:
-    feature: SeerFeature
-    estimate: Callable[[], int]
-
-
-# TODO(CW-2314): Fake value until we have real estimates.
-PLACEHOLDER_CREDIT_ESTIMATE = 100
+def billing_feature_label(feature: int) -> str:
+    """
+    The label LLM proxy usage and billing use for a SeerBillingFeature value: the enum name,
+    lowercased, without its prefix. Missing attribution is "unattributed", like the LLM proxy.
+    """
+    if feature == SEER_BILLING_FEATURE_UNSPECIFIED:
+        return "unattributed"
+    return (
+        SeerBillingFeature.Name(SeerBillingFeature.ValueType(feature))
+        .removeprefix("SEER_BILLING_FEATURE_")
+        .lower()
+    )
 
 
-SEER_OPERATIONS: dict[SeerOperation, SeerOperationConfig] = {
-    SeerOperation.AGENT_CHAT_MESSAGE: SeerOperationConfig(
-        SeerFeature.EXPLORER, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_ROOT_CAUSE: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_SOLUTION: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_CODE_CHANGES: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_OPEN_PR: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
-    SeerOperation.AUTOFIX_PR_ITERATION: SeerOperationConfig(
-        SeerFeature.AUTOFIX, lambda: PLACEHOLDER_CREDIT_ESTIMATE
-    ),
+# Credits an operation is expected to use, about the p90 of what one costs. A credit is one cent.
+# The operation sets the estimate. Callers pass the feature, since an operation can run under
+# more than one feature.
+SEER_OPERATION_ESTIMATES: dict[SeerOperation, Callable[[], int]] = {
+    SeerOperation.AGENT_CHAT_MESSAGE: lambda: 40,
+    SeerOperation.AUTOFIX_ROOT_CAUSE: lambda: 75,
+    SeerOperation.AUTOFIX_SOLUTION: lambda: 45,
+    SeerOperation.AUTOFIX_CODE_CHANGES: lambda: 75,
+    SeerOperation.AUTOFIX_OPEN_PR: lambda: 15,
+    SeerOperation.AUTOFIX_PR_ITERATION: lambda: 90,
+    # TODO(CW-3067): No cost data for single runs yet. A reply is one more turn on a run that
+    # already has code, like a PR iteration, so it uses the same estimate.
+    SeerOperation.AUTOFIX_SINGLE_RUN_REPLY: lambda: 90,
 }
 
 
-def can_run_seer_operation(organization: Organization, operation: SeerOperation) -> bool:
-    """Whether the organization is token-billed and has enough Seer credits to run the operation."""
-    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
-        "organizations:token-billed-seer-enabled", organization
-    ):
-        return True
-
-    config = SEER_OPERATIONS[operation]
-    response = seer_credit.backend.check_seer_credits(
+def _check_seer_credits(
+    organization: Organization, feature: int, operation: SeerOperation
+) -> CheckSeerCreditsResponse:
+    return seer_credit.backend.check_seer_credits(
         CheckSeerCreditsRequest(
             organization_id=organization.id,
-            feature_id=config.feature.value,
-            predicted_credit_usage=config.estimate(),
+            feature_id=billing_feature_label(feature),
+            predicted_credit_usage=SEER_OPERATION_ESTIMATES[operation](),
             take_lease=False,
         )
     )
-    return response.has_enough_credits
+
+
+def check_seer_operation(
+    organization: Organization, feature: int, operation: SeerOperation
+) -> CheckSeerCreditsResponse:
+    """Checks whether the organization is token-billed and has enough Seer credits to run the operation."""
+    if not features.has("organizations:token-billed-seer-enabled", organization):
+        return CheckSeerCreditsResponse(has_enough_credits=True)
+    return _check_seer_credits(organization, feature, operation)
+
+
+def can_run_seer_operation(
+    organization: Organization, feature: int, operation: SeerOperation
+) -> bool:
+    return check_seer_operation(organization, feature, operation).has_enough_credits
+
+
+def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialReason | None:
+    return _DENIAL_REASONS.get(response.denial_reason)

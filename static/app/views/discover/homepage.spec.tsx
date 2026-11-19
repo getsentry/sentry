@@ -178,7 +178,7 @@ describe('Discover > Homepage', () => {
     expect(screen.queryByText(/Last edited:/)).not.toBeInTheDocument();
   });
 
-  it('shows the Remove Default button on initial load', async () => {
+  it('removes the saved default from the homepage', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/discover/homepage/`,
       method: 'GET',
@@ -224,6 +224,31 @@ describe('Discover > Homepage', () => {
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: 'Set as Default'})
+    ).not.toBeInTheDocument();
+
+    const homepageUrl = `/organizations/${organization.slug}/discover/homepage/`;
+    const removeDefault = MockApiClient.addMockResponse({
+      url: homepageUrl,
+      method: 'DELETE',
+      statusCode: 204,
+    });
+    const emptyHomepage = MockApiClient.addMockResponse({
+      url: homepageUrl,
+      method: 'GET',
+      statusCode: 204,
+    });
+
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Remove Default'}));
+    await waitFor(() => expect(removeDefault).toHaveBeenCalled());
+    await waitFor(() => expect(emptyHomepage).toHaveBeenCalled());
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Discover Context Menu'})
+    );
+    expect(
+      await screen.findByRole('menuitemradio', {name: 'Set as Default'})
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('menuitemradio', {name: 'Remove Default'})
     ).not.toBeInTheDocument();
   });
 
