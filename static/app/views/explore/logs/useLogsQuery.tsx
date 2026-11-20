@@ -3,7 +3,7 @@ import type {QueryClient} from '@tanstack/react-query';
 import {useInfiniteQuery, useQueryClient} from '@tanstack/react-query';
 
 import {apiFetch, type ApiResponse} from 'sentry/utils/api/apiFetch';
-import {parseQueryKey, type QueryKeyEndpointOptions} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
@@ -66,11 +66,12 @@ export function useInfiniteLogsQuery({
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {isReady: querySpeedReady} = useExploreQuerySpeed();
 
-  const {infiniteApiOptions: anchoredApiOptions} = useLogsApiOptionsWithInfinite({
-    referrer: _referrer,
-    autoRefresh: false,
-    highAccuracy: true,
-  });
+  const {infiniteApiOptions: anchoredApiOptions, pageApiOptions: anchoredPageApiOptions} =
+    useLogsApiOptionsWithInfinite({
+      referrer: _referrer,
+      autoRefresh: false,
+      highAccuracy: true,
+    });
   const {anchor, anchorToLog, clearAnchor} = useLogAnchor({
     autoRefresh,
     queryKey: anchoredApiOptions.queryKey,
@@ -78,12 +79,13 @@ export function useInfiniteLogsQuery({
 
   highFidelity = anchor ? false : highFidelity;
 
-  const {infiniteApiOptions: baseApiOptions, other} = useLogsApiOptionsWithInfinite({
-    referrer: _referrer,
-    autoRefresh,
-    highFidelity,
-  });
+  const {
+    infiniteApiOptions: baseApiOptions,
+    pageApiOptions: basePageApiOptions,
+    other,
+  } = useLogsApiOptionsWithInfinite({referrer: _referrer, autoRefresh, highFidelity});
   const infiniteApiOptions = anchor ? anchoredApiOptions : baseApiOptions;
+  const pageApiOptions = anchor ? anchoredPageApiOptions : basePageApiOptions;
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;
   const queryClient = useQueryClient();
 
@@ -118,39 +120,31 @@ export function useInfiniteLogsQuery({
   const queryResult = useInfiniteQuery({
     queryKey: queryKeyWithInfinite,
     queryFn: async ({pageParam, queryKey, client, signal, meta}) => {
-      const {url, options: baseOptions} = parseQueryKey(queryKey);
+      const {options: baseOptions} = parseQueryKey(queryKey);
 
-      // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
+      // Fetch each page with a non-infinite key — we drive pagination via
       // the query body, not via Link cursors, so we don't need apiFetchInfinite.
       const fetchContext = {client, signal, meta};
 
       async function fetchPage(param: LogPageParam) {
         let response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
-          queryKey: [
-            url,
-            {...baseOptions, query: getParamBasedQuery(baseOptions?.query, param)},
-            {infinite: false},
-          ],
+          queryKey: pageApiOptions(getParamBasedQuery(baseOptions.query, param)).queryKey,
         });
 
         if (
           !response.json?.data?.length && // no matches found
           response.json?.meta?.dataScanned === 'partial' && // partial scan performed
-          !baseOptions?.data?.highFidelity && // not high fidelity mode
-          baseOptions?.query?.sampling !== SAMPLING_MODE.LOW_PRIORITY
+          !baseOptions.data?.highFidelity && // not high fidelity mode
+          baseOptions.query?.sampling !== SAMPLING_MODE.LOW_PRIORITY
         ) {
-          const retryOptions: QueryKeyEndpointOptions = {
-            ...baseOptions,
-            query: {...baseOptions?.query, sampling: SAMPLING_MODE.HIGH_ACCURACY},
+          const retryQuery = {
+            ...baseOptions.query,
+            sampling: SAMPLING_MODE.HIGH_ACCURACY,
           };
           response = await apiFetch<EventsLogsResult>({
             ...fetchContext,
-            queryKey: [
-              url,
-              {...retryOptions, query: getParamBasedQuery(retryOptions.query, param)},
-              {infinite: false},
-            ],
+            queryKey: pageApiOptions(getParamBasedQuery(retryQuery, param)).queryKey,
           });
         }
 

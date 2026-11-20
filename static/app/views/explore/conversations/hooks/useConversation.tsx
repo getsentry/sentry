@@ -66,6 +66,7 @@ export interface ConversationApiSpan {
   'gen_ai.request.model'?: string;
   'gen_ai.response.model'?: string;
   'gen_ai.response.object'?: string;
+  'gen_ai.system_instructions'?: string;
   'gen_ai.tool.call.arguments'?: string;
   'gen_ai.tool.call.result'?: string;
   'gen_ai.tool.call.result.size'?: number | null;
@@ -229,6 +230,8 @@ function createNodeFromApiSpan(
       }),
       [SpanFields.GEN_AI_OUTPUT_MESSAGES]: apiSpan['gen_ai.output.messages'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_OBJECT]: apiSpan['gen_ai.response.object'] ?? '',
+      [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]:
+        apiSpan['gen_ai.system_instructions'] ?? '',
       [SpanFields.GEN_AI_REQUEST_MODEL]: apiSpan['gen_ai.request.model'] ?? '',
       [SpanFields.GEN_AI_RESPONSE_MODEL]: apiSpan['gen_ai.response.model'] ?? '',
       [SpanFields.GEN_AI_AGENT_NAME]: apiSpan['gen_ai.agent.name'] ?? '',

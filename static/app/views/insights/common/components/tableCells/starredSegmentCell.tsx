@@ -47,7 +47,11 @@ export function StarredSegmentCell({
 
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
-      {queryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
+      {
+        // Discover tables put the key first, dashboard widgets put it after the api key
+        predicate: query =>
+          STARRED_SEGMENT_TABLE_QUERY_KEY.every(part => query.queryKey.includes(part)),
+      },
       (oldResponse: TableResponse | any): TableResponse | any => {
         if (!oldResponse) {
           return oldResponse;

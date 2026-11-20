@@ -315,13 +315,12 @@ export default function IntegrationDetailedView() {
             integrationSlug,
           }).queryKey,
         });
-        queryClient.invalidateQueries({
-          queryKey: [
-            getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-              path: {organizationIdOrSlug: organization.slug},
-            }),
-          ],
-        });
+        queryClient.invalidateQueries(
+          apiOptions.queryFilter(
+            '/organizations/$organizationIdOrSlug/config/integrations/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          )
+        );
       }
       navigate(
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`

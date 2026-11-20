@@ -51,7 +51,7 @@ export function useTraceRootEvent({
       {
         path: {
           organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projectSlug!,
+          projectIdOrSlug: String(projectSlug),
           eventId: rep?.event?.id!,
         },
         query: {referrer: 'trace-details-summary'},

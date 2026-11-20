@@ -5,6 +5,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {TagCollection} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -75,10 +76,11 @@ function isProjectArray(
   return projects.length > 0 && typeof projects[0] === 'object';
 }
 
-function getAttributeScopeHash([url, options]: ApiQueryKey) {
+function getAttributeScopeHash(queryKey: ApiQueryKey) {
+  const {url, options} = parseQueryKey(queryKey);
   return hashKey([
     url,
-    {...options, query: {...options?.query, substringMatch: undefined}},
+    {...options, query: {...options.query, substringMatch: undefined}},
   ]);
 }
 

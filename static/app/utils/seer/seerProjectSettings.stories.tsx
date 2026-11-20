@@ -24,7 +24,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
@@ -315,7 +315,7 @@ export default Storybook.story('SeerProjectSettings', story => {
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => item.projectId) ?? []}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <Stack gap="xl">
           <Flex as="label" gap="md" htmlFor="showFormatted">

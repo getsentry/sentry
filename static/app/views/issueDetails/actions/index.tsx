@@ -55,7 +55,7 @@ import {discardIssueMutationOptions} from 'sentry/views/issueDetails/discardIssu
 import {Divider} from 'sentry/views/issueDetails/divider';
 import {GroupPriorityCommandPaletteAction} from 'sentry/views/issueDetails/groupPriority';
 import {GroupHeaderAssigneeCommandPaletteAction} from 'sentry/views/issueDetails/header/assigneeSelector';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {useProjectReleaseVersionIsSemver} from 'sentry/views/issueDetails/useProjectReleaseVersionIsSemver';
 import {
   getGroupReprocessingStatus,
@@ -351,9 +351,9 @@ export function GroupActions({
       // GroupStore already shows the error
       // oxlint-disable-next-line react/todo
     } finally {
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId: group.id}),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
+      );
     }
   };
 
