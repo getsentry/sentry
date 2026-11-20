@@ -18,6 +18,9 @@ if TYPE_CHECKING:
     from sentry_sdk._types import Event as SentryEvent
     from sentry_sdk._types import LogLevelStr
 
+# proj-thread-leaks
+THREAD_LEAK_DSN = "https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760"
+
 
 @functools.cache
 def get_scope() -> sentry_sdk.scope.Scope:
@@ -44,8 +47,7 @@ def get_scope() -> sentry_sdk.scope.Scope:
         environment = "local"
 
     client = sentry_sdk.Client(
-        # proj-thread-leaks
-        dsn="https://447e81e71c1aa0da0d52f3eaba37a703@o1.ingest.us.sentry.io/4509798820085760",
+        dsn=THREAD_LEAK_DSN,
         environment=environment,
     )
 
