@@ -73,8 +73,7 @@ export function useTraceMetricsVisualizeModeState({
   disabled = false,
 }: {
   /**
-   * When the unified visualize list is on there is no equation mode; the hook
-   * then always reports series mode and ignores toggles.
+   * The unified list has no equation mode; toggles are ignored.
    */
   disabled?: boolean;
 } = {}): TraceMetricsVisualizeModeState {

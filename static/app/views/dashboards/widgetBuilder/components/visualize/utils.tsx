@@ -324,8 +324,7 @@ export function FieldRow(props: FlexProps) {
 }
 
 /**
- * The delete button at the end of a visualize row. `disabledReason` shows as a
- * tooltip while the button is disabled.
+ * Row delete button. `disabledReason` shows as a tooltip while disabled.
  */
 export function DeleteFieldButton({
   disabled,

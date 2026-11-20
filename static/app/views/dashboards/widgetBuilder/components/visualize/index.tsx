@@ -141,8 +141,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
   // radio selection, mirroring Big Number.
   const isHeatmapWidget = state.displayType === DisplayType.HEATMAP;
 
-  // Behind the flag, trace metrics widgets list aggregates and equations side
-  // by side and there is no Series / Equation toggle.
+  // Behind the flag, aggregates and equations share one list with no mode toggle.
   const isUnifiedTraceMetrics =
     state.dataset === WidgetType.TRACEMETRICS &&
     hasUnifiedTraceMetricsVisualize(organization);
@@ -238,8 +237,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
 
   const datasetConfig = useMemo(() => getDatasetConfig(state.dataset), [state.dataset]);
 
-  // Heat maps never take equations. Other trace metrics widgets take them in
-  // the unified list.
+  // Heat maps do not support equations.
   const enableEquations =
     datasetConfig.enableEquations || (isUnifiedTraceMetrics && !isHeatmapWidget);
 
@@ -485,9 +483,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     MAX_METRICS_ALLOWED
   );
 
-  // The row model behind the unified trace metrics list. Rows keep stable
-  // letters across reorders, hiding and edits; the builder fields are derived
-  // from them.
+  // Row model for the unified list. Letters stay with their rows; the builder
+  // fields are derived from it.
   const unifiedRows = useUnifiedTraceMetricRows({
     enabled: isUnifiedTraceMetrics,
     fields: fields ?? [],
@@ -496,8 +493,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     dispatch,
   });
 
-  // Hidden rows are not sortable items. They render above the field at
-  // `anchorIndex`, or after the last field.
+  // Hidden rows render above the field at `anchorIndex`, or after the last one.
   const renderHiddenRows = (anchorIndex: number, indent: boolean) =>
     isUnifiedTraceMetrics
       ? (unifiedRows.hiddenRowsByAnchor.get(anchorIndex)?.map(row => (
@@ -594,8 +590,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         fieldItem => fieldItem.kind === FieldValueKind.EQUATION
                       ) &&
                       // Spans and trace metrics can have a single equation, so this rule
-                      // does not apply to them. Trace metric equations carry their
-                      // aggregates inline. The errors dataset requires one series to be
+                      // does not apply. The errors dataset requires one series to be
                       // selected for equations to work.
                       state.dataset !== WidgetType.SPANS &&
                       state.dataset !== WidgetType.TRACEMETRICS;
@@ -705,8 +700,6 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       : undefined;
                     const isReferencedByEquation =
                       isUnifiedTraceMetrics && unifiedRows.isReferenced(index);
-                    // Rows an equation uses can be hidden from the chart; their letter
-                    // doubles as the toggle.
                     const unifiedRowLabel = rowLabel ? (
                       <RowLabel
                         label={rowLabel}
@@ -1035,7 +1028,6 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                 )}
                               </FieldBar>
                               <FieldExtras
-                                // The unified list keeps the alias on the field bar.
                                 compact={
                                   isTimeSeriesWidget ||
                                   isBigNumberWidget ||
@@ -1158,8 +1150,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       : t('Add Column')
                 }
                 onClick={() => {
-                  // Trace metrics rows start as a copy of the last metric row so
-                  // the new row has a metric selected. Equation rows are skipped.
+                  // New trace metric rows copy the last metric row, never an equation.
                   const lastMetricField =
                     state.dataset === WidgetType.TRACEMETRICS
                       ? fields?.findLast(f => f.kind === FieldValueKind.FUNCTION)

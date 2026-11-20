@@ -5,26 +5,21 @@ import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 
 interface TraceMetricEquationRowProps {
   /**
-   * The equation in letter form, e.g. `A + B`. This is what the user edits.
+   * Letter form, e.g. `A + B`.
    */
   expression: string;
   onChange: (expression: string) => void;
-  /**
-   * Row letter (A, B, ...) to the aggregate it stands for.
-   */
   referenceMap: Record<string, string>;
   /**
-   * The equation in its saved, fully inlined form (without the `equation|`
-   * prefix), for the builder's validation.
+   * Saved form, for validation.
    */
   resolved: string;
   disabled?: boolean;
 }
 
 /**
- * Equation row for the trace metrics visualize list. The row model keeps the
- * equation in letter form, so this only reports the letters typed; resolving
- * them to aggregates happens when the saved fields are derived.
+ * Edits the letter form of an equation. Letters are resolved to aggregates when
+ * the saved fields are derived.
  */
 export function TraceMetricEquationRow({
   expression,

@@ -23,48 +23,30 @@ type Dispatch = ReturnType<typeof useWidgetBuilderContext>['dispatch'];
 
 interface Options {
   dispatch: Dispatch;
-  /**
-   * The list only derives from and writes to the builder state when the
-   * unified list is on.
-   */
   enabled: boolean;
-  /**
-   * The saved-shape fields the list renders, from the builder state.
-   */
   fields: Column[];
   updateAction:
     | typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE
     | typeof BuilderStateAction.SET_FIELDS
     | typeof BuilderStateAction.SET_Y_AXIS;
   /**
-   * Time series widgets keep per-series transformations by index, so changes
-   * carry a map from new to old indexes.
+   * Time series carry a new-to-old index map so transformations follow rows.
    */
   usesYAxisState: boolean;
 }
 
 export interface UnifiedTraceMetricRows {
-  /**
-   * Letter-form expression of the equation at `index`.
-   */
   getExpression: (index: number) => string;
-  /**
-   * Row letter (A, B, ƒ1, ...) for the field at `index`, if it has one.
-   */
   getLabel: (index: number) => string | undefined;
   /**
-   * Aggregates of the hidden rows, so a new row does not default to one.
+   * So a new row does not default to a hidden aggregate.
    */
   hiddenAggregates: string[];
   /**
-   * Hidden rows keyed by the field index they render above. The key equal to
-   * the field count holds rows that render after the last field.
+   * Keyed by the field index they render above; the field count means last.
    */
   hiddenRowsByAnchor: Map<number, MetricRow[]>;
   hide: (index: number) => void;
-  /**
-   * Whether an equation names the metric row at `index`.
-   */
   isReferenced: (index: number) => boolean;
   move: (fromIndex: number, toIndex: number) => void;
   referenceMap: Record<string, string>;
@@ -81,20 +63,16 @@ function keyOf(fields: Column[]): string {
 }
 
 /**
- * Rows the saved shape keeps, in order. The field at index `i` of
- * `fieldsFromRows(rows)` is this list's `i`-th row.
+ * Rows the saved shape keeps, index-aligned with `fieldsFromRows`.
  */
 function visibleRowsOf(rows: TraceMetricRow[]): TraceMetricRow[] {
   return rows.filter(row => row.kind !== 'metric' || row.visible);
 }
 
 /**
- * Owns the row model behind the unified trace metrics list.
- *
- * Edits made through the list update the rows and write the derived fields to
- * the builder state. When the fields change from elsewhere (a display type
- * switch, a sort fix-up, the Add buttons) the rows are rebuilt from them while
- * keeping ids and letters.
+ * Owns the row model for the unified list. Edits write the derived fields to
+ * the builder state; changes from elsewhere rebuild the rows, keeping ids and
+ * letters.
  */
 export function useUnifiedTraceMetricRows({
   dispatch,
@@ -109,7 +87,7 @@ export function useUnifiedTraceMetricRows({
     rows: rowsFromFields(fields),
   }));
 
-  // Fields changed outside the list: rebuild the rows, keeping identities.
+  // Fields changed outside the list.
   let rows = synced.rows;
   if (enabled && synced.key !== fieldsKey) {
     rows = rowsFromFields(fields, synced.rows);
@@ -129,7 +107,7 @@ export function useUnifiedTraceMetricRows({
       type: updateAction,
       payload: nextFields,
       ...(usesYAxisState && {
-        // Rows that were not plotted before have no transformations to carry.
+        // Newly plotted rows have no transformations to carry over.
         sourceIndices: nextVisible.map(row =>
           previousVisible.findIndex(previous => previous.id === row.id)
         ),

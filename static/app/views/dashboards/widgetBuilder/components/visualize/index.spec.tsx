@@ -2915,13 +2915,11 @@ describe('Visualize', () => {
     it('lists aggregates and equations together without the mode toggle', async () => {
       renderUnified([SUM_ALPHA, `equation|${SUM_ALPHA} / ${SUM_BETA}`]);
 
-      // alpha_metric is used by the equation, so its letter doubles as the hide toggle
       expect(
         await screen.findByRole('button', {name: 'Hide series A'})
       ).toBeInTheDocument();
       expect(screen.queryByRole('radio', {name: 'Equation'})).not.toBeInTheDocument();
 
-      // beta_metric only lives inside the equation, so it shows as a hidden row
       expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
       expect(screen.getByLabelText('Row ƒ1')).toBeInTheDocument();
@@ -2992,14 +2990,12 @@ describe('Visualize', () => {
     it('hides a series an equation uses instead of deleting it', async () => {
       const {router} = renderUnified([SUM_ALPHA, SUM_BETA, `equation|${SUM_ALPHA} * 2`]);
       const hideToggle = await screen.findByRole('button', {name: 'Hide series A'});
-      // beta_metric is not in the equation, so its letter is plain
       expect(screen.getByLabelText('Row B')).toBeInTheDocument();
 
       const removeButtons = screen.getAllByRole('button', {name: 'Remove field'});
       expect(removeButtons[0]).toBeDisabled();
       expect(removeButtons[1]).toBeEnabled();
 
-      // Only alpha_metric is used by the equation, so only it gets a hide button
       await userEvent.click(hideToggle);
 
       await waitFor(() => {
@@ -3008,7 +3004,6 @@ describe('Visualize', () => {
           `equation|${SUM_ALPHA} * 2`,
         ]);
       });
-      // alpha_metric is still in the equation, so it comes back as a hidden row
       expect(await screen.findByTestId('hidden-metric-row')).toBeInTheDocument();
     });
 
@@ -3027,13 +3022,11 @@ describe('Visualize', () => {
           `equation|${SUM_ALPHA} + ${SUM_BETA}`,
         ]);
       });
-      // alpha_metric is still A, just hidden, and beta_metric is still B
       expect(
         await screen.findByRole('button', {name: 'Show series A'})
       ).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Hide series B'})).toBeInTheDocument();
 
-      // Showing it again puts it back where it was
       await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
       await waitFor(() => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
@@ -3067,8 +3060,7 @@ describe('Visualize', () => {
       ]);
       await screen.findByRole('button', {name: 'Hide series A'});
 
-      // The equation reads A + B. Pointing row B at beta_metric makes the
-      // saved equation alpha + beta, and row A is left alone.
+      // The equation reads A + B, so it follows B to beta_metric.
       await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[1]!);
       await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
 
@@ -3106,8 +3098,6 @@ describe('Visualize', () => {
       await userEvent.keyboard('{ArrowDown}{ArrowDown}');
       await userEvent.keyboard(' ');
 
-      // alpha_metric is now second but is still A, and the equation still
-      // reads alpha minus beta.
       await waitFor(() => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
           SUM_BETA,
@@ -3142,7 +3132,6 @@ describe('Visualize', () => {
       });
       expect(screen.getByTestId('hidden-metric-row')).toBeInTheDocument();
 
-      // Showing it puts it back after the equation, where it was.
       await userEvent.click(screen.getByRole('button', {name: 'Show series A'}));
       await waitFor(() => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
@@ -3208,7 +3197,6 @@ describe('Visualize', () => {
           `equation|${SUM_ALPHA} * 2`,
         ]);
       });
-      // The row is still hidden and still B.
       expect(screen.getByRole('button', {name: 'Show series B'})).toBeInTheDocument();
     });
 
