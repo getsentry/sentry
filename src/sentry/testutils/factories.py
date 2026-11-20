@@ -1149,24 +1149,35 @@ class Factories:
         date_uploaded: datetime | None = None,
         date_last_modified: datetime | None = None,
         indexing_state: int | None = None,
+        use_objectstore: bool = False,
     ) -> ArtifactBundle:
         if date_uploaded is None:
             date_uploaded = timezone.now()
 
         bundle = cls.create_artifact_bundle_zip(org.slug, fixture_path=fixture_path)
-        file_ = File.objects.create(name="artifact-bundle.zip")
-        file_.putfile(ContentFile(bundle))
+        file = File.objects.create(name="artifact-bundle.zip")
+        file.putfile(ContentFile(bundle))
         # The 'artifact_count' should correspond to the 'bundle' contents but for the purpose of tests we can also
         # mock it with an arbitrary value.
         artifact_bundle = ArtifactBundle.objects.create(
             organization_id=org.id,
             bundle_id=bundle_id or uuid4(),
-            file=file_,
+            file=file,
             artifact_count=artifact_count,
             date_uploaded=date_uploaded,
             date_last_modified=date_last_modified,
             indexing_state=indexing_state,
         )
+        if use_objectstore:
+            with file.getfile() as contents:
+                key = artifact_bundle.get_objectstore_session().put(contents)
+            artifact_bundle.update(
+                storage_path=key,
+                checksum=file.checksum,
+                file_size=file.size,
+                file=None,
+            )
+            file.delete()
         return artifact_bundle
 
     @staticmethod

@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import logging
+import os
+import shutil
+import tempfile
 import zipfile
 from collections.abc import Callable, Mapping
+from contextlib import ExitStack
+from datetime import timedelta
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
 
-from django.db import models
+from django.db import models, router, transaction
 from django.db.models.signals import post_delete
 from django.utils import timezone
+from objectstore_client import Session
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -20,6 +28,7 @@ from sentry.db.models import (
     Model,
     cell_silo_model,
 )
+from sentry.objectstore import UsecaseId, get_session
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
 
@@ -30,6 +39,12 @@ NULL_STRING = ""
 
 # Must stay in sync with Symbolicator's `object_file_max_decompressed_source_size`
 MAX_SOURCE_FILE_SIZE = 1024 * 1024 * 1024
+
+logger = logging.getLogger(__name__)
+
+
+def artifact_bundle_retention() -> timedelta:
+    return timedelta(days=90 + options.get("system.debug-files-renewal-age-threshold-days"))
 
 
 class SourceFileType(Enum):
@@ -88,6 +103,50 @@ class ArtifactBundle(Model):
         app_label = "sentry"
         db_table = "sentry_artifactbundle"
 
+    def get_checksum(self) -> str | None:
+        if self.storage_path is not None:
+            return self.checksum
+        assert self.file is not None
+        return self.file.checksum
+
+    def get_file_size(self) -> int:
+        if self.storage_path is not None:
+            size = self.file_size
+        else:
+            assert self.file is not None
+            size = self.file.size
+        assert size is not None
+        return size
+
+    def get_objectstore_session(self) -> Session:
+        # Bundles can be associated with multiple projects in the organization.
+        return get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id)
+
+    def get_file(self) -> IO[bytes]:
+        """Open the bundle contents. The caller is responsible for closing the stream."""
+        if self.storage_path is None:
+            assert self.file is not None
+            return self.file.getfile()
+        response = self.get_objectstore_session().get(self.storage_path)
+        if response is None:
+            raise FileNotFoundError("Artifact bundle does not exist in Objectstore")
+        return response.payload
+
+    def delete_objectstore_file_on_commit(self) -> None:
+        # Assembly may replace the bundle's storage path before the transaction commits.
+        storage_path = self.storage_path
+        if storage_path is None:
+            return
+
+        def delete() -> None:
+            try:
+                self.get_objectstore_session().delete(storage_path)
+            except Exception:
+                # The object's TTI cleans up failed deletes, as for debug files.
+                logger.exception("artifact_bundle.objectstore_delete_failed")
+
+        transaction.on_commit(delete, using=router.db_for_write(ArtifactBundle))
+
     @classmethod
     def get_release_associations(
         cls, organization_id: int, artifact_bundle: ArtifactBundle
@@ -117,26 +176,28 @@ def delete_file_for_artifact_bundle(instance: ArtifactBundle, **kwargs: object) 
     from sentry.models.files import File
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
+    checksum = None
     try:
-        file = instance.file
+        checksum = instance.get_checksum()
     except File.DoesNotExist:
-        return
-    if file is None:
-        return
-
-    try:
-        checksum = file.checksum
+        pass
+    else:
         if instance.organization_id is not None and checksum is not None:
             delete_assemble_status(
                 AssembleTask.ARTIFACT_BUNDLE,
                 instance.organization_id,
                 checksum,
             )
+
     finally:
         try:
-            file.delete()
+            if instance.file is not None:
+                instance.file.delete()
         except File.DoesNotExist:
             pass
+        # Retention cleanup leaves the blob to expire. Explicit deletions remove it on commit.
+        if not os.environ.get("_SENTRY_CLEANUP"):
+            instance.delete_objectstore_file_on_commit()
 
 
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
@@ -228,20 +289,33 @@ class ProjectArtifactBundle(Model):
 
 
 class ArtifactBundleArchive:
-    """Read-only view of uploaded ZIP artifact bundle."""
+    """Read-only ZIP archive. Takes ownership of the input, even if opening the archive fails."""
 
     def __init__(self, fileobj: IO[bytes], build_memory_map: bool = True) -> None:
-        self._fileobj = fileobj
-        self._zip_file = zipfile.ZipFile(self._fileobj)
-        self._entries_by_debug_id: dict[tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]]
-        self._entries_by_debug_id = {}
-        self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
+        with ExitStack() as stack:
+            if fileobj.seekable():
+                contents = stack.enter_context(fileobj)
+            else:
+                # ZIP reads seek to the central directory and back to individual entries.
+                # Close the source as soon as the copy finishes. The archive keeps the tempfile.
+                with fileobj:
+                    contents = stack.enter_context(tempfile.TemporaryFile())
+                    shutil.copyfileobj(fileobj, contents)
+                contents.seek(0)
 
-        self.manifest = self._read_manifest()
-        self.artifact_count = len(self.manifest.get("files", {}))
+            self._zip_file = stack.enter_context(zipfile.ZipFile(contents))
+            self._entries_by_debug_id: dict[
+                tuple[str, SourceFileType], tuple[str, str, dict[str, Any]]
+            ]
+            self._entries_by_debug_id = {}
+            self._entries_by_url: dict[str, tuple[str, dict[str, Any]]] = {}
 
-        if build_memory_map:
-            self._build_memory_maps()
+            self.manifest = self._read_manifest()
+            self.artifact_count = len(self.manifest.get("files", {}))
+
+            if build_memory_map:
+                self._build_memory_maps()
+            self._resources = stack.pop_all()
 
     def __enter__(self) -> Self:
         return self
@@ -255,8 +329,7 @@ class ArtifactBundleArchive:
         self.close()
 
     def close(self) -> None:
-        self._zip_file.close()
-        self._fileobj.close()
+        self._resources.close()
 
     def info(self, filename: str) -> zipfile.ZipInfo:
         return self._zip_file.getinfo(filename)
