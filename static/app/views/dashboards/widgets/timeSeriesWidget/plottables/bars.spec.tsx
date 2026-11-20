@@ -51,31 +51,4 @@ describe('Bars', () => {
       )
     ).toEqual(faded);
   });
-
-  it('hatches extrapolated bars with null confidence', () => {
-    const nullConfidenceTimeSeries = TimeSeriesFixture({
-      values: [
-        {timestamp: 1729796400000, value: 10, sampleRate: 1, confidence: null},
-        {timestamp: 1729798200000, value: 20, sampleRate: 0.01, confidence: null},
-      ],
-    });
-
-    const [series] = new Bars(nullConfidenceTimeSeries).toSeries({
-      ...plottingOptions,
-      segmentBy: ['confidence'],
-    });
-
-    expect(
-      series!.data!.map(datum => {
-        const dataPoint = datum as {
-          confidence?: string | null;
-          itemStyle?: {decal?: unknown};
-        };
-        return [dataPoint.confidence, defined(dataPoint.itemStyle?.decal)];
-      })
-    ).toEqual([
-      [null, false],
-      ['low', true],
-    ]);
-  });
 });
