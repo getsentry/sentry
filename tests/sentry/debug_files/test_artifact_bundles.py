@@ -450,9 +450,7 @@ class IndexUrlsInBundleTest(TestCase):
 
 
 class IndexUrlsInDeletedBundleTest(TransactionTestCase):
-    # The foreign key from `ArtifactBundleIndex` to `ArtifactBundle` is deferred, so Postgres only
-    # checks it on commit. A `TestCase` wraps each test in a transaction that never commits, so it
-    # would silently insert index rows for a deleted bundle.
+    # `TestCase` never commits, so it would never check the deferred foreign key.
     @patch("sentry.debug_files.artifact_bundles.metrics.incr")
     def test_bundle_deleted_before_commit(self, mock_incr: MagicMock) -> None:
         artifact_bundle = self.create_artifact_bundle(artifact_count=1)
@@ -464,8 +462,7 @@ class IndexUrlsInDeletedBundleTest(TransactionTestCase):
             },
         }
         with ArtifactBundleArchive(BytesIO(make_compressed_zip_file(files))) as archive:
-            # An upload of the same bundle deletes this one as a duplicate after this upload
-            # opened the archive but before its index rows are committed.
+            # Simulate an upload of the same bundle deleting this one as a duplicate.
             ArtifactBundle.objects.filter(id=artifact_bundle.id).delete()
 
             index_urls_in_bundle(self.organization.id, artifact_bundle, archive)

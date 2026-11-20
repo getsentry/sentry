@@ -213,9 +213,8 @@ def index_urls_in_bundle(
                 indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value
             )
     except IntegrityError:
-        # The foreign key from `ArtifactBundleIndex` to `ArtifactBundle` is deferred, so it is only
-        # checked on commit. An upload of the same bundle can delete this one as a duplicate in the
-        # meantime, which leaves nothing to index.
+        # An upload of the same bundle can delete this one as a duplicate. The foreign key is
+        # deferred, so that only raises on commit.
         if ArtifactBundle.objects.filter(id=artifact_bundle.id).exists():
             raise
         metrics.incr("artifact_bundle_indexing.bundle_deleted_during_indexing")
