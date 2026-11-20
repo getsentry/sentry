@@ -65,10 +65,7 @@ const useCrashFreeRate = (props: Props) => {
       '/organizations/$organizationIdOrSlug/sessions/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
+        query: {...commonQuery, ...normalizeDateTimeParams(datetime)},
         staleTime: Infinity,
       }
     ),

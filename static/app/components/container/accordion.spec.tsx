@@ -35,14 +35,10 @@ describe('Accordion', () => {
     );
 
     expect(screen.getByRole('button', {expanded: true}).querySelector('svg')).toHaveStyle(
-      {
-        transform: 'rotate(180deg)',
-      }
+      {transform: 'rotate(180deg)'}
     );
     expect(
       screen.getByRole('button', {expanded: false}).querySelector('svg')
-    ).toHaveStyle({
-      transform: 'rotate(90deg)',
-    });
+    ).toHaveStyle({transform: 'rotate(90deg)'});
   });
 });

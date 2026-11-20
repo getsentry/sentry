@@ -2,12 +2,17 @@ import {keepPreviousData, useQuery} from '@tanstack/react-query';
 
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import type {AutomationQueryOptions} from 'sentry/views/seerWorkflows/utils';
 
 /**
  * Fetches the given monitors in one request, keyed by monitor id.
- * Max per page is 100 - capped by the endpoint.
+ * Max per page is 100 - capped by the endpoint. `options` override the query's options.
  */
-export function useMonitorsById(ids: Array<string | number>, limit = 100) {
+export function useMonitorsById(
+  ids: Array<string | number>,
+  options: AutomationQueryOptions = {},
+  limit = 100
+) {
   const organization = useOrganization();
   const monitorIds = [...new Set(ids.map(String))].sort();
 
@@ -16,5 +21,6 @@ export function useMonitorsById(ids: Array<string | number>, limit = 100) {
     enabled: monitorIds.length > 0,
     select: ({json}) => new Map(json.map(monitor => [monitor.id, monitor])),
     placeholderData: keepPreviousData,
+    ...options,
   });
 }

@@ -8,7 +8,6 @@ import uuid
 from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from random import randint
 from typing import Any
 from uuid import uuid4
 
@@ -18,7 +17,7 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import F
 from django.utils import timezone as django_timezone
 
-from sentry import buffer, roles, tsdb
+from sentry import buffer, roles
 from sentry.constants import ObjectStatus
 from sentry.exceptions import HashDiscarded
 from sentry.feedback.lib.utils import FeedbackCreationSource
@@ -64,7 +63,6 @@ from sentry.services.eventstore.models import Event
 from sentry.services.organization import organization_provisioning_service
 from sentry.signals import mocks_loaded
 from sentry.similarity import features
-from sentry.tsdb.base import TSDBModel
 from sentry.types.activity import ActivityType
 from sentry.users.models.user import User
 from sentry.utils import loremipsum
@@ -180,7 +178,6 @@ def create_sample_time_series(event: Event | None, release: Release | None = Non
     group = event.group
     assert group is not None
     project = group.project
-    key = project.key_set.all()[0]
 
     now = datetime.now(timezone.utc)
 
@@ -196,64 +193,6 @@ def create_sample_time_series(event: Event | None, release: Release | None = Non
         GroupRelease.get_or_create(
             group=group, release=release, environment=environment, datetime=now
         )
-
-    for _ in range(60):
-        count = randint(1, 10)
-        tsdb.backend.incr_multi(
-            ((TSDBModel.project, project.id), (TSDBModel.group, group.id)),
-            now,
-            count,
-            environment_id=environment.id,
-        )
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.organization_total_received, project.organization_id),
-                (TSDBModel.project_total_received, project.id),
-                (TSDBModel.key_total_received, key.id),
-            ),
-            now,
-            int(count * 1.1),
-        )
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.organization_total_rejected, project.organization_id),
-                (TSDBModel.project_total_rejected, project.id),
-                (TSDBModel.key_total_rejected, key.id),
-            ),
-            now,
-            int(count * 0.1),
-        )
-
-        now = now - timedelta(seconds=1)
-
-    for _ in range(24 * 30):
-        count = randint(100, 1000)
-        tsdb.backend.incr_multi(
-            ((TSDBModel.project, group.project.id), (TSDBModel.group, group.id)),
-            now,
-            count,
-            environment_id=environment.id,
-        )
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.organization_total_received, project.organization_id),
-                (TSDBModel.project_total_received, project.id),
-                (TSDBModel.key_total_received, key.id),
-            ),
-            now,
-            int(count * 1.1),
-        )
-        tsdb.backend.incr_multi(
-            (
-                (TSDBModel.organization_total_rejected, project.organization_id),
-                (TSDBModel.project_total_rejected, project.id),
-                (TSDBModel.key_total_rejected, key.id),
-            ),
-            now,
-            int(count * 0.1),
-        )
-
-        now = now - timedelta(hours=1)
 
 
 def get_superuser() -> User:

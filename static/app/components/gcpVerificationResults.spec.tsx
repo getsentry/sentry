@@ -96,11 +96,7 @@ describe('GcpVerificationResults', () => {
         result={{
           connectionStatus: 'unverified',
           projects: [
-            {
-              gcpProjectId: 'project-a',
-              connectionStatus: 'unverified',
-              services: [],
-            },
+            {gcpProjectId: 'project-a', connectionStatus: 'unverified', services: []},
           ],
         }}
       />

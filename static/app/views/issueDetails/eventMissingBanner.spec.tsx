@@ -7,9 +7,7 @@ describe('EventMissingBanner', () => {
   it('renders elements for known event IDs', () => {
     const groupId = 'group-1';
     const initialRouterConfig = {
-      location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/recommended/',
-      },
+      location: {pathname: '/organizations/org-slug/issues/group-1/events/recommended/'},
       route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
 
@@ -36,9 +34,7 @@ describe('EventMissingBanner', () => {
   it('renders elements for specific event IDs', () => {
     const groupId = 'group-1';
     const initialRouterConfig = {
-      location: {
-        pathname: '/organizations/org-slug/issues/group-1/events/abc123/',
-      },
+      location: {pathname: '/organizations/org-slug/issues/group-1/events/abc123/'},
       route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
     };
 

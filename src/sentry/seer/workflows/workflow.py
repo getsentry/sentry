@@ -209,7 +209,7 @@ class SeerWorkflow:
                 update.set_scope(scope)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
-                definition.trigger.sync(config)
+                definition.sync(config)
                 transaction.on_commit(
                     partial(
                         logger.info,
@@ -265,7 +265,7 @@ class SeerWorkflow:
         Edge case: always false for empty selections, even if the org has no active projects.
         """
         config = self.get_config()
-        selected_projects = get_definition(config.strategy).trigger.projects(config).values("id")
+        selected_projects = get_definition(config.strategy).projects(config).values("id")
         counts = Project.objects.filter(
             organization_id=config.organization_id, status=ObjectStatus.ACTIVE
         ).aggregate(
@@ -275,10 +275,10 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        """Delete the config with its project links, runs, and service account."""
         self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
-            get_definition(config.strategy).trigger.teardown(config)
+            get_definition(config.strategy).teardown(config)
             workflow = config.backing_workflow
             if workflow is not None and workflow.status == ObjectStatus.ACTIVE:
                 CellScheduledDeletion.schedule(workflow, days=0)
@@ -346,7 +346,7 @@ class SeerWorkflow:
                         update_fields=[*sorted(update.dirty_fields), "version", "date_updated"]
                     )
                 # Even when unchanged, so a schedule that drifted from the config is repaired.
-                definition.trigger.sync(config)
+                definition.sync(config)
         except (OutboxFlushError, OutboxDatabaseError):
             logger.exception(
                 "seer.workflow.update.flush_failed",

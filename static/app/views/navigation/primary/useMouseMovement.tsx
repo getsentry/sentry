@@ -31,20 +31,14 @@ export const useMouseMovement = ({
   const mouseRef = useRef<{
     currentEvent: MouseEvent | null;
     prevEvent: MouseEvent | null;
-  }>({
-    prevEvent: null,
-    currentEvent: null,
-  });
+  }>({prevEvent: null, currentEvent: null});
 
   const rafRef = useRef(0);
   const lastTimestampRef = useRef(0);
   const isCalculating = useRef(false);
 
   const reset = useCallback(() => {
-    mouseRef.current = {
-      prevEvent: null,
-      currentEvent: null,
-    };
+    mouseRef.current = {prevEvent: null, currentEvent: null};
     lastTimestampRef.current = 0;
     isCalculating.current = false;
     mouseMovementDataRef.current = {

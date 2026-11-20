@@ -50,9 +50,7 @@ export function ReleasesSelectControl({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
-  const searchDebouncer = useDebouncer(setSearchTerm, {
-    wait: DEFAULT_DEBOUNCE_DURATION,
-  });
+  const searchDebouncer = useDebouncer(setSearchTerm, {wait: DEFAULT_DEBOUNCE_DURATION});
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
   const {data: releases, isLoading: loading} = useReleases(
@@ -133,9 +131,7 @@ export function ReleasesSelectControl({
       onClose={() => {
         resetSearch();
         if (!isEqual(activeReleases, selectedReleases)) {
-          handleChangeFilter?.({
-            [DashboardFilterKeys.RELEASE]: activeReleases,
-          });
+          handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
         }
       }}
       value={activeReleases}
@@ -153,10 +149,7 @@ export function ReleasesSelectControl({
   );
 }
 
-type LabelDetailsProps = {
-  dateCreated?: string;
-  eventCount?: number;
-};
+type LabelDetailsProps = {dateCreated?: string; eventCount?: number};
 
 function LabelDetails(props: LabelDetailsProps) {
   return (

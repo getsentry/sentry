@@ -24,10 +24,7 @@ function makeMsteamsProvider(externalInstall?: {
   });
   return {
     ...base,
-    metadata: {
-      ...base.metadata,
-      aspects: {...base.metadata.aspects, externalInstall},
-    },
+    metadata: {...base.metadata, aspects: {...base.metadata.aspects, externalInstall}},
   };
 }
 

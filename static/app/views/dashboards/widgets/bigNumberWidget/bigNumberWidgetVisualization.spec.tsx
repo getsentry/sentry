@@ -133,13 +133,7 @@ describe('BigNumberWidgetVisualization', () => {
           field="eps()"
           type="rate"
           unit={RateUnit.PER_SECOND}
-          thresholds={{
-            max_values: {
-              max1: 10,
-              max2: 20,
-            },
-            unit: '1/second',
-          }}
+          thresholds={{max_values: {max1: 10, max2: 20}, unit: '1/second'}}
         />
       );
 
@@ -156,13 +150,7 @@ describe('BigNumberWidgetVisualization', () => {
           field="mystery_error_rate()"
           type="rate"
           unit={RateUnit.PER_MINUTE}
-          thresholds={{
-            max_values: {
-              max1: 2,
-              max2: 5,
-            },
-            unit: '1/second',
-          }}
+          thresholds={{max_values: {max1: 2, max2: 5}, unit: '1/second'}}
         />
       );
 
@@ -176,13 +164,7 @@ describe('BigNumberWidgetVisualization', () => {
           field="mystery_error_rate()"
           type="rate"
           unit={RateUnit.PER_SECOND}
-          thresholds={{
-            max_values: {
-              max1: 200,
-              max2: 500,
-            },
-            unit: '1/second',
-          }}
+          thresholds={{max_values: {max1: 200, max2: 500}, unit: '1/second'}}
           preferredPolarity="-"
         />
       );

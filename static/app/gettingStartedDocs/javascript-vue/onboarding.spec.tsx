@@ -37,9 +37,7 @@ describe('javascript-vue onboarding docs', () => {
   });
 
   it('keeps Vue 2 setup with its constructor and root component', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedOptions: {siblingOption: VueVersion.VUE2},
-    });
+    renderWithOnboardingLayout(docs, {selectedOptions: {siblingOption: VueVersion.VUE2}});
 
     const setup = screen.getByText(textWithMarkupMatcher(/Sentry\.init\(/));
     expect(setup).toHaveTextContent('import Vue from "vue"');

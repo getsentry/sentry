@@ -38,12 +38,7 @@ export function useMonitorStats({monitors, timeWindowConfig}: Options) {
   return useQuery({
     ...apiOptions.as<Result>()('/organizations/$organizationIdOrSlug/monitors-stats/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        monitor: monitors,
-        project,
-        environment,
-        ...selectionQuery,
-      },
+      query: {monitor: monitors, project, environment, ...selectionQuery},
       staleTime: 0,
     }),
     enabled: rollupConfig.totalBuckets > 0,

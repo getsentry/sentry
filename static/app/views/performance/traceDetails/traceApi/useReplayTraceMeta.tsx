@@ -56,24 +56,25 @@ export function useReplayTraceMeta(
   }, [replayRecord, start, end]);
 
   const {data: eventsData, isPending: eventsIsLoading} = useQuery({
-    ...apiOptions.as<{
-      data: TableDataRow[];
-    }>()('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organization.slug},
-      query: eventView
-        ? {
-            ...eventView.getEventsAPIPayload({
-              start,
-              end,
-              limit: 10,
-            } as unknown as Location),
-            dataset: DiscoverDatasets.SPANS,
-            referrer: 'api.replays.replay-trace-meta',
-            sort: ['min_precise_start_ts', 'trace'],
-          }
-        : {},
-      staleTime: Infinity,
-    }),
+    ...apiOptions.as<{data: TableDataRow[]}>()(
+      '/organizations/$organizationIdOrSlug/events/',
+      {
+        path: {organizationIdOrSlug: organization.slug},
+        query: eventView
+          ? {
+              ...eventView.getEventsAPIPayload({
+                start,
+                end,
+                limit: 10,
+              } as unknown as Location),
+              dataset: DiscoverDatasets.SPANS,
+              referrer: 'api.replays.replay-trace-meta',
+              sort: ['min_precise_start_ts', 'trace'],
+            }
+          : {},
+        staleTime: Infinity,
+      }
+    ),
     enabled: !!eventView && !!replayRecord,
   });
 

@@ -9,9 +9,7 @@ import type {SearchEventParameters} from 'sentry/utils/analytics/searchAnalytics
 type MultiValueSelectedAnalyticsData = Omit<
   SearchEventParameters['search.multi_value_selected'],
   'filter_value' | 'selected' | 'selected_count'
-> & {
-  organization: Organization;
-};
+> & {organization: Organization};
 
 type ValueComboboxContextValue = {
   analyticsData: MultiValueSelectedAnalyticsData;

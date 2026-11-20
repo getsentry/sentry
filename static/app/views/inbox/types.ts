@@ -4,6 +4,10 @@ export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
 export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
 
+export interface InboxRouteHandle {
+  inboxSubjectType: InboxSubjectType;
+}
+
 export const INBOX_RECIPIENTS = ['team', 'user'] as const;
 
 export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
@@ -46,19 +50,9 @@ interface InboxEventDataByType {
   'notebook.user_mentioned': {blockId: string | null; commentId: string};
 }
 
-type InboxSystemActor = {
-  avatar: null;
-  id: null;
-  name: 'Sentry';
-  type: 'system';
-};
+type InboxSystemActor = {avatar: null; id: null; name: 'Sentry'; type: 'system'};
 
-type InboxUserActor = {
-  avatar: Avatar | null;
-  id: string;
-  name: string;
-  type: 'user';
-};
+type InboxUserActor = {avatar: Avatar | null; id: string; name: string; type: 'user'};
 
 type InboxActor = InboxSystemActor | InboxUserActor;
 
@@ -71,10 +65,7 @@ interface BaseInboxItemEvent {
 }
 
 type InboxItemEvent = {
-  [T in InboxEventType]: BaseInboxItemEvent & {
-    data: InboxEventDataByType[T];
-    type: T;
-  };
+  [T in InboxEventType]: BaseInboxItemEvent & {data: InboxEventDataByType[T]; type: T};
 }[InboxEventType];
 
 export interface InboxItem {

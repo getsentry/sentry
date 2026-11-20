@@ -1,11 +1,11 @@
 ---
 name: frontend-data-fetching
-description: Fetch data in Sentry's frontend with TanStack Query and apiOptions. Use when adding or editing React code in static/ that calls the API — useQuery/useMutation/useInfiniteQuery, apiOptions, queryOptions/mutationOptions, fetchMutation, reading response headers/pagination, or conditional fetching. Trigger on "fetch data", "add an API call", "useQuery", "useMutation", "apiOptions", "queryFn", "pagination headers", "X-Hits", or "why is my query type wrong".
+description: Fetch data in Sentry's frontend with TanStack Query and apiOptions. Use when adding or editing React code in static/ that calls the API — useQuery/useMutation/useInfiniteQuery, apiOptions, queryOptions/mutationOptions, fetchMutation, reading response headers/pagination, conditional fetching, or query keys and cache filters (invalidateQueries, setQueriesData, predicates). Trigger on "fetch data", "add an API call", "useQuery", "useMutation", "apiOptions", "queryFn", "queryKey", "invalidateQueries", "pagination headers", "X-Hits", or "why is my query type wrong".
 ---
 
 # Frontend Data Fetching (TanStack Query + apiOptions)
 
-Use `apiOptions` with `useQuery` from TanStack Query. **Do not use `useApiQuery`, `getApiQueryData`, or `setApiQueryData`** — they are deprecated.
+Use `apiOptions` with `useQuery` from TanStack Query.
 
 ```typescript
 import {skipToken, useQuery} from '@tanstack/react-query';
@@ -34,7 +34,62 @@ Key rules:
 - **`staleTime` is required** — you must choose a value (`0`, a number in ms, `Infinity`, or `'static'`).
 - **Build abstractions over `apiOptions`**, not over `useQuery`. Return the options object so consumers can pass it to `useQuery`, `useQueries`, `prefetchQuery`, etc.
 - **Cache stores `{json, headers}`**, not just the body. `apiOptions` uses `select` to extract `.json` by default, but `getQueryData`, `setQueryData`, `retry` functions, and `predicate` callbacks all receive the raw `ApiResponse<T>` shape.
-- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`.
+- **never** use `api.requestPromise` for a Query - it returns the wrong structure. If you must make a manual `queryFn`, use `apiFetch`, and give it the `queryKey` of an `apiOptions(...)` call.
+- **Path params are strings.** Convert numeric ids with `String(id)`.
+
+## Query keys and cache filters
+
+The layout of an api query key is internal. **Never build an api query key by hand, and never read it by index** (`queryKey[0]`, `queryKey[1]`). Build keys with `apiOptions`, and read them with `parseQueryKey` or `safeParseQueryKey`.
+
+### Filters: `invalidateQueries`, `setQueriesData`, `cancelQueries`, ...
+
+Use `apiOptions.queryFilter(url, options)` to build a filter. It is typed against the known api urls.
+
+```typescript
+// One url, with any query, cursor or other options, infinite or not
+queryClient.invalidateQueries(
+  apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+    path: {organizationIdOrSlug: organization.slug},
+  })
+);
+
+// A url and everything below it: end a known url prefix with `/*`.
+// Path params can stay open, here `$issueId`. `path: {}` matches every organization.
+queryClient.invalidateQueries(
+  apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
+    path: {organizationIdOrSlug: organization.slug},
+  })
+);
+
+// Narrow the match with `infinite: true` or options such as `query`
+apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+  path: {organizationIdOrSlug: organization.slug},
+  query: {query: 'is:unresolved'},
+});
+```
+
+- Pass the filter directly to cache operations such as `invalidateQueries`, `setQueriesData`, and `queryCache.findAll`. Spread it to add options such as `refetchType`. The filter sets `exact: false` even for a URL without `*`.
+- Use the full `queryKey` from `apiOptions.as` or `apiOptions.asInfinite` for exact access such as `getQueryData`, `setQueryData`, or `queryCache.find` with its default matching behavior.
+- A url without `*` needs every path param. A `/*` prefix needs a `path` object, but each param in it is optional.
+- The `queryKey` of a full `apiOptions(...)` call is also a valid filter, for example `queryClient.invalidateQueries({queryKey: itemOptions.queryKey})`.
+- Prefer a filter over a `predicate`. Use a `predicate` only when a filter can not express the match, for example a regular expression on the url.
+- ❌ `queryKey: [getApiUrl(...)]` and `queryKey: [url]` match nothing.
+
+### Reading a key: `parseQueryKey` and `safeParseQueryKey`
+
+Both return `{url, urlParts, options, infinite?}`, where `url` is the requested url and `options` holds `path`, `query` and the other request options.
+
+```typescript
+import {parseQueryKey, safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+
+// A key from `apiOptions`, so it is known to be an api query key
+const {options} = parseQueryKey(listApiOptions.queryKey);
+
+// Any key, for example in a predicate. Returns undefined for keys that are not api query keys.
+queryClient.invalidateQueries({
+  predicate: query => issueUrlRegexp.test(safeParseQueryKey(query.queryKey)?.url ?? ''),
+});
+```
 
 ## TanStack Query Type Inference — NEVER Pass Call-Site Generics
 

@@ -12,10 +12,7 @@ const images = Object.entries(
     eager: true,
     import: 'default',
   })
-).map(([file, src]) => ({
-  file: file.replace('../../images/', 'sentry-images/'),
-  src,
-}));
+).map(([file, src]) => ({file: file.replace('../../images/', 'sentry-images/'), src}));
 
 type ImageEntry = (typeof images)[number];
 
