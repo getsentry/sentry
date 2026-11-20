@@ -100,9 +100,7 @@ type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'
  * One entry of a list: a text or link value, keyed. A list cannot hold a
  * list.
  */
-export type EntityHeaderMetadataListEntry = MetadataValueData & {
-  key: string;
-};
+export type EntityHeaderMetadataListEntry = MetadataValueData & {key: string};
 
 interface EntityHeaderMetadataListOptions {
   /**

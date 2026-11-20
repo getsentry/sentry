@@ -1432,12 +1432,7 @@ describe('EntityHeader', () => {
           metadata={{
             label: 'Conversation properties',
             items: [
-              {
-                label: 'Tools',
-                type: 'list',
-                items: toolEntries(tools),
-                mode: 'full',
-              },
+              {label: 'Tools', type: 'list', items: toolEntries(tools), mode: 'full'},
             ],
           }}
         />
