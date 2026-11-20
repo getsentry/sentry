@@ -137,14 +137,12 @@ class Action(DefaultFieldsModel, JSONConfigBase):
 
         organization = event_data.get_organization()
         handler = self.get_handler()
-        self.validate_event_data(event_data)
+        handler.validate_event_data(event_data)
         detector = get_preferred_detector(event_data)
         if detector.get_organization_id() != organization.id:
             raise UnsupportedActionEvent(
                 "Action detector and event must belong to the same organization"
             )
-        if detector.project_id is None and not handler.supports_group_less:
-            raise UnsupportedActionEvent("This action requires a project-scoped detector")
 
         with metrics.timer(
             "workflow_engine.action.trigger.execution_time",
@@ -158,6 +156,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 notification_uuid=notification_uuid,
                 workflow_id=workflow_id,
             )
+            handler.validate_invocation(invocation)
             handler.execute(invocation)
 
         metrics.incr(
@@ -175,10 +174,6 @@ class Action(DefaultFieldsModel, JSONConfigBase):
                 "group_id": event_data.group_id,
             },
         )
-
-    def validate_event_data(self, event_data: WorkflowEventData) -> None:
-        if event_data.group is None and not self.get_handler().supports_group_less:
-            raise UnsupportedActionEvent("This action requires an issue group")
 
     def get_dedup_key(self) -> str:
         return self.get_handler().get_dedup_key(self)
