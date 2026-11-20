@@ -30,6 +30,48 @@ _workflow_cache = CacheMapping[_WorkflowCacheKey, set[Workflow]](
     ttl_seconds=CACHE_TTL,
 )
 
+# Keep all environments in one entry so changing an environment only invalidates
+# one key. Activity workflows are a small, internal subset of an organization's workflows.
+_activity_workflow_cache = CacheMapping[int, set[Workflow]](
+    str,
+    namespace="activity_workflows_by_organization",
+    ttl_seconds=CACHE_TTL,
+)
+
+
+@scopedstats.timer()
+def get_activity_workflows_by_organization(
+    organization_id: int, environment: Environment | None
+) -> set[Workflow]:
+    """Select enabled Inbox candidates without requiring a detector, project, or group."""
+    workflows = _activity_workflow_cache.get(organization_id)
+    if workflows is None:
+        metrics_incr(f"{METRIC_PREFIX}.activity.miss")
+        workflows = set(
+            Workflow.objects.filter(
+                organization_id=organization_id, type=Workflow.Type.INBOX, enabled=True
+            ).select_related("environment")
+        )
+        _activity_workflow_cache.set(organization_id, workflows)
+    else:
+        metrics_incr(f"{METRIC_PREFIX}.activity.hit")
+
+    return {
+        workflow
+        for workflow in workflows
+        if workflow.organization_id == organization_id
+        and (
+            workflow.environment_id is None
+            or (environment is not None and workflow.environment_id == environment.id)
+        )
+    }
+
+
+def invalidate_activity_workflows(organization_id: int) -> None:
+    """Bulk writers must invalidate each affected organization after committing."""
+    _activity_workflow_cache.delete(organization_id)
+    metrics_incr(f"{METRIC_PREFIX}.activity.invalidated")
+
 
 class _CacheLookupResult(NamedTuple):
     """
