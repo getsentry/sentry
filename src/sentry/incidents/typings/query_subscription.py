@@ -7,7 +7,13 @@ class SnubaQuerySerializerResponse(TypedDict):
     id: Annotated[str, ApiDescription("ID of the query")]
     dataset: Annotated[
         str,
-        ApiDescription("Dataset the query runs on, such as events or events_analytics_platform"),
+        ApiDescription(
+            "Backend dataset the query runs on. Together with eventTypes it sets the dataset shown "
+            "in the UI: events or search_issues is Errors; transactions or generic_metrics is "
+            "Transactions; metrics or sessions is Releases; events_analytics_platform is Logs "
+            "when eventTypes has trace_item_log, Application Metrics when it has "
+            "trace_item_metric, and Spans otherwise"
+        ),
     ]
     query: Annotated[str, ApiDescription("Search query that filters the data")]
     aggregate: Annotated[
@@ -18,7 +24,11 @@ class SnubaQuerySerializerResponse(TypedDict):
         str | None, ApiDescription("Environment the query is limited to. Null for all environments")
     ]
     eventTypes: Annotated[
-        list[str], ApiDescription("Event types the query includes, such as error or transaction")
+        list[str],
+        ApiDescription(
+            "Event types the query includes: error, default, transaction, trace_item_span, "
+            "trace_item_log or trace_item_metric"
+        ),
     ]
     extrapolationMode: Annotated[
         str | None,
