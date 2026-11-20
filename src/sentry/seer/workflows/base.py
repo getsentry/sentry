@@ -337,7 +337,7 @@ class ConfigUpdate:
         filters = SeerWorkflowFilters.parse_obj(self.config.filters)
         if filters.environments != list(environments):
             filters.environments = list(environments)
-            self.config.filters = self.config.filters | filters.dict()
+            self.config.filters = filters.dict()
             self.mark("filters")
 
     def _backing_workflow(self) -> Workflow:
