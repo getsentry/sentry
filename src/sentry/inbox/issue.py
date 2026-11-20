@@ -9,11 +9,30 @@ from sentry.inbox.event_data import (
     IssuePRReadyForReviewDataResponse,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
+from sentry.inbox.response_types import InboxIssueSubjectResponse
+from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType, InboxSubject
 from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.notifications.types import NotificationSettingEnum
+
+
+@dataclass(frozen=True, kw_only=True)
+class IssueSubject(InboxSubject):
+    short_id: str
+    project_id: int
+    project_slug: str
+
+    def serialize(self) -> InboxIssueSubjectResponse:
+        return {
+            "id": str(self.id),
+            "type": "issue",
+            "title": self.title,
+            "metadata": {
+                "shortId": self.short_id,
+                "project": {"id": str(self.project_id), "slug": self.project_slug},
+            },
+        }
 
 
 class IssueItemType(InboxItemType[Group]):
@@ -25,12 +44,23 @@ class IssueItemType(InboxItemType[Group]):
     def get_organization_id(self, subject: Group) -> int:
         return subject.project.organization_id
 
-    def get_titles(
+    def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, str]:
+    ) -> dict[str, IssueSubject]:
         ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
-        groups = Group.objects.filter(project__organization_id=organization.id, id__in=ids)
-        return {str(group.id): group.title for group in groups}
+        groups = Group.objects.filter(
+            project__organization_id=organization.id, id__in=ids
+        ).select_related("project")
+        return {
+            str(group.id): IssueSubject(
+                id=group.id,
+                title=group.title,
+                short_id=group.qualified_short_id or "",
+                project_id=group.project_id,
+                project_slug=group.project.slug,
+            )
+            for group in groups
+        }
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
