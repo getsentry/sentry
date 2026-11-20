@@ -22,10 +22,7 @@ function TestTable({
   // oxlint-disable-next-line react/todo
   renderCell = ({rendered, wrap}: RenderCellOptions) => wrap(rendered),
   ...options
-}: Partial<TableOptions> & {
-  fields: string[];
-  tableData: TableData;
-}) {
+}: Partial<TableOptions> & {fields: string[]; tableData: TableData}) {
   const location = makeLocation(fields);
 
   const {columnOrder, getGrid} = useEventViewTable({
@@ -149,10 +146,7 @@ describe('useEventViewTable', () => {
       render(
         <TestTable
           fields={['count()']}
-          makeQuery={queryStringObject => ({
-            extra: 'kept',
-            sort: queryStringObject.sort,
-          })}
+          makeQuery={queryStringObject => ({extra: 'kept', sort: queryStringObject.sort})}
           tableData={{data: [], meta: {'count()': 'integer'}}}
         />
       );

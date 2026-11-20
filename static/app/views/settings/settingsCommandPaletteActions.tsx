@@ -163,15 +163,9 @@ export function getSettingsFieldSections(
           )
           .map(f => ({
             key: `${route}#${f.name}`,
-            display: {
-              label: f.label,
-              details: f.hintText,
-            },
+            display: {label: f.label, details: f.hintText},
             keywords: ['settings', title, f.name],
-            to: {
-              pathname: resolvedPath,
-              hash: `#${encodeURIComponent(f.name)}`,
-            },
+            to: {pathname: resolvedPath, hash: `#${encodeURIComponent(f.name)}`},
           }))
           .sort((a, b) => a.display.label.localeCompare(b.display.label)),
       };

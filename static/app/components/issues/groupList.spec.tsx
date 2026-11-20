@@ -61,11 +61,7 @@ describe('GroupList', () => {
       url: `/organizations/${organization.slug}/members/`,
       body: [MemberFixture()],
     });
-    MockApiClient.addMockResponse({
-      url: issuesUrl,
-      method: 'GET',
-      body: [group],
-    });
+    MockApiClient.addMockResponse({url: issuesUrl, method: 'GET', body: [group]});
   });
 
   afterEach(() => {
@@ -109,11 +105,7 @@ describe('GroupList', () => {
 
   it('renders empty state when no groups are returned', async () => {
     MockApiClient.addMockResponse({url: membersUrl, body: []});
-    MockApiClient.addMockResponse({
-      url: issuesUrl,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: issuesUrl, method: 'GET', body: []});
 
     render(<GroupList numPlaceholderRows={1} queryParams={defaultQueryParams} />, {
       organization,
@@ -233,10 +225,7 @@ describe('GroupList', () => {
         queryParams={defaultQueryParams}
         onFetchSuccess={onFetchSuccess}
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(await screen.findByText('RequestError')).toBeInTheDocument();

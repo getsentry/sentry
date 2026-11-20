@@ -147,20 +147,12 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Alternatively, when your project uses a [packageSwift: Package.swift] file to manage dependencies, you can specify the target with:',
-            {
-              packageSwift: <code />,
-            }
+            {packageSwift: <code />}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: getInstallSnippet(params),
-            },
-          ],
+          tabs: [{label: 'Swift', language: 'swift', code: getInstallSnippet(params)}],
         },
       ],
     },
@@ -185,11 +177,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: getConfigurationSnippet(params),
-            },
+            {label: 'Swift', language: 'swift', code: getConfigurationSnippet(params)},
           ],
         },
         {
@@ -224,20 +212,12 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'This snippet contains an intentional error you can use to test that errors are uploaded to Sentry correctly. You can add it to your main [viewController: ViewController].',
-            {
-              viewController: <code />,
-            }
+            {viewController: <code />}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Swift',
-              language: 'swift',
-              code: getVerifySnippet(),
-            },
-          ],
+          tabs: [{label: 'Swift', language: 'swift', code: getVerifySnippet()}],
         },
       ],
     },

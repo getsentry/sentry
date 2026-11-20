@@ -12,9 +12,7 @@ import {DetectorExtraDetails} from './common/extraDetails';
 import {DetectorDetailsHeader} from './common/header';
 import {DetectorDetailsOpenPeriodIssues} from './common/openPeriodIssues';
 
-type FallbackDetectorDetailsProps = {
-  detector: Detector;
-};
+type FallbackDetectorDetailsProps = {detector: Detector};
 
 export function FallbackDetectorDetails({detector}: FallbackDetectorDetailsProps) {
   return (

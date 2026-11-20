@@ -102,9 +102,7 @@ describe('ScmAlertFrequencySection', () => {
     // Querying the checkbox by the label text also asserts the label wraps the
     // input, so clicking the text toggles it.
     await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Integration (Slack, Discord, MS Teams, etc.)',
-      })
+      screen.getByRole('checkbox', {name: 'Integration (Slack, Discord, MS Teams, etc.)'})
     );
 
     expect(setActions).toHaveBeenCalledWith([
@@ -118,16 +116,18 @@ describe('ScmAlertFrequencySection', () => {
   });
 
   it('disables the Integration checkbox when the plan lacks alert-rule integrations', async () => {
-    jest.spyOn(integrationUtil, 'getIntegrationFeatureGate').mockReturnValue({
-      IntegrationFeatures: p =>
-        p.children({
-          disabled: true,
-          disabledReason: 'Requires Team Plan or above',
-          ungatedFeatures: [],
-          gatedFeatureGroups: [],
-        }),
-      FeatureList: () => null,
-    });
+    jest
+      .spyOn(integrationUtil, 'getIntegrationFeatureGate')
+      .mockReturnValue({
+        IntegrationFeatures: p =>
+          p.children({
+            disabled: true,
+            disabledReason: 'Requires Team Plan or above',
+            ungatedFeatures: [],
+            gatedFeatureGroups: [],
+          }),
+        FeatureList: () => null,
+      });
     renderSection({analyticsFlow: 'onboarding'});
 
     const checkbox = screen.getByRole('checkbox', {
@@ -144,9 +144,7 @@ describe('ScmAlertFrequencySection', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Alert frequency'}));
     await userEvent.click(
-      screen.getByRole('checkbox', {
-        name: 'Integration (Slack, Discord, MS Teams, etc.)',
-      })
+      screen.getByRole('checkbox', {name: 'Integration (Slack, Discord, MS Teams, etc.)'})
     );
 
     expect(trackAnalyticsSpy).toHaveBeenCalledWith(

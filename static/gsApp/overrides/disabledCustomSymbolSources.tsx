@@ -16,9 +16,7 @@ import {displayPlanName} from 'getsentry/utils/billing';
 
 const FEATURE = 'custom-symbol-sources';
 
-type Props = {
-  organization: Organization;
-};
+type Props = {organization: Organization};
 
 export function DisabledCustomSymbolSources({organization}: Props) {
   return (
@@ -42,12 +40,7 @@ export function DisabledCustomSymbolSources({organization}: Props) {
           <StyledButton
             variant="primary"
             icon={<IconBusiness />}
-            onClick={() =>
-              openUpsellModal({
-                organization,
-                source: `feature.${FEATURE}`,
-              })
-            }
+            onClick={() => openUpsellModal({organization, source: `feature.${FEATURE}`})}
           >
             {t('Learn More')}
           </StyledButton>
@@ -64,9 +57,7 @@ export function DisabledCustomSymbolSources({organization}: Props) {
     >
       {tct(
         '[strong: Sentry] can download debug information files from custom repositories. This allows you to stop uploading debug files and instead configure an HTTP symbol server, Amazon S3 bucket, Google Cloud Storage bucket or an App Store Connect.',
-        {
-          strong: <strong />,
-        }
+        {strong: <strong />}
       )}
     </Content>
   );

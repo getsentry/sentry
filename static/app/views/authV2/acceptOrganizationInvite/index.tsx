@@ -21,11 +21,7 @@ import {useInvitationFlow} from './useInvitationFlow';
 
 function AcceptOrganizationInvite() {
   const theme = useTheme();
-  const params = useParams<{
-    memberId: string;
-    orgId: string;
-    token: string;
-  }>();
+  const params = useParams<{memberId: string; orgId: string; token: string}>();
   const {state, actions} = useInvitationFlow(params);
   useAuthPageLoading(state.status === 'loading');
 

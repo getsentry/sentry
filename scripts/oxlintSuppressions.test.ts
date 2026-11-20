@@ -30,10 +30,7 @@ test('root lint excludes workspaces that own their lint tasks', () => {
   const result = spawnSync(
     process.execPath,
     [runner, '--debug', 'files', app, icons, scraps],
-    {
-      cwd: root,
-      encoding: 'utf8',
-    }
+    {cwd: root, encoding: 'utf8'}
   );
   assert.equal(result.status, 0, result.stderr);
   assert(result.stdout.includes(app), result.stdout);
@@ -496,9 +493,7 @@ test('base scans resolve installed dependencies and use base workspace source', 
         'utf8'
       )
     ),
-    {
-      'index.ts': {'typescript/no-floating-promises': {count: 1}},
-    }
+    {'index.ts': {'typescript/no-floating-promises': {count: 1}}}
   );
   write(
     'packages/provider/index.d.ts',
@@ -743,17 +738,13 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
   );
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 1}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 1}}})
   );
   assert.equal(ci(2).status, 0);
   write('source.js', 'debugger; alert("existing"); alert("new");\n');
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}}})
   );
   const increase = ci(2);
   assert.equal(increase.status, 1, increase.stderr);
@@ -771,9 +762,7 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
   commit();
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}}})
   );
   assert.equal(ci(2, '').status, 0);
 });

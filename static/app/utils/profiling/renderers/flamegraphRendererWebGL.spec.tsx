@@ -113,9 +113,7 @@ describe('flamegraphRendererWebGL', () => {
     const context = makeContextMock({
       createShader: jest.fn().mockReturnValueOnce(VERTEX).mockReturnValueOnce(FRAGMENT),
     });
-    const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
-    });
+    const canvas = makeCanvasMock({getContext: jest.fn().mockReturnValue(context)});
 
     const flamegraph = makeFlamegraph();
 
@@ -189,35 +187,17 @@ describe('flamegraphRendererWebGL', () => {
   describe('draw', () => {
     it('sets search results buffer', () => {
       const context = makeContextMock();
-      const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(context),
-      });
+      const canvas = makeCanvasMock({getContext: jest.fn().mockReturnValue(context)});
 
       const flamegraph = makeFlamegraph(
         {
           startValue: 0,
           endValue: 100,
           events: [
-            {
-              type: 'O',
-              frame: 0,
-              at: 0,
-            },
-            {
-              type: 'C',
-              frame: 0,
-              at: 1,
-            },
-            {
-              type: 'O',
-              frame: 1,
-              at: 1,
-            },
-            {
-              type: 'C',
-              frame: 1,
-              at: 2,
-            },
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 1},
+            {type: 'O', frame: 1, at: 1},
+            {type: 'C', frame: 1, at: 2},
           ],
         },
         [{name: 'f0'}, {name: 'f1'}]
@@ -252,35 +232,17 @@ describe('flamegraphRendererWebGL', () => {
 
     it('draws all frames', () => {
       const context = makeContextMock();
-      const canvas = makeCanvasMock({
-        getContext: jest.fn().mockReturnValue(context),
-      });
+      const canvas = makeCanvasMock({getContext: jest.fn().mockReturnValue(context)});
 
       const flamegraph = makeFlamegraph(
         {
           startValue: 0,
           endValue: 100,
           events: [
-            {
-              type: 'O',
-              frame: 0,
-              at: 0,
-            },
-            {
-              type: 'C',
-              frame: 0,
-              at: 1,
-            },
-            {
-              type: 'O',
-              frame: 1,
-              at: 1,
-            },
-            {
-              type: 'C',
-              frame: 1,
-              at: 2,
-            },
+            {type: 'O', frame: 0, at: 0},
+            {type: 'C', frame: 0, at: 1},
+            {type: 'O', frame: 1, at: 1},
+            {type: 'C', frame: 1, at: 2},
           ],
         },
         [{name: 'f0'}, {name: 'f1'}]

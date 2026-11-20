@@ -43,10 +43,7 @@ export function setLocalFeatureFlagOverride(
     features.delete(name);
   }
 
-  const updatedOrganization = {
-    ...organization,
-    features: Array.from(features),
-  };
+  const updatedOrganization = {...organization, features: Array.from(features)};
   addOrganizationFeaturesHandler({
     organization: updatedOrganization,
     handler: buildSentryFeaturesHandler('feature.organizations:'),

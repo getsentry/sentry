@@ -178,12 +178,7 @@ describe('ExploreExportModal', () => {
     expect(dataExportMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/data-export/`,
       expect.objectContaining({
-        data: {
-          format: 'csv',
-          limit: 1500,
-          query_type: 'Explore',
-          query_info: queryInfo,
-        },
+        data: {format: 'csv', limit: 1500, query_type: 'Explore', query_info: queryInfo},
         method: 'POST',
         error: expect.anything(),
         success: expect.anything(),

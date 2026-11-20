@@ -18,11 +18,7 @@ export function classifierListApiOptions(
 ) {
   return apiOptions.as<TelemetryClassifier[]>()(
     '/organizations/$organizationIdOrSlug/classifiers/',
-    {
-      path: {organizationIdOrSlug: organizationSlug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug}, query, staleTime: 0}
   );
 }
 
@@ -32,10 +28,7 @@ export function classifierDetailsApiOptions(
 ) {
   return apiOptions.as<TelemetryClassifier>()(
     '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, classifierId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, classifierId}, staleTime: 0}
   );
 }
 
@@ -45,10 +38,6 @@ export function prebuiltClassifiersApiOptions(
 ) {
   return apiOptions.as<PrebuiltClassifier[]>()(
     '/organizations/$organizationIdOrSlug/classifiers/prebuilt/',
-    {
-      path: {organizationIdOrSlug: organizationSlug},
-      query: {dataset},
-      staleTime: 60_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug}, query: {dataset}, staleTime: 60_000}
   );
 }

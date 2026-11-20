@@ -121,11 +121,7 @@ describe('ChangePlanAction', () => {
       partner: {
         externalId: '123',
         name: 'test',
-        partnership: {
-          id: 'NT',
-          displayName: 'NT',
-          supportNote: '',
-        },
+        partnership: {id: 'NT', displayName: 'NT', supportNote: ''},
         isActive: true,
       },
       sponsoredType: 'NT',
@@ -295,9 +291,7 @@ describe('ChangePlanAction', () => {
       await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is checked when subscription has Seer budget
-      const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer (Legacy)',
-      });
+      const seerCheckbox = screen.getByRole('checkbox', {name: 'Seer (Legacy)'});
       expect(seerCheckbox).toBeChecked();
     });
 
@@ -308,9 +302,7 @@ describe('ChangePlanAction', () => {
       await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is unchecked when subscription has no Seer budget
-      const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer',
-      });
+      const seerCheckbox = screen.getByRole('checkbox', {name: 'Seer'});
       expect(seerCheckbox).not.toBeChecked();
     });
 
@@ -328,9 +320,7 @@ describe('ChangePlanAction', () => {
       await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Check the Seer budget checkbox
-      const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer (Legacy)',
-      });
+      const seerCheckbox = screen.getByRole('checkbox', {name: 'Seer (Legacy)'});
       await userEvent.click(seerCheckbox);
 
       // Select required reserved volumes
@@ -383,9 +373,7 @@ describe('ChangePlanAction', () => {
       await userEvent.click(await screen.findByRole('radio', {name: /am3_business\b/}));
 
       // Verify Seer budget checkbox is unchecked (default state)
-      const seerCheckbox = screen.getByRole('checkbox', {
-        name: 'Seer (Legacy)',
-      });
+      const seerCheckbox = screen.getByRole('checkbox', {name: 'Seer (Legacy)'});
       expect(seerCheckbox).not.toBeChecked();
 
       // Select required reserved volumes

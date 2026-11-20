@@ -20,10 +20,7 @@ export interface ChartDefinition {
   secondaryFields?: string[]; // Optional. Will default to colors depending on placement in list or colors from the chart itself.
   subTitle?: string;
 
-  vitalStops?: {
-    meh: number;
-    poor: number;
-  };
+  vitalStops?: {meh: number; poor: number};
 }
 
 export enum PerformanceWidgetSetting {

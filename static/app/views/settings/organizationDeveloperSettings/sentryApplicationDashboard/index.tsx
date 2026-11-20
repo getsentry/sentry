@@ -31,10 +31,7 @@ type Stats = {
   uninstallStats: Array<[number, number]>;
 };
 
-type TimeRange = {
-  since: number;
-  until: number;
-};
+type TimeRange = {since: number; until: number};
 
 function sentryAppStatsApiOptions({
   appSlug,
@@ -105,11 +102,7 @@ function SentryApplicationDashboard() {
 
 export default SentryApplicationDashboard;
 
-type InstallDataSectionProps = {
-  app: SentryApp;
-  appSlug: string;
-  timeRange: TimeRange;
-};
+type InstallDataSectionProps = {app: SentryApp; appSlug: string; timeRange: TimeRange};
 
 function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) {
   const {
@@ -161,17 +154,11 @@ function InstallCharts({installStats, uninstallStats}: InstallChartsProps) {
   const theme = useTheme();
 
   const installSeries = {
-    data: installStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: installStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('installed'),
   };
   const uninstallSeries = {
-    data: uninstallStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: uninstallStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('uninstalled'),
   };
 

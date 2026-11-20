@@ -1,7 +1,7 @@
 import responses
+from django.test import override_settings
 from responses import matchers
 
-from sentry import options
 from sentry.integrations.discord.client import (
     APPLICATION_COMMANDS_URL,
     CHANNEL_URL,
@@ -19,12 +19,13 @@ from sentry.integrations.discord.message_builder.base.flags import (
 from sentry.testutils.cases import TestCase
 
 
+@override_settings(
+    SENTRY_DISCORD_BOT_TOKEN="bot-token", SENTRY_DISCORD_APPLICATION_ID="application-id"
+)
 class DiscordClientTest(TestCase):
     def setUp(self) -> None:
         self.application_id = "application-id"
         self.bot_token = "bot-token"
-        options.set("discord.application-id", self.application_id)
-        options.set("discord.bot-token", self.bot_token)
         self.integration = self.create_integration(
             organization=self.organization,
             external_id="1234567890",

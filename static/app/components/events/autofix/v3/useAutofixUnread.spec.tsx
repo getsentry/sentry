@@ -1,7 +1,12 @@
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {useAutofixUnread} from './useAutofixUnread';
 
@@ -33,6 +38,7 @@ describe('useAutofixUnread', () => {
 
   afterEach(() => {
     try {
+      cleanup();
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();

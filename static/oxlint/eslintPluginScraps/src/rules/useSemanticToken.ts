@@ -24,14 +24,7 @@ export const useSemanticToken = defineRule({
     schema: [
       {
         type: 'object',
-        properties: {
-          enabledCategories: {
-            type: 'array',
-            items: {
-              type: 'string',
-            },
-          },
-        },
+        properties: {enabledCategories: {type: 'array', items: {type: 'string'}}},
         additionalProperties: false,
       },
     ],
@@ -89,20 +82,13 @@ export const useSemanticToken = defineRule({
             context.report({
               node: tokenNode,
               messageId: 'invalidPropertyWithSuggestion',
-              data: {
-                tokenPath,
-                property: normalizedProperty,
-                suggestedCategory,
-              },
+              data: {tokenPath, property: normalizedProperty, suggestedCategory},
             });
           } else {
             context.report({
               node: tokenNode,
               messageId: 'invalidProperty',
-              data: {
-                tokenPath,
-                property: normalizedProperty,
-              },
+              data: {tokenPath, property: normalizedProperty},
             });
           }
         }

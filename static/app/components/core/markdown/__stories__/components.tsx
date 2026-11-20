@@ -90,10 +90,7 @@ export function CustomComponentsDemo() {
                   <a
                     key={i}
                     href={`/issues/${part}/`}
-                    style={{
-                      color: 'var(--purple400)',
-                      textDecoration: 'underline',
-                    }}
+                    style={{color: 'var(--purple400)', textDecoration: 'underline'}}
                   >
                     {part}
                   </a>

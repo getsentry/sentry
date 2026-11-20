@@ -84,13 +84,7 @@ export function ProjectDetail() {
   const handleSearch = useCallback(
     (searchQuery: string) => {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            query: searchQuery,
-          },
-        },
+        {pathname: location.pathname, query: {...location.query, query: searchQuery}},
         {replace: true}
       );
     },
@@ -201,7 +195,7 @@ export function ProjectDetail() {
                 label: project?.slug ?? params.projectId,
                 leadingGraphic: project ? (
                   <ProjectsBadge
-                    projectPlatforms={project.platform ? [project.platform] : []}
+                    projectPlatforms={project.platform ? [project.platform] : ['default']}
                   />
                 ) : (
                   <Placeholder width="16px" height="16px" />

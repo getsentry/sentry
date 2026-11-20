@@ -105,10 +105,7 @@ export function useLogsAggregatesTable({
       limit,
       referrer,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-      samplingMode,
-    },
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 
   const {
@@ -179,11 +176,7 @@ function useLogsAggregatesTableImpl({
     retry: false,
   });
 
-  return {
-    result,
-    pageLinks: result.data?.headers.Link,
-    eventView,
-  };
+  return {result, pageLinks: result.data?.headers.Link, eventView};
 }
 
 function useLogsAggregatesApiOptions({
@@ -246,8 +239,5 @@ function useLogsAggregatesApiOptions({
     }
   );
 
-  return {
-    queryOptions: options,
-    eventView,
-  };
+  return {queryOptions: options, eventView};
 }

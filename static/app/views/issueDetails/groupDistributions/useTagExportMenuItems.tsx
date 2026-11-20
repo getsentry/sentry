@@ -49,11 +49,7 @@ export function useTagExportMenuItems({
       onAction: () => {
         handleDataExport({
           queryType: ExportQueryType.ISSUES_BY_TAG,
-          queryInfo: {
-            project: project.id,
-            group: group.id,
-            key: tagKey,
-          },
+          queryInfo: {project: project.id, group: group.id, key: tagKey},
         });
       },
       disabled: isExportDisabled || !hasDiscoverQuery,

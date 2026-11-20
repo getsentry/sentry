@@ -61,17 +61,11 @@ export class Flamegraph {
   timelineFormatter: (value: number) => string;
 
   static empty(): Flamegraph {
-    return new Flamegraph(Profile.Empty, {
-      inverted: false,
-      sort: 'call order',
-    });
+    return new Flamegraph(Profile.Empty, {inverted: false, sort: 'call order'});
   }
 
   static example(): Flamegraph {
-    return new Flamegraph(SampledProfile.Example, {
-      inverted: false,
-      sort: 'call order',
-    });
+    return new Flamegraph(SampledProfile.Example, {inverted: false, sort: 'call order'});
   }
 
   static From(
@@ -79,15 +73,9 @@ export class Flamegraph {
     {
       inverted = false,
       sort = 'call order',
-    }: {
-      inverted?: Flamegraph['inverted'];
-      sort?: Flamegraph['sort'];
-    }
+    }: {inverted?: Flamegraph['inverted']; sort?: Flamegraph['sort']}
   ): Flamegraph {
-    return new Flamegraph(from.profile, {
-      inverted,
-      sort,
-    });
+    return new Flamegraph(from.profile, {inverted, sort});
   }
 
   constructor(

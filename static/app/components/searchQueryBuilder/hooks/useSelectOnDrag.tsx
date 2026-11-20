@@ -5,17 +5,9 @@ import type {Key} from '@react-types/shared';
 import {useSearchQueryBuilderLayout} from 'sentry/components/searchQueryBuilder/context';
 import {Token, type ParseResultToken} from 'sentry/components/searchSyntax/parser';
 
-type DraggingState = {
-  startPos: {
-    x: number;
-    y: number;
-  };
-};
+type DraggingState = {startPos: {x: number; y: number}};
 
-type TokenCoordinate = {
-  key: string;
-  rect: DOMRect;
-};
+type TokenCoordinate = {key: string; rect: DOMRect};
 
 type TokenCoordinateCache = Record<Key, TokenCoordinate>;
 
@@ -62,10 +54,7 @@ function measureTokens(
     if (key) {
       const rect = tokenElement.getBoundingClientRect();
 
-      cache[key] = {
-        key,
-        rect,
-      };
+      cache[key] = {key, rect};
     }
   });
 
@@ -205,12 +194,7 @@ export function useSelectOnDrag(state: ListState<ParseResultToken>) {
         return;
       }
 
-      dragState.current = {
-        startPos: {
-          x: e.clientX,
-          y: e.clientY,
-        },
-      };
+      dragState.current = {startPos: {x: e.clientX, y: e.clientY}};
     },
     [state]
   );

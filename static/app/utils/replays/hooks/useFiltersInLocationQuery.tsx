@@ -135,8 +135,5 @@ export function useFiltersInLocationQuery() {
     [setQuery]
   );
 
-  return {
-    setFilter,
-    query,
-  };
+  return {setFilter, query};
 }

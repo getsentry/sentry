@@ -16,10 +16,7 @@ type TransactionThresholdUpdate =
 export const getThresholdQueryOptions = (orgSlug: string, projectSlug: string) =>
   apiOptions.as<ProjectThreshold>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/transaction-threshold/configure/',
-    {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}, staleTime: 0}
   );
 
 export const getThresholdSettingsMutationKey = (orgSlug: string, projectSlug: string) =>

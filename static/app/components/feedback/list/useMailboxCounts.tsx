@@ -59,11 +59,7 @@ export function useMailboxCounts({organization}: Props) {
   );
 
   const queryViewWithStatsPeriod = useMemo(
-    () =>
-      coaleseIssueStatsPeriodQuery({
-        listHeadTime,
-        queryView,
-      }),
+    () => coaleseIssueStatsPeriodQuery({listHeadTime, queryView}),
     [listHeadTime, queryView]
   );
 
@@ -79,9 +75,7 @@ export function useMailboxCounts({organization}: Props) {
     ...apiOptions.as<ApiReturnType>()(
       '/organizations/$organizationIdOrSlug/issues-count/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
         query: queryViewWithStatsPeriod,
         staleTime: 1_000,
       }

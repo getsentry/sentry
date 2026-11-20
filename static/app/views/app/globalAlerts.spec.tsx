@@ -197,11 +197,7 @@ describe('GlobalAlertProvider', () => {
       const {result} = renderHook(useGlobalAlerts, {wrapper});
 
       act(() => {
-        result.current.addAlert({
-          id: 'persistent',
-          message: 'sticky',
-          variant: 'danger',
-        });
+        result.current.addAlert({id: 'persistent', message: 'sticky', variant: 'danger'});
       });
 
       act(() => {

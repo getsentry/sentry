@@ -12,21 +12,12 @@ import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
 describe('IssueTraceWaterfallOverlay', () => {
   it('does not carry issue list filters into the trace target', () => {
     const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: '123',
-        },
-      },
-      occurrence: {
-        evidenceData: {offenderSpanIds: ['offender-span-id']},
-      },
+      contexts: {trace: {trace_id: '123'}},
+      occurrence: {evidenceData: {offenderSpanIds: ['offender-span-id']}},
     });
     const organization = OrganizationFixture();
     const viewManager = {
-      row_measurer: {
-        off: jest.fn(),
-        on: jest.fn(),
-      },
+      row_measurer: {off: jest.fn(), on: jest.fn()},
     } as unknown as VirtualizedViewManager;
 
     render(
@@ -66,19 +57,10 @@ describe('IssueTraceWaterfallOverlay', () => {
   });
 
   it('uses the matching trace node path when there is no offender span', () => {
-    const event = EventFixture({
-      contexts: {
-        trace: {
-          trace_id: '123',
-        },
-      },
-    });
+    const event = EventFixture({contexts: {trace: {trace_id: '123'}}});
     const organization = OrganizationFixture();
     const viewManager = {
-      row_measurer: {
-        off: jest.fn(),
-        on: jest.fn(),
-      },
+      row_measurer: {off: jest.fn(), on: jest.fn()},
     } as unknown as VirtualizedViewManager;
     const tree = IssuesTraceTree.FromTrace(
       makeEAPTrace([makeUptimeCheck({event_id: event.eventID})]),

@@ -311,10 +311,7 @@ export function CellAction({pin, allowActions, usePortalOnDropdown, ...props}: P
   const {children, column} = props;
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
-  const cellActions = makeCellActions({
-    ...props,
-    allowActions,
-  });
+  const cellActions = makeCellActions({...props, allowActions});
   const align = fieldAlignment(column.key as string, column.type);
 
   return (

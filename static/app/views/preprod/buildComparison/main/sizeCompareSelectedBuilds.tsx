@@ -52,10 +52,8 @@ function BuildButton({
   const project = ProjectsStore.getById(String(projectId));
 
   const buildUrl =
-    getSizeBuildPath({
-      organizationSlug: organization.slug,
-      baseArtifactId: buildId,
-    }) ?? '';
+    getSizeBuildPath({organizationSlug: organization.slug, baseArtifactId: buildId}) ??
+    '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;

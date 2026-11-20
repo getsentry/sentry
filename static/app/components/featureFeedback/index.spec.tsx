@@ -21,14 +21,7 @@ describe('FeatureFeedback', () => {
 
   it('shows the modal on click with custom "onClick" handler', async () => {
     const mockOnClick = jest.fn();
-    render(
-      <FeatureFeedback
-        featureName="test"
-        buttonProps={{
-          onClick: mockOnClick,
-        }}
-      />
-    );
+    render(<FeatureFeedback featureName="test" buttonProps={{onClick: mockOnClick}} />);
     renderGlobalModal();
 
     await userEvent.click(screen.getByText('Give Feedback'));

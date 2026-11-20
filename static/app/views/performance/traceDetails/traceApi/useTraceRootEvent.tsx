@@ -54,9 +54,7 @@ export function useTraceRootEvent({
           projectIdOrSlug: projectSlug!,
           eventId: rep?.event?.id!,
         },
-        query: {
-          referrer: 'trace-details-summary',
-        },
+        query: {referrer: 'trace-details-summary'},
         staleTime: 1000 * 60 * 10,
       }
     ),

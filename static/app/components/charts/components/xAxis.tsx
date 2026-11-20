@@ -70,19 +70,9 @@ export function createXAxisOptions({
   const defaults: XAXisComponentOption = {
     type: isGroupedByDate ? 'time' : 'category',
     splitNumber: 4,
-    axisLine: {
-      lineStyle: {
-        color: theme.tokens.content.secondary,
-      },
-    },
-    axisTick: {
-      lineStyle: {
-        color: theme.tokens.content.secondary,
-      },
-    },
-    splitLine: {
-      show: false,
-    },
+    axisLine: {lineStyle: {color: theme.tokens.content.secondary}},
+    axisTick: {lineStyle: {color: theme.tokens.content.secondary}},
+    splitLine: {show: false},
     axisLabel: {
       hideOverlap: true,
       color: theme.tokens.content.secondary,
@@ -99,13 +89,8 @@ export function createXAxisOptions({
     axisPointer: {
       show: true,
       type: 'line',
-      label: {
-        show: false,
-      },
-      lineStyle: {
-        type: 'solid',
-        width: 0.5,
-      },
+      label: {show: false},
+      lineStyle: {type: 'solid', width: 0.5},
     },
   };
 

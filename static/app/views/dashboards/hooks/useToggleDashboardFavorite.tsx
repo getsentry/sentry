@@ -16,10 +16,7 @@ import {flattenErrors} from 'sentry/views/dashboards/utils';
 
 import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
-type ToggleFavoriteVariables = {
-  dashboard: DashboardListItem;
-  shouldFavorite: boolean;
-};
+type ToggleFavoriteVariables = {dashboard: DashboardListItem; shouldFavorite: boolean};
 
 /**
  * Toggles a dashboard's favorite status and optimistically sorts both the

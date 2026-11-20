@@ -32,9 +32,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
       fetchMutation({
         url: getApiUrl(
           '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, ...path},
-          }
+          {path: {organizationIdOrSlug: organization.slug, ...path}}
         ),
         method: 'DELETE',
       }),
@@ -50,10 +48,7 @@ export function useDeleteReplay({projectSlug, replayId}: DeleteButtonProps) {
       navigate(
         issueReferrer
           ? {pathname: `/organizations/${organization.slug}/issues/${groupId}/replays/`}
-          : makeReplaysPathname({
-              path: '/',
-              organization,
-            }),
+          : makeReplaysPathname({path: '/', organization}),
         {replace: true}
       );
     } catch (err) {

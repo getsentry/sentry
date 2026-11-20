@@ -5,11 +5,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import type {ReplayBulkDeleteAuditLog} from './types';
 
-type Query = {
-  referrer: string;
-  offset?: number;
-  per_page?: number;
-};
+type Query = {referrer: string; offset?: number; per_page?: number};
 
 const POLL_INTERVAL_MS = 5_000;
 
@@ -19,13 +15,7 @@ export function isBulkDeleteJobRunning(job: ReplayBulkDeleteAuditLog) {
 
 export function replayBulkDeleteAuditLogApiOptions(
   organization: Organization,
-  {
-    projectSlug,
-    query,
-  }: {
-    projectSlug: string;
-    query: Query;
-  }
+  {projectSlug, query}: {projectSlug: string; query: Query}
 ) {
   return queryOptions({
     ...apiOptions.as<{data: ReplayBulkDeleteAuditLog[]}>()(

@@ -98,10 +98,7 @@ describe('getSortedRegisters', () => {
   });
 
   it('uses register names to consistently order aliases with the same index', () => {
-    const registers = {
-      x29: '0x000000000000001d',
-      fp: '0x000000000000001d',
-    };
+    const registers = {x29: '0x000000000000001d', fp: '0x000000000000001d'};
 
     const sorted = getSortedRegisters(registers, 'arm64');
 

@@ -5,17 +5,12 @@ import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSentryAppComponents} from 'sentry/utils/useSentryAppComponents';
 
-type Props = {
-  event: Event;
-  group: Group;
-};
+type Props = {event: Event; group: Group};
 
 export function useHasLinkedIssues({group, event}: Props) {
   const organization = useOrganization();
   const issueTrackingFilter = useIssueTrackingFilter();
-  const components = useSentryAppComponents({
-    componentType: 'issue-link',
-  });
+  const components = useSentryAppComponents({componentType: 'issue-link'});
 
   const renderSentryAppIssues = (): ExternalIssueComponent[] => {
     return components.map<ExternalIssueComponent>(component => {
@@ -51,12 +46,7 @@ export function useHasLinkedIssues({group, event}: Props) {
         key: issue.key,
         disabled: false,
         hasLinkedIssue: true,
-        props: {
-          configurations: [],
-          externalIssue: issue,
-          group,
-          onChange: () => {},
-        },
+        props: {configurations: [], externalIssue: issue, group, onChange: () => {}},
       })) ?? []
     );
   };

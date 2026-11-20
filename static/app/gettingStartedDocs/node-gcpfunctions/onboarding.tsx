@@ -72,9 +72,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        getInstallCodeBlock(params, {
-          packageName: '@sentry/google-cloud-serverless',
-        }),
+        getInstallCodeBlock(params, {packageName: '@sentry/google-cloud-serverless'}),
       ],
     },
   ],
@@ -89,11 +87,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getSdkSetupSnippet(params)},
       ],
     },
     getUploadSourceMapsStep({
@@ -116,11 +110,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet(params)},
       ],
     },
   ],

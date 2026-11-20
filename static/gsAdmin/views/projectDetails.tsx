@@ -30,10 +30,7 @@ import {getLogQuery} from 'admin/utils';
 import {DynamicSamplingPanel} from './dynamicSamplingPanel';
 
 export function ProjectDetails() {
-  const {projectId, orgId} = useParams<{
-    orgId: string;
-    projectId: string;
-  }>();
+  const {projectId, orgId} = useParams<{orgId: string; projectId: string}>();
   // This admin view fetches project details without `collapse=organization`,
   // so the backend returns a full Organization rather than the minimal
   // {id, slug} shape used elsewhere.
@@ -54,9 +51,7 @@ export function ProjectDetails() {
     const endpoint = `/projects/${orgId}/${projectId}/users/${userHash}/`;
 
     try {
-      await api.requestPromise(endpoint, {
-        method: 'DELETE',
-      });
+      await api.requestPromise(endpoint, {method: 'DELETE'});
       toast.success('User email has been removed.');
     } catch {
       toast.error('Failed to remove email.');
@@ -75,10 +70,7 @@ export function ProjectDetails() {
   };
 
   const handleStatsTypeChange = (dataType: DataCategoryExact) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, dataType},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, dataType}});
   };
 
   const organization = data.organization;
@@ -110,10 +102,7 @@ export function ProjectDetails() {
         <DetailLabel title="Created">{moment(data.dateCreated).fromNow()}</DetailLabel>
         <DetailLabel title="Logs">
           <ExternalLink
-            href={getLogQuery('project', {
-              organizationId: orgId,
-              projectId: data.slug,
-            })}
+            href={getLogQuery('project', {organizationId: orgId, projectId: data.slug})}
           >
             {'Project'}
           </ExternalLink>
@@ -128,10 +117,7 @@ export function ProjectDetails() {
           </ExternalLink>
           ,{' '}
           <ExternalLink
-            href={getLogQuery('audit', {
-              organizationId: orgId,
-              projectId: data.slug,
-            })}
+            href={getLogQuery('audit', {organizationId: orgId, projectId: data.slug})}
           >
             {'Audit'}
           </ExternalLink>
@@ -159,9 +145,7 @@ export function ProjectDetails() {
         rootName="Projects"
         name={`${data.slug} (${organization.name})`}
         sections={[
-          {
-            content: overview,
-          },
+          {content: overview},
           {
             noPanel: true,
             content: (
@@ -182,10 +166,7 @@ export function ProjectDetails() {
               />
             ),
           },
-          {
-            noPanel: true,
-            content: eventUsers,
-          },
+          {noPanel: true, content: eventUsers},
           {
             noPanel: true,
             content: (

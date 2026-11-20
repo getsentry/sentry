@@ -7,10 +7,7 @@ describe('getApiUrl', () => {
   it('should replace path parameters with their values', () => {
     // @ts-expect-error Using a sample path, not a real one
     const url = getApiUrl('/projects/$orgSlug/$projectSlug/', {
-      path: {
-        orgSlug: 'my-org',
-        projectSlug: 'my-project',
-      },
+      path: {orgSlug: 'my-org', projectSlug: 'my-project'},
     });
 
     expect(url).toBe('/projects/my-org/my-project/');
@@ -24,10 +21,7 @@ describe('getApiUrl', () => {
 
   it('should encode path parameters correctly', () => {
     const url = getApiUrl('/organizations/$organizationIdOrSlug/releases/$version/', {
-      path: {
-        organizationIdOrSlug: 'my-org',
-        version: 'v 1.0.0',
-      },
+      path: {organizationIdOrSlug: 'my-org', version: 'v 1.0.0'},
     });
 
     expect(url).toBe('/organizations/my-org/releases/v%201.0.0/');
@@ -42,18 +36,14 @@ describe('getApiUrl', () => {
   });
 
   it('should stringify number path params', () => {
-    const url = getApiUrl('/api-tokens/$tokenId/', {
-      path: {tokenId: 123},
-    });
+    const url = getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: 123}});
 
     expect(url).toBe('/api-tokens/123/');
   });
 
   it('should not do accidental replacements', () => {
     // @ts-expect-error Using a sample path, not a real one
-    const url = getApiUrl('/projects/$id1/$id', {
-      path: {id: '123', id1: '456'},
-    });
+    const url = getApiUrl('/projects/$id1/$id', {path: {id: '123', id1: '456'}});
 
     expect(url).toBe('/projects/456/123');
   });
@@ -61,37 +51,25 @@ describe('getApiUrl', () => {
   it('should replace segments with : in the middle', () => {
     const url = getApiUrl(
       '/organizations/$organizationIdOrSlug/events/$projectIdOrSlug:$eventId/',
-      {
-        path: {
-          organizationIdOrSlug: 'org-slug',
-          projectIdOrSlug: 'abc',
-          eventId: '123',
-        },
-      }
+      {path: {organizationIdOrSlug: 'org-slug', projectIdOrSlug: 'abc', eventId: '123'}}
     );
 
     expect(url).toBe('/organizations/org-slug/events/abc:123/');
   });
 
   it('should allow string or number path parameters', () => {
-    const url1 = getApiUrl('/api-tokens/$tokenId/', {
-      path: {tokenId: 123},
-    });
+    const url1 = getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: 123}});
 
     expect(url1).toBe('/api-tokens/123/');
 
-    const url2 = getApiUrl('/api-tokens/$tokenId/', {
-      path: {tokenId: 'abc'},
-    });
+    const url2 = getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: 'abc'}});
 
     expect(url2).toBe('/api-tokens/abc/');
   });
 
   describe('types', () => {
     it('should return branded string type', () => {
-      const url = getApiUrl('/api-tokens/$tokenId/', {
-        path: {tokenId: 'my-token'},
-      });
+      const url = getApiUrl('/api-tokens/$tokenId/', {path: {tokenId: 'my-token'}});
 
       expectTypeOf(url).toEqualTypeOf<string & {__apiUrl: true}>();
     });

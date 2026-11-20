@@ -161,9 +161,7 @@ export function useMetricDetectorAnomalyPeriods({
     environment,
     projectId,
     statsPeriod: historicalPeriod,
-    options: {
-      enabled,
-    },
+    options: {enabled},
   });
 
   const {

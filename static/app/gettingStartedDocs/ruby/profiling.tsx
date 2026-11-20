@@ -28,9 +28,7 @@ export const profiling = ({
           type: 'text',
           text: tct(
             'First add [code:stackprof] to your [code:Gemfile] and make sure it is loaded before the Sentry SDK.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -56,9 +54,7 @@ gem '${frameworkPackage}'`
           type: 'text',
           text: tct(
             'Then, make sure both [code:traces_sample_rate] and [code:profiles_sample_rate] are set and non-zero in your Sentry initializer.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

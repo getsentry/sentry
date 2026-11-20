@@ -70,12 +70,7 @@ export function getTraceContextData({
               ? getTraceTargetFromEvent(event, organization, location)
               : undefined;
 
-            return {
-              key: ctxKey,
-              subject: t('Trace ID'),
-              value: traceId,
-              action: {link},
-            };
+            return {key: ctxKey, subject: t('Trace ID'), value: traceId, action: {link}};
           }
 
           return {
@@ -89,11 +84,7 @@ export function getTraceContextData({
           };
         }
         case TraceContextKeys.SPAN_ID: {
-          return {
-            key: ctxKey,
-            subject: t('Span ID'),
-            value: data.span_id || '',
-          };
+          return {key: ctxKey, subject: t('Span ID'), value: data.span_id || ''};
         }
         case TraceContextKeys.PARENT_SPAN_ID: {
           return {
@@ -103,18 +94,10 @@ export function getTraceContextData({
           };
         }
         case TraceContextKeys.OP_NAME: {
-          return {
-            key: ctxKey,
-            subject: t('Operation Name'),
-            value: data.op || '',
-          };
+          return {key: ctxKey, subject: t('Operation Name'), value: data.op || ''};
         }
         case TraceContextKeys.STATUS: {
-          return {
-            key: ctxKey,
-            subject: t('Status'),
-            value: data.status || '',
-          };
+          return {key: ctxKey, subject: t('Status'), value: data.status || ''};
         }
         case TraceContextKeys.EXCLUSIVE_TIME: {
           return {
@@ -138,18 +121,10 @@ export function getTraceContextData({
           };
         }
         case TraceContextKeys.ORIGIN: {
-          return {
-            key: ctxKey,
-            subject: t('Origin'),
-            value: data.origin,
-          };
+          return {key: ctxKey, subject: t('Origin'), value: data.origin};
         }
         case TraceContextKeys.DATA: {
-          return {
-            key: ctxKey,
-            subject: t('Data'),
-            value: data.data,
-          };
+          return {key: ctxKey, subject: t('Data'), value: data.data};
         }
         case 'transaction_name': {
           const eventTag = event?.tags.find(tag => {

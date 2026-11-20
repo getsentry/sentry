@@ -37,10 +37,7 @@ function getCurrentRouteInfo({
   matches: UIMatch[];
   organization: Organization;
   params: Record<string, string | undefined>;
-}): {
-  baseUrl: string;
-  currentTab: Tab;
-} {
+}): {baseUrl: string; currentTab: Tab} {
   const currentTab = getCurrentTab({matches, params});
 
   const baseUrl = normalizeUrl(
@@ -63,15 +60,9 @@ export function useCurrentTab(): Tab {
   return getCurrentTab({matches, params});
 }
 
-export function useGroupDetailsRoute(): {
-  baseUrl: string;
-  currentTab: Tab;
-} {
+export function useGroupDetailsRoute(): {baseUrl: string; currentTab: Tab} {
   const organization = useOrganization();
-  const params = useParams<{
-    eventId?: string;
-    tagKey?: string;
-  }>();
+  const params = useParams<{eventId?: string; tagKey?: string}>();
   const matches = useMatches();
   const groupId = useGroupId();
   return getCurrentRouteInfo({

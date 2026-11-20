@@ -295,10 +295,7 @@ export function usePerformanceGeneralProjectSettings(projectId?: number) {
     ...apiOptions.as<{enable_images: boolean}>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project?.slug!,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.slug!},
         staleTime: 0,
       }
     ),

@@ -661,11 +661,7 @@ describe('openSeerAutoTopUpModal', () => {
       statusCode: 402,
       body: {
         invoiceGuid: 'invoice-guid',
-        verification: {
-          required: true,
-          paymentIntentId: 'pi_123',
-          clientSecret: 'ERROR',
-        },
+        verification: {required: true, paymentIntentId: 'pi_123', clientSecret: 'ERROR'},
       },
     });
     openAutoTopUpModal();

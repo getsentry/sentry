@@ -27,17 +27,9 @@ export function getDartContextData({
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case DartContextKeys.COMPILE_MODE:
-        return {
-          key: ctxKey,
-          subject: t('Compile Mode'),
-          value: data.compile_mode,
-        };
+        return {key: ctxKey, subject: t('Compile Mode'), value: data.compile_mode};
       case DartContextKeys.EXECUTABLE:
-        return {
-          key: ctxKey,
-          subject: t('Executable'),
-          value: data.executable,
-        };
+        return {key: ctxKey, subject: t('Executable'), value: data.executable};
       case DartContextKeys.RESOLVED_EXECUTABLE:
         return {
           key: ctxKey,
@@ -45,11 +37,7 @@ export function getDartContextData({
           value: data.resolved_executable,
         };
       case DartContextKeys.SCRIPT:
-        return {
-          key: ctxKey,
-          subject: t('Script'),
-          value: data.script,
-        };
+        return {key: ctxKey, subject: t('Script'), value: data.script};
       default:
         return {
           key: ctxKey,

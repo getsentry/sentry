@@ -23,11 +23,7 @@ export function useUpdateClassifier(classifierId: string) {
 
   return useMutation({
     mutationFn: (data: UpdateClassifierPayload) =>
-      fetchMutation<TelemetryClassifier>({
-        url: options.queryKey[0],
-        method: 'PUT',
-        data,
-      }),
+      fetchMutation<TelemetryClassifier>({url: options.queryKey[0], method: 'PUT', data}),
     onSuccess: classifier => {
       queryClient.setQueryData(options.queryKey, prev =>
         prev ? {...prev, json: classifier} : prev

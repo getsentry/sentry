@@ -223,10 +223,7 @@ export default Storybook.story('ScmRepositoryTable', story => {
           initiallyExpanded: true,
         },
         {
-          integration: {
-            ...makeIntegration('2', '@org-name-456'),
-            status: 'disabled',
-          },
+          integration: {...makeIntegration('2', '@org-name-456'), status: 'disabled'},
           repositories: [],
           manageUrl: 'https://github.com/',
           expandDisabled: true,

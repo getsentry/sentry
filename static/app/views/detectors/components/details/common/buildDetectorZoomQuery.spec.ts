@@ -80,12 +80,7 @@ describe('limitDateTimeParamsToMaxPoints', () => {
       intervalSeconds: 60,
     });
 
-    expect(result).toEqual({
-      dateTimeParams: {
-        statsPeriod: '168h',
-      },
-      isRangeLimited: true,
-    });
+    expect(result).toEqual({dateTimeParams: {statsPeriod: '168h'}, isRangeLimited: true});
   });
 
   it('limits long absolute ranges to max points', () => {
@@ -108,18 +103,8 @@ describe('limitDateTimeParamsToMaxPoints', () => {
   it('does not modify ranges within max points', () => {
     const start = getUtcDateString(Date.parse('2026-02-01T00:00:00Z'));
     const end = getUtcDateString(Date.parse('2026-02-02T00:00:00Z'));
-    const result = limitDateTimeParamsToMaxPoints({
-      start,
-      end,
-      intervalSeconds: 60,
-    });
+    const result = limitDateTimeParamsToMaxPoints({start, end, intervalSeconds: 60});
 
-    expect(result).toEqual({
-      dateTimeParams: {
-        start,
-        end,
-      },
-      isRangeLimited: false,
-    });
+    expect(result).toEqual({dateTimeParams: {start, end}, isRangeLimited: false});
   });
 });

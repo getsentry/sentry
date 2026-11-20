@@ -220,12 +220,7 @@ function getTraceWaterfallEvidenceProps({
     ? {prefix: t('Span'), label: getShortEventId(span_id)}
     : {prefix: t('Trace'), label: getShortEventId(trace_id)};
 
-  return {
-    to: target,
-    icon: <IconSpan />,
-    prefix,
-    label,
-  };
+  return {to: target, icon: <IconSpan />, prefix, label};
 }
 
 function getIssueDetailsEvidenceProps({

@@ -26,11 +26,5 @@ export function getSnapshotPrComments(project: DetailedProject) {
     project.preprodSnapshotPrCommentsPostOnRenamed ??
     project.options?.[POST_ON_RENAMED_KEY] === true;
 
-  return {
-    enabled,
-    postOnAdded,
-    postOnRemoved,
-    postOnChanged,
-    postOnRenamed,
-  };
+  return {enabled, postOnAdded, postOnRemoved, postOnChanged, postOnRenamed};
 }

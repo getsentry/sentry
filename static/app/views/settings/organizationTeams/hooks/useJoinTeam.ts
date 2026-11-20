@@ -21,16 +21,11 @@ export function useJoinTeam({organization, team}: UseJoinTeamOptions) {
 
   return useMutation({
     mutationFn: () => {
-      return joinTeamPromise(api, {
-        orgId: organization.slug,
-        teamId: team.slug,
-      });
+      return joinTeamPromise(api, {orgId: organization.slug, teamId: team.slug});
     },
     onSuccess: () => {
       toast.success(t('You have joined %s', `#${team.slug}`));
-      fetchOrganizationDetails(api, organization.slug, {
-        loadProjects: true,
-      });
+      fetchOrganizationDetails(api, organization.slug, {loadProjects: true});
     },
     onError: () => {
       toast.error(t('Unable to join %s', `#${team.slug}`));

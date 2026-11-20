@@ -85,10 +85,7 @@ describe('AcceptOrganizationInvite', () => {
   });
 
   it('shows the organization and signed-in account before accepting', async () => {
-    const user = UserFixture({
-      email: 'signed-in@example.com',
-      name: 'Signed In User',
-    });
+    const user = UserFixture({email: 'signed-in@example.com', name: 'Signed In User'});
     ConfigStore.set('user', user);
     const getInvite = MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -101,9 +98,7 @@ describe('AcceptOrganizationInvite', () => {
       method: 'POST',
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByRole('heading', {name: 'Accept Invitation'})).toBeVisible();
     expect(screen.getByText('Acme')).toBeVisible();
@@ -136,9 +131,7 @@ describe('AcceptOrganizationInvite', () => {
     mockOrganizationConfig(invite);
     mockAuthConfig();
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByRole('button', {name: 'Create account'})).toBeVisible();
     expect(screen.getByText("You've been invited to join…")).toBeVisible();
@@ -151,9 +144,7 @@ describe('AcceptOrganizationInvite', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Sign in'}));
-    const createAccount = await screen.findByRole('button', {
-      name: 'Create one',
-    });
+    const createAccount = await screen.findByRole('button', {name: 'Create one'});
     expect(createAccount.parentElement).toHaveTextContent(
       "Don't have an account? Create one"
     );
@@ -172,19 +163,14 @@ describe('AcceptOrganizationInvite', () => {
     });
     mockOrganizationConfig(invite);
     mockAuthConfig();
-    const user = UserFixture({
-      email: 'invitee@example.com',
-      name: 'New User',
-    });
+    const user = UserFixture({email: 'invitee@example.com', name: 'New User'});
     const register = MockApiClient.addMockResponse({
       url: '/auth/register/',
       method: 'POST',
       body: {nextUri: '/organizations/', user},
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.type(await screen.findByRole('textbox', {name: 'Name'}), user.name);
     await userEvent.type(screen.getByLabelText('Password'), 'a-secure-password');
@@ -240,19 +226,14 @@ describe('AcceptOrganizationInvite', () => {
       googleLoginLink: '/auth/login/google/',
       vstsLoginLink: '/auth/login/azure/',
     });
-    const user = UserFixture({
-      email: 'member@example.com',
-      name: 'Existing User',
-    });
+    const user = UserFixture({email: 'member@example.com', name: 'Existing User'});
     const login = MockApiClient.addMockResponse({
       url: '/auth/login/',
       method: 'POST',
       body: {nextUri: '/organizations/', user},
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Sign in'}));
     expect(screen.getByRole('button', {name: 'Google'})).toHaveAttribute(
@@ -282,17 +263,11 @@ describe('AcceptOrganizationInvite', () => {
   it('keeps sign-in busy until the invitation check finishes, then animates acceptance', async () => {
     MotionGlobalConfig.skipAnimations = false;
     const baseTheme = ThemeFixture();
-    const smooth = {
-      ...baseTheme.motion.framer.smooth,
-      moderate: {duration: 0.16},
-    };
+    const smooth = {...baseTheme.motion.framer.smooth, moderate: {duration: 0.16}};
     const framer = {...baseTheme.motion.framer, smooth};
     const theme = {...baseTheme, motion: {...baseTheme.motion, framer}};
     const invite = {...defaultInvite, needsAuthentication: true};
-    MockApiClient.addMockResponse({
-      url: '/accept-invite/org-slug/1/abc/',
-      body: invite,
-    });
+    MockApiClient.addMockResponse({url: '/accept-invite/org-slug/1/abc/', body: invite});
     mockOrganizationConfig(invite);
     mockAuthConfig();
     const user = UserFixture({email: 'member@example.com'});
@@ -364,9 +339,7 @@ describe('AcceptOrganizationInvite', () => {
       body: {mfaRequired: true, mfaMethods: [{id: 'totp'}]},
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Sign in'}));
     await userEvent.type(
@@ -427,9 +400,7 @@ describe('AcceptOrganizationInvite', () => {
     });
     mockOrganizationConfig(invite);
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
     expect(screen.getByRole('button', {name: 'SSO'}).closest('form')).toHaveAttribute(
@@ -457,21 +428,14 @@ describe('AcceptOrganizationInvite', () => {
       url: '/auth/',
       method: 'DELETE',
     });
-    MockApiClient.addMockResponse({
-      url: '/auth-v2/csrf/',
-      method: 'GET',
-    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', method: 'GET'});
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(
       await screen.findByText('This account is already a member of the organization.')
     ).toBeVisible();
-    const switchButtons = screen.getAllByRole('button', {
-      name: 'Switch account',
-    });
+    const switchButtons = screen.getAllByRole('button', {name: 'Switch account'});
     invite = {...invite, existingMember: false, needsAuthentication: true};
     await userEvent.click(switchButtons.at(-1)!);
 
@@ -503,9 +467,7 @@ describe('AcceptOrganizationInvite', () => {
     });
     MockApiClient.addMockResponse({url: '/auth-v2/csrf/'});
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Sign in'}));
     await userEvent.type(
@@ -534,10 +496,7 @@ describe('AcceptOrganizationInvite', () => {
   });
 
   it('keeps the current account and allows retrying when logout fails', async () => {
-    const user = UserFixture({
-      name: 'Current User',
-      email: 'current@example.com',
-    });
+    const user = UserFixture({name: 'Current User', email: 'current@example.com'});
     ConfigStore.set('user', user);
     MockApiClient.addMockResponse({
       url: '/accept-invite/org-slug/1/abc/',
@@ -545,15 +504,9 @@ describe('AcceptOrganizationInvite', () => {
       body: defaultInvite,
     });
     mockOrganizationConfig();
-    MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'DELETE',
-      statusCode: 500,
-    });
+    MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE', statusCode: 500});
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Switch account'}));
 
@@ -587,10 +540,7 @@ describe('AcceptOrganizationInvite', () => {
   it.each([false, true])(
     'keeps the previous account and action together while switching (needs2fa: %s)',
     async needs2fa => {
-      const user = UserFixture({
-        name: 'Previous User',
-        email: 'previous@example.com',
-      });
+      const user = UserFixture({name: 'Previous User', email: 'previous@example.com'});
       ConfigStore.set('user', user);
       MockApiClient.addMockResponse({
         url: '/accept-invite/org-slug/1/abc/',
@@ -611,9 +561,7 @@ describe('AcceptOrganizationInvite', () => {
         resolveRefetch = resolve;
       });
 
-      render(<AcceptOrganizationInvite />, {
-        initialRouterConfig: defaultRouterConfig,
-      });
+      render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
       expect(await screen.findByText(user.email)).toBeVisible();
       const actionName = needs2fa ? 'Configure Two-Factor Auth' : 'Accept invitation';
@@ -727,9 +675,7 @@ describe('AcceptOrganizationInvite', () => {
       });
       mockOrganizationConfig();
 
-      render(<AcceptOrganizationInvite />, {
-        initialRouterConfig: defaultRouterConfig,
-      });
+      render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
       expect(
         await screen.findByRole('button', {name: 'Configure Two-Factor Auth'})
@@ -778,9 +724,7 @@ describe('AcceptOrganizationInvite', () => {
     });
     mockOrganizationConfig(invite);
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(
       await screen.findByRole('button', {name: 'Configure Two-Factor Auth'})
@@ -798,9 +742,7 @@ describe('AcceptOrganizationInvite', () => {
       statusCode: 503,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(
       await screen.findByText('Unable to load this invitation. Try again.')
@@ -819,15 +761,10 @@ describe('AcceptOrganizationInvite', () => {
   it.each([429, 503])(
     'allows retrying an invitation load failure (%s)',
     async statusCode => {
-      MockApiClient.addMockResponse({
-        url: '/accept-invite/org-slug/1/abc/',
-        statusCode,
-      });
+      MockApiClient.addMockResponse({url: '/accept-invite/org-slug/1/abc/', statusCode});
       mockOrganizationConfig();
 
-      render(<AcceptOrganizationInvite />, {
-        initialRouterConfig: defaultRouterConfig,
-      });
+      render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
       expect(
         await screen.findByText('Unable to load this invitation. Try again.')
@@ -856,9 +793,7 @@ describe('AcceptOrganizationInvite', () => {
     });
     mockOrganizationConfig();
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await screen.findByRole('button', {name: 'Configure Two-Factor Auth'});
     MockApiClient.addMockResponse({
@@ -895,9 +830,7 @@ describe('AcceptOrganizationInvite', () => {
     MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE'});
     MockApiClient.addMockResponse({url: '/auth-v2/csrf/'});
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByText(user.email)).toBeVisible();
     MockApiClient.addMockResponse({
@@ -939,9 +872,7 @@ describe('AcceptOrganizationInvite', () => {
       statusCode: 500,
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Accept invitation'}));
 
@@ -971,19 +902,14 @@ describe('AcceptOrganizationInvite', () => {
       body: {detail: 'Invalid invite'},
     });
 
-    render(<AcceptOrganizationInvite />, {
-      initialRouterConfig: defaultRouterConfig,
-    });
+    render(<AcceptOrganizationInvite />, {initialRouterConfig: defaultRouterConfig});
 
     expect(await screen.findByText(/invitation is invalid or expired/)).toBeVisible();
     const logoutRequest = MockApiClient.addMockResponse({
       url: '/auth/',
       method: 'DELETE',
     });
-    MockApiClient.addMockResponse({
-      url: '/auth-v2/csrf/',
-      method: 'GET',
-    });
+    MockApiClient.addMockResponse({url: '/auth-v2/csrf/', method: 'GET'});
 
     await userEvent.click(screen.getByRole('button', {name: 'Switch account'}));
     await waitFor(() => expect(logoutRequest).toHaveBeenCalled());

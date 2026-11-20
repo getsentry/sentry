@@ -88,8 +88,5 @@ export function useDropdownMenuKeyboard({
     },
   });
 
-  return {
-    focusItem,
-    menuProps: mergeProps(menuProps, keyboardProps),
-  };
+  return {focusItem, menuProps: mergeProps(menuProps, keyboardProps)};
 }

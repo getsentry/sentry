@@ -18,9 +18,7 @@ type Props = ModalRenderProps & {
   onSuccess?: (relocation: Relocation) => void;
 };
 
-const schema = z.object({
-  untilStep: z.string(),
-});
+const schema = z.object({untilStep: z.string()});
 
 export function RelocationUnpauseModal({
   Body,

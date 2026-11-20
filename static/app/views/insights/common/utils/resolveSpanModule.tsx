@@ -1,9 +1,6 @@
 import type {ModuleName} from 'sentry/views/insights/types';
 
-const OP_MAPPING = {
-  'db.redis': 'cache',
-  'db.sql.room': 'other',
-};
+const OP_MAPPING = {'db.redis': 'cache', 'db.sql.room': 'other'};
 
 /**
  * This is a frontend copy of `resolve_span_module` in Discover. `span.category` is a synthetic tag, computed from a combination of the span op and the span category.

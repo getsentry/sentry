@@ -11,13 +11,6 @@ export const RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE: WidgetTemplate = {
   displayType: DisplayType.RAGE_AND_DEAD_CLICKS,
   interval: '5m',
   queries: [
-    {
-      name: '',
-      conditions: '',
-      aggregates: [],
-      columns: [],
-      orderby: '',
-      fields: [],
-    },
+    {name: '', conditions: '', aggregates: [], columns: [], orderby: '', fields: []},
   ],
 };

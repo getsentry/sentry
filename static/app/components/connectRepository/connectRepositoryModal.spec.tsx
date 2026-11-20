@@ -341,10 +341,7 @@ describe('ConnectRepositoryModal', () => {
     await waitFor(() => {
       expect(postRepo).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/repo/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {repositoryId: '10'},
-        })
+        expect.objectContaining({method: 'POST', data: {repositoryId: '10'}})
       );
     });
     expect(postMapping).toHaveBeenCalledWith(

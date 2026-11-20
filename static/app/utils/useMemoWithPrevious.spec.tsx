@@ -23,12 +23,7 @@ describe('useMemoWithPrevious', () => {
     const {rerender, result} = renderHook(
       // eslint-disable-next-line react-hooks/exhaustive-deps
       ({fact, dep}) => useMemoWithPrevious(fact, [dep]),
-      {
-        initialProps: {
-          fact: factory,
-          dep: firstDependency,
-        },
-      }
+      {initialProps: {fact: factory, dep: firstDependency}}
     );
 
     rerender({fact: factory, dep: secondDependency});

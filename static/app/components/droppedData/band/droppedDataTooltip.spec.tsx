@@ -36,12 +36,7 @@ describe('DroppedDataTooltipSection', () => {
             outcome: 'rate_limited',
             count: 40_000,
           }),
-          OutcomeRowFixture({
-            start: START,
-            end: END,
-            outcome: 'invalid',
-            count: 20_000,
-          }),
+          OutcomeRowFixture({start: START, end: END, outcome: 'invalid', count: 20_000}),
         ]}
         accepted={[
           OutcomeRowFixture({
@@ -151,12 +146,7 @@ describe('DroppedDataTooltipSection', () => {
     render(
       <ExampleDroppedDataTooltipSection
         dropped={[
-          OutcomeRowFixture({
-            start: START,
-            end: END,
-            outcome: 'filtered',
-            count: 10,
-          }),
+          OutcomeRowFixture({start: START, end: END, outcome: 'filtered', count: 10}),
         ]}
       />
     );

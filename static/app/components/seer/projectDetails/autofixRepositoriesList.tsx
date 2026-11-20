@@ -85,20 +85,12 @@ export function AutofixRepositoriesList({canWrite, includeInstructions, project}
 
   // Add some repos to the list for this project.
   const {mutateAsync: handleAddRepo} = useMutation(
-    getMutateSeerProjectReposOptionsAddRepo({
-      organization,
-      project,
-      queryClient,
-    })
+    getMutateSeerProjectReposOptionsAddRepo({organization, project, queryClient})
   );
 
   // Remove a single repo from the list for this project
   const {mutateAsync: handleRemoveRepo} = useMutation(
-    getDeleteSeerProjectRepoOptions({
-      organization,
-      project,
-      queryClient,
-    })
+    getDeleteSeerProjectRepoOptions({organization, project, queryClient})
   );
 
   const handleAddRepoClick = () => {

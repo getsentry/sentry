@@ -356,9 +356,7 @@ export function IssueListActions({
                 queryCount >= BULK_LIMIT ? (
                   tct(
                     'Selected up to the first [count] issues that match this search query.',
-                    {
-                      count: BULK_LIMIT_STR,
-                    }
+                    {count: BULK_LIMIT_STR}
                   )
                 ) : (
                   tct('Selected all [count] issues that match this search query.', {
@@ -377,9 +375,7 @@ export function IssueListActions({
                     {queryCount >= BULK_LIMIT
                       ? tct(
                           'Select the first [count] issues that match this search query.',
-                          {
-                            count: BULK_LIMIT_STR,
-                          }
+                          {count: BULK_LIMIT_STR}
                         )
                       : tct('Select all [count] issues that match this search query.', {
                           count: queryCount,

@@ -104,11 +104,7 @@ function makeAssistantBlock(
   id: string,
   content: string
 ): AutofixSection['blocks'][number] {
-  return {
-    id,
-    timestamp: '2026-07-20T00:00:00Z',
-    message: {role: 'assistant', content},
-  };
+  return {id, timestamp: '2026-07-20T00:00:00Z', message: {role: 'assistant', content}};
 }
 
 function makeStepBlock(
@@ -163,12 +159,7 @@ function makeSection(
     [makePatch('org/repo', 'src/handlers/user.py')],
   ]
 ): AutofixSection {
-  return {
-    step: 'code_changes',
-    status,
-    blocks,
-    artifacts,
-  };
+  return {step: 'code_changes', status, blocks, artifacts};
 }
 
 function makeAutofix(
@@ -439,9 +430,7 @@ export default Storybook.story('CodeChangesCard Feedback', story => {
         <StatusExample label="No change after PR iteration: the latest step is a PR iteration with no diff, so only the agent's reply shows.">
           <CodeChangesCard
             groupId="1"
-            autofix={makeAutofix([], {
-              repo_pr_states: {'org/repo': PULL_REQUEST},
-            })}
+            autofix={makeAutofix([], {repo_pr_states: {'org/repo': PULL_REQUEST}})}
             section={makeSection(
               'completed',
               [

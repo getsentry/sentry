@@ -71,9 +71,7 @@ describe('AgentSelector', () => {
     const {router} = renderSelector({agent: 'Alpha,Bravo'});
     await openMenu();
 
-    const allAgents = screen.getByRole('checkbox', {
-      name: 'Select All Agents',
-    });
+    const allAgents = screen.getByRole('checkbox', {name: 'Select All Agents'});
     expect(allAgents).not.toBeChecked();
 
     await userEvent.click(allAgents);

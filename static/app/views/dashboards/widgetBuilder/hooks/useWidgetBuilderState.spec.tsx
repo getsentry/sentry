@@ -57,10 +57,7 @@ describe('useWidgetBuilderState', () => {
   it('sets the new title and description in the query params', () => {
     const {result, router} = renderWidgetBuilderState();
     act(() => {
-      result.current.dispatch({
-        type: BuilderStateAction.SET_TITLE,
-        payload: 'new title',
-      });
+      result.current.dispatch({type: BuilderStateAction.SET_TITLE, payload: 'new title'});
     });
 
     act(() => {
@@ -83,10 +80,7 @@ describe('useWidgetBuilderState', () => {
 
     act(() => {
       result.current.dispatch(
-        {
-          type: BuilderStateAction.SET_TITLE,
-          payload: 'new title',
-        },
+        {type: BuilderStateAction.SET_TITLE, payload: 'new title'},
         {debounceUrl: true}
       );
     });
@@ -97,10 +91,7 @@ describe('useWidgetBuilderState', () => {
 
     // Committing writes it through, cancelling the pending debounce
     act(() => {
-      result.current.dispatch({
-        type: BuilderStateAction.SET_TITLE,
-        payload: 'new title',
-      });
+      result.current.dispatch({type: BuilderStateAction.SET_TITLE, payload: 'new title'});
     });
     flushUrlUpdates();
 
@@ -532,9 +523,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('keeps only aggregates and clears sort when switching to heat map', () => {
-      const {result} = renderWidgetBuilderState({
-        field: ['event.type', 'count()'],
-      });
+      const {result} = renderWidgetBuilderState({field: ['event.type', 'count()']});
 
       expect(result.current.state.fields).toEqual([
         {field: 'event.type', alias: undefined, kind: 'field'},
@@ -975,10 +964,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.yAxis).toEqual([]);
       expect(result.current.state.query).toEqual(['']);
       expect(result.current.state.sort).toEqual([
-        {
-          field: 'count(span.duration)',
-          kind: 'desc',
-        },
+        {field: 'count(span.duration)', kind: 'desc'},
       ]);
     });
 
@@ -1028,12 +1014,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.sort).toEqual([
-        {
-          field: 'testField',
-          kind: 'desc',
-        },
-      ]);
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
     });
 
     it('keeps sort when the sort is in the new fields', () => {
@@ -1052,12 +1033,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.sort).toEqual([
-        {
-          field: 'testField',
-          kind: 'desc',
-        },
-      ]);
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
     });
 
     it('resets selectedAggregate when the dataset is switched', () => {
@@ -1970,9 +1946,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('can decode and update sorts', () => {
-      const {result} = renderWidgetBuilderState({
-        sort: ['-testField'],
-      });
+      const {result} = renderWidgetBuilderState({sort: ['-testField']});
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
 
@@ -2009,17 +1983,12 @@ describe('useWidgetBuilderState', () => {
 
   describe('limit', () => {
     it('can decode and update limit', () => {
-      const {result} = renderWidgetBuilderState({
-        limit: '4',
-      });
+      const {result} = renderWidgetBuilderState({limit: '4'});
 
       expect(result.current.state.limit).toBe(4);
 
       act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_LIMIT,
-          payload: 10,
-        });
+        result.current.dispatch({type: BuilderStateAction.SET_LIMIT, payload: 10});
       });
 
       expect(result.current.state.limit).toBe(10);
@@ -2028,9 +1997,7 @@ describe('useWidgetBuilderState', () => {
 
   describe('legendAlias', () => {
     it('can decode and update legendAlias', () => {
-      const {result} = renderWidgetBuilderState({
-        legendAlias: ['test', 'test2'],
-      });
+      const {result} = renderWidgetBuilderState({legendAlias: ['test', 'test2']});
 
       expect(result.current.state.legendAlias).toEqual(['test', 'test2']);
 
@@ -2127,9 +2094,7 @@ describe('useWidgetBuilderState', () => {
 
   describe('thresholds', () => {
     it('writes thresholds to the URL as JSON when SET_THRESHOLDS is dispatched', () => {
-      const {result, router} = renderWidgetBuilderState({
-        displayType: DisplayType.LINE,
-      });
+      const {result, router} = renderWidgetBuilderState({displayType: DisplayType.LINE});
 
       act(() => {
         result.current.dispatch({
@@ -2232,10 +2197,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_Y_AXIS,
           payload: [
-            {
-              kind: 'function',
-              function: ['avg_if', '`span.op:db`', 'span.duration'],
-            },
+            {kind: 'function', function: ['avg_if', '`span.op:db`', 'span.duration']},
           ] as Column[],
         });
       });
@@ -2258,14 +2220,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_Y_AXIS,
           payload: [
-            {
-              kind: 'function',
-              function: ['avg', 'span.duration'],
-            },
-            {
-              kind: 'function',
-              function: ['p95_if', '`span.op:db`', 'span.duration'],
-            },
+            {kind: 'function', function: ['avg', 'span.duration']},
+            {kind: 'function', function: ['p95_if', '`span.op:db`', 'span.duration']},
           ] as Column[],
         });
       });
@@ -2285,10 +2241,7 @@ describe('useWidgetBuilderState', () => {
       });
 
       act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.DELETE_AGGREGATE,
-          payload: 0,
-        });
+        result.current.dispatch({type: BuilderStateAction.DELETE_AGGREGATE, payload: 0});
       });
 
       expect(result.current.state.sort).toEqual([{kind: 'desc', field: 'equation[0]'}]);
@@ -2357,9 +2310,7 @@ describe('useWidgetBuilderState', () => {
 
       // sort should reference the full aggregate string with args
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-per_second(value,my.metric,counter,none)',
-        })
+        expect.objectContaining({sort: '-per_second(value,my.metric,counter,none)'})
       );
     });
   });
@@ -2370,10 +2321,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
       });
 
@@ -2405,10 +2353,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-transaction'],
       });
@@ -2423,11 +2368,7 @@ describe('useWidgetBuilderState', () => {
       flushUrlUpdates();
 
       // Sort should be reset to first aggregate
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count()',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({sort: '-count()'}));
     });
 
     it('preserves sort when X-axis changes but sort was on aggregate', () => {
@@ -2435,10 +2376,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-count()'],
       });
@@ -2483,9 +2421,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should use equation[0] alias format
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-equation[0]',
-        })
+        expect.objectContaining({sort: '-equation[0]'})
       );
     });
 
@@ -2529,10 +2465,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-equation[0]'],
       });
@@ -2547,11 +2480,7 @@ describe('useWidgetBuilderState', () => {
       flushUrlUpdates();
 
       // Sort should be reset to first aggregate since there are no equations in fields
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count()',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({sort: '-count()'}));
     });
 
     it('preserves all aggregates and equations when switching from line to categorical bar', () => {
@@ -2586,9 +2515,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should be on the last aggregate (equation) by default
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-equation[0]',
-        })
+        expect.objectContaining({sort: '-equation[0]'})
       );
     });
 
@@ -2597,10 +2524,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
           {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
         ]),
       });
@@ -2615,10 +2539,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
       });
 
@@ -2663,15 +2584,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count_unique(user)',
-        })
+        expect.objectContaining({sort: '-count_unique(user)'})
       );
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          limit: '20',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({limit: '20'}));
     });
   });
   describe('text widget actions', () => {
@@ -2736,9 +2651,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('clears textContent when switching away from text display type', () => {
-      const {result} = renderWidgetBuilderState({
-        displayType: DisplayType.TEXT,
-      });
+      const {result} = renderWidgetBuilderState({displayType: DisplayType.TEXT});
 
       act(() => {
         result.current.dispatch({
@@ -2760,9 +2673,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('SET_TEXT_CONTENT updates textContent without navigating', () => {
-      const {result, router} = renderWidgetBuilderState({
-        displayType: DisplayType.TEXT,
-      });
+      const {result, router} = renderWidgetBuilderState({displayType: DisplayType.TEXT});
 
       act(() => {
         result.current.dispatch({

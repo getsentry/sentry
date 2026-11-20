@@ -1,5 +1,4 @@
 import {
-  keepPreviousData,
   skipToken,
   useIsMutating,
   useMutation,
@@ -17,16 +16,17 @@ import type {
   SeerWorkflowConfigsResponse,
   SeerWorkflowConfigUpdateRequest,
 } from 'sentry/views/seerWorkflows/types';
-import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
+import {
+  useAutomationsEnabled,
+  type AutomationQueryOptions,
+} from 'sentry/views/seerWorkflows/utils';
 
 function useConfigUrls(configId = '') {
   const organization = useOrganization();
   return {
     configsUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-      }
+      {path: {organizationIdOrSlug: organization.slug}}
     ),
     configUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
@@ -37,13 +37,12 @@ function useConfigUrls(configId = '') {
 
 /**
  * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
- * an empty list fetches nothing. Pass `keepPrevious` to keep returning the last configs
- * while a different set of `ids` loads.
+ * an empty list fetches nothing. `options` override the query's options.
  */
-export function useFetchConfigs({
-  ids,
-  keepPrevious,
-}: {ids?: string[]; keepPrevious?: boolean} = {}) {
+export function useFetchConfigs(
+  {ids}: {ids?: string[]} = {},
+  options: AutomationQueryOptions = {}
+) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -60,7 +59,7 @@ export function useFetchConfigs({
       }
     ),
     select: data => selectJson(data).configs,
-    placeholderData: keepPrevious ? keepPreviousData : undefined,
+    ...options,
   });
 }
 

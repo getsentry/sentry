@@ -47,11 +47,7 @@ function isMultiState(state: unknown): boolean {
 }
 
 export const selectControlStyles = {
-  control: (provided: any) => ({
-    ...provided,
-    minHeight: '32px',
-    padding: 0,
-  }),
+  control: (provided: any) => ({...provided, minHeight: '32px', padding: 0}),
 };
 
 // Kept separate from selectControlStyles because TeamSelector shallow-merges

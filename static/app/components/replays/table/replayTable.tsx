@@ -19,10 +19,7 @@ import type {ReplayTableColumn} from './replayTableColumns';
 import {ReplayTableHeader} from './replayTableHeader';
 
 type SortProps =
-  | {
-      onSortClick: (key: string) => void;
-      sort: Sort;
-    }
+  | {onSortClick: (key: string) => void; sort: Sort}
   | {onSortClick?: never; sort?: never};
 
 type Props = SortProps & {
@@ -163,10 +160,9 @@ function RowWithScrollIntoView({
   children,
   scrollIntoView,
   ...props
-}: {
-  children: React.ReactNode;
-  scrollIntoView: boolean;
-} & React.ComponentProps<typeof SimpleTable.Row>) {
+}: {children: React.ReactNode; scrollIntoView: boolean} & React.ComponentProps<
+  typeof SimpleTable.Row
+>) {
   const rowRef = useRef<HTMLTableRowElement>(null);
   useEffect(() => {
     if (scrollIntoView) {

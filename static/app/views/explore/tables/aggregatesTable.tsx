@@ -101,11 +101,7 @@ export function AggregatesTable({
   );
 
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToMeta({
-        meta: result.meta ?? {},
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToMeta({meta: result.meta ?? {}, validatedFieldTypes}),
     [result.meta, validatedFieldTypes]
   );
 

@@ -178,9 +178,7 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
   const organization = useOrganization();
 
   const selectTool = () => {
-    trackAnalytics('conversations.message.click-tool-call', {
-      organization,
-    });
+    trackAnalytics('conversations.message.click-tool-call', {organization});
     if (node) {
       onSelectNode(node);
     }

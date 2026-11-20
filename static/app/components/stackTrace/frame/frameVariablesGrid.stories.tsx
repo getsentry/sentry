@@ -78,10 +78,7 @@ const jsonVariables = {
 };
 
 const jsonMeta = {
-  player: {
-    access_token: {'': filteredMeta},
-    authorization: {'': maskedMeta},
-  },
+  player: {access_token: {'': filteredMeta}, authorization: {'': maskedMeta}},
   items: {'': truncatedItemsMeta},
   sdk_omitted: {'': omittedMeta},
   raw_omitted: {'': {rem: [['!raw', 'x']]}},

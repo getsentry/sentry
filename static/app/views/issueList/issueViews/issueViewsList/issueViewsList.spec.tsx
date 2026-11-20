@@ -13,9 +13,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import IssueViewsList from './issueViewsList';
 
-const organization = OrganizationFixture({
-  features: ['issue-views'],
-});
+const organization = OrganizationFixture({features: ['issue-views']});
 
 describe('IssueViewsList', () => {
   beforeEach(() => {
@@ -29,12 +27,7 @@ describe('IssueViewsList', () => {
           projects: [1],
           environments: ['env1'],
           query: 'foo:bar',
-          timeFilters: {
-            period: '7d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          timeFilters: {period: '7d', start: null, end: null, utc: null},
           starred: true,
         }),
       ],
@@ -50,12 +43,7 @@ describe('IssueViewsList', () => {
           projects: [],
           environments: [],
           query: 'bar:baz',
-          timeFilters: {
-            period: '1d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          timeFilters: {period: '1d', start: null, end: null, utc: null},
           starred: false,
           stars: 7,
         }),
@@ -97,12 +85,7 @@ describe('IssueViewsList', () => {
           projects: [1],
           environments: ['env1'],
           query: 'foo:bar',
-          timeFilters: {
-            period: '7d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          timeFilters: {period: '7d', start: null, end: null, utc: null},
           starred: true,
         }),
       ],
@@ -157,9 +140,7 @@ describe('IssueViewsList', () => {
     await waitFor(() => {
       expect(mockStarredEndpoint).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {starred: false},
-        })
+        expect.objectContaining({data: {starred: false}})
       );
     });
   });
@@ -187,9 +168,7 @@ describe('IssueViewsList', () => {
     await waitFor(() => {
       expect(mockStarredEndpoint).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {starred: true},
-        })
+        expect.objectContaining({data: {starred: true}})
       );
     });
   });
@@ -235,11 +214,7 @@ describe('IssueViewsList', () => {
     const tableMe = screen.getByTestId('table-me');
     const myView = within(tableMe).getByTestId('table-me-row-0');
     await userEvent.click(within(myView).getByRole('button', {name: 'More options'}));
-    await userEvent.click(
-      within(myView).getByRole('menuitemradio', {
-        name: 'Delete',
-      })
-    );
+    await userEvent.click(within(myView).getByRole('menuitemradio', {name: 'Delete'}));
 
     // Query will be invalidated, need to mock the response on refetch
     MockApiClient.addMockResponse({
@@ -250,9 +225,7 @@ describe('IssueViewsList', () => {
 
     // Confirm the deletion
     await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Delete View',
-      })
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete View'})
     );
 
     await waitFor(() => {
@@ -265,10 +238,7 @@ describe('IssueViewsList', () => {
     const mockRenameEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/1/',
       method: 'PUT',
-      body: {
-        id: '1',
-        name: 'New Name',
-      },
+      body: {id: '1', name: 'New Name'},
     });
 
     render(<IssueViewsList />, {organization});
@@ -291,9 +261,7 @@ describe('IssueViewsList', () => {
 
     expect(mockRenameEndpoint).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({name: 'New Name'}),
-      })
+      expect.objectContaining({data: expect.objectContaining({name: 'New Name'})})
     );
   });
 
@@ -301,11 +269,7 @@ describe('IssueViewsList', () => {
     const mockCreateEndpoint = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/',
       method: 'POST',
-      body: GroupSearchViewFixture({
-        id: '222',
-        name: 'New Name',
-        starred: true,
-      }),
+      body: GroupSearchViewFixture({id: '222', name: 'New Name', starred: true}),
     });
 
     render(<IssueViewsList />, {organization});

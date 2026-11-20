@@ -23,12 +23,7 @@ export function EventsSearchBar({
   useEffect(() => {
     const selection = {
       projects: projectIds,
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: null},
       environments: [environment],
     };
     loadOrganizationTags(api, organization.slug, selection, addAlert);

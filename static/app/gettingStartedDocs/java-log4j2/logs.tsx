@@ -32,9 +32,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option in your [code:sentry.properties] file or when you call [code:Sentry.init].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -71,9 +69,7 @@ Sentry.init { options ->
           type: 'text',
           text: tct(
             'You may also set [code:minimumLevel] in [code:log4j2.xml] to configure which log messages are sent to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -102,9 +98,7 @@ Sentry.init { options ->
           type: 'text',
           text: tct(
             'Once the handler is configured with logging enabled, any logs at or above the [code:minimumLevel] will be sent to Sentry.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

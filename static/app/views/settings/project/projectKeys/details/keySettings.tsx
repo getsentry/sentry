@@ -28,18 +28,12 @@ type Props = {
   data: ProjectKey;
   onRemove: () => void;
   organization: Organization;
-  params: {
-    keyId: string;
-    projectId: string;
-  };
+  params: {keyId: string; projectId: string};
   project: Project;
   updateData: (data: ProjectKey) => void;
 };
 
-const keySettingsSchema = z.object({
-  name: z.string(),
-  isActive: z.boolean(),
-});
+const keySettingsSchema = z.object({name: z.string(), isActive: z.boolean()});
 
 export function KeySettings({
   onRemove,
@@ -52,33 +46,19 @@ export function KeySettings({
   const {keyId, projectId} = params;
   const apiEndpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: projectId,
-        keyId,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId, keyId}}
   );
 
   const mutationOptions = {
     mutationFn: (fieldData: Partial<ProjectKey>) =>
-      fetchMutation<ProjectKey>({
-        url: apiEndpoint,
-        method: 'PUT',
-        data: fieldData,
-      }),
+      fetchMutation<ProjectKey>({url: apiEndpoint, method: 'PUT', data: fieldData}),
     onSuccess: (updated: ProjectKey) => {
       updateData(updated);
     },
   };
 
   const {mutateAsync: removeKey} = useMutation({
-    mutationFn: () =>
-      fetchMutation({
-        url: apiEndpoint,
-        method: 'DELETE',
-      }),
+    mutationFn: () => fetchMutation({url: apiEndpoint, method: 'DELETE'}),
   });
 
   const handleRemove = async () => {

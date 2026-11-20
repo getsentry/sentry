@@ -37,11 +37,7 @@ function occurrenceEvent(overrides: Partial<EventTransaction> = {}) {
       subtitle: 'SELECT id FROM books',
       fingerprint: ['slow-query'],
       evidenceDisplay: [],
-      evidenceData: {
-        offenderSpanIds: [spanId],
-        parentSpanIds: [],
-        causeSpanIds: [],
-      },
+      evidenceData: {offenderSpanIds: [spanId], parentSpanIds: [], causeSpanIds: []},
     },
     entries: [],
     ...overrides,
@@ -100,10 +96,7 @@ function renderEvidence(event = occurrenceEvent(), features = organization.featu
 describe('Slow-query evidence from the spans dataset', () => {
   beforeEach(() => {
     ProjectsStore.loadInitialData([project]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${project.slug}/stacktrace-link/`,
       body: {},
