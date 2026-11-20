@@ -1,13 +1,16 @@
 import {type ReactNode} from 'react';
-import {css} from '@emotion/react';
+import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {IconDelete} from '@sentry/icons/delete';
 
+import {Button} from '@sentry/scraps/button';
 import {CompactSelect, TriggerLabel} from '@sentry/scraps/compactSelect';
 import {Input} from '@sentry/scraps/input';
 import {Flex, type FlexProps} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {
   DEPRECATED_FIELDS,
@@ -318,6 +321,36 @@ export const PrimarySelectRow = styled('div')<{
 
 export function FieldRow(props: FlexProps) {
   return <Flex gap="md" width="100%" minWidth="0" {...props} />;
+}
+
+/**
+ * The delete button at the end of a visualize row. `disabledReason` shows as a
+ * tooltip while the button is disabled.
+ */
+export function DeleteFieldButton({
+  disabled,
+  disabledReason,
+  onClick,
+}: {
+  disabled?: boolean;
+  disabledReason?: string;
+  onClick?: () => void;
+}) {
+  const theme = useTheme();
+  return (
+    <Flex align="center" height={theme.form.md.height}>
+      <Tooltip title={disabledReason} disabled={!disabled || !disabledReason}>
+        <Button
+          variant="transparent"
+          icon={<IconDelete />}
+          size="zero"
+          disabled={disabled}
+          onClick={onClick}
+          aria-label={t('Remove field')}
+        />
+      </Tooltip>
+    </Flex>
+  );
 }
 
 // eslint-disable-next-line @sentry/scraps/prefer-primitives -- Existing styles moved from visualize/index.tsx.

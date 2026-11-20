@@ -69,10 +69,18 @@ export interface TraceMetricsVisualizeModeState {
  * Equation state is kept in sync by MetricsEquationVisualize via
  * the returned equationSnapshot ref.
  */
-export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeState {
+export function useTraceMetricsVisualizeModeState({
+  disabled = false,
+}: {
+  /**
+   * When the unified visualize list is on there is no equation mode; the hook
+   * then always reports series mode and ignores toggles.
+   */
+  disabled?: boolean;
+} = {}): TraceMetricsVisualizeModeState {
   const {state, dispatch} = useWidgetBuilderContext();
 
-  const [isEquationMode, setIsEquationMode] = useState(() => {
+  const [isEquationModeState, setIsEquationMode] = useState(() => {
     if (state.dataset !== WidgetType.TRACEMETRICS) {
       return false;
     }
@@ -83,6 +91,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
     );
     return (aggregateSource ?? []).some(f => f.kind === FieldValueKind.EQUATION);
   });
+  const isEquationMode = !disabled && isEquationModeState;
 
   const seriesSnapshot = useRef<SeriesModeSnapshot | null>(null);
   const equationSnapshot = useRef<EquationModeSnapshot | null>(null);
@@ -229,6 +238,9 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
   // Detect an equation yAxis and restore the cached equation mode if
   // the user was in equation mode when they left.
   const onChangeDatasetToTraceMetrics = useEffectEvent(() => {
+    if (disabled) {
+      return;
+    }
     const aggregateSource = getTraceMetricAggregates(
       state.displayType,
       state.yAxis,
@@ -259,6 +271,9 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
 
   const handleModeToggle = useCallback(
     (nextIsEquation: boolean) => {
+      if (disabled) {
+        return;
+      }
       const currentLegendAlias = state.legendAlias ? [...state.legendAlias] : [];
 
       if (nextIsEquation) {
@@ -282,6 +297,7 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
       setIsEquationMode(nextIsEquation);
     },
     [
+      disabled,
       state.displayType,
       state.yAxis,
       state.fields,
