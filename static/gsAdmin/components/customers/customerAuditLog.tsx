@@ -14,10 +14,7 @@ function auditNote(row: any): React.ReactNode {
   return data.notes ?? '—';
 }
 
-type Props = {
-  orgSlug: string;
-  targetId: string;
-};
+type Props = {orgSlug: string; targetId: string};
 
 export function CustomerAuditLog({orgSlug, targetId}: Props) {
   return (

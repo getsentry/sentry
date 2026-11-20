@@ -28,9 +28,7 @@ describe('ConnectScmBlock', () => {
 
   function renderBlock({
     failureReason = 'no_scm_integration',
-  }: {
-    failureReason?: string;
-  } = {}) {
+  }: {failureReason?: string} = {}) {
     const respondToUserInput = jest.fn();
     const pendingInput: PendingUserInput = {
       id: 'input-id',

@@ -6,6 +6,7 @@ import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 import {Text} from '@sentry/scraps/text';
 
 import * as Storybook from 'sentry/stories';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -187,7 +188,7 @@ class SimulatedRunQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     const queryFn = () =>
       Promise.resolve({
         json: url.includes('/seer/explorer-chat/') ? simulatedRun() : [],

@@ -15,10 +15,7 @@ import {getInstallContent} from './utils';
 
 export const replay: OnboardingConfig = {
   install: (params: DocsParams) => [
-    {
-      type: StepType.INSTALL,
-      content: getInstallContent(params),
-    },
+    {type: StepType.INSTALL, content: getInstallContent(params)},
   ],
   configure: (params: DocsParams) => [
     {

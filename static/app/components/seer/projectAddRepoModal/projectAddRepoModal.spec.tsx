@@ -50,9 +50,7 @@ describe('ProjectAddRepoModal', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
   }
 

@@ -6,34 +6,14 @@ interface DateSelector {
 
 export type CoreUIEventParameters = {
   'dateselector.time_changed': DateSelector;
-  'dateselector.utc_changed': {
-    path: string;
-    utc: boolean;
-  };
-  'deprecated_urls.redirect': {
-    feature: string;
-    url: string;
-  };
-  'environmentselector.direct_selection': {
-    path: string;
-  };
-  'environmentselector.toggle': {
-    action: 'removed' | 'added';
-    path: string;
-  };
-  'environmentselector.update': {
-    count: number;
-    path: string;
-  };
-  'projectselector.bookmark_toggle': {
-    bookmarked: boolean;
-  };
-  'user_feedback.dialog_opened': {
-    projects: string;
-  };
-  'user_feedback.viewed': {
-    projects: string;
-  };
+  'dateselector.utc_changed': {path: string; utc: boolean};
+  'deprecated_urls.redirect': {feature: string; url: string};
+  'environmentselector.direct_selection': {path: string};
+  'environmentselector.toggle': {action: 'removed' | 'added'; path: string};
+  'environmentselector.update': {count: number; path: string};
+  'projectselector.bookmark_toggle': {bookmarked: boolean};
+  'user_feedback.dialog_opened': {projects: string};
+  'user_feedback.viewed': {projects: string};
 };
 
 type CoreUIAnalyticsKey = keyof CoreUIEventParameters;

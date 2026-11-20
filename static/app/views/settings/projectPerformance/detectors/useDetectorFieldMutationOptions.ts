@@ -14,10 +14,7 @@ export const getPerformanceIssueSettingsQueryOptions = (
 ) =>
   apiOptions.as<ProjectPerformanceSettings>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance-issues/configure/',
-    {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}, staleTime: 0}
   );
 
 export const getDetectorSettingsMutationKey = (orgSlug: string, projectSlug: string) =>

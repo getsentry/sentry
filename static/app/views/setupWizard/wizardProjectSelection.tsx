@@ -141,10 +141,7 @@ export function WizardProjectSelection({
       }
 
       await updateWizardCacheMutation
-        .mutateAsync({
-          organizationId: organization.id,
-          projectId,
-        })
+        .mutateAsync({organizationId: organization.id, projectId})
         .catch(() => {});
     },
   });
@@ -157,9 +154,7 @@ export function WizardProjectSelection({
     [organizations, selectedOrgId]
   );
 
-  const orgDetailsRequest = useOrganizationDetails({
-    organization: selectedOrg,
-  });
+  const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
   const accessTeams = useMemo(() => {

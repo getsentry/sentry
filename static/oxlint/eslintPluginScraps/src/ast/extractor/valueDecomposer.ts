@@ -52,23 +52,13 @@ function collectValues(
       break;
 
     case 'Literal':
-      values.push({
-        node,
-        kind: 'literal',
-        confident: true,
-        tokenInfo: null,
-      });
+      values.push({node, kind: 'literal', confident: true, tokenInfo: null});
       break;
 
     case 'TemplateLiteral':
       // Template literals might contain interpolations
       if (node.expressions.length === 0) {
-        values.push({
-          node,
-          kind: 'template-quasi',
-          confident: true,
-          tokenInfo: null,
-        });
+        values.push({node, kind: 'template-quasi', confident: true, tokenInfo: null});
       } else {
         // Has interpolations - check each expression
         for (const expr of node.expressions) {
@@ -78,12 +68,7 @@ function collectValues(
       break;
 
     case 'CallExpression':
-      values.push({
-        node,
-        kind: 'call',
-        confident: false,
-        tokenInfo: null,
-      });
+      values.push({node, kind: 'call', confident: false, tokenInfo: null});
       break;
 
     case 'ArrowFunctionExpression':
@@ -102,21 +87,11 @@ function collectValues(
 
     case 'Identifier':
       // Could be a variable reference - would need scope analysis
-      values.push({
-        node,
-        kind: 'unknown',
-        confident: false,
-        tokenInfo: null,
-      });
+      values.push({node, kind: 'unknown', confident: false, tokenInfo: null});
       break;
 
     default:
-      values.push({
-        node,
-        kind: 'unknown',
-        confident: false,
-        tokenInfo: null,
-      });
+      values.push({node, kind: 'unknown', confident: false, tokenInfo: null});
   }
 }
 
@@ -128,12 +103,7 @@ function createMemberValue(
   themeTracker: ThemeTracker
 ): StyleValue {
   const tokenInfo = extractTokenInfo(node, themeTracker);
-  return {
-    node,
-    kind: 'member',
-    confident: tokenInfo !== null,
-    tokenInfo,
-  };
+  return {node, kind: 'member', confident: tokenInfo !== null, tokenInfo};
 }
 
 /**
@@ -181,9 +151,5 @@ function extractTokenInfo(
     return null;
   }
 
-  return {
-    tokenPath,
-    tokenName,
-    node,
-  };
+  return {tokenPath, tokenName, node};
 }

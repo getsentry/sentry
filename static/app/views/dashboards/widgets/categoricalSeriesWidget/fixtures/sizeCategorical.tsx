@@ -3,10 +3,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleSizeData: CategoricalSeries = {
   valueAxis: 'avg(http.response_content_length)',
-  meta: {
-    valueType: 'size',
-    valueUnit: SizeUnit.BYTE,
-  },
+  meta: {valueType: 'size', valueUnit: SizeUnit.BYTE},
   values: [
     {category: '/api/assets', value: 2_500_000},
     {category: '/api/images', value: 8_750_000},

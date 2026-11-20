@@ -71,10 +71,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   return (
     <ArtifactCard

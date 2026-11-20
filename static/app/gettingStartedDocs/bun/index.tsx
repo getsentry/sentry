@@ -18,13 +18,8 @@ export const docs: Docs = {
   replayOnboardingJsLoader,
   crashReportOnboarding: crashReport,
   feedbackOnboardingJsLoader,
-  featureFlagOnboarding: featureFlag({
-    packageName: PACKAGE_NAME,
-    sentryImport,
-  }),
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: PACKAGE_NAME,
-  }),
+  featureFlagOnboarding: featureFlag({packageName: PACKAGE_NAME, sentryImport}),
+  agentMonitoringOnboarding: agentMonitoring({packageName: PACKAGE_NAME}),
   logsOnboarding: logs,
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,

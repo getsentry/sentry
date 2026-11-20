@@ -183,10 +183,7 @@ export function ServiceAccountProjects({
             }))}
             value={value.projectIds.filter(id => !monitorCounts.has(id))}
             onChange={selected =>
-              onChange({
-                ...value,
-                projectIds: selected.map(option => option.value),
-              })
+              onChange({...value, projectIds: selected.map(option => option.value)})
             }
             emptyMessage={t('No other projects to add')}
             trigger={triggerProps => (

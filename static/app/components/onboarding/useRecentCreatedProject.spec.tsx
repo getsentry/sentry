@@ -60,10 +60,7 @@ describe('useRecentCreatedProject', () => {
     expect(pendingRequest).toHaveBeenCalledTimes(2);
 
     const firstEvent = new Date().toISOString();
-    MockApiClient.addMockResponse({
-      url: overviewUrl,
-      body: {...project, firstEvent},
-    });
+    MockApiClient.addMockResponse({url: overviewUrl, body: {...project, firstEvent}});
     await act(() => jest.advanceTimersByTimeAsync(1000));
 
     await waitFor(() => expect(result.current.project?.firstEvent).toBe(firstEvent));

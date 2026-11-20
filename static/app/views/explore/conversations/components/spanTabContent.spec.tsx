@@ -52,10 +52,9 @@ describe('SpanTabContent', () => {
     'supports optional clipping: %p',
     content => {
       Object.defineProperty(window, 'ResizeObserver', {value: undefined});
-      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockReturnValue({
-        ...document.body.getBoundingClientRect(),
-        height: 300,
-      });
+      jest
+        .spyOn(Element.prototype, 'getBoundingClientRect')
+        .mockReturnValue({...document.body.getBoundingClientRect(), height: 300});
 
       const {rerender} = render(<SpanTabContent content={content} clip />);
 

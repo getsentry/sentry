@@ -40,10 +40,7 @@ type OnboardingContextProps = {
 const ONBOARDING_SESSION_KEY = 'onboarding';
 
 type OnboardingSessionState = {
-  agentSetupProjectBaseline?: {
-    organizationId: string;
-    projectIds: string[];
-  };
+  agentSetupProjectBaseline?: {organizationId: string; projectIds: string[]};
   agenticProgressClientRunId?: string;
   agenticProgressOnboardingCode?: string;
   createdProject?: CreatedProject;

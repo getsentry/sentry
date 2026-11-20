@@ -70,9 +70,7 @@ async function closeSection() {
 describe('ReserveAdditionalVolume', () => {
   describe('Legacy Plans', () => {
     const {organization} = initializeOrg();
-    const subscription = SubscriptionFixture({
-      organization,
-    });
+    const subscription = SubscriptionFixture({organization});
 
     const billingConfig = BillingConfigFixture(PlanTier.AM2);
     billingConfig.planList = billingConfig.planList.filter(plan => plan.userSelectable);

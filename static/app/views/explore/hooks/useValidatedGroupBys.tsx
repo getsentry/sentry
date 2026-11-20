@@ -59,10 +59,7 @@ export function useValidatedGroupBys({
       !validationGroupBySnapshot?.data ||
       validationGroupBySnapshot.data !== validationData
     ) {
-      validationGroupBySnapshot = {
-        data: validationData,
-        groupBys,
-      };
+      validationGroupBySnapshot = {data: validationData, groupBys};
       validationGroupBys.current = validationGroupBySnapshot;
     }
 
@@ -73,10 +70,7 @@ export function useValidatedGroupBys({
       return;
     }
 
-    pendingValidatedGroupBys.current = {
-      from: groupBys,
-      to: validatedGroupBys,
-    };
+    pendingValidatedGroupBys.current = {from: groupBys, to: validatedGroupBys};
     onGroupBysCleanup(validatedGroupBys);
   }, [
     groupBys,

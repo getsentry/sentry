@@ -143,12 +143,7 @@ export function fzf(text: string, pattern: string, caseSensitive: boolean): Resu
   }
 
   // Fzf will return matches per each character, we will try to merge these together
-  return {
-    start: sidx,
-    end: eidx,
-    score,
-    matches,
-  };
+  return {start: sidx, end: eidx, score, matches};
 }
 
 function bonusForCharClass(prevClass: CharTypes, currentClass: CharTypes): number {

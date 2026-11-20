@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import * as Storybook from 'sentry/stories';
 import {IssueCategory, IssueType, type Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -67,7 +68,7 @@ class SimulatedSidebarQueryClient extends QueryClient {
       return defaulted;
     }
 
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     const queryFn = () => Promise.resolve({json: this.respond(url), headers: {}});
     // Each answer matches the response type of the query that asked for it.
     return {...defaulted, queryFn: queryFn as never};

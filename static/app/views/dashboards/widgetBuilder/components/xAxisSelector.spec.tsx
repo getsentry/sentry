@@ -13,9 +13,7 @@ const DASHBOARD_WIDGET_BUILDER_ROUTE = '/organizations/:orgId/dashboards/new/wid
 
 const ATTRIBUTES_URL = '/organizations/org-slug/trace-items/attributes/';
 
-const organization = OrganizationFixture({
-  features: ['visibility-explore-view'],
-});
+const organization = OrganizationFixture({features: ['visibility-explore-view']});
 
 const cappedAttribute = {
   key: 'span.description',
@@ -53,10 +51,7 @@ describe('WidgetBuilderXAxisSelector', () => {
       initialRouterConfig: {
         location: {
           pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
-          query: {
-            dataset: WidgetType.SPANS,
-            displayType: DisplayType.CATEGORICAL_BAR,
-          },
+          query: {dataset: WidgetType.SPANS, displayType: DisplayType.CATEGORICAL_BAR},
         },
         route: DASHBOARD_WIDGET_BUILDER_ROUTE,
       },

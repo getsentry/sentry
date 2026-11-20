@@ -285,14 +285,8 @@ describe('UsageOverviewTable', () => {
       reserved: UNLIMITED_RESERVED,
       prepaid: UNLIMITED_RESERVED,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      enabled: true,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      isAvailable: false,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, enabled: true};
+    sub.addOns!.seer = {...sub.addOns!.seer!, isAvailable: false};
 
     render(
       <UsageOverviewTable
@@ -326,14 +320,8 @@ describe('UsageOverviewTable', () => {
       reserved: 100,
       prepaid: 100,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      enabled: true,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      isAvailable: false,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, enabled: true};
+    sub.addOns!.seer = {...sub.addOns!.seer!, isAvailable: false};
 
     render(
       <UsageOverviewTable
@@ -368,14 +356,8 @@ describe('UsageOverviewTable', () => {
       prepaid: 110,
       free: 10,
     };
-    sub.addOns!.legacySeer = {
-      ...sub.addOns!.legacySeer!,
-      isAvailable: false,
-    };
-    sub.addOns!.seer = {
-      ...sub.addOns!.seer!,
-      enabled: true,
-    };
+    sub.addOns!.legacySeer = {...sub.addOns!.legacySeer!, isAvailable: false};
+    sub.addOns!.seer = {...sub.addOns!.seer!, enabled: true};
 
     render(
       <UsageOverviewTable
@@ -396,10 +378,7 @@ describe('UsageOverviewTable', () => {
   });
 
   it('renders add-on with missing metric history', async () => {
-    subscription.addOns!.seer = {
-      ...subscription.addOns!.seer!,
-      enabled: true,
-    };
+    subscription.addOns!.seer = {...subscription.addOns!.seer!, enabled: true};
     subscription.addOns!.legacySeer = {
       ...subscription.addOns!.legacySeer!,
       isAvailable: false,
@@ -450,12 +429,7 @@ describe('UsageOverviewTable', () => {
       free: 1,
       prepaid: 1,
     };
-    sub.categories.uptime = {
-      ...sub.categories.uptime!,
-      reserved: 0,
-      free: 1,
-      prepaid: 1,
-    };
+    sub.categories.uptime = {...sub.categories.uptime!, reserved: 0, free: 1, prepaid: 1};
     SubscriptionStore.set(organization.slug, sub);
 
     render(

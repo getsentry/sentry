@@ -38,10 +38,7 @@ export function FirstEventFooter({
     ...apiOptions.as<Group[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/issues/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         staleTime: Infinity,
       }
     ),

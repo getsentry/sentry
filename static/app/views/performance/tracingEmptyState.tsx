@@ -197,10 +197,7 @@ function TracingManualSetup({
   return <ManualSetupSteps project={project} steps={tracingSteps} />;
 }
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+type Props = {organization: Organization; project: Project};
 
 export function TracingEmptyState({organization, project}: Props) {
   const noPerformanceSupport = doesNotSupportPerformance(project);

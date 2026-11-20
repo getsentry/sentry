@@ -123,7 +123,7 @@ repos:
         # Mirror ignorePatterns from .oxfmtrc.json; oxfmt errors with
         # "Expected at least one target file" when its config drops every
         # input file, so skip them at the hook level instead.
-        exclude: ^(api-docs|fixtures)/.*\.json$
+        exclude: ^(api-docs|fixtures)/.*\.json$|^tests/(?:.*/)?snapshots_golden/.*\.json$|(^|/)[^/]*\.generated\.[^/]+$
         entry: ./node_modules/.bin/oxfmt --no-error-on-unmatched-pattern
 
       - id: knip

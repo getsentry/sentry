@@ -50,13 +50,7 @@ export function useRecentCreatedProject({
   const {isPending: isProjectLoading, data: freshProject} = useQuery({
     ...apiOptions.as<Project>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug!,
-        },
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!}, staleTime: 0}
     ),
     enabled: !!projectSlug,
     refetchInterval: query => {
@@ -78,14 +72,8 @@ export function useRecentCreatedProject({
   });
 
   if (isProjectLoading || !freshProject) {
-    return {
-      isProjectActive: project ? isProjectActive(project) : false,
-      project,
-    };
+    return {isProjectActive: project ? isProjectActive(project) : false, project};
   }
 
-  return {
-    isProjectActive: isProjectActive(freshProject),
-    project: freshProject,
-  };
+  return {isProjectActive: isProjectActive(freshProject), project: freshProject};
 }

@@ -181,11 +181,7 @@ function parseFiltersForDisplay(query: string | undefined): StatusCheckFilter[] 
       if (valueText.startsWith('[') && valueText.endsWith(']')) {
         const values = splitMultiValue(valueText.slice(1, -1));
         values.forEach(value => {
-          filters.push({
-            key: token.key.text,
-            value,
-            negated: token.negated || false,
-          });
+          filters.push({key: token.key.text, value, negated: token.negated || false});
         });
       } else {
         filters.push({
