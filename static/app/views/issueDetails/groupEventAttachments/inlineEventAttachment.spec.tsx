@@ -16,9 +16,7 @@ describe('InlineEventAttachment', () => {
     const attachment = EventAttachmentFixture({
       name: 'rrweb.json',
       mimetype: 'application/json',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
     });
 
     MockApiClient.addMockResponse({
@@ -44,9 +42,7 @@ describe('InlineEventAttachment', () => {
     const attachment = EventAttachmentFixture({
       name: 'rrweb-12345.json',
       mimetype: 'application/json',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
     });
 
     MockApiClient.addMockResponse({

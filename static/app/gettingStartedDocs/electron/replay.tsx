@@ -22,9 +22,7 @@ export const replay: OnboardingConfig = {
           type: 'text',
           text: tct(
             'For the Session Replay to work, you must have the framework SDK (e.g. [code:@sentry/electron]) installed, minimum version 4.2.0.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installCodeBlock,

@@ -12,7 +12,6 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {EventView} from 'sentry/utils/discover/eventView';
-import type {MetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {isProfilingSupportedOrProjectHasProfiles} from 'sentry/utils/profiling/platforms';
 import {useReplayCountForTransaction} from 'sentry/utils/replayCount/useReplayCountForTransaction';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
@@ -53,7 +52,6 @@ type Props = {
   projectId: string;
   projects: Project[];
   transactionName: string;
-  metricsCardinality?: MetricsCardinalityContext;
   onChangeThreshold?: (threshold: number, metric: TransactionThresholdMetric) => void;
 };
 
@@ -63,7 +61,6 @@ export function TransactionHeader({
   organization,
   projects,
   projectId,
-  metricsCardinality,
   location,
   transactionName,
   onChangeThreshold,
@@ -125,9 +122,7 @@ export function TransactionHeader({
   );
 
   function handleCreateAlertSuccess() {
-    trackAnalytics('performance_views.summary.create_alert_clicked', {
-      organization,
-    });
+    trackAnalytics('performance_views.summary.create_alert_clicked', {organization});
   }
 
   const project = projects.find(p => p.id === projectId);
@@ -150,11 +145,7 @@ export function TransactionHeader({
   });
 
   const renderTabList = (TabList: TabsComponents<Tab>['TabList']) => (
-    <TabList
-      outerWrapStyles={{
-        gridColumn: '1 / -1',
-      }}
-    >
+    <TabList outerWrapStyles={{gridColumn: '1 / -1'}}>
       <TabList.Item key={Tab.TRANSACTION_SUMMARY}>{t('Overview')}</TabList.Item>
       <TabList.Item key={Tab.EVENTS}>{t('Sampled Events')}</TabList.Item>
       <TabList.Item key={Tab.REPLAYS} textValue={t('Replays')} hidden={!hasSessionReplay}>
@@ -179,34 +170,25 @@ export function TransactionHeader({
         ),
       },
       hideDefaultTabs: true,
-      tabs: {
-        onTabChange,
-        renderTabList,
-        value: currentTab,
-      },
+      tabs: {onTabChange, renderTabList, value: currentTab},
       breadcrumbs: getTransactionSummaryParentCrumbs({
         location,
         organization,
-        transaction: {
-          name: transactionName,
-          project: projectId,
-        },
+        transaction: {name: transactionName, project: projectId},
         view,
       }).map(({label, to}) => ({type: 'link' as const, label, to})),
       headerActions: (
         <Fragment>
-          {metricsCardinality?.isLoading ? null : (
-            <CreateAlertFromViewButton
-              size="sm"
-              eventView={eventView}
-              organization={organization}
-              projects={projects}
-              onClick={handleCreateAlertSuccess}
-              referrer="performance"
-              alertType="trans_duration"
-              aria-label={t('Create Alert')}
-            />
-          )}
+          <CreateAlertFromViewButton
+            size="sm"
+            eventView={eventView}
+            organization={organization}
+            projects={projects}
+            onClick={handleCreateAlertSuccess}
+            referrer="performance"
+            alertType="trans_duration"
+            aria-label={t('Create Alert')}
+          />
           <TeamKeyTransactionButton
             eventView={eventView}
             organization={organization}
@@ -246,7 +228,7 @@ export function TransactionHeader({
         onChangeThreshold={onChangeThreshold}
       />
       <TopBar.Slot name="actions">
-        {!metricsCardinality?.isLoading && !deprecateTransactionAlerts(organization) ? (
+        {deprecateTransactionAlerts(organization) ? null : (
           <CreateAlertFromViewButton
             eventView={eventView}
             organization={organization}
@@ -256,13 +238,9 @@ export function TransactionHeader({
             alertType="trans_duration"
             aria-label={t('Create Alert')}
           />
-        ) : null}
+        )}
       </TopBar.Slot>
-      <HeaderTabList
-        outerWrapStyles={{
-          gridColumn: '1 / -1',
-        }}
-      >
+      <HeaderTabList outerWrapStyles={{gridColumn: '1 / -1'}}>
         <HeaderTabList.Item key={Tab.TRANSACTION_SUMMARY}>
           {t('Overview')}
         </HeaderTabList.Item>

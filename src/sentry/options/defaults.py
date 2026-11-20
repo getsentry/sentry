@@ -3097,6 +3097,16 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Temporary killswitch for the system incident dual-write to
+# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
+# secondary writes at once. Has no effect when the setting is unset.
+# To be removed as part of INFRENG-1053
+register(
+    "crons.system_incidents.secondary_redis_writes",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables the the crons incident occurrence consumer to consider the clock-tick
 # decision made based on volume metrics to determine if a incident occurrence
 # should be processed, delayed, or dropped entirely.
@@ -4095,13 +4105,6 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
@@ -4613,6 +4616,13 @@ register(
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "autofix.pr-iteration.check-suite-local-prefilter.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

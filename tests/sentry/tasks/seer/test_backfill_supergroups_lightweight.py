@@ -1,6 +1,6 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime, timedelta
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -94,7 +94,7 @@ class BackfillSupergroupsLightweightForOrgTest(TestCase):
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
     def test_task_activation_propagates_viewer_context_to_seer(self, mock_urlopen: Any) -> None:
         mock_urlopen.return_value = HTTPResponse(b"", status=200)
-        task = cast(Any, backfill_supergroups_lightweight_for_org)
+        task = backfill_supergroups_lightweight_for_org
         with viewer_context_scope(
             ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id)
         ):

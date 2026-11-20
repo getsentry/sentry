@@ -12,11 +12,6 @@ from tests.sentry.workflow_engine.processors.contexts.test_workflow_event_contex
 
 @mock.patch("sentry.utils.metrics.incr")
 class TestWorkflowEngineMetrics(WorkflowEventContextTestCase):
-    def setUp(self) -> None:
-        super().setUp()
-        # ensure the context is empty by default
-        self.ctx_token = WorkflowEventContext.set(WorkflowEventContextData(detector=None))
-
     def test(self, mock_incr: mock.MagicMock) -> None:
         metrics_incr("example.metric")
         mock_incr.assert_called_once_with("workflow_engine.example.metric", 1)
@@ -27,7 +22,7 @@ class TestWorkflowEngineMetrics(WorkflowEventContextTestCase):
 
     def test_with_context(self, mock_incr: mock.MagicMock) -> None:
         detector = self.create_detector()
-        self.ctx_token = WorkflowEventContext.set(WorkflowEventContextData(detector=detector))
+        WorkflowEventContext.set(WorkflowEventContextData(detector=detector))
 
         metrics_incr("example.metric")
         mock_incr.assert_called_with(

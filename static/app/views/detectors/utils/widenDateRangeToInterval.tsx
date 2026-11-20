@@ -47,13 +47,7 @@ export function widenDateRangeToInterval({
   }
 
   if (start && end) {
-    return widenCustomRange({
-      dateRange,
-      start,
-      end,
-      intervalSeconds,
-      nowMilliseconds,
-    });
+    return widenCustomRange({dateRange, start, end, intervalSeconds, nowMilliseconds});
   }
 
   return dateRange;

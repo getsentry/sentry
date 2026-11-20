@@ -86,11 +86,7 @@ export function useSaveMetricsMultiQuery() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          ...data,
-          name,
-          starred,
-        },
+        data: {...data, name, starred},
       }),
     onSuccess: () => {
       invalidateSavedQueries();

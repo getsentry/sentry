@@ -26,9 +26,7 @@ export type OverlayTriggerButtonProps = DistributedOmit<
 export type OverlayTriggerIconButtonProps = SetRequired<
   DistributedOmit<DropdownButtonProps, 'ref' | 'showChevron' | 'onClick'>,
   'aria-label' | 'icon'
-> & {
-  ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>;
-};
+> & {ref?: React.Ref<TriggerEl> | React.Ref<HTMLButtonElement>};
 
 const useContextProps = () => {
   const selectContext = React.useContext(ControlContext);

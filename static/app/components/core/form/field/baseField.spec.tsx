@@ -15,9 +15,7 @@ interface TestFormProps {
 function TestForm({label, hintText, required, defaultValue, validator}: TestFormProps) {
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      testField: defaultValue ?? '',
-    },
+    defaultValues: {testField: defaultValue ?? ''},
     validators: validator ? {onBlur: validator} : undefined,
   });
 
@@ -41,12 +39,7 @@ interface CompactTestFormProps {
 }
 
 function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps) {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {
-      testField: '',
-    },
-  });
+  const form = useScrapsForm({...defaultFormOptions, defaultValues: {testField: ''}});
 
   return (
     <form.AppForm form={form}>
@@ -64,9 +57,7 @@ function CompactTestForm({label, hintText, layout = 'Row'}: CompactTestFormProps
   );
 }
 
-const testSchema = z.object({
-  testField: z.string(),
-});
+const testSchema = z.object({testField: z.string()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {testField: string}) => Promise<{testField: string}>;
@@ -239,9 +230,7 @@ describe('BaseField indicator', () => {
 
 describe('BaseField onBlur', () => {
   it('triggers validation on blur', async () => {
-    const validationSchema = z.object({
-      testField: z.string().min(3, 'Too short'),
-    });
+    const validationSchema = z.object({testField: z.string().min(3, 'Too short')});
 
     render(<TestForm label="Username" defaultValue="ab" validator={validationSchema} />);
 

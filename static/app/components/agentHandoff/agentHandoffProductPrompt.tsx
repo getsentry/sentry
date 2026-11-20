@@ -45,11 +45,7 @@ export function AgentHandoffProductPrompt({
   const previewUrl = getHandoffPreviewUrl(sentryUrl);
 
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
-    useHandoffPromptCopy({
-      flow: AgentHandoffFlow.ADD_FEATURE,
-      context,
-      onCopySuccess,
-    });
+    useHandoffPromptCopy({flow: AgentHandoffFlow.ADD_FEATURE, context, onCopySuccess});
 
   return (
     <Stack gap="xl">
@@ -79,9 +75,7 @@ export function AgentHandoffProductPrompt({
           <FeedbackButton
             size="md"
             variant="secondary"
-            feedbackOptions={{
-              tags: {'feedback.source': feedbackSource},
-            }}
+            feedbackOptions={{tags: {'feedback.source': feedbackSource}}}
           />
 
           <Flex flex={1} align="center" justify="end">

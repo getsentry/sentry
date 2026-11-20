@@ -101,14 +101,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 
@@ -185,10 +179,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const sdkProviderOptions = Object.values(SdkProviderEnum)
     .filter(provider => provider !== SdkProviderEnum.GENERIC)
     .map(provider => {
-      return {
-        value: provider,
-        label: <TextOverflow>{provider}</TextOverflow>,
-      };
+      return {value: provider, label: <TextOverflow>{provider}</TextOverflow>};
     });
 
   const [sdkProvider, setsdkProvider] = useState<{
@@ -297,7 +288,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           'Tracking flag evaluations is not supported for [platform] yet. It is currently available for Python, JavaScript, and Node.js projects through the Feature Flags SDK. You can [link:read the docs] to learn more.',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/" />
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/feature-flags/" />
             ),
             platform: currentPlatform?.name || currentProject.slug,
           }

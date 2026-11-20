@@ -62,13 +62,12 @@ export type SeerProjectSettingResponse = {
   reposCount: number;
   scannerAutomation: boolean;
   stoppingPoint: SeerAutofixStoppingPoint;
+  // Providers of the project's repos, like `integrations:github`. Optional until
+  // every backend sends it.
+  repoProviders?: string[];
 };
 
-type BranchOverrideInput = {
-  branchName: string;
-  tagName: string;
-  tagValue: string;
-};
+type BranchOverrideInput = {branchName: string; tagName: string; tagValue: string};
 
 export type SeerProjectRepoCreateInput = {
   repositoryId: string;

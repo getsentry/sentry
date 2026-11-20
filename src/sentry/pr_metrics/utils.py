@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import cast
 
 from django.db.models import Q
 from django.utils import timezone
@@ -226,7 +225,7 @@ def load_activity_document(pull_request: PullRequest) -> ActivityDoc | None:
         return None
     if not (row.data and row.data.get("version")):
         return None
-    return cast(ActivityDoc, row.data)
+    return row.data
 
 
 def resolved_group_ids(pull_request: PullRequest) -> list[int]:

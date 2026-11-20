@@ -4,9 +4,7 @@ import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
-type Props = React.ComponentProps<typeof DateRange> & {
-  subscription: Subscription;
-};
+type Props = React.ComponentProps<typeof DateRange> & {subscription: Subscription};
 
 function DisabledDateRange(props: Props) {
   const {subscription} = props;

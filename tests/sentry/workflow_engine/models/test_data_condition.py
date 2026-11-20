@@ -65,7 +65,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test(self) -> None:
         dc = self.create_data_condition(
             type=Condition.GREATER,
-            comparison=cast(Any, 1.0),
+            comparison=1.0,
             condition_result=DetectorPriorityLevel.HIGH,
         )
         evaluation = dc.evaluate_value(2)
@@ -103,7 +103,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
             # Raises ValueError because the condition is invalid
             self.create_data_condition(
                 type=cast(Any, "invalid"),
-                comparison=cast(Any, 1.0),
+                comparison=1.0,
                 condition_result=DetectorPriorityLevel.HIGH,
             )
 
@@ -120,7 +120,7 @@ class EvaluateValueTest(DataConditionHandlerMixin, BaseWorkflowTest):
     def test_condition_result_comparison_fails(self) -> None:
         dc = self.create_data_condition(
             type=Condition.GREATER,
-            comparison=cast(Any, 1.0),
+            comparison=1.0,
             condition_result="wrong",
         )
         evaluation = dc.evaluate_value(2)

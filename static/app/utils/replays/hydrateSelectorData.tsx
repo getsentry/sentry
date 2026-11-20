@@ -6,10 +6,7 @@ export function hydratedSelectorData(data: any, clickType?: any): DeadRageSelect
   return data.map((d: any) => ({
     ...(clickType
       ? {[clickType]: d[clickType]}
-      : {
-          count_dead_clicks: d.count_dead_clicks,
-          count_rage_clicks: d.count_rage_clicks,
-        }),
+      : {count_dead_clicks: d.count_dead_clicks, count_rage_clicks: d.count_rage_clicks}),
 
     dom_element: {
       fullSelector: constructSelector(d.element).fullSelector,

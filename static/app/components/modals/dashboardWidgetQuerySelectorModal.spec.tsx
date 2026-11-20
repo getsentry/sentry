@@ -31,9 +31,7 @@ function renderModal({
 
 describe('Modals -> AddDashboardWidgetModal', () => {
   const initialData = initializeOrg({
-    organization: {
-      features: ['discover-query'],
-    },
+    organization: {features: ['discover-query']},
     projects: [],
   });
   let mockQuery!: Widget['queries'][number];
@@ -93,10 +91,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
     });
-    mockWidget.queries.push({
-      ...mockQuery,
-      conditions: 'title:/organizations/:orgId/',
-    });
+    mockWidget.queries.push({...mockQuery, conditions: 'title:/organizations/:orgId/'});
     renderModal({initialData, widget: mockWidget});
     const queryFields = screen.getAllByRole('textbox');
     expect(queryFields).toHaveLength(3);

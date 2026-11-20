@@ -20,18 +20,9 @@ export const platformOptions = {
     label: t('Setup Type'),
     defaultValue: CloudflareSetupType.VITE,
     items: [
-      {
-        label: t('Workers (Vite Plugin)'),
-        value: CloudflareSetupType.VITE,
-      },
-      {
-        label: t('Workers (Manual)'),
-        value: CloudflareSetupType.MANUAL,
-      },
-      {
-        label: t('Pages'),
-        value: CloudflareSetupType.PAGES,
-      },
+      {label: t('Workers (Vite Plugin)'), value: CloudflareSetupType.VITE},
+      {label: t('Workers (Manual)'), value: CloudflareSetupType.MANUAL},
+      {label: t('Pages'), value: CloudflareSetupType.PAGES},
     ],
   },
 } satisfies BasePlatformOptions;

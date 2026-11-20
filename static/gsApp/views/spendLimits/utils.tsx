@@ -48,10 +48,7 @@ export function parseOnDemandBudgets(
         onDemandBudgets.budgets[category as DataCategory] ?? 0;
     }
 
-    return {
-      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      budgets: parsedBudgets,
-    };
+    return {budgetMode: OnDemandBudgetMode.PER_CATEGORY, budgets: parsedBudgets};
   }
   return {
     budgetMode: OnDemandBudgetMode.SHARED,
@@ -112,10 +109,7 @@ export function formatOnDemandBudget(
     categories = plan.onDemandCategories.map(category => category);
   }
   if (budget.budgetMode === OnDemandBudgetMode.PER_CATEGORY) {
-    categories = getOnDemandCategories({
-      plan,
-      budgetMode: budget.budgetMode,
-    });
+    categories = getOnDemandCategories({plan, budgetMode: budget.budgetMode});
     return `per-category ${displayBudgetName(plan, {
       withBudget: true,
       pluralOndemand: true,
@@ -236,10 +230,7 @@ export function trackOnDemandBudgetAnalytics(
 
 export function normalizeOnDemandBudget(budget: OnDemandBudgets): OnDemandBudgets {
   if (getTotalBudget(budget) <= 0) {
-    return {
-      budgetMode: OnDemandBudgetMode.SHARED,
-      sharedMaxBudget: 0,
-    };
+    return {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0};
   }
   return budget;
 }
@@ -273,10 +264,7 @@ export function convertOnDemandBudget(
       newBudgets.transactions = transactionsBudget;
     }
 
-    return {
-      budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-      budgets: newBudgets,
-    };
+    return {budgetMode: OnDemandBudgetMode.PER_CATEGORY, budgets: newBudgets};
   }
 
   let sharedMaxBudget = 0;
@@ -287,8 +275,5 @@ export function convertOnDemandBudget(
     sharedMaxBudget = getTotalBudget(currentOnDemandBudget);
   }
 
-  return {
-    budgetMode: OnDemandBudgetMode.SHARED,
-    sharedMaxBudget,
-  };
+  return {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget};
 }

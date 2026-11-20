@@ -48,14 +48,8 @@ ruleTester.run('prefer-nuqs', preferNuqs, {
       code: 'navigate({...location, query: {...location.query, tab: "details"}});',
       errors: [{messageId: 'preferNuqs'}],
     },
-    {
-      code: 'navigate({query: {tab: "details"}});',
-      errors: [{messageId: 'preferNuqs'}],
-    },
-    {
-      code: 'navigate({query});',
-      errors: [{messageId: 'preferNuqs'}],
-    },
+    {code: 'navigate({query: {tab: "details"}});', errors: [{messageId: 'preferNuqs'}]},
+    {code: 'navigate({query});', errors: [{messageId: 'preferNuqs'}]},
     {
       code: 'navigate({"pathname": location.pathname, "query": nextQuery});',
       errors: [{messageId: 'preferNuqs'}],
@@ -84,9 +78,6 @@ ruleTester.run('prefer-nuqs', preferNuqs, {
       code: 'navigate({...location, query, pathname: location.pathname});',
       errors: [{messageId: 'preferNuqs'}],
     },
-    {
-      code: 'navigate({query: {}});',
-      errors: [{messageId: 'preferNuqs'}],
-    },
+    {code: 'navigate({query: {}});', errors: [{messageId: 'preferNuqs'}]},
   ],
 });

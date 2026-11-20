@@ -3,6 +3,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {projectSeerPreferencesApiOptions} from 'sentry/components/events/autofix/preferences/hooks/useProjectSeerPreferences';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -14,7 +15,7 @@ import {
 } from './preferredAgent';
 import {getSeerProjectReposInfiniteQueryOptions} from './seerProjectRepos';
 import {
-  getInfiniteSeerProjectsSettingsQueryOptions,
+  allSeerProjectsSettingsFilter,
   getSeerProjectSettingsQueryOptions,
 } from './seerProjectSettings';
 import {getTuningFromStoppingPoint, resolveStoppingPoint} from './stoppingPoint';
@@ -27,10 +28,7 @@ import type {
 type TVariables = {
   agentOption: AutofixAgentSelectOption;
   project: Project;
-  repoEntries: Array<{
-    branch: string;
-    repoId: string;
-  }>;
+  repoEntries: Array<{branch: string; repoId: string}>;
   stoppingPoint: UserFacingStoppingPoint;
   prIteration?: boolean;
 };
@@ -83,10 +81,7 @@ export function useMutateAutofixProject() {
 
       const repos = repoEntries
         .filter(e => Boolean(e.repoId))
-        .map(e => ({
-          repositoryId: Number(e.repoId),
-          branchName: e.branch || null,
-        }));
+        .map(e => ({repositoryId: Number(e.repoId), branchName: e.branch || null}));
 
       // There is no single endpoint that writes both repos and settings, so
       // this is two sequential requests. The ordering is deliberate and the
@@ -102,12 +97,8 @@ export function useMutateAutofixProject() {
         organization,
         project,
       });
-      const [reposUrl] = reposQueryOptions.queryKey;
-      await fetchMutation({
-        method: 'PUT',
-        url: reposUrl,
-        data: {repos},
-      });
+      const reposUrl = parseQueryKey(reposQueryOptions.queryKey).url;
+      await fetchMutation({method: 'PUT', url: reposUrl, data: {repos}});
 
       // 2. Agent, tuning, and stopping point are written SECOND, through the
       //    project settings endpoint added for the new Seer settings UI. Because
@@ -120,7 +111,7 @@ export function useMutateAutofixProject() {
         organization,
         project: {slug: project.slug},
       });
-      const [settingsUrl] = settingsQueryOptions.queryKey;
+      const settingsUrl = parseQueryKey(settingsQueryOptions.queryKey).url;
       try {
         await fetchMutation<SeerProjectSettingResponse>({
           method: 'PUT',
@@ -166,12 +157,7 @@ export function useMutateAutofixProject() {
       // Invalidate the org-level infinite seer projects list so the
       // /settings/seer/projects/ table reflects the newly added project
       // without waiting for its 60s staleTime to expire.
-      const {queryKey: infiniteProjectsQueryKey} =
-        getInfiniteSeerProjectsSettingsQueryOptions({organization, query: {}});
-      queryClient.invalidateQueries({
-        queryKey: [infiniteProjectsQueryKey[0]],
-        exact: false,
-      });
+      queryClient.invalidateQueries(allSeerProjectsSettingsFilter(organization));
     },
   });
 }

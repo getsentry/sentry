@@ -5,9 +5,9 @@ import moment from 'moment-timezone';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiFetch} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {batchedQueryOptions} from 'sentry/utils/api/batching/batchedQueryOptions';
 import {createBatcher} from 'sentry/utils/api/batching/createBatcher';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -58,25 +58,22 @@ interface PinnedLogResult {
 
 const pinnedLogBatcher = createBatcher<PinnedLogResult, PinnedLogsQueryContext>(
   async (_client, {organizationSlug, baseQuery}, ids: string[]) => {
-    const url = getApiUrl('/organizations/$organizationIdOrSlug/events/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    });
-
     const rowsById = new Map<string, PinnedLogResult | Error>();
     try {
       const {json} = await apiFetch<EventsLogsResult>({
-        queryKey: [
-          url,
+        queryKey: apiOptions.as<EventsLogsResult>()(
+          '/organizations/$organizationIdOrSlug/events/',
           {
+            path: {organizationIdOrSlug: organizationSlug},
             query: {
               ...baseQuery,
               ...dateParamsFromIds(ids),
               query: `id:[${ids.join(',')}]`,
               per_page: ids.length,
             },
-          },
-          {infinite: false},
-        ],
+            staleTime: 0,
+          }
+        ).queryKey,
       });
       for (const row of json.data) {
         rowsById.set(row[OurLogKnownFieldKey.ID], {

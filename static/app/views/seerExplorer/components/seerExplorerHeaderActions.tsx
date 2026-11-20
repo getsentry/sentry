@@ -107,10 +107,7 @@ function ChatHistorySelect({
       onChange={option => onChangeSession(option.value)}
       onOpenChange={onHistoryOpenChange}
       loading={sessionsLoading}
-      emptyMessage={getChatHistoryEmptyMessage({
-        sessionsError,
-        sessionsLoading,
-      })}
+      emptyMessage={getChatHistoryEmptyMessage({sessionsError, sessionsLoading})}
       search={
         hasNoChats
           ? undefined
@@ -131,9 +128,7 @@ function ChatHistorySelect({
       strategy="fixed"
       position="bottom-end"
       offset={[100, 8]}
-      preventOverflowOptions={{
-        boundary: document.body,
-      }}
+      preventOverflowOptions={{boundary: document.body}}
       size="xs"
       menuWidth={320}
       trigger={triggerProps => (

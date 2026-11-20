@@ -55,9 +55,7 @@ export function useShiftFocusToChild(
     [item, state]
   );
 
-  return {
-    shiftFocusProps: {onFocus},
-  };
+  return {shiftFocusProps: {onFocus}};
 }
 
 const EXPLICIT_TAG_KEY_PATTERN = /^tags\[(.*),(string|number|boolean)\]$/;
@@ -104,10 +102,7 @@ function tagFromResolverItem(item: FilterKeyResolverItem): Tag | null {
     return null;
   }
 
-  return {
-    key: item.value,
-    name: item.textValue ?? prettifyTagKey(item.value),
-  };
+  return {key: item.value, name: item.textValue ?? prettifyTagKey(item.value)};
 }
 
 function getTagsFromResolverItems(items: FilterKeyResolverItem[]): Tag[] {

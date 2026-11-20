@@ -14,23 +14,16 @@ describe('projectSecurityAndPrivacy', () => {
       safeFields: ['business-email', 'company'],
     });
 
-    render(<ProjectSecurityAndPrivacy />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSecurityAndPrivacy />, {organization, outletContext: {project}});
 
     // Store Minidumps As Attachments
     expect(
-      screen.getByRole('textbox', {
-        name: 'Store Minidumps As Attachments',
-      })
+      screen.getByRole('textbox', {name: 'Store Minidumps As Attachments'})
     ).not.toHaveValue();
     expect(screen.getByText(/Inherit organization settings/)).toBeInTheDocument();
 
     expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable server-side data scrubbing',
-      })
+      screen.getByRole('checkbox', {name: 'Enable server-side data scrubbing'})
     ).not.toBeChecked();
 
     expect(
@@ -71,10 +64,7 @@ describe('projectSecurityAndPrivacy', () => {
     organization.dataScrubber = true;
     organization.scrubIPAddresses = false;
 
-    render(<ProjectSecurityAndPrivacy />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSecurityAndPrivacy />, {organization, outletContext: {project}});
 
     expect(
       screen.getByRole('checkbox', {
@@ -105,16 +95,11 @@ describe('projectSecurityAndPrivacy', () => {
     });
     const project = DetailedProjectFixture();
 
-    render(<ProjectSecurityAndPrivacy />, {
-      organization,
-      outletContext: {project},
-    });
+    render(<ProjectSecurityAndPrivacy />, {organization, outletContext: {project}});
 
     // Check that the data scrubber toggle is disabled
     expect(
-      screen.getByRole('checkbox', {
-        name: 'Enable server-side data scrubbing',
-      })
+      screen.getByRole('checkbox', {name: 'Enable server-side data scrubbing'})
     ).toBeDisabled();
   });
 });
