@@ -1988,9 +1988,6 @@
   "views/performance/landing/widgets/widgets/mobileReleaseComparisonListWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "views/performance/landing/widgets/widgets/performanceScoreWidget.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
   "views/performance/landing/widgets/widgets/singleFieldAreaWidget.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 2}
   },
