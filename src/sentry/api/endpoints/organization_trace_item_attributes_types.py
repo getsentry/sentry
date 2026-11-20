@@ -4,6 +4,19 @@ from sentry.apidocs.descriptions import ApiDescription
 from sentry.search.eap.types import ColumnType
 
 TraceItemAttributeUnit = Literal["byte", "currency", "millisecond", "percentage", "second"]
+TraceItemAttributeScrubbingMode = Literal["auto", "manual", "never"]
+
+
+class TraceItemAttributeScrubbing(TypedDict):
+    mode: Annotated[
+        TraceItemAttributeScrubbingMode,
+        ApiDescription(
+            "How PII scrubbing applies to the attribute's values: `auto`, `manual` or `never`"
+        ),
+    ]
+    reason: NotRequired[
+        Annotated[str, ApiDescription("Why this scrubbing mode applies to the attribute")]
+    ]
 
 
 class TraceItemAttributeSource(TypedDict):
@@ -83,6 +96,15 @@ class TraceItemAttributeContext(TypedDict):
             ApiDescription(
                 "Unit of a number attribute, from the dataset's Sentry-defined attributes or "
                 "from Sentry conventions, which apply in every dataset"
+            ),
+        ]
+    ]
+    applyScrubbing: NotRequired[
+        Annotated[
+            TraceItemAttributeScrubbing,
+            ApiDescription(
+                "How PII scrubbing applies to the attribute, from its Sentry convention. "
+                "Present only for Sentry conventions"
             ),
         ]
     ]

@@ -1,6 +1,6 @@
 from collections.abc import Callable, Sequence
 from datetime import datetime, timedelta
-from typing import Any, NamedTuple, TypeIs, cast, get_args
+from typing import Any, NamedTuple, TypeIs, assert_never, cast, get_args
 
 import sentry_sdk
 from django.db.models import Q
@@ -10,7 +10,7 @@ from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_conventions.attributes import ATTRIBUTE_METADATA
+from sentry_conventions.attributes import ATTRIBUTE_METADATA, ApplyScrubbing, AttributeMetadata
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -37,6 +37,8 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     TraceItemAttributeContext,
     TraceItemAttributeKey,
+    TraceItemAttributeScrubbing,
+    TraceItemAttributeScrubbingMode,
     TraceItemAttributeSource,
     TraceItemAttributeUnit,
     TraceItemAttributeValidateResponse,
@@ -364,6 +366,18 @@ def _is_trace_item_attribute_unit(value: str) -> TypeIs[TraceItemAttributeUnit]:
     return value in _TRACE_ITEM_ATTRIBUTE_UNITS
 
 
+def _scrubbing_mode(apply_scrubbing: ApplyScrubbing) -> TraceItemAttributeScrubbingMode:
+    match apply_scrubbing:
+        case ApplyScrubbing.AUTO:
+            return "auto"
+        case ApplyScrubbing.MANUAL:
+            return "manual"
+        case ApplyScrubbing.NEVER:
+            return "never"
+        case _:
+            assert_never(apply_scrubbing)
+
+
 SENTRY_ALWAYS_INCLUDED_ATTRIBUTES: dict[SupportedTraceItemType, frozenset[str]] = {
     SupportedTraceItemType.SPANS: frozenset({"span.description"}),
     SupportedTraceItemType.LOGS: frozenset({"message"}),
@@ -380,6 +394,37 @@ def _search_type_to_context_type(search_type: str) -> ColumnType:
     return "number"
 
 
+def _lookup_convention_metadata(public_name: str, internal_name: str) -> AttributeMetadata | None:
+    public_metadata = ATTRIBUTE_METADATA.get(public_name)
+    internal_metadata = ATTRIBUTE_METADATA.get(internal_name)
+    # A stored replacement can surface under its deprecated name, e.g. `sentry.release` as `release`.
+    if (
+        public_metadata is not None
+        and internal_metadata is not None
+        and public_metadata.deprecation is not None
+        and public_metadata.deprecation.replacement == internal_name
+    ):
+        return internal_metadata
+    return public_metadata or internal_metadata
+
+
+def get_sentry_convention_metadata(
+    public_name: str,
+    internal_name: str,
+    attribute_type: ColumnType | None = None,
+) -> AttributeMetadata | None:
+    metadata = _lookup_convention_metadata(public_name, internal_name)
+    if metadata is None:
+        return None
+
+    if attribute_type is not None:
+        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
+        if expected_type is not None and expected_type != attribute_type:
+            return None
+
+    return metadata
+
+
 def build_sentry_convention_context(
     public_name: str,
     internal_name: str,
@@ -394,7 +439,8 @@ def build_sentry_convention_context(
     alias or the internal name (see
     ``_update_attribute_definitions_with_deprecations`` in
     ``search/eap/spans/attributes.py``), so we try the public name first and
-    fall back to the internal name. The lookup is purely by name and does not
+    fall back to the internal name, unless the public name is a deprecated
+    convention whose replacement is the internal name. The lookup is purely by name and does not
     depend on the attribute's source, so conventions defined in
     ``sentry_conventions`` but not in ``attributes.py`` (e.g. ``http.route``)
     still resolve.
@@ -403,14 +449,9 @@ def build_sentry_convention_context(
     expected type is compatible, so a custom attribute that merely shares a name
     with a convention but has a different type isn't treated as that convention.
     """
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(internal_name)
+    metadata = get_sentry_convention_metadata(public_name, internal_name, attribute_type)
     if metadata is None:
         return None
-
-    if attribute_type is not None:
-        expected_type = _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value)
-        if expected_type is not None and expected_type != attribute_type:
-            return None
 
     deprecation = metadata.deprecation
 
@@ -443,6 +484,11 @@ def build_sentry_convention_context(
 
     if metadata.is_in_otel:
         context["isInOtel"] = True
+
+    scrubbing: TraceItemAttributeScrubbing = {"mode": _scrubbing_mode(metadata.apply_scrubbing.key)}
+    if metadata.apply_scrubbing.reason is not None:
+        scrubbing["reason"] = metadata.apply_scrubbing.reason
+    context["applyScrubbing"] = scrubbing
 
     return context
 
@@ -586,7 +632,7 @@ def resolve_attribute_unit(
         if _is_trace_item_attribute_unit(column.search_type):
             return column.search_type
 
-    metadata = ATTRIBUTE_METADATA.get(public_name) or ATTRIBUTE_METADATA.get(name)
+    metadata = _lookup_convention_metadata(public_name, name)
     if metadata is None or metadata.search_alias is None or metadata.search_alias.type is None:
         return None
     if _CONVENTION_TYPE_TO_SEARCH_TYPE.get(metadata.type.value, "number") != "number":

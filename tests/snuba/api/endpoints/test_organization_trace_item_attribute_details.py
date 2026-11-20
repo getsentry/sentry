@@ -7,6 +7,7 @@ from uuid import uuid4
 from django.urls import reverse
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.response import Response
+from sentry_conventions.attributes import ATTRIBUTE_METADATA
 from sentry_protos.snuba.v1.endpoint_trace_item_attributes_pb2 import (
     TraceItemAttributeNamesRequest,
     TraceItemAttributeNamesResponse,
@@ -168,6 +169,160 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
         response = self.do_request(query={"attributeName": "cart", "attributeType": "string"})
 
         assert response.status_code == 404, response.content
+
+    def test_returns_prefixed_span_attribute_when_requested_by_its_span_details_name(
+        self,
+    ) -> None:
+        self._store_span({"sentry.dsc.environment": "production"})
+
+        response = self.do_request(
+            query={"attributeName": "dsc.environment", "attributeType": "string"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "sentry.dsc.environment"
+        assert response.data["datasets"] == ["spans"]
+
+    def test_returns_404_when_only_a_log_attribute_has_the_prefixed_name(self) -> None:
+        self._store_log({"sentry.custom": {"string_value": "a"}})
+
+        response = self.do_request(query={"attributeName": "custom", "attributeType": "string"})
+
+        assert response.status_code == 404, response.content
+
+    def test_returns_sentry_column_when_it_is_not_stored_as_an_attribute(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span(timestamp=timestamp)
+
+        response = self.do_request(
+            query={"attributeName": "trace", "attributeType": "string", "statsPeriod": "14d"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "trace"
+        assert response.data["attributeSource"] == {"source_type": "sentry"}
+        assert response.data["datasets"] == ["spans"]
+        assert response.data["lastSeen"] == timestamp.isoformat()
+        assert list(response.data["stats"]) == ["spans"]
+
+    def test_returns_exact_attribute_when_a_prefixed_span_attribute_shares_its_name(
+        self,
+    ) -> None:
+        self._store_span({"cart": "plain", "sentry.cart": "prefixed"})
+
+        response = self.do_request(query={"attributeName": "cart", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "cart"
+
+    def test_returns_number_sentry_column_when_it_is_not_stored_as_an_attribute(self) -> None:
+        timestamp = before_now(minutes=10).replace(microsecond=0)
+        self._store_span(timestamp=timestamp)
+
+        response = self.do_request(
+            query={"attributeName": "precise.start_ts", "attributeType": "number"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["name"] == "precise.start_ts"
+        assert response.data["stats"] == {
+            "spans": {
+                "lastSeen": timestamp.isoformat(),
+                "cardinality": None,
+                "modifiedCount": 0,
+            }
+        }
+
+    def test_returns_each_dataset_with_a_sentry_column_when_several_datasets_have_it(
+        self,
+    ) -> None:
+        self._store_span()
+        self._store_log()
+
+        response = self.do_request(query={"attributeName": "trace", "attributeType": "string"})
+
+        assert response.status_code == 200, response.content
+        assert response.data["datasets"] == ["spans", "logs"]
+        assert list(response.data["stats"]) == ["spans", "logs"]
+
+    def test_returns_sentry_column_without_last_seen_when_its_existence_query_fails(
+        self,
+    ) -> None:
+        self._store_span()
+
+        with mock.patch(
+            f"{STATS_MODULE}._query_last_seen_from_table",
+            side_effect=snuba_rpc.SnubaRPCError("boom"),
+        ):
+            response = self.do_request(
+                query={"attributeName": "trace", "attributeType": "string", "dataset": "spans"}
+            )
+
+        assert response.status_code == 200, response.content
+        assert response.data["stats"]["spans"]["lastSeen"] is None
+        assert response.data["lastSeen"] is None
+
+    def test_describes_stored_replacement_when_its_public_name_is_a_deprecated_convention(
+        self,
+    ) -> None:
+        self._store_log({"sentry.release": {"string_value": "backend@1.0.0"}})
+
+        response = self.do_request(
+            query={"attributeName": "release", "attributeType": "string", "dataset": "logs"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["isDeprecated"] is False
+        assert "replacementAttribute" not in response.data["context"]
+        assert "changelog" not in response.data
+
+    def test_returns_changelog_of_the_convention_its_context_describes_when_stored_under_two_names(
+        self,
+    ) -> None:
+        self.store_spans(
+            [
+                self.create_span(
+                    {"sentry_tags": {"transaction": "/a"}, "data": {"sentry.segment.name": "/a"}}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            query={"attributeName": "transaction", "attributeType": "string", "dataset": "spans"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["transaction"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert response.data["context"]["brief"] == ATTRIBUTE_METADATA["transaction"].brief
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
+
+    def test_returns_changelog_of_the_convention_its_context_describes_when_datasets_store_different_names(
+        self,
+    ) -> None:
+        self.store_spans([self.create_span({"sentry_tags": {"transaction": "/a"}})])
+        self.store_eap_items(
+            [
+                self.create_trace_metric(
+                    "my.metric", 1.0, "counter", attributes={"sentry.segment.name": "/a"}
+                )
+            ]
+        )
+
+        response = self.do_request(
+            query={"attributeName": "transaction", "attributeType": "string"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["transaction"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert response.data["datasets"] == ["spans", "tracemetrics"]
+        assert response.data["context"]["brief"] == ATTRIBUTE_METADATA["transaction"].brief
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
 
     def test_returns_404_when_sentry_defined_attribute_was_not_stored(self) -> None:
         self._store_span()
@@ -353,6 +508,77 @@ class OrganizationTraceItemAttributeDetailsEndpointTest(
 
         assert response.status_code == 200, response.content
         assert response.data["context"]["unit"] == "byte"
+
+    def test_returns_changelog_without_missing_fields_when_the_attribute_is_a_convention(
+        self,
+    ) -> None:
+        self._store_span({"http.route": "/users/:id"})
+
+        response = self.do_request(
+            query={"attributeName": "http.route", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data["changelog"][-3:] == [
+            {
+                "version": "0.19.0",
+                "prs": [505, 521],
+                "description": "Added multiple examples, removed alias to `url.template`, added additional context",
+            },
+            {"version": "0.1.0", "prs": [127]},
+            {"version": "0.0.0"},
+        ]
+
+    def test_returns_changelog_when_the_convention_is_keyed_by_the_internal_name(self) -> None:
+        self.store_segment(
+            self.project.id,
+            uuid4().hex,
+            uuid4().hex,
+            organization_id=self.organization.id,
+            timestamp=before_now(minutes=10).replace(microsecond=0),
+            profile_id=uuid4().hex,
+        )
+
+        response = self.do_request(
+            query={"attributeName": "profile.id", "attributeType": "string", "dataset": "spans"}
+        )
+
+        changelog = ATTRIBUTE_METADATA["sentry.profile_id"].changelog
+        assert changelog is not None
+        assert response.status_code == 200, response.content
+        assert [entry["version"] for entry in response.data["changelog"]] == [
+            entry.version for entry in changelog
+        ]
+
+    def test_omits_changelog_when_it_only_has_the_initial_version(self) -> None:
+        self._store_log({"sentry.sdk.version": {"string_value": "1.0.0"}})
+
+        response = self.do_request(
+            query={"attributeName": "sdk.version", "attributeType": "string", "dataset": "logs"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert "changelog" not in response.data
+
+    def test_omits_changelog_when_the_attribute_type_differs_from_the_convention(self) -> None:
+        self._store_span(measurements={"http.route": 1})
+
+        response = self.do_request(
+            query={"attributeName": "http.route", "attributeType": "number", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert "changelog" not in response.data
+
+    def test_omits_changelog_when_the_attribute_is_not_a_convention(self) -> None:
+        self._store_span({"cart": "a"})
+
+        response = self.do_request(
+            query={"attributeName": "cart", "attributeType": "string", "dataset": "spans"}
+        )
+
+        assert response.status_code == 200, response.content
+        assert "changelog" not in response.data
 
     def test_returns_rollup_last_seen_when_the_name_has_like_wildcards_and_quotes(self) -> None:
         name = 'it\'s "odd": [x] 50%_off\\'
