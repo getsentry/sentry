@@ -110,10 +110,11 @@ export function ConversationViewContent({
   // off the sticky (URL) selection, not `displayedNode`: the timeline's
   // view-local default span is not a real selection, so entering the timeline
   // restores its saved offset rather than snapping to that default.
-  const contentRef = useConversationScrollRestoration({
-    activeTab,
-    selectedNodeId: selectedNode?.id ?? null,
-  });
+  const {scrollContainerRef: contentRef, centerOnSelect} =
+    useConversationScrollRestoration({
+      activeTab,
+      selectedNodeId: selectedNode?.id ?? null,
+    });
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -193,7 +194,10 @@ export function ConversationViewContent({
                 canLoadMore={canAutoFetchNextPage}
                 isLoadingMore={isLoading || isFetchingNextPage}
                 loadMore={loadNextPage}
-                onSelectSpan={onSelectSpan}
+                onSelectMatch={(spanId, element) => {
+                  centerOnSelect(spanId, element);
+                  onSelectSpan(spanId);
+                }}
               />
             )}
             {isTranscript ? (

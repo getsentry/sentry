@@ -18,7 +18,7 @@ interface TranscriptSearchProps {
   canLoadMore: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
-  onSelectSpan: (spanId: string) => void;
+  onSelectMatch: (spanId: string, element: HTMLElement) => void;
   rootRef: RefObject<HTMLElement | null>;
 }
 
@@ -27,7 +27,7 @@ export function TranscriptSearch({
   canLoadMore,
   isLoadingMore,
   loadMore,
-  onSelectSpan,
+  onSelectMatch,
 }: TranscriptSearchProps) {
   const theme = useTheme();
   const [query, setQuery] = useState('');
@@ -36,7 +36,7 @@ export function TranscriptSearch({
     canLoadMore,
     isLoadingMore,
     loadMore,
-    onSelectSpan,
+    onSelectMatch,
   });
 
   const status =

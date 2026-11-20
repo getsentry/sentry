@@ -13,6 +13,7 @@ const CURRENT_HIGHLIGHT = 'conversation-search-current';
 type TranscriptSearchStatus = 'idle' | 'searching' | 'found' | 'no-results';
 
 interface TranscriptMatch {
+  element: HTMLElement;
   range: Range;
   spanId: string;
 }
@@ -21,7 +22,7 @@ interface UseTranscriptSearchOptions {
   canLoadMore: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
-  onSelectSpan: (spanId: string) => void;
+  onSelectMatch: (spanId: string, element: HTMLElement) => void;
   rootRef: RefObject<HTMLElement | null>;
 }
 
@@ -35,33 +36,17 @@ function findMatches(root: HTMLElement, query: string): TranscriptMatch[] {
     // twice until the block opens.
     const element = node.parentElement;
     const spanId = element?.closest('[data-node-id]')?.getAttribute('data-node-id');
-    if (!spanId || element?.closest('summary')) {
+    if (!element || !spanId || element.closest('summary')) {
       continue;
     }
     for (const match of (node.nodeValue ?? '').matchAll(pattern)) {
       const range = document.createRange();
       range.setStart(node, match.index);
       range.setEnd(node, match.index + match[0].length);
-      matches.push({range, spanId});
+      matches.push({element, range, spanId});
     }
   }
   return matches;
-}
-
-// Scrolls only the nearest scrolling ancestor; `scrollIntoView` would also move the
-// page around the transcript.
-function scrollToCenter(element: HTMLElement) {
-  let scroller = element.parentElement;
-  while (scroller && !/(auto|scroll)/.test(getComputedStyle(scroller).overflowY)) {
-    scroller = scroller.parentElement;
-  }
-  if (!scroller) {
-    return;
-  }
-  const elementRect = element.getBoundingClientRect();
-  const scrollerRect = scroller.getBoundingClientRect();
-  scroller.scrollTop +=
-    elementRect.top - scrollerRect.top - (scroller.clientHeight - elementRect.height) / 2;
 }
 
 function supportsHighlights() {
@@ -96,7 +81,7 @@ export function useTranscriptSearch({
   canLoadMore,
   isLoadingMore,
   loadMore,
-  onSelectSpan,
+  onSelectMatch,
 }: UseTranscriptSearchOptions) {
   const [search, setSearch] = useState<{index: number | 'last'; query: string} | null>(
     null
@@ -105,7 +90,9 @@ export function useTranscriptSearch({
   const [matchCount, setMatchCount] = useState(0);
   const revealedRef = useRef<string | null>(null);
   const loadNextPage = useEffectEvent(() => loadMore());
-  const selectSpan = useEffectEvent((spanId: string) => onSelectSpan(spanId));
+  const selectMatch = useEffectEvent((match: TranscriptMatch) =>
+    onSelectMatch(match.spanId, match.element)
+  );
 
   const step = useCallback(
     (direction: 1 | -1) => {
@@ -199,16 +186,7 @@ export function useTranscriptSearch({
         details.open = true;
         details = details.parentElement?.closest('details');
       }
-      selectSpan(current.spanId);
-      // Selecting opens the span details beside the transcript, which reflows it.
-      requestAnimationFrame(() =>
-        requestAnimationFrame(() => {
-          const element = current.range.startContainer.parentElement;
-          if (element) {
-            scrollToCenter(element);
-          }
-        })
-      );
+      selectMatch(current);
     };
 
     // Pages load and blocks open while searching, so search again when the

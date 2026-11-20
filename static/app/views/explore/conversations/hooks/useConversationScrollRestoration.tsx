@@ -1,4 +1,4 @@
-import {useEffect, useLayoutEffect, useRef} from 'react';
+import {useCallback, useEffect, useLayoutEffect, useRef} from 'react';
 
 import type {ConversationViewTab} from 'sentry/views/explore/conversations/components/conversationView';
 
@@ -12,6 +12,15 @@ interface UseConversationScrollRestorationOptions {
   selectedNodeId: string | null;
 }
 
+function scrollToCenter(container: HTMLElement, element: HTMLElement) {
+  const elementRect = element.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+  container.scrollTop +=
+    elementRect.top -
+    containerRect.top -
+    (container.clientHeight - elementRect.height) / 2;
+}
+
 /**
  * Keeps each tab's scroll position independent while the transcript and
  * timeline share a single scroll container.
@@ -20,6 +29,10 @@ interface UseConversationScrollRestorationOptions {
  * switching tabs scrolls that span's row into view instead, so the selection
  * stays visible across both views. The selected row is located by its
  * `data-selected="true"` attribute, which both views set on the highlighted row.
+ *
+ * `centerOnSelect` centers an element inside a span, e.g. a search match, once that
+ * span is selected. It waits for the selection to commit, since opening the span's
+ * details beside the transcript reflows it.
  */
 export function useConversationScrollRestoration({
   activeTab,
@@ -38,6 +51,8 @@ export function useConversationScrollRestoration({
   // The scroll listener is attached once, so it reads the active tab from a ref
   // to always record against the tab that is currently visible.
   const activeTabRef = useRef(activeTab);
+  const selectedNodeIdRef = useRef(selectedNodeId);
+  const pendingCenterRef = useRef<{element: HTMLElement; nodeId: string} | null>(null);
 
   useEffect(() => {
     const container = scrollContainerRef.current;
@@ -57,12 +72,23 @@ export function useConversationScrollRestoration({
     // Only committed tabs may receive scroll events; a suspended render can
     // leave the previous tab visible and scrollable.
     activeTabRef.current = activeTab;
+    selectedNodeIdRef.current = selectedNodeId;
+    const pendingCenter = pendingCenterRef.current;
+    pendingCenterRef.current = null;
     const container = scrollContainerRef.current;
     if (!container) {
       return;
     }
 
     if (selectedNodeId) {
+      if (
+        pendingCenter?.nodeId === selectedNodeId &&
+        container.contains(pendingCenter.element)
+      ) {
+        scrollToCenter(container, pendingCenter.element);
+        offsetByTab.current[activeTab] = container.scrollTop;
+        return;
+      }
       const selectedRow = container.querySelector<HTMLElement>('[data-selected="true"]');
       if (selectedRow) {
         selectedRow.scrollIntoView({block: 'nearest'});
@@ -75,5 +101,14 @@ export function useConversationScrollRestoration({
     container.scrollTop = offsetByTab.current[activeTab];
   }, [activeTab, selectedNodeId]);
 
-  return scrollContainerRef;
+  const centerOnSelect = useCallback((nodeId: string, element: HTMLElement) => {
+    const container = scrollContainerRef.current;
+    if (nodeId !== selectedNodeIdRef.current) {
+      pendingCenterRef.current = {element, nodeId};
+    } else if (container) {
+      scrollToCenter(container, element);
+    }
+  }, []);
+
+  return {scrollContainerRef, centerOnSelect};
 }
