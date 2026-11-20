@@ -451,7 +451,7 @@ export function MetricAutomationForm(props: Props) {
   );
 }
 
-function FormSection({title, children}: {children: ReactNode; title: string}) {
+export function FormSection({title, children}: {children: ReactNode; title: string}) {
   return (
     <Stack gap="md">
       <Container paddingLeft="md">

@@ -23,7 +23,7 @@ import {ActionTarget, ActionType} from 'sentry/types/workflowEngine/actions';
 import AutomationConfiguration from './detail/configuration';
 import AutomationDetail from './detail';
 import {MetricAutomationForm} from './metricAutomationForm';
-import NewMetricAutomation from './new';
+import NewAutomationPage from './new';
 
 describe('MetricAutomationForm', () => {
   const organization = OrganizationFixture({
@@ -140,7 +140,7 @@ describe('MetricAutomationForm', () => {
       method: 'POST',
       body: config,
     });
-    const {router} = render(<NewMetricAutomation />, {
+    const {router} = render(<NewAutomationPage />, {
       organization,
       initialRouterConfig: {
         location: {pathname: '/organizations/org-slug/seer/automations/new/'},
