@@ -176,37 +176,37 @@ _USECASES: dict[UsecaseId, ObjectstoreClientUsecase] = {}
 
 
 def get_session(
-    usecase: UsecaseId, project: Project | int | None = None, *, org: int | None = None
+    usecase: UsecaseId, project: Project | int | None, *, org: int | None = None
 ) -> Session:
     """Return an Objectstore session scoped to an organization and optionally a project.
 
-    There are three ways to construct a session:
-    - Project model: ``get_session(UsecaseId.ATTACHMENTS, project)``
-    - Project and org IDs: ``get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)``
-    - Org ID only: ``get_session(UsecaseId.ARTIFACT_BUNDLES, org=org_id)``
+    Pass a project model, a project ID with its organization ID, or an organization ID alone::
 
-    When passing a project model, ``org`` is optional and must match the
-    project's organization. It is required when passing a project ID or omitting the project.
+        get_session(UsecaseId.ATTACHMENTS, project)
+        get_session(UsecaseId.ATTACHMENTS, project_id, org=org_id)
+        get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=org_id)
+
+    An explicit organization ID must match the project model's organization.
     """
-    if project is None or isinstance(project, int):
+    if project is None:
         if org is None:
-            raise TypeError("org is required when project is an ID or omitted")
-        project_id = project
-        org_id = org
+            raise TypeError("org is required for an organization-only session")
+        scope = {"org": org}
+    elif isinstance(project, int):
+        if org is None:
+            raise TypeError("org is required when project is an ID")
+        scope = {"org": org, "project": project}
     else:
-        project_id = project.id
-        org_id = project.organization_id
-        if org is not None and org != org_id:
+        if org is not None and org != project.organization_id:
             raise ValueError("project does not belong to org")
+        scope = {"org": project.organization_id, "project": project.id}
 
     objectstore_usecase = _USECASES.get(usecase)
     if objectstore_usecase is None:
         objectstore_usecase = usecase.create()
         _USECASES[usecase] = objectstore_usecase
 
-    if project_id is None:
-        return _get_client().session(objectstore_usecase, org=org_id)
-    return _get_client().session(objectstore_usecase, org=org_id, project=project_id)
+    return _get_client().session(objectstore_usecase, **scope)
 
 
 _IS_SYMBOLICATOR_CONTAINER: bool | None = None
