@@ -4,20 +4,30 @@ import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {lightTheme, type BorderToken} from '@sentry/scraps/theme';
 
+type TokenTree = {readonly [key: string]: string | TokenTree};
+
 /**
  * Every leaf path of a token object, e.g. `'transparent.neutral.muted'`.
- * Mirrors the `BorderToken` type, which is derived from the same object.
  */
-function tokenPaths(tokens: Record<string, unknown>, prefix = ''): string[] {
+function tokenPaths(tokens: TokenTree, prefix = ''): string[] {
   return Object.entries(tokens).flatMap(([key, value]) => {
     const path = prefix ? `${prefix}.${key}` : key;
-    return typeof value === 'string'
-      ? [path]
-      : tokenPaths(value as Record<string, unknown>, path);
+    return typeof value === 'string' ? [path] : tokenPaths(value, path);
   });
 }
 
-const BORDER_COLORS = tokenPaths(lightTheme.tokens.border) as BorderToken[];
+function isBorderToken(path: string): path is BorderToken {
+  let node: string | TokenTree | undefined = lightTheme.tokens.border;
+  for (const segment of path.split('.')) {
+    if (node === undefined || typeof node === 'string') {
+      return false;
+    }
+    node = node[segment];
+  }
+  return typeof node === 'string';
+}
+
+const BORDER_COLORS = tokenPaths(lightTheme.tokens.border).filter(isBorderToken);
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
   return (
