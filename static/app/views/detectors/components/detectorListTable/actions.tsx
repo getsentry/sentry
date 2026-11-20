@@ -4,10 +4,10 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
@@ -57,9 +57,7 @@ export function DetectorsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to enable all [queryCount] monitors that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(
@@ -73,9 +71,7 @@ export function DetectorsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to disable all [queryCount] monitors that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(
@@ -105,9 +101,7 @@ export function DetectorsTableActions({
     if (allInQuerySelected) {
       return tct(
         'Are you sure you want to delete all [queryCount] monitors that match the search?',
-        {
-          queryCount,
-        }
+        {queryCount}
       );
     }
     return tn(

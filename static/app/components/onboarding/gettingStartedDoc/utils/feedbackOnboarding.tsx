@@ -105,11 +105,7 @@ export const getFeedbackConfigOptions = ({
   name,
   email,
   screenshot,
-}: {
-  email?: boolean;
-  name?: boolean;
-  screenshot?: boolean;
-} = {}) => {
+}: {email?: boolean; name?: boolean; screenshot?: boolean} = {}) => {
   const options: string[] = [];
   if (!screenshot) {
     options.push('enableScreenshot: false,');
@@ -164,14 +160,8 @@ export const getCrashReportJavaScriptInstallSteps = (params: any): OnboardingSte
   {
     type: StepType.INSTALL,
     content: [
-      {
-        type: 'text',
-        text: getCrashReportModalInstallDescriptionJavaScript(),
-      },
-      {
-        type: 'code',
-        tabs: getCrashReportModalSnippetJavaScript(params),
-      },
+      {type: 'text', text: getCrashReportModalInstallDescriptionJavaScript()},
+      {type: 'code', tabs: getCrashReportModalSnippetJavaScript(params)},
     ],
   },
 ];
@@ -191,10 +181,7 @@ export function getCrashReportSDKInstallFirstBlocks(params: DocsParams): Content
     '';
 
   return [
-    {
-      type: 'text',
-      text: t('Make sure you have the JavaScript SDK available:'),
-    },
+    {type: 'text', text: t('Make sure you have the JavaScript SDK available:')},
     {
       type: 'code',
       tabs: [
@@ -243,10 +230,7 @@ export const getCrashReportGenericInstallSteps = (params: any): OnboardingStep[]
           }
         ),
       },
-      {
-        type: 'code',
-        tabs: getGenericScript(params),
-      },
+      {type: 'code', tabs: getGenericScript(params)},
     ],
   },
 ];
@@ -268,10 +252,7 @@ export const getCrashReportBackendInstallSteps = (params: any): OnboardingStep[]
           }
         ),
       },
-      {
-        type: 'code',
-        tabs: getGenericScript(params),
-      },
+      {type: 'code', tabs: getGenericScript(params)},
     ],
   },
 ];
@@ -293,10 +274,7 @@ export function getCrashReportSDKInstallFirstBlocksRails(
     '';
 
   return [
-    {
-      type: 'text',
-      text: t('Make sure you have the JavaScript SDK available:'),
-    },
+    {type: 'text', text: t('Make sure you have the JavaScript SDK available:')},
     {
       type: 'code',
       tabs: [
@@ -320,9 +298,7 @@ export const getCrashReportPHPInstallSteps = (params: any): OnboardingStep[] => 
     content: [
       {
         type: 'text',
-        text: tct('This function php returns the last [code:eventId]:', {
-          code: <code />,
-        }),
+        text: tct('This function php returns the last [code:eventId]:', {code: <code />}),
       },
       {
         type: 'code',

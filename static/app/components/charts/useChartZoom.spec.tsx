@@ -36,15 +36,10 @@ describe('useChartZoom', () => {
       replaceMerge: ['series', 'xAxis', 'yAxis'],
     });
     expect(result.current.dataZoom).toEqual([
-      expect.objectContaining({
-        id: 'useChartZoom-inside',
-        type: 'inside',
-      }),
+      expect.objectContaining({id: 'useChartZoom-inside', type: 'inside'}),
     ]);
     expect(result.current.toolBox).toEqual(
-      expect.objectContaining({
-        id: 'useChartZoom-toolbox',
-      })
+      expect.objectContaining({id: 'useChartZoom-toolbox'})
     );
 
     rerender({saveOnZoom: true, disabled: true});
@@ -55,10 +50,7 @@ describe('useChartZoom', () => {
       replaceMerge: ['series', 'xAxis', 'yAxis'],
     });
     expect(result.current.dataZoom).toEqual([
-      expect.objectContaining({
-        id: 'useChartZoom-inside',
-        type: 'inside',
-      }),
+      expect.objectContaining({id: 'useChartZoom-inside', type: 'inside'}),
     ]);
     expect(result.current.toolBox).toEqual({});
   });
@@ -68,14 +60,9 @@ describe('useChartZoom', () => {
       ReturnType<typeof useChartZoom>,
       UseChartZoomProps
     >((props: UseChartZoomProps) => useChartZoom(props), {
-      initialProps: {
-        usePageDate: true,
-      },
+      initialProps: {usePageDate: true},
       initialRouterConfig: {
-        location: {
-          pathname: '/issues/1/',
-          query: {project: '11276', statsPeriod: '7d'},
-        },
+        location: {pathname: '/issues/1/', query: {project: '11276', statsPeriod: '7d'}},
       },
     });
 
@@ -92,10 +79,7 @@ describe('useChartZoom', () => {
     );
     expect(router.location.query.statsPeriod).toBeUndefined();
 
-    rerender({
-      disabled: true,
-      usePageDate: true,
-    });
+    rerender({disabled: true, usePageDate: true});
 
     act(() => {
       result.current.onDataZoom(
@@ -108,10 +92,7 @@ describe('useChartZoom', () => {
     });
 
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        start: '2026-07-03T11:01:00',
-        end: '2026-07-03T16:55:00',
-      })
+      expect.objectContaining({start: '2026-07-03T11:01:00', end: '2026-07-03T16:55:00'})
     );
   });
 

@@ -15,14 +15,13 @@ import {SuspectFunctionsTable} from 'sentry/components/profiling/suspectFunction
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {withProjects} from 'sentry/utils/withProjects';
+import {useProjects} from 'sentry/utils/useProjects';
 import {TraceItemSearchQueryBuilder} from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {SpanFields} from 'sentry/views/insights/types';
 import {SegmentSpansTable} from 'sentry/views/performance/eap/segmentSpansTable';
@@ -40,7 +39,6 @@ import {
 import {SEGMENT_SPANS_CURSOR_NAME} from './constants';
 import {EAPChartsWidget} from './eapChartsWidget';
 import {EAPSidebarCharts} from './eapSidebarCharts';
-import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';
 
@@ -49,39 +47,32 @@ type Props = {
   location: Location;
   organization: Organization;
   projectId: string;
-  projects: Project[];
   spanOperationBreakdownFilter: SpanOperationBreakdownFilter;
   totalValues: Record<string, number> | null;
   transactionName: string;
 };
 
-function EAPSummaryContentInner({
+export function EAPSummaryContent({
   eventView,
   location,
   totalValues,
   spanOperationBreakdownFilter,
   organization,
-  projects,
   projectId,
   transactionName,
 }: Props) {
+  const {projects} = useProjects();
   const navigate = useNavigate();
   const spanCategory = decodeScalar(location.query?.[SpanFields.SPAN_CATEGORY]);
 
   const handleSearch = useCallback(
     (query: string) => {
-      const queryParams = normalizeDateTimeParams({
-        ...location.query,
-        query,
-      });
+      const queryParams = normalizeDateTimeParams({...location.query, query});
 
       // do not propagate pagination when making a new search
       const searchQueryParams = omit(queryParams, 'cursor');
 
-      navigate({
-        pathname: location.pathname,
-        query: searchQueryParams,
-      });
+      navigate({pathname: location.pathname, query: searchQueryParams});
     },
     [location, navigate]
   );
@@ -179,9 +170,7 @@ function EAPSummaryContentInner({
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
@@ -195,11 +184,7 @@ function EAPSummaryContentInner({
     <Fragment>
       <Layout.Main>
         <Grid
-          columns={{
-            zero: 'auto',
-            xl: 'repeat(2, min-content)',
-            '5xl': 'auto auto 1fr',
-          }}
+          columns={{zero: 'auto', xl: 'repeat(2, min-content)', '5xl': 'auto auto 1fr'}}
           gap="xl"
           marginBottom="xl"
         >
@@ -222,16 +207,14 @@ function EAPSummaryContentInner({
           <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
-        <PerformanceAtScaleContextProvider>
-          <SegmentSpansTable
-            eventView={transactionsListEventView}
-            handleDropdownChange={handleTransactionsListSortChange}
-            totalValues={totalValues}
-            transactionName={transactionName}
-            query={query}
-            showViewSampledEventsButton
-          />
-        </PerformanceAtScaleContextProvider>
+        <SegmentSpansTable
+          eventView={transactionsListEventView}
+          handleDropdownChange={handleTransactionsListSortChange}
+          totalValues={totalValues}
+          transactionName={transactionName}
+          query={query}
+          showViewSampledEventsButton
+        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"
@@ -266,5 +249,3 @@ const EAPChartsWidgetContainer = styled('div')`
   height: 300px;
   margin-bottom: ${p => p.theme.space.xl};
 `;
-
-export const EAPSummaryContent = withProjects(EAPSummaryContentInner);

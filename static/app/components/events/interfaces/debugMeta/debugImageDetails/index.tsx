@@ -223,10 +223,7 @@ export function DebugImageDetails({
     ...apiOptions.as<DebugFile[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projSlug,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         query: {
           debug_id: image?.debug_id,
           code_id: image?.code_id,
@@ -254,7 +251,6 @@ export function DebugImageDetails({
 
   const {code_file, status} = image ?? {};
   const candidates = getCandidates({debugFiles, image, isLoading: isPending});
-  const baseUrl = api.baseUrl;
   const fileName = getFileName(code_file);
   const haveCandidatesUnappliedDebugFile = candidates.some(
     candidate => candidate.download.status === CandidateDownloadStatus.UNAPPLIED
@@ -274,10 +270,7 @@ export function DebugImageDetails({
     try {
       await api.requestPromise(
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         }),
         {method: 'DELETE', query: {id: debugId}}
       );
@@ -325,7 +318,6 @@ export function DebugImageDetails({
                 candidates={candidates}
                 organization={organization}
                 projSlug={projSlug}
-                baseUrl={baseUrl}
                 isLoading={shouldShowLoadingIndicator}
                 eventDateReceived={event.dateReceived}
                 onDelete={handleDelete}

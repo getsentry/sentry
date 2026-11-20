@@ -77,10 +77,7 @@ function HovercardContent({
     <PositionWrapper zIndex={theme.zIndex.hovercard} {...overlayProps}>
       <StyledHovercard
         animated={animated}
-        arrowProps={{
-          ...arrowProps,
-          size: 20,
-        }}
+        arrowProps={{...arrowProps, size: 20}}
         originPoint={arrowData}
         placement={placement}
         className={className}
@@ -114,10 +111,7 @@ function Hovercard({
   });
 
   const contextValue = useMemo<HovercardProviderValue>(
-    () => ({
-      isOpen,
-      reset: hoverOverlayState.reset,
-    }),
+    () => ({isOpen, reset: hoverOverlayState.reset}),
     [isOpen, hoverOverlayState.reset]
   );
   // Nothing to render if no header or body. Be consistent with wrapping the

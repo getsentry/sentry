@@ -119,10 +119,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
           type: option.value,
-          comparison: {
-            ...condition.comparison,
-            ...getDefaultComparison(option.value),
-          },
+          comparison: {...condition.comparison, ...getDefaultComparison(option.value)},
         });
         removeError(condition.id);
       }}

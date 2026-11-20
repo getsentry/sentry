@@ -26,10 +26,7 @@ type SetupFunction = (
 ) => void;
 
 export function story(title: string, setup: SetupFunction): StoryRenderFunction {
-  const stories: Array<{
-    name: string;
-    render: StoryRenderFunction;
-  }> = [];
+  const stories: Array<{name: string; render: StoryRenderFunction}> = [];
   const APIDocumentation: Array<TypeLoader.ComponentDoc | undefined> = [];
 
   const storyFn: StoryContext = (name, render) => {

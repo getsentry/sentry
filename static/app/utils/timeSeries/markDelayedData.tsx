@@ -28,17 +28,10 @@ export function markDelayedData(timeSeries: TimeSeries, delay: number): TimeSeri
       }
 
       if (!delayed) {
-        return {
-          ...datum,
-          incomplete: false,
-        };
+        return {...datum, incomplete: false};
       }
 
-      return {
-        ...datum,
-        incomplete: true,
-        incompleteReason: 'INGESTION_PENDING',
-      };
+      return {...datum, incomplete: true, incompleteReason: 'INGESTION_PENDING'};
     }),
   };
 }

@@ -2,11 +2,10 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm, openConfirmModal} from '@sentry/scraps/confirm';
 import {Link} from '@sentry/scraps/link';
 
 import * as Storybook from 'sentry/stories';
-
-import {Confirm, openConfirmModal} from './confirm';
 
 export default Storybook.story('Confirm', story => {
   story('Triggers', () => {
@@ -213,10 +212,7 @@ export default Storybook.story('Confirm', story => {
         </p>
         <p>Button clicks: {clicks} </p>
         <Storybook.PropMatrix
-          propMatrix={{
-            disabled: [false, true],
-            stopPropagation: [false, true],
-          }}
+          propMatrix={{disabled: [false, true], stopPropagation: [false, true]}}
           render={props => (
             <Button onClick={() => setClicks(prev => prev + 1)}>
               <Confirm {...props}>

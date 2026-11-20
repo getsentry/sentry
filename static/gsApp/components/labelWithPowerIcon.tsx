@@ -2,7 +2,7 @@ import {ClassNames} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBusiness} from '@sentry/icons/business';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 
 import PowerFeatureHovercard from 'getsentry/components/powerFeatureHovercard';
 import {withSubscription} from 'getsentry/components/withSubscription';
@@ -29,28 +29,12 @@ const TABLE_ITEMS = [TEAM_ROLES];
  *   }
  */
 const POWER_FEATURE_CONFIG = [
-  {
-    id: SSO,
-    features: ['sso-saml2'],
-    partial: true,
-  },
-  {
-    id: ALLOCATIONS,
-    features: ['spend-allocations'],
-    partial: false,
-  },
-  {
-    id: TEAM_ROLES,
-    features: ['team-roles'],
-    partial: false,
-  },
+  {id: SSO, features: ['sso-saml2'], partial: true},
+  {id: ALLOCATIONS, features: ['spend-allocations'], partial: false},
+  {id: TEAM_ROLES, features: ['team-roles'], partial: false},
 ];
 
-type Props = {
-  children: React.ReactNode;
-  subscription: Subscription;
-  id?: string;
-};
+type Props = {children: React.ReactNode; subscription: Subscription; id?: string};
 
 function LabelWithPowerIcon({children, id, subscription}: Props) {
   // Must return React Elements

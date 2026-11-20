@@ -69,20 +69,22 @@ describe('EventNavigation', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    jest.mocked(useIssueDetails).mockReturnValue({
-      sectionData: {
-        highlights: {key: SectionKey.HIGHLIGHTS},
-        tags: {key: SectionKey.TAGS},
-        replay: {key: SectionKey.REPLAY},
-      },
-      detectorDetails: {},
-      eventCount: 0,
-      eventNavigationHeight: 0,
-      isSidebarOpen: true,
-      navScrollMargin: 0,
-      scrollContext: 'page',
-      dispatch: jest.fn(),
-    });
+    jest
+      .mocked(useIssueDetails)
+      .mockReturnValue({
+        sectionData: {
+          highlights: {key: SectionKey.HIGHLIGHTS},
+          tags: {key: SectionKey.TAGS},
+          replay: {key: SectionKey.REPLAY},
+        },
+        detectorDetails: {},
+        eventCount: 0,
+        eventNavigationHeight: 0,
+        isSidebarOpen: true,
+        navScrollMargin: 0,
+        scrollContext: 'page',
+        dispatch: jest.fn(),
+      });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/tags/`,
       body: [],
@@ -103,10 +105,7 @@ describe('EventNavigation', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <IssueEventNavigation {...defaultProps} />
         </GroupDataContextProvider>,
-        {
-          initialRouterConfig,
-          organization,
-        }
+        {initialRouterConfig, organization}
       );
 
       const discoverButton = screen.getByLabelText('Open in Explore');
@@ -131,10 +130,7 @@ describe('EventNavigation', () => {
         <GroupDataContextProvider group={group} project={group.project}>
           <IssueEventNavigation {...defaultProps} />
         </GroupDataContextProvider>,
-        {
-          initialRouterConfig,
-          organization,
-        }
+        {initialRouterConfig, organization}
       );
 
       const discoverButton = screen.getByLabelText('Open in Explore');
@@ -154,10 +150,7 @@ describe('EventNavigation', () => {
         {
           initialRouterConfig: {
             ...initialRouterConfig,
-            location: {
-              ...initialRouterConfig.location,
-              query: {sort: '-title'},
-            },
+            location: {...initialRouterConfig.location, query: {sort: '-title'}},
           },
           organization,
         }
@@ -215,6 +208,13 @@ describe('EventNavigation', () => {
       hideAiFeatures: false,
     });
 
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${seerOrganization.slug}/issues/${group.id}/autofix/`,
+        body: {autofix: null},
+      });
+    });
+
     function renderNav(
       org: typeof organization,
       {navGroup = group, tab = Tab.EVENTS}: {navGroup?: typeof group; tab?: Tab} = {}
@@ -245,9 +245,8 @@ describe('EventNavigation', () => {
         within(screen.getByRole('tab', {name: 'Autofix'})).queryByText('0')
       ).not.toBeInTheDocument();
 
-      // The tab is the <li role="tab">; the anchor it navigates through is nested.
       const autofixTab = screen.getByRole('tab', {name: 'Autofix'});
-      expect(within(autofixTab).getByRole('link')).toHaveAttribute(
+      expect(autofixTab).toHaveAttribute(
         'href',
         expect.stringContaining(
           `/organizations/${seerOrganization.slug}/issues/${group.id}/${

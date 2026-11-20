@@ -12,6 +12,8 @@ import {IconOpen} from '@sentry/icons/open';
 import {IconSentry} from '@sentry/icons/sentry';
 import {IconSupport} from '@sentry/icons/support';
 import {IconDefaultsProvider} from '@sentry/icons/useIconDefaults';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -20,7 +22,6 @@ import {openModal} from '@sentry/scraps/modal';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {showIntercom} from 'sentry/utils/intercom';
@@ -42,7 +43,10 @@ export function PrimaryNavigationHelpMenu({
   const organization = useOrganization();
   const contactSupportItem = getContactSupportItem(organization);
   const openForm = useFeedbackForm();
-  const {privacyUrl, termsUrl} = useLegacyStore(ConfigStore);
+  const {privacyUrl, termsUrl} = useStore(
+    ConfigStore,
+    useShallow(state => ({privacyUrl: state.privacyUrl, termsUrl: state.termsUrl}))
+  );
 
   const items: MenuItemProps[] = [
     ...additionalItems,
@@ -195,11 +199,7 @@ export function PrimaryNavigationHelpMenu({
             </MenuIcon>
           ),
           onAction() {
-            openForm?.({
-              tags: {
-                'feedback.source': 'navigation_sidebar',
-              },
-            });
+            openForm?.({tags: {'feedback.source': 'navigation_sidebar'}});
           },
           hidden: !openForm,
         },
@@ -261,10 +261,7 @@ function getContactSupportItem(organization: Organization): MenuItemProps | null
     key: 'support',
     label: t('Contact Support'),
     async onAction() {
-      trackAnalytics('intercom_link.clicked', {
-        organization,
-        source: 'sidebar',
-      });
+      trackAnalytics('intercom_link.clicked', {organization, source: 'sidebar'});
       try {
         await showIntercom(organization.slug);
       } catch {

@@ -97,10 +97,7 @@ export function useFeedbackCache() {
         return;
       }
       if (ids === 'all') {
-        queryClient.invalidateQueries({
-          queryKey: listQueryKey,
-          type: 'all',
-        });
+        queryClient.invalidateQueries({queryKey: listQueryKey, type: 'all'});
       } else {
         queryClient.refetchQueries({
           queryKey: listQueryKey,
@@ -128,9 +125,5 @@ export function useFeedbackCache() {
     invalidateCachedListPage('all');
   }, [invalidateCachedListPage]);
 
-  return {
-    updateCached,
-    invalidateCached,
-    invalidateListCache,
-  };
+  return {updateCached, invalidateCached, invalidateListCache};
 }

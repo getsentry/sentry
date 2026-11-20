@@ -38,11 +38,7 @@ class MetricSerializerTestCase(BaseWorkflowTest):
             workflow_condition_group=self.create_data_condition_group(
                 organization=self.organization
             ),
-            config={
-                "detection_type": AlertRuleDetectionType.STATIC,
-                "comparison_delta": None,
-                **config,
-            },
+            config={"detection_type": AlertRuleDetectionType.STATIC, **config},
         )
         query = self.create_snuba_query(query="level:error")
         subscription = self.create_snuba_query_subscription(snuba_query_id=query.id)

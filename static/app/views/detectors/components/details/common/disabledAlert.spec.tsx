@@ -57,9 +57,7 @@ describe('DisabledAlert', () => {
       body: {...detector, enabled: true},
     });
 
-    render(<DisabledAlert detector={detector} message="Test message" />, {
-      organization,
-    });
+    render(<DisabledAlert detector={detector} message="Test message" />, {organization});
 
     const enableButton = await screen.findByRole('button', {name: 'Enable'});
     expect(enableButton).toBeEnabled();
@@ -69,10 +67,7 @@ describe('DisabledAlert', () => {
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {detectorId: '123', enabled: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {detectorId: '123', enabled: true}})
       );
     });
   });
@@ -94,9 +89,7 @@ describe('DisabledAlert', () => {
       },
     });
 
-    render(<DisabledAlert detector={detector} message="Test message" />, {
-      organization,
-    });
+    render(<DisabledAlert detector={detector} message="Test message" />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
 

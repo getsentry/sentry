@@ -132,10 +132,7 @@ export function DataGrid<
   );
 
   const onColumnResize = (columnIndex: number, width: number) => {
-    props.grid.onResizeColumn?.(columnIndex, {
-      ...props.columnOrder[columnIndex]!,
-      width,
-    });
+    props.grid.onResizeColumn?.(columnIndex, {...props.columnOrder[columnIndex]!, width});
   };
 
   const renderBody = () => {

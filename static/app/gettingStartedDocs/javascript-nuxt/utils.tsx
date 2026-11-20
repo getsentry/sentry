@@ -30,20 +30,8 @@ export function getInstallContent(params: DocsParams): ContentBlock[] {
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
   tabs: [
-    {
-      label: 'npm',
-      language: 'bash',
-      code: 'npm install --save @sentry/nuxt',
-    },
-    {
-      label: 'yarn',
-      language: 'bash',
-      code: 'yarn add @sentry/nuxt',
-    },
-    {
-      label: 'pnpm',
-      language: 'bash',
-      code: 'pnpm add @sentry/nuxt',
-    },
+    {label: 'npm', language: 'bash', code: 'npm install --save @sentry/nuxt'},
+    {label: 'yarn', language: 'bash', code: 'yarn add @sentry/nuxt'},
+    {label: 'pnpm', language: 'bash', code: 'pnpm add @sentry/nuxt'},
   ],
 };

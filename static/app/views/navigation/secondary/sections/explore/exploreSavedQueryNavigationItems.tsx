@@ -1,9 +1,9 @@
 import {useMemo} from 'react';
+import {useQueryState} from 'nuqs';
 
 import {InfoText} from '@sentry/scraps/info';
 
 import {defined} from 'sentry/utils/defined';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -16,20 +16,15 @@ import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReord
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type Props = {
-  queries: CombinedSavedQuery[];
-};
+type Props = {queries: CombinedSavedQuery[]};
 
 // ReorderableList keys by `item.id`, and ids are only unique within a table.
-type ReorderableItem = {
-  id: string;
-  query: CombinedSavedQuery;
-};
+type ReorderableItem = {id: string; query: CombinedSavedQuery};
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();
   const location = useLocation();
-  const id = decodeScalar(location.query.id);
+  const [id] = useQueryState('id');
 
   const {projects} = useProjects();
 

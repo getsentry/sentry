@@ -17,8 +17,6 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,15 +36,9 @@ import {
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
-  group: Group;
-  project: Project;
 }
 
-export function BreadcrumbsDataSection({
-  event,
-  group,
-  project,
-}: BreadcrumbsDataSectionProps) {
+export function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionProps) {
   const theme = useTheme();
   const viewAllButtonRef = useRef<HTMLButtonElement>(null);
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -88,9 +80,8 @@ export function BreadcrumbsDataSection({
         <BreadcrumbsDrawer
           breadcrumbs={enhancedCrumbs}
           focusControl={focusControl}
-          project={project}
+
           event={event}
-          group={group}
         />
       ),
       {

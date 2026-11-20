@@ -1,19 +1,17 @@
-import {useQueryClient} from '@tanstack/react-query';
+import {useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getCells} from 'sentry/utils/cells';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 
@@ -27,30 +25,17 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export function InvoiceDetails() {
-  const {invoiceId, region} = useParams<{
-    invoiceId: string;
-    region: string;
-  }>();
+  const {invoiceId, region} = useParams<{invoiceId: string; region: string}>();
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const QUERY_KEY: ApiQueryKey = [
-    getApiUrl('/_admin/cells/$region/admin-invoices/$invoiceId/', {
-      path: {region, invoiceId},
-    }),
-    {
-      host: cellInfo ? cellInfo.locality_url : '',
-    },
-  ];
 
-  const {
-    data: invoice,
-    isPending,
-    isError,
-    refetch,
-  } = useApiQuery<Invoice>(QUERY_KEY, {
-    staleTime: 0,
-  });
+  const queryOptions = apiOptions.as<Invoice>()(
+    '/_admin/cells/$region/admin-invoices/$invoiceId/',
+    {path: {region, invoiceId}, host: cellInfo ? cellInfo.locality_url : '', staleTime: 0}
+  );
+
+  const {data: invoice, isPending, isError, refetch} = useQuery(queryOptions);
 
   if (isPending) {
     return <LoadingIndicator />;
@@ -64,17 +49,18 @@ export function InvoiceDetails() {
   const isDeleted = customer.isDeleted;
 
   const updateCache = (updatedInvoice: Invoice) => {
-    setApiQueryData<Invoice>(queryClient, QUERY_KEY, updatedInvoice);
+    queryClient.setQueryData(queryOptions.queryKey, previous => ({
+      ...previous,
+      headers: previous?.headers ?? {},
+      json: updatedInvoice,
+    }));
   };
 
   const handleClose = async () => {
     try {
       const updatedInvoice = await api.requestPromise(
         `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
-        {
-          method: 'PUT',
-          host: cellInfo ? cellInfo.locality_url : '',
-        }
+        {method: 'PUT', host: cellInfo ? cellInfo.locality_url : ''}
       );
       updateCache(updatedInvoice);
       toast.success('Invoice has been closed');
@@ -97,9 +83,7 @@ export function InvoiceDetails() {
     try {
       const updatedInvoice = await api.requestPromise(
         `/customers/${customer.slug}/invoices/${invoiceId}/retry-payment/`,
-        {
-          method: 'PUT',
-        }
+        {method: 'PUT'}
       );
       updateCache(updatedInvoice);
       toast.success('Payment will be retried');
@@ -294,18 +278,9 @@ export function InvoiceDetails() {
         },
       ]}
       sections={[
-        {
-          content: overviewPanel,
-        },
-        {
-          noPadding: true,
-          content: invoiceTable,
-        },
-        {
-          noPadding: true,
-          name: 'Charges',
-          content: chargesTable,
-        },
+        {content: overviewPanel},
+        {noPadding: true, content: invoiceTable},
+        {noPadding: true, name: 'Charges', content: chargesTable},
       ]}
     />
   );

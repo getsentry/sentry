@@ -36,16 +36,32 @@ describe('getWidgetConfigError', () => {
     expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 
-  it('returns an error for trace metrics tables with no aggregates', () => {
+  it('returns an error for trace metrics tables with no aggregates or columns', () => {
     const widget = WidgetFixture({
       displayType: DisplayType.TABLE,
       widgetType: WidgetType.TRACEMETRICS,
-      queries: [WidgetQueryFixture({aggregates: []})],
+      queries: [WidgetQueryFixture({aggregates: [], columns: []})],
     });
 
     expect(getWidgetConfigError(widget)).toBe(
       'This widget is missing a metric aggregation to visualize.'
     );
+  });
+
+  it('returns undefined for trace metrics samples tables with only columns', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        WidgetQueryFixture({
+          conditions: 'metric.name:browser.web_vital.lcp metric.type:distribution',
+          aggregates: [],
+          columns: ['project', 'trace', 'value', 'timestamp'],
+        }),
+      ],
+    });
+
+    expect(getWidgetConfigError(widget)).toBeUndefined();
   });
 
   it('returns undefined for big number widgets with no aggregates', () => {

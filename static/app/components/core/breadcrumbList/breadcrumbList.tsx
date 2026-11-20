@@ -2,7 +2,6 @@ import {Container, Flex, useHasContainerQuery} from '@sentry/scraps/layout';
 
 import {unreachable} from 'sentry/utils/unreachable';
 
-import {BreadcrumbTrailingActions} from './actions/breadcrumbTrailingActions';
 import type {BreadcrumbItemCurrentProps} from './items/breadcrumbItemCurrent';
 import {BreadcrumbItemCurrent} from './items/breadcrumbItemCurrent';
 import type {BreadcrumbItemLinkProps} from './items/breadcrumbItemLink';
@@ -17,15 +16,11 @@ import {BreadcrumbItemSelect} from './items/breadcrumbItemSelect';
 import {BreadcrumbDividerCombo} from './breadcrumbDividerCombo';
 
 type LinkBreadcrumbItem = {type: 'link'} & BreadcrumbItemLinkProps;
-type PageTitleBreadcrumbItem = {
-  type: 'page-title';
-} & BreadcrumbItemPageTitleProps;
+type PageTitleBreadcrumbItem = {type: 'page-title'} & BreadcrumbItemPageTitleProps;
 type EditableTitleBreadcrumbItem = {
   type: 'editable-title';
 } & BreadcrumbItemPageTitleEditableProps;
-type SelectBreadcrumbItem = {
-  type: 'select';
-} & BreadcrumbItemSelectProps;
+type SelectBreadcrumbItem = {type: 'select'} & BreadcrumbItemSelectProps;
 
 type BreadcrumbItem = LinkBreadcrumbItem | SelectBreadcrumbItem;
 export type BreadcrumbTitleItem = PageTitleBreadcrumbItem | EditableTitleBreadcrumbItem;
@@ -101,14 +96,7 @@ export function BreadcrumbList({items}: BreadcrumbListProps) {
   const menuItems = items.flatMap((item, index) => {
     const key = `${index}`;
     if (item.type === 'link') {
-      return [
-        {
-          key,
-          label: item.label,
-          to: item.to,
-          leadingItems: item.leadingGraphic,
-        },
-      ];
+      return [{key, label: item.label, to: item.to, leadingItems: item.leadingGraphic}];
     }
     return item.to === undefined
       ? []
@@ -175,9 +163,3 @@ function BreadcrumbCurrent({item}: BreadcrumbListCurrentProps) {
 
 BreadcrumbList.Title = BreadCrumbTitle;
 BreadcrumbList.Current = BreadcrumbCurrent;
-/**
- * Renders typed trailing actions on their own, for layouts that keep the
- * actions outside the element holding the current item — e.g. drawers, where
- * the trail sits in a `<nav>` landmark but its actions should not.
- */
-BreadcrumbList.TrailingActions = BreadcrumbTrailingActions;

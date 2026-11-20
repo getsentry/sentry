@@ -66,6 +66,19 @@ NEVER query the database in `serialize()` for bulk requests. `serialize()` runs 
 
 The `ViewerContext` contextvar carries the current viewer's identity. When the viewer is in scope, call `sentry.viewer_context.get_viewer_context()` instead of passing org and user identity through arguments.
 
+Use the actor type that matches who initiated the work.
+
+| Actor type        | Meaning and use                                                                                                                                                                              |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `USER`            | A user acting directly. Request principal resolution stores the user's ID in `actor_id`.                                                                                                     |
+| `AGENT`           | A Seer agent token acting on behalf of a user. The user's ID is in `delegated_user_id`. Preserve this type when propagating the context so downstream code can identify delegated activity.  |
+| `SERVICE_ACCOUNT` | A service account acting under its own identity. `actor_id` is the service account ID, and there is no acting user.                                                                          |
+| `INTEGRATION`     | An external integration acting within an organization. For example, GitHub webhook handlers use `webhook_viewer_context()` to establish this context.                                        |
+| `SYSTEM`          | Work Sentry initiates itself, such as scheduled background work or cleanup that users have no control over. Preserve the originating actor when a job continues work on that actor's behalf. |
+| `UNKNOWN`         | The caller's identity could not be resolved, such as an anonymous request or an internal RPC with no propagated viewer context.                                                              |
+
+Use `get_acting_user_id(ctx)` when you need the user behind a `USER` or `AGENT` context. Organization and project IDs describe the context's scope.
+
 ### Request Principals
 
 `request.user` is whoever is calling: a user, an agent acting for one, a service account, or anonymous. Don't assume a `User`, and don't read `request.user.id`. Use `sentry.auth.principal`:
@@ -110,6 +123,12 @@ class MyPermission(SentryPermission):
     }
 ```
 
+New scopes in `SENTRY_SCOPES` (`src/sentry/conf/server.py`) use `<resource>:<action>`:
+
+- `<resource>` is the singular snake_case object being accessed, such as `saved_query` or `project_key`. Do not put the object in the action under a parent resource: `project_key:write`, not `project:keys`.
+- `<action>` is `read`, `write`, `admin`, or `create`, such as `project_key:create`. Use another verb only when those don't fit, and add it to `SCOPE_ACTIONS` in `tests/sentry/conf/test_scopes.py`.
+- `test_scope_names_follow_resource_action` enforces this. Older scopes that break it are listed in `LEGACY_SCOPE_NAMES` there; do not add to that list.
+
 ### Logging, Tracing, Metrics, Options
 
 Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()` → use the **`backend-conventions`** skill.
@@ -121,6 +140,7 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 - The control silo holds global data such as `User`, `Integration`, and `OrganizationMapping`. The cell silo holds organization-scoped data such as `Organization`, `Project`, and `Group`.
 - Each model declares its silo with `@control_silo_model` or `@cell_silo_model` (`src/sentry/db/models/base.py`). Each endpoint declares it with `@control_silo_endpoint` or `@cell_silo_endpoint`.
 - Never join across silos. Use outboxes (`src/sentry/hybridcloud/models/outbox.py`) for cross-silo updates. For silo, RPC, and outbox work, use the **`hybrid-cloud-rpc`**, **`hybrid-cloud-outboxes`**, and **`cell-architecture`** skills.
+- Never add an RPC method and its first production caller in the same PR. Silos deploy separately, and control deploys after the cells, so the caller runs before the serving silo has the method and every call fails with `Service unavailable (404 status)`. Land the method first, and land the caller only after the method has deployed to every silo that serves it.
 
 ### Database Guidelines
 
@@ -166,6 +186,10 @@ def my_function():
     from sentry.models.project import Project # NO!
     ...
 ```
+
+## Sentry<>Seer RPC (Deprecated)
+
+The Seer RPC surface (`src/sentry/seer/endpoints/seer_rpc.py`, `organization_seer_rpc.py`, `sentry/seer/sentry_data_models.py`) is being removed. Seer now reads Sentry data through the public Sentry API via codemode. Do not add new RPC methods or models; add or extend a public API endpoint instead.
 
 ## File Location Map
 

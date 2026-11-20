@@ -5,6 +5,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 import {IconReleases} from '@sentry/icons/releases';
 
 import {Button, ButtonBar, LinkButton} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,7 +13,6 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {CustomCommitsResolutionModal} from 'sentry/components/customCommitsResolutionModal';
 import {CustomResolutionModal} from 'sentry/components/customResolutionModal';
 import {t} from 'sentry/locale';
@@ -102,23 +102,12 @@ function ResolveDropdownMenu({
   };
 
   function handleCommitResolution(statusDetails: ResolvedStatusDetails) {
-    onUpdate({
-      status: GroupStatus.RESOLVED,
-      statusDetails,
-      substatus: null,
-    });
+    onUpdate({status: GroupStatus.RESOLVED, statusDetails, substatus: null});
   }
 
   function handleAnotherExistingReleaseResolution(statusDetails: ResolvedStatusDetails) {
-    onUpdate({
-      status: GroupStatus.RESOLVED,
-      statusDetails,
-      substatus: null,
-    });
-    trackAnalytics('resolve_issue', {
-      organization,
-      release: 'anotherExisting',
-    });
+    onUpdate({status: GroupStatus.RESOLVED, statusDetails, substatus: null});
+    trackAnalytics('resolve_issue', {organization, release: 'anotherExisting'});
   }
 
   function handleCurrentReleaseResolution({
@@ -150,17 +139,12 @@ function ResolveDropdownMenu({
     if (hasRelease) {
       onUpdate({
         status: GroupStatus.RESOLVED,
-        statusDetails: {
-          inNextRelease: true,
-        },
+        statusDetails: {inNextRelease: true},
         substatus: null,
       });
     }
 
-    trackAnalytics('resolve_issue', {
-      organization,
-      release: 'next',
-    });
+    trackAnalytics('resolve_issue', {organization, release: 'next'});
   }
 
   function openCustomCommitModal() {
@@ -253,11 +237,7 @@ function ResolveDropdownMenu({
       label: t('Another existing release\u2026'),
       onAction: openCustomReleaseModal,
     },
-    {
-      key: 'a-commit',
-      label: t('A commit\u2026'),
-      onAction: openCustomCommitModal,
-    },
+    {key: 'a-commit', label: t('A commit\u2026'), onAction: openCustomCommitModal},
   ];
 
   const isDisabled = projectSlug ? disableDropdown : disabled;

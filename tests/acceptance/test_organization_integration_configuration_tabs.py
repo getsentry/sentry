@@ -60,10 +60,8 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
 
         with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
-                f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
+                f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/?tab=userMappings"
             )
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click('[role="tablist"] li:nth-child(3) span')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state
@@ -86,10 +84,8 @@ class OrganizationIntegrationConfigurationTabs(AcceptanceTestCase):
     def test_external_team_mappings(self) -> None:
         with self.feature("organizations:integrations-codeowners"):
             self.browser.get(
-                f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/"
+                f"/settings/{self.organization.slug}/integrations/{self.provider}/{self.integration.id}/?tab=teamMappings"
             )
-            self.browser.wait_until_not('[data-test-id="loading-indicator"]')
-            self.browser.click('[role="tablist"] li:nth-child(4) span')
             self.browser.wait_until_not('[data-test-id="loading-indicator"]')
 
             # Empty state

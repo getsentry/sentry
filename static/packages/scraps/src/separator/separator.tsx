@@ -13,10 +13,10 @@ import {
 export type SeparatorProps = Pick<
   ContainerProps,
   'borderColor' | 'margin' | 'padding'
-> & {
-  orientation: 'horizontal' | 'vertical';
-  children?: never;
-} & Omit<React.HTMLAttributes<HTMLHRElement>, 'aria-orientation'>;
+> & {orientation: 'horizontal' | 'vertical'; children?: never} & Omit<
+    React.HTMLAttributes<HTMLHRElement>,
+    'aria-orientation'
+  >;
 
 const omitSeparatorProps = new Set<keyof SeparatorProps>(['borderColor']);
 

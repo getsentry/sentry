@@ -1,6 +1,8 @@
 import {Fragment, useEffect} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import connectDotsImg from 'sentry-images/spot/performance-connect-dots.svg';
 
@@ -38,7 +40,6 @@ import {withoutLoggingSupport} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {pulsingIndicatorStyles} from 'sentry/styles/pulsingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -64,10 +65,7 @@ import {
 import {SetupLogsButton} from './setupLogsButton';
 import {StyledPageFilterBar} from './styles';
 
-type OnboardingProps = {
-  organization: Organization;
-  project: Project;
-};
+type OnboardingProps = {organization: Organization; project: Project};
 
 const AI_SETUP_PROMPT =
   'Please instrument Sentry logging. Include some examples following best practices.';
@@ -265,7 +263,10 @@ function Onboarding({organization, project}: OnboardingProps) {
   const api = useApi();
   const location = useLocation();
   const navigate = useNavigate();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const currentPlatform = project.platform
     ? platforms.find(p => p.id === project.platform)
     : undefined;
@@ -383,10 +384,7 @@ function Onboarding({organization, project}: OnboardingProps) {
     isPerformanceSelected: false,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: [ProductSolution.LOGS],
     feedbackOptions: {},
     urlPrefix,
@@ -407,10 +405,7 @@ function Onboarding({organization, project}: OnboardingProps) {
         onStepChange={step => {
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              guidedStep: step,
-            },
+            query: {...location.query, guidedStep: step},
           });
         }}
       >

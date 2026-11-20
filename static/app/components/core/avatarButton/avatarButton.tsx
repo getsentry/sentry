@@ -8,6 +8,7 @@ import {ImageAvatar, LetterAvatar, useAvatar} from '@sentry/scraps/avatar';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 
+import {getAvatarChonk} from './avatarChonk';
 import {useAvatarColors} from './useAvatarColors';
 
 type AvatarButtonSize = 'xs' | 'sm' | 'md';
@@ -50,6 +51,13 @@ export function AvatarButton({
   });
 
   const colors = useAvatarColors(isSuggested ? undefined : avatar);
+  const edge = colors.type === 'image' && colors.style === 'fill' ? colors.edge : null;
+  const chonk = colors.tint ? getAvatarChonk(colors.tint, theme.type, edge) : undefined;
+  // The avatar covers the button's own border, so redraw it in the frame color.
+  // Without a tinted chonk that is the default button edge, not transparent.
+  const borderColor = isSuggested
+    ? theme.tokens.border.neutral.vibrant
+    : (chonk ?? theme.tokens.interactive.chonky.embossed.neutral.chonk);
 
   const contextSize = useSizeContext();
   const size = explicitSize ?? contextSize ?? 'md';
@@ -70,47 +78,26 @@ export function AvatarButton({
     );
   }
 
-  if (avatarDefinition.type === 'letter') {
-    const avatarChonk = colors.type === 'letter' ? colors.chonk : undefined;
-
-    return (
-      <StyledAvatarButton {...props} size={size} round={round} chonk={avatarChonk}>
-        <AvatarContainer
-          size={size}
-          round={round}
-          padded={false}
-          borderColor={
-            avatarChonk ??
-            (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-          }
-          borderStyle={isSuggested ? 'dashed' : 'solid'}
-        >
-          <StyledLetterAvatar
-            configuration={avatarDefinition.configuration}
-            suggested={isSuggested}
-          />
-        </AvatarContainer>
-      </StyledAvatarButton>
-    );
-  }
-
-  const chonk = colors.type === 'image' ? colors.chonk : undefined;
-
   return (
     <StyledAvatarButton {...props} size={size} round={round} chonk={chonk}>
       <AvatarContainer
         size={size}
         round={round}
         padded={colors.type === 'image' && colors.style === 'padded'}
-        borderColor={
-          chonk ?? (isSuggested ? theme.tokens.border.neutral.vibrant : 'transparent')
-        }
+        borderColor={borderColor}
         borderStyle={isSuggested ? 'dashed' : 'solid'}
       >
-        <StyledImageAvatar
-          configuration={avatarDefinition.configuration}
-          suggested={isSuggested}
-        />
+        {avatarDefinition.type === 'letter' ? (
+          <StyledLetterAvatar
+            configuration={avatarDefinition.configuration}
+            suggested={isSuggested}
+          />
+        ) : (
+          <StyledImageAvatar
+            configuration={avatarDefinition.configuration}
+            suggested={isSuggested}
+          />
+        )}
       </AvatarContainer>
     </StyledAvatarButton>
   );
@@ -136,7 +123,6 @@ const AvatarContainer = styled('div')<{
   height: 100%;
   overflow: hidden;
   border: 1px ${p => p.borderStyle} ${p => p.borderColor};
-  will-change: transform;
   border-radius: ${p =>
     p.round
       ? '50%'
@@ -210,7 +196,11 @@ const StyledAvatarButton = styled(AvatarButtonBase)`
         background: ${p.chonk};
         box-shadow: 0 ${AVATAR_BUTTON_ELEVATION[p.size]} 0 0px ${p.chonk};
       }
+      /* The avatar covers the surface entirely. Paint it with the chonk so the
+         seam that anti-aliasing leaves around the lifted avatar on hover matches
+         the border instead of showing the light surface. */
       &&::after {
+        background: ${p.chonk};
         border-color: ${p.chonk};
       }
     `}

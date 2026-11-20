@@ -7,7 +7,7 @@ import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
 import {Hovercard} from 'sentry/components/hovercard';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -28,10 +28,7 @@ import {useIssueViewUnsavedChanges} from './useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from './useSelectedGroupSeachView';
 import {canEditIssueView} from './utils';
 
-type IssueViewSaveButtonProps = {
-  query: string;
-  sort: IssueSortOptions;
-};
+type IssueViewSaveButtonProps = {query: string; sort: IssueSortOptions};
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,
@@ -51,10 +48,7 @@ function SegmentedIssueViewSaveButton({
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
-      navigate({
-        pathname: location.pathname,
-        query: getIssueViewQueryParams({view}),
-      });
+      navigate({pathname: location.pathname, query: getIssueViewQueryParams({view})});
     }
   };
 

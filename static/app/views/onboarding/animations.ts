@@ -21,9 +21,7 @@ export const ONBOARDING_STAGGER: OnboardingMotion = {
   initial: 'initial',
   animate: 'animate',
   exit: 'exit',
-  variants: {
-    animate: {transition: {staggerChildren: STAGGER}},
-  },
+  variants: {animate: {transition: {staggerChildren: STAGGER}}},
 };
 
 /**
@@ -31,11 +29,7 @@ export const ONBOARDING_STAGGER: OnboardingMotion = {
  * does not move, so an item's own entry is the only thing on screen.
  */
 export const ONBOARDING_STAGGER_CHILDREN: OnboardingMotion = {
-  variants: {
-    initial: {},
-    animate: {transition: {staggerChildren: STAGGER}},
-    exit: {},
-  },
+  variants: {initial: {}, animate: {transition: {staggerChildren: STAGGER}}, exit: {}},
 };
 
 /**

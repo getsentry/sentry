@@ -30,6 +30,7 @@ import type {Group, Tag, TagValue} from 'sentry/types/group';
 import {escapeDoubleQuotes, percent} from 'sentry/utils';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
@@ -38,7 +39,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
 import {applyQueryParamsUpdates} from 'sentry/views/explore/queryParams/parsers';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/issueDetailsEventsQuery';
 import {getUserTagValue, TAG_DRAWER_PARSERS} from 'sentry/views/issueDetails/utils';
 
 import {TagDetailsTable, type TagSort} from './tagDetailsTable';
@@ -136,7 +137,7 @@ export function TagDetailsDrawerContent({group}: {group: Group}) {
             setTagDrawerQuery({tagDrawerCursor: cursor ?? null}, {history: 'push'})
           }
           size="xs"
-          pageLinks={tagValuesResponse?.headers.Link}
+          {...getPaginationProps(tagValuesResponse?.headers.Link)}
         />
       )}
     </Fragment>
@@ -158,10 +159,7 @@ function TagDetailsRow({
   const key = tagValue.key ?? tag.key;
   const query =
     key === 'environment'
-      ? {
-          environment: tagValue.value,
-          query: undefined,
-        }
+      ? {environment: tagValue.value, query: undefined}
       : {
           query:
             tagValue.query ||
@@ -170,10 +168,7 @@ function TagDetailsRow({
 
   const allEventsLocation = {
     pathname: `/organizations/${organization.slug}/issues/${group.id}/events/recommended/`,
-    query: {
-      ...location.query,
-      ...query,
-    },
+    query: {...location.query, ...query},
   };
   const percentage = Math.round(percent(tagValue.count ?? 0, tag.totalValues ?? 0));
   // Ensure no item shows 100% when there are multiple tag values
@@ -246,9 +241,7 @@ function TagDetailsValue({
             alias: 'user',
             type: 'user',
             value: tagValue,
-            contextIconProps: {
-              size: 'md',
-            },
+            contextIconProps: {size: 'md'},
             theme,
           })}
           <Flex wrap="wrap" gap="xs" minWidth={0}>
@@ -313,9 +306,7 @@ function TagValueActionsMenu({
   const referrer = 'tag-details-drawer';
   const key = escapeIssueTagKey(tagValue.key ?? tag.key);
   const query = tagValue.query
-    ? {
-        query: tagValue.query,
-      }
+    ? {query: tagValue.query}
     : generateQueryWithTag({referrer}, {key, value: tagValue.value});
   const globalSelectionParams = extractSelectionParameters(location.query);
   const eventView = useIssueDetailsEventView({group, queryProps: query});
@@ -365,9 +356,7 @@ function TagValueActionsMenu({
             key: 'copy-value',
             label: t('Copy tag value to clipboard'),
             onAction: () =>
-              copy(tagValue.value, {
-                successMessage: t('Copied tag value to clipboard'),
-              }),
+              copy(tagValue.value, {successMessage: t('Copied tag value to clipboard')}),
             hidden: tagValue.value === '',
           },
         ]}

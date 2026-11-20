@@ -1,5 +1,5 @@
 from collections.abc import Mapping, MutableMapping, Sequence
-from typing import Any, Literal, TypedDict, cast, override
+from typing import Annotated, Any, Literal, TypedDict, cast, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
@@ -11,6 +11,8 @@ from sentry_kafka_schemas.schema_types.snuba_uptime_results_v1 import (
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.apidocs.descriptions import ApiDescription, ApiSchema
+from sentry.apidocs.json_schemas import kafka_definition_schema
 from sentry.types.actor import Actor
 from sentry.uptime.models import UptimeStatus, UptimeSubscription
 from sentry.uptime.subscriptions.regions import get_region_config
@@ -32,20 +34,62 @@ DETECTOR_PRIORITY_TO_UPTIME_STATUS = {
 }
 
 
+# sentry-kafka-schemas leaves these assertion fields undescribed.
+_ASSERTION_DESCRIPTIONS = {
+    "AssertionOpAnd.op": "Operation, always and",
+    "AssertionOpAnd.children": "Operations that must all pass",
+    "AssertionOpOr.op": "Operation, always or",
+    "AssertionOpOr.children": "Operations of which at least one must pass",
+    "AssertionOpNot.op": "Operation, always not",
+    "AssertionOpStatusCodeCheck.value": "HTTP status code to compare the response status code against",
+    "AssertionOpJsonPath.op": "Operation, always json_path",
+    "AssertionOpJsonPath.value": "JSONPath query to run on the response body",
+    "AssertionOpJsonPathOperandGlob.header_op": "Kind of operand, always glob",
+    "AssertionOpJsonPathOperandGlobPattern.value": "Glob pattern",
+    "AssertionOpJsonPathOperandLiteral.jsonpath_op": "Kind of operand, always literal",
+    "AssertionOpJsonPathOperandLiteral.value": "Value to compare the query result against",
+    "AssertionOpJsonPathOperandNone.header_op": "Kind of operand, always none",
+    "AssertionOpHeaderOperandGlob.header_op": "Kind of operand, always glob",
+    "AssertionOpHeaderOperandGlobPattern.value": "Glob pattern",
+    "AssertionOpHeaderOperandLiteral.header_op": "Kind of operand, always literal",
+    "AssertionOpHeaderOperandLiteral.value": "Value to compare the header key or value against",
+    "AssertionOpHeaderOperandNone.header_op": "Kind of operand, always none",
+}
+
+
+def _assertion_schema() -> dict[str, Any]:
+    # The uptime checker validates assertions; sentry-kafka-schemas carries its schema.
+    return {
+        **kafka_definition_schema("uptime-results", "Assertion", _ASSERTION_DESCRIPTIONS),
+        "nullable": True,
+    }
+
+
 class UptimeSubscriptionSerializerResponse(TypedDict):
-    url: str
-    method: str
-    body: str | None
-    headers: Sequence[tuple[str, str]]
-    intervalSeconds: int
-    timeoutMs: int
-    traceSampling: bool
-    responseCaptureEnabled: bool
-    assertion: Any | None
+    url: Annotated[str, ApiDescription("URL the check requests")]
+    method: Annotated[str, ApiDescription("HTTP method of the check request, such as GET")]
+    body: Annotated[str | None, ApiDescription("Body of the check request. Null when it has none")]
+    headers: Annotated[
+        Sequence[tuple[str, str]],
+        ApiDescription("Headers of the check request, each a name and value pair"),
+    ]
+    intervalSeconds: Annotated[int, ApiDescription("How often the check runs, in seconds")]
+    timeoutMs: Annotated[
+        int, ApiDescription("How long the check waits for a response, in milliseconds")
+    ]
+    traceSampling: Annotated[bool, ApiDescription("Whether the check request samples a trace")]
+    responseCaptureEnabled: Annotated[
+        bool, ApiDescription("Whether failed checks capture the response body and headers")
+    ]
+    assertion: Annotated[
+        Assertion | None,
+        ApiDescription("Assertion the response must pass. Null when the check has none"),
+        ApiSchema(_assertion_schema),
+    ]
 
 
 @register(UptimeSubscription)
-class UptimeSubscriptionSerializer(Serializer[dict[str, Any]]):
+class UptimeSubscriptionSerializer(Serializer[UptimeSubscriptionSerializerResponse]):
     @override
     def serialize(
         self,
@@ -53,7 +97,7 @@ class UptimeSubscriptionSerializer(Serializer[dict[str, Any]]):
         attrs: Mapping[Any, Any],
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
-    ) -> dict[str, Any]:
+    ) -> UptimeSubscriptionSerializerResponse:
         return {
             "url": obj.url,
             "method": obj.method,

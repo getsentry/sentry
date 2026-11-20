@@ -49,7 +49,7 @@ export function AiFeaturesAreDisabledBanner() {
             <Fragment>
               <Text>
                 {tct(
-                  'Seer is part of your plan, but you need to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                  'Seer is part of your plan, but you need to enable generative AI features in your organization in order to use it. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                   {
                     seer: (
                       <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />
@@ -67,7 +67,7 @@ export function AiFeaturesAreDisabledBanner() {
           ) : (
             <Text>
               {tct(
-                'Seer is part of your plan, but you need an admin to enable generative AI features in your organization in order to use it. Seer includes Autofix and Code Review. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
+                'Seer is part of your plan, but you need an admin to enable generative AI features in your organization in order to use it. Read more about [seer:Seer] and other [ai:generative AI features] in the docs.',
                 {
                   seer: (
                     <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/" />

@@ -68,10 +68,7 @@ export interface CodeBlockProps {
   onTabClick?: (tab: string) => void;
   ref?: React.Ref<HTMLDivElement>;
   selectedTab?: string;
-  tabs?: Array<{
-    label: string;
-    value: string;
-  }>;
+  tabs?: Array<{label: string; value: string}>;
   /**
    * Controls whether long lines scroll horizontally or wrap within the snippet.
    *
@@ -253,6 +250,11 @@ const Wrapper = styled('div')<{
   min-width: 0;
   background: var(--prism-block-background);
   border-radius: ${p => (p.isRounded ? p.theme.radius.md : '0px')};
+
+  && code[class*='language-'] {
+    white-space: ${p => (p.wrapMode === 'wrap' ? 'pre-wrap' : 'pre')};
+    overflow-wrap: ${p => (p.wrapMode === 'wrap' ? 'anywhere' : 'normal')};
+  }
 
   && pre[class*='language-'] {
     margin: 0;

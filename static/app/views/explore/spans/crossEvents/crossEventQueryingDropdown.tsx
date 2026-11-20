@@ -30,10 +30,7 @@ export function CrossEventQueryingDropdown() {
       return;
     }
 
-    trackAnalytics('trace.explorer.cross_event_added', {
-      organization,
-      type: key,
-    });
+    trackAnalytics('trace.explorer.cross_event_added', {organization, type: key});
 
     if (!crossEvents || crossEvents.length === 0) {
       setCrossEvents([makeCrossEvent(key)]);

@@ -57,9 +57,7 @@ describe('CustomResolutionModal', () => {
     );
 
     await userEvent.click(screen.getByText('Resolve'));
-    expect(onSelected).toHaveBeenCalledWith({
-      inRelease: 'sentry-android-shop@1.2.0',
-    });
+    expect(onSelected).toHaveBeenCalledWith({inRelease: 'sentry-android-shop@1.2.0'});
   });
 
   it('queries organization releases without a project', async () => {
@@ -160,12 +158,7 @@ describe('CustomResolutionModal', () => {
   it('treats a release without version info as non-semver', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [
-        ReleaseFixture({
-          version: 'legacy-release',
-          versionInfo: null,
-        }),
-      ],
+      body: [ReleaseFixture({version: 'legacy-release', versionInfo: null})],
     });
 
     render(
@@ -206,7 +199,7 @@ describe('CustomResolutionModal', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: /version/i}));
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('.0');
 
@@ -266,7 +259,7 @@ describe('CustomResolutionModal', () => {
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('search-me@3.0.0');
 
@@ -290,9 +283,7 @@ describe('CustomResolutionModal', () => {
           buildHash: null,
           description: 'ancient-release',
           package: '',
-          version: {
-            raw: 'ancient-release',
-          },
+          version: {raw: 'ancient-release'},
         },
       }),
     });
@@ -311,7 +302,7 @@ describe('CustomResolutionModal', () => {
 
     const trigger = screen.getByRole('button', {name: /version/i});
     await userEvent.click(trigger);
-    const searchInput = await screen.findByRole('textbox');
+    const searchInput = await screen.findByRole('searchbox');
     await userEvent.click(searchInput);
     await userEvent.paste('ancient-release');
 

@@ -12,12 +12,10 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import AMCheckout from 'getsentry/views/amCheckout/';
 
 describe('BuildYourPlan', () => {
-  const api = new MockApiClient();
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, plan: 'am3_f'});
 
   beforeEach(() => {
-    api.clear();
     MockApiClient.clearMockResponses();
     SubscriptionStore.set(organization.slug, subscription);
 
@@ -39,9 +37,7 @@ describe('BuildYourPlan', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,
@@ -56,9 +52,7 @@ describe('BuildYourPlan', () => {
   }: {
     location: ComponentProps<typeof AMCheckout>['location'];
   }) {
-    return (
-      <AMCheckout {...routeProps} api={api} location={location} navigate={jest.fn()} />
-    );
+    return <AMCheckout {...routeProps} location={location} navigate={jest.fn()} />;
   }
 
   it('renders', async () => {

@@ -14,7 +14,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {AnsiText} from 'sentry/components/ansiText';
 import {Count} from 'sentry/components/count';
 import {EventMessage} from 'sentry/components/events/eventMessage';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {useFeedbackSDKIntegration} from 'sentry/components/feedbackButton/useFeedbackSDKIntegration';
 import {TourElement} from 'sentry/components/tours/components';
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
@@ -93,10 +92,7 @@ export function GroupHeader({event, group, project}: GroupHeaderProps) {
                 {
                   type: 'link',
                   label: t('Issues'),
-                  to: {
-                    pathname: `/organizations/${organization.slug}/issues/`,
-                    query,
-                  },
+                  to: {pathname: `/organizations/${organization.slug}/issues/`, query},
                 },
               ]}
             />
@@ -283,15 +279,11 @@ function HeaderActions({group}: {group: Group}) {
 
   if (hasFeedbackForm && feedback) {
     return (
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={feedbackLabel}
-          feedbackOptions={feedbackOptions}
-          tooltipProps={{title: feedbackLabel}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot
+        name="feedback"
+        feedbackOptions={feedbackOptions}
+        aria-label={feedbackLabel}
+      />
     );
   }
 

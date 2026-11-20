@@ -27,7 +27,9 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.sentry_apps.services.app import app_service
 from sentry.types.activity import SEER_ACTIVITY_TYPES, ActivityType
+from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.email import group_id_to_email
@@ -139,6 +141,17 @@ class AssignedNotificationData(ActivityNotificationData):
     assignee_label: str
     assignee_url: str | None = None
     is_automated: bool = False
+
+
+def get_activity_user_name(user: RpcUser, organization_id: int) -> str | None:
+    if not user.is_sentry_app:
+        return user.get_display_name()
+    # A Sentry App acts through a proxy user whose display name is a long generated
+    # email, so name the app instead.
+    installation = app_service.find_installation_by_proxy_user(
+        proxy_user_id=user.id, organization_id=organization_id
+    )
+    return installation.sentry_app.name if installation else None
 
 
 def build_subject_prefix(data: ActivityNotificationData) -> NotificationTextBlock:
@@ -349,10 +362,11 @@ def build_activity_notification_data(
             }
         )
 
-    if activity.user_id:
-        user = user_service.get_user(user_id=activity.user_id)
-        if user:
-            action_data["activity_user_name"] = user.get_display_name()
+    user = user_service.get_user(user_id=activity.user_id) if activity.user_id else None
+    if user:
+        action_data["activity_user_name"] = get_activity_user_name(
+            user=user, organization_id=organization.id
+        )
 
     match activity.type:
         case ActivityType.SET_RESOLVED_IN_COMMIT.value:
@@ -389,21 +403,11 @@ def build_activity_notification_data(
             if assignee_email:
                 assignee_url = f"mailto:{assignee_email}"
 
-            # Check if this is an automated assignment from a Sentry App
-            if activity.user_id:
-                user = user_service.get_user(user_id=activity.user_id)
-                if user and user.is_sentry_app:
-                    return AssignedNotificationData(
-                        **action_data,
-                        assignee_label=assignee_label,
-                        assignee_url=assignee_url,
-                        is_automated=True,
-                    )
-
             return AssignedNotificationData(
                 **action_data,
                 assignee_label=assignee_label,
                 assignee_url=assignee_url,
+                is_automated=bool(user and user.is_sentry_app),
             )
         case _:
             return ActivityNotificationData(**action_data)

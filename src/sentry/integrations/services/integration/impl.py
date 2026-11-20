@@ -82,6 +82,8 @@ ACCESS_TOKEN_PROVIDERS = (
     IntegrationProviderSlug.GITHUB_ENTERPRISE.value,
     IntegrationProviderSlug.CURSOR_ORIGIN.value,
     IntegrationProviderSlug.GITLAB.value,
+    IntegrationProviderSlug.LINEAR.value,
+    IntegrationProviderSlug.SUPABASE.value,
 )
 
 # Not tuned: a caller uses the token within seconds, and a wider margin only means minting
@@ -259,7 +261,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if using_replica:
             queryset = OrganizationIntegration.objects.using_replica()
 
-        ois = queryset.filter(**oi_kwargs).select_related("integration")
+        ois = queryset.filter(**oi_kwargs)
         if limit is not None:
             ois = ois[:limit]
 
@@ -699,7 +701,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         return serialize_integration(integration)
 
     def get_access_token(
-        self, *, integration_id: int, organization_id: int
+        self, *, integration_id: int, organization_id: int, force_refresh: bool = False
     ) -> RpcAccessToken | None:
         integration = Integration.objects.filter(
             id=integration_id,
@@ -707,14 +709,21 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=ObjectStatus.ACTIVE,
             organizationintegration__organization_id=organization_id,
             organizationintegration__status=ObjectStatus.ACTIVE,
-        ).first()
+        ).first()  # noqa: S035
         if integration is None:
+            return None
+
+        if force_refresh and integration.provider not in (
+            IntegrationProviderSlug.LINEAR.value,
+            IntegrationProviderSlug.SUPABASE.value,
+        ):
             return None
 
         try:
             client = integration.get_installation(organization_id=organization_id).get_client()
             token = client.get_access_token(
-                token_minimum_validity_time=ACCESS_TOKEN_MINIMUM_VALIDITY
+                token_minimum_validity_time=ACCESS_TOKEN_MINIMUM_VALIDITY,
+                **({"force_refresh": True} if force_refresh else {}),
             )
         except (
             # The organization's install went away after the lookup above.

@@ -221,12 +221,12 @@ class SlackRequestParser(BaseRequestParser):
                 return None
             self.slack_request = slack_request
             self.response_url = slack_request.response_url
-            return Integration.objects.filter(id=slack_request.integration.id).first()
+            return Integration.objects.get_or_none(id=slack_request.integration.id)
 
         elif self.view_class in self.django_views:
             # Parse the signed params to identify the associated integration
             params = unsign(self.match.kwargs["signed_params"], salt=SALT)
-            return Integration.objects.filter(id=params["integration_id"]).first()
+            return Integration.objects.get_or_none(id=params["integration_id"])
 
         return None
 

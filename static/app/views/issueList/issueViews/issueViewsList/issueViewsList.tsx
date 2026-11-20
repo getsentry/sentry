@@ -12,9 +12,8 @@ import {Container, Flex, Stack, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import {FeatureDisabled} from 'sentry/components/acl/featureDisabled';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {Hovercard} from 'sentry/components/hovercard';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -22,6 +21,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -167,13 +167,7 @@ function IssueViewSection({
     );
   };
 
-  useRouteAnalyticsParams(
-    isPending
-      ? {}
-      : {
-          [`num_results_${createdBy}`]: views.length,
-        }
-  );
+  useRouteAnalyticsParams(isPending ? {} : {[`num_results_${createdBy}`]: views.length});
 
   const pageLinks = data?.headers.Link;
 
@@ -200,7 +194,7 @@ function IssueViewSection({
         hideCreatedBy={createdBy === GroupSearchViewCreatedBy.ME}
       />
       <Pagination
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         onCursor={newCursor => {
           setCursor(newCursor ?? null);
         }}
@@ -288,30 +282,12 @@ function SortDropdown() {
         setSort(newSort.value);
       }}
       options={[
-        {
-          label: t('Most Starred'),
-          value: GroupSearchViewSort.POPULARITY,
-        },
-        {
-          label: t('Recently Viewed'),
-          value: GroupSearchViewSort.VIEWED,
-        },
-        {
-          label: t('Name (A-Z)'),
-          value: GroupSearchViewSort.NAME_ASC,
-        },
-        {
-          label: t('Name (Z-A)'),
-          value: GroupSearchViewSort.NAME_DESC,
-        },
-        {
-          label: t('Created (Newest)'),
-          value: GroupSearchViewSort.CREATED_DESC,
-        },
-        {
-          label: t('Created (Oldest)'),
-          value: GroupSearchViewSort.CREATED_ASC,
-        },
+        {label: t('Most Starred'), value: GroupSearchViewSort.POPULARITY},
+        {label: t('Recently Viewed'), value: GroupSearchViewSort.VIEWED},
+        {label: t('Name (A-Z)'), value: GroupSearchViewSort.NAME_ASC},
+        {label: t('Name (Z-A)'), value: GroupSearchViewSort.NAME_DESC},
+        {label: t('Created (Newest)'), value: GroupSearchViewSort.CREATED_DESC},
+        {label: t('Created (Oldest)'), value: GroupSearchViewSort.CREATED_ASC},
       ]}
     />
   );
@@ -320,10 +296,7 @@ function SortDropdown() {
 const issueViewsFeedbackOptions = {
   formTitle: t('Give Feedback'),
   messagePlaceholder: t('How can we make issue views better for you?'),
-  tags: {
-    'feedback.source': 'custom_views',
-    'feedback.owner': 'issues',
-  },
+  tags: {'feedback.source': 'custom_views', 'feedback.owner': 'issues'},
 };
 
 export default function IssueViewsList() {
@@ -350,10 +323,7 @@ export default function IssueViewsList() {
             pathname: normalizeUrl(
               `/organizations/${organization.slug}/issues/views/${data.id}/`
             ),
-            query: {
-              ...getIssueViewQueryParams({view: data}),
-              new: 'true',
-            },
+            query: {...getIssueViewQueryParams({view: data}), new: 'true'},
           });
         },
       }
@@ -367,16 +337,7 @@ export default function IssueViewsList() {
           name="breadcrumbs"
           title={{type: 'page-title', label: t('All Views')}}
         />
-        <TopBar.Slot name="feedback">
-          <FeedbackButton
-            size="sm"
-            feedbackOptions={issueViewsFeedbackOptions}
-            aria-label={t('Give Feedback')}
-            tooltipProps={{title: t('Give Feedback')}}
-          >
-            {null}
-          </FeedbackButton>
-        </TopBar.Slot>
+        <TopBar.Slot name="feedback" feedbackOptions={issueViewsFeedbackOptions} />
         <Layout.Body>
           <MainTableLayout>
             <Grid align="center" gap="md" columns="1fr auto">

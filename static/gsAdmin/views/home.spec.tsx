@@ -6,18 +6,11 @@ import {HomePage} from 'admin/views/home';
 
 const US_URL = 'https://us.example.com/api/0/';
 
-const projectResult = {
-  id: '123',
-  slug: 'my-proj',
-  organization: {slug: 'my-org'},
-};
+const projectResult = {id: '123', slug: 'my-proj', organization: {slug: 'my-org'}};
 
 function renderHomePage() {
   return render(<HomePage />, {
-    initialRouterConfig: {
-      location: {pathname: '/_admin/'},
-      route: '/_admin/',
-    },
+    initialRouterConfig: {location: {pathname: '/_admin/'}, route: '/_admin/'},
   });
 }
 
@@ -65,9 +58,7 @@ describe('HomePage project search', () => {
     expect(await screen.findByText('my-org')).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledWith(
       '/projects/',
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'id:123'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'id:123'})})
     );
   });
 

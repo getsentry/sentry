@@ -14,7 +14,7 @@ import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 import {Flex, Stack, Grid, Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Access} from 'sentry/components/acl/access';
@@ -89,9 +89,9 @@ function IntegrationTabs({
   getTabDisplay,
 }: {
   activeTab: IntegrationTab;
+  onTabChange: (tab: IntegrationTab) => void;
   tabs: readonly IntegrationTab[];
   getTabDisplay?: (tab: IntegrationTab) => string;
-  onTabChange?: (tab: IntegrationTab) => void;
 }) {
   // If getTabDisplay is not provided, use the tab as the display text
   const renderTab = useMemo(
@@ -99,9 +99,13 @@ function IntegrationTabs({
     [getTabDisplay]
   );
 
+  if (tabs.length <= 1) {
+    return null;
+  }
+
   return (
-    <TabsContainer>
-      <Tabs value={activeTab} onChange={onTabChange}>
+    <Tabs value={activeTab} onChange={onTabChange}>
+      {({TabList}) => (
         <TabList>
           {tabs.map(tab => (
             <TabList.Item key={tab} textValue={getTabDisplay ? getTabDisplay(tab) : tab}>
@@ -109,19 +113,14 @@ function IntegrationTabs({
             </TabList.Item>
           ))}
         </TabList>
-      </Tabs>
-    </TabsContainer>
+      )}
+    </Tabs>
   );
 }
 
 // Requires CSS transform because of how the tab rendering works
 const Capitalized = styled('div')`
   text-transform: capitalize;
-`;
-
-const TabsContainer = styled('div')`
-  margin-top: ${p => p.theme.space.xl};
-  margin-bottom: ${p => p.theme.space.xl};
 `;
 
 function Body({
@@ -141,9 +140,11 @@ function Body({
     <Fragment>
       <BreadcrumbTitle title={title} />
       {alert}
-      {topSection}
-      {tabs}
-      {content}
+      <Stack gap="xl">
+        {topSection}
+        {tabs}
+        <Container>{content}</Container>
+      </Stack>
     </Fragment>
   );
 }
@@ -161,13 +162,7 @@ function EmptyConfigurations({action}: {action: React.ReactElement}) {
 }
 
 const DisabledNotice = styled(({reason, ...p}: {reason: React.ReactNode}) => (
-  <div
-    style={{
-      display: 'flex',
-      alignItems: 'center',
-    }}
-    {...p}
-  >
+  <div style={{display: 'flex', alignItems: 'center'}} {...p}>
     <IconCloseCircle />
     <span>{reason}</span>
   </div>

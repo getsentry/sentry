@@ -10,9 +10,7 @@ import {Link} from '@sentry/scraps/link';
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
-type Props = {
-  orgId: string;
-};
+type Props = {orgId: string};
 
 const getRow = (row: any) => [
   <SimpleTable.RowCell key="name">

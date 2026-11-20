@@ -22,12 +22,11 @@ jest.mock('sentry/components/stream/group', () => ({
   LoadingStreamGroup: jest.fn(() => <tr data-test-id="loading-group" />),
 }));
 
-jest.mock('js-cookie', () => ({
-  get: jest.fn(),
-  set: jest.fn(),
-}));
+jest.mock('js-cookie', () => ({get: jest.fn(), set: jest.fn()}));
 
 const PREVIOUS_PAGE_CURSOR = '1443575731';
+// The poller sends the previous page link with its query string still encoded.
+const POLL_URL = `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}%3A0%3A1`;
 const DEFAULT_LINKS_HEADER =
   `<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1>; rel="previous"; results="false"; cursor="${PREVIOUS_PAGE_CURSOR}:0:1", ` +
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575000:0:0>; rel="next"; results="true"; cursor="1443575000:0:0"';
@@ -81,18 +80,6 @@ describe('IssueList -> Polling', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: TagsFixture(),
@@ -111,26 +98,20 @@ describe('IssueList -> Polling', () => {
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [GroupStatsFixture()],
     });
     pollRequest = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: POLL_URL,
       body: [],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
 
     jest.mocked(StreamGroup).mockClear();
-    TagStore.init();
+    TagStore.reset();
   });
 
   it('toggles polling for new issues', async () => {
@@ -169,12 +150,9 @@ describe('IssueList -> Polling', () => {
 
   it('displays new group and pagination caption correctly', async () => {
     pollRequest = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: POLL_URL,
       body: [group2],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '2',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '2'},
     });
 
     await renderComponent();
@@ -199,7 +177,7 @@ describe('IssueList -> Polling', () => {
 
   it('stops polling for new issues when endpoint returns a 401', async () => {
     pollRequest = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: POLL_URL,
       body: [],
       statusCode: 401,
     });
@@ -221,7 +199,7 @@ describe('IssueList -> Polling', () => {
 
   it('stops polling for new issues when endpoint returns a 403', async () => {
     pollRequest = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: POLL_URL,
       body: [],
       statusCode: 403,
     });
@@ -243,7 +221,7 @@ describe('IssueList -> Polling', () => {
 
   it('stops polling for new issues when endpoint returns a 404', async () => {
     pollRequest = MockApiClient.addMockResponse({
-      url: `/api/0/organizations/org-slug/issues/?cursor=${PREVIOUS_PAGE_CURSOR}:0:1`,
+      url: POLL_URL,
       body: [],
       statusCode: 404,
     });

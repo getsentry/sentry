@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
@@ -19,6 +19,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, serialize
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
@@ -40,23 +41,30 @@ class _ReplayDeletionJobCreateData(TypedDict):
 
 
 class ReplayDeletionJobResponseData(TypedDict):
-    id: int
-    dateCreated: str
-    dateUpdated: str
-    rangeStart: str
-    rangeEnd: str
-    environments: list[str]
-    status: str
-    query: str
-    countDeleted: int
+    id: Annotated[int, ApiDescription("ID of the deletion job")]
+    dateCreated: Annotated[datetime, ApiDescription("When the job was created")]
+    dateUpdated: Annotated[datetime, ApiDescription("When the job was last updated")]
+    rangeStart: Annotated[datetime, ApiDescription("Earliest UTC timestamp in the deletion range")]
+    rangeEnd: Annotated[datetime, ApiDescription("Latest UTC timestamp in the deletion range")]
+    environments: Annotated[
+        list[str],
+        ApiDescription("Environments of the replays to delete. Empty means all environments"),
+    ]
+    status: Annotated[
+        str, ApiDescription("Status of the job: `pending`, `in-progress`, `completed` or `failed`")
+    ]
+    query: Annotated[str, ApiDescription("Search query that matches the replays to delete")]
+    countDeleted: Annotated[int, ApiDescription("Number of replays the job has deleted")]
 
 
 class ReplayDeletionJobListResponse(TypedDict):
-    data: list[ReplayDeletionJobResponseData]
+    data: Annotated[
+        list[ReplayDeletionJobResponseData], ApiDescription("Deletion jobs of the project")
+    ]
 
 
 class ReplayDeletionJobDetailResponse(TypedDict):
-    data: ReplayDeletionJobResponseData
+    data: Annotated[ReplayDeletionJobResponseData, ApiDescription("The deletion job")]
 
 
 class ReplayDeletionJobPermission(ProjectPermission):

@@ -55,7 +55,7 @@ describe('AddToDashboardButton', () => {
         <ToolbarSaveAs />
       </Wrapper>,
       {
-        organization: OrganizationFixture({features: ['dashboards-edit']}),
+        organization: OrganizationFixture(),
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
@@ -75,7 +75,7 @@ describe('AddToDashboardButton', () => {
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Dashboard widget'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Dashboard widget'}));
     await userEvent.click(
       (await screen.findAllByRole('menuitemradio', {name: 'avg(span.duration)'}))[1]!
     );
@@ -133,18 +133,9 @@ describe('AddToDashboardButton', () => {
   });
 
   it.each([
-    {
-      chartType: ChartType.AREA,
-      expectedDisplayType: DisplayType.AREA,
-    },
-    {
-      chartType: ChartType.BAR,
-      expectedDisplayType: DisplayType.BAR,
-    },
-    {
-      chartType: ChartType.LINE,
-      expectedDisplayType: DisplayType.LINE,
-    },
+    {chartType: ChartType.AREA, expectedDisplayType: DisplayType.AREA},
+    {chartType: ChartType.BAR, expectedDisplayType: DisplayType.BAR},
+    {chartType: ChartType.LINE, expectedDisplayType: DisplayType.LINE},
   ])(
     'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
     async ({chartType, expectedDisplayType}) => {
@@ -156,14 +147,8 @@ describe('AddToDashboardButton', () => {
 
       act(() =>
         setVisualizes([
-          {
-            yAxes: ['avg(span.duration)'],
-            chartType: ChartType.AREA,
-          },
-          {
-            yAxes: ['max(span.duration)'],
-            chartType,
-          },
+          {yAxes: ['avg(span.duration)'], chartType: ChartType.AREA},
+          {yAxes: ['max(span.duration)'], chartType},
         ])
       );
 
@@ -206,14 +191,8 @@ describe('AddToDashboardButton', () => {
 
     act(() =>
       setVisualizes([
-        {
-          yAxes: ['avg(span.duration)'],
-          chartType: ChartType.LINE,
-        },
-        {
-          yAxes: ['max(span.duration)'],
-          chartType: ChartType.LINE,
-        },
+        {yAxes: ['avg(span.duration)'], chartType: ChartType.LINE},
+        {yAxes: ['max(span.duration)'], chartType: ChartType.LINE},
       ])
     );
 
@@ -336,12 +315,11 @@ describe('AddToDashboardButton', () => {
     );
   });
 
-  it('adds every aggregate and its pipeline plotted on the same chart', async () => {
+  it('adds every aggregate and its transformations plotted on the same chart', async () => {
     render(
       <Wrapper>
         <TestPage visualizeIndex={0} includeChartGroup />
-      </Wrapper>,
-      {organization: OrganizationFixture({features: ['explore-multi-aggregate-charts']})}
+      </Wrapper>
     );
 
     act(() => setMode(Mode.AGGREGATE));
@@ -352,10 +330,7 @@ describe('AddToDashboardButton', () => {
           chartType: ChartType.LINE,
           transformations: ['fill(locf)', 'smooth(sma,5)'],
         },
-        {
-          yAxes: ['count(span.duration)'],
-          chartType: ChartType.BAR,
-        },
+        {yAxes: ['count(span.duration)'], chartType: ChartType.BAR},
       ])
     );
 

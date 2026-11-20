@@ -17,6 +17,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {EventsMetaType, EventView} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -93,17 +94,12 @@ export function SegmentSpansTable({
   const consolidatedData = tableData?.map(row => {
     const user =
       row['user.username'] || row['user.email'] || row['user.ip'] || row['user.id'];
-    return {
-      ...row,
-      'user.display': user,
-    };
+    return {...row, 'user.display': user};
   });
 
-  const handleCursor: CursorHandler = (_cursor, pathname, cursorQuery) => {
-    navigate({
-      pathname,
-      query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor},
-    });
+  const handleCursor: CursorHandler = _cursor => {
+    const {pathname, query: cursorQuery} = location;
+    navigate({pathname, query: {...cursorQuery, [SEGMENT_SPANS_CURSOR]: _cursor}});
   };
 
   const handleViewSampledEvents = () => {
@@ -207,9 +203,7 @@ function renderBodyCell(
           icon={<IconProfiling size="xs" />}
           to={{
             pathname: `/organizations/${organization.slug}/profiling/profile/${projectSlug}/${row['profile.id']}/flamegraph/`,
-            query: {
-              referrer: 'performance',
-            },
+            query: {referrer: 'performance'},
           }}
           aria-label={t('View Profile')}
           disabled={!row['profile.id']}
@@ -225,13 +219,8 @@ function renderBodyCell(
           size="xs"
           icon={<IconPlay size="xs" />}
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${row.replayId}/`,
-              organization,
-            }),
-            query: {
-              referrer: 'performance',
-            },
+            pathname: makeReplaysPathname({path: `/${row.replayId}/`, organization}),
+            query: {referrer: 'performance'},
           }}
           disabled={!row.replayId}
           aria-label={t('View Replay')}
@@ -270,7 +259,7 @@ function CustomPagination({
   if (isLoading) {
     return (
       <StyledPagination
-        pageLinks="n/a"
+        {...getPaginationProps('n/a')}
         disabled
         onCursor={() => {}}
         size={PAGINATION_CURSOR_SIZE}
@@ -280,7 +269,7 @@ function CustomPagination({
 
   return (
     <StyledPagination
-      pageLinks={pageLinks}
+      {...getPaginationProps(pageLinks)}
       onCursor={onCursor}
       size={PAGINATION_CURSOR_SIZE}
     />

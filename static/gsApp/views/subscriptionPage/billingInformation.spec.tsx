@@ -17,15 +17,15 @@ import {
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription as TSubscription} from 'getsentry/types';
 import {FTCConsentLocation} from 'getsentry/types';
-import {BillingInformation} from 'getsentry/views/subscriptionPage/billingInformation';
+import BillingInformationView, {
+  BillingInformation,
+} from 'getsentry/views/subscriptionPage/billingInformation';
 
 // Stripe mocks handled by global setup.ts
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
 
 describe('Subscription > BillingInformation', () => {
-  const {organization} = initializeOrg({
-    organization: {access: ['org:billing']},
-  });
+  const {organization} = initializeOrg({organization: {access: ['org:billing']}});
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -63,13 +63,24 @@ describe('Subscription > BillingInformation', () => {
     organization.features = [];
   });
 
+  it('renders an error with retry when the customer response is empty', async () => {
+    MockApiClient.addMockResponse({
+      url: `/customers/${organization.slug}/`,
+      method: 'GET',
+    });
+
+    render(<BillingInformationView />, {organization});
+
+    expect(
+      await screen.findByText('There was an error loading data.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
   it('renders an error for non-billing roles', async () => {
     const org = {...organization, access: OrganizationFixture().access};
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/members/`, body: []});
 
     render(<BillingInformation subscription={subscription} />, {organization: org});
 
@@ -283,12 +294,12 @@ describe('Subscription > BillingInformation', () => {
   it('leaves Stripe field validation errors beside the fields', async () => {
     const stripeImport = await import('@stripe/react-stripe-js');
     const originalElements = stripeImport.useElements();
-    const submit = jest.fn().mockResolvedValue({
-      error: {message: 'Your card number is incomplete.'},
-    });
-    const useElementsSpy = jest.spyOn(stripeImport, 'useElements').mockReturnValue({
-      submit,
-    } as unknown as StripeElements);
+    const submit = jest
+      .fn()
+      .mockResolvedValue({error: {message: 'Your card number is incomplete.'}});
+    const useElementsSpy = jest
+      .spyOn(stripeImport, 'useElements')
+      .mockReturnValue({submit} as unknown as StripeElements);
     const createSetupIntent = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -323,9 +334,7 @@ describe('Subscription > BillingInformation', () => {
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: 'Unable to initialize payment setup, please try again later.',
-      },
+      body: {detail: 'Unable to initialize payment setup, please try again later.'},
     });
 
     render(<BillingInformation subscription={testSubscription} />, {organization});

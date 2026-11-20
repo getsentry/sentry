@@ -6,8 +6,10 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {OrganizationStore} from 'sentry/stores/organizationStore';
+import {
+  ORGANIZATION_FETCH_ERROR_TYPES,
+  OrganizationStore,
+} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import type {ApiResult} from 'sentry/types/api';
@@ -43,7 +45,7 @@ describe('useBootstrapOrganizationQuery', () => {
     );
 
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(JSON.stringify(OrganizationStore.get().organization)).toEqual(
+    expect(JSON.stringify(OrganizationStore.getState().organization)).toEqual(
       JSON.stringify(org)
     );
   });
@@ -60,9 +62,11 @@ describe('useBootstrapOrganizationQuery', () => {
     );
 
     await waitFor(() => expect(result.current.error).toBeDefined());
-    expect(OrganizationStore.get().organization).toBeNull();
-    await waitFor(() => expect(OrganizationStore.get().error).toBe(result.current.error));
-    expect(OrganizationStore.get().errorType).toBe(
+    expect(OrganizationStore.getState().organization).toBeNull();
+    await waitFor(() =>
+      expect(OrganizationStore.getState().error).toBe(result.current.error)
+    );
+    expect(OrganizationStore.getState().errorType).toBe(
       ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS
     );
   });
@@ -102,10 +106,7 @@ describe('useBootstrapOrganizationQuery', () => {
   it('falls back to the api when the preload request fails', async () => {
     jest.mocked(Sentry.metrics.count).mockClear();
     const preloadError = new Error('Preload request failed with status 401');
-    window.__sentry_preload = {
-      orgSlug,
-      organization: Promise.reject(preloadError),
-    };
+    window.__sentry_preload = {orgSlug, organization: Promise.reject(preloadError)};
     const orgRequest = MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/`,
       body: org,
@@ -161,7 +162,7 @@ describe('useBootstrapOrganizationQuery', () => {
       useBootstrapOrganizationQuery(orgSlug)
     );
     await waitFor(() => expect(result.current.data).toBeDefined());
-    expect(JSON.stringify(OrganizationStore.get().organization?.features)).toEqual(
+    expect(JSON.stringify(OrganizationStore.getState().organization?.features)).toEqual(
       JSON.stringify(['enable-issues'])
     );
     expect(FeatureFlagOverrides.singleton().getEnabledFeatureFlagList(org)).toEqual([
@@ -236,10 +237,7 @@ describe('useBootstrapProjectsQuery', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/projects/`,
       body: mockProjects,
-      query: {
-        all_projects: 1,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
     });
 
     const {result} = renderHookWithProviders(() => useBootstrapProjectsQuery(orgSlug));

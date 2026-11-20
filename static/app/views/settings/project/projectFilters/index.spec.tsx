@@ -61,6 +61,11 @@ describe('ProjectFilters', () => {
     features: ['inbound-filters-v2', 'inbound-filters-v2-ui'],
   });
 
+  const environmentConditionOrg = OrganizationFixture({
+    ...inboundFiltersV2Org,
+    features: [...inboundFiltersV2Org.features, 'inbound-filters-environment-condition'],
+  });
+
   const nameSuggestionOrg = OrganizationFixture({
     ...inboundFiltersV2Org,
     features: [...inboundFiltersV2Org.features, 'inbound-filters-name-suggestion'],
@@ -112,10 +117,7 @@ describe('ProjectFilters', () => {
     renderedProject: typeof project = businessProject,
     renderedOrganization: typeof organization = inboundFiltersV2Org
   ) {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: filters,
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: filters});
     const result = render(<ProjectFiltersWithModal />, {
       organization: renderedOrganization,
       outletContext: {project: renderedProject},
@@ -173,12 +175,7 @@ describe('ProjectFilters', () => {
 
     expect(mock).toHaveBeenCalledWith(
       getFilterEndpoint(filter),
-      expect.objectContaining({
-        method: 'PUT',
-        data: {
-          active: false,
-        },
-      })
+      expect.objectContaining({method: 'PUT', data: {active: false}})
     );
     await waitFor(() => {
       expect(
@@ -206,12 +203,7 @@ describe('ProjectFilters', () => {
       );
       expect(mock).toHaveBeenCalledWith(
         getFilterEndpoint(filter),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            active: true,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {active: true}})
       );
     }
   });
@@ -221,9 +213,7 @@ describe('ProjectFilters', () => {
 
     const updatedProject = DetailedProjectFixture({
       slug: project.slug,
-      options: {
-        'filters:chunk-load-error': true,
-      },
+      options: {'filters:chunk-load-error': true},
     });
 
     const mock = MockApiClient.addMockResponse({
@@ -233,10 +223,7 @@ describe('ProjectFilters', () => {
       body: updatedProject,
     });
 
-    MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      body: updatedProject,
-    });
+    MockApiClient.addMockResponse({url: PROJECT_URL, body: updatedProject});
 
     const control = await screen.findByRole('checkbox', {
       name: 'Filter out ChunkLoadError(s)',
@@ -250,11 +237,7 @@ describe('ProjectFilters', () => {
       PROJECT_URL,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {
-            'filters:chunk-load-error': true,
-          },
-        },
+        data: {options: {'filters:chunk-load-error': true}},
       })
     );
     await waitFor(() => {
@@ -275,9 +258,7 @@ describe('ProjectFilters', () => {
     ).toBeChecked();
 
     expect(
-      await screen.findByRole('checkbox', {
-        name: 'Safari Version 15 and lower',
-      })
+      await screen.findByRole('checkbox', {name: 'Safari Version 15 and lower'})
     ).toBeChecked();
 
     expect(
@@ -351,10 +332,7 @@ describe('ProjectFilters', () => {
   it('saves the ip address filter on blur from the filters section', async () => {
     renderComponent();
 
-    const mock = MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: PROJECT_URL, method: 'PUT'});
 
     const textbox = await screen.findByRole('textbox', {name: 'IP Addresses'});
     // The IP list works on every plan, so it sits with the built-in filters above
@@ -409,22 +387,14 @@ describe('ProjectFilters', () => {
   it('has custom inbound filters with flag + can change', async () => {
     render(<ProjectFilters />, {
       organization,
-      outletContext: {
-        project: {
-          ...project,
-          features: ['custom-inbound-filters'],
-        },
-      },
+      outletContext: {project: {...project, features: ['custom-inbound-filters']}},
       initialRouterConfig,
     });
 
     expect(await screen.findByRole('textbox', {name: 'Releases'})).toBeEnabled();
     expect(screen.getByRole('textbox', {name: 'Error Message'})).toBeEnabled();
 
-    const mock = MockApiClient.addMockResponse({
-      url: PROJECT_URL,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: PROJECT_URL, method: 'PUT'});
 
     await userEvent.click(screen.getByRole('textbox', {name: 'Releases'}));
     await userEvent.paste('release\nrelease2');
@@ -1218,7 +1188,10 @@ describe('ProjectFilters', () => {
       within(dialog).getByRole('button', {name: 'Edit operator for filter: release'})
     );
     const names = screen.getAllByRole('option').map(option => option.textContent);
-    expect(names.slice(0, 6)).toEqual(['is', 'is not', '>=', '<=', '>', '<']);
+    expect(names.slice(0, 5)).toEqual(['is', '>=', '<=', '>', '<']);
+    // The API has no "is not" for text, so the menu only offers the other negations.
+    expect(names).not.toContain('is not');
+    expect(names).toContain('does not contain');
     await userEvent.click(screen.getByRole('option', {name: '<'}));
     expect(within(dialog).getByRole('row', {name: 'release:<1.0'})).toBeInTheDocument();
 
@@ -1268,10 +1241,7 @@ describe('ProjectFilters', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Delete filter'}));
 
     // Override the list response so the post-delete refetch drops the filter
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Confirm'}));
 
@@ -1308,10 +1278,7 @@ describe('ProjectFilters', () => {
   });
 
   it('offers log and metric data types when the ingestion features are enabled', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
@@ -1337,16 +1304,14 @@ describe('ProjectFilters', () => {
   });
 
   it('only offers condition properties for the selected data type', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
         features: [
           'inbound-filters-v2',
           'inbound-filters-v2-ui',
+          'inbound-filters-environment-condition',
           'ourlogs-ingestion',
           'tracemetrics-ingestion',
         ],
@@ -1369,6 +1334,7 @@ describe('ProjectFilters', () => {
     expect(screen.getByRole('option', {name: 'error_type'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'geo_country_code'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'metric_name'})).not.toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'log_message'})).not.toBeInTheDocument();
@@ -1507,8 +1473,20 @@ describe('ProjectFilters', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('creates a catch-all filter that applies to every data type', async () => {
+  it('hides the environment condition without its feature', async () => {
     renderInboundFilters([]);
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add Filter'}));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(
+      within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
+    );
+    expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.queryByRole('option', {name: 'environment'})).not.toBeInTheDocument();
+  });
+
+  it('creates a catch-all filter that applies to every data type', async () => {
+    renderInboundFilters([], businessProject, environmentConditionOrg);
     expect(await screen.findByText('No custom inbound filters yet')).toBeInTheDocument();
 
     const createMock = MockApiClient.addMockResponse({
@@ -1537,6 +1515,7 @@ describe('ProjectFilters', () => {
       within(dialog).getAllByRole('combobox', {name: 'Add a search term'}).at(-1)!
     );
     expect(await screen.findByRole('option', {name: 'release'})).toBeInTheDocument();
+    expect(screen.getByRole('option', {name: 'environment'})).toBeInTheDocument();
     expect(screen.getByRole('option', {name: 'ip_address'})).toBeInTheDocument();
     expect(screen.queryByRole('option', {name: 'error_message'})).not.toBeInTheDocument();
     expect(
@@ -1603,10 +1582,7 @@ describe('ProjectFilters', () => {
   });
 
   it('flags conditions the new data type does not offer', async () => {
-    MockApiClient.addMockResponse({
-      url: CUSTOM_INBOUND_FILTERS_URL,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: CUSTOM_INBOUND_FILTERS_URL, body: []});
     render(<ProjectFiltersWithModal />, {
       organization: OrganizationFixture({
         ...organization,
@@ -1711,9 +1687,7 @@ describe('ProjectFilters', () => {
         project: {
           ...project,
           features: ['custom-inbound-filters'],
-          options: {
-            'filters:error_messages': 'test',
-          },
+          options: {'filters:error_messages': 'test'},
         },
       },
       initialRouterConfig,
@@ -1727,10 +1701,7 @@ describe('ProjectFilters', () => {
   });
 
   it('disables undiscard tombstone for users without project:write', async () => {
-    const discardProject = ProjectFixture({
-      ...project,
-      features: ['discard-groups'],
-    });
+    const discardProject = ProjectFixture({...project, features: ['discard-groups']});
     const discardOrg = OrganizationFixture({access: [], features: ['discard-groups']});
 
     render(<ProjectFilters />, {

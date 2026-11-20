@@ -251,6 +251,87 @@ class UnityContextType(ContextType):
     }
 
 
+def _as_serialized(schema: dict[str, Any]) -> dict[str, Any]:
+    """
+    Adjusts a context's Relay schema to what `ContextType.to_json` returns.
+
+    Contexts drop keys whose value is None, so nothing is required, and Relay's defaults
+    only apply to the events it ingests. `ContextType.change_type` turns numbers longer
+    than 15 characters into strings.
+    """
+    result = {
+        key: (
+            _as_serialized(value)
+            if isinstance(value, dict)
+            else [_as_serialized(v) for v in value]
+            if key in ("anyOf", "oneOf", "allOf")
+            else value.strip()
+            if key == "description"
+            else value
+        )
+        for key, value in schema.items()
+        if key not in ("required", "default")
+    }
+    if result.get("type") not in ("integer", "number"):
+        return result
+    number = {key: value for key, value in result.items() if key not in ("description", "nullable")}
+    branches = [number, {"type": "string"}]
+    if result.get("nullable"):
+        branches.append({"type": "object", "nullable": True, "enum": [None]})
+    described = {"description": result["description"]} if "description" in result else {}
+    return {"anyOf": branches, **described}
+
+
+# Relay leaves the OpenTelemetry attribute maps open, but the OpenTelemetry spec limits an
+# attribute's value to a primitive or an array of primitives.
+_OTEL_PRIMITIVE = [{"type": "string"}, {"type": "boolean"}, {"type": "integer"}, {"type": "number"}]
+_OTEL_ATTRIBUTE_VALUE = {
+    "anyOf": [*_OTEL_PRIMITIVE, {"type": "array", "items": {"anyOf": _OTEL_PRIMITIVE}}]
+}
+
+
+def contexts_response_schema() -> dict[str, Any]:
+    """
+    API schema of an event's contexts, keyed by alias.
+
+    A registered context type with a definition in Relay's event schema gets that
+    definition. The other types, and contexts of a type that isn't registered, which
+    serialize as `default`, are open objects. Every context keeps keys its definition
+    doesn't list.
+    """
+    from sentry.apidocs.json_schemas import to_response_schema, union_schema
+    from sentry.issues.json_schemas import EVENT_PAYLOAD_SCHEMA
+
+    definitions = EVENT_PAYLOAD_SCHEMA["definitions"]
+    branches = []
+    for name in sorted(context_types):
+        definition = f"{name.title()}Context"
+        schema: dict[str, Any] = {"type": "object"}
+        if definition in definitions:
+            converted = to_response_schema(
+                {"$ref": f"#/definitions/{definition}"}, definitions=definitions
+            )
+            # Relay wraps each context's object in a single-branch anyOf.
+            (schema,) = converted.pop("anyOf", [converted])
+            if name == GpuContextType.type:
+                # Relay keeps any value, but SDKs send the PCI ID as a number, which is
+                # what the frontend's GPUContext type expects.
+                schema["properties"]["id"]["type"] = "integer"
+            schema = _as_serialized({**converted, **schema})
+        if name == OtelContextType.type:
+            for attributes in ("attributes", "resource"):
+                schema["properties"][attributes]["additionalProperties"] = _OTEL_ATTRIBUTE_VALUE
+        schema.setdefault("properties", {})["type"] = {
+            "type": "string",
+            "enum": [name],
+            "description": "Type of the context",
+        }
+        schema["required"] = ["type"]
+        schema["additionalProperties"] = True
+        branches.append(schema)
+    return {"type": "object", "nullable": True, "additionalProperties": union_schema(branches)}
+
+
 class Contexts(Interface):
     """
     This interface stores context specific information.

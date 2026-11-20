@@ -1,6 +1,7 @@
 import {Fragment, type PropsWithChildren, useEffect} from 'react';
 import {css, Global, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import {useQueryState} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {GlobalDrawer} from '@sentry/scraps/drawer';
@@ -24,11 +25,8 @@ import {useStoryParams} from './useStoryParams';
 
 export default function Stories() {
   const location = useLocation();
-  return isLandingPage(location) && !location.query.name ? (
-    <StoriesLanding />
-  ) : (
-    <StoryDetail />
-  );
+  const [name] = useQueryState('name');
+  return isLandingPage(location) && !name ? <StoriesLanding /> : <StoryDetail />;
 }
 
 function StoriesLanding() {
@@ -48,17 +46,14 @@ function StoriesLanding() {
 }
 
 function StoryDetail() {
-  const location = useLocation();
+  const [name] = useQueryState('name');
   const {storyCategory, storySlug} = useStoryParams();
   const stories = useFlatStoryList();
 
-  let storyNode = getStoryFromParams(stories, {
-    category: storyCategory,
-    slug: storySlug,
-  });
+  let storyNode = getStoryFromParams(stories, {category: storyCategory, slug: storySlug});
 
   // If we don't have a story node, try to find it by the filesystem path
-  if (!storyNode && location.query.name) {
+  if (!storyNode && name) {
     const nodes = Object.values(stories).flat();
     const queue = [...nodes];
 
@@ -68,7 +63,7 @@ function StoryDetail() {
         break;
       }
 
-      if (node.filesystemPath === location.query.name) {
+      if (node.filesystemPath === name) {
         storyNode = node;
         break;
       }
@@ -79,9 +74,7 @@ function StoryDetail() {
     }
   }
 
-  const story = useStoriesLoader({
-    files: storyNode ? [storyNode.filesystemPath] : [],
-  });
+  const story = useStoriesLoader({files: storyNode ? [storyNode.filesystemPath] : []});
 
   return (
     <StoriesLayout>
@@ -169,10 +162,7 @@ function useStoriesFavicon() {
       }
     });
 
-    observer.observe(faviconNode, {
-      attributes: true,
-      attributeFilter: ['href'],
-    });
+    observer.observe(faviconNode, {attributes: true, attributeFilter: ['href']});
 
     return () => {
       observer.disconnect();

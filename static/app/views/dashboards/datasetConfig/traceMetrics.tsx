@@ -36,6 +36,7 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -47,7 +48,11 @@ import {
   type SearchBarDataProviderProps,
   type WidgetBuilderSearchBarProps,
 } from './base';
-import {getTableSortOptions, getTimeseriesSortOptions} from './events';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+  renderTraceAsLinkable,
+} from './events';
 import {formatTraceMetricsFunction} from './formatTraceMetricsFunction';
 
 // This is a placeholder that currently signals that no metric is selected
@@ -97,28 +102,19 @@ function TraceMetricsSearchBar({
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'boolean',
       HiddenTraceMetricSearchFields
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]) && supportsArrays,
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
       'array',
       HiddenTraceMetricSearchFields
     );
@@ -310,16 +306,10 @@ export const TraceMetricsConfig: DatasetConfig<
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
       if (isEquationAlias(value)) {
-        return {
-          label: `ƒ${getEquationAliasIndex(value) + 1}`,
-          value,
-        };
+        return {label: `ƒ${getEquationAliasIndex(value) + 1}`, value};
       }
 
-      return {
-        label,
-        value,
-      };
+      return {label, value};
     }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
@@ -336,6 +326,9 @@ export const TraceMetricsConfig: DatasetConfig<
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
   ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    if (field === TraceMetricKnownFieldKey.TRACE) {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getFieldHeaderMap: widgetQuery => {

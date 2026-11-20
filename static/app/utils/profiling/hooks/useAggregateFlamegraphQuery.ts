@@ -1,12 +1,11 @@
 import {useMemo} from 'react';
+import {useQuery} from '@tanstack/react-query';
+import type {UseQueryResult} from '@tanstack/react-query';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface BaseAggregateFlamegraphQueryParameters {
@@ -44,18 +43,15 @@ export type AggregateFlamegraphQueryParameters =
   | ProfilesAggregateFlamegraphQueryParameters
   | SpansAggregateFlamegraphQueryParameters;
 
-type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
-  Profiling.Schema,
-  RequestError
->;
+type UseAggregateFlamegraphQueryResult = UseQueryResult<Profiling.Schema>;
 
 export function useAggregateFlamegraphQuery(
   props: AggregateFlamegraphQueryParameters
 ): UseAggregateFlamegraphQueryResult {
   const {dataSource, metrics, datetime, enabled, environments, projects} = props;
 
-  let fingerprint: string | undefined = undefined;
-  let query: string | undefined = undefined;
+  let fingerprint: string | undefined;
+  let query: string | undefined;
 
   if (isDataSourceFunctions(props)) {
     fingerprint = props.fingerprint;
@@ -68,9 +64,7 @@ export function useAggregateFlamegraphQuery(
   const {selection} = usePageFilters();
 
   const endpointOptions = useMemo(() => {
-    const params: {
-      query: Record<string, any>;
-    } = {
+    const params: {query: Record<string, unknown>} = {
       query: {
         project: projects ?? selection.projects,
         environment: environments ?? selection.environments,
@@ -97,19 +91,14 @@ export function useAggregateFlamegraphQuery(
     selection,
   ]);
 
-  return useApiQuery<Profiling.Schema>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/profiling/flamegraph/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      endpointOptions,
-    ],
-    {
-      staleTime: 0,
-      retry: false,
-      enabled,
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<Profiling.Schema>()(
+      '/organizations/$organizationIdOrSlug/profiling/flamegraph/',
+      {path: {organizationIdOrSlug: organization.slug}, ...endpointOptions, staleTime: 0}
+    ),
+    retry: false,
+    enabled,
+  });
 }
 
 function isDataSourceProfiles(

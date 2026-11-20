@@ -36,9 +36,7 @@ describe('TimeRangeSelector', () => {
   });
 
   it('renders when given an invalid relative period', async () => {
-    render(<TimeRangeSelector relative="1y" />, {
-      organization,
-    });
+    render(<TimeRangeSelector relative="1y" />, {organization});
     expect(
       await screen.findByRole('button', {name: 'Invalid Period'})
     ).toBeInTheDocument();
@@ -215,7 +213,7 @@ describe('TimeRangeSelector', () => {
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('searchbox');
     await userEvent.type(input, '5');
 
     // With just the number "5", all unit options should be present
@@ -260,7 +258,7 @@ describe('TimeRangeSelector', () => {
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('searchbox');
     await userEvent.type(input, '3');
 
     // With just the number "3", all unit options should be present
@@ -288,7 +286,7 @@ describe('TimeRangeSelector', () => {
 
     await userEvent.click(screen.getByRole('button', {expanded: false}));
 
-    const input = screen.getByRole('textbox');
+    const input = screen.getByRole('searchbox');
 
     // Search filter still works normally
     await userEvent.type(input, '24');

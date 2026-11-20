@@ -14,10 +14,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseApiError} from 'sentry/utils/parseApiError';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -42,7 +43,6 @@ export function SizeCompareSelectionContent({
   headBuildDetails,
 }: SizeCompareSelectionContentProps) {
   const organization = useOrganization();
-  const api = useApi({persistInFlight: true});
   const navigate = useNavigate();
   const [cursor] = useQueryState('cursor', parseAsString.withDefault(''));
   const [selectedBaseBuild, setSelectedBaseBuild] = useState<
@@ -89,14 +89,14 @@ export function SizeCompareSelectionContent({
     {baseArtifactId: string; headArtifactId: string}
   >({
     mutationFn: ({headArtifactId, baseArtifactId}) => {
-      return api.requestPromise(
-        getCompareApiUrl({
+      return fetchMutation<void>({
+        url: getCompareApiUrl({
           organizationSlug: organization.slug,
           headArtifactId,
           baseArtifactId,
         }),
-        {method: 'POST'}
-      );
+        method: 'POST',
+      });
     },
     onSuccess: () => {
       navigate(
@@ -200,7 +200,7 @@ export function SizeCompareSelectionContent({
               );
             })}
 
-            {hasPagination && <Pagination pageLinks={pageLinks} />}
+            {hasPagination && <Pagination {...getPaginationProps(pageLinks)} />}
           </Stack>
         )}
       </Stack>

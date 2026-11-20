@@ -23,6 +23,18 @@ type InvestigationOrchestrationSummary = {
   status: InvestigationOrchestrationStatus;
 };
 
+/**
+ * What started an investigation: the automation run that created it, else the
+ * user who did.
+ */
+export type InvestigationTrigger =
+  | {
+      automation: {id: string; name: string | null; strategy: string};
+      runId: string;
+      type: 'automation';
+    }
+  | {type: 'user'; user: AvatarUser};
+
 export type InvestigationListItem = {
   blockCount: number;
   createdBy: string | null;
@@ -37,9 +49,8 @@ export type InvestigationListItem = {
   title: string;
   version: number;
   orchestration?: InvestigationOrchestrationSummary | null;
-  titleGeneration?: {
-    status: 'pending' | 'running' | 'completed' | 'failed' | null;
-  };
+  titleGeneration?: {status: 'pending' | 'running' | 'completed' | 'failed' | null};
+  trigger?: InvestigationTrigger | null;
 };
 
 // Expand this response type as the detail UI begins consuming additional fields.
@@ -67,11 +78,7 @@ export type InvestigationBlock = {
 
 export type InvestigationBlockKind = 'query' | 'text';
 
-export type InvestigationViewer = {
-  active: boolean;
-  lastSeen: string;
-  userId: string;
-};
+export type InvestigationViewer = {active: boolean; lastSeen: string; userId: string};
 
 export type InvestigationComment = {
   /** Null once the author's account is deleted. */
@@ -107,11 +114,7 @@ type InvestigationBlockExecution = {
 };
 
 export type InvestigationTranscriptBlock = {
-  artifacts: Array<{
-    data: Record<string, unknown> | null;
-    key: string;
-    reason: string;
-  }>;
+  artifacts: Array<{data: Record<string, unknown> | null; key: string; reason: string}>;
   id: string;
   loading: boolean;
   message: {
@@ -119,17 +122,10 @@ export type InvestigationTranscriptBlock = {
     role: 'user' | 'assistant' | 'tool_use';
     metadata?: Record<string, string> | null;
     thinking_content?: string | null;
-    tool_calls?: Array<{
-      args: string;
-      function: string;
-      id?: string | null;
-    }> | null;
+    tool_calls?: Array<{args: string; function: string; id?: string | null}> | null;
   };
   timestamp: string;
-  toolLinks: Array<{
-    kind: string;
-    params: Record<string, unknown>;
-  } | null> | null;
+  toolLinks: Array<{kind: string; params: Record<string, unknown>} | null> | null;
   toolResults: Array<{
     content: string;
     tool_call_function: string;
@@ -184,10 +180,7 @@ export type InvestigationTitleGeneration = {
 };
 
 export type MetricOpenPeriodInvestigationSource = {
-  ref: {
-    groupId: string;
-    openPeriodId: string;
-  };
+  ref: {groupId: string; openPeriodId: string};
   type: 'metric_open_period';
 };
 
@@ -208,7 +201,7 @@ export type InvestigationCandidate =
 
 // The orchestration projection: the whole live state of an agentic run, which
 // Seer pushes as one JSON blob on every orchestration event and Sentry serves
-// from `/investigations/$investigationId/orchestration/`. The server contract
+// from `/investigations/$notebookId/orchestration/`. The server contract
 // lives in `src/sentry/investigations/contracts.py` — keep these types in step
 // with it.
 //
@@ -455,10 +448,7 @@ type InvestigationOrchestrationReport = {
     >;
     automaticRetryCount?: number;
   } | null;
-  suggestedHypotheses?: Array<{
-    statement: string;
-    rationale?: string | null;
-  }>;
+  suggestedHypotheses?: Array<{statement: string; rationale?: string | null}>;
 };
 
 export type InvestigationOrchestration = {
@@ -491,8 +481,9 @@ export type InvestigationOrchestration = {
   activeTimeElapsedSeconds?: number | null;
   finishedAt?: string | null;
   pendingInput?: {
-    missingFields: Array<'prompt' | 'time_range'>;
     prompt: string;
+    /** What the run is waiting for. Optional on the wire. */
+    missingFields?: Array<'prompt' | 'time_range'>;
   } | null;
   /** Fresh API server time, independent of the projection's last update. */
   serverTime?: string;
@@ -510,41 +501,16 @@ export type InvestigationOrchestration = {
 };
 
 /**
- * A viewer-issued instruction to a running workflow. Mirrors
- * `COMMAND_VALIDATORS`. The inner payload stays camelCase because the server
+ * A viewer-issued instruction to a running workflow, from `COMMAND_VALIDATORS`.
+ * Only `provide_input` is sent from here; the others are left out until
+ * something sends them. The inner payload stays camelCase because the server
  * only case-converts the envelope keys.
  */
-export type InvestigationOrchestrationCommand =
-  | {
-      type: 'provide_input';
-      prompt?: string;
-      timeRange?: {end: string; start: string};
-    }
-  | {
-      statement: string;
-      type: 'add_hypothesis';
-      rationale?: string | null;
-    }
-  | {
-      disposition: 'accepted' | 'rejected' | null;
-      hypothesisId: string;
-      type: 'set_hypothesis_disposition';
-    }
-  | {
-      instruction: string;
-      target: 'workflow' | 'hypothesis' | 'report' | 'block';
-      type: 'steer';
-      targetId?: string | null;
-    }
-  | {
-      target: 'run' | 'hypothesis' | 'report';
-      type: 'retry';
-      targetId?: string | null;
-    }
-  | {
-      type: 'cancel';
-      reason?: string | null;
-    };
+export type InvestigationOrchestrationCommand = {
+  type: 'provide_input';
+  prompt?: string;
+  timeRange?: {end: string; start: string};
+};
 
 export type InvestigationOrchestrationCommandVariables = {
   command: InvestigationOrchestrationCommand;

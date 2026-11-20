@@ -61,10 +61,7 @@ describe('EventUserFeedback', () => {
   it('does not repeat the email when it matches the reporter name', async () => {
     render(
       <EventUserFeedback
-        report={makeReport({
-          email: 'jane@example.com',
-          name: 'Jane@Example.com',
-        })}
+        report={makeReport({email: 'jane@example.com', name: 'Jane@Example.com'})}
       />
     );
 

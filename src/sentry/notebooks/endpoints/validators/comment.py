@@ -4,9 +4,12 @@ from typing import Any
 
 from rest_framework import serializers
 
-from sentry.notebooks.endpoints.base import InvestigationArchivedError
+from sentry.api.fields.actor import ActorField
+from sentry.notebooks.comments import create_comment
+from sentry.notebooks.endpoints.base import NotebookArchivedError
 from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.notebooks.models import NotebookBlock, NotebookComment, NotebookStatus
+from sentry.types.actor import Actor
 
 MAX_COMMENT_LENGTH = 10_000
 
@@ -25,10 +28,21 @@ class CommentValidator(StrictCamelSnakeValidator[NotebookComment]):
     body = serializers.CharField(
         max_length=MAX_COMMENT_LENGTH, help_text="Comment text, up to 10,000 characters."
     )
+    mentions = serializers.ListField(
+        child=ActorField(),
+        required=False,
+        write_only=True,
+        help_text="Mentioned actors, e.g. user:123 or team:456. Only recorded on creation.",
+    )
+
+    def validate_mentions(self, mentions: list[Actor | None]) -> list[Actor]:
+        if any(mention is None for mention in mentions):
+            raise serializers.ValidationError("Mentioned actors cannot be empty.")
+        return [mention for mention in mentions if mention is not None]
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
-        if self.context["investigation"].status == NotebookStatus.ARCHIVED:
-            raise InvestigationArchivedError
+        if self.context["notebook"].status == NotebookStatus.ARCHIVED:
+            raise NotebookArchivedError
         return attrs
 
 
@@ -40,9 +54,9 @@ class CommentCreateValidator(CommentValidator):
     )
 
     def validate_block_id(self, value: int) -> NotebookBlock:
-        block = NotebookBlock.objects.filter(
-            id=value, notebook=self.context["investigation"], deleted_at__isnull=True
-        ).first()
+        block = NotebookBlock.objects.get_or_none(
+            id=value, notebook=self.context["notebook"], deleted_at__isnull=True
+        )
         if block is None:
             raise serializers.ValidationError("Block not found.")
         return block
@@ -54,12 +68,11 @@ class CommentCreateValidator(CommentValidator):
         return attrs
 
     def create(self, validated_data: dict[str, Any]) -> NotebookComment:
-        return NotebookComment.objects.create(
-            notebook=self.context["investigation"], **validated_data
-        )
+        return create_comment(notebook=self.context["notebook"], **validated_data)
 
 
 class CommentUpdateValidator(CommentValidator):
     def update(self, instance: NotebookComment, validated_data: dict[str, Any]) -> NotebookComment:
+        validated_data.pop("mentions", None)
         instance.update(**validated_data)
         return instance

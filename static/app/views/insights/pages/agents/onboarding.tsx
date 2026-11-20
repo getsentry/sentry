@@ -1,6 +1,8 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {parseAsInteger, useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import agentTracingEmptyStateImg from 'sentry-images/spot/agent-tracing-empty-state.svg';
 
@@ -37,7 +39,6 @@ import {agentMonitoringPlatforms} from 'sentry/data/platformCategories';
 import {otherPlatform, allPlatforms as platforms} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApi} from 'sentry/utils/useApi';
@@ -200,7 +201,10 @@ function OnboardingPanel({
 
 export function Onboarding() {
   const api = useApi();
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
   const project = useOnboardingProject();
   const organization = useOrganization();
   const [guidedStep, setGuidedStep] = useQueryState('guidedStep', parseAsInteger);
@@ -266,10 +270,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -365,9 +366,7 @@ function CopyInstructionsButton() {
       source="agent_monitoring_onboarding"
       getMarkdown={() => LLM_ONBOARDING_COPY_MARKDOWN}
       onCopy={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-          organization,
-        });
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {organization});
       }}
     />
   );
@@ -386,9 +385,7 @@ export function UnsupportedPlatformOnboarding({
         <p>
           {tct(
             'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project.',
-            {
-              platform: platformName,
-            }
+            {platform: platformName}
           )}
         </p>
         <p>

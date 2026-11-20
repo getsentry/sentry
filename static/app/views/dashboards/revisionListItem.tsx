@@ -4,11 +4,11 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {TagVariant} from '@sentry/scraps/theme';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
@@ -124,7 +124,7 @@ export function RevisionListItem({
                 {formatRevisionSource(revisionSource)}
               </Text>
             )}
-            {dateCreated && <DateTime date={dateCreated} timeZone />}
+            {dateCreated && <DateTime date={dateCreated} showTimezone />}
             <Flex align="center" gap="xs">
               {userForAvatar && <UserAvatar user={userForAvatar} size={16} />}
               <Text size="sm" variant="muted">

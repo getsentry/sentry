@@ -1,8 +1,8 @@
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import type {Locality} from 'sentry/types/system';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -15,7 +15,7 @@ export function useOrganizationsWithRegion() {
     acc[l.url] = l;
     return acc;
   }, {});
-  const {links} = useLegacyStore(ConfigStore);
+  const links = useStore(ConfigStore, state => state.links);
 
   const query = useQuery({
     ...apiOptions.as<OrganizationSummary[]>()('/organizations/', {
@@ -32,10 +32,7 @@ export function useOrganizationsWithRegion() {
           // an organization's locality is missing from the known localities.
           Sentry.captureMessage('Could not match organization region URL to a locality', {
             level: 'warning',
-            extra: {
-              organizationSlug: org.slug,
-              regionUrl: org.links.regionUrl,
-            },
+            extra: {organizationSlug: org.slug, regionUrl: org.links.regionUrl},
           });
           return [];
         }
@@ -44,9 +41,5 @@ export function useOrganizationsWithRegion() {
     },
   });
 
-  return {
-    data: query.data ?? [],
-    isError: query.isError,
-    isPending: query.isPending,
-  };
+  return {data: query.data ?? [], isError: query.isError, isPending: query.isPending};
 }

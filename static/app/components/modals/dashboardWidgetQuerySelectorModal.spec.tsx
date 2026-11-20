@@ -8,8 +8,6 @@ import DashboardWidgetQuerySelectorModal from './dashboardWidgetQuerySelectorMod
 
 const stubEl: any = (props: any) => <div>{props.children}</div>;
 
-const api = new MockApiClient();
-
 function renderModal({
   initialData,
   widget,
@@ -26,7 +24,6 @@ function renderModal({
       closeModal={() => {}}
       organization={initialData.organization}
       widget={widget}
-      api={api}
       dashboardFilters={undefined}
     />
   );
@@ -34,9 +31,7 @@ function renderModal({
 
 describe('Modals -> AddDashboardWidgetModal', () => {
   const initialData = initializeOrg({
-    organization: {
-      features: ['performance-view', 'discover-query'],
-    },
+    organization: {features: ['discover-query']},
     projects: [],
   });
   let mockQuery!: Widget['queries'][number];
@@ -96,10 +91,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
     });
-    mockWidget.queries.push({
-      ...mockQuery,
-      conditions: 'title:/organizations/:orgId/',
-    });
+    mockWidget.queries.push({...mockQuery, conditions: 'title:/organizations/:orgId/'});
     renderModal({initialData, widget: mockWidget});
     const queryFields = screen.getAllByRole('textbox');
     expect(queryFields).toHaveLength(3);

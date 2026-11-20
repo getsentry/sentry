@@ -3,8 +3,9 @@ from __future__ import annotations
 from collections.abc import Collection, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import TYPE_CHECKING, Literal, TypedDict, TypeIs, TypeVar, Union
+from typing import TYPE_CHECKING, Annotated, Literal, TypedDict, TypeIs, TypeVar, Union
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.utils.services import Service
 
 if TYPE_CHECKING:
@@ -64,23 +65,38 @@ ProjectWithCount = tuple[ProjectId, int]
 #: Group key as featured in output format
 GroupKeyDict = TypedDict(
     "GroupKeyDict",
-    {"project": int, "release": str, "environment": str, "session.status": str},
+    {
+        "project": Annotated[int, ApiDescription("ID of the project")],
+        "release": Annotated[str, ApiDescription("Version of the release")],
+        "environment": Annotated[str, ApiDescription("Name of the environment")],
+        "session.status": Annotated[
+            str, ApiDescription("Status of the sessions: healthy, abnormal, crashed or errored")
+        ],
+    },
     total=False,
 )
 
 
 class SessionsQueryGroup(TypedDict):
-    by: GroupKeyDict
-    series: dict[SessionsQueryFunction, list[SessionsQueryValue]]
-    totals: dict[SessionsQueryFunction, SessionsQueryValue]
+    by: Annotated[GroupKeyDict, ApiDescription("Values of the group-by columns of the group")]
+    series: Annotated[
+        dict[SessionsQueryFunction, list[SessionsQueryValue]],
+        ApiDescription("Value of each requested field for each interval, by field"),
+    ]
+    totals: Annotated[
+        dict[SessionsQueryFunction, SessionsQueryValue],
+        ApiDescription("Value of each requested field over the whole time range, by field"),
+    ]
 
 
 class SessionsQueryResult(TypedDict):
-    start: datetime
-    end: datetime
-    intervals: list[DateString]
-    groups: list[SessionsQueryGroup]
-    query: str
+    start: Annotated[datetime, ApiDescription("Start of the queried time range (ISO 8601)")]
+    end: Annotated[datetime, ApiDescription("End of the queried time range (ISO 8601)")]
+    intervals: Annotated[
+        list[DateString], ApiDescription("Start of each interval in the series (ISO 8601)")
+    ]
+    groups: Annotated[list[SessionsQueryGroup], ApiDescription("Result for each group")]
+    query: Annotated[str, ApiDescription("Search query that filtered the sessions")]
 
 
 FormattedIsoTime = str
@@ -109,8 +125,18 @@ def is_overview_stat(s: str) -> TypeIs[OverviewStat]:
 
 
 class CurrentAndPreviousCrashFreeRate(TypedDict):
-    currentCrashFreeRate: float | None
-    previousCrashFreeRate: float | None
+    currentCrashFreeRate: Annotated[
+        float | None,
+        ApiDescription(
+            "Crash-free rate in the current period, as a percentage. Null when there's no session data"
+        ),
+    ]
+    previousCrashFreeRate: Annotated[
+        float | None,
+        ApiDescription(
+            "Crash-free rate in the previous period, as a percentage. Null when there's no session data"
+        ),
+    ]
 
 
 CurrentAndPreviousCrashFreeRates = Mapping[ProjectId, CurrentAndPreviousCrashFreeRate]

@@ -43,12 +43,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           areaStyle: {color: color?.[0], opacity: 1},
         });
 
-        return {
-          ...slackChartDefaults,
-          useUTC: true,
-          color,
-          series: [areaSeries],
-        };
+        return {...slackChartDefaults, useUTC: true, color, series: [areaSeries]};
       }
 
       const stats = Object.keys(data.stats).map(key =>
@@ -73,13 +68,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           })
         );
 
-      return {
-        ...slackChartDefaults,
-        xAxis: discoverxAxis,
-        useUTC: true,
-        color,
-        series,
-      };
+      return {...slackChartDefaults, xAxis: discoverxAxis, useUTC: true, color, series};
     },
     ...slackChartSize,
   });
@@ -137,13 +126,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           })
         );
 
-      return {
-        ...slackChartDefaults,
-        xAxis: discoverxAxis,
-        useUTC: true,
-        color,
-        series,
-      };
+      return {...slackChartDefaults, xAxis: discoverxAxis, useUTC: true, color, series};
     },
     ...slackChartSize,
   });
@@ -167,12 +150,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           areaStyle: {color: color?.[0], opacity: 1},
         });
 
-        return {
-          ...slackChartDefaults,
-          useUTC: true,
-          color,
-          series: [areaSeries],
-        };
+        return {...slackChartDefaults, useUTC: true, color, series: [areaSeries]};
       }
 
       const stats = Object.values(data.stats);
@@ -201,13 +179,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           })
         );
 
-      return {
-        ...slackChartDefaults,
-        xAxis: discoverxAxis,
-        useUTC: true,
-        color,
-        series,
-      };
+      return {...slackChartDefaults, xAxis: discoverxAxis, useUTC: true, color, series};
     },
     ...slackChartSize,
   });
@@ -231,12 +203,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           itemStyle: {color: color?.[0]},
         });
 
-        return {
-          ...slackChartDefaults,
-          useUTC: true,
-          color,
-          series: [lineSeries],
-        };
+        return {...slackChartDefaults, useUTC: true, color, series: [lineSeries]};
       }
 
       const stats = Object.values(data.stats);
@@ -263,13 +230,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           })
         );
 
-      return {
-        ...slackChartDefaults,
-        xAxis: discoverxAxis,
-        useUTC: true,
-        color,
-        series,
-      };
+      return {...slackChartDefaults, xAxis: discoverxAxis, useUTC: true, color, series};
     },
     ...slackChartSize,
   });
@@ -293,12 +254,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           areaStyle: {color: color?.[0], opacity: 1},
         });
 
-        return {
-          ...slackChartDefaults,
-          useUTC: true,
-          color,
-          series: [areaSeries],
-        };
+        return {...slackChartDefaults, useUTC: true, color, series: [areaSeries]};
       }
 
       const stats = Object.values(data.stats);
@@ -325,13 +281,7 @@ export const makeDiscoverCharts = (theme: Theme): Array<RenderDescriptor<ChartTy
           })
         );
 
-      return {
-        ...slackChartDefaults,
-        xAxis: discoverxAxis,
-        useUTC: true,
-        color,
-        series,
-      };
+      return {...slackChartDefaults, xAxis: discoverxAxis, useUTC: true, color, series};
     },
     ...slackChartSize,
   });

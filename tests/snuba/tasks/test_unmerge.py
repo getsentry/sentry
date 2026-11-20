@@ -51,7 +51,7 @@ from sentry.tsdb.base import TSDBModel
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
-index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
+index = _make_index_backend(redis.redis_clusters.get_binary("default"))
 
 
 @patch.object(features, "index", new=index)

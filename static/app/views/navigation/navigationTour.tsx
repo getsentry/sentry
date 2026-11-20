@@ -244,9 +244,7 @@ export function useNavigationTourModal() {
   const organization = useOrganization({allowNull: true});
   const hasOpenedTourModal = useRef(false);
   const {startTour, endTour} = useNavigationTour();
-  const {data: assistantData} = useAssistant({
-    notifyOnChangeProps: ['data'],
-  });
+  const {data: assistantData} = useAssistant();
   const {mutate: mutateAssistant} = useMutateAssistant();
   const [localTourState, setLocalTourState] = useLocalStorageState(
     NAVIGATION_TOUR_GUIDE_KEY,
@@ -267,10 +265,7 @@ export function useNavigationTourModal() {
 
   const dismissTour = useCallback(() => {
     trackAnalytics('navigation.tour_modal_dismissed', {organization});
-    mutateAssistant({
-      guide: NAVIGATION_TOUR_GUIDE_KEY,
-      status: 'dismissed',
-    });
+    mutateAssistant({guide: NAVIGATION_TOUR_GUIDE_KEY, status: 'dismissed'});
     setLocalTourState({hasSeen: true});
     endTour();
   }, [mutateAssistant, organization, endTour, setLocalTourState]);

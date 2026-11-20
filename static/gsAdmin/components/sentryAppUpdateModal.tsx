@@ -1,4 +1,4 @@
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -12,14 +12,13 @@ import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {IntegrationFeature, SentryApp} from 'sentry/types/integrations';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-type Props = ModalRenderProps & {
-  sentryAppData: any;
-};
+type Props = ModalRenderProps & {sentryAppData: any};
 
 // See Django reference for PositiveSmallIntegerField
 // (https://docs.djangoproject.com/en/3.2/ref/models/fields/#positivesmallintegerfield)
@@ -39,9 +38,7 @@ const schema = z.object({
 export function SentryAppUpdateModal(props: Props) {
   const {sentryAppData, closeModal, Header, Body, Footer} = props;
   const queryClient = useQueryClient();
-  const sentryAppQueryOptions = sentryAppApiOptions({
-    appSlug: sentryAppData.slug,
-  });
+  const sentryAppQueryOptions = sentryAppApiOptions({appSlug: sentryAppData.slug});
 
   const mutation = useMutation({
     mutationFn: (data: {features: number[]; popularity: number}) =>
@@ -69,9 +66,7 @@ export function SentryAppUpdateModal(props: Props) {
       toast.error('Unable to update the Sentry App.');
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: sentryAppQueryOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: sentryAppQueryOptions.queryKey});
     },
   });
 
@@ -80,9 +75,9 @@ export function SentryAppUpdateModal(props: Props) {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<IntegrationFeature[]>([getApiUrl('/integration-features/')], {
-    staleTime: 0,
-  });
+  } = useQuery(
+    apiOptions.as<IntegrationFeature[]>()('/integration-features/', {staleTime: 0})
+  );
 
   const defaultValues: z.input<typeof schema> = {
     popularity: sentryAppData.popularity,

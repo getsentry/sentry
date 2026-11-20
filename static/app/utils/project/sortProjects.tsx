@@ -1,7 +1,4 @@
-type SortableProject = {
-  isBookmarked: boolean;
-  slug: string;
-};
+type SortableProject = {isBookmarked: boolean; slug: string};
 
 // Natural order, so `project-2` comes before `project-10`.
 const compareSlugs = new Intl.Collator(undefined, {numeric: true}).compare;
@@ -20,10 +17,7 @@ export function sortProjects<T extends SortableProject>(projects: readonly T[]):
   return projects.toSorted(projectDisplayCompare);
 }
 
-type MemberSortableProject = SortableProject & {
-  id: string;
-  isMember: boolean;
-};
+type MemberSortableProject = SortableProject & {id: string; isMember: boolean};
 
 /**
  * Sort projects by bookmark, then membership, then slug.

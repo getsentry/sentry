@@ -11,7 +11,7 @@ export function FlagDrawerCTA({projectPlatform}: {projectPlatform?: PlatformKey}
   const {activateSidebar} = useFeatureFlagOnboarding({projectPlatform});
   const {onClose: closeDrawer} = useDrawerContentContext();
 
-  function handleSetupButtonClick(e: any) {
+  function handleSetupButtonClick(e: React.MouseEvent) {
     closeDrawer?.();
     setTimeout(() => {
       // Wait for global drawer state to update

@@ -42,10 +42,7 @@ export type AttributesTreeContent = KeyValueTreeContent<
   Attribute
 >;
 
-type AttributeItem = {
-  fieldKey: string;
-  value: string | number | null;
-};
+type AttributeItem = {fieldKey: string; value: string | number | null};
 
 export type AttributesFieldRendererProps<RendererExtra extends RenderFunctionBaggage> = {
   extra: RendererExtra;
@@ -111,24 +108,23 @@ export function AttributesTree<RendererExtra extends RenderFunctionBaggage>({
   getAdjustedAttributeKey,
   pinnedAttribute,
 }: AttributesTreeProps<RendererExtra>) {
-  const attributesTree = useMemo(
-    () =>
-      buildKeyValueTree(
-        attributes.flatMap(attribute => {
-          const shaped = getAttribute(attribute, getAdjustedAttributeKey);
-          return shaped
-            ? [
-                {
-                  key: shaped.attribute_key,
-                  value: shaped.attribute_value,
-                  original: shaped,
-                },
-              ]
-            : [];
-        })
-      ),
-    [attributes, getAdjustedAttributeKey]
+  const useRawAttributeNames = renderExtra.organization.features.includes(
+    'trace-item-details-raw-attribute-names'
   );
+  const attributesTree = useMemo(() => {
+    return buildKeyValueTree(
+      attributes.flatMap(attribute => {
+        const shaped = getAttribute(
+          attribute,
+          useRawAttributeNames,
+          getAdjustedAttributeKey
+        );
+        return shaped
+          ? [{key: shaped.attribute_key, value: shaped.attribute_value, original: shaped}]
+          : [];
+      })
+    );
+  }, [attributes, getAdjustedAttributeKey, useRawAttributeNames]);
 
   return (
     <KeyValueColumns
@@ -271,10 +267,11 @@ function AttributesTreeRowDropdown({
 }
 
 /**
- * Replaces sentry. prefixed keys, and simplifies the value
+ * Uses raw names when available, otherwise prettifies keys, and simplifies the value
  */
 function getAttribute(
   attribute: TraceItemResponseAttribute,
+  useRawAttributeNames: boolean,
   getAdjustedAttributeKey?: (attribute: TraceItemResponseAttribute) => string
 ): Attribute | undefined {
   const attributeValue =
@@ -289,7 +286,10 @@ function getAttribute(
   }
 
   return {
-    attribute_key: prettifyAttributeName(attribute.name),
+    attribute_key:
+      useRawAttributeNames && attribute.rawName !== undefined
+        ? attribute.rawName
+        : prettifyAttributeName(attribute.name),
     attribute_value: attributeValue,
     original_attribute_key: getAdjustedAttributeKey
       ? getAdjustedAttributeKey(attribute)

@@ -13,9 +13,7 @@ export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
   },
 };
 
-export type WidgetBuilderStateLocalParams = {
-  textContent?: string;
-};
+export type WidgetBuilderStateLocalParams = {textContent?: string};
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',

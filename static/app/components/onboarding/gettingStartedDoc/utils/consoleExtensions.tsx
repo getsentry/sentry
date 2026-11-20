@@ -70,10 +70,7 @@ function getEnabledPlayStationContent(params: DocsParams): ContentBlock[] {
         }
       ),
     },
-    {
-      type: 'text',
-      text: <strong>{t('PlayStation SDK (Optional)')}</strong>,
-    },
+    {type: 'text', text: <strong>{t('PlayStation SDK (Optional)')}</strong>},
     {
       type: 'text',
       text: getPlayStationRequestButtonAccessDescription(params.project.platform),
@@ -115,10 +112,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
         'Sentry supports Nintendo Switch 1 and 2 on both DevKits and Retail devices.'
       ),
     },
-    {
-      type: 'text',
-      text: <strong>{t('Nintendo Switch SDK (Optional)')}</strong>,
-    },
+    {type: 'text', text: <strong>{t('Nintendo Switch SDK (Optional)')}</strong>},
     {
       type: 'text',
       text: tct(
@@ -159,9 +153,7 @@ function getEnabledNintendoSwitchContent(params: DocsParams): ContentBlock[] {
       type: 'text',
       text: tct(
         "Once access is granted, you'll be able to view detailed instructions and examples for setting up your extension in the [privateRepositoryLink:private repository].",
-        {
-          privateRepositoryLink: <ExternalLink href={metadata.repoURL} />,
-        }
+        {privateRepositoryLink: <ExternalLink href={metadata.repoURL} />}
       ),
     },
   ];
@@ -176,10 +168,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
         'Sentry supports Xbox One and Series X|S, across both DevKits and Retail devices.'
       ),
     },
-    {
-      type: 'text',
-      text: <strong>{t('Xbox SDK')}</strong>,
-    },
+    {type: 'text', text: <strong>{t('Xbox SDK')}</strong>},
     {
       type: 'text',
       text: tct(
@@ -206,9 +195,7 @@ function getEnabledXboxContent(params: DocsParams): ContentBlock[] {
       type: 'text',
       text: tct(
         "Once access is granted, you'll be able to view detailed instructions and examples for setting up your extension in the [privateRepositoryLink:private repository].",
-        {
-          privateRepositoryLink: <ExternalLink href={metadata.repoURL} />,
-        }
+        {privateRepositoryLink: <ExternalLink href={metadata.repoURL} />}
       ),
     },
   ];
@@ -222,12 +209,7 @@ function getContentForPlatform({
   params: DocsParams;
 }): ContentBlock[] {
   if (!params.organization.enabledConsolePlatforms?.includes(consolePlatform)) {
-    return [
-      {
-        type: 'custom',
-        content: CONSOLE_PLATFORM_INSTRUCTIONS[consolePlatform],
-      },
-    ];
+    return [{type: 'custom', content: CONSOLE_PLATFORM_INSTRUCTIONS[consolePlatform]}];
   }
 
   if (consolePlatform === ConsolePlatform.PLAYSTATION) {
@@ -288,15 +270,10 @@ export function getConsoleExtensions(params: DocsParams): OnboardingStep | null 
         type: 'text',
         text: tct(
           "Supercharge your [platformName] project with Sentry's exclusive console extensions. Get platform-specific optimizations, enhanced debugging capabilities, and seamless integration designed specifically for console development.",
-          {
-            platformName,
-          }
+          {platformName}
         ),
       },
-      {
-        type: 'custom',
-        content: <ConsoleExtensionsContent {...params} />,
-      },
+      {type: 'custom', content: <ConsoleExtensionsContent {...params} />},
     ],
   };
 }

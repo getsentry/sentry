@@ -107,10 +107,7 @@ export function ColumnEditModal(props: Props) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements: Object.values(customMeasurements ?? {}).map(
-        ({key, functions}) => ({
-          key,
-          functions,
-        })
+        ({key, functions}) => ({key, functions})
       ),
       aggregations: Object.keys(aggregations)
         .filter(key => TRANSACTIONS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
@@ -128,10 +125,7 @@ export function ColumnEditModal(props: Props) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements: Object.values(customMeasurements ?? {}).map(
-        ({key, functions}) => ({
-          key,
-          functions,
-        })
+        ({key, functions}) => ({key, functions})
       ),
     });
   }

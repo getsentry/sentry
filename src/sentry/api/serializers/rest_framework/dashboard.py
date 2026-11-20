@@ -3,7 +3,7 @@ from collections.abc import Sequence
 from datetime import datetime, timedelta
 from enum import Enum
 from math import floor
-from typing import Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict, cast
 
 import sentry_sdk
 from django.db.models import Max
@@ -15,12 +15,13 @@ from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.helpers.timeseries_transformations import parse_transformations
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.base import convert_dict_key_case, snake_to_camel_case
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.issues.issue_search import parse_search_query
-from sentry.models.dashboard import Dashboard, QueryPriorities
+from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_permissions import DashboardPermissions
 from sentry.models.dashboard_widget import (
     DashboardFieldLink,
@@ -37,6 +38,7 @@ from sentry.models.dashboard_widget import (
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.relay.config.metric_extraction import get_current_widget_specs, widget_exceeds_max_specs
+from sentry.search.eap.constants import QueryPriorities
 from sentry.search.eap.trace_metrics.validator import extract_trace_metric_from_aggregate
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import is_function
@@ -49,6 +51,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 
@@ -61,8 +64,27 @@ DATASET_SOURCE_MAP = {source[1]: source[0] for source in DatasetSourcesTypes.as_
 
 
 class QueryWarning(TypedDict):
-    queries: list[str | None]
-    columns: dict[str, str]
+    queries: Annotated[
+        list[str | None],
+        ApiDescription(
+            "One entry per widget query, in order: the reason on-demand metric extraction is "
+            "disabled for that query, or null if there is nothing to warn about."
+        ),
+    ]
+    columns: Annotated[
+        dict[str, str],
+        ApiDescription(
+            "Columns that disable on-demand metric extraction, mapped to the reason, such as "
+            "high cardinality."
+        ),
+    ]
+
+
+class DashboardWidgetValidationResponse(TypedDict):
+    warnings: Annotated[
+        QueryWarning,
+        ApiDescription("Warnings about the widget that don't block saving it."),
+    ]
 
 
 class LinkedDashboard(TypedDict):
@@ -181,11 +203,15 @@ DATASET_CONFIG: dict[int, DatasetConfig] = {
                 DashboardWidgetDisplayTypes.BIG_NUMBER,
                 DashboardWidgetDisplayTypes.CATEGORICAL_BAR_CHART,
                 DashboardWidgetDisplayTypes.HEATMAP,
+                # WHEEL is used by built-in performance-score widgets.
+                DashboardWidgetDisplayTypes.WHEEL,
             }
         )
     },
     DashboardWidgetTypes.PREPROD_APP_SIZE: {
-        "supported_display_types": frozenset({DashboardWidgetDisplayTypes.LINE_CHART})
+        "supported_display_types": frozenset(
+            {DashboardWidgetDisplayTypes.LINE_CHART, DashboardWidgetDisplayTypes.BAR_CHART}
+        )
     },
 }
 
@@ -483,29 +509,59 @@ class ThresholdMaxKeys(Enum):
 )
 class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
     # Is a string because output serializers also make it a string.
-    id = serializers.CharField(required=False)
-    title = serializers.CharField(required=False, allow_blank=True, max_length=255)
-    description = serializers.CharField(required=False, allow_null=True, allow_blank=True)
-    thresholds = serializers.JSONField(required=False, allow_null=True)
+    id = serializers.CharField(
+        required=False, help_text="ID of an existing widget. Omit it to create a new widget."
+    )
+    title = serializers.CharField(
+        required=False, allow_blank=True, max_length=255, help_text="Title of the widget."
+    )
+    description = serializers.CharField(
+        required=False, allow_null=True, allow_blank=True, help_text="Description of the widget."
+    )
+    thresholds = serializers.JSONField(
+        required=False, allow_null=True, help_text="Thresholds that color the widget's values."
+    )
     display_type = serializers.ChoiceField(
-        choices=DashboardWidgetDisplayTypes.as_text_choices(), required=False
+        choices=DashboardWidgetDisplayTypes.as_text_choices(),
+        required=False,
+        help_text="How the widget is displayed, such as line, area, bar, table or big_number.",
     )
-    interval = serializers.CharField(required=False, max_length=10)
-    queries = DashboardWidgetQuerySerializer(many=True, required=False)
+    interval = serializers.CharField(
+        required=False,
+        max_length=10,
+        help_text="Time interval for the widget's series, such as 5m.",
+    )
+    queries = DashboardWidgetQuerySerializer(
+        many=True, required=False, help_text="Queries that provide the widget's data."
+    )
     widget_type = serializers.ChoiceField(
-        choices=DashboardWidgetTypes.as_text_choices(), required=False, allow_null=True
+        choices=DashboardWidgetTypes.as_text_choices(),
+        required=False,
+        allow_null=True,
+        help_text="Dataset the widget queries, such as error-events, spans, logs or issue.",
     )
-    limit = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(required=False, allow_null=True)
+    limit = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        allow_null=True,
+        help_text="Maximum number of series or rows the widget shows.",
+    )
+    layout: BaseWidgetLayoutSerializer = WidgetLayoutSerializer(
+        required=False,
+        allow_null=True,
+        help_text="Position and size of the widget on the dashboard grid.",
+    )
     axis_range = serializers.ChoiceField(
         choices=[("auto", "auto"), ("dataMin", "dataMin")],
         required=False,
         allow_null=True,
+        help_text="Y-axis range: auto or dataMin.",
     )
     legend_type = serializers.ChoiceField(
         choices=DashboardWidgetLegendType.as_text_choices(),
         required=False,
         allow_null=True,
+        help_text="Legend style: default or breakdown.",
     )
     query_warnings: QueryWarning = {"queries": [], "columns": {}}
     dataset_source = serializers.ChoiceField(
@@ -1312,25 +1368,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
-                    sentry_sdk.set_context(
-                        "dashboard",
-                        {
-                            "org_slug": instance.organization.slug,
-                            "dashboard_id": instance.id,
-                            "widget_id": widget_id,
-                            "existing_widget_ids": list(existing_map.keys()),
-                            "requested_widget_ids": widget_ids,
+                    # Usually a client saving a stale copy of the dashboard after one of its
+                    # widgets was deleted elsewhere, so log it instead of creating an error.
+                    sdk_logger.info(
+                        "dashboard.update_widgets.widget_not_in_dashboard",
+                        attributes={
+                            "dashboard.org_slug": instance.organization.slug,
+                            "dashboard.dashboard_id": instance.id,
+                            "dashboard.widget_id": widget_id,
+                            "dashboard.existing_widget_ids": str(list(existing_map.keys())),
+                            "dashboard.requested_widget_ids": str(widget_ids),
                         },
-                    )
-                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
-                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
-                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
-                    sentry_sdk.set_attribute(
-                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
-                    )
-                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
-                    sentry_sdk.capture_message(
-                        "Attempted to update widget not belonging to dashboard."
                     )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."
@@ -1743,7 +1791,11 @@ class DashboardSerializer(DashboardDetailsSerializer):
 
 
 class DashboardStarredOrderSerializer(serializers.Serializer):
-    dashboard_ids = serializers.ListField(child=serializers.IntegerField(), required=True)
+    dashboard_ids = serializers.ListField(
+        child=serializers.IntegerField(),
+        required=True,
+        help_text="IDs of the requesting user's starred dashboards, in their new order.",
+    )
 
     def validate_dashboard_ids(self, dashboard_ids: list[int]) -> list[int]:
         if len(dashboard_ids) != len(set(dashboard_ids)):

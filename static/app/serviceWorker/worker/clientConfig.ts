@@ -11,11 +11,7 @@ export interface ClientConfig {
   } | null;
   dsn: string;
   features: string[];
-  links: {
-    organizationUrl: string;
-    regionUrl: string;
-    sentryUrl: string;
-  };
+  links: {organizationUrl: string; regionUrl: string; sentryUrl: string};
   sentryConfig: {
     allowUrls: string[];
     dsn: string;
@@ -24,12 +20,7 @@ export interface ClientConfig {
     environment?: string;
     profileSessionSampleRate?: number;
   };
-  userIdentity: {
-    email: string;
-    id: string;
-    ip_address: string;
-    isStaff: boolean;
-  };
+  userIdentity: {email: string; id: string; ip_address: string; isStaff: boolean};
 }
 
 // A read-through cache for the client config.

@@ -12,9 +12,7 @@ export function IssueOccurrencesDetails({condition}: {condition: DataCondition})
 }
 
 export function IssueOccurrencesNode() {
-  return tct('The issue has happened at least [value] times', {
-    value: <ValueField />,
-  });
+  return tct('The issue has happened at least [value] times', {value: <ValueField />});
 }
 
 function ValueField() {

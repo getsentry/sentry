@@ -45,11 +45,4 @@ export const remarkPlugins: PluggableList = [
  *
  * Used by rsbuild.config.ts (build).
  */
-export const rehypePlugins = [
-  [
-    rehypeExpressiveCode,
-    {
-      useDarkModeMediaQuery: false,
-    },
-  ],
-];
+export const rehypePlugins = [[rehypeExpressiveCode, {useDarkModeMediaQuery: false}]];

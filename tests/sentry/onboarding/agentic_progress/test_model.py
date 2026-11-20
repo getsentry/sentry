@@ -7,6 +7,7 @@ import pytest
 from sentry.onboarding.agentic_progress.model import (
     STAGE_DEFINITIONS,
     STAGE_INDEX,
+    ConnectExtra,
     CreateProjectExtra,
     InvalidOnboardingRun,
     InvalidProgressUpdate,
@@ -51,6 +52,10 @@ def test_stage_definitions_are_ordered_and_complete() -> None:
 
 
 def test_extra_stage_definition_preserves_its_type() -> None:
+    assert_type(
+        get_stage_definition(Stage.CONNECT_MCP),
+        StageDefinition[ConnectExtra],
+    )
     assert_type(
         get_stage_definition(Stage.CREATE_PROJECT),
         StageDefinition[CreateProjectExtra],
@@ -188,6 +193,7 @@ def test_from_dict_wraps_invalid_persisted_run_status() -> None:
         (Stage.CREATE_PROJECT, {"project_slugs": ["project"], "unknown": True}),
         (Stage.CREATE_PROJECT, {"issue_ids": ["123"]}),
         (Stage.CONNECT_MCP, {"project_slugs": ["project"]}),
+        (Stage.CONNECT_MCP, {"method": "browser"}),
     ],
 )
 def test_from_dict_rejects_invalid_stage_extra(stage: Stage, extra: dict[str, object]) -> None:
@@ -211,6 +217,33 @@ def test_stage_extra_round_trips() -> None:
     )
 
     assert OnboardingRun.from_dict(run.to_dict()) == run
+
+
+def test_connect_extra_keeps_first_method() -> None:
+    now = datetime(2020, 1, 1, tzinfo=timezone.utc)
+    run = apply_update(
+        make_run(now),
+        ProgressUpdate(
+            stage=Stage.CONNECT_MCP,
+            status=StageStatus.COMPLETED,
+            extra=ConnectExtra(method="cli"),
+        ),
+        now,
+    )
+    run = apply_update(
+        run,
+        ProgressUpdate(
+            stage=Stage.CONNECT_MCP,
+            status=StageStatus.COMPLETED,
+            extra=ConnectExtra(method="mcp"),
+        ),
+        now,
+    )
+
+    extra = get_stage_definition(Stage.CONNECT_MCP).extra_from(
+        run.stages[STAGE_INDEX[Stage.CONNECT_MCP]]
+    )
+    assert extra == ConnectExtra(method="cli")
 
 
 def test_empty_stage_extra_round_trips() -> None:
@@ -626,3 +659,8 @@ def test_restore_run_without_origin() -> None:
     persisted = make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)).to_dict()
     del persisted["origin"]
     assert OnboardingRun.from_dict(persisted).origin is None
+
+
+def test_round_trip_run_awaiting_reporting_code() -> None:
+    run = replace(make_run(datetime(2020, 1, 1, tzinfo=timezone.utc)), token_hash=None)
+    assert OnboardingRun.from_dict(run.to_dict()) == run

@@ -14,7 +14,7 @@ export default Storybook.story('LoadingError', story => {
           You can use this <Storybook.JSXNode name="LoadingError" /> to easily render an
           error message if a smaller component on your page fails to load. This is useful
           for rendering a default error message if there's an error returned from a
-          <code>useApiQuery</code> call, for example.
+          <code>useQuery</code> call, for example.
         </p>
         <Storybook.SizingWindow style={{height: '150px'}}>
           <LoadingError />
@@ -34,7 +34,7 @@ export default Storybook.story('LoadingError', story => {
       <p>
         Use the <Storybook.JSXProperty name="onRetry" value={Function} /> property to add
         a callback if you want to allow the user to retry rendering. This could be used
-        for retrying a <code>useApiQuery</code> call, for example.
+        for retrying a <code>useQuery</code> call, for example.
       </p>
       <Storybook.SizingWindow style={{height: '190px'}}>
         <LoadingError

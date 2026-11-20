@@ -51,10 +51,7 @@ export function TraceSpansTable({trace}: {trace: TraceResult}) {
 
   const query = useQueryParamsQuery();
 
-  const {data, isPending, isError} = useSpans({
-    query,
-    trace,
-  });
+  const {data, isPending, isError} = useSpans({query, trace});
 
   const spans = useMemo(() => data?.data ?? [], [data]);
 
@@ -256,7 +253,6 @@ function useSpans({query, trace}: UseSpansOptions): {
     limit: 10,
     referrer: 'api.trace-explorer.trace-spans-list',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
     queryExtras: {caseInsensitive},
   });
 
@@ -284,9 +280,5 @@ function useSpans({query, trace}: UseSpansOptions): {
     };
   }, [result]);
 
-  return {
-    isPending: result.isPending,
-    isError: result.isError,
-    data,
-  };
+  return {isPending: result.isPending, isError: result.isError, data};
 }

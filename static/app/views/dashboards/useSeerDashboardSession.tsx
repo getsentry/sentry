@@ -1,18 +1,29 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
-import {makeSeerExplorerQueryKey} from 'sentry/views/seerExplorer/utils';
 
 import {extractDashboardFromSession, statusIsTerminal} from './createFromSeerUtils';
 import type {DashboardDetails, Widget} from './types';
+
+const seerDashboardSessionApiOptions = (orgSlug: string, runId: number | null) =>
+  runId
+    ? apiOptions.as<SeerExplorerResponse>()(
+        '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/',
+        {path: {organizationIdOrSlug: orgSlug, runId}, staleTime: 0}
+      )
+    : apiOptions.as<SeerExplorerResponse>()(
+        '/organizations/$organizationIdOrSlug/seer/explorer-chat/',
+        {path: {organizationIdOrSlug: orgSlug}, staleTime: 0}
+      );
 
 const POLL_INTERVAL_MS = 500;
 const POST_COMPLETE_POLL_MS = 5000;
@@ -36,10 +47,7 @@ async function startDashboardEditSession(
     method: 'POST',
     data: {
       prompt: message,
-      current_dashboard: {
-        title: dashboard.title,
-        widgets: dashboard.widgets,
-      },
+      current_dashboard: {title: dashboard.title, widgets: dashboard.widgets},
     },
   });
   return Number(response.run_id);
@@ -51,7 +59,6 @@ interface UseSeerDashboardSessionOptions {
     seerRunId: number | null
   ) => void;
   dashboard?: Pick<DashboardDetails, 'title' | 'widgets'>;
-  enabled?: boolean;
   onPostCompletePollEnd?: () => void;
   seerRunId?: number | null;
 }
@@ -72,7 +79,6 @@ export function useSeerDashboardSession({
   seerRunId: externalSeerRunId,
   dashboard,
   onDashboardUpdate,
-  enabled = true,
   onPostCompletePollEnd,
 }: UseSeerDashboardSessionOptions): UseSeerDashboardSessionResult {
   const organization = useOrganization();
@@ -83,35 +89,32 @@ export function useSeerDashboardSession({
 
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const prevSessionStatusRef = useRef<{
-    status: string | null;
-    updated_at: string | null;
-  }>({status: null, updated_at: null});
+  const prevSessionStatusRef = useRef<{status: string | null; updated_at: string | null}>(
+    {status: null, updated_at: null}
+  );
   const completedAtRef = useRef<number | null>(null);
 
-  const {data, isError} = useApiQuery<SeerExplorerResponse>(
-    makeSeerExplorerQueryKey(organization.slug, seerRunId),
-    {
-      staleTime: 0,
-      retry: false,
-      enabled: !!seerRunId && enabled,
-      refetchInterval: query => {
-        const status = query.state.data?.json?.session?.status;
-        if (statusIsTerminal(status)) {
-          if (completedAtRef.current === null) {
-            completedAtRef.current = Date.now();
-          }
-          if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
-            return POLL_INTERVAL_MS;
-          }
-          onPostCompletePollEnd?.();
-          return false;
+  const {data, isError} = useQuery({
+    ...seerDashboardSessionApiOptions(organization.slug, seerRunId),
+    staleTime: 0,
+    retry: false,
+    enabled: !!seerRunId,
+    refetchInterval: query => {
+      const status = query.state.data?.json?.session?.status;
+      if (statusIsTerminal(status)) {
+        if (completedAtRef.current === null) {
+          completedAtRef.current = Date.now();
         }
-        completedAtRef.current = null;
-        return POLL_INTERVAL_MS;
-      },
-    }
-  );
+        if (Date.now() - completedAtRef.current < POST_COMPLETE_POLL_MS) {
+          return POLL_INTERVAL_MS;
+        }
+        onPostCompletePollEnd?.();
+        return false;
+      }
+      completedAtRef.current = null;
+      return POLL_INTERVAL_MS;
+    },
+  });
 
   const session = data?.session;
   const sessionStatus = session?.status ?? null;
@@ -123,10 +126,7 @@ export function useSeerDashboardSession({
     }
     const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
     const prevStatus = prevSessionStatusRef.current.status;
-    prevSessionStatusRef.current = {
-      status: sessionStatus,
-      updated_at: sessionUpdatedAt,
-    };
+    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
 
     const isTerminal = statusIsTerminal(sessionStatus);
     const wasTerminal = statusIsTerminal(prevStatus);
@@ -174,7 +174,10 @@ export function useSeerDashboardSession({
           setInternalRunId(runId);
         } else {
           // A session exists, send the message to the existing session
-          const queryKey = makeSeerExplorerQueryKey(organization.slug, seerRunId);
+          const queryKey = seerDashboardSessionApiOptions(
+            organization.slug,
+            seerRunId
+          ).queryKey;
           const {url} = parseQueryKey(queryKey);
           await fetchMutation({
             url,
@@ -194,11 +197,5 @@ export function useSeerDashboardSession({
     [organization.slug, queryClient, seerRunId, dashboard]
   );
 
-  return {
-    session,
-    isUpdating,
-    setIsUpdating,
-    isError,
-    sendFollowUpMessage,
-  };
+  return {session, isUpdating, setIsUpdating, isError, sendFollowUpMessage};
 }

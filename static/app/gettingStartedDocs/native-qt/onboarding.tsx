@@ -63,11 +63,7 @@ export const onboarding: OnboardingConfig = {
             'Import and initialize the Sentry SDK early in your application setup:'
           ),
         },
-        {
-          type: 'code',
-          language: 'c',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'c', code: getConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(
@@ -88,11 +84,7 @@ export const onboarding: OnboardingConfig = {
             'The quickest way to verify Sentry in your Qt application is by capturing a message:'
           ),
         },
-        {
-          type: 'code',
-          language: 'c',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'c', code: getVerifySnippet()},
         {
           type: 'text',
           text: t(

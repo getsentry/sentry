@@ -36,10 +36,7 @@ export function useScmProviders(): ScmProvidersData {
   const providersQuery = useQuery({
     ...apiOptions.as<{providers: IntegrationProvider[]}>()(
       '/organizations/$organizationIdOrSlug/config/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     ),
     refetchOnWindowFocus: true,
   });

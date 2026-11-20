@@ -8,7 +8,7 @@ import {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes} from 'sentry/utils/discover/types';
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {getAllViews} from 'sentry/views/discover/results/data';
-import SavedQueryButtonGroup from 'sentry/views/discover/savedQuery';
+import {SavedQueryButtonGroup} from 'sentry/views/discover/savedQuery';
 
 function mount(
   location: ReturnType<typeof LocationFixture>,
@@ -39,16 +39,11 @@ describe('Discover > SaveQueryButtonGroup', () => {
   let organization: Organization;
   let errorsView: EventView;
   let errorsQuery: NewQuery;
-  const location = LocationFixture({
-    pathname: '/organization/eventsv2/',
-    query: {},
-  });
+  const location = LocationFixture({pathname: '/organization/eventsv2/', query: {}});
   const yAxis = ['count()', 'failure_count()'];
 
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['discover-query', 'dashboards-edit'],
-    });
+    organization = OrganizationFixture({features: ['discover-query']});
 
     errorsQuery = {
       ...getAllViews(organization).find(view => view.name === 'Errors by Title')!,

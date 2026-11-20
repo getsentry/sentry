@@ -21,12 +21,7 @@ const REFERRER = 'api.explore.dropped-data-annotations';
 interface DroppedEventsResponse {
   acceptedEvents: OutcomeRow[];
   droppedEvents: OutcomeRow[];
-  meta: {
-    dataset: string;
-    end: number;
-    interval: number;
-    start: number;
-  };
+  meta: {dataset: string; end: number; interval: number; start: number};
 }
 
 export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
@@ -73,7 +68,7 @@ export function useDroppedData(
     staleTime = intervalInMilliseconds;
   }
 
-  const {data, isPending, isError, refetch} = useQuery({
+  const {data, isPending, isLoading, isError, refetch} = useQuery({
     ...apiOptions.as<DroppedEventsResponse>()(
       '/organizations/$organizationIdOrSlug/events-dropped/',
       {
@@ -99,6 +94,7 @@ export function useDroppedData(
     droppedEvents: data?.droppedEvents,
     acceptedEvents: data?.acceptedEvents,
     isPending,
+    isLoading,
     isError,
     refetch,
   };

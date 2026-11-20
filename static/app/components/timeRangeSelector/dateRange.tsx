@@ -87,18 +87,12 @@ type Props = {
   utc?: boolean | null;
 } & Partial<typeof defaultProps>;
 
-type State = {
-  hasEndErrors: boolean;
-  hasStartErrors: boolean;
-};
+type State = {hasEndErrors: boolean; hasStartErrors: boolean};
 
 class BaseDateRange extends Component<Props, State> {
   static defaultProps = defaultProps;
 
-  state: State = {
-    hasStartErrors: false,
-    hasEndErrors: false,
-  };
+  state: State = {hasStartErrors: false, hasEndErrors: false};
 
   private readonly utcInputId =
     'utc-picker-' + Math.random().toString(36).substring(2, 12);
@@ -108,10 +102,7 @@ class BaseDateRange extends Component<Props, State> {
     const {startDate, endDate} = range;
     const end = endDate ? getEndOfDay(endDate) : endDate;
 
-    onChange({
-      start: startDate,
-      end,
-    });
+    onChange({start: startDate, end});
   };
 
   handleChangeStart = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -138,11 +129,7 @@ class BaseDateRange extends Component<Props, State> {
       path: getRouteStringFromRoutes({routes}),
     });
 
-    onChange({
-      start: newStartTime,
-      end,
-      hasDateRangeErrors: this.state.hasEndErrors,
-    });
+    onChange({start: newStartTime, end, hasDateRangeErrors: this.state.hasEndErrors});
 
     this.setState({hasStartErrors: false});
   };
@@ -167,11 +154,7 @@ class BaseDateRange extends Component<Props, State> {
       path: getRouteStringFromRoutes({routes}),
     });
 
-    onChange({
-      start,
-      end: newEndTime,
-      hasDateRangeErrors: this.state.hasStartErrors,
-    });
+    onChange({start, end: newEndTime, hasDateRangeErrors: this.state.hasStartErrors});
 
     this.setState({hasEndErrors: false});
   };

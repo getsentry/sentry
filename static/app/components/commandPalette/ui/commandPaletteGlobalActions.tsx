@@ -26,6 +26,9 @@ import {IconUser} from '@sentry/icons/user';
 import * as Sentry from '@sentry/react';
 import {skipToken, useMutation, useQuery} from '@tanstack/react-query';
 import DOMPurify from 'dompurify';
+import {useQueryState} from 'nuqs';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {
   OrganizationAvatar,
@@ -49,7 +52,6 @@ import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
@@ -62,8 +64,8 @@ import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {sortProjects} from 'sentry/utils/project/sortProjects';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeList} from 'sentry/utils/queryString';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -156,16 +158,8 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 }
 
 type ResolvedIdentifier =
-  | (ShortIdResponse & {
-      kind: 'issue';
-      project: AvatarProject;
-      details?: string;
-    })
-  | (EventIdResponse & {
-      kind: 'event';
-      project: AvatarProject;
-      details?: string;
-    });
+  | (ShortIdResponse & {kind: 'issue'; project: AvatarProject; details?: string})
+  | (EventIdResponse & {kind: 'event'; project: AvatarProject; details?: string});
 
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
@@ -301,8 +295,14 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
-  const {organizations} = useLegacyStore(OrganizationsStore);
-  const sentryConfig = useLegacyStore(ConfigStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const {isSelfHosted, singleOrganization} = useStore(
+    ConfigStore,
+    useShallow(state => ({
+      isSelfHosted: state.isSelfHosted,
+      singleOrganization: state.singleOrganization,
+    }))
+  );
   const settingsV3 = useSettingsV3();
   const params = useParams();
   const location = useLocation();
@@ -311,10 +311,7 @@ export function GlobalCommandPaletteActions() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/auth/superuser/'),
-        method: 'DELETE',
-      }),
+      fetchMutation({url: getApiUrl('/auth/superuser/'), method: 'DELETE'}),
     onSuccess: () => window.location.reload(),
   });
 
@@ -323,7 +320,8 @@ export function GlobalCommandPaletteActions() {
     perPage: MAX_STARRED_SAVED_QUERIES_IN_NAV,
   });
 
-  const queryProjectIds = new Set(decodeList(location.query.project));
+  const [queryProjectIdList] = useQueryState('project', pageFilterParsers.project);
+  const queryProjectIds = new Set(queryProjectIdList);
   const currentProjects = params.projectId
     ? projects.filter(p => p.slug === params.projectId)
     : projects.filter(p => queryProjectIds.has(p.id));
@@ -340,10 +338,7 @@ export function GlobalCommandPaletteActions() {
       features: new Set(organization.features),
       organization,
     };
-    return getNavigationConfiguration({
-      organization,
-      settingsV3,
-    })
+    return getNavigationConfiguration({organization, settingsV3})
       .flatMap(section =>
         section.items.filter(navItem =>
           isNavItemVisible(navItem, {...context, ...section})
@@ -356,7 +351,7 @@ export function GlobalCommandPaletteActions() {
     const context: Omit<NavigationGroupProps, 'items' | 'name' | 'id'> = {
       access: new Set(organization.access),
       features: new Set(organization.features),
-      isSelfHosted: sentryConfig.isSelfHosted,
+      isSelfHosted,
       organization,
     };
     const getVisibleItems = (sections: NavigationSection[]) =>
@@ -378,7 +373,7 @@ export function GlobalCommandPaletteActions() {
         ? getVisibleItems(getUserNavigationConfiguration({settingsV3}))
         : [],
     };
-  }, [organization, sentryConfig.isSelfHosted, settingsV3]);
+  }, [organization, isSelfHosted, settingsV3]);
 
   const prefix = `/organizations/${organization.slug}`;
   const hasInsightsRollout = organization.features.includes(
@@ -449,12 +444,7 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
-          <CMDKAction
-            display={{
-              label: t('Errors'),
-            }}
-            to={`${prefix}/explore/errors/`}
-          />
+          <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
@@ -474,12 +464,10 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
-          {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
-            />
-          )}
+          <CMDKAction
+            display={{label: t('Agents')}}
+            to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
+          />
           <CMDKAction
             display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
@@ -524,9 +512,7 @@ export function GlobalCommandPaletteActions() {
             limit={5}
             resource={query =>
               cmdkQueryOptions({
-                ...dashboardsApiOptions(organization, {
-                  query: {query, per_page: 20},
-                }),
+                ...dashboardsApiOptions(organization, {query: {query, per_page: 20}}),
                 enabled: query.length >= 1,
                 select: data =>
                   data.json.map(dashboard => ({
@@ -546,12 +532,9 @@ export function GlobalCommandPaletteActions() {
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
-        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+        {!hasInsightsRollout && (
           <CMDKAction
-            display={{
-              label: t('Insights'),
-              icon: <IconGraph type="area" />,
-            }}
+            display={{label: t('Insights'), icon: <IconGraph type="area" />}}
             limit={4}
           >
             {!hasInsightsRollout && (
@@ -669,7 +652,7 @@ export function GlobalCommandPaletteActions() {
           to={makeProjectsPathname({path: '/', organization})}
         />
 
-        {!sentryConfig.singleOrganization && !isDemoModeActive() && (
+        {!singleOrganization && !isDemoModeActive() && (
           <CMDKAction
             display={{label: t('Switch Organization'), icon: <IconBuilding />}}
             keywords={[t('organization'), t('change'), t('change organization')]}
@@ -1015,10 +998,7 @@ export function GlobalCommandPaletteActions() {
                   icon: <ProjectAvatar project={project} size={16} />,
                 },
                 keywords: [project.name, project.slug],
-                to: makeProjectsPathname({
-                  path: `/${project.slug}/`,
-                  organization,
-                }),
+                to: makeProjectsPathname({path: `/${project.slug}/`, organization}),
               })),
           });
         }}

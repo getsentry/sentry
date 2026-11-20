@@ -5,7 +5,6 @@ import {GroupStatsFixture} from 'sentry-fixture/groupStats';
 import {MemberFixture} from 'sentry-fixture/member';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {SearchFixture} from 'sentry-fixture/search';
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {
@@ -19,7 +18,6 @@ import {
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import * as parseLinkHeaderModule from 'sentry/utils/parseLinkHeader';
@@ -43,11 +41,7 @@ const project = ProjectFixture({
   firstEvent: new Date().toISOString(),
 });
 
-const organization = OrganizationFixture({
-  id: '1337',
-  slug: 'org-slug',
-  access: [],
-});
+const organization = OrganizationFixture({id: '1337', slug: 'org-slug', access: []});
 
 const initialRouterConfig = {
   routes: [
@@ -55,10 +49,7 @@ const initialRouterConfig = {
     '/organizations/:orgId/issues/searches/:searchId/',
     '/organizations/:orgId/issues/views/:viewId/',
   ],
-  location: {
-    pathname: '/organizations/org-slug/issues/',
-    query: {},
-  },
+  location: {pathname: '/organizations/org-slug/issues/', query: {}},
 };
 
 function getSearchInput() {
@@ -82,9 +73,7 @@ describe('IssueList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
@@ -103,18 +92,6 @@ describe('IssueList', () => {
       url: '/organizations/org-slug/issues-count/',
       method: 'GET',
       body: [{}],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [
-        {
-          project: 'test-project',
-          numIssues: 1,
-          hasIssues: true,
-          lastSeen: '2019-01-16T15:39:11.081Z',
-        },
-      ],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
@@ -146,7 +123,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -167,9 +144,7 @@ describe('IssueList', () => {
       issuesRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
     });
 
@@ -178,10 +153,7 @@ describe('IssueList', () => {
         organization,
 
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/',
-            query: {},
-          },
+          location: {pathname: '/organizations/org-slug/issues/', query: {}},
         },
       });
 
@@ -212,27 +184,11 @@ describe('IssueList', () => {
     });
 
     it('loads with a query in URL', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [
-          SearchFixture({
-            id: '123',
-            name: 'Assigned to Me',
-            isPinned: false,
-            isGlobal: true,
-            query: 'assigned:me',
-            type: 0,
-          }),
-        ],
-      });
-
       render(<IssueListOverview />, {
         organization,
 
         initialRouterConfig: merge({}, initialRouterConfig, {
-          location: {
-            query: {query: 'level:error'},
-          },
+          location: {query: {query: 'level:error'}},
         }),
       });
 
@@ -251,27 +207,20 @@ describe('IssueList', () => {
 
     it('requests derived data when the issue inbox flag is enabled', async () => {
       render(<IssueListOverview />, {
-        organization: OrganizationFixture({
-          features: ['issue-inbox'],
-        }),
+        organization: OrganizationFixture({features: ['issue-inbox']}),
         initialRouterConfig,
       });
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: expect.stringContaining('expand=derivedData'),
-          })
+          expect.objectContaining({data: expect.stringContaining('expand=derivedData')})
         );
       });
     });
 
-    it('does not request derived data when the progress UI flag is disabled', async () => {
-      render(<IssueListOverview />, {
-        organization,
-        initialRouterConfig,
-      });
+    it('does not request derived data when the issue inbox flag is disabled', async () => {
+      render(<IssueListOverview />, {organization, initialRouterConfig});
 
       await waitFor(() => {
         expect(issuesRequest).toHaveBeenCalledWith(
@@ -289,11 +238,7 @@ describe('IssueList', () => {
         body: Array.from(Array.from({length: 5}), (_, i) =>
           GroupFixture({id: `${i}`, project})
         ),
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-          'X-Hits': '500',
-          'X-Max-Hits': '1000',
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '500', 'X-Max-Hits': '1000'},
       });
 
       PageFiltersStore.onInitializeUrlState({
@@ -331,9 +276,7 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
       const {router: testRouter} = render(<IssueListOverview />, {
@@ -455,14 +398,10 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      const {router: testRouter} = render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
+      const {router: testRouter} = render(<IssueListOverview />, {initialRouterConfig});
 
       await userEvent.click(screen.getByRole('button', {name: 'Clear search query'}));
       await userEvent.click(getSearchInput());
@@ -483,9 +422,7 @@ describe('IssueList', () => {
   });
 
   it('fetches members', async () => {
-    render(<IssueListOverview />, {
-      initialRouterConfig,
-    });
+    render(<IssueListOverview />, {initialRouterConfig});
 
     await waitFor(() => {
       expect(fetchMembersRequest).toHaveBeenCalled();
@@ -504,9 +441,7 @@ describe('IssueList', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [constructorGroup],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/',
@@ -524,10 +459,7 @@ describe('IssueList', () => {
       datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    render(<IssueListOverview />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<IssueListOverview />, {organization, initialRouterConfig});
 
     expect(await screen.findByText(constructorGroup.shortId)).toBeInTheDocument();
     expect(
@@ -542,16 +474,12 @@ describe('IssueList', () => {
       fetchDataMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
     });
 
     it('fetches data on selection change', async () => {
-      const {rerender} = render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
+      const {rerender} = render(<IssueListOverview />, {initialRouterConfig});
 
       act(() =>
         PageFiltersStore.onInitializeUrlState({
@@ -571,11 +499,7 @@ describe('IssueList', () => {
     it('uses correct statsPeriod when fetching issues list and no datetime given', async () => {
       const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
-          location: {
-            query: {
-              query: DEFAULT_QUERY,
-            },
-          },
+          location: {query: {query: DEFAULT_QUERY}},
         }),
       });
 
@@ -602,11 +526,7 @@ describe('IssueList', () => {
     it('defaults the row graph period to auto so it follows the global time range', async () => {
       const {rerender} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
-          location: {
-            query: {
-              query: DEFAULT_QUERY,
-            },
-          },
+          location: {query: {query: DEFAULT_QUERY}},
         }),
       });
 
@@ -634,9 +554,7 @@ describe('IssueList', () => {
 
   describe('componentDidUpdate fetching members', () => {
     it('fetches memberlist on project change', async () => {
-      const {rerender} = render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
+      const {rerender} = render(<IssueListOverview />, {initialRouterConfig});
       // Called during componentDidMount
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalled();
@@ -654,11 +572,7 @@ describe('IssueList', () => {
       await waitFor(() => {
         expect(fetchMembersRequest).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            query: {
-              project: ['99'],
-            },
-          })
+          expect.objectContaining({query: {project: ['99']}})
         );
       });
     });
@@ -671,9 +585,7 @@ describe('IssueList', () => {
         status: 500,
         statusCode: 500,
       });
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
+      render(<IssueListOverview />, {initialRouterConfig});
 
       expect(await screen.findByTestId('loading-error')).toBeInTheDocument();
     });
@@ -682,13 +594,9 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
+      render(<IssueListOverview />, {initialRouterConfig});
 
       expect(
         await screen.findByText(/Get out there and write some broken code!/i)
@@ -699,18 +607,12 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
       const {router: testRouter} = render(<IssueListOverview />, {
         initialRouterConfig: merge({}, initialRouterConfig, {
-          location: {
-            query: {
-              query: DEFAULT_QUERY,
-            },
-          },
+          location: {query: {query: DEFAULT_QUERY}},
         }),
       });
 
@@ -732,9 +634,7 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
       const statsRequest = MockApiClient.addMockResponse({
@@ -743,10 +643,7 @@ describe('IssueList', () => {
         asyncDelay: 5000,
       });
 
-      render(<IssueListOverview />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<IssueListOverview />, {organization, initialRouterConfig});
 
       // Verify stats request was made
       await waitFor(() => {
@@ -757,9 +654,7 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
       // Trigger a new search that returns empty results
@@ -786,15 +681,10 @@ describe('IssueList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
-      render(<IssueListOverview />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<IssueListOverview />, {organization, initialRouterConfig});
 
       await waitFor(() => {
         expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
@@ -810,10 +700,7 @@ describe('IssueList', () => {
         url: '/organizations/org-slug/projects/',
         body: [ProjectFixture({slug: 'foo', firstEvent: null})],
       });
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/foo/issues/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/projects/org-slug/foo/issues/', body: []});
 
       await renderEmptyIssueList();
 
@@ -849,36 +736,19 @@ describe('IssueList', () => {
       body: Array.from(Array.from({length: 5}), (_, i) =>
         GroupFixture({id: `${i}`, project})
       ),
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '500',
-        'X-Max-Hits': '1000',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '500', 'X-Max-Hits': '1000'},
     });
 
     parseLinkHeaderSpy.mockReturnValue({
-      next: {
-        results: true,
-        cursor: '',
-        href: '',
-      },
-      previous: {
-        results: false,
-        cursor: '',
-        href: '',
-      },
+      next: {results: true, cursor: '', href: ''},
+      previous: {results: false, cursor: '', href: ''},
     });
 
     const {rerender} = render(<IssueListOverview />, {
       organization,
 
       initialRouterConfig: merge({}, initialRouterConfig, {
-        location: {
-          query: {
-            cursor: 'some cursor',
-            page: 1,
-          },
-        },
+        location: {query: {cursor: 'some cursor', page: 1}},
       }),
     });
 
@@ -887,16 +757,8 @@ describe('IssueList', () => {
     });
 
     parseLinkHeaderSpy.mockReturnValue({
-      next: {
-        results: true,
-        cursor: '',
-        href: '',
-      },
-      previous: {
-        results: true,
-        cursor: '',
-        href: '',
-      },
+      next: {results: true, cursor: '', href: ''},
+      previous: {results: true, cursor: '', href: ''},
     });
     rerender(<IssueListOverview />);
 
@@ -905,36 +767,12 @@ describe('IssueList', () => {
     });
   });
 
-  describe('project low trends queue alert', () => {
-    beforeEach(() => {
-      act(() => ProjectsStore.reset());
-    });
-
-    it('does not render event processing alert', async () => {
-      act(() => ProjectsStore.loadInitialData([project]));
-
-      render(<IssueListOverview />, {
-        initialRouterConfig,
-      });
-
-      await waitFor(() => {
-        expect(screen.queryByText(/event processing/i)).not.toBeInTheDocument();
-      });
-    });
-  });
-
   describe('new view page', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/searches/',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/group-search-views/1/',
         body: GroupSearchViewFixture(),
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
     });
 
@@ -942,9 +780,7 @@ describe('IssueList', () => {
       const fetchDataMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [group],
-        headers: {
-          Link: DEFAULT_LINKS_HEADER,
-        },
+        headers: {Link: DEFAULT_LINKS_HEADER},
       });
 
       const {router: testRouter} = render(

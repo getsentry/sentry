@@ -16,9 +16,7 @@ describe('Project Ownership', () => {
   const project = ProjectFixture();
   const issueId = '1234';
   const stacktrace = EventEntryStacktraceFixture();
-  const event = EventFixture({
-    entries: [stacktrace],
-  });
+  const event = EventFixture({entries: [stacktrace]});
   const user = UserFixture();
 
   beforeEach(() => {

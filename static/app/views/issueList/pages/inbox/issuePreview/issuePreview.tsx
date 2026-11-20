@@ -20,6 +20,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -114,10 +115,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
 
   useMarkPreviewedGroupSeen(group);
   useTrackPreviewedGroup(group);
@@ -204,10 +202,7 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
   function openSeer(action?: string) {
     navigate(
       makeSeerLocation({
@@ -308,6 +303,17 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {/* The header's disabled Seer button has no room for the CTA. */}
+          {!previewSeer.creditCheck.hasEnoughCredits && (
+            <SeerOutOfCreditsCta
+              reason={
+                previewSeer.creditAction === 'root_cause'
+                  ? 'autofix-start'
+                  : 'autofix-continue'
+              }
+              denialReason={previewSeer.creditCheck.denialReason}
+            />
+          )}
           {summary && <IssuePreviewSummary summary={summary} />}
           {event && hasEventStackTrace(event, group) && (
             <Container key={event.id}>

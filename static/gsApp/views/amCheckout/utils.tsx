@@ -9,10 +9,11 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
-import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
 import type {Reservations} from 'getsentry/components/upgradeNowModal/types';
@@ -23,6 +24,7 @@ import type {
   BillingDetails,
   CheckoutAddOns,
   EventBucket,
+  Invoice,
   InvoiceItemType,
   OnDemandBudgets,
   Plan,
@@ -55,10 +57,7 @@ import {
 // Intent details returned by CustomerSubscriptionEndpoint
 // when there is an error and customer card actions are
 // required.
-export type IntentDetails = {
-  paymentIntent: string;
-  paymentSecret: string;
-};
+export type IntentDetails = {paymentIntent: string; paymentSecret: string};
 
 type APIDataProps = {
   formData: CheckoutFormData;
@@ -156,13 +155,11 @@ export function getShortInterval(billingInterval: string): string {
   return billingInterval === MONTHLY ? 'mo' : 'yr';
 }
 
-type CheckoutData = {
-  plan: string;
-} & Partial<Record<DataCategory, number>>;
+type CheckoutData = {plan: string} & Partial<Record<DataCategory, number>>;
 
-type PreviousData = {
-  previous_plan: string;
-} & Partial<Record<`previous_${DataCategory}`, number>>;
+type PreviousData = {previous_plan: string} & Partial<
+  Record<`previous_${DataCategory}`, number>
+>;
 
 /**
  * Nested structure for category reservations in checkout.upgrade event.
@@ -172,10 +169,7 @@ type PreviousData = {
 type CategoryReservations = Partial<
   Record<
     DataCategory,
-    {
-      previous_reserved: number | undefined;
-      reserved: number | undefined;
-    }
+    {previous_reserved: number | undefined; reserved: number | undefined}
   >
 >;
 
@@ -186,17 +180,13 @@ function recordAnalytics(
   isMigratingPartnerAccount: boolean
 ) {
   trackMarketingEvent('Upgrade');
-  const currentData: CheckoutData = {
-    plan: data.plan,
-  };
+  const currentData: CheckoutData = {plan: data.plan};
 
   const productSelectAnalyticsData: Partial<
     Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
   > = {};
 
-  const previousData: PreviousData = {
-    previous_plan: subscription.plan,
-  };
+  const previousData: PreviousData = {previous_plan: subscription.plan};
 
   // Build nested categories structure for better Amplitude analytics
   const categories: CategoryReservations = {};
@@ -353,9 +343,7 @@ export function getCheckoutAPIData({
 
   const reservedData = Object.fromEntries(
     Object.entries(formData.reserved).map(([category, value]) => [
-      `reserved${toTitleCase(category, {
-        allowInnerUpperCase: true,
-      })}`,
+      `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`,
       formatReservedData(value),
     ])
   ) satisfies Partial<Reservations>;
@@ -366,9 +354,7 @@ export function getCheckoutAPIData({
 
   const addOnData = Object.fromEntries(
     Object.entries(formData.addOns ?? {}).map(([addOnName, {enabled}]) => [
-      `addOn${toTitleCase(addOnName, {
-        allowInnerUpperCase: true,
-      })}`,
+      `addOn${toTitleCase(addOnName, {allowInnerUpperCase: true})}`,
       enabled,
     ])
   ) satisfies Partial<Record<`addOn${Capitalize<AddOnCategory>}`, boolean>>;
@@ -385,10 +371,7 @@ export function getCheckoutAPIData({
   };
 
   if (formData.applyNow) {
-    data = {
-      ...data,
-      applyNow: true,
-    };
+    data = {...data, applyNow: true};
   }
   return data;
 }
@@ -406,10 +389,7 @@ export async function fetchPreviewData(
   try {
     const previewData: PreviewData = await api.requestPromise(
       `/customers/${organization.slug}/subscription/preview/`,
-      {
-        method: 'GET',
-        data,
-      }
+      {method: 'GET', data}
     );
     onSuccess?.(previewData);
   } catch (error) {
@@ -475,7 +455,6 @@ export function useSubmitCheckout({
   previewData?: PreviewData;
   referrer?: string;
 }) {
-  const api = useApi({});
   const navigate = useNavigate();
 
   // this is necessary for recording partner billing migration-specific analytics after
@@ -484,13 +463,18 @@ export function useSubmitCheckout({
 
   return useMutation({
     mutationFn: ({data}: {data: CheckoutAPIData}) => {
-      return api.requestPromise(
-        `/customers/${organization.slug}/subscription/?expand=invoice`,
-        {
-          method: 'PUT',
-          data,
-        }
-      );
+      return fetchMutation<{
+        invoice?: Invoice;
+        invoiceGuid?: string;
+        paymentRequiresAction?: boolean;
+      }>({
+        url: getApiUrl('/customers/$organizationIdOrSlug/subscription/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        method: 'PUT',
+        data,
+        options: {query: {expand: 'invoice'}},
+      });
     },
     onSuccess: (response, _variables) => {
       recordAnalytics(
@@ -508,8 +492,6 @@ export function useSubmitCheckout({
         (_variables.data.addOnLegacySeer || _variables.data.addOnSeer) && !alreadyHasSeer;
 
       // refresh org and subscription state
-      // useApi cancels open requests on unmount by default, so we create a new Client to ensure this
-      // request doesn't get cancelled
       fetchOrganizationDetails(new Client(), organization.slug);
       SubscriptionStore.loadData(organization.slug);
 
@@ -681,10 +663,7 @@ export function getPrepaidPriceForAddOn({
 }) {
   const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(addOnCategory);
   if (reservedBudgetCategory) {
-    return getReservedPriceForReservedBudgetCategory({
-      plan,
-      reservedBudgetCategory,
-    });
+    return getReservedPriceForReservedBudgetCategory({plan, reservedBudgetCategory});
   }
 
   // if it's not a reserved budget add on, we assume it's a PAYG only add on (costs $0)

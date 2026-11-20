@@ -2,6 +2,7 @@ import {Fragment, useState} from 'react';
 import {IconAdd} from '@sentry/icons/add';
 import {IconFlag} from '@sentry/icons/flag';
 import {useQuery, useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {ExternalLink} from '@sentry/scraps/link';
@@ -18,8 +19,8 @@ import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -35,6 +36,7 @@ import {KeyRow} from './keyRow';
 export default function ProjectKeys() {
   const params = useParams<{projectId: string}>();
   const location = useLocation();
+  const [cursor] = useQueryState('cursor', parseAsString);
   const organization = useOrganization();
   const {project} = useProjectSettingsOutlet();
   const api = useApi({persistInFlight: true});
@@ -51,10 +53,7 @@ export default function ProjectKeys() {
     ...projectKeysApiOptions({
       orgSlug: organization.slug,
       projSlug: project.slug,
-      query: {
-        cursor: decodeScalar(location.query.cursor),
-        per_page: 5,
-      },
+      query: {cursor: cursor || undefined, per_page: 5},
     }),
     select: selectJsonWithHeaders,
   });
@@ -72,9 +71,7 @@ export default function ProjectKeys() {
             keyId: data.id,
           },
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: (data: ProjectKey) => {
@@ -100,10 +97,7 @@ export default function ProjectKeys() {
             keyId: data.id,
           },
         }),
-        {
-          method: 'PUT',
-          data: {isActive},
-        }
+        {method: 'PUT', data: {isActive}}
       );
     },
     onMutate: ({data}) => {
@@ -111,10 +105,7 @@ export default function ProjectKeys() {
       setKeyListState(
         keyList.map(key => {
           if (key.id === data.id) {
-            return {
-              ...key,
-              isActive: !data.isActive,
-            };
+            return {...key, isActive: !data.isActive};
           }
 
           return key;
@@ -134,10 +125,7 @@ export default function ProjectKeys() {
     mutationFn: () => {
       return api.requestPromise(
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         }),
         {method: 'POST'}
       );
@@ -221,7 +209,7 @@ export default function ProjectKeys() {
               params={params}
             />
           ))}
-          <Pagination pageLinks={keyListResponse.headers.Link} />
+          <Pagination {...getPaginationProps(keyListResponse.headers.Link)} />
         </Fragment>
       )}
     </div>

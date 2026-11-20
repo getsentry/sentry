@@ -128,9 +128,7 @@ export function BreadcrumbWebVital({
         size="xs"
         to={{
           pathname: `/organizations/${organization.slug}/insights/frontend/pageloads/`,
-          query: {
-            projectId: replayReader?.getReplay().project_id,
-          },
+          query: {projectId: replayReader?.getReplay().project_id},
         }}
       >
         {t('All Web Vitals')}

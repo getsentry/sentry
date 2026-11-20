@@ -1,11 +1,10 @@
-import * as qs from 'query-string';
-
 import {Link} from '@sentry/scraps/link';
 
 import {DeviceName} from 'sentry/components/deviceName';
 import {Version} from 'sentry/components/version';
 import {VersionHoverCard} from 'sentry/components/versionHoverCard';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
+import * as qs from 'sentry/utils/url/qs';
 import type {AttributesFieldRendererProps} from 'sentry/views/explore/components/traceItemAttributes/attributesTree';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -56,11 +55,7 @@ function TransactionRenderer({basicRendered, extra, item}: EventTagRendererProps
     return basicRendered;
   }
 
-  const query = qs.stringify({
-    project: extra.projectId,
-    transaction,
-    referrer: REFERRER,
-  });
+  const query = qs.stringify({project: extra.projectId, transaction, referrer: REFERRER});
 
   return (
     <Link to={`${getTransactionSummaryBaseUrl(extra.organization)}/?${query}`}>

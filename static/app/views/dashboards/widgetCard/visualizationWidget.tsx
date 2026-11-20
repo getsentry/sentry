@@ -8,14 +8,17 @@ import {Container, Flex, Stack, type ContainerProps} from '@sentry/scraps/layout
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {
+  ChartLayersControl,
+  type ChartLayersControlProps,
+} from 'sentry/components/charts/chartLayersControl';
+import type {DroppedDataProps} from 'sentry/components/droppedData/types';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {PageFilters} from 'sentry/types/core';
 import type {EChartDataZoomHandler} from 'sentry/types/echarts';
 import type {Confidence} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {IngestionMeta} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -50,7 +53,9 @@ import type {Plottable} from 'sentry/views/dashboards/widgets/timeSeriesWidget/p
 import {Thresholds} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/thresholds';
 import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {useIncompleteBucketTooltipDetails} from 'sentry/views/explore/components/chart/incompleteBucketTooltip';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {getExploreUrl} from 'sentry/views/explore/utils';
 import {navigationTypeSuppressesThresholds} from 'sentry/views/insights/browser/webVitals/navigationType/utils';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
@@ -73,8 +78,10 @@ interface VisualizationWidgetProps {
   selection: PageFilters;
   widget: TWidget;
   dashboardFilters?: DashboardFilters;
-  disableFullscreen?: boolean;
+  droppedData?: DroppedDataProps;
+  isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
+  layerControl?: ChartLayersControlProps;
   legendSelection?: LegendSelection;
   onDataFetchStart?: () => void;
   onDataFetched?: (results: {
@@ -85,6 +92,7 @@ interface VisualizationWidgetProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   showConfidenceWarning?: boolean;
+  showReleases?: boolean;
   tableItemLimit?: number;
   widgetInterval?: string;
 }
@@ -102,7 +110,10 @@ function VisualizationWidgetComponent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
-  disableFullscreen,
+  droppedData,
+  isDroppedDataLoading,
+  layerControl,
+  showReleases = true,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
 
@@ -120,13 +131,12 @@ function VisualizationWidgetComponent({
       }
     : undefined;
 
-  const {releases: releasesWithDate} = useReleaseStats(selection);
+  const {releases: releasesWithDate} = useReleaseStats(selection, {
+    enabled: showReleases,
+  });
 
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
   return (
     <WidgetCardDataLoader
@@ -162,7 +172,7 @@ function VisualizationWidgetComponent({
             errorMessage={errorMessage}
             loading={loading}
             releases={releases}
-            showReleaseAs="bubble"
+            showReleaseAs={showReleases ? 'bubble' : 'none'}
             dashboardFilters={dashboardFilters}
             showConfidenceWarning={showConfidenceWarning}
             confidence={confidence}
@@ -174,7 +184,9 @@ function VisualizationWidgetComponent({
             legendSelection={decodedLegendSelection}
             onLegendSelectionChange={handleLegendSelectionChange}
             isFullScreen={isFullScreen}
-            disableFullscreen={disableFullscreen}
+            droppedData={droppedData}
+            isDroppedDataLoading={isDroppedDataLoading}
+            layerControl={layerControl}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -182,16 +194,6 @@ function VisualizationWidgetComponent({
     </WidgetCardDataLoader>
   );
 }
-
-// Only these widget datasets map to an Outcomes category on the backend
-// (DATASET_TO_CATEGORY in data_annotations.py). Everything else gets no band.
-const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<Record<WidgetType, DiscoverDatasets>> =
-  {
-    [WidgetType.SPANS]: DiscoverDatasets.SPANS,
-    [WidgetType.LOGS]: DiscoverDatasets.OURLOGS,
-    [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
-    [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
-  };
 
 function shouldMemoizeVisualizationWidget(
   prevProps: VisualizationWidgetProps,
@@ -220,11 +222,13 @@ interface VisualizationWidgetContentProps {
   confidence?: Confidence;
   dashboardFilters?: DashboardFilters;
   dataScanned?: 'full' | 'partial';
-  disableFullscreen?: boolean;
+  droppedData?: DroppedDataProps;
   errorMessage?: string;
   ingestion?: IngestionMeta;
+  isDroppedDataLoading?: boolean;
   isFullScreen?: boolean;
   isSampled?: boolean | null;
+  layerControl?: ChartLayersControlProps;
   legendSelection?: LegendSelection;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
@@ -253,33 +257,16 @@ function VisualizationWidgetContent({
   legendSelection,
   onLegendSelectionChange,
   isFullScreen,
-  disableFullscreen,
+  droppedData,
+  isDroppedDataLoading,
+  layerControl,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
   const organization = useOrganization();
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
   const location = useLocation();
   const {selection} = usePageFilters();
-
-  // The band reflects the page filters, not this widget's own projects/query, so
-  // it won't follow a fullscreen zoom. Parameterize useDroppedData for per-widget
-  // scope before GA.
-  const droppedDataDataset = widget.widgetType
-    ? WIDGET_TYPE_TO_DROPPED_DATA_DATASET[widget.widgetType]
-    : undefined;
-  const droppedData = useDroppedDataLayer(
-    {
-      dataset: droppedDataDataset ?? DiscoverDatasets.SPANS,
-      interval: widgetInterval ?? '',
-    },
-    {
-      enabled:
-        defined(droppedDataDataset) &&
-        organization.features.includes('dashboards-data-fidelity-annotations'),
-      // disableFullscreen is true while creating or editing a widget.
-      hidden: disableFullscreen,
-    }
-  );
 
   const timeSeriesWithPlottable = timeseriesResults
     .map(({timeSeries, seriesName, queryIndex}) => {
@@ -350,10 +337,7 @@ function VisualizationWidgetContent({
         )?.value;
 
         const value = tableDataRows
-          ? matchTimeSeriesToTableRowValue({
-              tableDataRows,
-              timeSeries,
-            })
+          ? matchTimeSeriesToTableRowValue({tableDataRows, timeSeries})
           : null;
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
@@ -423,11 +407,7 @@ function VisualizationWidgetContent({
         return (
           <Fragment key={plottable.name}>
             <Container>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
+              <SeriesColorIndicator style={{backgroundColor: colorPalette[index]}} />
             </Container>
             <Tooltip title={label} showOnlyOnOverflow>
               {labelContent}
@@ -445,7 +425,7 @@ function VisualizationWidgetContent({
     </WidgetFooterTable>
   ) : null;
 
-  if (loading) {
+  if (loading || (isDroppedDataLoading && !errorMessage)) {
     return <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
   }
 
@@ -487,19 +467,30 @@ function VisualizationWidgetContent({
     return <TimeSeriesWidgetVisualization.NoData />;
   }
 
-  const confidenceFooter = showConfidenceWarning ? (
-    <WidgetCardConfidenceFooter
-      confidence={confidence}
-      dataScanned={dataScanned}
-      isSampled={isSampled}
-      loading={loading}
-      sampleCount={sampleCount}
-      series={timeseriesResults.map(({timeSeries}) => timeSeries)}
-      timeseriesResults={timeseriesResults}
-      widget={widget}
-      yAxis={widget.queries[0]?.aggregates[0] ?? ''}
-    />
-  ) : null;
+  let confidenceFooter: React.ReactNode = null;
+  if (showConfidenceWarning && hasExtrapolationConfidenceFooter) {
+    confidenceFooter = loading ? null : (
+      <ExtrapolationConfidenceFooter plottables={plottables} />
+    );
+  } else if (showConfidenceWarning) {
+    confidenceFooter = (
+      <WidgetCardConfidenceFooter
+        confidence={confidence}
+        dataScanned={dataScanned}
+        isSampled={isSampled}
+        loading={loading}
+        sampleCount={sampleCount}
+        series={timeseriesResults.map(({timeSeries}) => timeSeries)}
+        timeseriesResults={timeseriesResults}
+        widget={widget}
+        yAxis={widget.queries[0]?.aggregates[0] ?? ''}
+      />
+    );
+  }
+
+  const legendActions = layerControl ? (
+    <ChartLayersControl triggerLabel="title" {...layerControl} />
+  ) : undefined;
 
   if (showBreakdownData) {
     return (
@@ -515,7 +506,8 @@ function VisualizationWidgetContent({
             legendSelection={legendSelection}
             onLegendSelectionChange={onLegendSelectionChange}
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
-            droppedData={droppedData.band}
+            droppedData={droppedData}
+            legendActions={legendActions}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -540,7 +532,8 @@ function VisualizationWidgetContent({
           legendSelection={legendSelection}
           onLegendSelectionChange={onLegendSelectionChange}
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
-          droppedData={droppedData.band}
+          droppedData={droppedData}
+          legendActions={legendActions}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>

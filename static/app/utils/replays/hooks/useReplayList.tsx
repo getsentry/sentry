@@ -23,7 +23,7 @@ type Result = State;
 
 /**
  * @deprecated due to its reliance on EventView which is unpleasant to work with
- * Use useApiQuery instead
+ * Use apiOptions with useQuery instead
  */
 export function useReplayList({
   enabled,
@@ -45,15 +45,9 @@ export function useReplayList({
 
   const loadReplays = useCallback(async () => {
     api.clear();
-    setData(prev => ({
-      ...prev,
-      isFetching: true,
-    }));
+    setData(prev => ({...prev, isFetching: true}));
     if (!enabled) {
-      setData(prev => ({
-        ...prev,
-        isFetching: false,
-      }));
+      setData(prev => ({...prev, isFetching: false}));
       return;
     }
     const response = await fetchReplayList({

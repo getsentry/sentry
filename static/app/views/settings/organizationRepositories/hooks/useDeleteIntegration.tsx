@@ -1,8 +1,8 @@
 import {useMutation} from '@tanstack/react-query';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -22,12 +22,7 @@ export function useDeleteIntegration({onSuccess}: UseDeleteIntegrationOptions = 
         method: 'DELETE',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              integrationId: integration.id,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
         ),
       }),
     onSuccess: (_data, integration) => {

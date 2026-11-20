@@ -58,7 +58,6 @@ export function useCronIssueAlertId({groupId}: {groupId: string}): string | unde
     retry: false,
   });
 
-  // Fall back to the fetched event since the legacy UI isn't nested within the provider the provider
   return hasCronDetector
     ? detectorId
     : event?.tags?.find(({key}) => key === 'monitor.id')?.value;
@@ -129,9 +128,7 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
     return [...envSet];
   }, [cronStats]);
 
-  const legendStatuses = useCronLegendStatuses({
-    bucketStats: cronStats,
-  });
+  const legendStatuses = useCronLegendStatuses({bucketStats: cronStats});
 
   return (
     <ChartContainer envCount={statEnvironments.length}>
@@ -168,17 +165,13 @@ export function IssueCronCheckTimeline({group}: {group: Group}) {
                 {statEnvironments.length > 1 && (
                   <EnvironmentLabel
                     title={tct('Environment: [env]', {env})}
-                    style={{
-                      top: envIndex * totalHeight + timelineHeight,
-                    }}
+                    style={{top: envIndex * totalHeight + timelineHeight}}
                   >
                     {env}
                   </EnvironmentLabel>
                 )}
                 <CheckInTimeline
-                  style={{
-                    top: envIndex * (environmentHeight + paddingHeight),
-                  }}
+                  style={{top: envIndex * (environmentHeight + paddingHeight)}}
                   bucketedData={stats && env ? selectCheckInData(cronStats, env) : []}
                   statusLabel={statusToText}
                   statusStyle={tickStyle}

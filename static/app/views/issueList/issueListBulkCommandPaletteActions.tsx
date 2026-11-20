@@ -6,11 +6,11 @@ import {IconUser} from '@sentry/icons/user';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {ActorAvatar, TeamAvatar, UserAvatar} from '@sentry/scraps/avatar';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 import {CommandPaletteSlot} from 'sentry/components/commandPalette/ui/commandPaletteSlot';
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
@@ -134,11 +134,7 @@ function AssignActionItems({
             label: m.user.name || m.user.email,
             icon: (
               <ActorAvatar
-                actor={{
-                  id: m.user.id,
-                  name: m.user.name || m.user.email,
-                  type: 'user',
-                }}
+                actor={{id: m.user.id, name: m.user.name || m.user.email, type: 'user'}}
                 size={16}
                 hasTooltip={false}
               />
@@ -192,9 +188,7 @@ function PriorityActions({
       <CMDKAction
         display={{label: t('High'), icon: <IconCellSignal />}}
         onAction={() =>
-          onConfirmUpdate(t('set issue priority to high'), {
-            priority: PriorityLevel.HIGH,
-          })
+          onConfirmUpdate(t('set issue priority to high'), {priority: PriorityLevel.HIGH})
         }
       />
       <CMDKAction
@@ -208,9 +202,7 @@ function PriorityActions({
       <CMDKAction
         display={{label: t('Low'), icon: <IconCellSignal bars={1} />}}
         onAction={() =>
-          onConfirmUpdate(t('set issue priority to low'), {
-            priority: PriorityLevel.LOW,
-          })
+          onConfirmUpdate(t('set issue priority to low'), {priority: PriorityLevel.LOW})
         }
       />
     </CMDKAction>
@@ -337,11 +329,7 @@ function useIssueListBulkCommandPaletteActions({
           numIssues === 1 ? '' : 's'
         );
 
-    openConfirmModal({
-      message,
-      confirmText: t('Confirm'),
-      onConfirm,
-    });
+    openConfirmModal({message, confirmText: t('Confirm'), onConfirm});
   }
 
   return {
@@ -371,10 +359,7 @@ export function IssueListMarkAllCommandPaletteAction(
 
   return (
     <CMDKAction
-      display={{
-        label: t('Mark all issues as'),
-        icon: <IconIssues />,
-      }}
+      display={{label: t('Mark all issues as'), icon: <IconIssues />}}
       keywords={['issues', 'all issues', 'bulk', 'resolve', 'archive', 'assign']}
     >
       <CMDKAction
@@ -444,12 +429,7 @@ export function IssueListBulkCommandPaletteActions(
 
   return (
     <CommandPaletteSlot name="task">
-      <CMDKAction
-        display={{
-          label,
-          icon: <IconIssues />,
-        }}
-      >
+      <CMDKAction display={{label, icon: <IconIssues />}}>
         {canResolve && (
           <CMDKAction
             display={{label: t('Resolve'), icon: <IconCheckmark />}}

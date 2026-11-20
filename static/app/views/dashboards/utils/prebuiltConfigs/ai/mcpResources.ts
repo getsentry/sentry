@@ -120,13 +120,7 @@ const RESOURCES_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -138,11 +132,7 @@ export const MCP_RESOURCES_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'mcp.resource.uri',
-          name: 'mcp.resource.uri',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'mcp.resource.uri', name: 'mcp.resource.uri', kind: FieldKind.TAG},
         value: '',
       },
     ],

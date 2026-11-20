@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -9,35 +10,64 @@ from sentry.api.base import DEFAULT_DURATION_BUDGET, Endpoint, cell_silo_endpoin
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.environments import get_environment_func
 from sentry.api.serializers import SharedGroupSerializer, serialize
+from sentry.api.serializers.models.group import SharedGroupSerializerResponse
+from sentry.apidocs.constants import RESPONSE_NOT_FOUND
+from sentry.apidocs.examples.issue_examples import IssueExamples
+from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.group import Group
 
 
+@extend_schema(tags=["Events"])
 @cell_silo_endpoint
 class SharedGroupDetailsEndpoint(Endpoint):
     owner = ApiOwner.ISSUES
     max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     permission_classes = ()
 
+    @extend_schema(
+        operation_id="getOrganizationSharedIssue",
+        summary="Retrieve a Shared Issue",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            IssueParams.ISSUES_OR_GROUPS,
+            OpenApiParameter(
+                name="share_id",
+                location="path",
+                required=True,
+                type=str,
+                description="The share ID of the issue, from its public share link.",
+            ),
+        ],
+        # The share ID grants access, so the endpoint takes no authentication.
+        auth=[],
+        responses={
+            200: inline_sentry_response_serializer(
+                "SharedIssueResponse", SharedGroupSerializerResponse
+            ),
+            404: RESPONSE_NOT_FOUND,
+        },
+        examples=IssueExamples.SHARED_ISSUE_DETAILS,
+    )
     def get(
         self,
         request: Request,
         organization_id_or_slug: int | str | None = None,
         share_id: str | None = None,
-    ) -> Response:
+    ) -> Response[SharedGroupSerializerResponse]:
         """
-        Retrieve an aggregate
+        Return an issue that was shared with a public link. This endpoint doesn't need
+        authentication: the share ID grants access.
 
-        Return details on an individual aggregate specified by it's shared ID.
+        The response holds less than the issue details endpoint, and its latest event
+        leaves out the user, tags, contexts, SDK, extra data, processing errors and
+        breadcrumbs.
 
-            {method} {path}
-
-        Note: This is not the equivalent of what you'd receive with the standard
-        group details endpoint. Data is more restrictive and designed
-        specifically for sharing.
-
+        Returns 404 when the share ID doesn't exist, when the issue belongs to another
+        organization, or when the organization turned off issue sharing.
         """
         if share_id is None:
             raise ResourceDoesNotExist
@@ -59,7 +89,7 @@ class SharedGroupDetailsEndpoint(Endpoint):
         if group.organization.flags.disable_shared_issues:
             raise ResourceDoesNotExist
 
-        context = serialize(
+        context: SharedGroupSerializerResponse = serialize(
             group,
             request.user,
             SharedGroupSerializer(

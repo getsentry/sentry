@@ -1,5 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import commitImage from 'sentry-images/spot/releases-tour-commits.svg';
 import emailImage from 'sentry-images/spot/releases-tour-email.svg';
@@ -33,7 +33,8 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {NewInternalAppApiToken} from 'sentry/types/user';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useApi} from 'sentry/utils/useApi';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 const releasesSetupUrl = 'https://docs.sentry.io/product/releases/';
 
@@ -93,17 +94,22 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+type Props = {organization: Organization; project: Project};
 
 export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useQuery(
     sentryAppsApiOptions({orgSlug: organization.slug, status: 'internal'})
   );
 
-  const api = useApi();
+  const {mutateAsync: createToken} = useMutation({
+    mutationFn: (sentryAppSlug: string) =>
+      fetchMutation<NewInternalAppApiToken>({
+        url: getApiUrl('/sentry-apps/$sentryAppIdOrSlug/api-tokens/', {
+          path: {sentryAppIdOrSlug: sentryAppSlug},
+        }),
+        method: 'POST',
+      }),
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const [tokenForApp, setTokenForApp] = useState<{slug: string; token: string} | null>(
     null
@@ -122,10 +128,7 @@ export function ReleasesPromo({organization, project}: Props) {
   }, [isPending, data]);
 
   useEffect(() => {
-    trackAnalytics('releases.quickstart_viewed', {
-      organization,
-      project_id: project.id,
-    });
+    trackAnalytics('releases.quickstart_viewed', {organization, project_id: project.id});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -141,10 +144,7 @@ export function ReleasesPromo({organization, project}: Props) {
   }, []);
 
   const trackQuickstartCopy = useCallback(() => {
-    trackAnalytics('releases.quickstart_copied', {
-      organization,
-      project_id: project.id,
-    });
+    trackAnalytics('releases.quickstart_copied', {organization, project_id: project.id});
   }, [organization, project]);
 
   const trackQuickstartCreatedIntegration = (integration: SentryApp) => {
@@ -183,12 +183,7 @@ export function ReleasesPromo({organization, project}: Props) {
   };
 
   const generateToken = async (sentryAppSlug: string) => {
-    const newToken: NewInternalAppApiToken = await api.requestPromise(
-      `/sentry-apps/${sentryAppSlug}/api-tokens/`,
-      {
-        method: 'POST',
-      }
-    );
+    const newToken = await createToken(sentryAppSlug);
     return newToken.token;
   };
 

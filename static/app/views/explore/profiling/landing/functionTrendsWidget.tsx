@@ -28,6 +28,7 @@ import {t, tct} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {axisLabelFormatter, tooltipFormatter} from 'sentry/utils/discover/charts';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {FunctionTrend, TrendType} from 'sentry/utils/profiling/hooks/types';
 import {useProfileFunctionTrends} from 'sentry/utils/profiling/hooks/useProfileFunctionTrends';
 import {generateProfileRouteFromProfileReference} from 'sentry/utils/profiling/routes';
@@ -89,13 +90,11 @@ export function FunctionTrendsWidget({
   );
 
   const handleCursor = useCallback(
-    (cursor: any, pathname: any, query: any) => {
-      navigate({
-        pathname,
-        query: {...query, [cursorName]: cursor},
-      });
+    (cursor: string | undefined) => {
+      const {pathname, query} = location;
+      navigate({pathname, query: {...query, [cursorName]: cursor}});
     },
-    [cursorName, navigate]
+    [cursorName, location, navigate]
   );
 
   const paginationAnalyticsEvent = useCallback(
@@ -222,10 +221,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most regressed.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );
@@ -237,10 +238,12 @@ function FunctionTrendsWidgetHeader({
           )}
           <Subtitle>{t('Functions by most improved.')}</Subtitle>
           <StyledPagination
-            pageLinks={pageLinks}
+            {...getPaginationProps(pageLinks)}
             size="xs"
             onCursor={handleCursor}
-            paginationAnalyticsEvent={paginationAnalyticsEvent}
+            onPageChange={(_cursor, delta) =>
+              paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+            }
           />
         </HeaderContainer>
       );
@@ -403,15 +406,9 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
     dividingLine.markLine = {
       data: [{xAxis: seriesMid}],
       label: {show: false},
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'solid',
-        width: 2,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'solid', width: 2},
       symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
+      tooltip: {show: false},
       silent: true,
     };
 
@@ -436,11 +433,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         formatter: 'Past',
         position: 'insideStartTop',
       },
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'dashed',
-        width: 1,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'dashed', width: 1},
       symbol: ['none', 'none'],
       tooltip: {
         formatter: getTooltipFormatter(t('Past Baseline'), func.aggregate_range_1),
@@ -456,10 +449,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
     afterLine.markLine = {
       data: [
         [
-          {
-            value: 'Present',
-            coord: [seriesMid, func.aggregate_range_2 / 1e6],
-          },
+          {value: 'Present', coord: [seriesMid, func.aggregate_range_2 / 1e6]},
           {coord: [seriesEnd, func.aggregate_range_2 / 1e6]},
         ],
       ],
@@ -471,11 +461,7 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
         formatter: 'Present',
         position: 'insideEndBottom',
       },
-      lineStyle: {
-        color: theme.tokens.content.primary,
-        type: 'dashed',
-        width: 1,
-      },
+      lineStyle: {color: theme.tokens.content.primary, type: 'dashed', width: 1},
       symbol: ['none', 'none'],
       tooltip: {
         formatter: getTooltipFormatter(t('Present Baseline'), func.aggregate_range_2),
@@ -488,24 +474,15 @@ function FunctionTrendsChart({func, trendFunction}: FunctionTrendsChartProps) {
   const chartOptions = useMemo(() => {
     return {
       height: 150,
-      grid: {
-        top: '10px',
-        bottom: '10px',
-        left: '10px',
-        right: '10px',
-      },
+      grid: {top: '10px', bottom: '10px', left: '10px', right: '10px'},
       yAxis: {
         axisLabel: {
           color: theme.tokens.content.secondary,
           formatter: (value: number) => axisLabelFormatter(value, 'duration'),
         },
       },
-      xAxis: {
-        type: 'time' as const,
-      },
-      tooltip: {
-        valueFormatter: (value: number) => tooltipFormatter(value, 'duration'),
-      },
+      xAxis: {type: 'time' as const},
+      tooltip: {valueFormatter: (value: number) => tooltipFormatter(value, 'duration')},
     };
   }, [theme.tokens.content.secondary]);
 

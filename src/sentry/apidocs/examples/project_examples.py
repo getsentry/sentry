@@ -135,7 +135,6 @@ DETAILED_PROJECT = {
         "mail:subject_prefix": "",
         "sentry:relay_pii_config": None,
         "sentry:scrub_data": False,
-        "sentry:token": "e84c8c0fb1c121e988558785885f9cde",
         "sentry:resolve_age": 168,
         "sentry:grouping_config": "newstyle:2012-12-31",
         "quotas:spike-protection-disabled": False,
@@ -537,6 +536,23 @@ class ProjectExamples:
                 {"id": "localhost", "active": False},
                 {"id": "web-crawlers", "active": True},
             ],
+            status_codes=["200"],
+            response_only=True,
+        ),
+    ]
+
+    RESOLVE_DSN = [
+        OpenApiExample(
+            "Resolve a DSN to its project",
+            value={
+                "organizationSlug": "the-interstellar-jurisdiction",
+                "projectSlug": "pump-station",
+                "projectId": "2",
+                "projectName": "Pump Station",
+                "projectPlatform": "python",
+                "keyLabel": "Default",
+                "keyId": "60120449",
+            },
             status_codes=["200"],
             response_only=True,
         ),

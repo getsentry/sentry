@@ -99,15 +99,15 @@ export function SpanItemDetails({
     dateSelection,
   });
 
-  const visibleAttributes = useMemo(
-    () =>
-      sortAttributes(
-        (data?.attributes ?? []).filter(
-          attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
-        )
-      ),
-    [data?.attributes]
+  const useRawAttributeNames = organization.features.includes(
+    'trace-item-details-raw-attribute-names'
   );
+  const visibleAttributes = useMemo(() => {
+    const attributes = (data?.attributes ?? []).filter(
+      attribute => !HIDDEN_SPAN_DETAIL_ATTRIBUTES.has(attribute.name)
+    );
+    return sortAttributes(attributes, useRawAttributeNames);
+  }, [data?.attributes, useRawAttributeNames]);
 
   if (isLoading) {
     return (
@@ -258,14 +258,8 @@ function useSpanAttributeRenderers({
       return (
         <Link
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${item.value}/`,
-              organization,
-            }),
-            query: {
-              event_t: timestamp,
-              referrer: 'trace_explorer.span_samples',
-            },
+            pathname: makeReplaysPathname({path: `/${item.value}/`, organization}),
+            query: {event_t: timestamp, referrer: 'trace_explorer.span_samples'},
           }}
         >
           {basicRendered}

@@ -21,11 +21,7 @@ import {MultiQueryModeChart} from './queryVisualizations/chart';
 import {MultiQueryTable} from './queryVisualizations/table';
 import {getQueryMode, type ReadableExploreQueryParts} from './locationUtils';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-  totalQueryRows: number;
-};
+type Props = {index: number; query: ReadableExploreQueryParts; totalQueryRows: number};
 
 export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
   const {groupBys, query, yAxes, sortBys, caseInsensitive} = queryParts;
@@ -37,9 +33,7 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.AGGREGATE,
-    queryExtras: {
-      caseInsensitive: caseInsensitive === '1' ? true : undefined,
-    },
+    queryExtras: {caseInsensitive: caseInsensitive === '1' ? true : undefined},
   });
 
   const spansTableResult = useMultiQueryTableSampleMode({
@@ -48,17 +42,13 @@ export function QueryRow({query: queryParts, index, totalQueryRows}: Props) {
     yAxes,
     sortBys,
     enabled: mode === Mode.SAMPLES,
-    queryExtras: {
-      caseInsensitive: caseInsensitive === '1' ? true : undefined,
-    },
+    queryExtras: {caseInsensitive: caseInsensitive === '1' ? true : undefined},
   });
 
   const {result: timeseriesResult} = useMultiQueryTimeseries({
     index,
     enabled: true,
-    queryExtras: {
-      caseInsensitive: caseInsensitive === '1' ? true : undefined,
-    },
+    queryExtras: {caseInsensitive: caseInsensitive === '1' ? true : undefined},
   });
 
   const [interval] = useChartInterval();

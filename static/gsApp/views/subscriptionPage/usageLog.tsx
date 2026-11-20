@@ -3,16 +3,17 @@ import {useTheme} from '@emotion/react';
 import {IconCircleFill} from '@sentry/icons/circleFill';
 import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -21,11 +22,9 @@ import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getTimeFormat} from 'sentry/utils/dates';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
@@ -89,8 +88,12 @@ function SkeletonEntry() {
 export default function UsageLog() {
   const organization = useOrganization();
   const location = useLocation();
-  const navigate = useNavigate();
+  const [{event: selectedEvent}, setQueryParams] = useQueryStates({
+    event: parseAsString,
+    cursor: parseAsString,
+  });
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<UsageLogs>()(
       '/customers/$organizationIdOrSlug/subscription/usage-logs/',
@@ -110,18 +113,7 @@ export default function UsageLog() {
   );
 
   const handleEventFilter = (value: string | undefined) => {
-    if (typeof value === 'string') {
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, event: value, cursor: undefined},
-      });
-    } else {
-      // Clear filters
-      navigate({
-        pathname: location.pathname,
-        query: {...location.query, event: undefined, cursor: undefined},
-      });
-    }
+    setQueryParams({event: value ?? null, cursor: null}, {history: 'push'});
 
     trackGetsentryAnalytics('subscription_page.usagelog_filter.clicked', {
       organization,
@@ -130,18 +122,12 @@ export default function UsageLog() {
   };
 
   const handleCursor: CursorHandler = resultsCursor => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, cursor: resultsCursor},
-    });
+    setQueryParams({cursor: resultsCursor ?? null}, {history: 'push'});
   };
 
   const eventNameOptions =
-    eventNames?.map(type => ({
-      label: formatEntryTitle(type),
-      value: type,
-    })) ?? [];
-  const selectedEventName = decodeScalar(location.query.event);
+    eventNames?.map(type => ({label: formatEntryTitle(type), value: type})) ?? [];
+  const selectedEventName = selectedEvent || undefined;
 
   const usageLogContent = (
     <Fragment>
@@ -191,11 +177,18 @@ export default function UsageLog() {
                           {' ・ '}
                         </Text>
                         <Grid columns="max-content auto" gap="md">
-                          <DateTime
-                            format={`MMM D, YYYY ・ ${getTimeFormat({timeZone: true})}`}
-                            date={entry.dateCreated}
-                            style={{fontSize: theme.font.size.sm}}
-                          />
+                          <time style={{fontSize: theme.font.size.sm}}>
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'date',
+                              year: 'always',
+                              showTimezone: false,
+                            })}
+                            {' ・ '}
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'time',
+                              showTimezone: true,
+                            })}
+                          </time>
                         </Grid>
                         {entry.actor && entry.actor.name !== 'Sentry' && (
                           <Fragment>
@@ -218,7 +211,7 @@ export default function UsageLog() {
           </Timeline.Container>
         )}
       </Grid>
-      <Pagination pageLinks={data?.headers.Link} onCursor={handleCursor} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} onCursor={handleCursor} />
     </Fragment>
   );
 

@@ -21,22 +21,14 @@ export function useDelayedLoadingState() {
     setShouldShowLoadingState(true);
   }, []);
 
-  const {start, end, cancel} = useTimeout({
-    timeMs: HOVERCARD_CONTENT_DELAY,
-    onTimeout,
-  });
+  const {start, end, cancel} = useTimeout({timeMs: HOVERCARD_CONTENT_DELAY, onTimeout});
 
   const reset = useCallback(() => {
     setShouldShowLoadingState(false);
     cancel();
   }, [cancel]);
 
-  return {
-    shouldShowLoadingState,
-    onRequestBegin: start,
-    onRequestEnd: end,
-    reset,
-  };
+  return {shouldShowLoadingState, onRequestBegin: start, onRequestEnd: end, reset};
 }
 
 export function usePreviewEvent<T = Event>({

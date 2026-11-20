@@ -13,16 +13,10 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
 const consentChoiceSchema = z.enum(['true', 'false']);
-const schema = z.object({
-  beacon: z.object({record_cpu_ram_usage: consentChoiceSchema}),
-});
-const defaultValues: z.infer<typeof schema> = {
-  beacon: {record_cpu_ram_usage: 'true'},
-};
+const schema = z.object({beacon: z.object({record_cpu_ram_usage: consentChoiceSchema})});
+const defaultValues: z.infer<typeof schema> = {beacon: {record_cpu_ram_usage: 'true'}};
 
-type Props = {
-  onSubmitSuccess?: () => void;
-};
+type Props = {onSubmitSuccess?: () => void};
 
 function BeaconConsent({onSubmitSuccess}: Props) {
   const mutation = useMutation({
@@ -67,31 +61,30 @@ function BeaconConsent({onSubmitSuccess}: Props) {
           <Stack gap="xl">
             <form.AppField name="beacon.record_cpu_ram_usage">
               {field => (
-                <field.Radio.Group
-                  value={field.state.value}
-                  onChange={value => field.handleChange(consentChoiceSchema.parse(value))}
-                >
-                  <field.Layout.Stack
-                    label={t('CPU/RAM Usage')}
-                    hintText={tct(
-                      `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
+                <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('CPU/RAM Usage')}
+                      hintText={tct(
+                        `Recording CPU/RAM usage will greatly help our development team understand how self-hosted sentry
                   is typically being used, and to keep track of improvements that we hope to bring you in the future.`,
-                      {link: <ExternalLink href="https://sentry.io/privacy/" />}
-                    )}
-                    required
-                  >
-                    <Stack gap="sm">
-                      <field.Radio.Item value="true">
-                        {t(
-                          'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
-                        )}
-                      </field.Radio.Item>
-                      <field.Radio.Item value="false">
-                        {t("No, I'd prefer to keep CPU/RAM usage private")}
-                      </field.Radio.Item>
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                        {link: <ExternalLink href="https://sentry.io/privacy/" />}
+                      )}
+                      required
+                    >
+                      <Stack gap="sm">
+                        <Item value="true">
+                          {t(
+                            'Yes, I would love to help Sentry developers improve the experience of self-hosted by sending CPU/RAM usage'
+                          )}
+                        </Item>
+                        <Item value="false">
+                          {t("No, I'd prefer to keep CPU/RAM usage private")}
+                        </Item>
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
             <Flex

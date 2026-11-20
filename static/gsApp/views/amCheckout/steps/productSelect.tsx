@@ -15,6 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
+import {SeerPricingChangeAlert} from 'getsentry/components/ai/seerPricingChangeAlert';
 import {AddOnCategory} from 'getsentry/types';
 import {
   displayUnitPrice,
@@ -69,9 +70,7 @@ export function ProductSelect({
           addOnCategory: apiName,
         });
 
-        const priceInDollars = formatPrice({
-          cents: priceInCents,
-        });
+        const priceInDollars = formatPrice({cents: priceInCents});
 
         const reservedBudgetCategory = getReservedBudgetCategoryForAddOn(apiName);
         let reservedBudgetInfo = null;
@@ -91,14 +90,7 @@ export function ProductSelect({
         const ariaLabel = t('Add %s to plan', productName);
 
         const toggleProductOption = () => {
-          onUpdate({
-            addOns: {
-              ...formData.addOns,
-              [apiName]: {
-                enabled: !isSelected,
-              },
-            },
-          });
+          onUpdate({addOns: {...formData.addOns, [apiName]: {enabled: !isSelected}}});
         };
 
         if (apiName === AddOnCategory.LEGACY_SEER) {
@@ -137,9 +129,7 @@ export function ProductSelect({
                     <ToggleCard.Indicator />
                     <Flex align="center" justify="between" gap="sm" flex="1">
                       <Heading as="h3" variant="primary">
-                        {toTitleCase(productName, {
-                          allowInnerUpperCase: true,
-                        })}
+                        {toTitleCase(productName, {allowInnerUpperCase: true})}
                       </Heading>
                       <Flex align="center" gap="md">
                         {formattedMonthlyBudget && (
@@ -222,6 +212,7 @@ export function ProductSelect({
                   {t('Find and fix issues anywhere with Seer AI debugger')}
                 </Heading>
               </Flex>
+              <SeerPricingChangeAlert />
               {!isSelected && subscription.addOns?.[AddOnCategory.SEER]?.enabled && (
                 <Alert variant="warning" icon={<IconWarning />}>
                   {t(
@@ -242,9 +233,7 @@ export function ProductSelect({
                     <ToggleCard.Indicator />
                     <Flex align="center" justify="between" gap="sm" flex="1" wrap="wrap">
                       <Heading as="h3" variant="primary">
-                        {toTitleCase(productName, {
-                          allowInnerUpperCase: true,
-                        })}
+                        {toTitleCase(productName, {allowInnerUpperCase: true})}
                       </Heading>
                       <Flex align="start" gap="xs" wrap="wrap">
                         {/* TODO(seer): serialize pricing info */}

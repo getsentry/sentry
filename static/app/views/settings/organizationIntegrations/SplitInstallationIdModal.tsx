@@ -6,10 +6,7 @@ import {toast} from '@sentry/scraps/toast';
 
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 
-type Props = {
-  closeModal: () => void;
-  installationId: string;
-};
+type Props = {closeModal: () => void; installationId: string};
 
 /**
  * This component is a hack for Split.

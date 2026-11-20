@@ -120,6 +120,7 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
             GlobalParams.START,
             GlobalParams.END,
             REFERRER_QUERY_PARAM,
+            TraceParams.TIMESTAMP,
             ERROR_ID_QUERY_PARAM,
             ADDITIONAL_ATTRIBUTES_PARAM,
             INCLUDE_UPTIME_PARAM,
@@ -145,8 +146,6 @@ class OrganizationTraceEndpoint(OrganizationEventsEndpointBase):
         and `occurrences` arrays representing related items. Top-level entries are spans by default
         and may also be uptime checks when `include_uptime=1` is passed.
         """
-        if not self.has_feature(organization, request):
-            return Response(status=404)
 
         try:
             snuba_params = self.get_snuba_params(request, organization)

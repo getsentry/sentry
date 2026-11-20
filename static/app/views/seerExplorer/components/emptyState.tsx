@@ -51,9 +51,7 @@ export function EmptyState({
           <Container marginTop="xl" maxWidth="300px">
             <Text as="div" align="center" variant="secondary" density="comfortable">
               {errorStatusCode === 404
-                ? tct('Session not found (run_id=[runIdDisplay]).', {
-                    runIdDisplay,
-                  })
+                ? tct('Session not found (run_id=[runIdDisplay]).', {runIdDisplay})
                 : t('There was a problem loading the conversation.')}
             </Text>
           </Container>
@@ -141,7 +139,7 @@ const SuggestionButton = styled(Button)`
   font-weight: ${p => p.theme.font.weight.sans.regular};
   line-height: 16px;
 
-  > span:last-child {
+  && > [data-button-label] {
     white-space: normal;
     text-wrap: balance;
   }

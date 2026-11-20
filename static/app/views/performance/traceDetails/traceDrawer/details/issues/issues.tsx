@@ -21,10 +21,7 @@ import {TraceIcons} from 'sentry/views/performance/traceDetails/traceIcons';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
-type IssueProps = {
-  issue: TraceTree.TraceIssue;
-  organization: Organization;
-};
+type IssueProps = {issue: TraceTree.TraceIssue; organization: Organization};
 
 const MAX_DISPLAYED_ISSUES_COUNT = 3;
 

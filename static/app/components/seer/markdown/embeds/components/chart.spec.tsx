@@ -6,9 +6,7 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {Chart} from './chart';
 import {renderEmbedMarkdown} from './resourceEmbedTestUtils';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 function ExampleChartEmbed({body}: {body: Record<string, unknown>}) {
   return <SeerMarkdown raw={`{% chart %}${JSON.stringify(body)}{% /chart %}`} />;
@@ -55,9 +53,9 @@ describe('Chart embed', () => {
           name: 'seer-chart-series-0',
           type: visualization === 'bar' ? 'bar' : 'line',
           data: [
-            [Date.parse('2026-07-30T12:00:00Z'), 12],
-            [Date.parse('2026-07-30T13:00:00Z'), 18],
-            [Date.parse('2026-07-30T14:00:00Z'), 15],
+            expect.objectContaining({value: [Date.parse('2026-07-30T12:00:00Z'), 12]}),
+            expect.objectContaining({value: [Date.parse('2026-07-30T13:00:00Z'), 18]}),
+            expect.objectContaining({value: [Date.parse('2026-07-30T14:00:00Z'), 15]}),
           ],
         }),
       ]);
@@ -137,8 +135,12 @@ describe('Chart embed', () => {
         Array.isArray(props.yAxes) ? props.yAxes[0]?.axisLabel?.formatter : undefined
       ) as ((axisValue: number) => string) | undefined;
       expect(props.series?.[0]?.data).toEqual([
-        [Date.parse('2026-07-30T12:00:00Z'), chartValue],
-        [Date.parse('2026-07-30T13:00:00Z'), chartValue],
+        expect.objectContaining({
+          value: [Date.parse('2026-07-30T12:00:00Z'), chartValue],
+        }),
+        expect.objectContaining({
+          value: [Date.parse('2026-07-30T13:00:00Z'), chartValue],
+        }),
       ]);
       expect(formatter?.(chartValue)).toBe(expected);
     }
@@ -201,8 +203,8 @@ describe('Chart embed', () => {
 
     const props = jest.mocked(BaseChart).mock.calls.at(-1)![0];
     expect(props.series?.[0]?.data).toEqual([
-      [Date.parse('2026-07-30T11:00:00Z'), 18],
-      [Date.parse('2026-07-30T12:00:00Z'), 12],
+      expect.objectContaining({value: [Date.parse('2026-07-30T11:00:00Z'), 18]}),
+      expect.objectContaining({value: [Date.parse('2026-07-30T12:00:00Z'), 12]}),
     ]);
     expect(props.start).toEqual(new Date('2026-07-30T11:00:00Z'));
     expect(props.end).toEqual(new Date('2026-07-30T12:00:00Z'));

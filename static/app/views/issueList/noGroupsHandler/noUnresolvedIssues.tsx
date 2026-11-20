@@ -16,10 +16,7 @@ function Message({title, subtitle}: {subtitle: React.ReactNode; title: React.Rea
   );
 }
 
-type Props = {
-  subtitle: React.ReactNode;
-  title: React.ReactNode;
-};
+type Props = {subtitle: React.ReactNode; title: React.ReactNode};
 
 export function NoUnresolvedIssues({title, subtitle}: Props) {
   return (

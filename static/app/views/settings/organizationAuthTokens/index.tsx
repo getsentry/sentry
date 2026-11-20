@@ -18,20 +18,16 @@ import type {OrgAuthToken} from 'sentry/types/user';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
 import {OrganizationAuthTokensAuthTokenRow} from './authTokenRow';
 
 type FetchOrgAuthTokensResponse = OrgAuthToken[];
-type FetchOrgAuthTokensParameters = {
-  orgSlug: string;
-};
-type RevokeTokenQueryVariables = {
-  token: OrgAuthToken;
-};
+type FetchOrgAuthTokensParameters = {orgSlug: string};
+type RevokeTokenQueryVariables = {token: OrgAuthToken};
 
 const TOKEN_COLUMNS: TableColumnConfig[] = [
   {key: 'token', width: 'minmax(0, 1fr)'},
@@ -68,10 +64,7 @@ function TokenList({
   const {data: projects, isPending: isLoadingProjects} = useQuery({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        query: idQueryParams,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {query: idQueryParams, collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: 0,
     }),
     enabled: hasProjects,
@@ -101,7 +94,6 @@ function TokenList({
 
 function OrganizationAuthTokensIndex() {
   const organization = useOrganization();
-  const api = useApi();
   const queryClient = useQueryClient();
 
   const {
@@ -117,14 +109,12 @@ function OrganizationAuthTokensIndex() {
     RevokeTokenQueryVariables
   >({
     mutationFn: ({token}) =>
-      api.requestPromise(
-        getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
+      fetchMutation({
+        url: getApiUrl('/organizations/$organizationIdOrSlug/org-auth-tokens/$tokenId/', {
           path: {organizationIdOrSlug: organization.slug, tokenId: token.id},
         }),
-        {
-          method: 'DELETE',
-        }
-      ),
+        method: 'DELETE',
+      }),
 
     onSuccess: (_data, {token}) => {
       toast.success(t('Revoked auth token for the organization.'));
@@ -183,9 +173,7 @@ function OrganizationAuthTokensIndex() {
                 <div>
                   {tct(
                     'For more information on how to use the web API, see our [link:documentation].',
-                    {
-                      link: <ExternalLink href="https://docs.sentry.io/api/" />,
-                    }
+                    {link: <ExternalLink href="https://docs.sentry.io/api/" />}
                   )}
                 </div>
               </Stack>

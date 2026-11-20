@@ -28,22 +28,17 @@ describe('ActivityDrawer', () => {
       url: '/organizations/org-slug/issues/1337/',
       body: group,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   });
 
   function renderDrawer() {
     return render(
       <GroupIdProvider groupId={group.id}>
-        <ActivityDrawer project={project} />
+        <ActivityDrawer />
       </GroupIdProvider>,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/1337/activity/',
-          },
+          location: {pathname: '/organizations/org-slug/issues/1337/activity/'},
         },
       }
     );

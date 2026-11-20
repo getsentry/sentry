@@ -1,12 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {uniqueId} from 'sentry/utils/guid';
-import {useApi} from 'sentry/utils/useApi';
+import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {InviteRow, InviteStatus, NormalizedInvite} from './types';
 
@@ -17,11 +18,7 @@ interface Props {
 }
 
 function defaultInvite(): InviteRow {
-  return {
-    emails: new Set<string>(),
-    teams: new Set<string>(),
-    role: 'member',
-  };
+  return {emails: new Set<string>(), teams: new Set<string>(), role: 'member'};
 }
 
 function canInvite(organization: Organization) {
@@ -51,7 +48,6 @@ function useLogInviteModalOpened({
 }
 
 export function useInviteModal({organization, initialData, source}: Props) {
-  const api = useApi();
   const willInvite = canInvite(organization);
 
   /**
@@ -71,10 +67,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
   const [state, setState] = useState(() => {
     return {
       pendingInvites: initialData
-        ? initialData.map(initial => ({
-            ...defaultInvite(),
-            ...initial,
-          }))
+        ? initialData.map(initial => ({...defaultInvite(), ...initial}))
         : [defaultInvite()],
       inviteStatus: {},
       complete: false,
@@ -107,28 +100,32 @@ export function useInviteModal({organization, initialData, source}: Props) {
     });
   }, [organization]);
 
+  const {mutateAsync: createInvite} = useMutation({
+    mutationFn: (data: {email: string; role: string; teams: string[]}) =>
+      fetchMutation({
+        url: willInvite
+          ? getApiUrl('/organizations/$organizationIdOrSlug/members/', {
+              path: {organizationIdOrSlug: organization.slug},
+            })
+          : getApiUrl('/organizations/$organizationIdOrSlug/invite-requests/', {
+              path: {organizationIdOrSlug: organization.slug},
+            }),
+        method: 'POST',
+        data,
+      }),
+  });
+
   const sendInvite = useCallback(
     async (invite: NormalizedInvite) => {
-      const data = {
-        email: invite.email,
-        teams: [...invite.teams],
-        role: invite.role,
-      };
+      const data = {email: invite.email, teams: [...invite.teams], role: invite.role};
 
       setState(prev => ({
         ...prev,
-        inviteStatus: {
-          ...prev.inviteStatus,
-          [invite.email]: {sent: false},
-        },
+        inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: false}},
       }));
 
-      const endpoint = willInvite
-        ? `/organizations/${organization.slug}/members/`
-        : `/organizations/${organization.slug}/invite-requests/`;
-
       try {
-        await api.requestPromise(endpoint, {method: 'POST', data});
+        await createInvite(data);
       } catch (err: any) {
         const errorResponse = err.responseJSON;
 
@@ -161,7 +158,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
         inviteStatus: {...prev.inviteStatus, [invite.email]: {sent: true}},
       }));
     },
-    [api, organization, willInvite]
+    [createInvite]
   );
 
   const removeSentInvites = useCallback(() => {
@@ -173,12 +170,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
       );
       return {
         ...prev,
-        pendingInvites: [
-          {
-            ...prev.pendingInvites[0]!,
-            emails: new Set(filteredEmails),
-          },
-        ],
+        pendingInvites: [{...prev.pendingInvites[0]!, emails: new Set(filteredEmails)}],
       };
     });
   }, []);
@@ -193,10 +185,7 @@ export function useInviteModal({organization, initialData, source}: Props) {
     }
     trackAnalytics(
       willInvite ? 'invite_modal.invites_sent' : 'invite_modal.requests_sent',
-      {
-        organization,
-        modal_session: sessionId.current,
-      }
+      {organization, modal_session: sessionId.current}
     );
   }, [organization, state.inviteStatus, state.sendingInvites, willInvite]);
 

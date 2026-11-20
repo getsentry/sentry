@@ -11,7 +11,7 @@ import {
 import {toast} from '@sentry/scraps/toast';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
-import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
+import {MigrateLegacySeerAction} from 'admin/components/migrateLegacySeerAction';
 
 describe('MigrateLegacySeerAction', () => {
   const organization = OrganizationFixture();
@@ -35,6 +35,10 @@ describe('MigrateLegacySeerAction', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     jest.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    MockApiClient.asyncDelay = undefined;
   });
 
   it('renders timing options with Immediately selected by default', () => {
@@ -130,9 +134,7 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(migrateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/migrate-legacy-seer/`,
-        expect.objectContaining({
-          data: {applyImmediately: false, addSeerTrial: true},
-        })
+        expect.objectContaining({data: {applyImmediately: false, addSeerTrial: true}})
       );
     });
   });
@@ -153,9 +155,7 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(migrateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/migrate-legacy-seer/`,
-        expect.objectContaining({
-          data: {applyImmediately: true, addSeerTrial: false},
-        })
+        expect.objectContaining({data: {applyImmediately: true, addSeerTrial: false}})
       );
     });
   });
@@ -166,6 +166,7 @@ describe('MigrateLegacySeerAction', () => {
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
       method: 'POST',
       body: {},
+      asyncDelay: 1,
     });
 
     openModal();
@@ -174,9 +175,11 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(successMessage).toHaveBeenCalledWith('Legacy Seer migration complete.');
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows error detail from API response on failure', async () => {
+    MockApiClient.asyncDelay = 1;
     const errorMessage = jest.spyOn(toast, 'error');
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/migrate-legacy-seer/`,
@@ -193,6 +196,7 @@ describe('MigrateLegacySeerAction', () => {
         'This organization does not have legacy Seer configured.'
       );
     });
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('shows loading message before the API call resolves', async () => {

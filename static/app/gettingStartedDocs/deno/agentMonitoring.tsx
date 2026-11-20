@@ -211,9 +211,7 @@ function configureSteps(params: DocsParams): OnboardingStep[] {
           type: 'text',
           text: tct(
             'Import and initialize the Sentry SDK. The [integration] integration is enabled by default:',
-            {
-              integration: 'Vercel AI SDK',
-            }
+            {integration: 'Vercel AI SDK'}
           ),
         },
         {
@@ -335,20 +333,12 @@ export const agentMonitoring: OnboardingConfig = {
             type: 'text',
             text: tct(
               'To enable agent monitoring, you need the Sentry SDK with a minimum version of [minVersion].',
-              {
-                minVersion: <code>{getInstallMinVersion(params)}</code>,
-              }
+              {minVersion: <code>{getInstallMinVersion(params)}</code>}
             ),
           },
           {
             type: 'code',
-            tabs: [
-              {
-                label: 'JavaScript',
-                language: 'javascript',
-                code: sentryImport,
-              },
-            ],
+            tabs: [{label: 'JavaScript', language: 'javascript', code: sentryImport}],
           },
         ],
       },
@@ -377,11 +367,7 @@ export const agentMonitoring: OnboardingConfig = {
                 {
                   type: 'code' as const,
                   tabs: [
-                    {
-                      label: 'TypeScript',
-                      language: 'typescript',
-                      code: verifySnippet,
-                    },
+                    {label: 'TypeScript', language: 'typescript', code: verifySnippet},
                   ],
                 },
               ]

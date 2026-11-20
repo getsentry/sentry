@@ -123,10 +123,7 @@ describe('transformSeerResponse', () => {
     const result = transformSeerResponse(rawResponse as any, mapWithViz);
 
     expect(result).toEqual([
-      {
-        query: 'span.op:db',
-        visualizations: [{chartType: 1, yAxes: ['count()']}],
-      },
+      {query: 'span.op:db', visualizations: [{chartType: 1, yAxes: ['count()']}]},
     ]);
   });
 
@@ -416,12 +413,7 @@ describe('mapSeerResponseItem', () => {
 });
 
 describe('buildSeerDateTimeSelection', () => {
-  const relativePageFiltersDatetime = {
-    start: null,
-    end: null,
-    period: '24h',
-    utc: null,
-  };
+  const relativePageFiltersDatetime = {start: null, end: null, period: '24h', utc: null};
   const absolutePageFiltersDatetime = {
     start: '2024-01-01T00:00:00',
     end: '2024-01-02T00:00:00',
@@ -486,12 +478,7 @@ describe('buildSeerDateTimeSelection', () => {
       absolutePageFiltersDatetime
     );
 
-    expect(result).toEqual({
-      start: null,
-      end: null,
-      period: '7d',
-      utc: null,
-    });
+    expect(result).toEqual({start: null, end: null, period: '7d', utc: null});
   });
 
   it('does not shift dates without a Z suffix', () => {
@@ -557,6 +544,15 @@ describe('useSelectedProjectIds', () => {
 
     expect(result.current).toEqual([1, 2]);
   });
+
+  it('returns all projects when the user is a member of no projects', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '3', isMember: false})]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
+
+    const {result} = renderHookWithProviders(() => useSelectedProjectIds());
+
+    expect(result.current).toEqual([-1]);
+  });
 });
 
 describe('useSelectedProjectIdsForMutation', () => {
@@ -584,5 +580,14 @@ describe('useSelectedProjectIdsForMutation', () => {
     const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
 
     expect(result.current).toEqual([10, 20]);
+  });
+
+  it('returns all projects when the user is a member of no projects', () => {
+    ProjectsStore.loadInitialData([ProjectFixture({id: '20', isMember: false})]);
+    PageFiltersStore.onInitializeUrlState(PageFiltersFixture({projects: [-1]}), false);
+
+    const {result} = renderHookWithProviders(() => useSelectedProjectIdsForMutation());
+
+    expect(result.current).toEqual([-1]);
   });
 });

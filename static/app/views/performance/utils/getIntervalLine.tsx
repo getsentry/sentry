@@ -19,7 +19,8 @@ export function getIntervalLine(
   intervalRatio: number,
   label: boolean,
   transaction?: BreakpointTransaction,
-  useRegressionFormat?: boolean
+  useRegressionFormat?: boolean,
+  regressionEndMs?: number
 ): LineChartSeries[] {
   if (!transaction || !series.length || !series[0]!.data?.length) {
     return [];
@@ -46,9 +47,7 @@ export function getIntervalLine(
         width: label ? 1 : 2,
       },
       symbol: ['none', 'none'],
-      tooltip: {
-        show: false,
-      },
+      tooltip: {show: false},
     },
     seriesName: 'Baseline',
   };
@@ -81,6 +80,10 @@ export function getIntervalLine(
   const {breakpoint} = transformedTransaction;
 
   const divider = breakpoint || seriesLine;
+  const hasRegressionEnd = regressionEndMs !== undefined && regressionEndMs > divider;
+  const regressionEnd = hasRegressionEnd
+    ? Math.min(regressionEndMs, seriesEnd)
+    : seriesEnd;
 
   previousPeriod.markLine.data = [
     [
@@ -105,7 +108,7 @@ export function getIntervalLine(
   currentPeriod.markLine.data = [
     [
       {value: 'Present', coord: [divider, transformedTransaction.aggregate_range_2]},
-      {coord: [seriesEnd, transformedTransaction.aggregate_range_2]},
+      {coord: [regressionEnd, transformedTransaction.aggregate_range_2]},
     ],
   ];
   currentPeriod.markLine.tooltip = {
@@ -123,21 +126,11 @@ export function getIntervalLine(
     },
   };
   periodDividingLine.markLine = {
-    data: [
-      {
-        xAxis: divider,
-      },
-    ],
+    data: [{xAxis: divider}],
     label: {show: false},
-    lineStyle: {
-      color: theme.tokens.content.primary,
-      type: 'solid',
-      width: 2,
-    },
+    lineStyle: {color: theme.tokens.content.primary, type: 'solid', width: 2},
     symbol: ['none', 'none'],
-    tooltip: {
-      show: false,
-    },
+    tooltip: {show: false},
     silent: true,
   };
 
@@ -188,18 +181,8 @@ export function getIntervalLine(
       markLine: {},
       markArea: MarkArea({
         silent: true,
-        itemStyle: {
-          color: theme.colors.red400,
-          opacity: 0.2,
-        },
-        data: [
-          [
-            {
-              xAxis: divider,
-            },
-            {xAxis: seriesEnd},
-          ],
-        ],
+        itemStyle: {color: theme.colors.red400, opacity: 0.2},
+        data: [[{xAxis: divider}, {xAxis: regressionEnd}]],
       }),
       data: [],
     });
@@ -210,9 +193,7 @@ export function getIntervalLine(
       markLine:
         markLine({
           silent: true,
-          label: {
-            show: false,
-          },
+          label: {show: false},
           lineStyle: {color: theme.colors.green500, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
@@ -232,16 +213,17 @@ export function getIntervalLine(
       markLine:
         markLine({
           silent: true,
-          label: {
-            show: false,
-          },
+          label: {show: false},
           lineStyle: {color: theme.colors.red400, type: 'solid', width: 4},
           data: [
             // The line needs to be hard-coded to a pixel coordinate because
             // the lowest y-value is dynamic and 'min' doesn't work here
             [
               {xAxis: breakpoint, y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
-              {xAxis: 'max', y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET},
+              {
+                xAxis: hasRegressionEnd ? regressionEnd : 'max',
+                y: DEFAULT_CHART_HEIGHT - X_AXIS_MARGIN_OFFSET,
+              },
             ],
           ],
         }) ?? {},

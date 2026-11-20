@@ -12,6 +12,10 @@ import {
   collapseSeerActivityPairs,
   type ActivityFeedItem,
 } from './activityLineItem/activityFeedItem';
+import {
+  ActivityLineInvestigationLinked,
+  isInvestigationLinkedActivity,
+} from './activityLineItem/investigationLinked';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
@@ -103,10 +107,7 @@ const resolutionActivities = [
     {version: 'backend@1.2.3'},
     linearApp
   ),
-  activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
-    version: 'backend@1.2.3',
-    commit,
-  }),
+  activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {version: 'backend@1.2.3', commit}),
   activity(GroupActivityType.SET_RESOLVED_IN_RELEASE, {
     version: 'backend@1.2.3',
     commit: commitOnly,
@@ -149,24 +150,15 @@ const archivedActivities = [
   activity(GroupActivityType.SET_IGNORED),
   activity(GroupActivityType.SET_IGNORED, {ignoreDuration: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreCount: 50}),
-  activity(GroupActivityType.SET_IGNORED, {
-    ignoreCount: 50,
-    ignoreWindow: 10,
-  }),
+  activity(GroupActivityType.SET_IGNORED, {ignoreCount: 50, ignoreWindow: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUserCount: 50}),
-  activity(GroupActivityType.SET_IGNORED, {
-    ignoreUserCount: 50,
-    ignoreUserWindow: 10,
-  }),
+  activity(GroupActivityType.SET_IGNORED, {ignoreUserCount: 50, ignoreUserWindow: 10}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUntil: '2027-01-01T00:00:00Z'}),
   activity(GroupActivityType.SET_IGNORED, {ignoreUntilEscalating: true}),
 ];
 
 const assignmentActivities = [
-  activity(GroupActivityType.ASSIGNED, {
-    assignee: user.id,
-    assigneeType: 'user',
-  }),
+  activity(GroupActivityType.ASSIGNED, {assignee: user.id, assigneeType: 'user'}),
   activity(GroupActivityType.ASSIGNED, {
     assignee: '2',
     assigneeType: 'user',
@@ -226,10 +218,7 @@ const priorityActivities = [
     expired_snooze: {...expiredSnooze, user_count: 50},
   }),
   activity(GroupActivityType.SET_ESCALATING, {
-    expired_snooze: {
-      ...expiredSnooze,
-      until: new Date('2027-01-01T00:00:00Z'),
-    },
+    expired_snooze: {...expiredSnooze, until: new Date('2027-01-01T00:00:00Z')},
   }),
 ];
 
@@ -280,11 +269,7 @@ const issueActivities = [
     fingerprints: ['one'],
     source: {id: '3', shortId: 'EXAMPLE-3'},
   }),
-  activity(GroupActivityType.REPROCESS, {
-    eventCount: 25,
-    newGroupId: 2,
-    oldGroupId: 1,
-  }),
+  activity(GroupActivityType.REPROCESS, {eventCount: 25, newGroupId: 2, oldGroupId: 1}),
   activity(GroupActivityType.DELETED_ATTACHMENT),
 ];
 
@@ -331,9 +316,7 @@ const seerActivities = [
   seerActivity(GroupActivityType.SEER_SOLUTION_COMPLETED),
   seerActivity(GroupActivityType.SEER_CODING_STARTED),
   seerActivity(GroupActivityType.SEER_CODING_COMPLETED),
-  seerActivity(GroupActivityType.SEER_PR_CREATED, {
-    pull_requests: [seerPullRequest],
-  }),
+  seerActivity(GroupActivityType.SEER_PR_CREATED, {pull_requests: [seerPullRequest]}),
   {
     ...seerActivity(GroupActivityType.SEER_PR_CREATED, {
       pull_requests: [seerPullRequest],
@@ -345,9 +328,7 @@ const seerActivities = [
     pull_requests: [seerPullRequest],
   }),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED),
-  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
-    referrer: 'github.pr_comment',
-  }),
+  seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {referrer: 'github.pr_comment'}),
   seerActivity(GroupActivityType.SEER_ITERATION_STARTED, {
     referrer: 'github.check_suite',
   }),
@@ -360,9 +341,7 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   seerActivityAt(GroupActivityType.SEER_RCA_COMPLETED, '2025-01-01T00:12:00Z', {
     run_id: 1,
   }),
-  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {
-    run_id: 1,
-  }),
+  seerActivityAt(GroupActivityType.SEER_RCA_STARTED, '2025-01-01T00:00:00Z', {run_id: 1}),
   seerActivityAt(GroupActivityType.SEER_SOLUTION_COMPLETED, '2025-01-01T00:22:00Z', {
     run_id: 2,
   }),
@@ -394,6 +373,42 @@ const collapsedSeerActivities = collapseSeerActivityPairs([
   }),
 ]);
 
+const investigation = {id: '42', title: 'Checkout p95 latency spike', status: 'active'};
+
+const investigationLinkActivities = [
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason:
+        'TimeoutError QueuePool limit 10+10 reached, 4,734 events during the spike; culprit process_payment_authorization_and_retry_connection_pool in payments/client.py.',
+    }),
+    id: 'investigation-linked',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: {
+        ...investigation,
+        title: 'Checkout p95 latency spike after the payments deploy on the EU cluster',
+      },
+      hypothesisId: 'h-2',
+      hypothesisStatement: 'The 14:02 payments deploy added a slow fraud check',
+      reason: null,
+    }),
+    id: 'investigation-linked-long-title',
+  },
+  {
+    ...seerActivity(GroupActivityType.INVESTIGATION_LINKED, {
+      investigation: null,
+      hypothesisId: 'h-1',
+      hypothesisStatement: 'Payment client retries exhaust the connection pool',
+      reason: null,
+    }),
+    id: 'investigation-linked-deleted',
+  },
+];
+
 export default Storybook.story('Issue Activity', story => {
   story('Resolution', () => <ResolutionExamples />);
   story('Archived', () => <ActivityExamples items={archivedActivities} />);
@@ -405,6 +420,9 @@ export default Storybook.story('Issue Activity', story => {
   story('Sources', () => <ActivityExamples items={sourceActivities} />);
   story('Seer', () => <ActivityExamples items={seerActivities} />);
   story('Collapsed Seer', () => <ActivityFeedExamples items={collapsedSeerActivities} />);
+  story('Investigation links', () => (
+    <ActivityExamples items={investigationLinkActivities} />
+  ));
 });
 
 function ResolutionExamples() {
@@ -471,24 +489,33 @@ function ActivityExamples({items}: {items: GroupActivity[]}) {
 function ActivityFeedExamples({items}: {items: ActivityFeedItem[]}) {
   return (
     <Timeline.Container>
-      {items.map((item, index) =>
-        item.type === 'activity' && isActivityNote(item.activity) ? (
-          <ActivityLineNote
-            key={`${item.activity.id}-${index}`}
-            activity={item.activity}
-            inputVariant="compact"
-            onDelete={async () => {}}
-            onUpdate={async () => {}}
-          />
-        ) : (
-          <ActivityLine
-            key={`${item.activity.id}-${index}`}
-            group={group}
-            item={item}
-            timestampUnitStyle="short"
-          />
-        )
-      )}
+      {items.map((item, index) => {
+        const key = `${item.activity.id}-${index}`;
+        if (item.type === 'activity' && isActivityNote(item.activity)) {
+          return (
+            <ActivityLineNote
+              key={key}
+              activity={item.activity}
+              inputVariant="compact"
+              onDelete={async () => {}}
+              onUpdate={async () => {}}
+            />
+          );
+        }
+        if (item.type === 'activity' && isInvestigationLinkedActivity(item.activity)) {
+          return (
+            <ActivityLineInvestigationLinked
+              key={key}
+              activity={item.activity}
+              variant="full"
+              timestampUnitStyle="short"
+            />
+          );
+        }
+        return (
+          <ActivityLine key={key} group={group} item={item} timestampUnitStyle="short" />
+        );
+      })}
     </Timeline.Container>
   );
 }

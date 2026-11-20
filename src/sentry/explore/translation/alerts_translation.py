@@ -7,7 +7,6 @@ from sentry import features
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.discover.translation.mep_to_eap import QueryParts, translate_mep_to_eap
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.subscription_processor import MetricIssueDetectorConfig
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.search.events.fields import is_function, parse_arguments
 from sentry.seer.anomaly_detection.store_data import SeerMethod
@@ -24,6 +23,7 @@ from sentry.snuba.models import (
 )
 from sentry.snuba.subscriptions import bulk_update_snuba_subscriptions
 from sentry.utils.db import atomic_transaction
+from sentry.workflow_engine.generated_schema_types import MetricIssueDetectorConfig
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.models.data_source import DataSource
 

@@ -8,6 +8,9 @@ import orjson
 import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 from sentry_sdk import traces
 from taskbroker_client.retry import Retry
 from urllib3 import BaseHTTPResponse
@@ -34,13 +37,15 @@ from sentry.seer.autofix.exceptions import (
     IssueSummaryHidden,
     IssueSummarySelfHosted,
     NoSeerQuotaException,
+    SeerOutOfCreditsException,
 )
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     is_seer_autotriggered_autofix_rate_limited,
     is_seer_autotriggered_autofix_rate_limited_and_increment,
-    is_seer_seat_based_tier_enabled,
+    is_seer_seat_or_token_billed_enabled,
 )
 from sentry.seer.entrypoints.cache import SeerOperatorAutofixCache
 from sentry.seer.entrypoints.operator import SeerAutofixOperator
@@ -196,6 +201,7 @@ def _trigger_autofix_task(
                 referrer=referrer,
                 run_id=None,
                 stopping_point=stopping_point,
+                billing_feature=SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
             )
             with action_context_scope(ActionSource.SYSTEM, SYSTEM_ACTOR):
                 Activity.objects.create_group_activity(
@@ -204,7 +210,7 @@ def _trigger_autofix_task(
                     data={"referrer": referrer.value},
                     send_notification=False,
                 )
-        except NoSeerQuotaException:
+        except (NoSeerQuotaException, SeerOutOfCreditsException):
             pass
 
         if run and SeerAutofixOperator.has_access(organization=group.project.organization):
@@ -443,7 +449,7 @@ def is_group_eligible_for_automation(group: Group) -> bool:
         return False
 
     if (
-        runs_for_group(group.id, "autofix")
+        (runs_for_group(group.id, "autofix") | runs_for_group(group.id, SINGLE_RUN_FEATURE_ID))
         .filter(
             run__mirror_status=SeerRunMirrorStatus.LIVE,
             run__seer_run_state_id__isnull=False,
@@ -480,7 +486,7 @@ def get_automation_stopping_point(group: Group) -> AutofixStoppingPoint | None:
     """
     user_preference = group.project.get_option("sentry:seer_automated_run_stopping_point")
 
-    if is_seer_seat_based_tier_enabled(group.organization):
+    if is_seer_seat_or_token_billed_enabled(group.organization):
         fixability_score = get_and_update_group_fixability_score(group)
         fixability_stopping_point = _get_stopping_point_from_fixability(fixability_score)
 

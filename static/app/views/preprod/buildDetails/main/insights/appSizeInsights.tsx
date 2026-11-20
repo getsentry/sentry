@@ -56,13 +56,7 @@ export function AppSizeInsights({
 
   return (
     <Container background="primary" radius="md" padding="lg" borderColor="muted">
-      <Flex
-        align="center"
-        justify="between"
-        style={{
-          marginBottom: '16px',
-        }}
-      >
+      <Flex align="center" justify="between" style={{marginBottom: '16px'}}>
         <Heading as="h2" size="lg">
           {t('Top insights')}
         </Heading>
@@ -75,9 +69,7 @@ export function AppSizeInsights({
       <Stack
         gap="2xs"
         css={theme => ({
-          '& > :nth-child(odd)': {
-            backgroundColor: theme.tokens.background.secondary,
-          },
+          '& > :nth-child(odd)': {backgroundColor: theme.tokens.background.secondary},
         })}
       >
         {topInsights.map(insight => (

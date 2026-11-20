@@ -56,6 +56,7 @@ type ConditionType =
   | 'metric_name'
   | 'log_message'
   | 'release'
+  | 'environment'
   | 'ip_address';
 
 // How a condition compares its values to the field, as the API names it. `glob`
@@ -128,11 +129,7 @@ type DataTypeOption = {label: string; value: FilterDataType};
 
 // The modal edits the conditions as one text. See `ConditionEditor` for how the
 // text translates.
-type FilterFormValues = {
-  conditions: string;
-  dataType: FilterDataType;
-  name: string;
-};
+type FilterFormValues = {conditions: string; dataType: FilterDataType; name: string};
 
 type DataTypeSpec = {
   label: string;
@@ -161,9 +158,9 @@ type ConditionSpec = {
   placeholder: string;
   // Values compare as versions too, so the query builder offers >, >=, < and <=.
   comparable?: boolean;
-  // The data type whose field this condition reads. Absent for `release` and
-  // `ip_address`, which every data type carries, so they stay on offer whatever
-  // the filter targets.
+  // The data type whose field this condition reads. Absent for `release`,
+  // `environment` and `ip_address`, which every data type carries, so they stay
+  // on offer whatever the filter targets.
   dataType?: FilterDataType;
   // Values are addresses and ranges, not text: the field "matches" them or "does
   // not match" them, and the query builder offers no wildcard.
@@ -219,6 +216,17 @@ const CONDITIONS: Record<ConditionType, ConditionSpec> = {
       log: t('Matches the release attribute of the log.'),
       metric: t('Matches the release attribute of the metric.'),
       span: t('Matches the release attribute of the span.'),
+    },
+  },
+  environment: {
+    label: t('Environment'),
+    placeholder: t('Glob pattern, e.g. staging'),
+    description: {
+      all: t('Matches the environment of any data type.'),
+      error: t('Matches the environment of the error.'),
+      log: t('Matches the environment attribute of the log.'),
+      metric: t('Matches the environment attribute of the metric.'),
+      span: t('Matches the environment attribute of the span.'),
     },
   },
   ip_address: {
@@ -279,6 +287,28 @@ function getFilterKeys(dataType: FilterDataType): TagCollection {
   return keys;
 }
 
+// The environment condition rolls out behind its own flag, so the key menu leaves
+// it out until the organization has it. Parsing still reads it, so a filter that
+// already holds one stays editable.
+const FILTER_KEYS_WITHOUT_ENVIRONMENT = new Map<FilterDataType, TagCollection>();
+
+function getOfferedFilterKeys(
+  dataType: FilterDataType,
+  hasEnvironmentCondition: boolean
+): TagCollection {
+  const keys = getFilterKeys(dataType);
+  if (hasEnvironmentCondition) {
+    return keys;
+  }
+  let offered = FILTER_KEYS_WITHOUT_ENVIRONMENT.get(dataType);
+  if (!offered) {
+    const {environment: _environment, ...rest} = keys;
+    offered = rest;
+    FILTER_KEYS_WITHOUT_ENVIRONMENT.set(dataType, offered);
+  }
+  return offered;
+}
+
 const FIELD_DEFINITION_GETTERS = new Map<FilterDataType, FieldDefinitionGetter>();
 
 // An address field matches a value or does not; "is" would read as text equality.
@@ -286,6 +316,10 @@ const EXACT_OPERATOR_LABELS: Partial<Record<TermOperator, string>> = {
   [TermOperator.DEFAULT]: t('matches'),
   [TermOperator.NOT_EQUAL]: t('does not match'),
 };
+
+// The API has no "is not" for text. The menu offers the three "does not" operators
+// instead, and `tokenToCondition` refuses an "is not" typed as text.
+const TEXT_DISALLOWED_OPERATORS = [TermOperator.NOT_EQUAL] as const;
 
 // What the value dropdown says a value is under the operator. A wildcard operator
 // keeps the builder's own hint, which says how to get a wildcard back.
@@ -321,6 +355,7 @@ function getFieldDefinitionGetter(dataType: FilterDataType): FieldDefinitionGett
         comparisonOperatorsFirst: spec.comparable,
         allowWildcard: !spec.exact,
         disallowWildcardOperators: spec.exact,
+        disallowedOperators: spec.exact ? undefined : TEXT_DISALLOWED_OPERATORS,
         operatorLabels: spec.exact ? EXACT_OPERATOR_LABELS : undefined,
         valueHint: operator => getValueHint(spec, operator),
       };
@@ -812,6 +847,9 @@ function CustomFilterModal({
 }) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
+  const hasEnvironmentCondition = organization.features.includes(
+    'inbound-filters-environment-condition'
+  );
 
   // A row that holds a legacy list keeps its one condition and its data type: the
   // modal edits the lines of the condition.
@@ -918,9 +956,7 @@ function CustomFilterModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: filterSchema},
-    listeners: {
-      onBlur: ({formApi}) => suggestName(formApi.state.values),
-    },
+    listeners: {onBlur: ({formApi}) => suggestName(formApi.state.values)},
     onSubmit: ({value}) =>
       saveMutation
         .mutateAsync(value)
@@ -1029,7 +1065,10 @@ function CustomFilterModal({
                               key={dataType}
                               label={t('Conditions')}
                               initialQuery={queryField.state.value}
-                              filterKeys={getFilterKeys(dataType)}
+                              filterKeys={getOfferedFilterKeys(
+                                dataType,
+                                hasEnvironmentCondition
+                              )}
                               fieldDefinitionGetter={getFieldDefinitionGetter(dataType)}
                               getTagValues={getNoTagValues}
                               onChange={value => queryField.handleChange(value)}

@@ -27,11 +27,5 @@ export function getSnapshotStatusChecks(project: DetailedProject) {
     project.preprodSnapshotStatusChecksFailOnRenamed ??
     project.options?.[FAIL_ON_RENAMED_KEY] === true;
 
-  return {
-    enabled,
-    failOnAdded,
-    failOnRemoved,
-    failOnChanged,
-    failOnRenamed,
-  };
+  return {enabled, failOnAdded, failOnRemoved, failOnChanged, failOnRenamed};
 }

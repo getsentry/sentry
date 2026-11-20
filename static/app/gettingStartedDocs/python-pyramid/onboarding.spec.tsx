@@ -16,9 +16,7 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders with metrics', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     // Renders metrics verification steps
     expect(
@@ -29,9 +27,7 @@ describe('aiohttp onboarding docs', () => {
   });
 
   it('renders without metrics', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render metrics verification steps
     expect(

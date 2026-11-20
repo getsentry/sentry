@@ -23,7 +23,6 @@ export interface AddIntegrationParams {
       | 'onboarding'
       | 'project_creation'
       | 'seer_onboarding_github'
-      | 'seer_onboarding_code_review'
       | 'test_analytics_onboarding'
       | 'test_analytics_org_selector';
     referrer?: string;
@@ -34,10 +33,7 @@ export interface AddIntegrationParams {
    * Overrides for the install modal's copy. Passed straight through to
    * `openPipelineModal`; this hook does not read them.
    */
-  modalParams?: {
-    description?: React.ReactNode;
-    title?: string;
-  };
+  modalParams?: {description?: React.ReactNode; title?: string};
   onCancel?: () => void;
   onError?: (error: string) => void;
   /**

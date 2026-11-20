@@ -136,7 +136,7 @@ export function SearchInput({padding = 'xs', ...props}: SearchInputProps) {
             <IconSearch size="xs" variant="muted" />
           </Flex>
         </InputGroup.LeadingItems>
-        <InputGroup.Input size="xs" {...props} />
+        <InputGroup.Input size="xs" type="search" {...props} />
       </InputGroup>
     </Container>
   );
@@ -178,6 +178,9 @@ type Priority = 'primary' | 'danger' | 'default';
 const TRAILING_ACTION_INSET = 'lg';
 const TRAILING_ACTION_SPACE = '3xl';
 
+/** Space token between the items of a dropdown menu section. */
+export const SECTION_ITEM_SPACE = '2xs';
+
 const ITEM_PADDING_BY_SIZE = {
   xs: 'xs md xs lg',
   sm: 'sm md sm lg',
@@ -185,11 +188,7 @@ const ITEM_PADDING_BY_SIZE = {
 } as const;
 
 // Item size follows the form scale, where `sm` controls still use `md` text.
-const LABEL_TEXT_SIZE_BY_SIZE = {
-  xs: 'sm',
-  sm: 'md',
-  md: 'md',
-} as const;
+const LABEL_TEXT_SIZE_BY_SIZE = {xs: 'sm', sm: 'md', md: 'md'} as const;
 
 /** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
@@ -221,12 +220,7 @@ const StyledInnerWrap = styled(Flex, {
     (isPropValid(prop) ||
       ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'hasTrailingAction', 'priority'].includes(prop),
-})<{
-  disabled: boolean;
-  hasTrailingAction: boolean;
-  priority: Priority;
-  size?: FormSize;
-}>`
+})<{disabled: boolean; hasTrailingAction: boolean; priority: Priority; size?: FormSize}>`
   gap: ${p => p.theme.space.xs};
   position: relative;
   border-radius: ${p => p.theme.radius.md};
@@ -339,6 +333,8 @@ export interface MenuItemTrailingAction {
   /** Accessible name for the button, also shown as its tooltip. */
   label: string;
   onAction: () => void;
+  /** Shows a loading indicator in place of the icon while the action runs. */
+  busy?: boolean;
 }
 
 export type ListItemProps = {
@@ -401,8 +397,6 @@ interface OtherProps<T extends React.ElementType> {
   trailingAction?: MenuItemTrailingAction;
   /** Ref to the trailing action's button. */
   trailingActionRef?: React.Ref<HTMLButtonElement>;
-  /** Props for the wrapper around the trailing action. */
-  trailingActionWrapperProps?: React.ComponentPropsWithRef<'div'>;
 }
 
 interface MenuListItemProps<T extends React.ElementType = 'li'>
@@ -433,7 +427,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
   tooltipOptions,
   ref,
   trailingActionRef,
-  trailingActionWrapperProps,
   ...props
 }: MenuListItemProps<T>) {
   const [itemElement, setItemElement] = useState<HTMLElement | null>(null);
@@ -606,7 +599,6 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
           top="0"
           height="100%"
           align="center"
-          {...trailingActionWrapperProps}
         >
           <Button
             ref={trailingActionRef}
@@ -615,6 +607,7 @@ export function MenuListItem<T extends React.ElementType = 'li'>({
             icon={trailingAction.icon}
             aria-label={trailingAction.label}
             tooltipProps={{title: trailingAction.label}}
+            busy={trailingAction.busy}
             onClick={trailingAction.onAction}
           />
         </Flex>
@@ -800,9 +793,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<{
-  size: MenuListItemProps['size'];
-}>`
+const StyledOverlay = styled(Overlay)<{size: MenuListItemProps['size']}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;

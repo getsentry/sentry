@@ -186,12 +186,13 @@ This allows workflows to target a product-specific detector or the broader issue
 
 [`Workflow`](../models/workflow.py) is organization-scoped. Important fields are:
 
-| Field or relationship  | Meaning                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `when_condition_group` | Optional trigger group evaluated before action filters  |
-| `environment`          | `NULL` for all environments or one specific environment |
-| `config.frequency`     | Repeat suppression interval in minutes                  |
-| `enabled`              | Whether the workflow is eligible to run                 |
+| Field or relationship  | Meaning                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | `alert` (default) for user-facing alerts, or a hidden automation type such as `inbox`; alert APIs expose only `VISIBLE_WORKFLOW_TYPES` |
+| `when_condition_group` | Optional trigger group evaluated before action filters                                                                                 |
+| `environment`          | `NULL` for all environments or one specific environment                                                                                |
+| `config.frequency`     | Repeat suppression interval in minutes                                                                                                 |
+| `enabled`              | Whether the workflow is eligible to run                                                                                                |
 
 ### `WorkflowDataConditionGroup`
 
@@ -250,6 +251,13 @@ The association is normally created during Issue Platform ingestion. Compatibili
 paths can backfill missing associations. Callers resolving a detector from an issue must
 handle deleted or missing detector records.
 
+Open-period history serialization groups activities by `group_open_period_id`, without
+loading each activity's parent. Serializer attributes remain keyed by the original
+`GroupOpenPeriod` instances from the page. Activities are ordered by creation time and
+clipped to 100 per period after fetching and serialization. With a start bound, the
+current query includes one globally latest pre-window activity across the page, not
+one per period; ID grouping does not change this selection policy.
+
 ### `WorkflowActionGroupStatus`
 
 [`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) records when a
@@ -259,7 +267,7 @@ external action completed.
 
 ### `WorkflowFireHistory`
 
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, issue
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, optional issue
 group, event ID, notification UUID, and optional detector. It has no action or delivery
 outcome field. Rows are created before inactive-action filtering and event-level
 deduplication, so they record pre-dispatch intent rather than a scheduled or successfully
@@ -283,6 +291,11 @@ source object, generic data source, source mapping, and workflows.
 
 Default detectors and workflows are created by [`defaults/`](../defaults) from project
 and organization signal receivers. These functions must remain idempotent.
+
+Workflows created through the public API go through
+[`WorkflowValidator`](../endpoints/validators/base/workflow.py), which never sets `type`,
+so they are always `alert`. Code that creates a hidden workflow type passes `type` to
+`Workflow.objects.create` directly.
 
 ### Updates
 

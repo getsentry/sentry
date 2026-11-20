@@ -1,6 +1,5 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import {Navigate, Outlet} from 'react-router';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import {useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
@@ -86,6 +85,7 @@ import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
+import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -97,10 +97,7 @@ import {
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 // Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
-const allProjectsQueryParsers = {
-  _allp: parseAsString,
-  project: parseAsString,
-};
+const allProjectsQueryParsers = {_allp: parseAsString, project: parseAsString};
 
 const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
 
@@ -193,10 +190,7 @@ function getReprocessingNewRoute({
     reprocessingStatus === ReprocessingStatus.REPROCESSING &&
     currentTab !== Tab.DETAILS
   ) {
-    return {
-      pathname: baseUrl,
-      query: location.query,
-    };
+    return {pathname: baseUrl, query: location.query};
   }
 
   if (
@@ -204,10 +198,7 @@ function getReprocessingNewRoute({
     currentTab !== Tab.ACTIVITY &&
     currentTab !== Tab.USER_FEEDBACK
   ) {
-    return {
-      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-      query: location.query,
-    };
+    return {pathname: `${baseUrl}${Tab.ACTIVITY}/`, query: location.query};
   }
 
   return;
@@ -237,7 +228,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
 
   // It's possible the overview page is still unloading the store
   useEffect(() => {
-    return GroupStore.listen(() => {
+    return GroupStore.subscribe(() => {
       const [storeGroup] = GroupStore.getState();
       if (
         defined(storeGroup) &&
@@ -256,7 +247,7 @@ function useSyncGroupStore(groupId: string, incomingEnvs: string[]) {
           prev => (prev ? {...prev, json: storeGroup as Group} : prev)
         );
       }
-    }, undefined) as () => void;
+    });
   }, [groupId, incomingEnvs, organization, queryClient]);
 }
 
@@ -279,10 +270,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId,
-  });
+  } = useGroupEvent({groupId, eventId});
 
   const {
     data: groupData,
@@ -293,8 +281,8 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
   } = useGroup({groupId});
 
   /**
-   * Allows the GroupEventHeader to display the previous event while the new event is loading.
-   * This is not closer to the GroupEventHeader because it is unmounted
+   * Allows issue details to keep displaying the previous event while the new event is loading.
+   * This lives here because the event components are unmounted
    * between route changes like latest event => eventId
    */
   const previousEvent = useMemoWithPrevious<{event: Event; groupId: string} | null>(
@@ -532,26 +520,26 @@ function useTrackView({
   useRouteAnalyticsParams({
     // Will be updated by StacktraceLink if there is a stacktrace link
     stacktrace_link_viewed: false,
-    // Will be updated by IssueQuickTrace if there is a trace
+    // Only updated by the replay trace view
     trace_status: 'none',
-    // Will be updated in GroupDetailsHeader if there are replays
+    // Will be updated in ReplayBadge if there are replays
     group_has_replay: false,
-    // Will be updated in ReplayPreview if there is a replay
+    // Will be updated by useLogEventReplayStatus if there is a replay
     event_replay_status: 'none',
     // Will be updated in SuspectCommits if there are suspect commits
     num_suspect_commits: 0,
     suspect_commit_calculation: 'no suspect commit',
-    // Will be updated in Autofix if enabled
+    // Not updated by any component
     autofix_status: 'none',
-    // Will be updated in GroupSummary if AI summary is available
+    // Not updated by any component
     has_summary: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix root cause is available
+    // Will be updated in AutofixPreviews if autofix root cause is available
     has_root_cause: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix solution is available
+    // Will be updated in AutofixPreviews if autofix solution is available
     has_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix code changes are available
+    // Will be updated in AutofixPreviews if autofix code changes are available
     has_coded_solution: null,
-    // Will be updated in GroupSummaryWithAutofix if autofix PR is available
+    // Will be updated in AutofixPreviews if autofix PR is available
     has_pr: null,
   });
   useDisableRouteAnalytics(!group || !event || !project);
@@ -573,9 +561,7 @@ function GroupDetailsContentError({
   switch (errorType) {
     case ERROR_TYPES.GROUP_NOT_FOUND:
       return (
-        <StyledLoadingError
-          message={t('The issue you were looking for was not found.')}
-        />
+        <GroupLoadingError message={t('The issue you were looking for was not found.')} />
       );
 
     case ERROR_TYPES.MISSING_MEMBERSHIP:
@@ -585,7 +571,7 @@ function GroupDetailsContentError({
         </Container>
       );
     default:
-      return <StyledLoadingError onRetry={onRetry} />;
+      return <GroupLoadingError onRetry={onRetry} />;
   }
 }
 
@@ -638,18 +624,28 @@ function GroupDetailsContentInner({
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
   );
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const getReturnPath = useIssueDrawerReturnPath({
+    baseUrl,
+    currentTab,
+    pathname: location.pathname,
+  });
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    getReturnPath,
     group,
     includeFeatureFlagsTab: includeFlagDistributions,
   });
-  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
-  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group, project});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({
+    getReturnPath,
+    group,
+    project,
+  });
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({getReturnPath, group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({getReturnPath, group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab} = useGroupDetailsRoute();
-  const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so
   // closing the drawer doesn't reopen it.
@@ -697,14 +693,7 @@ function GroupDetailsContentInner({
     openSeerDrawer,
   ]);
 
-  useTrackView({
-    group,
-    event,
-    project,
-    tab: currentTab,
-    organization,
-    hasAutofixQuota,
-  });
+  useTrackView({group, event, project, tab: currentTab, organization, hasAutofixQuota});
 
   useEngagedViewTracking({group, project});
 
@@ -749,13 +738,8 @@ function GroupDetailsContentInner({
     ...(tagKey ? {tagKey} : {}),
   });
 
-  const isDisplayingEventDetails = [
-    Tab.DETAILS,
-    Tab.DISTRIBUTIONS,
-    Tab.SIMILAR_ISSUES,
-    Tab.MERGED,
-    Tab.ACTIVITY,
-  ].includes(currentTab);
+  const isDisplayingEventDetails =
+    currentTab === Tab.DETAILS || ISSUE_DRAWER_TABS.has(currentTab);
 
   if (redirectToAutofixTab) {
     return (
@@ -803,10 +787,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
-    {
-      orgSlug: organization.slug,
-      projectSlug: projectSlug ?? '',
-    },
+    {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
     {enabled: !!projectSlug}
   );
 
@@ -844,12 +825,12 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
   }
 
   if (errorFetchingProjects) {
-    return <StyledLoadingError message={t('Error loading the specified project')} />;
+    return <GroupLoadingError message={t('Error loading the specified project')} />;
   }
 
   if (projectSlug && !errorFetchingProjects && projectsLoaded && !projectWithFallback) {
     return (
-      <StyledLoadingError message={t('The project %s does not exist', projectSlug)} />
+      <GroupLoadingError message={t('The project %s does not exist', projectSlug)} />
     );
   }
 
@@ -931,6 +912,10 @@ function GroupDetailsContainer() {
 
 export default Sentry.withProfiler(GroupDetailsContainer);
 
-const StyledLoadingError = styled(LoadingError)`
-  margin: ${p => p.theme.space.xl};
-`;
+function GroupLoadingError(props: React.ComponentProps<typeof LoadingError>) {
+  return (
+    <Container padding="xl">
+      <LoadingError {...props} />
+    </Container>
+  );
+}

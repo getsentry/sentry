@@ -28,9 +28,7 @@ type ErrorDetectorAnalytics = {
   detector_type: Extract<Detector['type'], 'error' | 'issue_stream'>;
 };
 
-type PreprodDetectorAnalytics = {
-  detector_type: PreprodDetector['type'];
-};
+type PreprodDetectorAnalytics = {detector_type: PreprodDetector['type']};
 
 type DetectorAnalyticsPayload =
   | MetricDetectorAnalytics
@@ -52,10 +50,7 @@ export function getDetectorAnalyticsPayload(
       };
     }
     case 'uptime_domain_failure':
-      return {
-        detector_type: detector.type,
-        uptime_mode: detector.config.mode,
-      };
+      return {detector_type: detector.type, uptime_mode: detector.config.mode};
     case 'monitor_check_in_failure': {
       const monitorConfig = detector.dataSources[0]?.queryObj?.config;
       return {

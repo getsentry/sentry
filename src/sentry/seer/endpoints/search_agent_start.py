@@ -20,11 +20,19 @@ from sentry.auth.principal import acting_user_id
 from sentry.middleware import is_frontend_request
 from sentry.models.organization import Organization
 from sentry.seer.agent.client_utils import collect_user_org_context, enqueue_seer_run
+from sentry.seer.assisted_query.capabilities import (
+    get_transformation_capabilities,
+    validate_search_agent_options,
+)
 from sentry.seer.endpoints.utils import OrganizationTraceExplorerAIPermission
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerRun, SeerRunType
 from sentry.seer.seer_setup import has_seer_access_with_detail
-from sentry.seer.signed_seer_api import SearchAgentStartRequest, SeerViewerContext
+from sentry.seer.signed_seer_api import (
+    SearchAgentStartRequest,
+    SeerViewerContext,
+    TransformationCapabilities,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -102,11 +110,7 @@ class SearchAgentStartSerializer(serializers.Serializer):
     )
 
     def validate_options(self, value: dict[str, Any] | None) -> dict[str, Any] | None:
-        if value is None:
-            return None
-        if "model_name" in value and not isinstance(value["model_name"], str):
-            raise serializers.ValidationError("model_name must be a string")
-        return value
+        return validate_search_agent_options(value)
 
 
 def send_search_agent_start_request(
@@ -125,6 +129,7 @@ def send_search_agent_start_request(
     code_mode: bool = False,
     result_target: SearchAgentResultTarget | None = None,
     referrer: SearchAgentReferrer | None = None,
+    transformation_capabilities: TransformationCapabilities | None = None,
 ) -> SeerRun:
     """Create the SeerRun mirror and enqueue the outbox that starts the agent in Seer."""
     body = SearchAgentStartRequest(
@@ -148,6 +153,8 @@ def send_search_agent_start_request(
         options["model_name"] = model_name
     if metric_context is not None:
         options["metric_context"] = metric_context
+    if code_mode and transformation_capabilities is not None:
+        options["transformation_capabilities"] = transformation_capabilities
     if result_target is not None:
         options["result_target"] = result_target.value
     if referrer is not None:
@@ -266,6 +273,9 @@ class SearchAgentStartEndpoint(OrganizationEndpoint):
                 ),
                 result_target=result_target,
                 referrer=referrer,
+                transformation_capabilities=get_transformation_capabilities(
+                    organization, actor=request.user
+                ),
             )
             return Response(
                 {

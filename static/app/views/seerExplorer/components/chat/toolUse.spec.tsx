@@ -66,10 +66,7 @@ function createAgentApprovalBlock(
       },
     ],
     tool_links: [
-      {
-        kind: 'sentry_api_execute',
-        params: {is_error: true, pending_approval: true},
-      },
+      {kind: 'sentry_api_execute', params: {is_error: true, pending_approval: true}},
     ],
   });
 }
@@ -81,11 +78,7 @@ describe('ToolUseBlock', () => {
   });
 
   it('renders loading state with spinner', () => {
-    const block = createBlock({
-      loading: true,
-      tool_results: [],
-      tool_links: [],
-    });
+    const block = createBlock({loading: true, tool_results: [], tool_links: []});
     render(<BlockComponent block={block} blockIndex={0} />);
     expect(screen.getByText(/Querying spans/)).toBeInTheDocument();
   });
@@ -93,11 +86,7 @@ describe('ToolUseBlock', () => {
   it('renders placeholder when loading with no tool calls', () => {
     const block = createBlock({
       loading: true,
-      message: {
-        role: 'tool_use',
-        content: null,
-        tool_calls: null,
-      },
+      message: {role: 'tool_use', content: null, tool_calls: null},
     });
     render(<BlockComponent block={block} blockIndex={0} />);
     expect(screen.queryByText(/Queried|Querying/)).not.toBeInTheDocument();
@@ -276,6 +265,30 @@ describe('ToolUseBlock', () => {
     );
   });
 
+  it('keeps the open trace view state when linking to another span in it', () => {
+    const block = createBlock({
+      tool_links: [
+        {kind: 'get_span_details', params: {trace_id: 'abc', span_id: 'new-span'}},
+      ],
+    });
+
+    render(<BlockComponent block={block} blockIndex={0} blocks={[block]} />, {
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/trace/abc/',
+          query: {fov: '1,2', tab: 'waterfall', node: 'span-old-span'},
+        },
+      },
+    });
+
+    const href = new URL(screen.getByRole('link').getAttribute('href')!, 'http://x');
+    expect(Object.fromEntries(href.searchParams)).toEqual({
+      fov: '1,2',
+      tab: 'waterfall',
+      revealNode: 'span-new-span',
+    });
+  });
+
   it('links a telemetry call row with its multi-project Explore bus destination', () => {
     // The call row supplies the useful title while the bus link supplies the translated query and
     // projects. Pair them into one link instead of showing a separate "View spans" row.
@@ -366,19 +379,11 @@ describe('ToolUseBlock', () => {
             links: [
               {
                 kind: 'telemetry_live_search',
-                params: {
-                  dataset: 'issues',
-                  query: 'is:unresolved',
-                  stats_period: '7d',
-                },
+                params: {dataset: 'issues', query: 'is:unresolved', stats_period: '7d'},
               },
               {
                 kind: 'telemetry_live_search',
-                params: {
-                  dataset: 'spans',
-                  query: 'span.op:db',
-                  stats_period: '24h',
-                },
+                params: {dataset: 'spans', query: 'span.op:db', stats_period: '24h'},
               },
             ],
           },
@@ -579,9 +584,7 @@ describe('ToolUseBlock', () => {
           tool_call_id: 'call-1',
           tool_call_function: 'telemetry_live_search',
           content: '{}',
-          structuredContent: {
-            links: [{kind: 'telemetry_live_search', params: {}}],
-          },
+          structuredContent: {links: [{kind: 'telemetry_live_search', params: {}}]},
         },
       ],
     });

@@ -4,6 +4,7 @@ import {IconChevron} from '@sentry/icons/chevron';
 // eslint-disable-next-line no-restricted-imports
 import color from 'color';
 import isEqual from 'lodash/isEqual';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Stack, Container} from '@sentry/scraps/layout';
@@ -11,7 +12,6 @@ import {Heading, Text} from '@sentry/scraps/text';
 
 import {t, tct} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -42,11 +42,7 @@ const DEFAULT_PAYG_BUDGET: SharedOnDemandBudget = {
   sharedMaxBudget: 0,
 };
 
-type CheckoutChange<K, V> = {
-  currentValue: V | null;
-  key: K;
-  newValue: V | null;
-};
+type CheckoutChange<K, V> = {currentValue: V | null; key: K; newValue: V | null};
 
 type PlanChange = CheckoutChange<'plan', string>;
 
@@ -61,7 +57,7 @@ type SharedOnDemandChange = CheckoutChange<'sharedMaxBudget', number>;
 type PerCategoryOnDemandChange = CheckoutChange<DataCategory, number | null>;
 
 function AddedHighlight({value}: {value: string}) {
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const prefersDarkMode = useStore(ConfigStore, state => state.theme) === 'dark';
   return (
     <Added prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
@@ -70,7 +66,7 @@ function AddedHighlight({value}: {value: string}) {
 }
 
 function RemovedHighlight({value}: {value: string}) {
-  const prefersDarkMode = useLegacyStore(ConfigStore).theme === 'dark';
+  const prefersDarkMode = useStore(ConfigStore, state => state.theme) === 'dark';
   return (
     <Removed prefersDarkMode={prefersDarkMode}>
       <span>{value}</span>
@@ -297,13 +293,7 @@ export function CartDiff({
 
   const getPlanChanges = useCallback((): PlanChange[] => {
     if (activePlan.name !== currentPlan.name) {
-      return [
-        {
-          key: 'plan',
-          currentValue: currentPlan.name,
-          newValue: activePlan.name,
-        },
-      ];
+      return [{key: 'plan', currentValue: currentPlan.name, newValue: activePlan.name}];
     }
     return [];
   }, [activePlan, currentPlan]);
@@ -336,20 +326,12 @@ export function CartDiff({
     const changes: ProductChange[] = [];
     currentProducts?.forEach(product => {
       if (!newProducts?.includes(product)) {
-        changes.push({
-          key: product,
-          currentValue: true,
-          newValue: false,
-        });
+        changes.push({key: product, currentValue: true, newValue: false});
       }
     });
     newProducts?.forEach(product => {
       if (!currentProducts?.includes(product)) {
-        changes.push({
-          key: product,
-          currentValue: false,
-          newValue: true,
-        });
+        changes.push({key: product, currentValue: false, newValue: true});
       }
     });
 
@@ -376,22 +358,14 @@ export function CartDiff({
         currentValue = null;
       }
       if (newValue !== currentValue && (shouldIncludeZero || newValue !== 0)) {
-        nodes.push({
-          key: category as DataCategory,
-          currentValue,
-          newValue,
-        });
+        nodes.push({key: category as DataCategory, currentValue, newValue});
       }
     });
 
     // in case there are categories in the current plan that are not in the new plan
     Object.entries(currentValues).forEach(([category, currentValue]) => {
       if (!(category in newValues) && (shouldIncludeZero || currentValue !== 0)) {
-        nodes.push({
-          key: category as DataCategory,
-          currentValue,
-          newValue: null,
-        });
+        nodes.push({key: category as DataCategory, currentValue, newValue: null});
       }
     });
 
@@ -438,10 +412,7 @@ export function CartDiff({
         }
       });
 
-    return getCategoryChanges({
-      currentValues: currentReserved,
-      newValues: newReserved,
-    });
+    return getCategoryChanges({currentValues: currentReserved, newValues: newReserved});
     // oxlint-disable-next-line react/memo-dependencies
   }, [activePlan, formData.reserved, subscription.categories]);
 

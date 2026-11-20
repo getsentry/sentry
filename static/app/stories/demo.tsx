@@ -98,9 +98,7 @@ export function Demo({resizable, standalone, ...props}: DemoProps) {
           ref={fullscreenRef}
           marginTop={isFullscreen ? '0' : 'md'}
           position="relative"
-          style={{
-            marginBottom: isFullscreen ? 0 : '-1lh',
-          }}
+          style={{marginBottom: isFullscreen ? 0 : '-1lh'}}
         >
           <Container background="secondary" borderBottomColor="primary">
             <DemoToolbar

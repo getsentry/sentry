@@ -1,4 +1,4 @@
-from typing import NotRequired, TypedDict
+from typing import Annotated, NotRequired, TypedDict
 
 import jsonschema
 import orjson
@@ -19,6 +19,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
@@ -72,9 +73,15 @@ _ASSEMBLE_REQUEST_SCHEMA: dict[str, object] = {
 
 class ArtifactBundleAssembleResponse(TypedDict):
     # One of the ChunkFileState values: ok, not_found, created, assembling, or error.
-    state: str
-    missingChunks: list[str]
-    detail: NotRequired[str | None]
+    state: Annotated[
+        str, ApiDescription("State of the bundle: ok, not_found, created, assembling or error")
+    ]
+    missingChunks: Annotated[
+        list[str], ApiDescription("Checksums of the chunks the server doesn't have yet")
+    ]
+    detail: NotRequired[
+        Annotated[str | None, ApiDescription("Error message when the state is error")]
+    ]
 
 
 class _AssembleErrorResponse(TypedDict):

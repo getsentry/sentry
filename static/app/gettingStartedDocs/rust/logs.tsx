@@ -30,16 +30,10 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs in Rust are supported in Sentry Rust SDK version [code:0.42.0] and above. Additionally, the [code:logs] feature flag needs to be enabled.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'rust',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'rust', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -51,9 +45,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:enable_logs] option set to true.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

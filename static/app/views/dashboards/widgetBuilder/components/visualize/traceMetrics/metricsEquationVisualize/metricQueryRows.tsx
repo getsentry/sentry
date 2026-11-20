@@ -309,7 +309,7 @@ export function MetricQueryRows({
           )}
         </Stack>
       )}
-      <Flex gap="md" align="center">
+      <Flex gap="md" align="baseline">
         <Button
           icon={<IconAdd />}
           onClick={addAggregate}
@@ -323,15 +323,14 @@ export function MetricQueryRows({
           disabled
           variant="link"
           icon={<IconAdd />}
-          tooltipProps={{
-            title: t('Only a single equation is allowed at this time'),
-          }}
+          tooltipProps={{title: t('Only a single equation is allowed at this time')}}
           aria-label={t('Add Equation')}
         >
           {t('Add Equation')}
         </Button>
         {canTransform && (
           <AddTransformationButton
+            variant="link"
             traceItemDataset={TraceItemDataset.TRACEMETRICS}
             analyticsSource="dashboards"
             transformations={plottedTransformations}

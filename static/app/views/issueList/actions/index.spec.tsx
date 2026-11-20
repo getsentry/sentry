@@ -168,6 +168,16 @@ describe('IssueListActions', () => {
         render(<WrappedComponent queryCount={1500} />);
 
         await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+
+        expect(screen.getByText('3 issues on this page selected.')).toBeInTheDocument();
+        await userEvent.click(
+          screen.getByText('Select the first 1,000 issues that match this search query.')
+        );
+        expect(
+          screen.getByText(
+            'Selected up to the first 1,000 issues that match this search query.'
+          )
+        ).toBeInTheDocument();
       });
 
       it('bulk resolves with the current search filters and sort', async () => {
@@ -266,6 +276,9 @@ describe('IssueListActions', () => {
         await userEvent.click(
           screen.getByText(/Select all 15 issues that match this search query/)
         );
+        expect(
+          screen.getByText('Selected all 15 issues that match this search query.')
+        ).toBeInTheDocument();
       });
 
       it('bulk resolves', async () => {
@@ -324,10 +337,7 @@ describe('IssueListActions', () => {
         expect(apiMock).toHaveBeenCalledWith(
           expect.anything(),
           expect.objectContaining({
-            query: {
-              id: ['1'],
-              project: [1],
-            },
+            query: {id: ['1'], project: [1]},
             data: {status: 'resolved', statusDetails: {}, substatus: null},
           })
         );
@@ -392,10 +402,7 @@ describe('IssueListActions', () => {
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {
-          id: ['1'],
-          project: [1],
-        },
+        query: {id: ['1'], project: [1]},
         data: {priority: 'high'},
       })
     );
@@ -414,10 +421,7 @@ describe('IssueListActions', () => {
     expect(apiMock).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: {
-          id: ['1'],
-          project: [1],
-        },
+        query: {id: ['1'], project: [1]},
         data: {
           status: 'ignored',
           statusDetails: {},
@@ -428,9 +432,7 @@ describe('IssueListActions', () => {
 
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issues_stream.archived',
-      expect.objectContaining({
-        action_substatus: 'archived_until_escalating',
-      })
+      expect.objectContaining({action_substatus: 'archived_until_escalating'})
     );
   });
 
@@ -441,9 +443,7 @@ describe('IssueListActions', () => {
     });
     render(
       <WrappedComponent {...defaultProps} query="is:archived" selectedIds={['1']} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Unarchive'}));
@@ -507,12 +507,7 @@ describe('IssueListActions', () => {
     await waitFor(() => {
       expect(apiMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: {
-            id: ['1'],
-            project: ['123'],
-          },
-        })
+        expect.objectContaining({query: {id: ['1'], project: ['123']}})
       );
     });
   });
@@ -562,18 +557,100 @@ describe('IssueListActions', () => {
     });
   });
 
+  describe('copy', () => {
+    beforeEach(() => {
+      localStorage.clear();
+      jest.spyOn(analytics, 'trackAnalytics');
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      GroupStore.loadInitialData([
+        GroupFixture({
+          id: '1',
+          shortId: 'PROJ-1',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/1/',
+        }),
+        GroupFixture({
+          id: '2',
+          shortId: 'PROJ-2',
+          permalink: 'https://sentry.io/organizations/org-slug/issues/2/',
+        }),
+        GroupFixture({id: '3', shortId: 'PROJ-3'}),
+      ]);
+    });
+
+    it('copies selected issue IDs from the top level button by default', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy Short-IDs'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('PROJ-1\nPROJ-2');
+      expect(analytics.trackAnalytics).toHaveBeenCalledWith(
+        'issues_stream.copied',
+        expect.objectContaining({copy_type: 'short_ids', count: 2})
+      );
+    });
+
+    it('copies selected issue links from the dropdown', async () => {
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy options'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
+      );
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
+        'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
+      );
+      expect(analytics.trackAnalytics).toHaveBeenCalledWith(
+        'issues_stream.copied',
+        expect.objectContaining({copy_type: 'links', count: 2})
+      );
+    });
+
+    it('remembers the last copy option as the top level action', async () => {
+      const {unmount} = render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy options'}));
+      await userEvent.click(
+        screen.getByRole('menuitemradio', {name: 'Copy Issue Links'})
+      );
+      expect(screen.getByRole('button', {name: 'Copy Links'})).toBeInTheDocument();
+
+      unmount();
+      render(<WrappedComponent selectedIds={['1', '2']} />);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy Links'}));
+      expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith(
+        'https://sentry.io/organizations/org-slug/issues/1/\nhttps://sentry.io/organizations/org-slug/issues/2/'
+      );
+    });
+
+    it('disables copy when all issues in the query are selected', async () => {
+      render(<WrappedComponent queryCount={1500} />);
+
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(
+        screen.getByText(/Select the first 1,000 issues that match this search query/)
+      );
+
+      expect(screen.getByRole('button', {name: 'Copy Short-IDs'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+      expect(screen.getByRole('button', {name: 'Copy options'})).toHaveAttribute(
+        'aria-disabled',
+        'true'
+      );
+    });
+  });
+
   describe('performance issues', () => {
     it('disables options that are not supported for performance issues', async () => {
       jest.spyOn(GroupStore, 'get').mockImplementation(id => {
         switch (id) {
           case '1':
-            return GroupFixture({
-              issueCategory: IssueCategory.ERROR,
-            });
+            return GroupFixture({issueCategory: IssueCategory.ERROR});
           default:
-            return GroupFixture({
-              issueCategory: IssueCategory.PERFORMANCE,
-            });
+            return GroupFixture({issueCategory: IssueCategory.PERFORMANCE});
         }
       });
 
@@ -622,10 +699,7 @@ describe('IssueListActions', () => {
     });
 
     describe('bulk action performance issues', () => {
-      const orgWithPerformanceIssues = OrganizationFixture({
-        features: ['performance-issues'],
-        access: ['event:admin'],
-      });
+      const orgWithPerformanceIssues = OrganizationFixture({access: ['event:admin']});
 
       it('silently filters out performance issues when bulk deleting', async () => {
         const bulkDeleteMock = MockApiClient.addMockResponse({

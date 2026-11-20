@@ -44,10 +44,7 @@ export class VideoReplayerWithInteractions {
     theme,
     speed,
   }: VideoReplayerWithInteractionsOptions) {
-    this.config = {
-      skipInactive: false,
-      speed,
-    };
+    this.config = {skipInactive: false, speed};
 
     this.videoReplayer = new VideoReplayer(videoEvents, {
       videoApiPrefix,
@@ -65,6 +62,7 @@ export class VideoReplayerWithInteractions {
     this.replayer = new Replayer(eventsWithSnapshots, {
       root,
       blockClass: 'sentry-block',
+      showWarning: false,
       mouseTail: {
         duration: 0.75 * 1000,
         lineCap: 'round',
@@ -76,10 +74,7 @@ export class VideoReplayerWithInteractions {
       speed: this.config.speed,
     });
 
-    this.setConfig({
-      skipInactive: false,
-      speed,
-    });
+    this.setConfig({skipInactive: false, speed});
   }
 
   public destroy() {

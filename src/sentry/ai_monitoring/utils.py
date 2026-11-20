@@ -1,8 +1,10 @@
 import re
 from collections.abc import Mapping
-from datetime import datetime
-from typing import Any, TypedDict
+from datetime import datetime, timedelta
+from typing import Annotated, Any, TypedDict
 from urllib.parse import quote, urlencode
+
+from rest_framework.request import Request
 
 from sentry.ai_monitoring.message_normalizer import (
     FILTERED,
@@ -10,15 +12,20 @@ from sentry.ai_monitoring.message_normalizer import (
     normalize_to_messages,
     stringify_message_content,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.relay.config.ai_model_costs import AIModelCost, AIModelMetadataConfig
+from sentry.search.events.types import SnubaParams
+from sentry.utils.dates import parse_stats_period
+
+MAX_RETENTION_DAYS = 30
 
 
 class ConversationProject(TypedDict):
-    id: int
-    name: str
-    slug: str
+    id: Annotated[int, ApiDescription("ID of the project")]
+    name: Annotated[str, ApiDescription("Name of the project")]
+    slug: Annotated[str, ApiDescription("Slug of the project")]
 
 
 def serialize_conversation_project(project: Project) -> ConversationProject:
@@ -36,6 +43,38 @@ def get_conversation_url(
         f"{quote(conversation_id, safe='')}/",
         query=query,
     )
+
+
+# Relative periods whose length decides how far back a range reaches. `timeframe*`
+# are aliases that `get_date_range_from_params` maps onto `statsPeriod*`.
+_RELATIVE_PERIOD_PARAMS = ("statsPeriod", "timeframe", "statsPeriodStart", "timeframeStart")
+_TIME_RANGE_PARAMS = (*_RELATIVE_PERIOD_PARAMS, "statsPeriodEnd", "timeframeEnd", "start", "end")
+
+
+def has_time_range_params(request: Request) -> bool:
+    return any(request.GET.get(param) for param in _TIME_RANGE_PARAMS)
+
+
+def get_time_range_error(request: Request, snuba_params: SnubaParams, now: datetime) -> str | None:
+    """Describe why the requested range reaches past conversation retention, if it does."""
+    max_retention = timedelta(days=MAX_RETENTION_DAYS)
+    relative_params = [param for param in _RELATIVE_PERIOD_PARAMS if request.GET.get(param)]
+    if relative_params:
+        for param in relative_params:
+            period = parse_stats_period(request.GET[param])
+            if period is not None and period > max_retention:
+                return f"{param} cannot be longer than {MAX_RETENTION_DAYS} days"
+        return None
+
+    # Compare explicit bounds only: a relative start is computed before `now`, so a
+    # 30d period would land a few microseconds past the cutoff.
+    if request.GET.get("start") or request.GET.get("end"):
+        cutoff = now - max_retention
+        if snuba_params.start and snuba_params.start < cutoff:
+            return f"start time cannot be older than {MAX_RETENTION_DAYS} days"
+        if snuba_params.end and snuba_params.end < cutoff:
+            return f"end time cannot be older than {MAX_RETENTION_DAYS} days"
+    return None
 
 
 def timestamp_to_float(value: Any) -> float:

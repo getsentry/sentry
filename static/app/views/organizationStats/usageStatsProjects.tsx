@@ -1,6 +1,7 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LocationDescriptorObject} from 'history';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -20,9 +21,9 @@ import {t} from 'sentry/locale';
 import type {DataCategoryInfo} from 'sentry/types/core';
 import {DataCategoryExact, Outcome} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {hasDynamicSamplingCustomFeature} from 'sentry/utils/dynamicSampling/features';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
@@ -36,11 +37,7 @@ type Props = {
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
-    nextState: {
-      cursor?: string;
-      query?: string;
-      sort?: string;
-    },
+    nextState: {cursor?: string; query?: string; sort?: string},
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
   isSingleProject: boolean;
@@ -79,14 +76,8 @@ export function UsageStatsProjects({
   const endpointQuery = useMemo(() => {
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
-        ? {
-            start: dataDatetime.start,
-            end: dataDatetime.end,
-            utc: dataDatetime.utc,
-          }
-        : {
-            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
-          };
+        ? {start: dataDatetime.start, end: dataDatetime.end, utc: dataDatetime.utc}
+        : {statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD};
 
     const groupBy = ['outcome', 'project'];
     const category: string[] = [dataCategory.name];
@@ -116,30 +107,18 @@ export function UsageStatsProjects({
     isError,
     error,
     isPending: loading,
-  } = useApiQuery<UsageSeries>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/stats_v2/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {
-        // We do not need more granularity in the data so interval is '1d'
-        query: endpointQuery,
-      },
-    ],
-    {
+  } = useQuery(
+    apiOptions.as<UsageSeries>()('/organizations/$organizationIdOrSlug/stats_v2/', {
+      path: {organizationIdOrSlug: organization.slug},
+      // We do not need more granularity in the data so interval is '1d'
+      query: endpointQuery,
       staleTime: Infinity,
-    }
+    })
   );
 
-  const tableSort: {
-    direction: number;
-    key: SortBy;
-  } = useMemo(() => {
+  const tableSort: {direction: number; key: SortBy} = useMemo(() => {
     if (!parentTableSort) {
-      return {
-        key: SortBy.TOTAL,
-        direction: 1,
-      };
+      return {key: SortBy.TOTAL, direction: 1};
     }
 
     let key = parentTableSort;
@@ -227,22 +206,13 @@ export function UsageStatsProjects({
     (project: Project) => {
       const {performance, projectDetail, settings} = getNextLocations(project);
 
-      if (
-        dataCategory === DATA_CATEGORY_INFO.transaction &&
-        organization.features.includes('performance-view')
-      ) {
-        return {
-          projectLink: performance,
-          projectSettingsLink: settings,
-        };
+      if (dataCategory === DATA_CATEGORY_INFO.transaction) {
+        return {projectLink: performance, projectSettingsLink: settings};
       }
 
-      return {
-        projectLink: projectDetail,
-        projectSettingsLink: settings,
-      };
+      return {projectLink: projectDetail, projectSettingsLink: settings};
     },
-    [organization, dataCategory, getNextLocations]
+    [dataCategory, getNextLocations]
   );
 
   const tableOffset = useMemo(() => {
@@ -320,13 +290,10 @@ export function UsageStatsProjects({
           stat[SortBy.ACCEPTED_STORED] > 0 &&
           stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
         ) {
+          // oxlint-disable-next-line react/immutability
           hasStoredOutcome = true;
         }
-        return {
-          project: {...proj},
-          ...getProjectLink(proj),
-          ...stat,
-        };
+        return {project: {...proj}, ...getProjectLink(proj), ...stat};
       });
 
       const {key, direction} = tableSort;
@@ -353,11 +320,7 @@ export function UsageStatsProjects({
         Sentry.captureException(err);
       });
 
-      return {
-        tableStats: [],
-        hasStoredOutcome: false,
-        error: err,
-      };
+      return {tableStats: [], hasStoredOutcome: false, error: err};
     }
   }, [
     endpointQuery,
@@ -465,11 +428,7 @@ export function UsageStatsProjects({
   const pageLink = useMemo(() => {
     const offset = tableOffset;
     const numRows = filteredProjects.length;
-    return getPaginationPageLink({
-      numRows,
-      pageSize: MAX_ROWS_USAGE_TABLE,
-      offset,
-    });
+    return getPaginationPageLink({numRows, pageSize: MAX_ROWS_USAGE_TABLE, offset});
   }, [tableOffset, filteredProjects]);
 
   const {headers, tableStats, showStoredOutcome} = tableData;
@@ -502,7 +461,7 @@ export function UsageStatsProjects({
           usageStats={tableStats}
           showStoredOutcome={showStoredOutcome}
         />
-        <Pagination pageLinks={pageLink} />
+        <Pagination {...getPaginationProps(pageLink)} />
       </Container>
     </Fragment>
   );

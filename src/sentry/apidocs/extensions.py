@@ -32,9 +32,7 @@ def _json_schema_to_openapi(schema: dict[str, Any]) -> dict[str, Any]:
         }
         if isinstance(properties := value.get("properties"), dict):
             result["properties"] = {
-                snake_to_camel_case(name): convert(spec)
-                for name, spec in properties.items()
-                if not (name == "additionalProperties" and spec is False)
+                snake_to_camel_case(name): convert(spec) for name, spec in properties.items()
             }
         if "const" in result:
             result["enum"] = [result.pop("const")]
@@ -82,7 +80,7 @@ def _condition_schema(group: Any) -> dict[str, Any]:
     variants = []
     for registered_type, handler in sorted(condition_handler_registry.registrations.items()):
         condition_type = Condition(registered_type)
-        if condition_type in LEGACY_CONDITIONS or handler.group != group:
+        if condition_type in LEGACY_CONDITIONS or handler.is_internal or handler.group != group:
             continue
         variants.append(
             {
@@ -289,7 +287,8 @@ class TokenAuthExtension(_TypedExtension, OpenApiAuthenticationExtension):
     def get_security_requirement(self, auto_schema: AutoSchema) -> dict[str, list[Any]]:
         scopes = set()
         for permission in auto_schema.view.get_permissions():
-            for s in permission.scope_map.get(auto_schema.method, []):
+            # Guards such as DisallowImpersonatedTokenCreation require no scope.
+            for s in getattr(permission, "scope_map", {}).get(auto_schema.method, []):
                 scopes.add(s)
 
         scope_list = sorted(scopes - GRANULAR_SCOPES)

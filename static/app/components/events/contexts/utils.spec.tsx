@@ -21,24 +21,15 @@ describe('contexts utils', () => {
         knownDataTypes,
         onGetKnownDataDetails: v => {
           if (v.type === 'device_app_hash') {
-            return {
-              subject: 'Device App Hash',
-              value: v.data.device_app_hash,
-            };
+            return {subject: 'Device App Hash', value: v.data.device_app_hash};
           }
 
           if (v.type === 'app_name') {
-            return {
-              subject: 'App Name',
-              value: v.data.app_name,
-            };
+            return {subject: 'App Name', value: v.data.app_name};
           }
 
           if (v.type === 'build_type') {
-            return {
-              subject: 'Build Type',
-              value: v.data.build_type,
-            };
+            return {subject: 'Build Type', value: v.data.build_type};
           }
 
           return;
@@ -70,10 +61,7 @@ describe('contexts utils', () => {
         knownDataTypes,
         onGetKnownDataDetails: v => {
           if (v.type === 'device_app_hash') {
-            return {
-              subject: 'Device App Hash',
-              value: v.data.device_app_hash,
-            };
+            return {subject: 'Device App Hash', value: v.data.device_app_hash};
           }
 
           return;

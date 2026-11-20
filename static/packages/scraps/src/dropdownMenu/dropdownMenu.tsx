@@ -14,6 +14,7 @@ import {DropdownMenuContent} from './content';
 import {DropdownMenuContext} from './context';
 import type {MenuItemProps} from './item';
 import type {DropdownMenuContentProps, DropdownMenuListProps} from './list';
+import {useDropdownRootMenuState} from './useDropdownRootMenuState';
 
 export type {MenuItemProps};
 
@@ -21,7 +22,7 @@ interface BaseDropdownMenuProps
   extends
     Omit<
       DropdownMenuContentProps,
-      'overlayState' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
+      'menuLevel' | 'overlayPositionProps' | 'items' | 'children' | 'menuTitle'
     >,
     Pick<
       UseOverlayProps,
@@ -136,7 +137,7 @@ function DropdownMenu({
   const size = explicitSize ?? 'md';
   const isDisabled = disabledProp ?? (!items || items.length === 0);
 
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootMenuState: parentRootMenuState} = useContext(DropdownMenuContext);
   const {
     isOpen,
     state: overlayState,
@@ -144,8 +145,9 @@ function DropdownMenu({
     triggerProps: overlayTriggerProps,
     overlayProps,
   } = useOverlay({
+    type: 'menu',
     isOpen: isOpenProp,
-    onClose: rootOverlayState?.close,
+    onClose: parentRootMenuState?.close,
     offset,
     position,
     isDismissable,
@@ -160,6 +162,8 @@ function DropdownMenu({
     strategy,
   });
 
+  const rootMenuState = useDropdownRootMenuState(overlayState, parentRootMenuState);
+
   const {menuTriggerProps, menuProps} = useMenuTrigger(
     {type: 'menu', isDisabled},
     {...overlayState, focusStrategy: 'first'},
@@ -169,13 +173,7 @@ function DropdownMenu({
   // Avoids the menu from focusing before Floating UI has placed it in the correct position
   const resolvedMenuProps = {...menuProps, autoFocus: false as const};
 
-  const {buttonProps} = useButton(
-    {
-      isDisabled,
-      ...menuTriggerProps,
-    },
-    triggerRef
-  );
+  const {buttonProps} = useButton({isDisabled, ...menuTriggerProps}, triggerRef);
 
   function renderMenu() {
     if (!isOpen) {
@@ -195,7 +193,8 @@ function DropdownMenu({
             minWidth: minMenuWidth ?? overlayProps.style?.minWidth,
           },
         }}
-        overlayState={overlayState}
+        menuLevel={{type: 'root', state: rootMenuState}}
+        isDismissable={isDismissable}
         items={items}
       />
     );

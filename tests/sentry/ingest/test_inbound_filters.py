@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -236,6 +238,54 @@ def test_disabled_custom_error_filter_reference_omitted(default_project: Project
     }
 
 
+@django_db_all
+def test_disabled_shared_filter_reference_does_not_hide_later_ones(
+    default_project: Project,
+) -> None:
+    # The first filter in ACTIVE_GENERIC_FILTERS is off; the ones after it must still be read.
+    default_project.update_option("filters:chunk-load-error", "0")
+
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {"id": "react-hydration-errors", "isEnabled": True, "condition": None},
+            {"id": "custom-error", "isEnabled": True, "condition": None},
+        ],
+    }
+
+
+@django_db_all
+@pytest.mark.parametrize(
+    ("stored_value", "enabled"),
+    [
+        pytest.param("1", True, id="string_one"),
+        # Some projects stored the toggle as a boolean by mistake; True must still enable it.
+        pytest.param(True, True, id="legacy_bool_true"),
+        pytest.param("0", False, id="string_zero"),
+        pytest.param(False, False, id="legacy_bool_false"),
+    ],
+)
+def test_shared_filter_reference_reads_string_and_legacy_bool_toggles(
+    default_project: Project, stored_value: str | bool, enabled: bool
+) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("filters:react-hydration-errors", stored_value)
+
+    generic_filters = get_generic_filters(default_project, InboundFilterFeatures())
+
+    if not enabled:
+        assert generic_filters is None
+        return
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [{"id": "react-hydration-errors", "isEnabled": True, "condition": None}],
+    }
+
+
 @pytest.mark.parametrize(
     ("exc_type", "exc_message", "expected"),
     [
@@ -312,6 +362,14 @@ RELEASE_FIELDS = [
     "log.attributes.sentry.release.value",
     "trace_metric.attributes.sentry.release.value",
     "span.attributes.sentry.release.value",
+]
+
+
+ENVIRONMENT_FIELDS = [
+    "event.environment",
+    "log.attributes.sentry.environment.value",
+    "trace_metric.attributes.sentry.environment.value",
+    "span.attributes.sentry.environment.value",
 ]
 
 
@@ -452,6 +510,77 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             id="catch_all_release",
         ),
         pytest.param(
+            "error",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "event.environment", "value": ["staging"]},
+            id="environment_on_errors",
+        ),
+        pytest.param(
+            "log",
+            [{"type": "environment", "operator": "equals", "value": ["staging"]}],
+            {"op": "glob", "name": "log.attributes.sentry.environment.value", "value": ["staging"]},
+            id="environment_on_logs",
+        ),
+        pytest.param(
+            "metric",
+            [{"type": "environment", "operator": "starts_with", "value": ["dev"]}],
+            {
+                "op": "glob",
+                "name": "trace_metric.attributes.sentry.environment.value",
+                "value": ["dev*"],
+            },
+            id="environment_on_metrics",
+        ),
+        pytest.param(
+            "span",
+            [{"type": "environment", "operator": "glob", "value": ["staging-*"]}],
+            {
+                "op": "glob",
+                "name": "span.attributes.sentry.environment.value",
+                "value": ["staging-*"],
+            },
+            id="environment_on_spans",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "equals", "value": ["staging", "qa"]}],
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "glob", "name": name, "value": ["staging", "qa"]}
+                    for name in ENVIRONMENT_FIELDS
+                ],
+            },
+            id="catch_all_environment",
+        ),
+        pytest.param(
+            "all",
+            [{"type": "environment", "operator": "does_not_start_with", "value": ["prod"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": name, "value": ["*"]}
+                            for name in ENVIRONMENT_FIELDS
+                        ],
+                    },
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": name, "value": ["prod*"]}
+                                for name in ENVIRONMENT_FIELDS
+                            ],
+                        },
+                    },
+                ],
+            },
+            id="catch_all_environment_negated",
+        ),
+        pytest.param(
             "all",
             [
                 {"type": "release", "operator": "gte", "value": ["2.0"]},
@@ -536,21 +665,39 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             "log",
             [{"type": "log_message", "operator": "does_not_contain", "value": ["ok", "[2*"]}],
             {
-                "op": "not",
-                "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "log.body", "value": ["*"]},
+                    {
+                        "op": "not",
+                        "inner": {"op": "glob", "name": "log.body", "value": ["*ok*", r"*\[2\**"]},
+                    },
+                ],
             },
             id="does_not_contain",
         ),
         pytest.param(
             "error",
             [{"type": "error_type", "operator": "does_not_start_with", "value": ["Http"]}],
-            {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+            {
+                "op": "and",
+                "inner": [
+                    error_type_rule_condition(["*"]),
+                    {"op": "not", "inner": error_type_rule_condition(["Http*"])},
+                ],
+            },
             id="does_not_start_with_on_error_type",
         ),
         pytest.param(
             "all",
             [{"type": "release", "operator": "does_not_end_with", "value": ["-rc"]}],
-            {"op": "not", "inner": release_rule_condition(["*-rc"])},
+            {
+                "op": "and",
+                "inner": [
+                    release_rule_condition(["*"]),
+                    {"op": "not", "inner": release_rule_condition(["*-rc"])},
+                ],
+            },
             id="catch_all_does_not_end_with",
         ),
         pytest.param(
@@ -671,6 +818,58 @@ def test_custom_inbound_filter_condition_translation(
         "condition": expected_condition,
     }
     assert_relay_accepts_condition(generic_filter["condition"])
+
+
+def relay_matches(condition: Mapping[str, Any], item: Mapping[str, str]) -> bool:
+    """
+    How Relay evaluates a condition against an item. ``item`` maps each field path the
+    item carries to its value. A field the item does not carry matches no glob.
+    """
+    op = condition["op"]
+    if op == "and":
+        return all(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "or":
+        return any(relay_matches(inner, item) for inner in condition["inner"])
+    if op == "not":
+        return not relay_matches(condition["inner"], item)
+    assert op == "glob"
+    value = item.get(condition["name"])
+    return value is not None and any(
+        is_glob_match(value, pattern, case_insensitive=True) for pattern in condition["value"]
+    )
+
+
+RELEASE_FIELD_BY_DATA_TYPE = dict(zip(["error", "log", "metric", "span"], RELEASE_FIELDS))
+
+
+@django_db_all
+@pytest.mark.parametrize("data_type", ["error", "log", "metric", "span"])
+@pytest.mark.parametrize(
+    "operator", ["does_not_start_with", "does_not_contain", "does_not_end_with"]
+)
+def test_negated_condition_drops_only_items_of_its_data_type(
+    default_project: Project, factories: Factories, data_type: str, operator: str
+) -> None:
+    factories.create_project_custom_inbound_filter(
+        default_project,
+        data_type=data_type,
+        conditions=[{"type": "release", "operator": operator, "value": ["1.0.0"]}],
+    )
+    [generic_filter] = get_custom_inbound_filter_generic_filters(default_project)
+    condition = generic_filter["condition"]
+    assert condition is not None
+
+    dropped = {
+        item_type
+        for item_type, release_field in RELEASE_FIELD_BY_DATA_TYPE.items()
+        if relay_matches(condition, {release_field: "2.3.4"})
+    }
+    assert dropped == {data_type}
+
+    kept_release = {RELEASE_FIELD_BY_DATA_TYPE[data_type]: "1.0.0"}
+    assert not relay_matches(condition, kept_release)
+    # An item without a release, of any type.
+    assert not relay_matches(condition, {})
 
 
 @django_db_all
@@ -1008,3 +1207,38 @@ def test_ip_denylist_becomes_a_generic_filter_with_the_native_reason(
         ],
     }
     assert_relay_accepts_condition(generic_filters["filters"][0]["condition"])
+
+
+@django_db_all
+def test_log_and_trace_metric_lists_become_glob_conditions(default_project: Project) -> None:
+    for builtin_filter_id, _ in ACTIVE_GENERIC_FILTERS:
+        default_project.update_option(f"filters:{builtin_filter_id}", "0")
+    default_project.update_option("sentry:log_messages", ["health check*", "*heartbeat"])
+    default_project.update_option("sentry:trace_metric_names", ["debug.*"])
+
+    generic_filters = get_generic_filters(
+        default_project,
+        InboundFilterFeatures(custom_inbound_filters=True, logs=True, metrics=True),
+    )
+
+    assert generic_filters == {
+        "version": 1,
+        "filters": [
+            {
+                "id": "log-message",
+                "isEnabled": True,
+                "condition": {
+                    "op": "glob",
+                    "name": "log.body",
+                    "value": ["health check*", "*heartbeat"],
+                },
+            },
+            {
+                "id": "trace-metric-name",
+                "isEnabled": True,
+                "condition": {"op": "glob", "name": "trace_metric.name", "value": ["debug.*"]},
+            },
+        ],
+    }
+    for generic_filter in generic_filters["filters"]:
+        assert_relay_accepts_condition(generic_filter["condition"])

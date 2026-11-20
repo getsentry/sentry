@@ -6,32 +6,23 @@ import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 import {useChartXRangeSelection} from './useChartXRangeSelection';
 
 describe('useChartXRangeSelection', () => {
-  const mockChartRef = {
-    current: null as EChartsReact | null,
-  };
+  const mockChartRef = {current: null as EChartsReact | null};
 
   const mockChartInstance = {
     getModel: jest.fn(),
     dispatchAction: jest.fn(),
     setOption: jest.fn(),
     convertToPixel: jest.fn().mockReturnValue(100),
-    getDom: jest.fn().mockReturnValue({
-      getBoundingClientRect: jest.fn().mockReturnValue({
-        left: 50,
-        top: 100,
+    getDom: jest
+      .fn()
+      .mockReturnValue({
+        getBoundingClientRect: jest.fn().mockReturnValue({left: 50, top: 100}),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
       }),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-    }),
   } as unknown as EChartsInstance;
 
-  const mockAxis = {
-    axis: {
-      scale: {
-        getExtent: jest.fn(),
-      },
-    },
-  };
+  const mockAxis = {axis: {scale: {getExtent: jest.fn()}}};
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -41,9 +32,7 @@ describe('useChartXRangeSelection', () => {
   describe('initial state', () => {
     it('should return brush configuration when not disabled', () => {
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef})
       );
 
       expect(result.current.brush).toBeDefined();
@@ -52,10 +41,7 @@ describe('useChartXRangeSelection', () => {
 
     it('should return undefined brush when disabled', () => {
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          disabled: true,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, disabled: true})
       );
 
       expect(result.current.brush).toBeUndefined();
@@ -68,19 +54,14 @@ describe('useChartXRangeSelection', () => {
       const onSelectionStart = jest.fn();
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onSelectionStart,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onSelectionStart})
       );
 
       act(() => {
         result.current.onBrushStart({} as any, mockChartInstance);
       });
 
-      expect(mockChartInstance.dispatchAction).toHaveBeenCalledWith({
-        type: 'hideTip',
-      });
+      expect(mockChartInstance.dispatchAction).toHaveBeenCalledWith({type: 'hideTip'});
       expect(onSelectionStart).toHaveBeenCalled();
     });
 
@@ -89,10 +70,7 @@ describe('useChartXRangeSelection', () => {
       jest.spyOn(require('echarts/core'), 'disconnect').mockImplementation(disconnectSpy);
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          chartsGroupName: 'test-group',
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, chartsGroupName: 'test-group'})
       );
 
       act(() => {
@@ -112,22 +90,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {
-                  scale: {
-                    getExtent: () => [0, 100],
-                  },
-                },
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {
-                  scale: {
-                    getExtent: () => [0, 50],
-                  },
-                },
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -151,20 +117,10 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onSelectionEnd,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onSelectionEnd})
       );
 
-      const mockEvent = {
-        areas: [
-          {
-            coordRange: [10, 90],
-            panelId: 'test-panel-id',
-          },
-        ],
-      };
+      const mockEvent = {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]};
 
       act(() => {
         result.current.onBrushEnd(mockEvent as any, mockEchartsInstance);
@@ -173,10 +129,7 @@ describe('useChartXRangeSelection', () => {
       expect(onSelectionEnd).toHaveBeenCalledWith(
         expect.objectContaining({
           selectionState: expect.objectContaining({
-            selection: {
-              range: [10, 90],
-              panelId: 'test-panel-id',
-            },
+            selection: {range: [10, 90], panelId: 'test-panel-id'},
           }),
           setSelectionState: expect.any(Function),
           clearSelection: expect.any(Function),
@@ -192,22 +145,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {
-                  scale: {
-                    getExtent: () => [0, 100],
-                  },
-                },
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {
-                  scale: {
-                    getExtent: () => [0, 50],
-                  },
-                },
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -220,10 +161,7 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onSelectionEnd,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onSelectionEnd})
       );
 
       const mockEvent = {
@@ -262,14 +200,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -283,15 +217,10 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          chartsGroupName: 'test-group',
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, chartsGroupName: 'test-group'})
       );
 
-      const mockEvent = {
-        areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}],
-      };
+      const mockEvent = {areas: [{coordRange: [10, 90], panelId: 'test-panel-id'}]};
 
       act(() => {
         result.current.onBrushEnd(mockEvent as any, mockEchartsInstance);
@@ -311,14 +240,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -335,10 +260,7 @@ describe('useChartXRangeSelection', () => {
       ));
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          actionMenuRenderer,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, actionMenuRenderer})
       );
 
       act(() => {
@@ -373,14 +295,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -433,20 +351,13 @@ describe('useChartXRangeSelection', () => {
         getEchartsInstance: () => mockEchartsInstance,
       } as unknown as EChartsReact;
 
-      renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-        })
-      );
+      renderHook(() => useChartXRangeSelection({chartRef: mockChartRef}));
 
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
           type: 'takeGlobalCursor',
           key: 'brush',
-          brushOption: expect.objectContaining({
-            brushType: 'lineX',
-            brushMode: 'single',
-          }),
+          brushOption: expect.objectContaining({brushType: 'lineX', brushMode: 'single'}),
         });
       });
     });
@@ -462,11 +373,7 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {rerender} = renderHook(
-        ({deps}) =>
-          useChartXRangeSelection({
-            chartRef: mockChartRef,
-            deps,
-          }),
+        ({deps}) => useChartXRangeSelection({chartRef: mockChartRef, deps}),
         {initialProps: {deps: [1]}}
       );
 
@@ -493,14 +400,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -519,10 +422,7 @@ describe('useChartXRangeSelection', () => {
       };
 
       renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          initialSelection,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, initialSelection})
       );
 
       await waitFor(() => {
@@ -545,14 +445,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -573,10 +469,7 @@ describe('useChartXRangeSelection', () => {
 
       const {rerender} = renderHook(
         ({selection}) =>
-          useChartXRangeSelection({
-            chartRef: mockChartRef,
-            initialSelection: selection,
-          }),
+          useChartXRangeSelection({chartRef: mockChartRef, initialSelection: selection}),
         {
           initialProps: {
             selection: initialSelection as typeof initialSelection | undefined,
@@ -588,11 +481,7 @@ describe('useChartXRangeSelection', () => {
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
           type: 'brush',
-          areas: [
-            expect.objectContaining({
-              coordRange: [20, 80],
-            }),
-          ],
+          areas: [expect.objectContaining({coordRange: [20, 80]})],
         });
       });
 
@@ -613,14 +502,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -640,10 +525,7 @@ describe('useChartXRangeSelection', () => {
 
       const {rerender} = renderHook(
         ({selection}) =>
-          useChartXRangeSelection({
-            chartRef: mockChartRef,
-            initialSelection: selection,
-          }),
+          useChartXRangeSelection({chartRef: mockChartRef, initialSelection: selection}),
         {initialProps: {selection: initialSelection}}
       );
 
@@ -651,11 +533,7 @@ describe('useChartXRangeSelection', () => {
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
           type: 'brush',
-          areas: [
-            expect.objectContaining({
-              coordRange: [20, 80],
-            }),
-          ],
+          areas: [expect.objectContaining({coordRange: [20, 80]})],
         });
       });
 
@@ -670,11 +548,7 @@ describe('useChartXRangeSelection', () => {
       await waitFor(() => {
         expect(mockEchartsInstance.dispatchAction).toHaveBeenCalledWith({
           type: 'brush',
-          areas: [
-            expect.objectContaining({
-              coordRange: [30, 70],
-            }),
-          ],
+          areas: [expect.objectContaining({coordRange: [30, 70]})],
         });
       });
     });
@@ -689,14 +563,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -718,12 +588,11 @@ describe('useChartXRangeSelection', () => {
           } // selection xMax
           return 100;
         }),
-        getDom: jest.fn().mockReturnValue({
-          getBoundingClientRect: jest.fn().mockReturnValue({
-            left: 0,
-            top: 0,
+        getDom: jest
+          .fn()
+          .mockReturnValue({
+            getBoundingClientRect: jest.fn().mockReturnValue({left: 0, top: 0}),
           }),
-        }),
         dispatchAction: jest.fn(),
       } as any;
 
@@ -732,10 +601,7 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onInsideSelectionClick,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onInsideSelectionClick})
       );
 
       // Create a selection first
@@ -761,9 +627,7 @@ describe('useChartXRangeSelection', () => {
         expect(onInsideSelectionClick).toHaveBeenCalledWith(
           expect.objectContaining({
             selectionState: expect.objectContaining({
-              selection: expect.objectContaining({
-                range: [10, 90],
-              }),
+              selection: expect.objectContaining({range: [10, 90]}),
             }),
           })
         );
@@ -778,14 +642,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -807,12 +667,11 @@ describe('useChartXRangeSelection', () => {
           } // selection xMax
           return 100;
         }),
-        getDom: jest.fn().mockReturnValue({
-          getBoundingClientRect: jest.fn().mockReturnValue({
-            left: 0,
-            top: 0,
+        getDom: jest
+          .fn()
+          .mockReturnValue({
+            getBoundingClientRect: jest.fn().mockReturnValue({left: 0, top: 0}),
           }),
-        }),
         dispatchAction: jest.fn(),
       } as any;
 
@@ -821,10 +680,7 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onOutsideSelectionClick,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onOutsideSelectionClick})
       );
 
       // Create a selection first
@@ -850,9 +706,7 @@ describe('useChartXRangeSelection', () => {
         expect(onOutsideSelectionClick).toHaveBeenCalledWith(
           expect.objectContaining({
             selectionState: expect.objectContaining({
-              selection: expect.objectContaining({
-                range: [10, 90],
-              }),
+              selection: expect.objectContaining({range: [10, 90]}),
             }),
           })
         );
@@ -867,14 +721,10 @@ describe('useChartXRangeSelection', () => {
         getModel: jest.fn().mockReturnValue({
           getComponent: jest.fn((type: string) => {
             if (type === 'xAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 100]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 100]}}};
             }
             if (type === 'yAxis') {
-              return {
-                axis: {scale: {getExtent: () => [0, 50]}},
-              };
+              return {axis: {scale: {getExtent: () => [0, 50]}}};
             }
             return mockAxis;
           }),
@@ -894,12 +744,11 @@ describe('useChartXRangeSelection', () => {
           }
           return 100;
         }),
-        getDom: jest.fn().mockReturnValue({
-          getBoundingClientRect: jest.fn().mockReturnValue({
-            left: 0,
-            top: 0,
+        getDom: jest
+          .fn()
+          .mockReturnValue({
+            getBoundingClientRect: jest.fn().mockReturnValue({left: 0, top: 0}),
           }),
-        }),
         dispatchAction: jest.fn(),
       } as any;
 
@@ -908,10 +757,7 @@ describe('useChartXRangeSelection', () => {
       } as unknown as EChartsReact;
 
       const {result} = renderHook(() =>
-        useChartXRangeSelection({
-          chartRef: mockChartRef,
-          onOutsideSelectionClick,
-        })
+        useChartXRangeSelection({chartRef: mockChartRef, onOutsideSelectionClick})
       );
 
       // Create a selection first

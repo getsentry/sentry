@@ -1,4 +1,3 @@
-import qs from 'query-string';
 import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -18,17 +17,24 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import * as qs from 'sentry/utils/url/qs';
+import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
+import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
   LOGS_FIELDS_KEY,
   LOGS_GROUP_BY_KEY,
   LOGS_QUERY_KEY,
+  LOGS_ROW_ID_KEY,
 } from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {type TraceItemResponseAttribute} from 'sentry/views/explore/hooks/useTraceItemDetails';
 import {DEFAULT_TRACE_ITEM_HOVER_TIMEOUT} from 'sentry/views/explore/logs/constants';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
 import {LogsSidebarProvider} from 'sentry/views/explore/logs/logsSidebarContext';
+import {LOGS_PINNED_KEY} from 'sentry/views/explore/logs/pinning/useLogsPinning';
 import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
 
 import {LogRowContent} from './logsTableRow';
 
@@ -63,9 +69,7 @@ describe('logsTableRow', () => {
   let stacktraceLinkMock: jest.Mock;
   let releaseMock: jest.Mock;
   let rowDetailsMock: jest.Mock;
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
   const project = ProjectFixture();
   const projects = [project];
   const release = ReleaseFixture({authors: [UserFixture()]});
@@ -180,12 +184,7 @@ describe('logsTableRow', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
     stacktraceLinkMock = MockApiClient.addMockResponse({
@@ -263,9 +262,7 @@ describe('logsTableRow', () => {
       body: {
         ...project,
         relayPiiConfig: JSON.stringify({
-          rules: {
-            0: {type: 'mac', redaction: {method: 'replace', text: 'ITS_GONE'}},
-          },
+          rules: {0: {type: 'mac', redaction: {method: 'replace', text: 'ITS_GONE'}}},
           applications: {not_zzz_not_exact_match: ['0']},
         }),
       },
@@ -379,9 +376,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -562,9 +557,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithQuotedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithQuotedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -602,10 +595,7 @@ describe('logsTableRow', () => {
       })
     );
     expect(JSON.parse(parsedQuery.crossEvents as string)).toEqual([
-      {
-        type: 'logs',
-        query: 'message:"test \\"quoted\\" log body"',
-      },
+      {type: 'logs', query: 'message:"test \\"quoted\\" log body"'},
     ]);
   });
 
@@ -615,9 +605,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -674,9 +662,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -711,9 +697,7 @@ describe('logsTableRow', () => {
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
         onExpand={onExpand}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -735,10 +719,7 @@ describe('logsTableRow', () => {
 
   it('does not show string filter actions for numeric fields', async () => {
     const numericField = 'custom.duration';
-    const numericRowData = LogFixture({
-      ...rowData,
-      [numericField]: 123,
-    });
+    const numericRowData = LogFixture({...rowData, [numericField]: 123});
     const numericFieldRouterConfig = structuredClone(initialRouterConfig);
     numericFieldRouterConfig.location.query[LOGS_FIELDS_KEY] = [numericField];
 
@@ -859,9 +840,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithCodeFilePath}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -906,10 +885,7 @@ describe('logsTableRow', () => {
       expect(stacktraceLinkMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
         expect.objectContaining({
-          query: expect.objectContaining({
-            lineNo: 10,
-            file: 'herp/merp/derp.py',
-          }),
+          query: expect.objectContaining({lineNo: 10, file: 'herp/merp/derp.py'}),
         })
       );
     });
@@ -922,12 +898,91 @@ describe('logsTableRow', () => {
     );
   });
 
+  it.each([
+    {features: ['ourlogs-enabled'], expectedKey: 'custom'},
+    {
+      features: ['ourlogs-enabled', 'trace-item-details-raw-attribute-names'],
+      expectedKey: 'sentry.custom',
+    },
+  ])(
+    'displays and copies log attribute names as $expectedKey',
+    async ({features, expectedKey}) => {
+      const mockWriteText = jest.fn().mockResolvedValue(undefined);
+      Object.defineProperty(window.navigator, 'clipboard', {
+        value: {writeText: mockWriteText},
+        writable: true,
+      });
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/${rowData[OurLogKnownFieldKey.ID]}/`,
+        body: {
+          itemId: rowData[OurLogKnownFieldKey.ID],
+          timestamp: rowData[OurLogKnownFieldKey.TIMESTAMP],
+          meta: {},
+          attributes: [
+            ...rowDetails,
+            {
+              name: 'sentry.custom',
+              rawName: 'sentry.custom',
+              type: 'str',
+              value: 'custom value',
+            },
+            {
+              name: 'tags[aaa.custom,string]',
+              rawName: 'aaa.custom',
+              type: 'str',
+              value: 'first raw value',
+            },
+            {name: 'middle', type: 'str', value: 'fallback value'},
+          ],
+        },
+      });
+
+      render(
+        <LogRowContent
+          dataRow={rowData}
+          highlightTerms={[]}
+          meta={LogFixtureMeta(rowData)}
+          sharedHoverTimeoutRef={{current: null}}
+        />,
+        {
+          organization: OrganizationFixture({features}),
+          initialRouterConfig,
+          additionalWrapper: ProviderWrapper,
+        }
+      );
+
+      await userEvent.click(await screen.findByTestId('log-table-row'));
+      expect(await screen.findByText('custom value')).toBeInTheDocument();
+      expect(
+        screen
+          .getAllByText(/^(custom value|first raw value|fallback value)$/)
+          .map(element => element.textContent)
+      ).toEqual(
+        features.includes('trace-item-details-raw-attribute-names')
+          ? ['first raw value', 'fallback value', 'custom value']
+          : ['custom value', 'first raw value', 'fallback value']
+      );
+      const attributeLabel = within(
+        screen.getByTestId('tree-key-sentry.custom')
+      ).getByText('custom');
+      await userEvent.hover(attributeLabel);
+      await waitFor(() =>
+        expect(attributeLabel).toHaveAccessibleDescription(
+          expect.stringContaining(expectedKey)
+        )
+      );
+
+      await userEvent.click(screen.getByRole('button', {name: 'Copy as JSON'}));
+      expect(mockWriteText).toHaveBeenCalledWith(
+        expect.stringContaining(`"${expectedKey}": "custom value"`)
+      );
+    }
+  );
+
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -936,9 +991,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -990,9 +1043,7 @@ describe('logsTableRow', () => {
   it('copies link to log when Copy link menu item is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1001,9 +1052,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1028,9 +1077,7 @@ describe('logsTableRow', () => {
   it('clears a stale logsRowId when copying a non-frozen link', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1039,9 +1086,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1049,10 +1094,7 @@ describe('logsTableRow', () => {
           ...initialRouterConfig,
           location: {
             ...initialRouterConfig.location,
-            query: {
-              ...initialRouterConfig.location.query,
-              logsRowId: '999',
-            },
+            query: {...initialRouterConfig.location.query, logsRowId: '999'},
           },
         },
         additionalWrapper: ProviderWrapper,
@@ -1080,9 +1122,7 @@ describe('logsTableRow', () => {
   it('copies a row link with logsRowId in a frozen view', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1091,9 +1131,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
     );
@@ -1114,6 +1152,221 @@ describe('logsTableRow', () => {
     const copiedUrl = mockWriteText.mock.calls[0]![0];
     expect(copiedUrl).toContain('logsRowId=1');
     expect(copiedUrl).not.toContain('logsQuery=id');
+  });
+
+  it('links to the log among unfiltered logs when the search has filters', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_AUTO_REFRESH_KEY]: 'paused',
+              [LOGS_CURSOR_KEY]: '0:100:0',
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [ID_KEY]: '123',
+              [TITLE_KEY]: 'Saved query',
+              [LOGS_PINNED_KEY]: 'abc,def',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in time context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(url.pathname).toBe(`/organizations/${organization.slug}/explore/logs/`);
+    expect(Array.from(url.searchParams).sort()).toEqual([
+      [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
+      [LOGS_FIELDS_KEY, 'message'],
+      [LOGS_FIELDS_KEY, 'timestamp'],
+      [LOGS_PINNED_KEY, 'abc,def,1'],
+      [LOGS_ROW_ID_KEY, '1'],
+      [LOGS_SORT_BYS_KEY, '-timestamp'],
+      ['project', project.id],
+      ['statsPeriod', '14d'],
+    ]);
+  });
+
+  it('links to the log sorted by timestamp when the table is not sorted by time', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_SORT_BYS_KEY]: 'message',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in time context')).closest('a')!;
+
+    expect(
+      new URL(link.getAttribute('href')!, 'https://sentry.io').searchParams.get(
+        LOGS_SORT_BYS_KEY
+      )
+    ).toBe('-timestamp');
+  });
+
+  it('links to the log with a timestamp column when the table is not sorted by time and hides the timestamp', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              [LOGS_FIELDS_KEY]: ['message', 'severity'],
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_SORT_BYS_KEY]: 'message',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in time context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+    expect(url.searchParams.getAll(LOGS_FIELDS_KEY)).toEqual([
+      'timestamp',
+      'message',
+      'severity',
+    ]);
+    expect(url.searchParams.get(LOGS_SORT_BYS_KEY)).toBe('-timestamp');
+  });
+
+  it('offers only the trace context when the search has no filters', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await screen.findByText('Copy link');
+
+    expect(screen.getByText('View in trace context')).toBeInTheDocument();
+    expect(screen.queryByText('View in time context')).not.toBeInTheDocument();
+  });
+
+  it('links to the log among its trace logs when viewing it in trace context', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'severity:info',
+              [LOGS_PINNED_KEY]: 'abc',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    const link = (await screen.findByText('View in trace context')).closest('a')!;
+
+    const url = new URL(link.getAttribute('href')!, 'https://sentry.io');
+    expect(Array.from(url.searchParams).sort()).toEqual([
+      [LOGS_ANCHOR_TIMESTAMP_KEY, String(rowData[OurLogKnownFieldKey.TIMESTAMP_PRECISE])],
+      [LOGS_FIELDS_KEY, 'message'],
+      [LOGS_FIELDS_KEY, 'timestamp'],
+      [LOGS_PINNED_KEY, 'abc,1'],
+      [LOGS_QUERY_KEY, 'trace:7b91699f'],
+      [LOGS_ROW_ID_KEY, '1'],
+      [LOGS_SORT_BYS_KEY, '-timestamp'],
+      ['project', project.id],
+      ['statsPeriod', '14d'],
+    ]);
+  });
+
+  it('does not offer the trace context when the search is already the log trace', async () => {
+    render(
+      <LogRowContent
+        dataRow={rowData}
+        highlightTerms={[]}
+        meta={LogFixtureMeta(rowData)}
+        sharedHoverTimeoutRef={{current: null}}
+      />,
+      {
+        organization,
+        initialRouterConfig: {
+          ...initialRouterConfig,
+          location: {
+            ...initialRouterConfig.location,
+            query: {
+              ...initialRouterConfig.location.query,
+              [LOGS_QUERY_KEY]: 'trace:7b91699f',
+            },
+          },
+        },
+        additionalWrapper: ProviderWrapper,
+      }
+    );
+
+    await userEvent.hover(await screen.findByTestId('log-table-row'));
+    await userEvent.click(screen.getAllByRole('button', {name: 'Actions'})[0]!);
+    await screen.findByText('View in time context');
+
+    expect(screen.queryByText('View in trace context')).not.toBeInTheDocument();
   });
 
   it('adds a grouping and opens the sidebar when the attributes menu group by is clicked', async () => {
@@ -1139,9 +1392,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: SidebarWrapper}
     );
@@ -1180,9 +1431,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1226,9 +1475,7 @@ describe('logsTableRow', () => {
   it('does not toggle row when clicking cell action menu items', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1237,9 +1484,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1276,9 +1521,7 @@ describe('logsTableRow', () => {
     });
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1287,9 +1530,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1314,9 +1555,7 @@ describe('logsTableRow', () => {
   it('copies the untruncated value when the table value was truncated', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1325,9 +1564,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1367,24 +1604,10 @@ describe('logsTableRow', () => {
         ),
         meta: {
           password: {
-            meta: {
-              value: {
-                '': {
-                  rem: [['@password:filter', 's', 0, 10]],
-                  len: 9,
-                },
-              },
-            },
+            meta: {value: {'': {rem: [['@password:filter', 's', 0, 10]], len: 9}}},
           },
           not_zzz_not_exact_match: {
-            meta: {
-              value: {
-                '': {
-                  rem: [['project:0', 's', 0, 10]],
-                  len: 15,
-                },
-              },
-            },
+            meta: {value: {'': {rem: [['project:0', 's', 0, 10]], len: 15}}},
           },
         },
       },
@@ -1395,9 +1618,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithScrubbedFields}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithScrubbedFields)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,

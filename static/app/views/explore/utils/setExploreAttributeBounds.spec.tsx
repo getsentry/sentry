@@ -30,4 +30,10 @@ describe('setExploreAttributeBounds', () => {
       'duration:>=1.5 duration:<9'
     );
   });
+
+  it('writes tiny and huge bounds without exponent notation', () => {
+    expect(setExploreAttributeBounds('', 'value', 1e-7, 1e21)).toBe(
+      'value:>=0.0000001 value:<1000000000000000000000'
+    );
+  });
 });

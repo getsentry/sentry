@@ -519,6 +519,14 @@ describe('fallbackCallLabel', () => {
     expect(
       fallbackCallLabel({id: 1, kind: 'lib', name: 'gcp.api.list_logs', provider: 'gcp'})
     ).toBe('GCP operation');
+    expect(
+      fallbackCallLabel({
+        id: 1,
+        kind: 'lib',
+        name: 'linear.api.list_issues',
+        provider: 'linear',
+      })
+    ).toBe('Linear operation');
   });
 
   it('names a provider it has never seen', () => {
@@ -685,11 +693,7 @@ describe('live call rendering', () => {
         ],
       },
       tool_results: [
-        {
-          tool_call_id: 'call-1',
-          tool_call_function: 'sentry_api_execute',
-          content: 'ok',
-        },
+        {tool_call_id: 'call-1', tool_call_function: 'sentry_api_execute', content: 'ok'},
       ],
       live_calls: [apiRecord({title: 'In-flight row'})],
     });

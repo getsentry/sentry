@@ -73,10 +73,7 @@ export function useAutomationBuilderReducer(initialState?: AutomationBuilderStat
       removeWhenCondition: (id: string) => dispatch({type: 'REMOVE_WHEN_CONDITION', id}),
       updateWhenCondition: (
         id: string,
-        params: {
-          comparison?: any;
-          type?: DataConditionType;
-        }
+        params: {comparison?: any; type?: DataConditionType}
       ) => dispatch({type: 'UPDATE_WHEN_CONDITION', id, params}),
       updateWhenLogicType: (logicType: DataConditionGroupLogicType) =>
         dispatch({type: 'UPDATE_WHEN_LOGIC_TYPE', logicType}),
@@ -171,12 +168,7 @@ const initialAutomationBuilderState: AutomationBuilderState = {
     ],
   },
   actionFilters: [
-    {
-      id: '0',
-      logicType: DataConditionGroupLogicType.ALL,
-      conditions: [],
-      actions: [],
-    },
+    {id: '0', logicType: DataConditionGroupLogicType.ALL, conditions: [], actions: []},
   ],
 };
 
@@ -185,17 +177,11 @@ type AddWhenConditionAction = {
   type: 'ADD_WHEN_CONDITION';
 };
 
-type RemoveWhenConditionAction = {
-  id: string;
-  type: 'REMOVE_WHEN_CONDITION';
-};
+type RemoveWhenConditionAction = {id: string; type: 'REMOVE_WHEN_CONDITION'};
 
 type UpdateWhenConditionAction = {
   id: string;
-  params: {
-    comparison?: any;
-    type?: DataConditionType;
-  };
+  params: {comparison?: any; type?: DataConditionType};
   type: 'UPDATE_WHEN_CONDITION';
 };
 
@@ -204,14 +190,9 @@ type UpdateWhenLogicTypeAction = {
   type: 'UPDATE_WHEN_LOGIC_TYPE';
 };
 
-type AddIfAction = {
-  type: 'ADD_IF';
-};
+type AddIfAction = {type: 'ADD_IF'};
 
-type RemoveIfAction = {
-  groupId: string;
-  type: 'REMOVE_IF';
-};
+type RemoveIfAction = {groupId: string; type: 'REMOVE_IF'};
 
 type AddIfConditionAction = {
   conditionType: DataConditionType;
@@ -228,10 +209,7 @@ type RemoveIfConditionAction = {
 type UpdateIfConditionAction = {
   conditionId: string;
   groupId: string;
-  params: {
-    comparison?: any;
-    type?: DataConditionType;
-  };
+  params: {comparison?: any; type?: DataConditionType};
   type: 'UPDATE_IF_CONDITION';
 };
 
@@ -241,11 +219,7 @@ type AddIfActionAction = {
   type: 'ADD_IF_ACTION';
 };
 
-type RemoveIfActionAction = {
-  actionId: string;
-  groupId: string;
-  type: 'REMOVE_IF_ACTION';
-};
+type RemoveIfActionAction = {actionId: string; groupId: string; type: 'REMOVE_IF_ACTION'};
 
 type UpdateIfActionAction = {
   actionId: string;
@@ -335,13 +309,7 @@ function updateWhenLogicType(
   action: UpdateWhenLogicTypeAction
 ): AutomationBuilderState {
   const {logicType} = action;
-  return {
-    ...state,
-    triggers: {
-      ...state.triggers,
-      logicType,
-    },
-  };
+  return {...state, triggers: {...state.triggers, logicType}};
 }
 
 function addIf(
@@ -403,10 +371,7 @@ function removeIfCondition(
       if (group.id !== groupId) {
         return group;
       }
-      return {
-        ...group,
-        conditions: group.conditions.filter(c => c.id !== conditionId),
-      };
+      return {...group, conditions: group.conditions.filter(c => c.id !== conditionId)};
     }),
   };
 }
@@ -471,11 +436,7 @@ function getDefaultConfig(actionHandler: ActionHandler): ActionConfig {
     actionHandler.services?.[0]?.name ??
     null;
 
-  return {
-    targetType,
-    targetIdentifier,
-    targetDisplay,
-  };
+  return {targetType, targetIdentifier, targetDisplay};
 }
 
 function addIfAction(
@@ -500,9 +461,7 @@ function addIfAction(
             id: uuid4(),
             type: actionHandler.type,
             config: getDefaultConfig(actionHandler),
-            ...(defaultIntegration && {
-              integrationId: defaultIntegration.id,
-            }),
+            ...(defaultIntegration && {integrationId: defaultIntegration.id}),
             data: actionNodesMap.get(actionHandler.type)?.defaultData || {},
             status: 'active',
           },
@@ -523,10 +482,7 @@ function removeIfAction(
       if (group.id !== groupId) {
         return group;
       }
-      return {
-        ...group,
-        actions: group.actions?.filter(a => a.id !== actionId),
-      };
+      return {...group, actions: group.actions?.filter(a => a.id !== actionId)};
     }),
   };
 }
@@ -545,14 +501,7 @@ function updateIfAction(
       }
       return {
         ...group,
-        actions: group.actions?.map(a =>
-          a.id === actionId
-            ? {
-                ...a,
-                ...params,
-              }
-            : a
-        ),
+        actions: group.actions?.map(a => (a.id === actionId ? {...a, ...params} : a)),
       };
     }),
   };

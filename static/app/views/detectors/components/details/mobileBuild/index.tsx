@@ -17,9 +17,7 @@ import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components
 
 import {MobileBuildDetectorDetailsSidebar} from './sidebar';
 
-type MobileBuildDetectorDetailsProps = {
-  detector: PreprodDetector;
-};
+type MobileBuildDetectorDetailsProps = {detector: PreprodDetector};
 
 export function MobileBuildDetectorDetails({detector}: MobileBuildDetectorDetailsProps) {
   return (

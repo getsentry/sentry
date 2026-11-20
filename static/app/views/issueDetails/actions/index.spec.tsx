@@ -41,11 +41,7 @@ const project = ProjectFixture({
   teams: [TeamFixture({id: '3', slug: 'frontend', name: 'Frontend'})],
 });
 
-const group = GroupFixture({
-  id: '1337',
-  issueCategory: IssueCategory.ERROR,
-  project,
-});
+const group = GroupFixture({id: '1337', issueCategory: IssueCategory.ERROR, project});
 
 const issuePlatformGroup = GroupFixture({
   id: '1338',
@@ -53,10 +49,7 @@ const issuePlatformGroup = GroupFixture({
   project,
 });
 
-const organization = OrganizationFixture({
-  id: '4660',
-  slug: 'org',
-});
+const organization = OrganizationFixture({id: '4660', slug: 'org'});
 
 jest.mock('sentry/views/issueDetails/issueDetailsTour', () => ({
   ...jest.requireActual('sentry/views/issueDetails/issueDetailsTour'),
@@ -158,9 +151,7 @@ describe('GroupActions', () => {
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isSubscribed: true},
-        })
+        expect.objectContaining({data: {isSubscribed: true}})
       );
     });
   });
@@ -188,18 +179,70 @@ describe('GroupActions', () => {
 
       expect(issuesApi).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: {isBookmarked: true},
-        })
+        expect.objectContaining({data: {isBookmarked: true}})
       );
+    });
+  });
+
+  describe('impact assessment', () => {
+    const organizationWithImpactAssessment = OrganizationFixture({
+      ...organization,
+      features: ['seer-impact-assessment'],
+    });
+
+    it('is hidden without the feature', async () => {
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+
+      expect(
+        screen.queryByRole('menuitemradio', {name: /Assess impact/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('starts an impact assessment and shows the internal feature badge', async () => {
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        body: {runId: '8a8551a0-2ace-4b70-ae23-1cc670df5abc'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      expect(screen.getByLabelText('alpha')).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      await waitFor(() => expect(request).toHaveBeenCalled());
+      expect(await screen.findByText('Impact assessment started')).toBeInTheDocument();
+    });
+
+    it('shows an error when the impact assessment cannot be started', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/issues/${group.id}/impact/assess/`,
+        method: 'POST',
+        statusCode: 500,
+        body: {detail: 'Internal error'},
+      });
+      render(<GroupActions group={group} project={project} event={null} />, {
+        organization: organizationWithImpactAssessment,
+      });
+
+      await userEvent.click(screen.getByLabelText('More Actions'));
+      await userEvent.click(screen.getByRole('menuitemradio', {name: /Assess impact/}));
+
+      expect(
+        await screen.findByText('Unable to start impact assessment')
+      ).toBeInTheDocument();
     });
   });
 
   describe('reprocessing', () => {
     it('renders ReprocessAction component if org has native exception event', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(<GroupActions group={group} project={project} event={event} />, {
         organization,
@@ -212,9 +255,7 @@ describe('GroupActions', () => {
     });
 
     it('open dialog by clicking on the ReprocessAction component', async () => {
-      const event = EventStacktraceExceptionFixture({
-        platform: 'native',
-      });
+      const event = EventStacktraceExceptionFixture({platform: 'native'});
 
       render(<GroupActions group={group} project={project} event={event} />, {
         organization,
@@ -248,9 +289,7 @@ describe('GroupActions', () => {
         body: {},
       });
       const initialRouterConfig = {
-        location: {
-          pathname: `/organizations/${org.slug}/issues/${group.id}/`,
-        },
+        location: {pathname: `/organizations/${org.slug}/issues/${group.id}/`},
         route: '/organizations/:orgId/issues/:groupId/',
       };
       const {router} = render(
@@ -258,10 +297,7 @@ describe('GroupActions', () => {
           <GlobalModal />
           <GroupActions group={group} project={project} event={null} />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -352,10 +388,7 @@ describe('GroupActions', () => {
             event={null}
           />
         </Fragment>,
-        {
-          organization: org,
-          initialRouterConfig,
-        }
+        {organization: org, initialRouterConfig}
       );
 
       await userEvent.click(screen.getByLabelText('More Actions'));
@@ -400,9 +433,7 @@ describe('GroupActions', () => {
     );
     expect(analyticsSpy).toHaveBeenCalledWith(
       'issue_details.action_clicked',
-      expect.objectContaining({
-        action_type: 'resolved',
-      })
+      expect.objectContaining({action_type: 'resolved'})
     );
 
     rerender(
@@ -520,9 +551,7 @@ describe('GroupActions', () => {
       body: {...group, status: 'resolved'},
     });
 
-    render(<GroupActions group={group} project={project} event={null} />, {
-      organization,
-    });
+    render(<GroupActions group={group} project={project} event={null} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Archive'}));
 
@@ -607,9 +636,7 @@ describe('GroupActions', () => {
     });
 
     function renderWithCommandPalette(commandGroup: Group) {
-      const treeRef: {
-        current: Array<CollectionTreeNode<CMDKActionData>>;
-      } = {current: []};
+      const treeRef: {current: Array<CollectionTreeNode<CMDKActionData>>} = {current: []};
       render(
         <CommandPaletteProvider>
           <GroupActions

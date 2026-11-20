@@ -11,10 +11,7 @@ const ruleTester = new RuleTester();
 ruleTester.run('no-vanilla-emotion', noVanillaEmotion, {
   valid: ["import {css} from '@emotion/react';"],
   invalid: [
-    {
-      code: "import {css} from '@emotion/css';",
-      errors: [{messageId: 'vanillaEmotion'}],
-    },
+    {code: "import {css} from '@emotion/css';", errors: [{messageId: 'vanillaEmotion'}]},
   ],
 });
 

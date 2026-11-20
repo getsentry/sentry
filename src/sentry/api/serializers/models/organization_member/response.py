@@ -8,6 +8,7 @@ from sentry.api.serializers.models.role import (
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.integrations.api.serializers.models.external_actor import ExternalActorResponse
+from sentry.models.organizationmember import InviteStatusName
 from sentry.users.api.serializers.user import UserSerializerResponse
 
 
@@ -80,8 +81,14 @@ _OrganizationMemberFlags = TypedDict(
                 "Whether the member has linked their account to the organization's SSO provider"
             ),
         ],
-        "sso:invalid": bool,
-        "member-limit:restricted": bool,
+        "sso:invalid": Annotated[
+            bool,
+            ApiDescription("Whether the member's SSO link is invalid"),
+        ],
+        "member-limit:restricted": Annotated[
+            bool,
+            ApiDescription("Whether the member is restricted by the plan's member limit"),
+        ],
         "partnership:restricted": Annotated[
             bool,
             ApiDescription(
@@ -150,10 +157,7 @@ class OrganizationMemberResponse(TypedDict):
     expired: Annotated[bool, ApiDescription("Whether the member's invite has expired")]
     flags: Annotated[_OrganizationMemberFlags, ApiDescription("Member flags")]
     dateCreated: Annotated[datetime, ApiDescription("When the member was added or invited")]
-    inviteStatus: Annotated[
-        str | None,
-        ApiDescription("Invite status: approved, requested_to_be_invited or requested_to_join"),
-    ]
+    inviteStatus: Annotated[InviteStatusName | None, ApiDescription("Invite status")]
     inviterName: Annotated[
         str | None, ApiDescription("Name of the user who invited the member, or null")
     ]
@@ -183,7 +187,6 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
 )
 class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
     roles: NotRequired[list[OrganizationRoleSerializerResponse]]  # Deprecated: use orgRoleList
-    invite_link: str | None
     isOnlyOwner: Annotated[
         bool, ApiDescription("Whether the member is the only owner of the organization")
     ]

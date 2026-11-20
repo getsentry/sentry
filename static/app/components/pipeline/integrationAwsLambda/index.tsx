@@ -57,9 +57,7 @@ function ProjectSelectStep({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      projectId: autoSelectedProjectId,
-    },
+    defaultValues: {projectId: autoSelectedProjectId},
     validators: {onDynamic: projectSchema},
     onSubmit: ({value}) => {
       advance({projectId: Number(value.projectId)});
@@ -76,7 +74,9 @@ function ProjectSelectStep({
     <form.AppForm form={form}>
       <Stack gap="lg">
         <Text>
-          {t('Select a Sentry project to associate with your AWS Lambda functions.')}
+          {t(
+            'Select a Sentry project to associate with your AWS Lambda Event Functions.'
+          )}
         </Text>
         <form.AppField name="projectId">
           {field => (
@@ -101,7 +101,7 @@ function ProjectSelectStep({
           )}
         </form.AppField>
         <Text variant="muted" size="sm">
-          {t('Currently only supports Node and Python Lambda functions.')}
+          {t('Currently only supports Node and Python Lambda Event Functions.')}
         </Text>
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
@@ -161,11 +161,7 @@ function CloudFormationStep({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      accountNumber: '',
-      region: '',
-      awsExternalId: defaultExternalId,
-    },
+    defaultValues: {accountNumber: '', region: '', awsExternalId: defaultExternalId},
     validators: {onDynamic: cloudFormationSchema},
     onSubmit: ({value}) => advance(value),
   });

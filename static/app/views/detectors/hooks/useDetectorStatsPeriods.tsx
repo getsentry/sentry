@@ -1,14 +1,12 @@
 import {useEffect} from 'react';
+import isEqual from 'lodash/isEqual';
+import {useQueryStates} from 'nuqs';
 
-import {navigateIfQueryChanged} from 'sentry/utils/navigateIfQueryChanged';
-import {decodeScalar} from 'sentry/utils/queryString';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {widenDateRangeToInterval} from 'sentry/views/detectors/utils/widenDateRangeToInterval';
 
 export const useDetectorStatsPeriods = (intervalSeconds: number) => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const [{statsPeriod, start, end}, setDateRange] = useQueryStates(pageFilterParsers);
 
   useEffect(() => {
     if (!intervalSeconds) {
@@ -16,9 +14,9 @@ export const useDetectorStatsPeriods = (intervalSeconds: number) => {
     }
 
     const dateRange = {
-      statsPeriod: decodeScalar(location.query?.statsPeriod),
-      start: decodeScalar(location.query?.start),
-      end: decodeScalar(location.query?.end),
+      statsPeriod: statsPeriod || undefined,
+      start: start || undefined,
+      end: end || undefined,
     };
 
     const widenedDateRange = widenDateRangeToInterval({
@@ -27,12 +25,18 @@ export const useDetectorStatsPeriods = (intervalSeconds: number) => {
       nowMilliseconds: Date.now(),
     });
 
+    if (isEqual(widenedDateRange, dateRange)) {
+      return;
+    }
+
     // Replace so the back button skips the range that was too short to chart
-    navigateIfQueryChanged(
-      navigate,
-      location,
-      {query: {...location.query, ...widenedDateRange}},
-      {replace: true}
+    setDateRange(
+      {
+        statsPeriod: widenedDateRange.statsPeriod ?? null,
+        start: widenedDateRange.start ?? null,
+        end: widenedDateRange.end ?? null,
+      },
+      {history: 'replace'}
     );
-  }, [location, navigate, intervalSeconds]);
+  }, [statsPeriod, start, end, intervalSeconds, setDateRange]);
 };

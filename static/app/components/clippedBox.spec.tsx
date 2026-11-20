@@ -34,9 +34,7 @@ class MockResizeObserver {
           target: element,
           contentBoxSize: [
             // @ts-expect-error partial mock
-            {
-              blockSize: 100,
-            },
+            {blockSize: 100},
           ],
         },
       ],
@@ -50,14 +48,7 @@ class MockResizeObserver {
 
 function mockGetBoundingClientRect({height}: {height: number}) {
   window.HTMLDivElement.prototype.getBoundingClientRect = () =>
-    ({
-      bottom: 0,
-      height,
-      left: 0,
-      right: 0,
-      top: 0,
-      width: 0,
-    }) as DOMRect;
+    ({bottom: 0, height, left: 0, right: 0, top: 0, width: 0}) as DOMRect;
 }
 
 function clearMockGetBoundingClientRect() {

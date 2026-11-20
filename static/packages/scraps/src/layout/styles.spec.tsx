@@ -230,12 +230,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window matches breakpoint = breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: true,
-      md: true,
-      lg: false,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: true, md: true, lg: false});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'extra-small',
@@ -252,10 +247,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window > largest breakpoint = largest breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      lg: false,
-      xl: true,
-    });
+    const cleanup = setupMediaQueries({lg: false, xl: true});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'extra-small',
@@ -272,14 +264,9 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window < smallest breakpoint = smallest breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: false,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: false});
 
-    const responsiveValue: Responsive<string> = {
-      'screen:sm': 'small',
-    };
+    const responsiveValue: Responsive<string> = {'screen:sm': 'small'};
 
     const {result} = renderHook(() => useResponsivePropValue(responsiveValue), {
       wrapper: ThemeWrapper,
@@ -290,12 +277,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('window > smallest breakpoint and < largest breakpoint = smallest matching breakpoint value', () => {
-    const cleanup = setupMediaQueries({
-      xs: false,
-      sm: false,
-      md: true,
-      lg: false,
-    });
+    const cleanup = setupMediaQueries({xs: false, sm: false, md: true, lg: false});
 
     const responsiveValue: Responsive<string> = {
       'screen:sm': 'small',
@@ -311,10 +293,7 @@ describe('useResponsivePropValue', () => {
   });
 
   it('handles undefined values in breakpoint', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      md: true,
-    });
+    const cleanup = setupMediaQueries({xs: true, md: true});
 
     const responsiveValue: Responsive<string> = {
       'screen:xs': 'small',
@@ -391,13 +370,7 @@ describe('useActiveBreakpoint', () => {
   });
 
   it('uses correct breakpoint order (largest first)', () => {
-    const cleanup = setupMediaQueries({
-      xs: true,
-      sm: true,
-      md: true,
-      lg: true,
-      xl: true,
-    });
+    const cleanup = setupMediaQueries({xs: true, sm: true, md: true, lg: true, xl: true});
 
     const {result} = renderHook(() => useActiveBreakpoint(), {wrapper: ThemeWrapper});
 
@@ -472,10 +445,7 @@ describe('useActiveBreakpoint', () => {
 
     const abortController = {
       abort: jest.fn(),
-      signal: {
-        aborted: false,
-        onabort: jest.fn(),
-      },
+      signal: {aborted: false, onabort: jest.fn()},
     } as unknown as AbortController;
 
     const mockAbortController = jest.fn(() => abortController);

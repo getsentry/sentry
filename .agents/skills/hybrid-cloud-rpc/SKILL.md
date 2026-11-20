@@ -24,6 +24,11 @@ This skill guides you through creating, modifying, and deprecating RPC services 
 > metadata dicts) to prevent them from leaking into logs and error reports.
 > See `references/rpc-models.md` for the full guide.
 
+> **NEVER** add an RPC method and its first production caller in the same PR.
+> Silos deploy separately, and control deploys after the cells. A cell that calls a
+> new control method before control has it gets `Service unavailable (404 status)`
+> on every call. See "Deploy order for new methods" in Step 4.
+
 ## Step 1: Determine Operation
 
 Classify what the developer needs:
@@ -94,6 +99,15 @@ If your service doesn't fit any of these, add a new entry to the `service_packag
 - [ ] No `from __future__ import annotations` in `service.py` or `model.py`
 
 ## Step 4: Add or Update Methods
+
+### Deploy order for new methods
+
+A new method works only after the silo that serves it has deployed. Ship it in two PRs:
+
+1. **Method PR:** the abstract method, the implementation, and its service tests. Nothing in production calls it yet.
+2. **Caller PR:** the code that calls the method. Open it as a draft, and merge it only after the method PR has deployed to every silo that serves the method. For `SiloMode.CONTROL` services, that means the control deploy.
+
+Tests can't catch this, because tests run every silo from the same commit. If the caller can't wait, gate it behind an option that stays off until the method has deployed.
 
 ### For CELL silo services
 

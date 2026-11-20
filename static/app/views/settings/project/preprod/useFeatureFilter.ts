@@ -44,9 +44,7 @@ export function useFeatureFilter({
     (query: string) => {
       toast.loading(t('Saving...'));
       updateProject.mutate(
-        {
-          [queryWriteKey]: query === '' ? null : query,
-        },
+        {[queryWriteKey]: query === '' ? null : query},
         {
           onSuccess: () => {
             toast.success(successMessage);
@@ -64,9 +62,7 @@ export function useFeatureFilter({
     (newEnabled: boolean) => {
       toast.loading(t('Saving...'));
       updateProject.mutate(
-        {
-          [enabledWriteKey]: newEnabled,
-        },
+        {[enabledWriteKey]: newEnabled},
         {
           onSuccess: () => {
             toast.success(successMessage);

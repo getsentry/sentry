@@ -2,6 +2,7 @@ import {Fragment, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconRefresh} from '@sentry/icons/refresh';
 import {useQueryClient} from '@tanstack/react-query';
+import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Checkbox} from '@sentry/scraps/checkbox';
@@ -15,7 +16,6 @@ import {AutoSelectText} from 'sentry/components/autoSelectText';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -60,8 +60,10 @@ export function ShareIssueModal({
   );
 
   const urlRef = useRef<UrlRef>(null);
-  const groups = useLegacyStore(GroupStore);
-  const group = (groups as Group[]).find(item => item.id === groupId);
+  const group = useStore(
+    GroupStore,
+    state => state.find(item => item.id === groupId) as Group | undefined
+  );
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
@@ -106,15 +108,10 @@ export function ShareIssueModal({
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [groupId],
-        data: {
-          isPublic: reshare ?? !isPublished,
-        },
+        data: {isPublic: reshare ?? !isPublished},
       });
       queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId,
-        }),
+        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId}),
       });
     } catch {
       toast.error(t('Error sharing'));
@@ -153,10 +150,7 @@ export function ShareIssueModal({
               onClick={handleCopyMarkdownLink}
               analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
               analyticsEventName="Issue Details: Copy Issue Markdown Link"
-              analyticsParams={{
-                ...getAnalyticsDataForGroup(group),
-                streamline: true,
-              }}
+              analyticsParams={{...getAnalyticsDataForGroup(group), streamline: true}}
             >
               {t('Copy as Markdown')}
             </Button>
@@ -181,10 +175,7 @@ export function ShareIssueModal({
                       ...getAnalyticsDataForEvent(event),
                       streamline: true,
                     }
-                  : {
-                      ...getAnalyticsDataForGroup(group),
-                      streamline: true,
-                    }
+                  : {...getAnalyticsDataForGroup(group), streamline: true}
               }
             >
               {t('Copy Link')}

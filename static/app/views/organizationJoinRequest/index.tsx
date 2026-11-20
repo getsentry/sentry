@@ -1,6 +1,7 @@
 import type {MouseEvent} from 'react';
 import {IconMegaphone} from '@sentry/icons/megaphone';
 import {useMutation} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
@@ -14,9 +15,7 @@ import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
 const joinRequestSchema = z.object({
@@ -25,7 +24,7 @@ const joinRequestSchema = z.object({
 
 export default function OrganizationJoinRequest() {
   const {orgId} = useParams<{orgId: string}>();
-  const location = useLocation();
+  const [referrer] = useQueryState('referrer', parseAsString.withDefault(''));
 
   const mutation = useMutation({
     mutationFn: (data: {email: string}) =>
@@ -37,10 +36,7 @@ export default function OrganizationJoinRequest() {
         data,
       }),
     onSuccess: () => {
-      trackAnalytics('join_request.created', {
-        organization: orgId,
-        referrer: decodeScalar(location.query.referrer, ''),
-      });
+      trackAnalytics('join_request.created', {organization: orgId, referrer});
     },
     onError: () => {
       toast.error(t('Request to join failed'));
@@ -91,9 +87,7 @@ export default function OrganizationJoinRequest() {
             {t('Request to Join')}
           </Heading>
           <Text as="p">
-            {tct('Ask the admins if you can join the [orgId] organization.', {
-              orgId,
-            })}
+            {tct('Ask the admins if you can join the [orgId] organization.', {orgId})}
           </Text>
         </Stack>
         <form.AppForm form={form}>

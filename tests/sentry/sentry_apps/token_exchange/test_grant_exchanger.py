@@ -7,6 +7,9 @@ import pytest
 from django.db import connections, router, transaction
 
 from sentry.analytics.events.sentry_app_token_exchanged import SentryAppTokenExchangedEvent
+from sentry.hybridcloud.models import ApiTokenReplica
+from sentry.hybridcloud.models.outbox import ControlOutbox, OutboxDatabaseError
+from sentry.hybridcloud.outbox.category import OutboxCategory
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
@@ -15,6 +18,7 @@ from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.grant_exchanger import GrantExchanger
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
+from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.asserts import (
     assert_count_of_metric,
@@ -24,7 +28,8 @@ from sentry.testutils.asserts import (
 )
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
 @control_silo_test
@@ -77,6 +82,85 @@ class TestGrantExchanger(TestCase):
         assert_count_of_metric(
             mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
         )
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_outbox_flush_failure_returns_token(self, mock_record: MagicMock) -> None:
+        with patch.object(
+            ApiToken, "handle_async_replication", side_effect=Exception("replication failed")
+        ) as mock_replication:
+            token = self.grant_exchanger.run()
+
+        mock_replication.assert_called()
+        assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
+        assert not ApiGrant.objects.filter(id=self.install.api_grant_id).exists()
+        assert ControlOutbox.objects.filter(
+            category=OutboxCategory.API_TOKEN_UPDATE, object_identifier=token.id
+        ).exists()
+        assert_success_metric(mock_record)
+
+        # At this point, the token change has been committed, but the outbox
+        # has not been processed, so there should be no replica.
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert not ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+        with outbox_runner():
+            pass
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            assert ApiTokenReplica.objects.filter(apitoken_id=token.id).exists()
+
+    @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
+    def test_outbox_failure_before_token_creation_allows_retry(
+        self, mock_record: MagicMock
+    ) -> None:
+        outbox_error = OutboxDatabaseError("outbox write failed")
+        with (
+            patch.object(ApiToken.objects, "create", side_effect=outbox_error),
+            pytest.raises(SentryAppSentryError) as e,
+        ):
+            self.grant_exchanger.run()
+
+        assert e.value.message == "Failed to exchange given grant"
+        assert e.value.status_code == 500
+        assert e.value.webhook_context == {"installation_uuid": self.install.uuid}
+        assert e.value.__cause__ is outbox_error
+
+        # Assert that the token wasn't minted, so the grant is still exchangeable.
+        assert ApiGrant.objects.filter(id=self.grant.id).exists()
+        assert not ApiToken.objects.filter(application=self.grant.application).exists()
+
+        assert_failure_metric(
+            mock_record=mock_record,
+            error_msg=SentryAppSentryError(message="Failed to exchange given grant"),
+        )
+
+        # GRANT_EXCHANGER (failure)
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=1
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.FAILURE, outcome_count=1
+        )
+
+        # Ensure we can still exchange the grant after this class of failure.
+        token = GrantExchanger(
+            install=self.install, client_id=self.client_id, code=self.code, user=self.user
+        ).run()
+
+        assert SentryAppInstallation.objects.get(id=self.install.id).api_token == token
+        assert not ApiGrant.objects.filter(id=self.grant.id).exists()
+
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.STARTED, outcome_count=2
+        )
+        assert_count_of_metric(
+            mock_record=mock_record, outcome=EventLifecycleOutcome.SUCCESS, outcome_count=1
+        )
+
+        # Ensure the token was successfully replicated after the exchange.
+        with assume_test_silo_mode(SiloMode.CELL):
+            replica = ApiTokenReplica.objects.get(apitoken_id=token.id)
+        assert replica.token == token.token
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_grant_must_belong_to_installations(self, mock_record: MagicMock) -> None:

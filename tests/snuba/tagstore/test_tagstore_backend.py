@@ -1654,6 +1654,21 @@ class GetTagValuePaginatorForProjectsReleaseStageTest(TestCase, SnubaTestCase):
         self.run_test(ReleaseStages.ADOPTED, [], environment=env_2)
         self.run_test(ReleaseStages.ADOPTED, [], project=project_2, environment=self.environment)
 
+    def test_release_stage_is_scoped_to_environment(self) -> None:
+        staging = self.create_environment(name="staging")
+        release = self.create_release(
+            version="adopted_in_one_environment",
+            environments=[self.environment, staging],
+            adopted=timezone.now(),
+        )
+        ReleaseProjectEnvironment.objects.filter(release=release, environment=staging).update(
+            adopted=None
+        )
+
+        self.run_test(ReleaseStages.ADOPTED, [release], environment=self.environment)
+        self.run_test(ReleaseStages.ADOPTED, [], environment=staging)
+        self.run_test(ReleaseStages.LOW_ADOPTION, [release], environment=staging)
+
 
 class GetTagValuePaginatorForProjectsSemverBuildTest(BaseSemverTest):
     KEY = SEMVER_BUILD_ALIAS

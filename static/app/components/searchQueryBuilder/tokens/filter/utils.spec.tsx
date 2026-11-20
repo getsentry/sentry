@@ -88,10 +88,7 @@ describe('areWildcardOperatorsAllowed', () => {
 
 describe('getValidOpsForFilter', () => {
   it('allows wildcard operators for fields with a null valueType', () => {
-    const fieldDefinition: FieldDefinition = {
-      kind: FieldKind.FIELD,
-      valueType: null,
-    };
+    const fieldDefinition: FieldDefinition = {kind: FieldKind.FIELD, valueType: null};
 
     expect(
       getValidOpsForFilter({
@@ -152,6 +149,24 @@ describe('getValidOpsForFilter', () => {
         fieldDefinition,
       })
     ).not.toEqual(expect.arrayContaining([TermOperator.CONTAINS]));
+  });
+
+  it('leaves out the operators the field definition disallows', () => {
+    const fieldDefinition: FieldDefinition = {
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.STRING,
+      disallowedOperators: [TermOperator.NOT_EQUAL],
+    };
+
+    const ops = getValidOpsForFilter({
+      filterToken: parseFilterToken('message:hello'),
+      fieldDefinition,
+    });
+
+    expect(ops).not.toContain(TermOperator.NOT_EQUAL);
+    expect(ops).toEqual(
+      expect.arrayContaining([TermOperator.DEFAULT, TermOperator.DOES_NOT_CONTAIN])
+    );
   });
 });
 

@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 
 import {Container} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -9,10 +9,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {makeStatsPathname} from './pathname';
 
-type Props = {
-  activeTab: 'stats' | 'issues' | 'health';
-  organization: Organization;
-};
+type Props = {activeTab: 'stats' | 'issues' | 'health'; organization: Organization};
 
 export function StatsHeader({organization, activeTab}: Props) {
   return (
@@ -24,37 +21,27 @@ export function StatsHeader({organization, activeTab}: Props) {
         )}
       />
       <Container borderBottomColor="primary" marginBottom="xl">
-        <Tabs value={activeTab}>
-          <TabList>
-            <TabList.Item
-              key="stats"
-              to={makeStatsPathname({
-                path: '/',
-                organization,
-              })}
-            >
-              {t('Usage')}
-            </TabList.Item>
-            <TabList.Item
-              key="issues"
-              to={makeStatsPathname({
-                path: '/issues/',
-                organization,
-              })}
-            >
-              {t('Issues')}
-            </TabList.Item>
-            <TabList.Item
-              key="health"
-              to={makeStatsPathname({
-                path: '/health/',
-                organization,
-              })}
-            >
-              {t('Health')}
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <LinkTabs value={activeTab}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item key="stats" to={makeStatsPathname({path: '/', organization})}>
+                {t('Usage')}
+              </TabList.Item>
+              <TabList.Item
+                key="issues"
+                to={makeStatsPathname({path: '/issues/', organization})}
+              >
+                {t('Issues')}
+              </TabList.Item>
+              <TabList.Item
+                key="health"
+                to={makeStatsPathname({path: '/health/', organization})}
+              >
+                {t('Health')}
+              </TabList.Item>
+            </TabList>
+          )}
+        </LinkTabs>
       </Container>
     </Fragment>
   );

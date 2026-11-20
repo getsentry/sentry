@@ -19,7 +19,11 @@ import type {
   TimeSeriesValueUnit,
 } from 'sentry/views/dashboards/widgets/common/types';
 
-import type {Plottable, PlottableTimeSeriesValueType} from './plottable';
+import type {
+  Plottable,
+  PlottableConfidence,
+  PlottableTimeSeriesValueType,
+} from './plottable';
 
 type ThresholdPlottableOptions = {
   thresholds: ThresholdsConfig;
@@ -41,6 +45,11 @@ export class Thresholds implements Plottable {
   maxOffset = 5; // The offset from the top of the chart (in pixels), of the max threshold
   thresholds: ThresholdsConfig;
   showLabels: boolean;
+
+  /**
+   * Thresholds are user-defined values, so they're never extrapolated.
+   */
+  confidence: PlottableConfidence = 'full';
 
   /** State variables required for Plottable interface */
   dataType: PlottableTimeSeriesValueType = 'duration';
@@ -86,11 +95,7 @@ export class Thresholds implements Plottable {
     const max = yAxisRange[1] === Infinity ? {y: maxOffset} : {yAxis: yAxisRange[1]};
     const min = {yAxis: yAxisRange[0]};
 
-    return MarkArea({
-      silent: true,
-      itemStyle: style,
-      data: [[max, min]],
-    });
+    return MarkArea({silent: true, itemStyle: style, data: [[max, min]]});
   }
 
   toMarkAreas(theme: Theme, maxOffset = this.maxOffset) {

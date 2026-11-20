@@ -18,7 +18,6 @@ from sentry.db.pending_deletion import build_pending_deletion_key
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.dynamic_sampling import DEFAULT_BIASES, RuleType
 from sentry.dynamic_sampling.rules.base import NEW_MODEL_THRESHOLD_IN_MINUTES
-from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.issues.highlights import get_highlight_preset_for_project
 from sentry.models.apitoken import ApiToken
 from sentry.models.auditlogentry import AuditLogEntry
@@ -61,6 +60,30 @@ class ProjectDetailsTest(APITestCase):
     def test_simple(self) -> None:
         response = self.get_success_response(self.project.organization.slug, self.project.slug)
         assert response.data["id"] == str(self.project.id)
+        assert response.data["securityToken"]
+        assert response.data["securityToken"] == self.project.get_option("sentry:token")
+
+    def test_security_token_hidden_from_member(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization, teams=[self.team])
+        self.login_as(user=member)
+
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+
+        assert response.data["securityToken"] == ""
+
+    def test_security_token_hidden_from_read_only_owner_token(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
+        token = self.create_user_auth_token(user=self.user, scope_list=["project:read"])
+
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            extra_headers={"HTTP_AUTHORIZATION": f"Bearer {token.token}"},
+        )
+
+        assert response.data["securityToken"] == ""
 
     def test_superuser_simple(self) -> None:
         superuser = self.create_user(is_superuser=True)
@@ -127,6 +150,20 @@ class ProjectDetailsTest(APITestCase):
             qs_params={"expand": "hasAlertIntegration"},
         )
         assert response.data["hasAlertIntegrationInstalled"]
+
+    def test_disabled_org_alert_integration(self) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            integration = self.create_provider_integration(provider="msteams")
+            org_integration = integration.add_organization(self.organization)
+            assert org_integration is not None
+            org_integration.update(status=ObjectStatus.DISABLED)
+
+        response = self.get_success_response(
+            self.project.organization.slug,
+            self.project.slug,
+            qs_params={"expand": "hasAlertIntegration"},
+        )
+        assert not response.data["hasAlertIntegrationInstalled"]
 
     def test_no_alert_integration(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -234,51 +271,6 @@ class ProjectDetailsTest(APITestCase):
                 resp = self.get_success_response(self.project.organization.slug, self.project.slug)
                 assert not resp.data["isDynamicallySampled"]
 
-    def test_is_dynamically_sampled(self) -> None:
-        # test with feature flags disabled
-        with self.feature(
-            {
-                "organizations:dynamic-sampling": False,
-                "organizations:dynamic-sampling-custom": False,
-            }
-        ):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = organization
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-
-        # test not sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test dynamically sampled organization
-        self.project.organization.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
-
-        # test with sampling_mode = project
-        self.project.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.PROJECT.value
-        )
-
-        # test with not sampled project
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert not resp.data["isDynamicallySampled"]
-
-        # test with sampled project
-        self.project.update_option("sentry:target_sample_rate", 0.1)
-        with self.feature("organizations:dynamic-sampling-custom"):
-            resp = self.get_success_response(self.project.organization.slug, self.project.slug)
-            assert resp.data["isDynamicallySampled"]
-
     def test_filter_options(self) -> None:
         self.project.update_option("sentry:releases", ["1.*", "2.1.*"])
         self.project.update_option(
@@ -322,6 +314,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         self.platforms = ["rust", "java"]
 
     def test_member_can_update_limited_project_details(self) -> None:
+        self.project.update_option("sentry:token", "source-token")
         self.create_member(
             user=self.user,
             organization=self.project.organization,
@@ -338,6 +331,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
         )
         assert response.status_code == 200
         assert response.data["isBookmarked"] is True
+        assert response.data["securityToken"] == ""
 
     @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
     @with_feature("organizations:service-accounts")
@@ -387,6 +381,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     @with_feature("organizations:team-roles")
     def test_team_admin_update_allowed_with_correct_token_scope(self) -> None:
@@ -409,6 +404,7 @@ class ProjectUpdateTestTokenAuthenticated(APITestCase):
             )
             assert response.status_code == 200
             assert response.data["platform"] == platform
+            assert response.data["securityToken"] == self.project.get_security_token()
 
     def test_manager_update_allowed_with_correct_token_scope(self) -> None:
         self.create_member(
@@ -964,14 +960,27 @@ class ProjectUpdateTest(APITestCase):
         ).exists()
 
     def test_security_token(self) -> None:
-        resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="fizzbuzz")
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.org_slug, self.proj_slug, securityToken="fizzbuzz"
+            )
         assert self.project.get_security_token() == "fizzbuzz"
         assert resp.data["securityToken"] == "fizzbuzz"
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            entry = AuditLogEntry.objects.get(
+                organization_id=self.organization.id,
+                event=audit_log.get_event_id("PROJECT_EDIT"),
+            )
+            assert entry.data["sentry:token"] == "[Filtered]"
 
         # can delete
         resp = self.get_success_response(self.org_slug, self.proj_slug, securityToken="")
         assert self.project.get_security_token() == ""
         assert resp.data["securityToken"] == ""
+        resp = self.client.get(reverse(self.endpoint, args=[self.org_slug, self.proj_slug]))
+        assert resp.status_code == 200
+        assert resp.data["securityToken"] == ""
+        assert self.project.get_option("sentry:token") == ""
 
     def test_security_token_header(self) -> None:
         value = "X-Hello-World"
@@ -1508,42 +1517,6 @@ class ProjectUpdateTest(APITestCase):
 
             assert resp.status_code == 200
             assert project.get_option("sentry:symbol_sources", orjson.dumps([source1]).decode())
-
-    @with_feature({"organizations:dynamic-sampling-custom": False})
-    def test_target_sample_rate_without_feature(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_automatic_mode(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        # automatic mode is called "organization" in code
-        self.organization.update_option(
-            "sentry:sampling_mode", DynamicSamplingMode.ORGANIZATION.value
-        )
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=0.1, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate_invalid(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_error_response(
-            self.org_slug, self.proj_slug, targetSampleRate=2.0, status_code=400
-        )
-        assert self.project.get_option("sentry:target_sample_rate") == 1.0
-
-    @with_feature({"organizations:dynamic-sampling-custom": True})
-    def test_target_sample_rate(self) -> None:
-        self.project.update_option("sentry:target_sample_rate", 1.0)
-        self.organization.update_option("sentry:sampling_mode", DynamicSamplingMode.PROJECT.value)
-        self.get_success_response(self.org_slug, self.proj_slug, targetSampleRate=0.1)
-        assert self.project.get_option("sentry:target_sample_rate") == 0.1
 
     def test_no_setting_grouping_configs(self) -> None:
         response = self.get_error_response(

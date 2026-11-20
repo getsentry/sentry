@@ -21,14 +21,8 @@ describe('transformTableToCategoricalSeries', () => {
         {browser: 'Safari', 'count()': 650},
       ],
       meta: {
-        fields: {
-          browser: 'string',
-          'count()': 'integer',
-        },
-        units: {
-          browser: null,
-          'count()': null,
-        },
+        fields: {browser: 'string', 'count()': 'integer'},
+        units: {browser: null, 'count()': null},
       },
     };
 
@@ -37,10 +31,7 @@ describe('transformTableToCategoricalSeries', () => {
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({
       valueAxis: 'count()',
-      meta: {
-        valueType: 'integer',
-        valueUnit: null,
-      },
+      meta: {valueType: 'integer', valueUnit: null},
       values: [
         {category: 'Chrome', value: 1250},
         {category: 'Firefox', value: 890},
@@ -81,10 +72,7 @@ describe('transformTableToCategoricalSeries', () => {
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual({
       valueAxis: 'count()',
-      meta: {
-        valueType: 'integer',
-        valueUnit: null,
-      },
+      meta: {valueType: 'integer', valueUnit: null},
       values: [
         {category: 'Chrome', value: 1250},
         {category: 'Firefox', value: 890},
@@ -92,10 +80,7 @@ describe('transformTableToCategoricalSeries', () => {
     });
     expect(result[1]).toEqual({
       valueAxis: 'avg(span.duration)',
-      meta: {
-        valueType: 'duration',
-        valueUnit: DurationUnit.MILLISECOND,
-      },
+      meta: {valueType: 'duration', valueUnit: DurationUnit.MILLISECOND},
       values: [
         {category: 'Chrome', value: 150.5},
         {category: 'Firefox', value: 200.3},
@@ -112,10 +97,7 @@ describe('transformTableToCategoricalSeries', () => {
 
     const tableData: TabularData = {
       data: [{'count()': 100}],
-      meta: {
-        fields: {'count()': 'integer'},
-        units: {'count()': null},
-      },
+      meta: {fields: {'count()': 'integer'}, units: {'count()': null}},
     };
 
     const result = transformTableToCategoricalSeries(query, tableData);
@@ -132,10 +114,7 @@ describe('transformTableToCategoricalSeries', () => {
 
     const tableData: TabularData = {
       data: [{browser: 'Chrome'}],
-      meta: {
-        fields: {browser: 'string'},
-        units: {browser: null},
-      },
+      meta: {fields: {browser: 'string'}, units: {browser: null}},
     };
 
     const result = transformTableToCategoricalSeries(query, tableData);

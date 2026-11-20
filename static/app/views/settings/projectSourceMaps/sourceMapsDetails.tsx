@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconDownload} from '@sentry/icons/download';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
@@ -22,10 +23,9 @@ import type {Project} from 'sentry/types/project';
 import type {Artifact, Release} from 'sentry/types/release';
 import type {DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {isUUID} from 'sentry/utils/string/isUUID';
-import {useApi} from 'sentry/utils/useApi';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -105,20 +105,18 @@ function ArtifactsTableRow({
   );
 }
 
-type Props = {
-  bundleId: string;
-  project: Project;
-};
+type Props = {bundleId: string; project: Project};
 
 export function SourceMapsDetails({bundleId, project}: Props) {
-  const api = useApi();
   const organization = useOrganization();
-  const location = useLocation();
   const navigate = useNavigate();
+  const [queryParams, setQueryParams] = useQueryStates({
+    query: parseAsString,
+    cursor: parseAsString,
+  });
 
-  // query params
-  const query = decodeScalar(location.query.query);
-  const cursor = decodeScalar(location.query.cursor);
+  const query = queryParams.query || undefined;
+  const cursor = queryParams.cursor || undefined;
 
   const isDebugIdBundle = isUUID(bundleId);
 
@@ -172,10 +170,7 @@ export function SourceMapsDetails({bundleId, project}: Props) {
   const {data: releasesData, isPending: releasesLoading} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: [project.id],
-        query: `release:[${releaseVersions?.join(',')}]`,
-      },
+      query: {project: [project.id], query: `release:[${releaseVersions?.join(',')}]`},
       staleTime: Infinity,
     }),
     retry: false,
@@ -219,12 +214,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
 
   const handleSearch = useCallback(
     (newQuery: string) => {
-      navigate({
-        ...location,
-        query: {...location.query, cursor: undefined, query: newQuery},
-      });
+      setQueryParams({cursor: null, query: newQuery}, {history: 'push'});
     },
-    [navigate, location]
+    [setQueryParams]
   );
 
   return (
@@ -278,11 +270,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
           )}
         {isDebugIdBundle
           ? (debugIdBundlesArtifactsData?.files ?? []).map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/artifact-bundles/${encodeURIComponent(bundleId)}/files/${
-                data.id
-              }/?download=1`;
+              const downloadUrl = resolveHostname(
+                `/api/0/projects/${organization.slug}/${project.slug}/artifact-bundles/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`
+              );
 
               return (
                 <ArtifactsTableRow
@@ -310,9 +300,9 @@ export function SourceMapsDetails({bundleId, project}: Props) {
               );
             })
           : artifactsData?.map(data => {
-              const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${
-                project.slug
-              }/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`;
+              const downloadUrl = resolveHostname(
+                `/api/0/projects/${organization.slug}/${project.slug}/releases/${encodeURIComponent(bundleId)}/files/${data.id}/?download=1`
+              );
 
               return (
                 <ArtifactsTableRow
@@ -342,11 +332,11 @@ export function SourceMapsDetails({bundleId, project}: Props) {
             })}
       </SimpleTable>
       <Pagination
-        pageLinks={
+        {...getPaginationProps(
           isDebugIdBundle
             ? (debugIdBundlesArtifactsResponse?.headers.Link ?? '')
             : (artifactsResponse?.headers.Link ?? '')
-        }
+        )}
       />
     </Fragment>
   );

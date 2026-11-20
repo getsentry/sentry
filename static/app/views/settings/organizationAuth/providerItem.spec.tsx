@@ -14,9 +14,7 @@ describe('ProviderItem', () => {
   });
 
   it('renders', () => {
-    render(<ProviderItem active={false} provider={provider} />, {
-      organization: org,
-    });
+    render(<ProviderItem active={false} provider={provider} />, {organization: org});
 
     expect(
       screen.getByText('Enable your organization to sign in with Dummy.')

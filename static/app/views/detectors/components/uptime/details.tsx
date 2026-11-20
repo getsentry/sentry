@@ -11,7 +11,7 @@ import {Link} from '@sentry/scraps/link';
 import {updateUptimeRule} from 'sentry/actionCreators/uptime';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -20,16 +20,12 @@ import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {UptimeDetector} from 'sentry/types/workflowEngine/detectors';
-import {setApiQueryData} from 'sentry/utils/queryClient';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import {
-  makeDetectorDetailsQueryKey,
-  useDetectorQuery,
-} from 'sentry/views/detectors/hooks';
+import {detectorDetailsApiOptions, useDetectorQuery} from 'sentry/views/detectors/hooks';
 import {
   makeMonitorBasePathname,
   makeMonitorTypePathname,
@@ -110,10 +106,16 @@ export default function UptimeAlertDetails() {
     });
 
     if (resp !== null) {
-      setApiQueryData<UptimeDetector>(
-        queryClient,
-        makeDetectorDetailsQueryKey({orgSlug: organization.slug, detectorId}),
-        prev => Object.assign({}, prev, {enabled})
+      queryClient.setQueryData(
+        detectorDetailsApiOptions<Partial<UptimeDetector>>({
+          orgSlug: organization.slug,
+          detectorId,
+        }).queryKey,
+        previous => ({
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: {...previous?.json, enabled},
+        })
       );
     }
   };
@@ -135,7 +137,9 @@ export default function UptimeAlertDetails() {
           type: 'page-title',
           label: detector.name,
           leadingGraphic: (
-            <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+            <ProjectsBadge
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
+            />
           ),
         }}
         items={[

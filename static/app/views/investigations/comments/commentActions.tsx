@@ -1,11 +1,11 @@
 import {mergeRefs} from '@react-aria/utils';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {toast} from '@sentry/scraps/toast';
 
-import {openConfirmModal} from 'sentry/components/confirm';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useDeleteInvestigationCommentMutation} from 'sentry/views/investigations/api';
@@ -49,12 +49,7 @@ export function CommentActions({
         />
       )}
       items={[
-        {
-          key: 'edit',
-          label: t('Edit'),
-          disabled: editing,
-          onAction: onEdit,
-        },
+        {key: 'edit', label: t('Edit'), disabled: editing, onAction: onEdit},
         {
           key: 'delete',
           label: t('Delete'),

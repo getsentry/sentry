@@ -1,9 +1,8 @@
 import logging
 from collections.abc import Iterable, Mapping, Sequence
-from typing import Any, Literal, NamedTuple, TypedDict, cast
+from typing import Annotated, Any, Literal, NamedTuple, TypedDict, cast
 
 import sentry_sdk
-from django.db.models import Exists, OuterRef
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -17,7 +16,9 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.examples.source_map_debug_examples import SourceMapDebugExamples
+from sentry.apidocs.formats import Url, absolute_url
 from sentry.apidocs.parameters import EventParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.debug_files.release_files import maybe_renew_releasefiles
@@ -26,10 +27,8 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
-    DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -68,81 +67,164 @@ NO_DEBUG_ID_SDKS = {
 # This number will equate to an upper bound of file lookups/downloads
 ARTIFACT_INDEX_LOOKUP_LIMIT = 25
 
-# Upper bound for `sourcemaps.source-map-debug.debug-id-check-max-bundles`, whose bundle ids end
-# up in a single query.
-DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT = 10_000
-
 # Upper bound on the number of bundles whose files `get_release_bundle_urls` reads.
 URL_MATCH_MAX_BUNDLES = 1000
 
 
 class ScrapingResultSuccess(TypedDict):
-    url: str
-    status: Literal["success"]
+    url: Annotated[Url, ApiDescription("URL Sentry fetched")]
+    status: Annotated[
+        Literal["success"], ApiDescription("Result of fetching the file, always success")
+    ]
 
 
 class ScrapingResultNotAttempted(TypedDict):
-    url: str
-    status: Literal["not_attempted"]
+    url: Annotated[Url, ApiDescription("URL Sentry didn't fetch")]
+    status: Annotated[
+        Literal["not_attempted"],
+        ApiDescription("Result of fetching the file, always not_attempted"),
+    ]
 
 
 class ScrapingResultFailure(TypedDict):
-    url: str
-    status: Literal["failure"]
-    reason: Literal[
-        "not_found",
-        "disabled",
-        "invalid_host",
-        "permission_denied",
-        "timeout",
-        "download_error",
-        "other",
+    url: Annotated[Url, ApiDescription("URL Sentry failed to fetch")]
+    status: Annotated[
+        Literal["failure"], ApiDescription("Result of fetching the file, always failure")
     ]
-    details: str | None
+    reason: Annotated[
+        Literal[
+            "not_found",
+            "disabled",
+            "invalid_host",
+            "permission_denied",
+            "timeout",
+            "download_error",
+            "other",
+        ],
+        ApiDescription(
+            "Why fetching failed, such as not_found, disabled, invalid_host, permission_denied or timeout"
+        ),
+    ]
+    details: Annotated[str | None, ApiDescription("More details about the failure")]
 
 
 class SourceMapScrapingProcessResult(TypedDict):
-    source_file: None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure)
-    source_map: None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure)
+    source_file: Annotated[
+        None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure),
+        ApiDescription(
+            "Result of fetching the frame's source file from the web. Null when there's no data"
+        ),
+    ]
+    source_map: Annotated[
+        None | (ScrapingResultSuccess | ScrapingResultNotAttempted | ScrapingResultFailure),
+        ApiDescription(
+            "Result of fetching the frame's source map from the web. Null when there's no data"
+        ),
+    ]
 
 
 class SourceMapDebugIdProcessResult(TypedDict):
-    debug_id: str | None
-    uploaded_source_file_with_correct_debug_id: bool
-    uploaded_source_map_with_correct_debug_id: bool
+    debug_id: Annotated[
+        str | None,
+        ApiDescription("Debug ID of the frame's source file. Null when the frame has none"),
+    ]
+    uploaded_source_file_with_correct_debug_id: Annotated[
+        bool,
+        ApiDescription(
+            "Whether a source file with the frame's debug ID was found when the event was processed"
+        ),
+    ]
+    uploaded_source_map_with_correct_debug_id: Annotated[
+        bool,
+        ApiDescription(
+            "Whether a source map with the frame's debug ID was found when the event was processed"
+        ),
+    ]
 
 
 class SourceMapReleaseProcessResult(TypedDict):
-    abs_path: str
-    matching_source_file_names: list[str]
-    matching_source_map_name: str | None
-    source_map_reference: str | None
-    source_file_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
-    source_map_lookup_result: Literal["found", "wrong-dist", "unsuccessful"]
+    abs_path: Annotated[str, ApiDescription("Absolute path of the frame's file")]
+    matching_source_file_names: Annotated[
+        list[str], ApiDescription("Uploaded file names that could match the frame's file")
+    ]
+    matching_source_map_name: Annotated[
+        str | None, ApiDescription("Name of the uploaded source map that matches the frame's file")
+    ]
+    source_map_reference: Annotated[
+        str | None,
+        ApiDescription(
+            "Source map the source file refers to, from its sourceMappingURL or SourceMap header"
+        ),
+    ]
+    source_file_lookup_result: Annotated[
+        Literal["found", "wrong-dist", "unsuccessful"],
+        ApiDescription(
+            "Result of looking up the source file in the release: found, wrong-dist or unsuccessful"
+        ),
+    ]
+    source_map_lookup_result: Annotated[
+        Literal["found", "wrong-dist", "unsuccessful"],
+        ApiDescription(
+            "Result of looking up the source map in the release: found, wrong-dist or unsuccessful"
+        ),
+    ]
 
 
 class SourceMapDebugFrame(TypedDict):
-    debug_id_process: SourceMapDebugIdProcessResult
-    release_process: SourceMapReleaseProcessResult | None
-    scraping_process: SourceMapScrapingProcessResult
+    debug_id_process: Annotated[
+        SourceMapDebugIdProcessResult,
+        ApiDescription("Results of resolving the frame with debug IDs"),
+    ]
+    release_process: Annotated[
+        SourceMapReleaseProcessResult | None,
+        ApiDescription(
+            "Results of resolving the frame with release artifacts. Null when the event has no release"
+        ),
+    ]
+    scraping_process: Annotated[
+        SourceMapScrapingProcessResult,
+        ApiDescription("Results of fetching the frame's files from the web"),
+    ]
 
 
 class SourceMapDebugException(TypedDict):
-    frames: list[SourceMapDebugFrame]
+    frames: Annotated[
+        list[SourceMapDebugFrame],
+        ApiDescription("Source map debug results for each frame of the exception"),
+    ]
 
 
 class SourceMapDebugResponse(TypedDict):
-    dist: str | None
-    release: str | None
-    exceptions: list[SourceMapDebugException]
-    has_debug_ids: bool
-    min_debug_id_sdk_version: str | None
-    sdk_version: str | None
-    project_has_some_artifact_bundle: bool
-    release_has_some_artifact: bool
-    has_uploaded_some_artifact_with_a_debug_id: bool
-    sdk_debug_id_support: Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"]
-    has_scraping_data: bool
+    dist: Annotated[str | None, ApiDescription("Distribution of the event")]
+    release: Annotated[str | None, ApiDescription("Release of the event")]
+    exceptions: Annotated[
+        list[SourceMapDebugException],
+        ApiDescription("Source map debug results for each exception in the event"),
+    ]
+    has_debug_ids: Annotated[bool, ApiDescription("Whether the event has debug IDs")]
+    min_debug_id_sdk_version: Annotated[
+        str | None,
+        ApiDescription("Minimum SDK version that supports debug IDs. Null when there's none"),
+    ]
+    sdk_version: Annotated[str | None, ApiDescription("Version of the SDK that sent the event")]
+    project_has_some_artifact_bundle: Annotated[
+        bool, ApiDescription("Whether the project has any artifact bundles")
+    ]
+    release_has_some_artifact: Annotated[
+        bool, ApiDescription("Whether the event's release has any uploaded artifacts")
+    ]
+    has_uploaded_some_artifact_with_a_debug_id: Annotated[
+        bool, ApiDescription("Whether any artifact with a debug ID was uploaded for the project")
+    ]
+    sdk_debug_id_support: Annotated[
+        Literal["not-supported", "unofficial-sdk", "needs-upgrade", "full"],
+        ApiDescription(
+            "Whether the event's SDK supports debug IDs: not-supported, unofficial-sdk, needs-upgrade or full"
+        ),
+    ]
+    has_scraping_data: Annotated[
+        bool, ApiDescription("Whether the event has data about fetching source files from the web")
+    ]
 
 
 @cell_silo_endpoint
@@ -211,35 +293,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         debug_images = get_path(event_data, "debug_meta", "images")
         debug_images = debug_images if debug_images is not None else []
 
-        # get information about which debug ids on the event have uploaded artifacts
-        debug_ids = [
-            debug_image["debug_id"]
-            for debug_image in debug_images
-            if debug_image["type"] == "sourcemap"
-        ][0:100]
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-            debug_id__in=debug_ids,
-        )
-        debug_ids_with_uploaded_source_file = set()
-        debug_ids_with_uploaded_source_map = set()
-        for debug_id_artifact_bundle in debug_id_artifact_bundles:
-            if (
-                SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE
-                or SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.MINIFIED_SOURCE
-            ):
-                debug_ids_with_uploaded_source_file.add(str(debug_id_artifact_bundle.debug_id))
-            elif (
-                SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.SOURCE_MAP
-            ):
-                debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
-
-        has_uploaded_some_artifact_with_a_debug_id = bool(
-            debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
-        ) or project_has_some_artifact_with_a_debug_id(project)
-
         # Get all abs paths and query for their existence so that we can match release artifacts
         release_process_abs_path_data = {}
         if release is not None:
@@ -285,13 +338,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         )
                         processed_frames.append(
                             {
-                                "debug_id_process": {
-                                    "debug_id": debug_id,
-                                    "uploaded_source_file_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_file,
-                                    "uploaded_source_map_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_map,
-                                },
+                                "debug_id_process": get_debug_id_data_for_frame(
+                                    debug_id, frame_index, stacktrace_frames
+                                ),
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
                                     scraping_attempt_map, frame, frame_index, stacktrace_frames
@@ -299,6 +348,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
+
+        has_uploaded_some_artifact_with_a_debug_id = any(
+            frame["debug_id_process"]["uploaded_source_file_with_correct_debug_id"]
+            or frame["debug_id_process"]["uploaded_source_map_with_correct_debug_id"]
+            for exception in processed_exceptions
+            for frame in exception["frames"]
+        ) or project_has_some_artifact_with_a_debug_id(project)
 
         sdk_debug_id_support, min_debug_id_sdk_version = get_sdk_debug_id_support(event_data)
 
@@ -318,6 +374,24 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
+
+
+def get_debug_id_data_for_frame(
+    debug_id: str | None,
+    raw_frame_index: int,
+    stacktrace_frames: Sequence[Any] | None,
+) -> SourceMapDebugIdProcessResult:
+    frame_data = get_path(stacktrace_frames, raw_frame_index, "data", default={})
+
+    # Events processed by an older Symbolicator have no lookup results, so both stay False.
+    # This fallback can go once those events are past the 90 day retention.
+    return {
+        "debug_id": debug_id,
+        "uploaded_source_file_with_correct_debug_id": debug_id is not None
+        and frame_data.get("minified_source_found_by_debug_id") is True,
+        "uploaded_source_map_with_correct_debug_id": debug_id is not None
+        and frame_data.get("sourcemap_found_by_debug_id") is True,
+    }
 
 
 def get_scraping_data_for_frame(
@@ -670,7 +744,7 @@ class ReleaseLookupData:
                 file__type=ARTIFACT_INDEX_TYPE,
             )
             .select_related("file")
-            .first()
+            .get_or_none()
         )
         if self.dist_matched_artifact_index_release_file:
             maybe_renew_releasefiles([self.dist_matched_artifact_index_release_file])
@@ -881,41 +955,9 @@ def event_has_debug_ids(event_data: Mapping[str, Any]) -> bool:
 def project_has_some_artifact_with_a_debug_id(project: Project) -> bool:
     """
     Whether any artifact bundle of the project contains a file with a debug ID.
-
-    Without `sourcemaps.source-map-debug.debug-id-check-max-bundles`, this reads the
-    organization's debug-ID rows until one of them is in a bundle of the project, which for a
-    project without any means all of them. With it, only the project's newest bundles are
-    checked, so a project whose debug IDs are all in older bundles counts as having none.
     """
-    max_bundles = min(
-        options.get("sourcemaps.source-map-debug.debug-id-check-max-bundles"),
-        DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT,
-    )
-    if max_bundles <= 0:
-        return (
-            DebugIdArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
-            )
-            .filter(
-                Exists(
-                    ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=OuterRef("artifact_bundle_id"),
-                        project_id=project.id,
-                    )
-                )
-            )
-            .exists()
-        )
-
-    # Bundle ids follow upload order, so this reads the `(project_id, artifact_bundle_id)` index
-    # backwards and stops after `max_bundles` rows.
-    newest_bundle_ids = list(
-        ProjectArtifactBundle.objects.filter(project_id=project.id)
-        .order_by("-artifact_bundle_id")
-        .values_list("artifact_bundle_id", flat=True)[:max_bundles]
-    )
-    # One lookup per bundle in the debug-ID rows' `artifact_bundle_id` index.
-    return DebugIdArtifactBundle.objects.filter(artifact_bundle_id__in=newest_bundle_ids).exists()
+    # One lookup in the partial index of flagged links, which finds nothing for a project without any.
+    return ProjectArtifactBundle.objects.filter(project_id=project.id, has_debug_ids=True).exists()
 
 
 def get_sdk_debug_id_support(
@@ -1026,7 +1068,10 @@ def get_scraping_attempt_map(event_data: Mapping[str, Any]) -> dict[str, dict[st
     scraping_attempt_map: dict[str, dict[str, Any]] = {}  # maps from url to attempt
     scraping_attempts = event_data.get("scraping_attempts") or []
     for scraping_attempt in scraping_attempts:
-        attempt_data = {"status": scraping_attempt["status"], "url": scraping_attempt["url"]}
+        attempt_data = {
+            "status": scraping_attempt["status"],
+            "url": absolute_url(scraping_attempt["url"]),
+        }
 
         reason = scraping_attempt.get("reason")
         if reason is not None:

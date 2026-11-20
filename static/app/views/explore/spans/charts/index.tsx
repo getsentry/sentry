@@ -1,20 +1,24 @@
-import {Fragment, useMemo, useRef} from 'react';
+import {Fragment, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconClock} from '@sentry/icons/clock';
 import {IconContract} from '@sentry/icons/contract';
 import {IconExpand} from '@sentry/icons/expand';
+import {IconFilter} from '@sentry/icons/filter';
 import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
-import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
+import {useChartLayers} from 'sentry/components/charts/useChartLayers';
 import {DroppedDataFilterNote} from 'sentry/components/droppedData/droppedDataFilterNote';
-import {DroppedDataLayerControl} from 'sentry/components/droppedData/droppedDataLayerControl';
 import {DroppedDataLLMContext} from 'sentry/components/droppedData/droppedDataLLMContext';
-import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
@@ -34,8 +38,10 @@ import {
   ChartVisualization,
   useChartInfosPlottables,
 } from 'sentry/views/explore/components/chart/chartVisualization';
+import {ExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/extrapolationConfidenceFooter';
 import {SamplingWarning} from 'sentry/views/explore/components/chart/samplingWarning';
 import type {ChartInfo} from 'sentry/views/explore/components/chart/types';
+import {useHasExtrapolationConfidenceFooter} from 'sentry/views/explore/components/chart/useHasExtrapolationConfidenceFooter';
 import {ChartContextMenu} from 'sentry/views/explore/components/chartContextMenu';
 import {
   AddTransformationButton,
@@ -44,14 +50,15 @@ import {
 import type {BaseVisualize} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {DEFAULT_VISUALIZATION} from 'sentry/views/explore/contexts/pageParamsContext/visualizes';
 import {type SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+import {Tab, useTab} from 'sentry/views/explore/hooks/useTab';
 import {useTopEvents} from 'sentry/views/explore/hooks/useTopEvents';
+import {useQueryParamsGroupBys} from 'sentry/views/explore/queryParams/context';
 import {
   groupVisualizes,
   serializeVisualizes,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
-import {CHART_HEIGHT} from 'sentry/views/explore/settings';
-import {hasMultiAggregateCharts} from 'sentry/views/explore/spans/sharedChartAggregates';
+import {CHART_HEIGHT, DEV_CHART_HEIGHT} from 'sentry/views/explore/settings';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
@@ -71,6 +78,14 @@ import {
 import type {SortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 import {ConfidenceFooter} from './confidenceFooter';
+import {getSpansHeatMapYAxis, isSpansHeatMap, SpansHeatMap} from './spansHeatMap';
+import {
+  OUTLIER_CUTOFFS,
+  useSpansHeatMapOutlierBound,
+  type OutlierCutoff,
+} from './useSpansHeatMapOutlierBound';
+
+const OUTLIERS_OFF = 'off';
 
 interface ExploreChartsProps {
   extrapolate: boolean;
@@ -83,19 +98,17 @@ interface ExploreChartsProps {
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
-  {
-    value: ChartType.LINE,
-    label: t('Line'),
-  },
-  {
-    value: ChartType.AREA,
-    label: t('Area'),
-  },
-  {
-    value: ChartType.BAR,
-    label: t('Bar'),
-  },
+  {value: ChartType.LINE, label: t('Line')},
+  {value: ChartType.AREA, label: t('Area')},
+  {value: ChartType.BAR, label: t('Bar')},
 ];
+
+const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
+  [ChartType.LINE]: 'line',
+  [ChartType.AREA]: 'area',
+  [ChartType.BAR]: 'bar',
+  [ChartType.HEATMAP]: 'heatmap',
+};
 
 const EXPLORE_CHART_GROUP = 'explore-charts_group';
 
@@ -291,31 +304,50 @@ function Chart({
   const visualize = visualizes[0]!;
 
   const organization = useOrganization();
-  const showTransformationControls =
-    visualize.visible &&
-    visualize.chartType !== ChartType.HEATMAP &&
-    organization.features.includes('explore-interpolation-and-smoothing');
+
   const {chartSelection, setChartSelection} = useChartSelection();
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [tab] = useTab();
+  const isAttributeBreakdown = tab === Tab.ATTRIBUTE_BREAKDOWNS;
+  const {selection} = usePageFilters();
+  const groupBys = useQueryParamsGroupBys();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
   const dataset = useSpansDataset();
-  const droppedData = useDroppedDataLayer({dataset, interval});
 
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
-  } = useDismissAlert({
-    key: CHART_SELECTION_ALERT_KEY,
-  });
-
-  const chartHeight = visualize.visible ? CHART_HEIGHT : 50;
+  } = useDismissAlert({key: CHART_SELECTION_ALERT_KEY});
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
 
-  const chartType = visualize.chartType;
   const isCombinedChart = visualizes.length > 1;
-  const chartIcon =
-    chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
+  const heatMapYAxis = getSpansHeatMapYAxis(visualize);
+  const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
+  const {droppedData, annotations, layerControl, onAnnotationClick} = useChartLayers({
+    dataset,
+    interval: chartInterval,
+    source: 'explore',
+    enabled: !isHeatMap,
+  });
+  const showTransformationControls =
+    visualize.visible &&
+    organization.features.includes('explore-interpolation-and-smoothing');
+  const heatMapOutlierBound = useSpansHeatMapOutlierBound({
+    enabled: isHeatMap && visualize.visible,
+    query,
+    yAxis: heatMapYAxis,
+  });
+  const [outlierCutoff, setOutlierCutoff] = useState<OutlierCutoff | typeof OUTLIERS_OFF>(
+    OUTLIER_CUTOFFS[0]
+  );
+  const chartHeight = visualize.visible
+    ? organization.features.includes('explore-dev-features')
+      ? DEV_CHART_HEIGHT
+      : CHART_HEIGHT
+    : 50;
+  const chartType = isHeatMap ? ChartType.HEATMAP : visualize.chartType;
+  const chartIcon = CHART_TYPE_TO_ICON[chartType];
 
   const chartInfos = useMemo(
     () =>
@@ -334,6 +366,7 @@ function Chart({
   );
 
   const plottables = useChartInfosPlottables(chartInfos);
+  const hasExtrapolationConfidenceFooter = useHasExtrapolationConfidenceFooter();
 
   const Title = (
     <Widget.WidgetTitle
@@ -355,6 +388,56 @@ function Chart({
     const reason = getSamplingWarningReason(info.yAxis, info.series, info.dataScanned);
     return reason ? [{yAxis: info.yAxis, reason}] : [];
   });
+  const appliedOutlierCutoff =
+    outlierCutoff === OUTLIERS_OFF ||
+    heatMapOutlierBound.isPending ||
+    defined(heatMapOutlierBound.bounds[outlierCutoff])
+      ? outlierCutoff
+      : OUTLIERS_OFF;
+  const heatMapYBounds =
+    isHeatMap && appliedOutlierCutoff !== OUTLIERS_OFF
+      ? heatMapOutlierBound.bounds[appliedOutlierCutoff]
+      : undefined;
+  const outlierCutoffOptions: Array<SelectOption<OutlierCutoff | typeof OUTLIERS_OFF>> = [
+    {value: OUTLIERS_OFF, label: t('Show all')},
+    ...OUTLIER_CUTOFFS.map(cutoff => {
+      const bounds = heatMapOutlierBound.bounds[cutoff];
+      const isClippable = heatMapOutlierBound.isPending || defined(bounds);
+      return {
+        value: cutoff,
+        label: cutoff,
+        trailingItems: bounds ? (
+          <Text size="xs" variant="muted" wrap="nowrap">
+            {`> ${getDuration(bounds.yMax / 1000, {precision: 2, style: 'short'})}`}
+          </Text>
+        ) : undefined,
+        disabled: !isClippable,
+        tooltip: isClippable
+          ? undefined
+          : t('No spans are far enough above %s to be worth hiding.', cutoff),
+      };
+    }),
+  ];
+  const outlierCutoffSelect =
+    isHeatMap && visualize.visible ? (
+      <CompactSelect
+        value={appliedOutlierCutoff}
+        options={outlierCutoffOptions}
+        onChange={option => setOutlierCutoff(option.value)}
+        trigger={triggerProps => (
+          <OverlayTrigger.Button
+            {...triggerProps}
+            variant="transparent"
+            size="zero"
+            icon={<IconFilter />}
+          >
+            {appliedOutlierCutoff === OUTLIERS_OFF
+              ? t('Outliers: shown')
+              : t('Outliers: %s', appliedOutlierCutoff)}
+          </OverlayTrigger.Button>
+        )}
+      />
+    ) : null;
   const TitleBadges = samplingWarnings.length ? (
     <Fragment>
       {samplingWarnings.map(({yAxis, reason}, i) => (
@@ -365,18 +448,18 @@ function Chart({
 
   const Actions = visualize.visible ? (
     <Fragment>
-      {droppedData.layerControl ? (
-        <DroppedDataLayerControl {...droppedData.layerControl} />
-      ) : null}
+      {layerControl ? <ChartLayersControl {...layerControl} /> : null}
       <Tooltip
         title={
-          isCombinedChart
-            ? t('Charts with multiple aggregates are always displayed as line charts')
-            : t('Type of chart displayed in this visualization (ex. line)')
+          isHeatMap
+            ? t('Heatmaps are always displayed as heatmaps')
+            : isCombinedChart
+              ? t('Charts with multiple aggregates are always displayed as line charts')
+              : t('Type of chart displayed in this visualization (ex. line)')
         }
       >
         <CompactSelect
-          disabled={isCombinedChart}
+          disabled={isCombinedChart || isHeatMap}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
@@ -395,8 +478,9 @@ function Chart({
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
+          value={chartInterval}
+          disabled={isHeatMap}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}
@@ -414,7 +498,7 @@ function Chart({
         key="context"
         visualizeYAxes={visualizes}
         query={query}
-        interval={interval}
+        interval={chartInterval}
         visualizeIndex={index}
       />
       <Button
@@ -436,6 +520,11 @@ function Chart({
   const initialChartSelection =
     chartSelection?.chartIndex === index ? chartSelection.selection : undefined;
 
+  // ECharts keeps its toolbox zoom window and brush across option merges, so
+  // the chart needs a fresh instance whenever the queried range or data changes.
+  const {period, start, end} = selection.datetime;
+  const chartRemountKey = `${isAttributeBreakdown ? 'attribute-breakdown' : 'zoom'}|${period}|${start}|${end}|${query}|${chartType}|${chartInterval}|${topEvents}|${groupBys.join(',')}`;
+
   return (
     <ChartWrapper
       ref={chartWrapperRef}
@@ -448,52 +537,70 @@ function Chart({
         TitleBadges={TitleBadges}
         Actions={Actions}
         Visualization={
-          visualize.visible && (
+          visualize.visible &&
+          (isHeatMap && defined(heatMapYAxis) ? (
+            <SpansHeatMap
+              chartIndex={index}
+              query={query}
+              yAxis={heatMapYAxis}
+              yBounds={heatMapYBounds}
+              isYBoundsPending={
+                outlierCutoff !== OUTLIERS_OFF && heatMapOutlierBound.isPending
+              }
+              samplingMode={samplingMode}
+            />
+          ) : (
             <ChartVisualization
+              key={chartRemountKey}
               chartInfo={chartInfo}
               chartRef={chartRef}
               plottables={plottables}
-              tooltipLimit={
-                hasMultiAggregateCharts(organization) ? MAX_TOOLTIP_SERIES : undefined
-              }
+              tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
-              chartXRangeSelection={{
-                initialSelection: initialChartSelection,
-                onSelectionEnd: () => {
-                  if (!isChartSelectionAlertDismissed) {
-                    dismissChartSelectionAlert();
-                  }
-                },
-                onInsideSelectionClick: params => {
-                  if (!params.selectionState) {
-                    return;
-                  }
+              isDroppedDataLoading={droppedData.isLoading}
+              annotations={annotations}
+              onAnnotationClick={onAnnotationClick}
+              chartXRangeSelection={
+                isAttributeBreakdown
+                  ? {
+                      initialSelection: initialChartSelection,
+                      onSelectionEnd: () => {
+                        if (!isChartSelectionAlertDismissed) {
+                          dismissChartSelectionAlert();
+                        }
+                      },
+                      onInsideSelectionClick: params => {
+                        if (!params.selectionState) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: true,
-                  });
-                },
-                onOutsideSelectionClick: params => {
-                  if (!params.selectionState?.isActionMenuVisible) {
-                    return;
-                  }
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: true,
+                        });
+                      },
+                      onOutsideSelectionClick: params => {
+                        if (!params.selectionState?.isActionMenuVisible) {
+                          return;
+                        }
 
-                  params.setSelectionState({
-                    ...params.selectionState,
-                    isActionMenuVisible: false,
-                  });
-                },
-                onClearSelection: () => {
-                  setChartSelection(null);
-                },
-                disabled: false,
-                actionMenuRenderer: params => {
-                  return <FloatingTrigger chartIndex={index} params={params} />;
-                },
-              }}
+                        params.setSelectionState({
+                          ...params.selectionState,
+                          isActionMenuVisible: false,
+                        });
+                      },
+                      onClearSelection: () => {
+                        setChartSelection(null);
+                      },
+                      disabled: false,
+                      actionMenuRenderer: params => {
+                        return <FloatingTrigger chartIndex={index} params={params} />;
+                      },
+                    }
+                  : undefined
+              }
             />
-          )
+          ))
         }
         Footer={
           visualize.visible && (
@@ -507,21 +614,27 @@ function Chart({
                   justify="between"
                   gap={{zero: 'xs', xl: 'md'}}
                 >
-                  <ConfidenceFooter
-                    extrapolate={extrapolate}
-                    sampleCount={chartInfo.sampleCount}
-                    isLoading={chartInfo.timeseriesResult?.isPending || false}
-                    isSampled={chartInfo.isSampled}
-                    confidence={chartInfo.confidence}
-                    topEvents={
-                      topEvents
-                        ? Math.min(topEvents, chartInfos[0]!.series.length)
-                        : undefined
-                    }
-                    dataScanned={chartInfo.dataScanned}
-                    rawSpanCounts={rawSpanCounts}
-                    userQuery={query.trim()}
-                  />
+                  {hasExtrapolationConfidenceFooter ? (
+                    !chartInfo.timeseriesResult?.isPending && (
+                      <ExtrapolationConfidenceFooter plottables={plottables} />
+                    )
+                  ) : (
+                    <ConfidenceFooter
+                      extrapolate={extrapolate}
+                      sampleCount={chartInfo.sampleCount}
+                      isLoading={chartInfo.timeseriesResult?.isPending || false}
+                      isSampled={chartInfo.isSampled}
+                      confidence={chartInfo.confidence}
+                      topEvents={
+                        topEvents
+                          ? Math.min(topEvents, chartInfos[0]!.series.length)
+                          : undefined
+                      }
+                      dataScanned={chartInfo.dataScanned}
+                      rawSpanCounts={rawSpanCounts}
+                      userQuery={query.trim()}
+                    />
+                  )}
                   {droppedData.filterNote ? (
                     <DroppedDataFilterNote
                       {...droppedData.filterNote}
@@ -530,12 +643,23 @@ function Chart({
                     />
                   ) : null}
                 </Flex>
-                {showTransformationControls ? (
-                  <AddTransformationButton
-                    traceItemDataset={TraceItemDataset.SPANS}
-                    transformations={visualize.transformations}
-                    onChange={onTransformationsChange}
-                  />
+                {outlierCutoffSelect || showTransformationControls ? (
+                  <Flex align="center" gap="lg" flexShrink={0}>
+                    {outlierCutoffSelect}
+                    {showTransformationControls ? (
+                      <Tooltip
+                        title={t('Heatmaps do not support transformations.')}
+                        disabled={!isHeatMap}
+                      >
+                        <AddTransformationButton
+                          traceItemDataset={TraceItemDataset.SPANS}
+                          transformations={visualize.transformations}
+                          onChange={onTransformationsChange}
+                          disabled={isHeatMap}
+                        />
+                      </Tooltip>
+                    ) : null}
+                  </Flex>
                 ) : null}
               </Flex>
             </Container>
@@ -545,7 +669,9 @@ function Chart({
         revealActions="always"
         borderless
       />
-      {showTransformationControls && visualize.transformations.length > 0 ? (
+      {showTransformationControls &&
+      !isHeatMap &&
+      visualize.transformations.length > 0 ? (
         <Container padding="xl" paddingTop="0" paddingBottom="md">
           <VisualizeTransformationRows
             traceItemDataset={TraceItemDataset.SPANS}

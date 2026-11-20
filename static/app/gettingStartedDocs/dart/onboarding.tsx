@@ -100,16 +100,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             "Sentry captures data by using an SDK within your application's runtime. Add the following to your [pubspec:pubspec.yaml]",
-            {
-              pubspec: <code />,
-            }
+            {pubspec: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'yml',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'yml', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -121,11 +115,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct('Import [sentry:sentry] and initialize it', {sentry: <code />}),
         },
-        {
-          type: 'code',
-          language: 'dart',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'dart', code: getConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(
@@ -147,11 +137,7 @@ export const onboarding: OnboardingConfig = {
               'Create an intentional error, so you can test that everything is working:'
             ),
           },
-          {
-            type: 'code',
-            language: 'dart',
-            code: getVerifySnippet(params),
-          },
+          {type: 'code', language: 'dart', code: getVerifySnippet(params)},
           {
             type: 'text',
             text: [
@@ -177,11 +163,7 @@ export const onboarding: OnboardingConfig = {
               "You'll be able to monitor the performance of your app using the SDK. For example:"
             ),
           },
-          {
-            type: 'code',
-            language: 'dart',
-            code: getPerfomanceSnippet(),
-          },
+          {type: 'code', language: 'dart', code: getPerfomanceSnippet()},
           {
             type: 'text',
             text: tct(
