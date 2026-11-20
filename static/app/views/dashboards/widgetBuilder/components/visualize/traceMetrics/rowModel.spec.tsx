@@ -207,6 +207,79 @@ describe('rowModel', () => {
       expect(letters(deleted)).toEqual(['A']);
     });
 
+    it("resolves the equation with a hidden row's new aggregate", () => {
+      const rows = rowsFromFields([fn(SUM_FOO), eq(`${SUM_BAR} * 2`)]);
+
+      const edited = setRowField(rows, metric(rows, 'B').id, fn(COUNT_FOO));
+
+      expect(metric(edited, 'B')).toMatchObject({visible: false});
+      expect(fieldsFromRows(edited)).toEqual([fn(SUM_FOO), eq(`${COUNT_FOO} * 2`)]);
+    });
+
+    it("resolves the equation with a row's filtered aggregate", () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_BAR),
+        eq(`${SUM_FOO} / ${SUM_BAR}`),
+      ]);
+
+      const filtered = setRowField(rows, metric(rows, 'A').id, fn(SUM_BAZ_FILTERED));
+
+      expect(fieldsFromRows(filtered)).toEqual([
+        fn(SUM_BAZ_FILTERED),
+        fn(SUM_BAR),
+        eq(`${SUM_BAZ_FILTERED} / ${SUM_BAR}`),
+      ]);
+    });
+
+    it('keeps a hidden row two equations share until both are gone', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        eq(`${SUM_BAR} * 2`),
+        eq(`${SUM_BAR} + ${SUM_FOO}`),
+      ]);
+      expect(letters(rows)).toEqual(['A', 'B', 'equation', 'equation']);
+
+      const oneLeft = deleteRow(rows, rows[2]!.id);
+      expect(letters(oneLeft)).toEqual(['A', 'B', 'equation']);
+      expect(oneLeft[2]).toMatchObject({expression: 'B + A'});
+
+      const noneLeft = deleteRow(oneLeft, oneLeft[2]!.id);
+      expect(letters(noneLeft)).toEqual(['A']);
+    });
+
+    it('keeps the alias and letter of a row through hide and show', () => {
+      let rows = rowsFromFields([fn(SUM_FOO, 'Foo'), fn(SUM_BAR), eq(`${SUM_FOO} * 2`)]);
+      const id = metric(rows, 'A').id;
+
+      rows = setRowVisible(rows, id, false);
+      rows = moveRow(rows, 1, 2);
+      rows = setRowVisible(rows, id, true);
+
+      expect(letters(rows)).toEqual(['A', 'equation', 'B']);
+      expect(fieldsFromRows(rows)).toEqual([
+        fn(SUM_FOO, 'Foo'),
+        eq(`${SUM_FOO} * 2`),
+        fn(SUM_BAR),
+      ]);
+    });
+
+    it('leaves the equation alone when a duplicate of a referenced row is hidden', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_FOO),
+        eq(`${SUM_FOO} + ${SUM_FOO}`),
+      ]);
+
+      const hidden = setRowVisible(rows, metric(rows, 'B').id, false);
+
+      expect(hidden[2]).toMatchObject({expression: 'A + B'});
+      expect(fieldsFromRows(hidden)).toEqual([
+        fn(SUM_FOO),
+        eq(`${SUM_FOO} + ${SUM_FOO}`),
+      ]);
+    });
+
     it('reports which rows an equation names', () => {
       const rows = rowsFromFields([fn(SUM_FOO), fn(SUM_BAR), eq(`${SUM_FOO} * 2`)]);
 
@@ -282,6 +355,41 @@ describe('rowModel', () => {
       expect(letters(next)).toEqual(['A', 'B', 'equation', 'C']);
       expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
       expect(next[2]).toMatchObject({expression: 'A + B'});
+    });
+
+    it('keeps the other rows when one is deleted outside the model', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_BAR),
+        fn(COUNT_FOO),
+        eq(`${SUM_FOO} * 2`),
+      ]);
+
+      // DELETE_AGGREGATE removed B from the saved fields.
+      const next = rowsFromFields(
+        [fn(SUM_FOO), fn(COUNT_FOO), eq(`${SUM_FOO} * 2`)],
+        rows
+      );
+
+      expect(letters(next)).toEqual(['A', 'C', 'equation']);
+      expect(next.map(row => row.id)).toEqual([rows[0]!.id, rows[2]!.id, rows[3]!.id]);
+      expect(next[2]).toMatchObject({expression: 'A * 2'});
+    });
+
+    it('keeps letters when the saved fields are reordered outside the model', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_BAR),
+        eq(`${SUM_FOO} - ${SUM_BAR}`),
+      ]);
+
+      const next = rowsFromFields(
+        [fn(SUM_BAR), eq(`${SUM_FOO} - ${SUM_BAR}`), fn(SUM_FOO)],
+        rows
+      );
+
+      expect(letters(next)).toEqual(['B', 'equation', 'A']);
+      expect(next[1]).toMatchObject({expression: 'A - B'});
     });
 
     it('gives new letters to rows it cannot match', () => {
