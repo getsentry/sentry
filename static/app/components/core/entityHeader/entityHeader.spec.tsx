@@ -1912,6 +1912,124 @@ describe('EntityHeader', () => {
       expect(pipesIn(row)).toHaveLength(0);
     });
 
+    describe('with an empty value', () => {
+      // Labels are unique to each test: the warning is deduplicated for the
+      // life of the module.
+      let warn: jest.SpyInstance;
+      beforeEach(() => {
+        warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+      afterEach(() => {
+        warn.mockRestore();
+      });
+
+      it('leaves out a label-less link entry, and does not count it in "+N more"', () => {
+        renderRow([
+          {
+            label: 'Linked Tools',
+            type: 'list',
+            maxVisible: 2,
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+              {key: 'fetch', type: 'link', value: 'fetch', to: '/tools/fetch/'},
+              {key: 'browse', type: 'link', value: 'browse', to: '/tools/browse/'},
+            ],
+          },
+        ]);
+
+        const list = screen.getByRole('list', {name: 'Linked Tools'});
+        expect(
+          within(list)
+            .getAllByRole('link')
+            .map(link => link.textContent)
+        ).toEqual(['search', 'fetch']);
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+        expect(within(list).getByRole('button', {name: '+1 more'})).toBeInTheDocument();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining('entry of "Linked Tools"')
+        );
+      });
+
+      it.each(['', '  ', null, undefined, false])(
+        'leaves out a text item whose value is %p, with no dangling pipe before it',
+        value => {
+          const label = `Empty Region ${JSON.stringify(value)}`;
+          const row = renderRow([
+            {label: 'Model', type: 'text', value: 'gpt-5'},
+            {label, type: 'text', value},
+          ]);
+
+          expect(topLevelItems(row)).toHaveLength(1);
+          expect(row).toHaveTextContent(/^Modelgpt-5$/);
+          expect(pipesIn(row)).toHaveLength(0);
+          expect(warn).toHaveBeenCalledWith(expect.stringContaining(`"${label}"`));
+        }
+      );
+
+      it('keeps a component value', () => {
+        const row = renderRow([
+          {label: 'Started at', type: 'text', value: <span>today</span>},
+        ]);
+
+        expect(row).toHaveTextContent('Started attoday');
+        expect(warn).not.toHaveBeenCalled();
+      });
+
+      it('warns once per label in development', () => {
+        const items: EntityHeaderMetadataItemProps[] = [
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          {label: 'Blank Browser', type: 'text', value: ''},
+        ];
+        const {rerender} = render(
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{label: 'Conversation properties', items}}
+          />
+        );
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{label: 'Conversation properties', items}}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          'EntityHeader metadata item "Blank Browser" has an empty value and was left out.'
+        );
+      });
+
+      it('does not warn while loading', () => {
+        renderRow([{label: 'Loading Browser', type: 'text', value: ''}], {
+          isLoading: true,
+        });
+
+        expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+        expect(warn).not.toHaveBeenCalled();
+      });
+
+      it('renders nothing for a list whose entries are all empty', () => {
+        const row = renderRow([
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          {
+            label: 'Blank Tools',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'b', type: 'text', value: ' '},
+            ],
+          },
+        ]);
+
+        expect(screen.queryByRole('list', {name: 'Blank Tools'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(row).toHaveTextContent(/^Modelgpt-5$/);
+        expect(pipesIn(row)).toHaveLength(0);
+      });
+    });
+
     it('ends every skeleton but the last with a pipe while loading', () => {
       const row = renderRow(
         [

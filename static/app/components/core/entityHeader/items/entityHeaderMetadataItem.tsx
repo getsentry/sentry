@@ -129,10 +129,56 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataListProps;
 
 /**
- * Whether the item draws anything. An empty list draws nothing.
+ * Whether the value draws nothing, so it is left out like a `null` item. A
+ * component value is never empty.
+ */
+function isEmptyValue({value}: MetadataValueData) {
+  return (
+    value === null ||
+    value === undefined ||
+    value === false ||
+    (typeof value === 'string' && value.trim() === '')
+  );
+}
+
+/**
+ * Whether the item draws anything. A list with no non-empty entries draws
+ * nothing.
  */
 export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
-  return item.type !== 'list' || item.items.length > 0;
+  return item.type === 'list'
+    ? item.items.some(entry => !isEmptyValue(entry))
+    : !isEmptyValue(item);
+}
+
+const warnedEmptyValueNames = new Set<string>();
+
+/**
+ * An empty value usually comes from mapping over data with a missing name. It
+ * is left out, but the caller should not rely on that.
+ */
+export function warnOnEmptyMetadataValues(item: EntityHeaderMetadataItemProps): void {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  const names =
+    item.type === 'list'
+      ? item.items
+          .filter(isEmptyValue)
+          .map(entry =>
+            entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
+          )
+      : isEmptyValue(item)
+        ? [`item "${item.label}"`]
+        : [];
+  for (const name of names) {
+    if (warnedEmptyValueNames.has(name)) {
+      continue;
+    }
+    warnedEmptyValueNames.add(name);
+    // eslint-disable-next-line no-console
+    console.warn(`EntityHeader metadata ${name} has an empty value and was left out.`);
+  }
 }
 
 /**
@@ -332,7 +378,7 @@ function MetadataEntry({
 }
 
 function MetadataList({
-  items,
+  items: allItems,
   maxVisible,
   label,
   leadingGraphic,
@@ -340,6 +386,8 @@ function MetadataList({
   mode = 'compact',
 }: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
+  // Before the cut, so "+N more" counts only entries that draw something.
+  const items = allItems.filter(entry => !isEmptyValue(entry));
   const cut = useResponsivePropValue(maxVisible) ?? items.length;
   // Where the list was cut when "+N more" was pressed; null while collapsed.
   // Kept rather than re-read from `cut`, so a later resize neither collapses

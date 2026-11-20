@@ -9,6 +9,7 @@ import {
   EntityHeaderMetadataItemSkeleton,
   hasMetadataContent,
   MetadataDivider,
+  warnOnEmptyMetadataValues,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
@@ -115,6 +116,12 @@ export function EntityHeader({
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
       Boolean(entry.stat)
     );
+  // While loading, a value is often empty until its data lands.
+  for (const item of isLoading ? [] : (metadata?.items ?? [])) {
+    if (item) {
+      warnOnEmptyMetadataValues(item);
+    }
+  }
   const visibleMetadata = (metadata?.items ?? [])
     .map((item, index) => ({item, index}))
     .filter(
