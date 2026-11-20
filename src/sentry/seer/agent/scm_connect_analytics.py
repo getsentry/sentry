@@ -114,7 +114,6 @@ def _record_resolved(
             return
         if input_id is not None and input_id != note["input_id"]:
             return
-        cache.set(key, {**note, "resolved": True}, timeout=NOTE_TTL)
 
         # The same check the popup polls. A corrected name is checked instead of the original.
         result = get_repository_definition(
@@ -140,5 +139,6 @@ def _record_resolved(
                 seconds_open=int(time.time() - note["shown_at"]),
             )
         )
+        cache.set(key, {**note, "resolved": True}, timeout=NOTE_TTL)
     except Exception:
         logger.exception("seer.scm_connect.resolved.record_failed", extra={"run_id": run_id})
