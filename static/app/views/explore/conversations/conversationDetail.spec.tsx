@@ -273,6 +273,9 @@ describe('ConversationDetailPage default tab', () => {
     mockApis(null, UNCAPTURED_CONVERSATION_BODY);
     renderPage();
 
+    // No tab is shown while the first page decides the default
+    expect(screen.queryByRole('tab', {name: 'Transcript'})).not.toBeInTheDocument();
+
     await waitFor(() =>
       expect(screen.getByRole('tab', {name: 'Timeline'})).toHaveAttribute(
         'aria-selected',

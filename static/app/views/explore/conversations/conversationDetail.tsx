@@ -4,6 +4,8 @@ import {parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
@@ -76,6 +78,10 @@ function ConversationDetailPage() {
       tab: hasCapturedMessageContent(messages) ? 'transcript' : 'timeline',
     });
   }
+  // Until the first page decides the default, show neither tab, so an
+  // uncaptured conversation doesn't flash the transcript before the timeline.
+  const isDefaultTabPending =
+    !queryState.tab && defaultTab?.conversationId !== conversationId;
   const activeTab: ConversationViewTab =
     queryState.tab ??
     (defaultTab?.conversationId === conversationId ? defaultTab.tab : 'transcript');
@@ -140,29 +146,39 @@ function ConversationDetailPage() {
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
-          <Tabs value={activeTab} onChange={handleTabChange}>
-            {({TabList}) => (
-              <TabList variant="floating">
-                <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
-                <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
-              </TabList>
-            )}
-          </Tabs>
+          {isDefaultTabPending ? (
+            <Placeholder width="180px" height="32px" />
+          ) : (
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              {({TabList}) => (
+                <TabList variant="floating">
+                  <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                  <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+                </TabList>
+              )}
+            </Tabs>
+          )}
           {activeTab === 'transcript' && messages.length > 0 && (
             <ExportTranscriptButton conversation={conversation} />
           )}
         </Flex>
         <ConversationViewContainer>
-          <ConversationViewContent
-            conversation={conversation}
-            messages={messages}
-            activeTab={activeTab}
-            selectedSpanId={queryState.spanId}
-            onSelectSpan={handleSelectSpan}
-            onDeselectSpan={handleDeselectSpan}
-            onViewTimeline={handleViewTimeline}
-            focusedTool={queryState.focusedTool}
-          />
+          {isDefaultTabPending ? (
+            <Flex flex={1} align="center" justify="center">
+              <LoadingIndicator />
+            </Flex>
+          ) : (
+            <ConversationViewContent
+              conversation={conversation}
+              messages={messages}
+              activeTab={activeTab}
+              selectedSpanId={queryState.spanId}
+              onSelectSpan={handleSelectSpan}
+              onDeselectSpan={handleDeselectSpan}
+              onViewTimeline={handleViewTimeline}
+              focusedTool={queryState.focusedTool}
+            />
+          )}
         </ConversationViewContainer>
       </Stack>
     </ViewportConstrainedPage>
