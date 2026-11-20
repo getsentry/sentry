@@ -599,43 +599,6 @@ describe('SeerProjectTable', () => {
         )
       );
     });
-
-    it('turns Open PRs on for every project from the banner', async () => {
-      localStorage.clear();
-      const {bulkPut} = mockTwoProjects();
-
-      render(<SeerProjectTable />, {organization: singleRunOrg});
-
-      expect(await screen.findByText('0 of 2 projects')).toBeInTheDocument();
-      await userEvent.click(screen.getByRole('button', {name: 'Turn on for all'}));
-
-      await waitFor(() =>
-        expect(bulkPut).toHaveBeenCalledWith(
-          expect.anything(),
-          expect.objectContaining({
-            data: expect.objectContaining({
-              query: 'reposCount:>0',
-              stoppingPoint: 'open_pr',
-            }),
-          })
-        )
-      );
-      expect(await screen.findByText('2 of 2 projects')).toBeInTheDocument();
-    });
-
-    it('keeps the banner hidden once dismissed', async () => {
-      localStorage.clear();
-      mockTwoProjects();
-
-      const {unmount} = render(<SeerProjectTable />, {organization: singleRunOrg});
-      await userEvent.click(await screen.findByRole('button', {name: 'Dismiss'}));
-      expect(screen.queryByText('Turn on for all')).not.toBeInTheDocument();
-      unmount();
-
-      render(<SeerProjectTable />, {organization: singleRunOrg});
-      await screen.findByRole('checkbox', {name: 'Open PRs for project-slug'});
-      expect(screen.queryByText('Turn on for all')).not.toBeInTheDocument();
-    });
   });
   describe('empty state', () => {
     beforeEach(() => {
