@@ -718,11 +718,10 @@ const SystemPromptSection = memo(function SystemPromptSectionImpl({
     >
       <Flex>
         <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
-          {/* Rendered like a user message, not like the monospace thinking
-           * block: prompts are usually markdown with XML sections. */}
-          <MessageText align="left">
-            <AIContentRenderer text={systemPrompt} inline autoCollapseLimit={10} />
-          </MessageText>
+          {/* Rendered like the span's Input tab: a boxed block that keeps the
+           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
+           * expanding the row already asked to see the whole prompt. */}
+          <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
         </Container>
         <Container width={TURN_META_WIDTH} flexShrink={0} />
       </Flex>
