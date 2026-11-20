@@ -486,7 +486,6 @@ class SlackAutofixEntrypoint(
                         denial_reason=_current_denial_reason(
                             organization_id=cache_payload["organization_id"],
                             feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-                            # The cheapest step, so its estimate rarely hides a daily limit.
                             operation=SeerOperation.AUTOFIX_OPEN_PR,
                         ),
                     )
