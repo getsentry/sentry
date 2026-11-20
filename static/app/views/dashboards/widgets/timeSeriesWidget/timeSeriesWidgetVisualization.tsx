@@ -71,7 +71,7 @@ import {
   ContinuousTimeSeries,
   isLowConfidenceDataPoint,
 } from './plottables/continuousTimeSeries';
-import {FullHeightAreas} from './plottables/fullHeightAreas';
+import {HatchAreas} from './plottables/hatchAreas';
 import type {Plottable} from './plottables/plottable';
 import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
@@ -661,7 +661,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   const lowConfidenceAreas = useMemo(
     () =>
       hasConfidenceSegment
-        ? new FullHeightAreas(
+        ? new HatchAreas(
             mergeTimeRanges(
               props.plottables
                 // Series hidden from the legend don't mark their low confidence data

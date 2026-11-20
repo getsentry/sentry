@@ -1,12 +1,12 @@
 import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echarts';
 
-import {FullHeightAreas} from './fullHeightAreas';
+import {HatchAreas} from './hatchAreas';
 
-describe('FullHeightAreas', () => {
+describe('HatchAreas', () => {
   const config = {name: 'areas', color: '#f0f0f2', dataType: 'number' as const};
 
   it('clips areas to the bounds it is plotted with', () => {
-    const areas = new FullHeightAreas(
+    const areas = new HatchAreas(
       [
         {start: -10, end: 10},
         {start: 40, end: 120},
@@ -24,11 +24,11 @@ describe('FullHeightAreas', () => {
   });
 
   it('is empty without ranges', () => {
-    expect(new FullHeightAreas([], config).isEmpty).toBe(true);
+    expect(new HatchAreas([], config).isEmpty).toBe(true);
   });
 
   it('draws a hatched area across the full plot height behind the data', () => {
-    const [series] = new FullHeightAreas([{start: 1_000, end: 3_000}], config).toSeries();
+    const [series] = new HatchAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
     expect(series).toEqual(
       expect.objectContaining({

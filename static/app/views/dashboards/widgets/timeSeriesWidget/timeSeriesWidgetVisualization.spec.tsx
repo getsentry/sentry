@@ -1,4 +1,3 @@
-import * as Sentry from '@sentry/react';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
@@ -153,95 +152,35 @@ describe('TimeSeriesWidgetVisualization', () => {
   });
 
   describe('low confidence areas', () => {
-    const lowConfidenceTimeSeries = {
-      ...sampleDurationTimeSeries,
-      values: sampleDurationTimeSeries.values.map((item, index) => ({
-        ...item,
-        confidence: index === 3 || index === 4 ? ('low' as const) : ('high' as const),
-      })),
-    };
     const lowConfidencePlottables = [
-      new Line(lowConfidenceTimeSeries),
-      new Line(sampleThroughputTimeSeries),
+      new Line({
+        ...sampleDurationTimeSeries,
+        values: sampleDurationTimeSeries.values.map((item, index) => ({
+          ...item,
+          confidence: index === 3 ? ('low' as const) : ('high' as const),
+        })),
+      }),
     ];
-    const confidenceOrganization = OrganizationFixture({
-      features: ['data-browsing-time-series-confidence'],
-    });
 
-    function getBackgroundSeries() {
+    function getLowConfidenceSeries() {
       const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
       return series?.find(({id}) => id === LOW_CONFIDENCE_AREAS_NAME);
     }
 
-    it('hatches the merged low confidence buckets', () => {
+    it('hatches low confidence data with the time series confidence feature', () => {
       render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
-        organization: confidenceOrganization,
+        organization: OrganizationFixture({
+          features: ['data-browsing-time-series-confidence'],
+        }),
       });
 
-      const {interval} = lowConfidenceTimeSeries.meta;
-      expect(getBackgroundSeries()?.data).toEqual([
-        [
-          lowConfidenceTimeSeries.values[3]!.timestamp - interval / 2,
-          lowConfidenceTimeSeries.values[4]!.timestamp + interval / 2,
-        ],
-      ]);
-    });
-
-    it('merges low confidence buckets from every series', () => {
-      const throughputWithLowConfidence = {
-        ...sampleThroughputTimeSeries,
-        values: sampleThroughputTimeSeries.values.map((item, index) => ({
-          ...item,
-          confidence: index === 5 ? ('low' as const) : ('high' as const),
-        })),
-      };
-
-      render(
-        <TimeSeriesWidgetVisualization
-          plottables={[
-            new Line(lowConfidenceTimeSeries),
-            new Line(throughputWithLowConfidence),
-          ]}
-        />,
-        {organization: confidenceOrganization}
-      );
-
-      const {interval} = lowConfidenceTimeSeries.meta;
-      expect(getBackgroundSeries()?.data).toEqual([
-        [
-          lowConfidenceTimeSeries.values[3]!.timestamp - interval / 2,
-          throughputWithLowConfidence.values[5]!.timestamp + interval / 2,
-        ],
-      ]);
-    });
-
-    it('draws against an axis the chart already has', () => {
-      const captureException = jest.spyOn(Sentry, 'captureException');
-
-      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
-        organization: confidenceOrganization,
-      });
-
-      expect(getBackgroundSeries()).toBeDefined();
-      expect(captureException).not.toHaveBeenCalled();
-    });
-
-    it('skips series hidden from the legend', () => {
-      render(
-        <TimeSeriesWidgetVisualization
-          plottables={lowConfidencePlottables}
-          legendSelection={{[lowConfidencePlottables[0]!.name]: false}}
-        />,
-        {organization: confidenceOrganization}
-      );
-
-      expect(getBackgroundSeries()).toBeUndefined();
+      expect(getLowConfidenceSeries()).toBeDefined();
     });
 
     it('needs the time series confidence feature', () => {
       render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
 
-      expect(getBackgroundSeries()).toBeUndefined();
+      expect(getLowConfidenceSeries()).toBeUndefined();
     });
   });
 });

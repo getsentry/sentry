@@ -10,7 +10,7 @@ import type {
   PlottableTimeSeriesValueType,
 } from './plottable';
 
-type FullHeightAreasConfig = {
+type HatchAreasConfig = {
   /**
    * Hatch color. Areas are hatched over a transparent fill, so grid lines show
    * through the gaps between stripes
@@ -29,7 +29,7 @@ type FullHeightAreasConfig = {
   name: string;
 };
 
-type FullHeightAreasPlottingOptions = {
+type HatchAreasPlottingOptions = {
   /**
    * Areas are clipped to these bounds. The X axis grows to fit any series that
    * runs past the plotted data, so pass the data's first and last timestamps
@@ -38,13 +38,13 @@ type FullHeightAreasPlottingOptions = {
 };
 
 /**
- * Areas that span the full height of the plot over stretches of time, drawn
+ * Hatched areas that span the full height of the plot over stretches of time, drawn
  * behind the data. Unlike time series plottables, it has no data of its own,
  * so it never takes up a Y axis, a legend item, or a tooltip row.
  */
-export class FullHeightAreas implements Plottable {
+export class HatchAreas implements Plottable {
   ranges: readonly TimeRange[];
-  config: Readonly<FullHeightAreasConfig>;
+  config: Readonly<HatchAreasConfig>;
 
   // Required by `Plottable`. The areas have no data, so none of it is extrapolated
   confidence: PlottableConfidence = 'full';
@@ -54,7 +54,7 @@ export class FullHeightAreas implements Plottable {
   /**
    * @param ranges Sorted ranges that don't overlap, such as the output of `mergeTimeRanges`
    */
-  constructor(ranges: readonly TimeRange[], config: FullHeightAreasConfig) {
+  constructor(ranges: readonly TimeRange[], config: HatchAreasConfig) {
     this.ranges = ranges;
     this.config = config;
   }
@@ -83,7 +83,7 @@ export class FullHeightAreas implements Plottable {
     return this.ranges.at(-1)?.end ?? null;
   }
 
-  toSeries({bounds}: FullHeightAreasPlottingOptions = {}): CustomSeriesOption[] {
+  toSeries({bounds}: HatchAreasPlottingOptions = {}): CustomSeriesOption[] {
     const ranges = bounds
       ? this.ranges
           .map(({start, end}) => ({
