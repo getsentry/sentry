@@ -12,17 +12,6 @@ export interface PreloadRequestResult {
   status?: number;
 }
 
-export enum SentryInitRenderReactComponent {
-  SETUP_WIZARD = 'SetupWizard',
-}
-
-export type OnSentryInitConfiguration = {
-  component: SentryInitRenderReactComponent;
-  container: string;
-  name: 'renderReact';
-  props?: Record<string, any>;
-};
-
 declare global {
   interface Window {
     /**
@@ -34,14 +23,6 @@ declare global {
      * The config object provided by the backend.
      */
     __initialData: Config;
-
-    /**
-     * This allows our server-rendered templates to push configuration that should be
-     * run after we render our main application.
-     */
-    __onSentryInit:
-      | OnSentryInitConfiguration[]
-      | {push: (config: OnSentryInitConfiguration) => void};
 
     /**
      * Used to open tooltips for testing purposes.

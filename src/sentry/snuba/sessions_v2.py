@@ -254,7 +254,7 @@ class SimpleGroupBy:
         return [self.row_name]
 
     def get_keys_for_row(self, row: Mapping[str, Any]) -> list[tuple[str, str]]:
-        return [(self.name, cast("str", row[self.row_name]))]
+        return [(self.name, row[self.row_name])]
 
 
 class SessionStatusGroupBy:

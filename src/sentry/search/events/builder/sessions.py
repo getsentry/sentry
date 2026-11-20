@@ -1,7 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
-from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
+from snuba_sdk import Granularity
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
@@ -45,30 +45,3 @@ class SessionsV2QueryBuilder(BaseQueryBuilder):
         if name in self.filter_allowlist_fields or name in self._extra_filter_allowlist_fields:
             return super().default_filter_converter(search_filter)
         raise InvalidSearchQuery(f"Invalid search filter: {name}")
-
-
-class TimeseriesSessionsV2QueryBuilder(SessionsV2QueryBuilder):
-    time_column = "bucketed_started"
-
-    def get_snql_query(self) -> Request:
-        self.validate_having_clause()
-
-        return Request(
-            dataset=self.dataset.value,
-            app_id="default",
-            query=Query(
-                match=Entity(self.dataset.value, sample=self.sample_rate),
-                select=[Column(self.time_column)] + self.columns,
-                array_join=self.array_join,
-                where=self.where,
-                having=self.having,
-                groupby=[Column(self.time_column)] + self.groupby,
-                orderby=self.orderby,
-                limit=self.limit,
-                offset=self.offset,
-                granularity=self.granularity,
-                limitby=self.limitby,
-            ),
-            flags=Flags(turbo=self.turbo),
-            tenant_ids=self.tenant_ids,
-        )
