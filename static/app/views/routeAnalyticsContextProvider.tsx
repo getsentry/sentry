@@ -1,5 +1,5 @@
 import {createContext, useMemo} from 'react';
-import {useMatches, useNavigationType} from 'react-router';
+import {useMatches} from 'react-router';
 
 import {getOverride} from 'sentry/overrideRegistry';
 import type {Organization} from 'sentry/types/organization';
@@ -40,7 +40,6 @@ export function RouteAnalyticsContextProvider({children}: Props) {
   const context = {
     location: useLocation(),
     matches: useMatches(),
-    navigationType: useNavigationType(),
   };
 
   const {

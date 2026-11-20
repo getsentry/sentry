@@ -1,4 +1,4 @@
-import type {NavigationType, UIMatch} from 'react-router';
+import type {UIMatch} from 'react-router';
 import type {Location} from 'history';
 
 import type {TrackingProps} from '@sentry/scraps/trackingContext';
@@ -315,7 +315,6 @@ type ReactHookOverrides = {
   'react-hook:route-activated': (props: {
     location: Location;
     matches: UIMatch[];
-    navigationType: NavigationType;
   }) => React.ContextType<typeof RouteAnalyticsContext>;
   'react-hook:use-billing-navigation-config': () => NavigationSection | null;
   'react-hook:use-button-tracking': () => (props: TrackingProps) => void;

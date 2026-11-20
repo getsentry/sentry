@@ -1,5 +1,4 @@
 import {useCallback, useEffect, useState} from 'react';
-import {NavigationType} from 'react-router';
 
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
@@ -18,7 +17,7 @@ export const DELAY_TIME_MS = 7000;
 
 type Props = Parameters<Overrides['react-hook:route-activated']>[0];
 
-export function useRouteActivatedHook({location, matches, navigationType}: Props) {
+export function useRouteActivatedHook({location, matches}: Props) {
   const [analyticsParams, _setRouteAnalyticsParams] = useState({});
   const [disableAnalytics, _setDisableRouteAnalytics] = useState(false);
   const [hasSentAnalytics, setHasSentAnalytics] = useState(false);
@@ -96,11 +95,7 @@ export function useRouteActivatedHook({location, matches, navigationType}: Props
     }
 
     // On mount prevRoute equals currentRoute, so the first page keeps no referrer.
-    // A route replaced before its page view was due was a redirect, so the page
-    // after it keeps the same referrer.
-    const wasRedirect =
-      navigationType === NavigationType.Replace && Date.now() - mountTime < DELAY_TIME_MS;
-    if (prevRoute !== currentRoute && !wasRedirect) {
+    if (prevRoute !== currentRoute) {
       setReferrerRoute(prevRoute);
     }
 
