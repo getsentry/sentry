@@ -64,7 +64,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   autogroup: {parent: true, sibling: true},
   missing_instrumentation: false,
   compressed_timeline: true,
-  clock_drift_correction: true,
+  clock_drift_correction: false,
   layout: 'drawer right',
   list: {width: 0.5},
 };

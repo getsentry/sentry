@@ -1,3 +1,4 @@
+import type {Organization} from 'sentry/types/organization';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -13,16 +14,35 @@ export const MIN_CLOCK_DRIFT_CORRECTION_MS = 10;
 /**
  * Formats a signed offset, e.g. `+312ms` or `−1.42s`.
  */
+/**
+ * Clock drift correction is only available to organizations with the feature flag. Without it, the
+ * correction is never applied, whatever the stored preference says.
+ */
+export function hasClockDriftCorrectionFeature(
+  organization: Organization | null
+): boolean {
+  return (
+    organization?.features.includes('trace-waterfall-clock-drift-correction') ?? false
+  );
+}
+
 export function formatClockDriftOffset(offsetMs: number): string {
   const sign = offsetMs < 0 ? '−' : '+';
+  return `${sign}${formatClockDriftDistance(offsetMs)}`;
+}
+
+/**
+ * Formats how far a span was shifted, without the direction.
+ */
+export function formatClockDriftDistance(offsetMs: number): string {
   const abs = Math.abs(offsetMs);
   if (abs < 1000) {
-    return `${sign}${Math.round(abs)}ms`;
+    return `${Math.round(abs)}ms`;
   }
   if (abs < 60_000) {
-    return `${sign}${(abs / 1000).toFixed(2)}s`;
+    return `${(abs / 1000).toFixed(2)}s`;
   }
-  return `${sign}${(abs / 60_000).toFixed(1)}min`;
+  return `${(abs / 60_000).toFixed(1)}min`;
 }
 
 export type ClockDriftCorrection = {

@@ -20,6 +20,7 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from './traceApi/utils';
+import {hasClockDriftCorrectionFeature} from './traceModels/clockDriftCorrection';
 import {traceAnalytics} from './traceAnalytics';
 import {getCustomInstrumentationLink} from './traceConfigurations';
 import {TraceShortcutsModal} from './traceShortcutsModal';
@@ -74,29 +75,33 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       value: 'compressed-timeline',
       details: t('Collapses long inactive gaps in the waterfall timeline.'),
     },
-    {
-      label: t('Clock Drift Correction'),
-      value: 'clock-drift-correction',
-      details: (
-        <Fragment>
-          {t(
-            'Shifts server spans into the client requests that made them, when the clocks of the client and the server disagree.'
-          )}
-          {props.clockDriftCorrectionCount > 0 && (
-            <Fragment>
-              {' '}
-              <strong>
-                {tn(
-                  'Adjusted %s span in this trace.',
-                  'Adjusted %s spans in this trace.',
-                  props.clockDriftCorrectionCount
+    ...(hasClockDriftCorrectionFeature(organization)
+      ? [
+          {
+            label: t('Clock Drift Correction'),
+            value: 'clock-drift-correction',
+            details: (
+              <Fragment>
+                {t(
+                  'Shifts server spans into the client requests that made them, when the clocks of the client and the server disagree.'
                 )}
-              </strong>
-            </Fragment>
-          )}
-        </Fragment>
-      ),
-    },
+                {props.clockDriftCorrectionCount > 0 && (
+                  <Fragment>
+                    {' '}
+                    <strong>
+                      {tn(
+                        'Adjusted %s span in this trace.',
+                        'Adjusted %s spans in this trace.',
+                        props.clockDriftCorrectionCount
+                      )}
+                    </strong>
+                  </Fragment>
+                )}
+              </Fragment>
+            ),
+          },
+        ]
+      : []),
   ];
 
   const values = useMemo(() => {

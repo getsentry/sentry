@@ -6,6 +6,8 @@ import {
   useDispatchingReducer,
   type DispatchingReducerEmitter,
 } from 'sentry/utils/useDispatchingReducer';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasClockDriftCorrectionFeature} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 
 import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './index';
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
@@ -63,6 +65,13 @@ interface TraceStateProviderProps {
 }
 
 export function TraceStateProvider(props: TraceStateProviderProps): React.ReactNode {
+  const organization = useOrganization({allowNull: true});
+  // Every trace tree reads its preferences from here, so turning the correction off here keeps it
+  // off everywhere, also if it was stored while the organization had the feature.
+  const initialPreferences = hasClockDriftCorrectionFeature(organization)
+    ? props.initialPreferences
+    : {...props.initialPreferences, clock_drift_correction: false};
+
   // We only want to decode on load, hence the lazy initializer.
   const [initialQuery] = useState((): string | undefined => {
     if (props.disableUrlSync) {
@@ -85,7 +94,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
         status: undefined,
         resultsLookup: new Map(),
       },
-      preferences: props.initialPreferences,
+      preferences: initialPreferences,
       tabs: {tabs: [], current_tab: null, last_clicked_tab: null},
     }
   );
