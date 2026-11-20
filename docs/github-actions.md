@@ -17,7 +17,7 @@ How to write the logic behind a step in `.github/workflows/`. These rules apply 
 
 ## `actions/github-script`
 
-- Don't pin commit SHAs by hand. Write the version tag in `uses:` and run [`gh actions-lock`](https://github.com/github/gh-actions-lock), which pins every action to a verified commit in `.github/workflows/actions.lock`. Rerun it after you change any `uses:`.
+- Don't pin commit SHAs by hand. Write the version tag in `uses:` and run [`gh actions-lock`](https://github.com/github/gh-actions-lock), which pins every action to a verified commit in `.github/workflows/actions.lock`. Rerun it after you change any `uses:`, and commit the lockfile with the workflow.
 - Keep the inline `script:` to an import and a call. The logic lives in `.github/workflows/scripts/<name>.ts`:
 
   ```yaml
@@ -51,9 +51,19 @@ How to write the logic behind a step in `.github/workflows/`. These rules apply 
 
 - Mock `github` with plain objects that record their calls, and assert on the API calls the script makes for each path: the no-op, the first run, an existing branch or PR, and invalid input.
 
-## Tokens and permissions
+## Least privilege and zizmor
 
-- Set `permissions: contents: read` at the top of the workflow, and widen it only on the job that needs more.
-- Check out with `persist-credentials: false`.
-- Give a write token, such as one from `actions/create-github-app-token`, only to the job that writes. Keep scanning and building in a separate job that only has read access, and hand results over as an artifact.
-- Validate a downloaded artifact before you act on it with a write token.
+prek runs [zizmor](https://docs.zizmor.sh) offline on every changed workflow, with `.github/zizmor.yml`. Fix findings in your diff instead of ignoring them.
+
+| zizmor audit              | Rule                                                                                                                          |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `excessive-permissions`   | `permissions: contents: read` at the top of the workflow, and a `permissions:` block on each job with only the scopes it uses |
+| `artipacked`              | `persist-credentials: false` on checkout, unless the job pushes, fetches, or calls an action that needs the token on disk     |
+| `github-app`              | `permission-*` inputs on every `actions/create-github-app-token`                                                              |
+| `overprovisioned-secrets` | Name each secret. `secrets[matrix.name]` loads every repository secret into the runner                                        |
+| `template-injection`      | No `${{ }}` in `run:` or `script:`. Pass values through `env:`                                                                |
+| `dangerous-triggers`      | A `pull_request_target`, `workflow_run`, or `issue_comment` workflow never checks out or runs PR code                         |
+
+- Give a write token only to the job that writes. Scan or build in a separate read-only job, hand the result over as an artifact, and validate it before acting on it.
+- Ignore a finding only for an intentional design, in `.github/zizmor.yml` with a written reason. Use an inline `# zizmor: ignore[<audit>]` comment when a config entry would match too broadly, such as every `action.yml`.
+- PR CI doesn't run jobs that only run after merge, such as scheduled, release, or `pull_request_target` jobs. When you change their permissions, name them in the PR body. Narrow permissions one workflow per PR, so each can be reverted alone.
