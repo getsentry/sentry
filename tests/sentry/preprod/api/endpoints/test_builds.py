@@ -879,6 +879,30 @@ class BuildsEndpointTest(APITestCase):
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "recent.app"
 
+    def test_distribution_display_lists_build_after_its_size_analysis_expired(self) -> None:
+        build = self.create_preprod_artifact(
+            app_id="distributed.app",
+            date_expires=before_now(days=-300),
+            date_size_analysis_expires=before_now(days=1),
+        )
+        self.create_preprod_artifact_size_metrics(build, max_install_size=1000000)
+        self.create_preprod_artifact(
+            app_id="expired.app",
+            date_expires=before_now(days=1),
+            date_size_analysis_expires=before_now(days=1),
+        )
+
+        response = self._request({"display": "distribution"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert [entry["app_info"]["app_id"] for entry in data] == ["distributed.app"]
+        assert data[0]["size_info"] is None
+
+        # The size display is about the size analysis, which has expired.
+        response = self._request({"display": "size"})
+        self._assert_is_successful(response)
+        assert response.json() == []
+
     def test_query_image_count(self) -> None:
         matching_artifact = self.create_preprod_artifact(app_id="com.match.app")
         self.create_preprod_snapshot_metrics(preprod_artifact=matching_artifact, image_count=25)

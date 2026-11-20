@@ -376,23 +376,30 @@ def to_snapshot_comparison_info(head_artifact: PreprodArtifact) -> SnapshotCompa
 
 def transform_preprod_artifact_to_build_details(
     artifact: PreprodArtifact,
+    size_analysis_expired: bool = False,
 ) -> BuildDetailsApiResponse:
-    size_metrics_list = list(artifact.preprodartifactsizemetrics_set.all())
-
-    base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
+    """
+    `size_analysis_expired` leaves the size analysis out of the response. The build
+    itself can outlive it, see `sentry.preprod.retention.is_size_analysis_expired`.
+    """
     base_artifact = (
         artifact.get_base_artifact_for_commit().select_related("build_configuration").first()
     )
-    base_build_info = None
-    if base_artifact:
-        base_size_metrics_qs = PreprodArtifactSizeMetrics.objects.filter(
-            preprod_artifact=base_artifact,
-            state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
-        )
-        base_size_metrics_list = list(base_size_metrics_qs)
-        base_build_info = create_build_details_app_info(base_artifact)
+    base_build_info = create_build_details_app_info(base_artifact) if base_artifact else None
 
-    size_info = to_size_info(size_metrics_list, base_size_metrics_list)
+    size_info = None
+    if not size_analysis_expired:
+        base_size_metrics_list: list[PreprodArtifactSizeMetrics] = []
+        if base_artifact:
+            base_size_metrics_list = list(
+                PreprodArtifactSizeMetrics.objects.filter(
+                    preprod_artifact=base_artifact,
+                    state=PreprodArtifactSizeMetrics.SizeAnalysisState.COMPLETED,
+                )
+            )
+        size_info = to_size_info(
+            list(artifact.preprodartifactsizemetrics_set.all()), base_size_metrics_list
+        )
 
     app_info = create_build_details_app_info(artifact)
     is_installable = is_installable_artifact(artifact)

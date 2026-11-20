@@ -111,18 +111,19 @@ def is_size_analysis_expired(artifact: PreprodArtifact, organization: Organizati
     return artifact.date_added < now - timedelta(days=days)
 
 
-def unexpired_artifacts(organization: Organization) -> Q:
+def unexpired_artifacts() -> Q:
+    """A filter for the artifacts for which `is_expired` does not hold."""
+    return Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now())
+
+
+def unexpired_size_analysis(organization: Organization) -> Q:
     """
-    A filter for the organization's artifacts whose size analysis may still be served:
-    the ones for which neither `is_expired` nor `is_size_analysis_expired` holds.
+    A filter for the organization's artifacts for which `is_size_analysis_expired` does
+    not hold.
     """
     now = timezone.now()
-
     days = get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
-    return (Q(date_expires__isnull=True) | Q(date_expires__gt=now)) & (
-        Q(date_size_analysis_expires__gt=now)
-        | Q(
-            date_size_analysis_expires__isnull=True,
-            date_added__gte=now - timedelta(days=days),
-        )
+    return Q(date_size_analysis_expires__gt=now) | Q(
+        date_size_analysis_expires__isnull=True,
+        date_added__gte=now - timedelta(days=days),
     )

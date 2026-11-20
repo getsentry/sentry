@@ -13,6 +13,7 @@ from sentry.preprod.retention import (
     is_expired,
     is_size_analysis_expired,
     unexpired_artifacts,
+    unexpired_size_analysis,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -83,13 +84,22 @@ class GetArtifactExpiryTest(TestCase):
 
 class ExpiredArtifactsTest(TestCase):
     """
-    `is_expired`, `is_size_analysis_expired` and the `unexpired_artifacts` filter, which
-    must agree with them.
+    `is_expired` and `is_size_analysis_expired`, and the `unexpired_artifacts` and
+    `unexpired_size_analysis` filters, which must agree with them.
     """
 
-    def is_listed(self, artifact: PreprodArtifact) -> bool:
-        listed = PreprodArtifact.objects.filter(unexpired_artifacts(self.organization))
-        return listed.filter(id=artifact.id).exists()
+    def assert_expired(
+        self, artifact: PreprodArtifact, expired: bool, size_analysis_expired: bool
+    ) -> None:
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
+
+        assert is_expired(artifact) is expired
+        assert artifacts.filter(unexpired_artifacts()).exists() is not expired
+        assert is_size_analysis_expired(artifact, self.organization) is size_analysis_expired
+        assert (
+            artifacts.filter(unexpired_size_analysis(self.organization)).exists()
+            is not size_analysis_expired
+        )
 
     @patch("sentry.quotas.backend.get_event_retention", return_value=30)
     def test_stamped_expiry_outlives_a_shorter_current_retention(
@@ -103,16 +113,16 @@ class ExpiredArtifactsTest(TestCase):
             date_size_analysis_expires=before_now(days=60 - 396),
         )
 
-        assert not is_expired(artifact)
         assert not is_size_analysis_expired(artifact, self.organization)
         mock_retention.assert_not_called()
-        assert self.is_listed(artifact)
+        self.assert_expired(artifact, expired=False, size_analysis_expired=False)
 
     @patch("sentry.quotas.backend.get_event_retention", return_value=396)
     def test_stamped_expiry_is_not_extended_by_a_longer_current_retention(
         self, mock_retention: MagicMock
     ) -> None:
         # Ingested under a 30 day Size Analysis retention, and the plan was upgraded since.
+        # The build itself is retained for longer, for Build Distribution.
         artifact = self.create_preprod_artifact(
             project=self.project,
             date_added=before_now(days=60),
@@ -120,9 +130,7 @@ class ExpiredArtifactsTest(TestCase):
             date_size_analysis_expires=before_now(days=60 - 30),
         )
 
-        assert not is_expired(artifact)
-        assert is_size_analysis_expired(artifact, self.organization)
-        assert not self.is_listed(artifact)
+        self.assert_expired(artifact, expired=False, size_analysis_expired=True)
 
     @patch("sentry.quotas.backend.get_event_retention", return_value=396)
     def test_artifact_past_date_expires(self, mock_retention: MagicMock) -> None:
@@ -133,8 +141,7 @@ class ExpiredArtifactsTest(TestCase):
             date_size_analysis_expires=before_now(days=10),
         )
 
-        assert is_expired(artifact)
-        assert not self.is_listed(artifact)
+        self.assert_expired(artifact, expired=True, size_analysis_expired=True)
 
     @patch("sentry.quotas.backend.get_event_retention", return_value=30)
     def test_artifact_without_expiry_follows_the_current_retention(
@@ -143,10 +150,5 @@ class ExpiredArtifactsTest(TestCase):
         recent = self.create_preprod_artifact(project=self.project, date_added=before_now(days=10))
         old = self.create_preprod_artifact(project=self.project, date_added=before_now(days=60))
 
-        for artifact in (recent, old):
-            assert artifact.date_expires is None
-            assert not is_expired(artifact)
-        assert not is_size_analysis_expired(recent, self.organization)
-        assert is_size_analysis_expired(old, self.organization)
-        assert self.is_listed(recent)
-        assert not self.is_listed(old)
+        self.assert_expired(recent, expired=False, size_analysis_expired=False)
+        self.assert_expired(old, expired=False, size_analysis_expired=True)
