@@ -195,6 +195,139 @@ describe('useEventAgentRun', () => {
     expect(result.current).toEqual({type: 'loading'});
     await waitFor(() => expect(result.current.type).toBe('inside'));
   });
+
+  it('rebuilds the agent run from spans when the trace is too large to include the error span', async () => {
+    const detachedEvent = EventFixture({
+      eventID: errorEventId,
+      groupID: '1',
+      contexts: {trace: {trace_id: traceId, span_id: 'http-span'}},
+    });
+    const spanRow = (row: Record<string, unknown>) => ({
+      parent_span: null,
+      'span.name': row['span.op'],
+      'span.description': null,
+      'span.duration': 1000,
+      project: 'project_slug',
+      'project.id': 1,
+      is_transaction: false,
+      transaction: 'agent run',
+      'transaction.event_id': 'c'.repeat(32),
+      'transaction.span_id': 'root-span',
+      'sdk.name': 'sentry.python',
+      'gen_ai.operation.type': null,
+      ...row,
+    });
+    const agentRow = spanRow({
+      id: 'agent-span',
+      parent_span: 'root-span',
+      'span.op': 'gen_ai.invoke_agent',
+      'precise.start_ts': 1,
+      'precise.finish_ts': 5,
+      'gen_ai.operation.type': 'agent',
+    });
+    const toolRow = spanRow({
+      id: 'tool-span',
+      parent_span: 'agent-span',
+      'span.op': 'gen_ai.execute_tool',
+      'precise.start_ts': 2,
+      'precise.finish_ts': 3,
+      'gen_ai.operation.type': 'tool',
+    });
+    const chatRow = spanRow({
+      id: 'chat-span',
+      parent_span: 'agent-span',
+      'span.op': 'gen_ai.chat',
+      'precise.start_ts': 1,
+      'precise.finish_ts': 2,
+      'gen_ai.operation.type': 'ai_client',
+    });
+    const httpRow = spanRow({
+      id: 'http-span',
+      parent_span: 'tool-span',
+      'span.op': 'http.client',
+      'precise.start_ts': 2,
+      'precise.finish_ts': 3,
+    });
+    const rootRow = spanRow({
+      id: 'root-span',
+      'span.op': 'http.server',
+      'precise.start_ts': 0,
+      'precise.finish_ts': 6,
+      is_transaction: true,
+    });
+
+    mockActiveAiSpan([{id: 'tool-span'}]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [
+        makeEAPSpan({event_id: 'root-span', is_transaction: true}),
+        makeEAPError({event_id: errorEventId}),
+      ],
+    });
+    const spansQuery = (query: string, data: unknown[]) =>
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/events/`,
+        match: [
+          MockApiClient.matchQuery({
+            referrer: 'api.issues.agent-run.span-ancestry',
+            query: `trace:${traceId} ${query}`,
+          }),
+        ],
+        body: {data},
+      });
+    spansQuery('id:http-span', [httpRow]);
+    spansQuery(
+      'transaction.span_id:root-span precise.start_ts:<=2 precise.finish_ts:>=3',
+      [rootRow, agentRow, toolRow, httpRow]
+    );
+    spansQuery('has:gen_ai.operation.type precise.start_ts:>=1 precise.finish_ts:<=5', [
+      agentRow,
+      chatRow,
+      toolRow,
+    ]);
+
+    const {result} = renderHookWithProviders(
+      () => useEventAgentRun(detachedEvent, {enabled: true}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current.type).toBe('inside'));
+    if (result.current.type !== 'inside') {
+      return;
+    }
+    expect(result.current.failingNode.id).toBe('tool-span');
+    expect(result.current.nodes.map(node => node.id)).toEqual([
+      'agent-span',
+      'chat-span',
+      'tool-span',
+    ]);
+  });
+
+  it('returns none when the error span of a large trace is not inside an agent run', async () => {
+    const detachedEvent = EventFixture({
+      eventID: errorEventId,
+      groupID: '1',
+      contexts: {trace: {trace_id: traceId, span_id: 'missing-span'}},
+    });
+    mockActiveAiSpan([{id: 'tool-span'}]);
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/trace/${traceId}/`,
+      body: [makeEAPError({event_id: errorEventId})],
+    });
+    const ancestryRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      match: [MockApiClient.matchQuery({referrer: 'api.issues.agent-run.span-ancestry'})],
+      body: {data: []},
+    });
+
+    const {result} = renderHookWithProviders(
+      () => useEventAgentRun(detachedEvent, {enabled: true}),
+      {organization}
+    );
+
+    await waitFor(() => expect(result.current).toEqual({type: 'none'}));
+    expect(ancestryRequest).toHaveBeenCalledTimes(1);
+  });
 });
 
 describe('EventAgentActivity', () => {
