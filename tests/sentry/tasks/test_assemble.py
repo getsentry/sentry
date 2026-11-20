@@ -30,7 +30,6 @@ from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
-    AssembleResult,
     AssembleTask,
     ChunkFileState,
     assemble_artifacts,
@@ -246,7 +245,7 @@ class AssembleDifTest(BaseAssembleTest):
 
 class AssembleArtifactsTest(BaseAssembleTest):
     @requires_objectstore
-    def test_reupload_objectstore_bundle(self) -> None:
+    def test_reupload_keeps_objectstore_bundle(self) -> None:
         bundle = self.create_artifact_bundle(
             org=self.organization,
             bundle_id=uuid.UUID("67429b2f-1d9e-43bb-a626-771a1e37555c"),
@@ -259,7 +258,12 @@ class AssembleArtifactsTest(BaseAssembleTest):
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
         )
         blob = FileBlob.from_file_with_organization(ContentFile(payload), self.organization)
-        with self.capture_on_commit_callbacks(execute=True):
+        with (
+            patch.object(
+                File.objects, "create", side_effect=AssertionError("unexpected File write")
+            ),
+            self.capture_on_commit_callbacks(execute=True),
+        ):
             assemble_artifacts(
                 org_id=self.organization.id,
                 project_ids=[self.project.id],
@@ -269,9 +273,12 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 chunks=[blob.checksum],
             )
         bundle.refresh_from_db()
-        assert bundle.storage_path is None
-        assert bundle.file is not None
-        with bundle.file.getfile() as contents:
+        assert bundle.storage_path is not None
+        assert bundle.storage_path != key
+        assert bundle.file_id is None
+        assert bundle.get_checksum() == blob.checksum
+        assert bundle.get_file_size() == len(payload)
+        with bundle.get_file() as contents:
             assert contents.read() == payload
         assert session.get(key) is None
 
@@ -448,15 +455,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
         files = File.objects.filter()
         assert len(files) == 0
 
-    @patch("sentry.tasks.assemble.ArtifactBundleArchive")
-    def test_assembled_bundle_is_deleted_if_archive_is_invalid(
-        self, artifact_bundle_archive: MagicMock
-    ) -> None:
-        artifact_bundle_archive.side_effect = Exception
-
-        bundle_file = self.create_artifact_bundle_zip(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id
-        )
+    def test_assembled_bundle_is_deleted_if_archive_is_invalid(self) -> None:
+        bundle_file = b"invalid ZIP"
         blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
         total_checksum = sha1(bundle_file).hexdigest()
 
@@ -1395,22 +1395,18 @@ class ArtifactBundleIndexingTest(TestCase):
 
         return artifact_bundle
 
-    def mock_assemble_result(self) -> AssembleResult:
-        bundle_file = self.create_artifact_bundle_zip(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id
-        )
-        blob1 = FileBlob.from_file_with_organization(ContentFile(bundle_file), self.organization)
-        total_checksum = sha1(bundle_file).hexdigest()
-        rv = assemble_file(
-            task=AssembleTask.ARTIFACT_BUNDLE,
-            org_or_project=self.organization,
+    def post_assembler(self, release: str, dist: str) -> ArtifactBundlePostAssembler:
+        payload = self.create_artifact_bundle_zip(fixture_path="artifact_bundle_debug_ids")
+        return ArtifactBundlePostAssembler(
+            temp_file=io.BytesIO(payload),
+            checksum=sha1(payload).hexdigest(),
+            blob_offsets=[],
             name="bundle.zip",
-            checksum=total_checksum,
-            chunks=[blob1.checksum],
-            file_type="artifact.bundle",
+            organization=self.organization,
+            release=release,
+            dist=dist,
+            project_ids=[],
         )
-        assert rv is not None
-        return rv
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
     def test_index_if_needed_with_no_bundles(
@@ -1419,13 +1415,7 @@ class ArtifactBundleIndexingTest(TestCase):
         release = "1.0"
         dist = "android"
 
-        with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
-            organization=self.organization,
-            release=release,
-            dist=dist,
-            project_ids=[],
-        ) as post_assembler:
+        with self.post_assembler(release, dist) as post_assembler:
             post_assembler._index_bundle_if_needed(
                 artifact_bundle=cast(ArtifactBundle, None),
                 release=release,
@@ -1449,13 +1439,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now(UTC) - timedelta(hours=1),
         )
 
-        with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
-            organization=self.organization,
-            release=release,
-            dist=dist,
-            project_ids=[],
-        ) as post_assembler:
+        with self.post_assembler(release, dist) as post_assembler:
             post_assembler._index_bundle_if_needed(
                 artifact_bundle=cast(ArtifactBundle, None),
                 release=release,
@@ -1495,13 +1479,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now(UTC) - timedelta(hours=1),
         )
 
-        with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
-            organization=self.organization,
-            release=release,
-            dist=dist,
-            project_ids=[],
-        ) as post_assembler:
+        with self.post_assembler(release, dist) as post_assembler:
             post_assembler._index_bundle_if_needed(
                 artifact_bundle=artifact_bundle_3,
                 release=release,
@@ -1536,13 +1514,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now(UTC) - timedelta(hours=1),
         )
 
-        with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
-            organization=self.organization,
-            release=release,
-            dist=dist,
-            project_ids=[],
-        ) as post_assembler:
+        with self.post_assembler(release, dist) as post_assembler:
             post_assembler._index_bundle_if_needed(
                 artifact_bundle=cast(ArtifactBundle, None),
                 release=release,
@@ -1584,13 +1556,7 @@ class ArtifactBundleIndexingTest(TestCase):
             date=datetime.now(UTC) + timedelta(hours=1),
         )
 
-        with ArtifactBundlePostAssembler(
-            assemble_result=self.mock_assemble_result(),
-            organization=self.organization,
-            release=release,
-            dist=dist,
-            project_ids=[],
-        ) as post_assembler:
+        with self.post_assembler(release, dist) as post_assembler:
             post_assembler._index_bundle_if_needed(
                 artifact_bundle=artifact_bundle_1,
                 release=release,
