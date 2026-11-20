@@ -2,7 +2,14 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -93,6 +100,7 @@ describe('SetupWizardRoute', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(async () => {
           await jest.runOnlyPendingTimersAsync();
         });
