@@ -57,7 +57,7 @@ export function NavigationMenuHeader({
           flexShrink={0}
           radius="full"
           overflow="hidden"
-          borderColor="transparent"
+          borderColor="transparent.neutral.muted"
         >
           <UserAvatar user={user} size={30} />
         </Flex>
@@ -77,7 +77,7 @@ function OrganizationHeaderAvatar({organization}: {organization: OrganizationSum
       flexShrink={0}
       radius="md"
       overflow="hidden"
-      borderColor="transparent"
+      borderColor="transparent.neutral.muted"
     >
       <ThemeProvider theme={lightTheme}>
         <OrganizationAvatar organization={organization} size={30} />

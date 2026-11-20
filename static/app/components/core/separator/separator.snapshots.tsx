@@ -3,7 +3,14 @@ import {Separator} from '@sentry/scraps/separator';
 import {Text} from '@sentry/scraps/text';
 import type {BorderVariant} from '@sentry/scraps/theme';
 
-const COLORS: BorderVariant[] = ['primary', 'muted', 'transparent', 'accent', 'danger'];
+const COLORS: BorderVariant[] = [
+  'primary',
+  'muted',
+  'accent.moderate',
+  'transparent.neutral.muted',
+  'transparent.danger.moderate',
+  'danger',
+];
 
 describe('Separator', () => {
   it.snapshot(

@@ -37,7 +37,7 @@ describe('Container', () => {
 
   it('does not forward border props to the DOM', () => {
     render(
-      <Container borderColor="transparent" borderTopColor="danger">
+      <Container borderColor="transparent.neutral.muted" borderTopColor="danger">
         Hello
       </Container>,
       {wrapper: ThemeWrapper}

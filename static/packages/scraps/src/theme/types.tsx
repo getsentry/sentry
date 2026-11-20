@@ -1,5 +1,7 @@
 import type {size} from '@sentry/scraps/tokens/size';
 
+import type {lightTheme} from './light';
+
 /**
  * Font size constraint for body typography.
  */
@@ -75,15 +77,28 @@ export type ContentVariant =
 export type GraphicsVariant = SemanticVariant;
 
 /**
- * Border color variant.
+ * Dot paths to every leaf of a token object, e.g. `'transparent.neutral.muted'`.
+ */
+type TokenPath<T> = {
+  [K in keyof T & string]: T[K] extends string ? K : `${K}.${TokenPath<T[K]>}`;
+}[keyof T & string];
+
+/**
+ * Every border color token, as a path into `tokens.border`. Derived from the
+ * theme, so a new border token is available without changing this type.
+ */
+export type BorderToken = TokenPath<(typeof lightTheme)['tokens']['border']>;
+
+/**
+ * Border color variant: any border token path, `none`, or a shorthand.
+ *
+ * - `muted`: `tokens.border.secondary`
+ * - `accent`, `danger`, `promotion`, `success`, `warning`: `tokens.border.<variant>.vibrant`
  */
 export type BorderVariant =
+  | BorderToken
   | Exclude<SemanticVariant, 'neutral'>
-  | 'primary'
-  | 'secondary'
   | 'muted'
-  /** Transparent neutral border. Maps to `tokens.border.transparent.neutral.muted`. */
-  | 'transparent'
   | 'none';
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)

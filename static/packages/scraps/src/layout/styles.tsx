@@ -11,6 +11,7 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
+  BorderToken,
   BorderVariant,
   BreakpointSize,
   ContainerBreakpointSize,
@@ -222,16 +223,26 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
 }
 
 function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string {
-  if (key === 'primary') {
-    return theme.tokens.border[key];
+  switch (key) {
+    case 'muted':
+      return theme.tokens.border.secondary;
+    case 'accent':
+    case 'danger':
+    case 'promotion':
+    case 'success':
+    case 'warning':
+      return theme.tokens.border[key].vibrant;
+    default:
+      return resolveBorderToken(key, theme);
   }
-  if (key === 'muted' || key === 'secondary') {
-    return theme.tokens.border.secondary;
+}
+
+function resolveBorderToken(path: BorderToken, theme: Theme): string {
+  let node: unknown = theme.tokens.border;
+  for (const segment of path.split('.')) {
+    node = (node as Record<string, unknown>)[segment];
   }
-  if (key === 'transparent') {
-    return theme.tokens.border.transparent.neutral.muted;
-  }
-  return theme.tokens.border[key].vibrant;
+  return node as string;
 }
 
 export function getBorder(
