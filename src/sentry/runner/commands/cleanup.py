@@ -813,8 +813,7 @@ def age_deletion_filters() -> dict[type[BaseModel], dict[str, Any]]:
     return {
         # An artifact with an expiry date is deleted when it expires instead (see
         # `models_which_use_expiry_deletions`), which can be later than --days. One
-        # without an expiry date predates the column or was created under an unlimited
-        # retention.
+        # without an expiry date predates the column and is not backfilled.
         PreprodArtifact: {"date_expires__isnull": True},
     }
 
