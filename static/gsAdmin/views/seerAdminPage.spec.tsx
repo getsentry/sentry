@@ -12,14 +12,8 @@ import {SyntheticMetricBreachForm} from 'admin/views/syntheticMetricBreachForm';
 describe('SeerAdminPage', () => {
   beforeEach(() => {
     ConfigStore.set('localities', [
-      {
-        name: 'US',
-        url: 'https://us.example.com',
-      },
-      {
-        name: 'EU',
-        url: 'https://eu.example.com',
-      },
+      {name: 'US', url: 'https://us.example.com'},
+      {name: 'EU', url: 'https://eu.example.com'},
     ]);
   });
 

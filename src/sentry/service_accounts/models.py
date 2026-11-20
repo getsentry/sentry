@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Iterable
-from typing import ClassVar, Self
+from typing import ClassVar, NewType, Self
 
 from django.conf import settings
 from django.contrib.postgres.fields.array import ArrayField
@@ -31,6 +31,7 @@ from sentry.types.cell import find_cells_for_orgs
 
 __all__ = (
     "ServiceAccount",
+    "ServiceAccountOwnerKind",
     "ServiceAccountProject",
     "ServiceAccountReplica",
     "ServiceAccountProjectReplica",
@@ -53,10 +54,20 @@ class InvalidScopeError(ValidationError):
     pass
 
 
+# Scope-name eligibility only; callers must still authorize the grant.
+GrantableScope = NewType("GrantableScope", str)
+
+
 def validate_grantable_scopes(value: Iterable[str]) -> None:
     for scope in value:
         if scope not in GRANTABLE_SCOPES:
             raise InvalidScopeError(f"{scope} is not a scope a service account can hold.")
+
+
+def parse_grantable_scopes(scopes: Iterable[str]) -> list[GrantableScope]:
+    scopes = list(scopes)
+    validate_grantable_scopes(scopes)
+    return [GrantableScope(scope) for scope in scopes]
 
 
 def service_account_outboxes(
@@ -67,6 +78,15 @@ def service_account_outboxes(
         object_identifier=service_account_id,
         shard_identifier=shard_identifier or organization_id,
     )
+
+
+class ServiceAccountOwnerKind(models.TextChoices):
+    """What owns an account's lifecycle. `created_by_id` records the person who made it."""
+
+    # The org's admins manage it in settings.
+    ORGANIZATION = "organization"
+    # The workflow config manages it, and deleting the config deletes the account.
+    SEER_WORKFLOW_CONFIG = "seer_workflow_config"
 
 
 @control_silo_model
@@ -97,6 +117,12 @@ class ServiceAccount(ReplicatedControlModel):
     created_by = FlexibleForeignKey("sentry.User", null=True, blank=True, on_delete=models.SET_NULL)
     # Lets a retried create, such as an outbox redelivery, find the account it already made.
     idempotency_key = models.CharField(max_length=64, null=True, blank=True)
+    # Null for accounts created before this was recorded, so their owner is unknown. Only an
+    # owner in the cell, such as a Seer automation, holds the link to its account, so control
+    # knows the kind of owner but not which one.
+    owner_kind = models.CharField(
+        max_length=64, choices=ServiceAccountOwnerKind.choices, null=True, blank=True
+    )
     date_added = models.DateTimeField(default=timezone.now)
     date_updated = models.DateTimeField(auto_now=True)
 
@@ -132,6 +158,7 @@ class ServiceAccount(ReplicatedControlModel):
         all_projects: bool,
         created_by_id: int | None,
         idempotency_key: str | None = None,
+        owner_kind: ServiceAccountOwnerKind | None = None,
     ) -> ServiceAccount:
         """
         Raises `InvalidScopeError` for a scope outside `GRANTABLE_SCOPES` and `IntegrityError`
@@ -147,6 +174,7 @@ class ServiceAccount(ReplicatedControlModel):
                 all_projects=all_projects,
                 created_by_id=created_by_id,
                 idempotency_key=idempotency_key,
+                owner_kind=owner_kind,
             )
             if not all_projects:
                 ServiceAccountProject.objects.bulk_create(
@@ -165,7 +193,7 @@ class ServiceAccount(ReplicatedControlModel):
             account = (
                 ServiceAccount.objects.select_for_update()
                 .filter(id=self.id, is_active=True)
-                .first()
+                .first()  # noqa: S035
             )
             if account is None:
                 return False

@@ -4,7 +4,6 @@ import {useQuery} from '@tanstack/react-query';
 import {Container} from '@sentry/scraps/layout';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {Feature} from 'sentry/components/acl/feature';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -161,9 +160,5 @@ export function ProjectPerformance() {
 }
 
 export default function ProjectPerformanceContainer() {
-  return (
-    <Feature features="performance-view">
-      <ProjectPerformance />
-    </Feature>
-  );
+  return <ProjectPerformance />;
 }

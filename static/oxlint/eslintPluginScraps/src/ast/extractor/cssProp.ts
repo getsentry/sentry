@@ -49,20 +49,14 @@ export function createCssPropExtractor({
 
       const declaration: StyleDeclaration = {
         kind: 'css-prop',
-        property: {
-          name: normalizePropertyName(propertyName),
-          node: prop.key,
-        },
+        property: {name: normalizePropertyName(propertyName), node: prop.key},
         values,
         context: {
           file: ruleContext.filename,
           scopeId: themeTracker.getCurrentScopeId(),
           themeBinding: themeTracker.getActiveBinding(),
         },
-        raw: {
-          containerNode: objNode,
-          sourceNode,
-        },
+        raw: {containerNode: objNode, sourceNode},
       };
 
       collector.add(declaration);

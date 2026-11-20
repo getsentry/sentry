@@ -2,10 +2,7 @@ import {t} from 'sentry/locale';
 
 import type {WorkflowStrategy} from './types';
 
-type StrategyMeta = {
-  label: string;
-  description?: string;
-};
+type StrategyMeta = {label: string; description?: string};
 
 export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
   agentic_triage: {
@@ -22,9 +19,7 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
       'Monitors backend metrics and investigates why certain key metrics were breached.'
     ),
   },
-  duplicate_monitors: {
-    label: t('Duplicate monitors'),
-  },
+  duplicate_monitors: {label: t('Duplicate monitors')},
 };
 
 /**

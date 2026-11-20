@@ -28,13 +28,8 @@ export function useFeedbackSummary(): {
     ...apiOptions.as<FeedbackSummaryResponse>()(
       '/organizations/$organizationIdOrSlug/feedback-summary/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-        query: {
-          ...normalizedDateRange,
-          project: selection.projects,
-        },
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...normalizedDateRange, project: selection.projects},
         staleTime: 5000,
       }
     ),

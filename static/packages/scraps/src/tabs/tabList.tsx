@@ -16,7 +16,7 @@ import {useCollection} from '@react-stately/collections';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {Key, Node, Orientation} from '@react-types/shared';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 
 import {DropdownMenu, type MenuItemProps} from '@sentry/scraps/dropdownMenu';
@@ -24,16 +24,14 @@ import {Container, Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
-import type {TabListItemProps} from './item';
+import {TabsContext} from './context';
+import type {InternalTabListItemProps} from './item';
 import {TabListItem} from './item';
 import {Tab} from './tab';
 import type {TabProps} from './tab';
-import {TabsContext} from './tabs';
 import {tabsShouldForwardProp} from './utils';
 
-const StyledTabListWrap = styled('ul', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
   variant: TabProps['variant'];
 }>`
@@ -102,7 +100,7 @@ function useOverflowTabs({
    * available to the tabs and is unaffected by the list overflowing.
    */
   outerWrapRef: RefObject<HTMLDivElement | null>;
-  tabItems: TabListItemProps[];
+  tabItems: InternalTabListItemProps[];
   tabItemsRef: RefObject<Record<string | number, HTMLLIElement | null>>;
   tabListRef: RefObject<HTMLUListElement | null>;
 }) {
@@ -235,7 +233,9 @@ function useOverflowTabs({
 
   // Tabs with the `hidden` prop render with display: none; never surface them
   // in the overflow menu.
-  const hiddenKeys = new Set(tabItems.filter(item => item.hidden).map(item => item.key));
+  const hiddenKeys = new Set<string | number>(
+    tabItems.filter(item => item.hidden).map(item => item.key)
+  );
   return overflowTabs.filter(key => !hiddenKeys.has(key));
 }
 
@@ -268,18 +268,25 @@ function OverflowMenu({overflowMenuItems, disabled}: OverflowMenuProps) {
   );
 }
 
-interface TabListProps {
-  children: TabListStateOptions<TabListItemProps>['children'];
+export interface TabListProps {
+  children: TabListStateOptions<InternalTabListItemProps>['children'];
+  className?: string;
   outerWrapStyles?: CSSProperties;
   variant?: TabProps['variant'];
 }
 
-interface BaseTabListProps extends AriaTabListOptions<TabListItemProps>, TabListProps {
-  items: TabListItemProps[];
+interface BaseTabListProps
+  extends AriaTabListOptions<InternalTabListItemProps>, TabListProps {
+  items: InternalTabListItemProps[];
   variant?: TabProps['variant'];
 }
 
-function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListProps) {
+function BaseTabList({
+  className,
+  outerWrapStyles,
+  variant = 'flat',
+  ...props
+}: BaseTabListProps) {
   const outerWrapRef = useRef<HTMLDivElement>(null);
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
@@ -287,6 +294,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
     value,
     defaultValue,
     onChange,
+    onSelectionChange,
     disabled,
     orientation,
     size,
@@ -298,7 +306,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   const ariaProps = {
     selectedKey: value,
     defaultSelectedKey: defaultValue,
-    onSelectionChange: onChange,
+    onSelectionChange: (key: Key) => onSelectionChange?.(String(key)),
     isDisabled: disabled,
     keyboardActivation,
     ...otherRootProps,
@@ -337,13 +345,16 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         return [];
       }
 
-      const itemProps: TabListItemProps = item.props;
+      const itemProps: InternalTabListItemProps = item.props;
 
       return {
         key: String(key),
         to: itemProps.to,
         isSelected: state.selectedKey === key,
-        onAction: itemProps.to ? undefined : () => state.setSelectedKey(key),
+        onAction:
+          itemProps.to === undefined
+            ? () => state.setSelectedKey(key)
+            : () => onChange?.(String(key)),
         label: (
           <Flex align="center" gap="md">
             {itemProps.children}
@@ -355,10 +366,15 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
         textValue: item.textValue,
       } satisfies MenuItemProps;
     });
-  }, [state, overflowTabs]);
+  }, [state, overflowTabs, onChange]);
 
   return (
-    <Container position="relative" style={outerWrapStyles} ref={outerWrapRef}>
+    <Container
+      position="relative"
+      className={className}
+      style={outerWrapStyles}
+      ref={outerWrapRef}
+    >
       <TabListWrap
         {...tabListProps}
         orientation={orientation}
@@ -373,7 +389,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
             orientation={orientation}
             size={size}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            tooltipProps={(item.props as TabListItemProps).tooltip}
+            tooltipProps={(item.props as InternalTabListItemProps).tooltip}
             ref={element => {
               tabItemsRef.current[item.key] = element;
             }}
@@ -389,7 +405,7 @@ function BaseTabList({outerWrapStyles, variant = 'flat', ...props}: BaseTabListP
   );
 }
 
-const collectionFactory = (nodes: Iterable<Node<TabListItemProps>>) =>
+const collectionFactory = (nodes: Iterable<Node<InternalTabListItemProps>>) =>
   new ListCollection(nodes);
 
 /**
@@ -402,7 +418,7 @@ export function TabList({variant, ...props}: TabListProps) {
    */
   const collection = useCollection(props, collectionFactory);
 
-  const parsedItems: TabListItemProps[] = useMemo(
+  const parsedItems: InternalTabListItemProps[] = useMemo(
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     () => Array.from(collection, ({key, props: itemProps}) => ({key, ...itemProps})),
     [collection]

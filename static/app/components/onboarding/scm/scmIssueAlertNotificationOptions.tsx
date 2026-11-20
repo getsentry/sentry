@@ -41,9 +41,7 @@ const ALERT_RULE_INTEGRATION_FEATURES = [
  * renders the messaging rule stacked (`ScmMessagingIntegrationAlertRule`)
  * instead of the classic inline card.
  */
-type Props = IssueAlertNotificationProps & {
-  analyticsFlow: ScmAnalyticsFlow;
-};
+type Props = IssueAlertNotificationProps & {analyticsFlow: ScmAnalyticsFlow};
 
 export function ScmIssueAlertNotificationOptions({analyticsFlow, ...props}: Props) {
   const {actions, setActions} = props;

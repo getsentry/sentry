@@ -46,10 +46,7 @@ export function SentryAppDetails() {
     ): Promise<
       SentryApp & {isDisabled: boolean; owner: NonNullable<SentryApp['owner']>}
     > => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'PUT',
-        data: updatedData,
-      });
+      return api.requestPromise(ENDPOINT, {method: 'PUT', data: updatedData});
     },
     onMutate: () => {
       toast.loading('Saving Changes...');
@@ -60,11 +57,7 @@ export function SentryAppDetails() {
       queryClient.setQueryData(queryOptions.queryKey, previous =>
         updatedData === undefined
           ? previous
-          : {
-              ...previous,
-              headers: previous?.headers ?? {},
-              json: updatedData,
-            }
+          : {...previous, headers: previous?.headers ?? {}, json: updatedData}
       );
     },
     onError: () => {
@@ -183,10 +176,7 @@ export function SentryAppDetails() {
       rootName="Sentry Apps"
       name={data.name}
       badges={[
-        {
-          name: data.status,
-          level: sentryAppBadgeLevel[data.status] ?? 'success',
-        },
+        {name: data.status, level: sentryAppBadgeLevel[data.status] ?? 'success'},
         ...(data.isDisabled ? [{name: 'disabled', level: 'danger' as const}] : []),
       ]}
       actions={actions}

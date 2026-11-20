@@ -116,10 +116,6 @@ const COLUMN_WIDTHS_STORAGE_KEY = 'conversation-table-column-widths';
 
 type ColumnWidths = Partial<Record<ColumnKey, number>>;
 
-function isColumnKey(key: string): key is ColumnKey {
-  return Object.hasOwn(COLUMN_DEFAULTS, key);
-}
-
 // Plain-text title/first-message is ellipsized to this length before rendering.
 const CELL_MAX_CHARS = 256;
 
@@ -219,38 +215,28 @@ type ConversationsResult = ReturnType<typeof useConversations>;
 
 type ConversationsTableSource = Pick<
   ConversationsResult,
-  'data' | 'error' | 'isFetching' | 'pageLinks' | 'setCursor' | 'unsetCursor'
-> &
-  Partial<Pick<ConversationsResult, 'setSort' | 'sort'>>;
-
-export interface ConversationsTableColumn {
-  key: string;
-  name: string;
-  renderBodyCell: (conversation: Conversation) => React.ReactNode;
-  width: number;
-}
+  | 'data'
+  | 'error'
+  | 'isFetching'
+  | 'pageLinks'
+  | 'setCursor'
+  | 'setSort'
+  | 'sort'
+  | 'unsetCursor'
+>;
 
 interface ConversationsTableProps {
   conversations: ConversationsTableSource;
-  additionalColumns?: ConversationsTableColumn[];
-  disableCellActions?: boolean;
   hidePagination?: boolean;
-  persistColumnWidths?: boolean;
-  projects?: number[];
 }
 
 export function ConversationsTable({
   conversations,
-  additionalColumns,
-  disableCellActions = false,
   hidePagination = false,
-  persistColumnWidths = true,
-  projects,
 }: ConversationsTableProps) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const {selection} = usePageFilters();
-  const detailProjects = projects ?? selection.projects;
   const {data, isFetching, error, pageLinks, setCursor, unsetCursor, sort, setSort} =
     conversations;
 
@@ -260,14 +246,10 @@ export function ConversationsTable({
     parseAsString.withOptions({history: 'replace'})
   );
 
-  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+  const [columnWidths, setColumnWidths] = useLocalStorageState<ColumnWidths>(
     COLUMN_WIDTHS_STORAGE_KEY,
     parseStoredColumnWidths
   );
-  const [sessionWidths, setSessionWidths] = useState<Partial<Record<string, number>>>({});
-  const columnWidths: Partial<Record<string, number>> = persistColumnWidths
-    ? storedWidths
-    : sessionWidths;
 
   const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
     () =>
@@ -280,20 +262,12 @@ export function ConversationsTable({
   );
 
   const handleResizeColumn = useCallback(
-    (_columnIndex: number, nextColumn: GridColumnOrder<string>) => {
-      const key = nextColumn.key;
-      if (!persistColumnWidths) {
-        setSessionWidths(current => ({...current, [key]: nextColumn.width}));
-        return;
-      }
-      if (!isColumnKey(key)) {
-        return;
-      }
+    (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
       // Keyed by column rather than by index so a stored width survives a
       // change to the column order.
-      setStoredWidths(current => ({...current, [key]: nextColumn.width}));
+      setColumnWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
     },
-    [persistColumnWidths, setStoredWidths]
+    [setColumnWidths]
   );
 
   const hasNoTools = useMemo(
@@ -302,20 +276,10 @@ export function ConversationsTable({
     [data]
   );
 
-  const displayedColumns = useMemo<Array<GridColumnOrder<string>>>(() => {
-    const columns = collapseToolsColumnWhenUnused(columnOrder, hasNoTools);
-    if (!additionalColumns?.length) {
-      return columns;
-    }
-    const extraColumns = additionalColumns.map(({key, name, width}) => ({
-      key,
-      name,
-      width: columnWidths[key] ?? width,
-    }));
-    return columns.flatMap(column =>
-      column.key === 'conversation' ? [column, ...extraColumns] : [column]
-    );
-  }, [additionalColumns, columnOrder, columnWidths, hasNoTools]);
+  const displayedColumns = useMemo(
+    () => collapseToolsColumnWhenUnused(columnOrder, hasNoTools),
+    [columnOrder, hasNoTools]
+  );
   const staticColumnWidths = useMemo(
     () =>
       columnWidths.conversation === undefined ||
@@ -355,7 +319,11 @@ export function ConversationsTable({
       ) {
         return;
       }
-      const url = getConversationDetailUrl(organization.slug, dataRow, detailProjects);
+      const url = getConversationDetailUrl(
+        organization.slug,
+        dataRow,
+        selection.projects
+      );
       // Mirror native link behavior instead of navigating in place: Cmd/Ctrl+click
       // opens a new tab (no features string) and Shift+click opens a new window
       // (a features string makes browsers open a window rather than a tab).
@@ -369,22 +337,16 @@ export function ConversationsTable({
       }
       navigate(url);
     },
-    [detailProjects, navigate, organization.slug]
+    [navigate, organization.slug, selection.projects]
   );
 
   const getColumnSort = useCallback(
-    (column: GridColumnOrder<string>): GridColumnSort | undefined => {
-      if (!isColumnKey(column.key)) {
-        return undefined;
-      }
+    (column: GridColumnOrder<ColumnKey>): GridColumnSort | undefined => {
       const field = SORT_FIELD_BY_COLUMN[column.key];
       if (!field) {
         return undefined;
       }
       const align = RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined;
-      if (!setSort) {
-        return align ? {align} : undefined;
-      }
 
       let direction: 'asc' | 'desc' | undefined;
       if (sort === field) {
@@ -405,23 +367,14 @@ export function ConversationsTable({
   );
 
   const renderBodyCell = useCallback(
-    (column: GridColumnOrder<string>, dataRow: Conversation) => {
-      const additionalColumn = additionalColumns?.find(({key}) => key === column.key);
-      if (additionalColumn) {
-        return additionalColumn.renderBodyCell(dataRow);
-      }
-      if (!isColumnKey(column.key)) {
-        return null;
-      }
-      return (
-        <BodyCell
-          columnKey={column.key}
-          conversation={dataRow}
-          onCellAction={disableCellActions ? undefined : handleCellAction}
-        />
-      );
-    },
-    [additionalColumns, disableCellActions, handleCellAction]
+    (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
+      <BodyCell
+        columnKey={column.key}
+        conversation={dataRow}
+        onCellAction={handleCellAction}
+      />
+    ),
+    [handleCellAction]
   );
 
   return (
@@ -466,7 +419,7 @@ function BodyCell({
 }: {
   columnKey: ColumnKey;
   conversation: Conversation;
-  onCellAction: CellActionHandler | undefined;
+  onCellAction: CellActionHandler;
 }) {
   switch (columnKey) {
     case 'conversation':
@@ -548,7 +501,7 @@ function BodyCell({
     case 'age':
       return (
         <Text align="right" variant="muted">
-          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
+          <TimeSince unitStyle="narrow" date={conversation.endTimestamp} />
         </Text>
       );
     default:
@@ -567,14 +520,10 @@ function FilterCellAction({
   children: React.ReactNode;
   conversationId: string;
   field: string;
-  onCellAction: CellActionHandler | undefined;
+  onCellAction: CellActionHandler;
   type: ColumnValueType;
   value: number;
 }) {
-  if (!onCellAction) {
-    return children;
-  }
-
   const column: TableColumn<keyof TableDataRow> = {
     key: field,
     name: field,
@@ -615,7 +564,7 @@ function getConversationTitle(
   return plainText.length > 0 ? plainText : null;
 }
 
-function ConversationCell({conversation}: {conversation: Conversation}) {
+export function ConversationCell({conversation}: {conversation: Conversation}) {
   // Flattening markdown to plain text renders HTML + parses it, so memoize on
   // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
   const title = useMemo(

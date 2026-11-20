@@ -37,10 +37,7 @@ function onScrollToNode(
     // When a user keyboard navigates to a node that's rendered in the "overscroll"
     const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
     if (lastCell) {
-      lastCell.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-      });
+      lastCell.scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
   } else if (coordinates) {
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
@@ -48,14 +45,10 @@ function onScrollToNode(
     const left = coordinates.depth * 16;
     if (Array.isArray(scrollContainer)) {
       scrollContainer.forEach(container => {
-        container.scrollBy({
-          left,
-        });
+        container.scrollBy({left});
       });
     } else if (scrollContainer) {
-      scrollContainer.scrollBy({
-        left,
-      });
+      scrollContainer.scrollBy({left});
     }
   }
 }

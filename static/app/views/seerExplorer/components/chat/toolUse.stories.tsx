@@ -99,10 +99,7 @@ function AgentWriteApprovalStory() {
   const pendingInput: PendingUserInput = {
     id: APPROVAL_ID,
     input_type: 'agent_write_approval',
-    data: {
-      required_scopes: ['event:write'],
-      session_id: 'story-session',
-    },
+    data: {required_scopes: ['event:write'], session_id: 'story-session'},
   };
 
   return (

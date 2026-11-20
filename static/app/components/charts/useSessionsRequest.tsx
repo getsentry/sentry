@@ -53,9 +53,7 @@ export function useSessionsRequest({
     ...apiOptions.as<SessionApiResponse>()(
       '/organizations/$organizationIdOrSlug/sessions/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
+        path: {organizationIdOrSlug: organization.slug},
         query: baseQueryParams,
         staleTime: 0,
       }

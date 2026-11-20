@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, NonNegativeInt, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -93,38 +93,6 @@ register(
     type=Dict,
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
-)
-
-# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
-# Only used when a lock manager is configured with the matching selector in
-# sentry.utils.locking.backends.migration.
-register(
-    "locks.default.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When on, MigrationLockBackend also checks the new backend for keys that go to the old
-# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
-# after the rate is back at 0 and all locks on the new backend have expired. See the
-# MigrationLockBackend docstring for the full sequence.
-register(
-    "locks.default.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Processing worker caches
@@ -676,6 +644,15 @@ register(
     "replay.consumer.msgspec_recording_parser",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored. Negative values are rejected
+# because zlib treats a `max_length` of 0 as unlimited.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=NonNegativeInt,
+    default=100 * 1024 * 1024,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Enable new database query caching.
@@ -1280,16 +1257,6 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
-# When none of an event's debug IDs were uploaded, the source map debugger checks whether the
-# project has uploaded any file with a debug ID. It checks only the project's newest bundles, up
-# to this many. 0 reads the organization's debug-ID rows instead, until one is in a bundle of the
-# project, which for a project without any means all of them. Capped at 10,000.
-register(
-    "sourcemaps.source-map-debug.debug-id-check-max-bundles",
-    type=Int,
-    default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # TODO(INFRENG-460): unregister once the sentry-options-automator entries are gone
 register(
@@ -1705,19 +1672,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Conversation classifiers PoC.
+# Organizations whose telemetry classifiers aren't processed.
 register(
-    "classifiers.conversations.project-ids",
+    "telemetry-classifiers.killswitch-organization-ids",
     type=Sequence,
     default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Maximum conversations fetched from each project per scan.
-register(
-    "classifiers.conversations.telemetry-limit",
-    type=Int,
-    default=100,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
@@ -3144,6 +3104,16 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Temporary killswitch for the system incident dual-write to
+# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
+# secondary writes at once. Has no effect when the setting is unset.
+# To be removed as part of INFRENG-1053
+register(
+    "crons.system_incidents.secondary_redis_writes",
+    default=True,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enables the the crons incident occurrence consumer to consider the clock-tick
 # decision made based on volume metrics to determine if a incident occurrence
 # should be processed, delayed, or dropped entirely.
@@ -4142,13 +4112,6 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,
 # generally set to 'as high as we think we can safely handle for a handful of orgs'.
 register(
@@ -4660,6 +4623,13 @@ register(
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "autofix.pr-iteration.check-suite-local-prefilter.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

@@ -3,12 +3,7 @@
 The public OpenAPI output includes `x-sentry-routing` on each operation:
 
 ```json
-{
-  "x-sentry-routing": {
-    "silo": "cell",
-    "organizationParameter": "organization_id_or_slug"
-  }
-}
+{"x-sentry-routing": {"silo": "cell", "organizationParameter": "organization_id_or_slug"}}
 ```
 
 `silo` describes the endpoint class's declared availability:

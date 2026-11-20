@@ -46,22 +46,14 @@ export function useInstallationSettings(
     const integrationQueryOptions = apiOptions.as<OrganizationIntegration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          integrationId: integration.id,
-        },
+        path: {organizationIdOrSlug: organization.slug, integrationId: integration.id},
         staleTime: 60_000,
       }
     );
 
     const integrationEndpoint = getApiUrl(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          integrationId: integration.id,
-        },
-      }
+      {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
     );
     const integrationMutationOptions = mutationOptions({
       mutationFn: (data: Record<string, unknown>) =>

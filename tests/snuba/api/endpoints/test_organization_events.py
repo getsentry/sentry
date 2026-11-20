@@ -220,7 +220,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 200
         assert len(response.data["data"]) == 2
 
-    def test_performance_view_feature(self) -> None:
+    def test_query_event(self) -> None:
         self.store_event(
             data={
                 "event_id": "a" * 32,

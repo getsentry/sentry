@@ -60,9 +60,7 @@ function matchesForTab(tab: Tab) {
 
 describe('AutofixSection', () => {
   const mockProject = DetailedProjectFixture();
-  const organization = OrganizationFixture({
-    hideAiFeatures: false,
-  });
+  const organization = OrganizationFixture({hideAiFeatures: false});
 
   let mockGroup: ReturnType<typeof GroupFixture>;
 
@@ -100,17 +98,13 @@ describe('AutofixSection', () => {
       body: {whatsWrong: 'Something broke', possibleCause: 'Bad code'},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
   });
 
   it('renders Resources section when AI features are disabled', () => {
-    const customOrganization = OrganizationFixture({
-      hideAiFeatures: true,
-    });
+    const customOrganization = OrganizationFixture({hideAiFeatures: true});
 
     const performanceGroup: Group = {
       ...mockGroup,
@@ -119,10 +113,7 @@ describe('AutofixSection', () => {
       platform: 'javascript',
     };
 
-    const javascriptProject: Project = {
-      ...mockProject,
-      platform: 'javascript',
-    };
+    const javascriptProject: Project = {...mockProject, platform: 'javascript'};
 
     render(<AutofixSection group={performanceGroup} project={javascriptProject} />, {
       organization: customOrganization,
@@ -143,10 +134,7 @@ describe('AutofixSection', () => {
       platform: 'javascript-nextjs',
     };
 
-    const nextjsProject: Project = {
-      ...mockProject,
-      platform: 'javascript-nextjs',
-    };
+    const nextjsProject: Project = {...mockProject, platform: 'javascript-nextjs'};
 
     render(<AutofixSection group={hydrationGroup} project={nextjsProject} />, {
       organization,
@@ -160,9 +148,7 @@ describe('AutofixSection', () => {
   });
 
   it('returns null when AI features are disabled and no resources exist', () => {
-    const customOrganization = OrganizationFixture({
-      hideAiFeatures: true,
-    });
+    const customOrganization = OrganizationFixture({hideAiFeatures: true});
 
     const {container} = render(
       <AutofixSection group={mockGroup} project={mockProject} />,
@@ -206,9 +192,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Null pointer in user handler')).toBeInTheDocument();
@@ -223,9 +207,7 @@ describe('AutofixSection', () => {
       body: {autofix: null},
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByRole('button', {name: 'View Section'})).toHaveAttribute(
       'aria-expanded',
@@ -272,9 +254,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'View Section'}));
 
@@ -387,9 +367,7 @@ describe('AutofixSection', () => {
 
       const {router} = render(
         <AutofixSection group={mockGroup} project={mockProject} />,
-        {
-          organization: autofixPageOrganization,
-        }
+        {organization: autofixPageOrganization}
       );
 
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
@@ -409,9 +387,7 @@ describe('AutofixSection', () => {
 
       const {router} = render(
         <AutofixSection group={mockGroup} project={mockProject} />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(await screen.findByText('Divides by zero')).toBeInTheDocument();
@@ -494,9 +470,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByText('Plan')).toBeInTheDocument();
     expect(screen.getByText('Add null check before accessing user')).toBeInTheDocument();
@@ -554,9 +528,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByText('Code Changes')).toBeInTheDocument();
     expect(screen.getByText('2 files changed in 1 repo')).toBeInTheDocument();
@@ -613,9 +585,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByText('Pull Requests')).toBeInTheDocument();
     const link = screen.getByRole('link', {name: 'org/repo#42'});
@@ -630,15 +600,11 @@ describe('AutofixSection', () => {
       statusCode: 200,
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     // The Seer title should still render
     expect(screen.getByText('Seer Autofix')).toBeInTheDocument();
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
   });
 
   it('renders multiple artifact types in order', async () => {
@@ -718,9 +684,7 @@ describe('AutofixSection', () => {
       },
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     expect(await screen.findByText('Root Cause')).toBeInTheDocument();
     expect(screen.getByText('Plan')).toBeInTheDocument();
@@ -784,9 +748,7 @@ describe('AutofixSection', () => {
     });
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
-    const link = screen.getByRole('button', {
-      name: 'Set Up Seer for This Project',
-    });
+    const link = screen.getByRole('button', {name: 'Set Up Seer for This Project'});
     expect(link).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/${mockProject.slug}/seer/`
@@ -813,9 +775,7 @@ describe('AutofixSection', () => {
       organization: seatBasedOrg,
     });
 
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
   });
 
@@ -843,27 +803,45 @@ describe('AutofixSection', () => {
       organization: legacyOrg,
     });
 
-    expect(
-      await screen.findByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
     expect(screen.queryByText('Finish Configuring Seer')).not.toBeInTheDocument();
   });
 
   it('shows empty state when there are no artifacts', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {
-        autofix: null,
-      },
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(
+      screen.getByText('Determine the root cause of your issue')
+    ).toBeInTheDocument();
+    expect(screen.getByText('Outline a plan')).toBeInTheDocument();
+    expect(screen.getByText('Create a code fix')).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('shows the redesigned start card with autofix-single-run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
     });
 
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
+      organization: OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-single-run'],
+      }),
     });
 
     expect(
       await screen.findByText('Let Seer find the root cause and fix it')
     ).toBeInTheDocument();
+    expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Add Context'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
   });
 
@@ -880,16 +858,12 @@ describe('AutofixSection', () => {
       asyncDelay: new Promise(() => {}),
     });
 
-    render(<AutofixSection group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {organization});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Start Analysis'}));
 
     await waitFor(() => expect(startRequest).toHaveBeenCalled());
-    expect(
-      screen.getByText('Let Seer find the root cause and fix it')
-    ).toBeInTheDocument();
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
     const startButton = screen.getByRole('button', {name: 'Start Analysis'});
     expect(startButton).toBeDisabled();
     expect(startButton).toHaveAttribute('aria-busy', 'true');
@@ -901,7 +875,6 @@ describe('AutofixSection', () => {
 
     function ContextCapture() {
       const {getLLMContext} = useLLMContext();
-      // oxlint-disable-next-line react/immutability
       snapshotRef.current = getLLMContext;
       return null;
     }
@@ -987,7 +960,7 @@ describe('AutofixSection', () => {
   describe('out of Seer credits', () => {
     const creditCheckOrganization = OrganizationFixture({
       hideAiFeatures: false,
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+      features: ['token-billed-seer-enabled'],
     });
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
@@ -1025,9 +998,7 @@ describe('AutofixSection', () => {
       expect(
         cta.compareDocumentPosition(startButton) & Node.DOCUMENT_POSITION_FOLLOWING
       ).toBeTruthy();
-      expect(
-        screen.queryByText('Let Seer find the root cause and fix it')
-      ).not.toBeInTheDocument();
+      expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
       expect(creditCheck).toHaveBeenCalledTimes(1);
     });
 
@@ -1047,9 +1018,7 @@ describe('AutofixSection', () => {
       });
 
       expect(await screen.findByRole('button', {name: 'Start Analysis'})).toBeDisabled();
-      expect(
-        screen.getByText('Let Seer find the root cause and fix it')
-      ).toBeInTheDocument();
+      expect(screen.getByText('Have Seer...')).toBeInTheDocument();
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 

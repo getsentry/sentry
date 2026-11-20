@@ -78,6 +78,4 @@ function Action({children, visible}: ActionProps) {
   );
 }
 
-export const RevealOnHover = Object.assign(RevealOnHoverRoot, {
-  Action,
-});
+export const RevealOnHover = Object.assign(RevealOnHoverRoot, {Action});

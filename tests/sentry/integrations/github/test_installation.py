@@ -5,7 +5,6 @@ import responses
 from django.urls import reverse
 
 from fixtures.github import INSTALLATION_API_RESPONSE, INSTALLATION_EVENT_EXAMPLE
-from sentry import options
 from sentry.integrations.github.installation import INSTALLATION_EXPOSURE_MAX_TIME
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
@@ -20,7 +19,6 @@ class InstallationEndpointTest(APITestCase):
         self.login_as(self.user)
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")

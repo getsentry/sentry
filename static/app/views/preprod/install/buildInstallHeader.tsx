@@ -7,11 +7,11 @@ import type {UseQueryResult} from '@tanstack/react-query';
 import {PlatformIcon} from 'platformicons';
 
 import {CodeBlock} from '@sentry/scraps/codeBlock';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {Placeholder} from 'sentry/components/placeholder';
 import {PreprodBuildsDisplay} from 'sentry/components/preprod/preprodBuildsDisplay';
@@ -82,6 +82,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
   }
 
   const appInfo = buildDetailsData.app_info;
+  const buildDate = appInfo.date_built || appInfo.date_added;
   const labels = getLabels(appInfo.platform ?? undefined);
   const version = appInfo.version;
   const buildNumber = getBuildNumber(appInfo);
@@ -132,7 +133,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
             </Flex>
           </Tooltip>
         ) : null}
-        {(appInfo.date_built || appInfo.date_added) && (
+        {buildDate && (
           <Tooltip
             title={appInfo.date_built ? t('App build time') : t('App upload time')}
           >
@@ -141,11 +142,7 @@ export function BuildInstallHeader(props: BuildInstallHeaderProps) {
                 <IconClock />
               </Flex>
               <Text size="sm" variant="muted">
-                <DateTime
-                  date={appInfo.date_built || appInfo.date_added}
-                  seconds
-                  timeZone
-                />
+                <DateTime date={buildDate} precision="second" showTimezone />
               </Text>
             </Flex>
           </Tooltip>

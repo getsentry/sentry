@@ -121,9 +121,7 @@ function Commits() {
     isLoading: isLoadingRepositories,
     isError: isRepositoriesError,
     refetch: refetchRepositories,
-  } = useRepositories({
-    orgSlug: organization.slug,
-  });
+  } = useRepositories({orgSlug: organization.slug});
   const {
     data: releaseRepos,
     isLoading: isLoadingReleaseRepos,
@@ -133,9 +131,7 @@ function Commits() {
     orgSlug: organization.slug,
     projectSlug: releaseContext.project.slug,
     release: params.release,
-    options: {
-      enabled: !!releaseContext.project.slug,
-    },
+    options: {enabled: !!releaseContext.project.slug},
   });
 
   if (isLoadingReleaseRepos || isLoadingRepositories) {

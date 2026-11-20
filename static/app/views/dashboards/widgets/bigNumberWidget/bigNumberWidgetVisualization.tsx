@@ -63,16 +63,10 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
   const organization = useOrganization();
 
   // Create old-school renderer meta, so we can pass it to field renderers
-  const rendererMeta: MetaType = {
-    fields: {
-      [field]: type ?? undefined,
-    },
-  };
+  const rendererMeta: MetaType = {fields: {[field]: type ?? undefined}};
 
   if (unit) {
-    rendererMeta.units = {
-      [field]: unit,
-    };
+    rendererMeta.units = {[field]: unit};
   }
 
   const fieldRenderer = getFieldRenderer(field, rendererMeta, false);
@@ -89,12 +83,7 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
     return (
       <Wrapper>
         <NumberAndDifferenceContainer>
-          {fieldRenderer(
-            {
-              [field]: value,
-            },
-            {...baggage, theme}
-          )}
+          {fieldRenderer({[field]: value}, {...baggage, theme})}
         </NumberAndDifferenceContainer>
       </Wrapper>
     );
@@ -131,12 +120,7 @@ function BigNumberWidgetVisualizationInner(props: BigNumberWidgetVisualizationPr
             containerDisplayMode="inline-flex"
           >
             {doesValueHitMaximum ? '>' : ''}
-            {fieldRenderer(
-              {
-                [field]: clampedValue,
-              },
-              {...baggage, theme}
-            )}
+            {fieldRenderer({[field]: clampedValue}, {...baggage, theme})}
           </Tooltip>
         </NumberContainerOverride>
 

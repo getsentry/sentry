@@ -4,10 +4,7 @@ import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 
-type Props = {
-  isOpen: boolean;
-  setIsOpen: (isOpen: boolean) => void;
-};
+type Props = {isOpen: boolean; setIsOpen: (isOpen: boolean) => void};
 
 export function ReplaySidebarToggleButton({isOpen, setIsOpen}: Props) {
   return (

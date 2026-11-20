@@ -3109,6 +3109,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
             url="https://gitlab.com/my-group/sub/app",
             provider="integrations:gitlab",
             external_id="1",
+            integration_id=123,
             config={"path": "my-group/sub/app"},
             **repo_params,
         )
@@ -3128,6 +3129,7 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
                 url=url,
                 provider=f"integrations:{provider}",
                 external_id="1",
+                integration_id=123,
                 config={"path": path},
             )
             with self.subTest(provider=provider):
@@ -3298,23 +3300,13 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
         assert result is None
 
     def test_get_repository_definition_no_integration_id(self) -> None:
-        """Test repository without integration_id"""
-        Repository.objects.create(
-            organization_id=self.organization.id,
-            name="getsentry/seer",
-            provider="integrations:github",
-            external_id="12345678",
-            integration_id=None,
-            status=ObjectStatus.ACTIVE,
-        )
+        """Removing an integration leaves its repositories active with no integration. Seer can't
+        open one, so it isn't found, and Seer is told why."""
+        self._create_repo(integration_id=None)
 
-        result = get_repository_definition(
-            organization_id=self.organization.id,
-            repo_full_name="getsentry/seer",
+        assert self._lookup(self.organization, "getsentry/seer") == RepositoryDefinitionFailure(
+            failure_reason="no_scm_integration"
         )
-
-        assert isinstance(result, RepositoryDefinitionResponse)
-        assert result.integration_id is None
 
     def test_get_repository_definition_unsupported_provider(self) -> None:
         """Test that repositories with unsupported providers are filtered out"""
@@ -3366,9 +3358,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
     def test_get_repository_definition_github_and_gitlab_mirror_is_ambiguous(self) -> None:
         """A GitHub repo and its GitLab mirror share a URL path: refuse rather than guess."""
-        # The same goes for one name on two supported providers, and for the two rows with one
-        # name and provider that a re-installed integration leaves. Here one row matches by name
-        # and the other by URL path.
+        # The same goes for one name on two supported providers. Here one row matches by name and
+        # the other by URL path.
         self._create_repo(
             name="acme/app", url="https://github.com/acme/app", provider="integrations:github"
         )
@@ -3602,6 +3593,55 @@ class TestRpcGetProfileFlamegraph(APITestCase, SpanTestCase, SnubaTestCase):
         assert "execution_tree" in result
         assert result["metadata"]["profile_id"] == full_profiler_id
         assert result["metadata"]["is_continuous"] is True
+
+    def _store_span_with_both_profile_ids(self) -> tuple[str, str]:
+        transaction_profile_id = "d1e2f3a4" + "b" * 24
+        continuous_profiler_id = "e1f2a3b4" + "c" * 24
+        span = self.create_span(
+            {
+                "description": "span with both ids",
+                "profile_id": transaction_profile_id,
+                "sentry_tags": {"profiler_id": continuous_profiler_id},
+            },
+            start_ts=self.ten_mins_ago,
+            duration=100,
+        )
+        self.store_spans([span])
+        return transaction_profile_id, continuous_profiler_id
+
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_fetches_the_transaction_profile_asked_for(
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
+        transaction_profile_id, _ = self._store_span_with_both_profile_ids()
+        mock_fetch_profile.return_value = {"profile": {"frames": [], "stacks": [], "samples": []}}
+        mock_convert_tree.return_value = ([{"function": "main", "module": "app"}], "1")
+
+        result = rpc_get_profile_flamegraph(transaction_profile_id[:8], self.organization.id)
+
+        assert result["metadata"]["profile_id"] == transaction_profile_id
+        assert result["metadata"]["is_continuous"] is False
+        assert mock_fetch_profile.call_args.kwargs["profile_id"] == transaction_profile_id
+        assert mock_fetch_profile.call_args.kwargs["is_continuous"] is False
+
+    @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
+    @patch("sentry.seer.agent.tools.fetch_profile_data")
+    def test_rpc_get_profile_flamegraph_fetches_the_continuous_profile_asked_for(
+        self, mock_fetch_profile: MagicMock, mock_convert_tree: MagicMock
+    ) -> None:
+        _, continuous_profiler_id = self._store_span_with_both_profile_ids()
+        mock_fetch_profile.return_value = {
+            "chunk": {"profile": {"frames": [], "stacks": [], "samples": []}}
+        }
+        mock_convert_tree.return_value = ([{"function": "worker", "module": "tasks"}], "2")
+
+        result = rpc_get_profile_flamegraph(continuous_profiler_id[:8], self.organization.id)
+
+        assert result["metadata"]["profile_id"] == continuous_profiler_id
+        assert result["metadata"]["is_continuous"] is True
+        assert mock_fetch_profile.call_args.kwargs["profile_id"] == continuous_profiler_id
+        assert mock_fetch_profile.call_args.kwargs["is_continuous"] is True
 
     @patch("sentry.seer.agent.tools._convert_profile_to_execution_tree")
     @patch("sentry.seer.agent.tools.fetch_profile_data")

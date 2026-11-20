@@ -15,10 +15,7 @@ function externalIssuesOptions({group, organization}: UseExternalIssuesOptions) 
   return apiOptions.as<PlatformExternalIssue[]>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        issueId: group.id,
-      },
+      path: {organizationIdOrSlug: organization.slug, issueId: group.id},
       staleTime: 60_000,
     }
   );
@@ -53,10 +50,5 @@ export function useExternalIssues({group, organization}: UseExternalIssuesOption
     [queryClient, group, organization]
   );
 
-  return {
-    onDeleteExternalIssue,
-    onCreateExternalIssue,
-    isLoading: isPending,
-    data,
-  };
+  return {onDeleteExternalIssue, onCreateExternalIssue, isLoading: isPending, data};
 }

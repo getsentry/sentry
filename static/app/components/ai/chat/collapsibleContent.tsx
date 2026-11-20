@@ -17,10 +17,20 @@ interface CollapsibleContentProps {
   title: ReactNode | ((isOpen: boolean) => ReactNode);
   /** Forwarded to the root `<details>`, so callers can style it with `styled()`. */
   className?: string;
-  /** Start expanded. Defaults to collapsed. */
+  /** Start expanded when uncontrolled. Defaults to collapsed. */
   defaultOpen?: boolean;
   /** Fires on expand/collapse with the new open state. */
-  onToggle?: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
+  /**
+   * The open state, for a caller that controls it (paired with `onOpenChange`).
+   * Without it the section keeps its own state, starting from `defaultOpen`.
+   */
+  open?: boolean;
+  /**
+   * Show the leading caret. Turn it off for a title that shows its own open
+   * state. Defaults to shown.
+   */
+  showCaret?: boolean;
 }
 
 /**
@@ -34,18 +44,24 @@ export function CollapsibleContent({
   title,
   className,
   defaultOpen = false,
-  onToggle,
+  open,
+  showCaret = true,
+  onOpenChange,
 }: CollapsibleContentProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isOpen = open ?? uncontrolledOpen;
 
   return (
     <Details
       open={isOpen}
       className={className}
       onToggle={e => {
-        const open = e.currentTarget.open;
-        setIsOpen(open);
-        onToggle?.(open);
+        const nextOpen = e.currentTarget.open;
+        if (nextOpen === isOpen) {
+          return;
+        }
+        setUncontrolledOpen(nextOpen);
+        onOpenChange?.(nextOpen);
       }}
     >
       <Flex
@@ -58,7 +74,9 @@ export function CollapsibleContent({
         cursor="pointer"
         onClick={e => e.stopPropagation()}
       >
-        <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        {showCaret && (
+          <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
+        )}
         {typeof title === 'function' ? title(isOpen) : title}
       </Flex>
       {children}

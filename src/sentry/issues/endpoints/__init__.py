@@ -10,7 +10,6 @@ from .group_notes_details import GroupNotesDetailsEndpoint
 from .group_pull_requests import GroupPullRequestsEndpoint
 from .group_related import GroupRelatedEndpoint
 from .group_similar_issues import GroupSimilarIssuesEndpoint
-from .group_similar_issues_embeddings import GroupSimilarIssuesEmbeddingsEndpoint
 from .group_tombstone import GroupTombstoneEndpoint
 from .group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .organization_code_mapping_repo_prefixes import OrganizationCodeMappingRepoPrefixesEndpoint
@@ -54,7 +53,6 @@ __all__ = (
     "GroupNotesEndpoint",
     "GroupPullRequestsEndpoint",
     "GroupRelatedEndpoint",
-    "GroupSimilarIssuesEmbeddingsEndpoint",
     "GroupSimilarIssuesEndpoint",
     "GroupTombstoneDetailsEndpoint",
     "GroupTombstoneEndpoint",

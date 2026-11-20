@@ -5,10 +5,7 @@ import {areAiFeaturesAllowed as computeAreAiFeaturesAllowed} from 'sentry/utils/
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 interface OrganizationSeerSetupResponse {
-  billing: {
-    hasAutofixQuota: boolean;
-    hasScannerQuota: boolean;
-  };
+  billing: {hasAutofixQuota: boolean; hasScannerQuota: boolean};
   hasFreeAutofixAccess: boolean;
 }
 

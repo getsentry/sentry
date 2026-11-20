@@ -87,7 +87,7 @@ const mockRepository = RepositoryFixture({
 
 describe('ScmPlatformFeatures', () => {
   const organization = OrganizationFixture({
-    features: ['performance-view', 'session-replay', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   beforeEach(() => {
@@ -284,9 +284,7 @@ describe('ScmPlatformFeatures', () => {
   it('continue button is enabled when platform is selected', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/42/platforms/`,
-      body: {
-        platforms: [DetectedPlatformFixture()],
-      },
+      body: {platforms: [DetectedPlatformFixture()]},
     });
 
     render(
@@ -348,9 +346,7 @@ describe('ScmPlatformFeatures', () => {
   it('opens console modal when selecting a disabled gaming platform', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {
       // No enabledConsolePlatforms — all console platforms are blocked
-      organization: OrganizationFixture({
-        features: ['performance-view', 'session-replay', 'profiling-view'],
-      }),
+      organization: OrganizationFixture({features: ['session-replay', 'profiling-view']}),
     });
     renderGlobalModal();
 
@@ -450,10 +446,7 @@ describe('ScmPlatformFeatures', () => {
 
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'onboarding.scm_platform_selected',
-        expect.objectContaining({
-          platform: 'python-django',
-          source: 'detected',
-        })
+        expect.objectContaining({platform: 'python-django', source: 'detected'})
       );
     });
 
@@ -737,10 +730,7 @@ describe('ScmPlatformFeatures', () => {
 
       expect(repoLinkRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${createdProject.slug}/repo/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {repositoryId: mockRepository.id},
-        })
+        expect.objectContaining({method: 'POST', data: {repositoryId: mockRepository.id}})
       );
     });
 
@@ -823,10 +813,7 @@ describe('ScmPlatformFeatures', () => {
     });
 
     it('creates a new project when the platform changed from the existing one', async () => {
-      const stalePythonProject = ProjectFixture({
-        slug: 'python',
-        platform: 'python',
-      });
+      const stalePythonProject = ProjectFixture({slug: 'python', platform: 'python'});
       ProjectsStore.loadInitialData([stalePythonProject]);
       const newProject = ProjectFixture({
         slug: 'javascript-nextjs',
