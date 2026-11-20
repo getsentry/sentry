@@ -18,11 +18,7 @@ export const sampleLatencyHeatMap: HeatMapSeries = {
       valueType: 'duration',
       valueUnit: DurationUnit.MILLISECOND,
     },
-    zAxis: {
-      name: 'count()',
-      start: 0,
-      end: 15,
-    },
+    zAxis: {name: 'count()', start: 0, end: 15},
   },
   values: [
     {xAxis: 1777802400000, yAxis: 0, zAxis: 1},

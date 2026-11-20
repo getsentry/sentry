@@ -44,10 +44,7 @@ export class VideoReplayerWithInteractions {
     theme,
     speed,
   }: VideoReplayerWithInteractionsOptions) {
-    this.config = {
-      skipInactive: false,
-      speed,
-    };
+    this.config = {skipInactive: false, speed};
 
     this.videoReplayer = new VideoReplayer(videoEvents, {
       videoApiPrefix,
@@ -77,10 +74,7 @@ export class VideoReplayerWithInteractions {
       speed: this.config.speed,
     });
 
-    this.setConfig({
-      skipInactive: false,
-      speed,
-    });
+    this.setConfig({skipInactive: false, speed});
   }
 
   public destroy() {

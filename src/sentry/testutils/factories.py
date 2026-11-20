@@ -14,7 +14,7 @@ from datetime import UTC, datetime, timedelta
 from enum import Enum
 from hashlib import sha1
 from importlib import import_module
-from typing import TYPE_CHECKING, Any, cast
+from typing import TYPE_CHECKING, Any
 from unittest import mock
 from uuid import uuid4
 
@@ -2139,7 +2139,7 @@ class Factories:
     def create_session() -> SessionBase:
         engine = import_module(settings.SESSION_ENGINE)
 
-        session = cast("SessionBase", engine.SessionStore())
+        session = engine.SessionStore()
         session.save()
         return session
 
@@ -2746,9 +2746,7 @@ class Factories:
             "result_attribute": "result",
             "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
-            "natural_language_prompt": "Is the user frustrated?",
-            "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
+            "prebuilt_classifier_key": "conversation_user_frustration",
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 

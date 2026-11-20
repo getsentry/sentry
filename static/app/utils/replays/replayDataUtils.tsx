@@ -10,9 +10,7 @@ import type {
   ReplayRecord,
 } from 'sentry/views/explore/replays/types';
 
-const defaultValues = {
-  has_viewed: false,
-};
+const defaultValues = {has_viewed: false};
 
 function mapUser(user: any): ReplayRecord['tags'] {
   return Object.fromEntries(

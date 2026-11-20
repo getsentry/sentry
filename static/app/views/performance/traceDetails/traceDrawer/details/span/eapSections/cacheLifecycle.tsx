@@ -388,11 +388,7 @@ function CacheOriginContent({
     timestamp: fillTimestamp,
     enabled: isSampled && !isPastRetention,
   });
-  const originSpanLink = useLinkedSpanTarget({
-    ...props,
-    link,
-    timestamp: fillTimestamp,
-  });
+  const originSpanLink = useLinkedSpanTarget({...props, link, timestamp: fillTimestamp});
 
   if (!isSampled) {
     // The origin trace does not exist, so the existing link is a dead end

@@ -26,7 +26,7 @@ class GoogleOAuth2ProviderTest(TestCase):
             data={"access_token": "access_token"},
         )
 
-        provider = cast(GoogleOAuth2Provider, self.auth_provider_inst.get_provider())
+        provider = self.auth_provider_inst.get_provider()
 
         with pytest.raises(IdentityNotValid):
             provider.refresh_identity(auth_identity)
@@ -44,7 +44,7 @@ class GoogleOAuth2ProviderTest(TestCase):
         assert provider.domains == ["example.com"]
 
     def test_build_config(self) -> None:
-        provider = cast(GoogleOAuth2Provider, self.auth_provider_inst.get_provider())
+        provider = self.auth_provider_inst.get_provider()
         state = {
             "domain": "example.com",
             "user": {

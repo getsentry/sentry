@@ -143,23 +143,14 @@ const mapMetricDetectorFormErrors = (error: unknown) => {
   }
 
   if ('dataSource' in error && typeof error.dataSource === 'object') {
-    return {
-      ...error,
-      ...error.dataSource,
-    };
+    return {...error, ...error.dataSource};
   }
   if ('dataSources' in error) {
     if (Array.isArray(error.dataSources)) {
-      return {
-        ...error,
-        ...error.dataSources[0],
-      };
+      return {...error, ...error.dataSources[0]};
     }
     if (typeof error.dataSources === 'object') {
-      return {
-        ...error,
-        ...error.dataSources,
-      };
+      return {...error, ...error.dataSources};
     }
   }
   return error;
@@ -538,10 +529,7 @@ function DetectSection({step}: {step?: number}) {
     METRIC_DETECTOR_FORM_FIELDS.extrapolationMode
   );
 
-  const showThresholdWarning = useIsMigratedExtrapolation({
-    dataset,
-    extrapolationMode,
-  });
+  const showThresholdWarning = useIsMigratedExtrapolation({dataset, extrapolationMode});
 
   return (
     <Container>
@@ -560,7 +548,7 @@ function DetectSection({step}: {step?: number}) {
                   'Your thresholds may need to be adjusted to take into account [samplingLink:sampling].',
                   {
                     samplingLink: (
-                      <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                      <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
                     ),
                   }
                 ),
@@ -694,7 +682,7 @@ function MigratedAlertWarningListener() {
             'The thresholds on this chart may look off. This is because, once saved, alerts will now take into account [samplingLink:sampling rate]. Before clicking save, take the time to update your [thresholdsLink:thresholds]. Cancel to continue running this alert in compatibility mode.',
             {
               samplingLink: (
-                <ExternalLink href="https://docs.sentry.io/product/explore/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
+                <ExternalLink href="https://docs.sentry.io/product/trace-explorer/#how-sampling-affects-queries-in-trace-explorer" />
               ),
               thresholdsLink: (
                 <Link

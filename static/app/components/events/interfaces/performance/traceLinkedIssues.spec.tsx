@@ -15,11 +15,7 @@ describe('TraceLinkedIssues', () => {
   const event = EventFixture({
     groupID: currentIssueId,
     projectID: project.id,
-    contexts: {
-      trace: {
-        trace_id: traceId,
-      },
-    },
+    contexts: {trace: {trace_id: traceId}},
   });
 
   beforeEach(() => {

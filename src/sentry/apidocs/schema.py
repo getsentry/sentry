@@ -41,7 +41,7 @@ class SentrySchema(AutoSchema):
 
     @property
     def view_func(self) -> Callable[..., object]:
-        return cast("Callable[..., object]", getattr(self.view, self.method.lower()))
+        return getattr(self.view, self.method.lower())
 
     def get_operation_id(self) -> str:
         """

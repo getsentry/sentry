@@ -2,18 +2,12 @@ import {DataCategory} from 'sentry/types/core';
 
 import type {Subscription} from 'getsentry/types';
 
-type Product = {
-  categories: DataCategory[];
-  product: DataCategory;
-};
+type Product = {categories: DataCategory[]; product: DataCategory};
 
 type Path = string;
 
 const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
-  '/issues/': {
-    product: DataCategory.ERRORS,
-    categories: [DataCategory.ERRORS],
-  },
+  '/issues/': {product: DataCategory.ERRORS, categories: [DataCategory.ERRORS]},
   '/performance/': {
     product: DataCategory.TRANSACTIONS,
     categories: [DataCategory.TRANSACTIONS],
@@ -22,10 +16,7 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.TRANSACTIONS,
     categories: [DataCategory.TRANSACTIONS],
   },
-  '/replays/': {
-    product: DataCategory.REPLAYS,
-    categories: [DataCategory.REPLAYS],
-  },
+  '/replays/': {product: DataCategory.REPLAYS, categories: [DataCategory.REPLAYS]},
   '/profiles/': {
     product: DataCategory.PROFILES,
     categories: [DataCategory.PROFILES, DataCategory.TRANSACTIONS],
@@ -34,18 +25,12 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
     product: DataCategory.MONITOR_SEATS,
     categories: [DataCategory.MONITOR_SEATS],
   },
-  '/insights/uptime/': {
-    product: DataCategory.UPTIME,
-    categories: [DataCategory.UPTIME],
-  },
+  '/insights/uptime/': {product: DataCategory.UPTIME, categories: [DataCategory.UPTIME]},
   '/traces/': {
     product: DataCategory.TRANSACTIONS,
     categories: [DataCategory.TRANSACTIONS],
   },
-  '/logs/': {
-    product: DataCategory.LOG_BYTE,
-    categories: [DataCategory.LOG_BYTE],
-  },
+  '/logs/': {product: DataCategory.LOG_BYTE, categories: [DataCategory.LOG_BYTE]},
   '/metrics/': {
     product: DataCategory.TRACE_METRIC_BYTE,
     categories: [DataCategory.TRACE_METRIC_BYTE],
@@ -53,18 +38,12 @@ const PATHS_FOR_PRODUCT_TRIALS: Record<Path, Product> = {
 };
 
 const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
-  '/performance/': {
-    product: DataCategory.SPANS,
-    categories: [DataCategory.SPANS],
-  },
+  '/performance/': {product: DataCategory.SPANS, categories: [DataCategory.SPANS]},
   '/performance/database/': {
     product: DataCategory.SPANS,
     categories: [DataCategory.SPANS],
   },
-  '/replays/': {
-    product: DataCategory.REPLAYS,
-    categories: [DataCategory.REPLAYS],
-  },
+  '/replays/': {product: DataCategory.REPLAYS, categories: [DataCategory.REPLAYS]},
   '/profiles/': {
     product: DataCategory.PROFILES,
     // The trials that should be started here are for
@@ -76,10 +55,7 @@ const PATHS_FOR_PRODUCT_TRIALS_AM3_OVERRIDES: Record<Path, Product> = {
     // user to start a product trial
     categories: [],
   },
-  '/traces/': {
-    product: DataCategory.SPANS,
-    categories: [DataCategory.SPANS],
-  },
+  '/traces/': {product: DataCategory.SPANS, categories: [DataCategory.SPANS]},
 };
 
 function normalizePath(path: string): string {

@@ -36,11 +36,7 @@ export function RetryableAutofixSection({
   readOnly?: boolean;
 }) {
   const {canReset, shouldShowReset, setShouldShowReset, handleReset} =
-    useResetAutofixStep({
-      autofix,
-      section,
-      step,
-    });
+    useResetAutofixStep({autofix, section, step});
 
   return (
     <RetryableAutofixSectionContext

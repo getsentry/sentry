@@ -31,9 +31,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
     // ECharts groups stacks by name, even when series use different Y axes.
     const stackPrefix = plottingOptions.yAxisPosition;
 
-    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      segmentBy,
-    });
+    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {segmentBy});
 
     segments.forEach(([timeSeries, style], index) => {
       const data = scaleTimeSeriesData(timeSeries, plottingOptions.unit).values.map(
@@ -46,13 +44,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
             ...commonOptions,
             stack: `incomplete-${stackPrefix}-${index}`,
             data,
-            lineStyle: {
-              type: 'dotted',
-            },
-            areaStyle: {
-              color,
-              opacity: 0.8,
-            },
+            lineStyle: {type: 'dotted'},
+            areaStyle: {color, opacity: 0.8},
             silent: true,
           })
         );
@@ -64,13 +57,8 @@ export class Area extends ContinuousTimeSeries implements Plottable {
             ...commonOptions,
             stack: `lowConfidence-${stackPrefix}-${index}`,
             data,
-            lineStyle: {
-              opacity: LOW_CONFIDENCE_OPACITY,
-            },
-            areaStyle: {
-              color,
-              opacity: LOW_CONFIDENCE_OPACITY,
-            },
+            lineStyle: {opacity: LOW_CONFIDENCE_OPACITY},
+            areaStyle: {color, opacity: LOW_CONFIDENCE_OPACITY},
           })
         );
       }
@@ -80,10 +68,7 @@ export class Area extends ContinuousTimeSeries implements Plottable {
           createLineSeries({
             ...commonOptions,
             stack: `complete-${stackPrefix}-${index}`,
-            areaStyle: {
-              color,
-              opacity: 1,
-            },
+            areaStyle: {color, opacity: 1},
             data,
           })
         );

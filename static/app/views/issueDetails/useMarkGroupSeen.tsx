@@ -2,19 +2,16 @@ import {useMutation, useQueryClient, type InfiniteData} from '@tanstack/react-qu
 
 import type {Group} from 'sentry/types/group';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {groupQueryKey} from './useGroup';
+import {groupQueryFilter} from './useGroup';
 
 export function useMarkGroupSeen() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issuesUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
 
   return useMutation({
     mutationFn: (groupId: string) =>
@@ -27,7 +24,7 @@ export function useMarkGroupSeen() {
       }),
     onSuccess: (updatedGroup, groupId) => {
       queryClient.setQueriesData(
-        {queryKey: groupQueryKey({organizationSlug: organization.slug, groupId})},
+        groupQueryFilter({organizationSlug: organization.slug, groupId}),
         (previous: ApiResponse<Group> | undefined) =>
           previous
             ? {...previous, json: {...previous.json, hasSeen: updatedGroup.hasSeen}}
@@ -36,10 +33,10 @@ export function useMarkGroupSeen() {
 
       // Inbox sections are infinite queries against the organization issues endpoint.
       queryClient.setQueriesData<InfiniteData<ApiResponse<Group[]>>>(
-        {
-          queryKey: [issuesUrl],
-          predicate: query => safeParseQueryKey(query.queryKey)?.isInfinite === true,
-        },
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+          infinite: true,
+        }),
         previous =>
           previous
             ? {
@@ -56,7 +53,12 @@ export function useMarkGroupSeen() {
             : previous
       );
 
-      void queryClient.invalidateQueries({queryKey: [issuesUrl], refetchType: 'none'});
+      void queryClient.invalidateQueries({
+        ...apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        refetchType: 'none',
+      });
     },
   });
 }

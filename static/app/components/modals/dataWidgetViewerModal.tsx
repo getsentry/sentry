@@ -295,9 +295,7 @@ function DataWidgetViewerModal(props: Props) {
       Sentry.metrics.distribution(
         'dashboards.widget.onFullScreenView',
         measure.duration,
-        {
-          unit: 'millisecond',
-        }
+        {unit: 'millisecond'}
       );
       performance.clearMarks('dashboard.widget.fullScreenViewClick');
       performance.clearMeasures('dashboard.widget.onFullScreenView');
@@ -325,10 +323,7 @@ function DataWidgetViewerModal(props: Props) {
   const locationPageFilter = useMemo(
     () =>
       start && end
-        ? {
-            ...selection,
-            datetime: {start, end, period: null, utc: null},
-          }
+        ? {...selection, datetime: {start, end, period: null, utc: null}}
         : selection,
     [start, end, selection]
   );
@@ -505,11 +500,7 @@ function DataWidgetViewerModal(props: Props) {
       ) : null;
     };
 
-    return {
-      label: truncate(name || conditions, 120),
-      value: index,
-      getHighlightedQuery,
-    };
+    return {label: truncate(name || conditions, 120), value: index, getHighlightedQuery};
   });
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
@@ -586,12 +577,7 @@ function DataWidgetViewerModal(props: Props) {
     const newEnd = getUtcDateString(moment.utc(endValue));
     setModalSelection({
       ...modalSelection,
-      datetime: {
-        ...modalSelection.datetime,
-        start: newStart,
-        end: newEnd,
-        period: null,
-      },
+      datetime: {...modalSelection.datetime, start: newStart, end: newEnd, period: null},
     });
     navigate({
       pathname: location.pathname,
@@ -998,9 +984,7 @@ function ViewerTableV2({
   }
 
   const columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    })),
+    fields.map(field => ({field})),
     tableResults?.[0]?.meta
   );
 

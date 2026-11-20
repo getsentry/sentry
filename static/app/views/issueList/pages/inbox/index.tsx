@@ -240,10 +240,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
     return null;
   }
 
-  return {
-    my_teams: data[myTeamsQuery] ?? 0,
-    all: data[allQuery] ?? 0,
-  };
+  return {my_teams: data[myTeamsQuery] ?? 0, all: data[allQuery] ?? 0};
 }
 
 function getAlternateInbox(
@@ -273,9 +270,7 @@ function AssignmentTabs({
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
-      : {
-          assignment_filter: assignmentFilter,
-        }
+      : {assignment_filter: assignmentFilter}
   );
 
   return (
@@ -312,10 +307,7 @@ function InboxContent() {
   const organization = useOrganization();
   const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
     useQueryStates(
-      {
-        assignment: assignmentFilterParser,
-        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
-      },
+      {assignment: assignmentFilterParser, [SELECTED_ISSUE_QUERY_PARAM]: parseAsString},
       {history: 'replace'}
     );
   const issueIdToRestoreScroll = useRef(selectedIssueId);
@@ -640,11 +632,7 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
         email: owner.email,
         type: 'user',
       })),
-      ...ownerTeams.map<Actor>(team => ({
-        id: team.id,
-        name: team.name,
-        type: 'team',
-      })),
+      ...ownerTeams.map<Actor>(team => ({id: team.id, name: team.name, type: 'team'})),
     ],
     [
       // If the current user is in the list, sort it to the top

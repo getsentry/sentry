@@ -133,9 +133,7 @@ const getUserAge = (user: User | null): number | null => {
   return getDaysSinceDate(user.dateJoined);
 };
 type RawTrackEventHook = Overrides['analytics:raw-track-event'];
-type Params = Parameters<RawTrackEventHook>[0] & {
-  subscription?: Subscription;
-};
+type Params = Parameters<RawTrackEventHook>[0] & {subscription?: Subscription};
 
 type Options = Parameters<RawTrackEventHook>[1];
 

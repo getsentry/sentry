@@ -19,10 +19,7 @@ export function ProfilingDetailsFrameTabs({children}: {children: ReactNode}) {
   );
 }
 
-export const ProfilingDetailsListItem = styled('li')<{
-  margin?: 'none';
-  size?: 'sm';
-}>`
+export const ProfilingDetailsListItem = styled('li')<{margin?: 'none'; size?: 'sm'}>`
   height: 100%;
   display: flex;
   align-items: center;

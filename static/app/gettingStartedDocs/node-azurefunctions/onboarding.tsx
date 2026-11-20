@@ -52,10 +52,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry Node SDK as a dependency:')},
         getInstallCodeBlock(params),
       ],
     },
@@ -78,11 +75,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getSdkSetupSnippet(params)},
       ],
     },
     getUploadSourceMapsStep({
@@ -105,11 +98,7 @@ export const onboarding: OnboardingConfig = {
             'Verify that your Sentry installation is working by triggering a test error in your Azure Function:'
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getVerifySnippet(params)},
       ],
     },
   ],

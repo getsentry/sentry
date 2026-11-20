@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, cast
+from typing import Any
 from uuid import uuid4
 
 from django.db import connection
@@ -180,13 +180,10 @@ class NotebookDetailsSerializerTest(TestCase):
         self.block = self.create_notebook_block(notebook=self.notebook, position=0)
 
     def serialize_detail(self) -> NotebookDetailsSerializerResponse:
-        return cast(
-            "NotebookDetailsSerializerResponse",
-            serialize(
-                self.notebook,
-                self.user,
-                NotebookDetailsSerializer(),
-            ),
+        return serialize(
+            self.notebook,
+            self.user,
+            NotebookDetailsSerializer(),
         )
 
     def test_extends_the_list_representation(self) -> None:
@@ -328,15 +325,12 @@ class NotebookActionRequestSerializationTest(TestCase):
 
     def serialize_requests(self) -> list[dict[str, Any]]:
         access = from_user(self.user, self.organization)
-        detail = cast(
-            "NotebookDetailsSerializerResponse",
-            serialize(
-                self.notebook,
-                self.user,
-                NotebookDetailsSerializer(access=access),
-            ),
+        detail = serialize(
+            self.notebook,
+            self.user,
+            NotebookDetailsSerializer(access=access),
         )
-        return cast("list[dict[str, Any]]", detail["actionRequests"])
+        return detail["actionRequests"]
 
     def test_serializes_an_action_request(self) -> None:
         action_request = self.add_request(
@@ -678,15 +672,12 @@ class NotebookActionRequestSerializationTest(TestCase):
 
     def serialize_for(self, user: Any) -> list[dict[str, Any]]:
         access = from_user(user, self.organization)
-        detail = cast(
-            "NotebookDetailsSerializerResponse",
-            serialize(
-                self.notebook,
-                user,
-                NotebookDetailsSerializer(access=access),
-            ),
+        detail = serialize(
+            self.notebook,
+            user,
+            NotebookDetailsSerializer(access=access),
         )
-        return cast("list[dict[str, Any]]", detail["actionRequests"])
+        return detail["actionRequests"]
 
     def cannot_apply_reason(self, user: Any = None) -> str | None:
         reason = self.serialize_for(user or self.user)[0]["cannotApplyReason"]

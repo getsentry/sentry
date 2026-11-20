@@ -32,6 +32,8 @@ export const RESOURCE_EVENTS = {
     'seer.pr_ready_for_review',
     'seer.iteration_started',
     'seer.iteration_completed',
+    'seer.stopped',
+    'seer.errored',
   ],
   preprod_artifact: [
     'preprod_artifact.size_analysis_completed',

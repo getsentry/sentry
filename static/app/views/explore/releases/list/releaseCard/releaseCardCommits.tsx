@@ -10,10 +10,7 @@ import type {Release} from 'sentry/types/release';
 import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 
-type Props = {
-  release: Release;
-  withHeading: boolean;
-};
+type Props = {release: Release; withHeading: boolean};
 
 export function ReleaseCardCommits({release, withHeading}: Props) {
   const commitCount = release.commitCount || 0;
@@ -23,11 +20,7 @@ export function ReleaseCardCommits({release, withHeading}: Props) {
     () =>
       release.authors.map<Actor | User>(author =>
         // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
+        ({...author, type: 'user', id: 'id' in author ? author.id : uniqueId()})
       ),
     [release.authors]
   );

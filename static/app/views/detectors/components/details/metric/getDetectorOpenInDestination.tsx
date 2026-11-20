@@ -97,10 +97,7 @@ function getDetectorDiscoverUrl({
   const {query, ...toObject} = eventView.getResultsViewUrlTarget(organization, false);
   const timeWindowString = convertTimeWindowSecondsToInterval(snubaQuery.timeWindow);
 
-  return normalizeUrl({
-    query: {...query, interval: timeWindowString},
-    ...toObject,
-  });
+  return normalizeUrl({query: {...query, interval: timeWindowString}, ...toObject});
 }
 
 function getDetectorExploreUrl({
@@ -133,12 +130,7 @@ function getDetectorExploreUrl({
       projects: [numericProjectId],
     },
     interval,
-    visualize: [
-      {
-        chartType: ChartType.LINE,
-        yAxes: [snubaQuery.aggregate],
-      },
-    ],
+    visualize: [{chartType: ChartType.LINE, yAxes: [snubaQuery.aggregate]}],
     query,
   });
 }
@@ -234,30 +226,18 @@ export function getDetectorOpenInDestination(
 
   switch (dataset) {
     case DetectorDataset.LOGS:
-      return {
-        buttonText: t('Open in Logs'),
-        to: getDetectorLogsUrl(options),
-      };
+      return {buttonText: t('Open in Logs'), to: getDetectorLogsUrl(options)};
     case DetectorDataset.METRICS:
       return {
         buttonText: t('Open in Application Metrics'),
         to: getDetectorMetricsUrl(options),
       };
     case DetectorDataset.SPANS:
-      return {
-        buttonText: t('Open in Explore'),
-        to: getDetectorExploreUrl(options),
-      };
+      return {buttonText: t('Open in Explore'), to: getDetectorExploreUrl(options)};
     case DetectorDataset.TRANSACTIONS:
-      return {
-        buttonText: t('Open in Explore'),
-        to: getDetectorExploreUrl(options),
-      };
+      return {buttonText: t('Open in Explore'), to: getDetectorExploreUrl(options)};
     case DetectorDataset.ERRORS:
-      return {
-        buttonText: t('Open in Explore'),
-        to: getDetectorDiscoverUrl(options),
-      };
+      return {buttonText: t('Open in Explore'), to: getDetectorDiscoverUrl(options)};
     case DetectorDataset.RELEASES:
       // Releases/crash-free alerts don't have a corresponding explore view
       return null;

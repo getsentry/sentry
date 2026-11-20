@@ -108,12 +108,7 @@ export function cronFormDataToEndpointPayload(
     owner: data.owner,
     projectId: data.projectId,
     workflowIds: data.workflowIds,
-    dataSources: [
-      {
-        name,
-        config,
-      },
-    ],
+    dataSources: [{name, config}],
   };
 }
 

@@ -9,13 +9,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Counts = {
-  counts: {
-    active: number;
-    disabled: number;
-    total: number;
-  };
-};
+type Counts = {counts: {active: number; disabled: number; total: number}};
 
 export function MonitorsDropdown() {
   const organization = useOrganization();

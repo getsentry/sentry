@@ -175,11 +175,7 @@ export function Am1MobileOverviewPage({datePageFilterProps}: Am1MobileOverviewPa
     trackAnalytics('performance.domains.mobile.search', {organization});
 
     setSearchParams(
-      {
-        cursor: null,
-        query: String(searchQuery).trim() || null,
-        isDefaultQuery: false,
-      },
+      {cursor: null, query: String(searchQuery).trim() || null, isDefaultQuery: false},
       {history: 'push'}
     );
   }

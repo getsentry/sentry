@@ -13,9 +13,7 @@ import {ConversationClassifierWizard} from './components/conversationClassifierW
 import {CLASSIFIER_DATASETS} from './constants';
 import {getClassifiersPath} from './utils';
 
-const PREVIEW_SELECTION = {
-  datetime: {period: '7d', start: null, end: null, utc: null},
-};
+const PREVIEW_SELECTION = {datetime: {period: '7d', start: null, end: null, utc: null}};
 
 const datasetParser =
   parseAsStringLiteral(CLASSIFIER_DATASETS).withDefault('conversation');

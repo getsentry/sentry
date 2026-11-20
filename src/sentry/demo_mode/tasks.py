@@ -155,6 +155,7 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 router.db_for_write(ReleaseArtifactBundle),
             )
         ):
+            assert source_artifact_bundle.file is not None
             blobs = source_artifact_bundle.file.blobs.all()
             for blob in blobs:
                 FileBlobOwner.objects.get_or_create(

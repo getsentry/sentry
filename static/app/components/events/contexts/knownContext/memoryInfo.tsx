@@ -97,11 +97,7 @@ export function getMemoryInfoContext({
           value: data.pause_time_percentage,
         };
       case MemoryInfoContextKey.INDEX:
-        return {
-          key: ctxKey,
-          subject: t('Index'),
-          value: data.index,
-        };
+        return {key: ctxKey, subject: t('Index'), value: data.index};
       case MemoryInfoContextKey.FINALIZATION_PENDING_COUNT:
         return {
           key: ctxKey,
@@ -109,23 +105,11 @@ export function getMemoryInfoContext({
           value: data.finalization_pending_count,
         };
       case MemoryInfoContextKey.COMPACTED:
-        return {
-          key: ctxKey,
-          subject: t('Compacted'),
-          value: data.compacted,
-        };
+        return {key: ctxKey, subject: t('Compacted'), value: data.compacted};
       case MemoryInfoContextKey.CONCURRENT:
-        return {
-          key: ctxKey,
-          subject: t('Concurrent'),
-          value: data.concurrent,
-        };
+        return {key: ctxKey, subject: t('Concurrent'), value: data.concurrent};
       case MemoryInfoContextKey.PAUSE_DURATIONS:
-        return {
-          key: ctxKey,
-          subject: t('Pause Durations'),
-          value: data.pause_durations,
-        };
+        return {key: ctxKey, subject: t('Pause Durations'), value: data.pause_durations};
       default:
         return {
           key: ctxKey,

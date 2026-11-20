@@ -32,9 +32,7 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'To enable logging, you need to initialize the SDK with the [code:logs.enabled] option set to [code:true].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

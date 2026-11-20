@@ -156,10 +156,7 @@ function DashboardPreview({
     () => getDashboardWidgetInterval(selection),
     [selection]
   );
-  const widgetLegendState = useLocalWidgetLegendSelectionState({
-    dashboard,
-    organization,
-  });
+  const widgetLegendState = useLocalWidgetLegendSelectionState({dashboard, organization});
 
   if (dashboard.widgets.length === 0) {
     return <Text variant="muted">{t('This dashboard has no widgets.')}</Text>;
@@ -170,10 +167,7 @@ function DashboardPreview({
       <WidgetQueryQueueProvider>
         <WidgetSyncContextProvider>
           <Grid
-            columns={{
-              '2xs': 'minmax(0, 1fr)',
-              md: 'repeat(2, minmax(0, 1fr))',
-            }}
+            columns={{'2xs': 'minmax(0, 1fr)', md: 'repeat(2, minmax(0, 1fr))'}}
             gap="md"
           >
             {previewWidgets.map((widget, index) => (

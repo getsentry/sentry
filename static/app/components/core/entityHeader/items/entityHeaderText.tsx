@@ -1,3 +1,5 @@
+import type {DistributedPick} from 'type-fest';
+
 import {InfoText} from '@sentry/scraps/info';
 import type {LinkDestination} from '@sentry/scraps/link';
 import {ExternalLink, Link} from '@sentry/scraps/link';
@@ -23,9 +25,9 @@ export type EntityHeaderTextVariant =
  * constants should `satisfies` this, so a style the text would not apply
  * fails to type-check rather than being dropped.
  */
-export type EntityHeaderTextStyles = Pick<
+export type EntityHeaderTextStyles = DistributedPick<
   TextProps<'span'>,
-  'bold' | 'density' | 'size' | 'tabular' | 'wrap'
+  'bold' | 'density' | 'ellipsis' | 'size' | 'tabular' | 'wrap'
 >;
 
 /**

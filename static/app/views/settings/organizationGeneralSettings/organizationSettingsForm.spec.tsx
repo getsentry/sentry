@@ -34,9 +34,7 @@ describe('OrganizationSettingsForm', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/?provider_key=github`,
       method: 'GET',
-      body: {
-        providers: [{canAdd: true}],
-      },
+      body: {providers: [{canAdd: true}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -69,12 +67,7 @@ describe('OrganizationSettingsForm', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            name: 'New Name',
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {name: 'New Name'}})
       );
     });
   });
@@ -124,11 +117,7 @@ describe('OrganizationSettingsForm', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       '/organizations/org-slug/',
-      expect.objectContaining({
-        data: {
-          slug: 'new-slug',
-        },
-      })
+      expect.objectContaining({data: {slug: 'new-slug'}})
     );
   });
 
@@ -196,9 +185,7 @@ describe('OrganizationSettingsForm', () => {
       method: 'PUT',
     });
 
-    const checkbox = screen.getByRole('checkbox', {
-      name: 'Show Generative AI Features',
-    });
+    const checkbox = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
 
     expect(checkbox).not.toBeChecked();
 
@@ -208,9 +195,7 @@ describe('OrganizationSettingsForm', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({
-          data: {hideAiFeatures: false},
-        })
+        expect.objectContaining({data: {hideAiFeatures: false}})
       );
     });
   });
@@ -229,9 +214,7 @@ describe('OrganizationSettingsForm', () => {
       method: 'PUT',
     });
 
-    const checkbox = screen.getByRole('checkbox', {
-      name: 'Show Generative AI Features',
-    });
+    const checkbox = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
 
     expect(checkbox).toBeChecked();
 
@@ -248,21 +231,18 @@ describe('OrganizationSettingsForm', () => {
 
   it('shows hideAiFeatures toggle for DE region', () => {
     // Mock the region util to return DE region
-    jest.mocked(RegionUtils.getLocalityDataFromOrganization).mockImplementation(() => ({
-      name: 'de',
-      displayName: 'Europe (Frankfurt)',
-      url: 'https://sentry.de.example.com',
-      label: '🇪🇺 Europe (Frankfurt)',
-    }));
+    jest
+      .mocked(RegionUtils.getLocalityDataFromOrganization)
+      .mockImplementation(() => ({
+        name: 'de',
+        displayName: 'Europe (Frankfurt)',
+        url: 'https://sentry.de.example.com',
+        label: '🇪🇺 Europe (Frankfurt)',
+      }));
 
     render(
       <OrganizationSettingsForm initialData={OrganizationFixture()} onSave={onSave} />,
-      {
-        organization: {
-          ...organization,
-          features: ['autofix'],
-        },
-      }
+      {organization: {...organization, features: ['autofix']}}
     );
 
     const toggle = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
@@ -276,9 +256,7 @@ describe('OrganizationSettingsForm', () => {
       {organization}
     );
 
-    const checkbox = screen.getByRole('checkbox', {
-      name: 'Show Generative AI Features',
-    });
+    const checkbox = screen.getByRole('checkbox', {name: 'Show Generative AI Features'});
 
     expect(checkbox).toBeDisabled();
     expect(checkbox).not.toBeChecked();

@@ -226,10 +226,7 @@ function useHiddenItems({
     [hiddenOptions, items]
   );
 
-  return {
-    hiddenOptions,
-    disabledKeys,
-  };
+  return {hiddenOptions, disabledKeys};
 }
 
 function OverlayContent<T extends SelectOptionOrSectionWithKey<string>>({

@@ -22,11 +22,7 @@ export function getWERContextData({
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case WERContextKeys.REPORT_ID:
-        return {
-          key: ctxKey,
-          subject: t('Report ID'),
-          value: data.report_id,
-        };
+        return {key: ctxKey, subject: t('Report ID'), value: data.report_id};
       default:
         return {
           key: ctxKey,

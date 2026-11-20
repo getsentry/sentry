@@ -15,9 +15,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {BuildError} from 'sentry/views/preprod/components/buildError';
 
-type LatestBaseSnapshotResponse = {
-  head_artifact_id: string;
-};
+type LatestBaseSnapshotResponse = {head_artifact_id: string};
 
 export default function LatestBaseSnapshotResolver() {
   const organization = useOrganization();
