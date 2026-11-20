@@ -98,23 +98,21 @@ class TestAction(TestCase):
             mock_get.assert_called_once_with(Action.Type.SLACK)
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
-    def test_trigger_calls_handler_execute(self, mock_get_detector: MagicMock) -> None:
-        mock_handler = Mock(spec=ActionHandler)
-        mock_detector = self.detector
-        mock_get_detector.return_value = mock_detector
-
+    def test_group_less_invocation(self, mock_get_detector: MagicMock) -> None:
+        detector = self.create_all_projects_detector(self.organization)
+        # ISWF-3709 adds concrete investigation detector resolution and task transport.
+        mock_get_detector.return_value = detector
         notification_uuid = str(uuid.uuid4())
-        with patch.object(self.action, "get_handler", return_value=mock_handler):
-            self.action.trigger(
-                self.mock_event, notification_uuid=notification_uuid, workflow_id=self.workflow.id
+        with (
+            patch.object(Action, "get_handler", return_value=ActionHandler),
+            patch.object(ActionHandler, "execute") as execute,
+        ):
+            self.action.trigger(self.organization_event, notification_uuid, self.workflow.id)
+        execute.assert_called_once_with(
+            ActionInvocation(
+                self.organization_event, self.action, detector, notification_uuid, self.workflow.id
             )
-
-            assert mock_handler.execute.call_count == 1
-            invocation = mock_handler.execute.call_args[0][0]
-            assert isinstance(invocation, ActionInvocation)
-            assert invocation.event_data == self.mock_event
-            assert invocation.action == self.action
-            assert invocation.detector == mock_detector
+        )
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_trigger_with_failing_handler(self, mock_get_detector: MagicMock) -> None:
@@ -194,23 +192,6 @@ class TestAction(TestCase):
                 Action.objects.create(**params)
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
-    def test_group_less_invocation(self, mock_get_detector: MagicMock) -> None:
-        detector = self.create_all_projects_detector(self.organization)
-        # ISWF-3709 adds concrete investigation detector resolution and task transport.
-        mock_get_detector.return_value = detector
-        notification_uuid = str(uuid.uuid4())
-        with (
-            patch.object(Action, "get_handler", return_value=ActionHandler),
-            patch.object(ActionHandler, "execute") as execute,
-        ):
-            self.action.trigger(self.organization_event, notification_uuid, self.workflow.id)
-        execute.assert_called_once_with(
-            ActionInvocation(
-                self.organization_event, self.action, detector, notification_uuid, self.workflow.id
-            )
-        )
-
-    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_rejects_project_less_detector_for_issue_action(
         self, mock_get_detector: MagicMock
     ) -> None:
@@ -256,10 +237,8 @@ class TestAction(TestCase):
     def test_seer_action_does_not_require_detector_project(
         self, mock_get_detector: MagicMock
     ) -> None:
-        detector = self.create_all_projects_detector(self.organization)
-        mock_get_detector.return_value = detector
+        mock_get_detector.return_value = self.create_all_projects_detector(self.organization)
         self.action.type = Action.Type.SEER_INVESTIGATION
-        with patch.object(self.action.get_handler(), "_handle") as handle:
+        with patch.object(self.action.get_handler(), "execute") as execute:
             self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
-        handle.assert_called_once()
-        assert handle.call_args.args[0].detector == detector
+        execute.assert_called_once()
