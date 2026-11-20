@@ -13,7 +13,7 @@ from tools.api_guidelines.report_card import (
     rule_columns,
     team_findings,
 )
-from tools.api_guidelines.rules import RULE_SUMMARIES, ApiRule
+from tools.api_guidelines.rules import RULES, ApiRule
 
 FEED = "src/sentry/api/endpoints/feed.py"
 INGEST = "src/sentry/api/endpoints/ingest.py"
@@ -91,7 +91,7 @@ def test_legend_has_one_line_per_rule_column(markdown: bool) -> None:
     assert len(lines) == len(columns)
     for line, rule in zip(lines, columns):
         assert rule in line
-        assert RULE_SUMMARIES[ApiRule(rule)] in line
+        assert RULES[ApiRule(rule)].summary in line
 
 
 def test_main_prints_the_table_and_its_legend(

@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tools.api_guidelines.entries import EXCEPTIONS_PATH, describe_entry, diff_entries
 from tools.api_guidelines.owners import UNOWNED
-from tools.api_guidelines.rules import BASELINED_RULES, RULE_SUMMARIES, ApiRule
+from tools.api_guidelines.rules import BASELINED_RULES, RULES, ApiRule
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -193,7 +193,7 @@ def format_legend(markdown: bool) -> list[str]:
     """
     lines: list[str] = []
     for rule in rule_columns():
-        summary = RULE_SUMMARIES[ApiRule(rule)]
+        summary = RULES[ApiRule(rule)].summary
         if markdown:
             lines.append(f"- `{rule}` {summary}")
         else:
