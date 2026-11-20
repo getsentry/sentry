@@ -27,6 +27,7 @@ import {
   ConversationSpanDetail,
 } from './conversationSpanDetail';
 import {MessagesPanel} from './messagesPanel';
+import {TranscriptSearch} from './transcriptSearch';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -64,6 +65,7 @@ export function ConversationViewContent({
     nodeTraceMap,
     canAutoFetchNextPage,
     hasNextPage,
+    hasReachedPageLimit,
     isLoading,
     isFetchingNextPage,
     error,
@@ -111,10 +113,11 @@ export function ConversationViewContent({
   // off the sticky (URL) selection, not `displayedNode`: the timeline's
   // view-local default span is not a real selection, so entering the timeline
   // restores its saved offset rather than snapping to that default.
-  const contentRef = useConversationScrollRestoration({
-    activeTab,
-    selectedNodeId: selectedNode?.id ?? null,
-  });
+  const {scrollContainerRef: contentRef, centerOnSelect} =
+    useConversationScrollRestoration({
+      activeTab,
+      selectedNodeId: selectedNode?.id ?? null,
+    });
 
   const loadMoreRef = useRef<HTMLDivElement>(null);
 
@@ -187,6 +190,20 @@ export function ConversationViewContent({
         leftPadding={isTranscript ? '0' : 'md'}
         left={
           <Fragment>
+            {isTranscript && onSelectSpan && (
+              <TranscriptSearch
+                key={conversation.conversationId}
+                rootRef={contentRef}
+                canLoadMore={canAutoFetchNextPage}
+                hasReachedPageLimit={hasReachedPageLimit}
+                isLoadingMore={isLoading || isFetchingNextPage}
+                loadMore={loadNextPage}
+                onSelectMatch={(spanId, element) => {
+                  centerOnSelect(spanId, element);
+                  onSelectSpan(spanId);
+                }}
+              />
+            )}
             {isTranscript ? (
               <MessagesPanel
                 isLoading={isLoading}
