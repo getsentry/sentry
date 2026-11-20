@@ -131,6 +131,14 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
     // oxlint-disable-next-line react/memo-dependencies
   }, [agentNames, stagedIsEmpty]);
 
+  // Without an explicit width the menu shrinks to the trigger's width, which truncates
+  // even "All Agents". Size it to the longest agent name (~0.6em per character, plus
+  // 6em for the checkbox and paddings), between 16em and 24em.
+  const menuWidth = useMemo(() => {
+    const longestNameLength = Math.max(0, ...agentNames.map(name => name.length));
+    return `${Math.max(16, Math.min(24, longestNameLength * 0.6 + 6))}em`;
+  }, [agentNames]);
+
   const handleChange = useCallback(
     (newValue: string[]) => {
       const values = newValue.includes(ALL_AGENTS_VALUE) ? [] : newValue.filter(Boolean);
@@ -189,6 +197,7 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
       multiple
       {...stagedSelect.compactSelectProps}
       style={{maxWidth: '200px'}}
+      menuWidth={menuWidth}
       emptyMessage={t('No agents found')}
       loading={isPending}
       menuTitle={
