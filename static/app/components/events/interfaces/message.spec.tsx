@@ -9,23 +9,8 @@ import {Message} from './message';
 describe('Message entry', () => {
   it('display redacted data', async () => {
     const event = EventFixture({
-      entries: [
-        {
-          type: 'message',
-          data: {
-            formatted: null,
-          },
-        },
-      ],
-      _meta: {
-        entries: {
-          0: {
-            data: {
-              formatted: {'': {rem: [['organization:0', 'x']]}},
-            },
-          },
-        },
-      },
+      entries: [{type: 'message', data: {formatted: null}}],
+      _meta: {entries: {0: {data: {formatted: {'': {rem: [['organization:0', 'x']]}}}}}},
     });
     render(<Message data={{formatted: null}} event={event} />, {
       organization: {
@@ -62,9 +47,7 @@ describe('Message entry', () => {
 
   it('renders colored text and links without escape codes when given an ANSI message', () => {
     const formatted = '\x1B[31mfailed\x1B[0m to fetch https://example.com/status';
-    const event = EventFixture({
-      entries: [{type: 'message', data: {formatted}}],
-    });
+    const event = EventFixture({entries: [{type: 'message', data: {formatted}}]});
 
     render(<Message data={{formatted}} event={event} />);
 

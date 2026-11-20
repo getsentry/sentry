@@ -153,11 +153,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const {data, isError, isPending} = useQuery({
-    ...profileApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug,
-      profileId,
-    }),
+    ...profileApiOptions({organizationSlug: organization.slug, projectSlug, profileId}),
     retry: false,
   });
 

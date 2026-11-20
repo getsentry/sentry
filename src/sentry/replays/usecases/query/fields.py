@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import datetime
 from collections.abc import Callable
+from ipaddress import IPv4Address, IPv6Address
 from typing import Generic, TypeVar
 
 from snuba_sdk import Condition
@@ -87,6 +88,28 @@ class ComputedField(Generic[T]):
             raise OperatorNotSupported(f"Unsupported search operator: '{operator}'")
 
         return visitor(value)
+
+
+class IPAddressField(ComputedField[IPv4Address | IPv6Address | None]):
+    """IP address field that also supports wildcard searches.
+
+    A wildcard search like `user.ip:10.0.*` matches the address as text, so its value is a regex
+    (`^10\\.0\\..*$`) and not an IP address.  It skips IP parsing and goes straight to the match
+    visitors.  Wildcards inside a list still fail to parse.
+    """
+
+    def apply(self, search_filter: SearchFilter) -> Condition:
+        value = search_filter.value.value
+        if not (isinstance(value, str) and search_filter.value.is_wildcard()):
+            return super().apply(search_filter)
+
+        if search_filter.operator == "=":
+            return self.query.visit_match(value)
+        elif search_filter.operator == "!=":
+            return self.query.visit_not_match(value)
+        raise OperatorNotSupported(
+            f"Unsupported wildcard search operator: '{search_filter.operator}'"
+        )
 
 
 # TagFields accept a "key" as one of their arguments to the apply method.  This is a user-defined

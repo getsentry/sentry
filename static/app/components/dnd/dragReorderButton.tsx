@@ -5,9 +5,7 @@ import type {IconSize} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 
-type DragReorderButtonProps = Omit<ButtonProps, 'children'> & {
-  iconSize?: IconSize;
-};
+type DragReorderButtonProps = Omit<ButtonProps, 'children'> & {iconSize?: IconSize};
 
 export function DragReorderButton({
   size = 'zero',

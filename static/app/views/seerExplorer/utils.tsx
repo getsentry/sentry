@@ -47,7 +47,7 @@ export const seerExplorerApiOptions = (
   runId
     ? apiOptions.as<SeerExplorerResponse>()(
         '/organizations/$organizationIdOrSlug/seer/explorer-chat/$runId/',
-        {path: {organizationIdOrSlug: orgSlug, runId}, staleTime: 0}
+        {path: {organizationIdOrSlug: orgSlug, runId: String(runId)}, staleTime: 0}
       )
     : apiOptions.as<SeerExplorerResponse>()(
         '/organizations/$organizationIdOrSlug/seer/explorer-chat/',

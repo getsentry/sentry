@@ -5,6 +5,8 @@ import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Tabs} from '@sentry/scraps/tabs';
 
 import type {CollapsibleExpandAll} from 'sentry/components/ai/chat/collapsibleContent';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseAsUtcDateTime} from 'sentry/utils/url/parseAsUtcDateTime';
@@ -23,7 +25,10 @@ import {
 import {ExpandAllButton} from './components/expandAllButton';
 import {ExportTranscriptButton} from './components/exportTranscriptButton';
 import {useConversation} from './hooks/useConversation';
-import {extractMessagesFromNodes} from './utils/conversationMessages';
+import {
+  extractMessagesFromNodes,
+  hasCapturedMessageContent,
+} from './utils/conversationMessages';
 
 function useConversationDetailQueryState() {
   return useQueryStates(
@@ -32,7 +37,7 @@ function useConversationDetailQueryState() {
       focusedTool: parseAsString,
       start: parseAsUtcDateTime,
       end: parseAsUtcDateTime,
-      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS).withDefault('transcript'),
+      tab: parseAsStringLiteral(CONVERSATION_VIEW_TABS),
     },
     {history: 'replace'}
   );
@@ -73,6 +78,28 @@ function ConversationDetailPage() {
   const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
   const isInitialLoading = isLoading && nodes.length === 0;
 
+  // Without an explicit tab, open the transcript only when the SDK captured
+  // messages; otherwise it holds just placeholders and the timeline is more
+  // useful. Decided once per conversation from its first page, so loading more
+  // spans never switches the tab under the user.
+  const [defaultTab, setDefaultTab] = useState<{
+    conversationId: string;
+    tab: ConversationViewTab;
+  } | null>(null);
+  if (!isInitialLoading && defaultTab?.conversationId !== conversationId) {
+    setDefaultTab({
+      conversationId,
+      tab: hasCapturedMessageContent(messages) ? 'transcript' : 'timeline',
+    });
+  }
+  // Until the first page decides the default, show neither tab, so an
+  // uncaptured conversation doesn't flash the transcript before the timeline.
+  const isDefaultTabPending =
+    !queryState.tab && defaultTab?.conversationId !== conversationId;
+  const activeTab: ConversationViewTab =
+    queryState.tab ??
+    (defaultTab?.conversationId === conversationId ? defaultTab.tab : 'transcript');
+
   const projectSlug = useMemo(
     () => nodes.find(node => node.projectSlug)?.projectSlug,
     [nodes]
@@ -83,9 +110,7 @@ function ConversationDetailPage() {
     : undefined;
 
   useEffect(() => {
-    trackAnalytics('conversations.detail.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.detail.page-view', {organization});
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 
@@ -102,16 +127,16 @@ function ConversationDetailPage() {
 
   const handleTabChange = useCallback(
     (tab: ConversationViewTab) => {
-      if (tab !== queryState.tab) {
+      if (tab !== activeTab) {
         trackAnalytics('conversations.detail.tab-switch', {
           organization,
-          fromTab: queryState.tab,
+          fromTab: activeTab,
           toTab: tab,
         });
       }
       setQueryState({tab});
     },
-    [organization, queryState.tab, setQueryState]
+    [organization, activeTab, setQueryState]
   );
 
   const handleViewTimeline = useCallback(() => {
@@ -135,15 +160,19 @@ function ConversationDetailPage() {
       </Container>
       <Stack flex={1} minHeight="0" overflow="hidden" padding="xl" gap="xl">
         <Flex flexShrink={0} align="center" justify="between" gap="md">
-          <Tabs value={queryState.tab} onChange={handleTabChange}>
-            {({TabList}) => (
-              <TabList variant="floating">
-                <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
-                <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
-              </TabList>
-            )}
-          </Tabs>
-          {queryState.tab === 'transcript' && messages.length > 0 && (
+          {isDefaultTabPending ? (
+            <Placeholder width="180px" height="32px" />
+          ) : (
+            <Tabs value={activeTab} onChange={handleTabChange}>
+              {({TabList}) => (
+                <TabList variant="floating">
+                  <TabList.Item key="transcript">{t('Transcript')}</TabList.Item>
+                  <TabList.Item key="timeline">{t('Timeline')}</TabList.Item>
+                </TabList>
+              )}
+            </Tabs>
+          )}
+          {activeTab === 'transcript' && messages.length > 0 && (
             <Flex align="center" gap="sm">
               <ExpandAllButton
                 isExpanded={expandAll?.open ?? false}
@@ -154,16 +183,23 @@ function ConversationDetailPage() {
           )}
         </Flex>
         <ConversationViewContainer>
-          <ConversationViewContent
-            conversation={conversation}
-            activeTab={queryState.tab}
-            selectedSpanId={queryState.spanId}
-            onSelectSpan={handleSelectSpan}
-            onDeselectSpan={handleDeselectSpan}
-            onViewTimeline={handleViewTimeline}
-            focusedTool={queryState.focusedTool}
-            expandAll={expandAll}
-          />
+          {isDefaultTabPending ? (
+            <Flex flex={1} align="center" justify="center">
+              <LoadingIndicator />
+            </Flex>
+          ) : (
+            <ConversationViewContent
+              conversation={conversation}
+              messages={messages}
+              activeTab={activeTab}
+              selectedSpanId={queryState.spanId}
+              onSelectSpan={handleSelectSpan}
+              onDeselectSpan={handleDeselectSpan}
+              onViewTimeline={handleViewTimeline}
+              focusedTool={queryState.focusedTool}
+              expandAll={expandAll}
+            />
+          )}
         </ConversationViewContainer>
       </Stack>
     </ViewportConstrainedPage>

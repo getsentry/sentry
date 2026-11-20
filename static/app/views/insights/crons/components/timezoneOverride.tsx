@@ -28,11 +28,7 @@ export function TimezoneOverride({
   const [mode, setMode] = useState<Mode>('user');
 
   const timezoneMapping = useMemo<Record<Mode, string>>(
-    () => ({
-      user: userTimezone,
-      monitor: monitorTimezone,
-      utc: 'UTC',
-    }),
+    () => ({user: userTimezone, monitor: monitorTimezone, utc: 'UTC'}),
     [monitorTimezone, userTimezone]
   );
 
@@ -61,11 +57,7 @@ export function TimezoneOverride({
           label: 'Monitor',
           trailingItems: <TimezoneLabel timezone={monitorTimezone} />,
         },
-        {
-          value: 'utc',
-          label: 'UTC',
-          trailingItems: <TimezoneLabel timezone="UTC" />,
-        },
+        {value: 'utc', label: 'UTC', trailingItems: <TimezoneLabel timezone="UTC" />},
       ]}
     />
   );

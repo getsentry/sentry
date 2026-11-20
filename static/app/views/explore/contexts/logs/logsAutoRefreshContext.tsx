@@ -87,13 +87,7 @@ export function LogsAutoRefreshProvider({
 
   return (
     <LogsAutoRefreshContext
-      value={{
-        autoRefresh,
-        refreshInterval,
-        isTableFrozen,
-        pausedAt,
-        setPausedAt,
-      }}
+      value={{autoRefresh, refreshInterval, isTableFrozen, pausedAt, setPausedAt}}
     >
       {children}
     </LogsAutoRefreshContext>

@@ -49,7 +49,7 @@ from sentry.replays.usecases.query.conditions import (
 from sentry.replays.usecases.query.conditions.aggregate import SumOfUUIDScalar
 from sentry.replays.usecases.query.conditions.event_ids import SumOfErrorIdScalar, SumOfInfoIdScalar
 from sentry.replays.usecases.query.conditions.tags import SumOfTagAggregate
-from sentry.replays.usecases.query.fields import ComputedField, TagField
+from sentry.replays.usecases.query.fields import ComputedField, IPAddressField, TagField
 
 
 def click_field(column_name: str) -> StringColumnField:
@@ -136,7 +136,7 @@ search_config: dict[str, FieldProtocol] = {
     "urls": array_string_field("urls"),
     "user.email": string_field("user_email"),
     "user.id": string_field("user_id"),
-    "user.ip_address": ComputedField(parse_ip_address, SumOfIPAddressScalar),
+    "user.ip_address": IPAddressField(parse_ip_address, SumOfIPAddressScalar),
     "user.username": string_field("user_name"),
     "user.geo.city": string_field("user_geo_city"),
     "user.geo.country_code": string_field("user_geo_country_code"),

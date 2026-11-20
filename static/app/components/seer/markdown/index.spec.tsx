@@ -23,9 +23,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 const CHART = `{% chart %}${JSON.stringify({
   title: 'Error volume',

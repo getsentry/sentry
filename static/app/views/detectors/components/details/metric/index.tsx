@@ -29,9 +29,7 @@ import {
   TransactionsDatasetWarning,
 } from './transactionsDatasetWarning';
 
-type MetricDetectorDetailsProps = {
-  detector: MetricDetector;
-};
+type MetricDetectorDetailsProps = {detector: MetricDetector};
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const organization = useOrganization();

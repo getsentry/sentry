@@ -117,9 +117,7 @@ function CancelSubscriptionForm() {
       const msg = resp.details || t('Successfully cancelled subscription');
 
       toast.success(msg);
-      navigate({
-        pathname: normalizeUrl(`/settings/${organization.slug}/billing/`),
-      });
+      navigate({pathname: normalizeUrl(`/settings/${organization.slug}/billing/`)});
     },
     onError: error => {
       const detail =

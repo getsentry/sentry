@@ -56,9 +56,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       'The AIOHTTP integration adds support for the [link:AIOHTTP-Server Web Framework].',
-      {
-        link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />,
-      }
+      {link: <ExternalLink href="https://docs.aiohttp.org/en/stable/web.html" />}
     ),
   install: () => [
     {
@@ -66,9 +64,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock(),
         ...getPythonAiocontextvarsCodeBlocks(),
@@ -83,16 +79,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'If you have the [code:aiohttp] package in your dependencies, the AIOHTTO integration will be enabled automatically. There is nothing to do for you except initializing the Sentry SDK before initializing your application:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'python',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'python', code: getSdkSetupSnippet(params)},
         alternativeProfiling(params),
       ],
     },
@@ -128,9 +118,7 @@ web.run_app(app)
           text: [
             tct(
               'When you point your browser to [localhostLInk:http://localhost:8080/] a transaction in the Performance section of Sentry will be created.',
-              {
-                localhostLInk: <ExternalLink href="http://localhost:8080/" />,
-              }
+              {localhostLInk: <ExternalLink href="http://localhost:8080/" />}
             ),
             t(
               'Additionally, an error event will be sent to Sentry and will be connected to the transaction.'

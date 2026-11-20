@@ -292,6 +292,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             )
 
 
+class DiscoverHomepageQuerySerializer(DiscoverSavedQuerySerializer):
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        fields = super().get_fields()
+        # The homepage query has no name, so callers don't send one.
+        fields["name"] = serializers.HiddenField(default="")
+        return fields
+
+
 class TeamKeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(
         required=True, max_length=200, help_text="The name of the transaction."

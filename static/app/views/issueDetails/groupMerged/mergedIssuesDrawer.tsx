@@ -14,11 +14,7 @@ export function MergedIssuesDrawer({group, project}: {group: Group; project: Pro
   return (
     <EventDrawerContainer>
       <DrawerHeader>
-        <DrawerBreadcrumbs
-          current={{
-            label: t('Merged Issues'),
-          }}
-        />
+        <DrawerBreadcrumbs current={{label: t('Merged Issues')}} />
       </DrawerHeader>
       <EventDrawerBody>
         <GroupMergedView project={project} groupId={group.id} />

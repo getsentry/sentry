@@ -18,11 +18,7 @@ describe('ShareIssueModal', () => {
 
   beforeEach(() => {
     GroupStore.init();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
   afterEach(() => {
     MockApiClient.clearMockResponses();

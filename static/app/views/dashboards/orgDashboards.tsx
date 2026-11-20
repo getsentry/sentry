@@ -11,7 +11,6 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
@@ -61,10 +60,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useQuery({
-    ...dashboardsApiOptions(organization),
-    retry: false,
-  });
+  } = useQuery({...dashboardsApiOptions(organization), retry: false});
 
   const {
     data: fetchedSelectedDashboard,
@@ -154,13 +150,12 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     // Clean up the query cache when the dashboard unmounts to prevent
     // a flicker from stale data on refetch
     return () => {
-      queryClient.removeQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-            path: {organizationIdOrSlug: organization.slug, dashboardId},
-          }),
-        ],
-      });
+      queryClient.removeQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+          {path: {organizationIdOrSlug: organization.slug, dashboardId}}
+        )
+      );
     };
   }, [dashboardId, organization.slug, queryClient]);
 
@@ -168,10 +163,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     () => ({
       error: Boolean(dashboardsError || selectedDashboardError),
       dashboard: selectedDashboard
-        ? {
-            ...selectedDashboard,
-            widgets: selectedDashboard.widgets.map(assignTempId),
-          }
+        ? {...selectedDashboard, widgets: selectedDashboard.widgets.map(assignTempId)}
         : null,
       dashboards: Array.isArray(dashboards) ? dashboards : [],
       onDashboardUpdate: setSelectedDashboardState,

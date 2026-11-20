@@ -82,9 +82,7 @@ export function HighlightsIconSummary({event, group}: HighlightsIconSummaryProps
         alias: item.alias,
         type: item.type,
         value: item.value,
-        contextIconProps: {
-          size: 'md',
-        },
+        contextIconProps: {size: 'md'},
         theme,
       }),
     }))

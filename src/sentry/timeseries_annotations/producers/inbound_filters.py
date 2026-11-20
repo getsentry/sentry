@@ -5,7 +5,7 @@ import logging
 from django.utils import timezone
 
 from sentry import features
-from sentry.auth.principal import RequestPrincipal, acting_user_id
+from sentry.auth.principal import RequestPrincipal, acting_user, acting_user_id
 from sentry.ingest.inbound_filters import FilterStatKeys
 from sentry.models.custominboundfilter import DataType
 from sentry.models.project import Project
@@ -14,9 +14,13 @@ from sentry.timeseries_annotations.service import (
     TimeseriesAnnotationData,
     create_timeseries_annotation,
 )
+from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
 
 logger = logging.getLogger(__name__)
+
+# Names this producer in skip telemetry so each producer's skips are their own series.
+_PRODUCER = "inbound_filter"
 
 # Built-in inbound filters drop events from a single telemetry dataset. Most act on the
 # error pipeline; the health-check filter drops transactions (spans). The scope tells the
@@ -52,12 +56,21 @@ def _create_filter_change_annotation(
     principal: RequestPrincipal,
 ) -> None:
     organization = project.organization
-    # The framework-wide flag gates every annotation producer; the use-case flag on top
-    # rolls out or kills this one producer on its own.
-    if not (
-        features.has("organizations:timeseries-annotations", organization)
-        and features.has("organizations:timeseries-annotations-usecase-filter-change", organization)
+    actor = acting_user(principal)
+    if not features.has(
+        "organizations:timeseries-annotations-usecase-filter-change", organization, actor=actor
     ):
+        metrics.incr(
+            "timeseries_annotations.producer_skipped_flag_off", tags={"producer": _PRODUCER}
+        )
+        logger.info(
+            "timeseries_annotations.producer_skipped_flag_off",
+            extra={
+                "producer": _PRODUCER,
+                "organization_id": organization.id,
+                "project_id": project.id,
+            },
+        )
         return
     # Best-effort context: a producer failure must never break the filter write.
     try:

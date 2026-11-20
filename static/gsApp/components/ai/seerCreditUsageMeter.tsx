@@ -177,9 +177,9 @@ function AutoReloadStatus({
   return <Text>{t('Credits will reload automatically.')}</Text>;
 }
 
-const UsageBar = styled(ProgressBar, {
-  shouldForwardProp: prop => prop !== 'isWarning',
-})<{isWarning: boolean}>`
+const UsageBar = styled(ProgressBar, {shouldForwardProp: prop => prop !== 'isWarning'})<{
+  isWarning: boolean;
+}>`
   width: 50px;
   height: 10px;
   flex-shrink: 0;

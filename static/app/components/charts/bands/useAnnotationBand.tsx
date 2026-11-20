@@ -2,13 +2,13 @@ import {useMemo} from 'react';
 import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesRenderItem} from 'echarts';
 
-import {Container} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 
-import type {
-  AnnotationItem,
-  AnnotationKind,
-} from 'sentry/components/charts/annotations/types';
-import {t} from 'sentry/locale';
+import {
+  ANNOTATION_KIND_LABELS,
+  ANNOTATION_KINDS,
+} from 'sentry/components/charts/annotations/kinds';
+import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 
 import {
   BAND_HEIGHT,
@@ -27,14 +27,6 @@ import {ChartBandTooltipHeading} from './chartBandTooltip';
 import type {ChartBand} from './mergeChartBands';
 
 export const ANNOTATION_BAND_SERIES_ID = '__annotation_band__';
-
-const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag', 'timeseriesAnnotation'];
-
-const ANNOTATION_KIND_LABELS: Record<AnnotationKind, string> = {
-  release: t('Releases'),
-  flag: t('Flags'),
-  timeseriesAnnotation: t('Changes'),
-};
 
 interface AnnotationBandItem extends AnnotationBucket {
   opacity: number;
@@ -87,6 +79,7 @@ function annotationBandRenderItem(
 interface UseAnnotationBandParams {
   buckets: BandBucket[];
   items?: readonly AnnotationItem[];
+  onClick?: (items: AnnotationItem[]) => void;
 }
 
 /**
@@ -96,6 +89,7 @@ interface UseAnnotationBandParams {
 export function useAnnotationBand({
   buckets,
   items,
+  onClick,
 }: UseAnnotationBandParams): ChartBand | null {
   const theme = useTheme();
 
@@ -128,18 +122,25 @@ export function useAnnotationBand({
       id: ANNOTATION_BAND_SERIES_ID,
       buckets: annotationBuckets,
       height: BAND_HEIGHT,
+      onClick: start => {
+        const bucket = bucketsByStart.get(start);
+        if (bucket) {
+          onClick?.(bucket.items);
+        }
+      },
       tooltipSection: start => {
         const bucket = bucketsByStart.get(start);
         return bucket ? (
-          <Container as="section">
+          <Stack as="section" gap="md" padding="lg 0">
             {kindsInBand.map(kind => (
               <ChartBandTooltipHeading
                 key={kind}
                 label={ANNOTATION_KIND_LABELS[kind]}
                 value={bucket.items.filter(item => item.kind === kind).length}
+                padding="0 xl"
               />
             ))}
-          </Container>
+          </Stack>
         ) : null;
       },
       series: bandOffset => ({
@@ -152,5 +153,5 @@ export function useAnnotationBand({
         legendHoverLink: false,
       }),
     };
-  }, [buckets, items, theme]);
+  }, [buckets, items, onClick, theme]);
 }

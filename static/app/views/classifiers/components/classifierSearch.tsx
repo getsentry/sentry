@@ -3,7 +3,7 @@ import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/t
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
-import {CLASSIFIER_DATASETS} from 'sentry/views/classifiers/types';
+import {CLASSIFIER_DATASETS} from 'sentry/views/classifiers/constants';
 
 const CLASSIFIER_FIELD_DEFINITIONS: Record<string, FieldDefinition> = {
   name: {
