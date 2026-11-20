@@ -604,6 +604,53 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
         assert feature_complete
 
+    def test_inbound_filters_records_after_commit(self) -> None:
+        inbound_filters_id = manager.get_by_slug("inbound_filters").id
+        assert not FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=inbound_filters_id
+        ).exists()
+        assert not FeatureAdoption.objects.in_cache(self.organization.id, inbound_filters_id)
+
+        with transaction.atomic(router.db_for_write(Project)):
+            with receivers_raise_on_send():
+                inbound_filter_toggled.send(project=self.project, sender=type(self.project))
+            # With a clean cache, no row here means that record did not run
+            # inside the transaction, so it made no Redis call there.
+            assert not FeatureAdoption.objects.filter(
+                organization_id=self.organization.id, feature_id=inbound_filters_id
+            ).exists()
+
+        assert FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=inbound_filters_id, complete=True
+        ).exists()
+        assert FeatureAdoption.objects.in_cache(self.organization.id, inbound_filters_id)
+
+    def test_inbound_filters_record_failure_is_logged(self) -> None:
+        with (
+            patch.object(
+                FeatureAdoption.objects.cache_backend,
+                "in_cache",
+                side_effect=RedisConnectionError("redis is down"),
+            ),
+            self.caplog.at_level(logging.ERROR, logger="sentry.receivers.features"),
+            receivers_raise_on_send(),
+        ):
+            with transaction.atomic(router.db_for_write(Project)):
+                # set_filter_state uses send, not send_robust, so an error here would raise.
+                inbound_filter_toggled.send(project=self.project, sender=type(self.project))
+
+        assert any(
+            r.message == "feature_adoption.inbound_filters_failed"
+            and getattr(r, "organization_id", None) == self.organization.id
+            for r in self.caplog.records
+        )
+        assert (
+            FeatureAdoption.objects.get_by_slug(
+                organization=self.organization, slug="inbound_filters"
+            )
+            is None
+        )
+
     def test_alert_rules(self) -> None:
         rule = Rule.objects.create(
             project=self.project,
