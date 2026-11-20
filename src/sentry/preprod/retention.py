@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
 
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import quotas
 from sentry.constants import DataCategory
 from sentry.models.organization import Organization
+
+if TYPE_CHECKING:
+    from sentry.preprod.models import PreprodArtifact
 
 # The longest retention, in days, that preprod data can be given: thirteen months, the
 # longest retention of any plan. Retention overrides have no upper bound, so longer ones
@@ -76,4 +80,50 @@ def get_artifact_expiry(
         date_expires=date_added + timedelta(days=get_artifact_retention_days(organization)),
         date_size_analysis_expires=date_added
         + timedelta(days=get_retention_days(organization, DataCategory.SIZE_ANALYSIS)),
+    )
+
+
+def is_expired(artifact: PreprodArtifact) -> bool:
+    """
+    Whether the artifact is past its `date_expires` and must no longer be served.
+
+    An artifact without one was created before the column existed and is not backfilled
+    yet. It is deleted by age instead, by the `--days` of the `cleanup` command.
+    """
+    return artifact.date_expires is not None and artifact.date_expires <= timezone.now()
+
+
+def is_size_analysis_expired(artifact: PreprodArtifact, organization: Organization) -> bool:
+    """
+    Whether the artifact's size analysis is past its retention and must no longer be
+    served.
+
+    This is decided by the date stamped on the artifact when it was created. An
+    artifact without one (created before the column existed and not backfilled yet)
+    falls back to what applied before the column existed: the organization's current
+    retention, counted from `date_added`.
+    """
+    now = timezone.now()
+    if artifact.date_size_analysis_expires is not None:
+        return artifact.date_size_analysis_expires <= now
+
+    days = get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
+    return artifact.date_added < now - timedelta(days=days)
+
+
+def unexpired_artifacts() -> Q:
+    """A filter for the artifacts for which `is_expired` does not hold."""
+    return Q(date_expires__isnull=True) | Q(date_expires__gt=timezone.now())
+
+
+def unexpired_size_analysis(organization: Organization) -> Q:
+    """
+    A filter for the organization's artifacts for which `is_size_analysis_expired` does
+    not hold.
+    """
+    now = timezone.now()
+    days = get_retention_days(organization, DataCategory.SIZE_ANALYSIS)
+    return Q(date_size_analysis_expires__gt=now) | Q(
+        date_size_analysis_expires__isnull=True,
+        date_added__gte=now - timedelta(days=days),
     )

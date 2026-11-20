@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY
 
 import pytest
 from django.urls import reverse
@@ -865,17 +865,43 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
 
-    @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
-    def test_excludes_expired_artifacts(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = before_now(days=30)
-        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
-        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+    def test_excludes_expired_artifacts(self) -> None:
+        self.create_preprod_artifact(
+            app_id="recent.app", date_size_analysis_expires=before_now(days=-1)
+        )
+        self.create_preprod_artifact(
+            app_id="expired.app", date_size_analysis_expires=before_now(days=1)
+        )
 
         response = self._request({})
         self._assert_is_successful(response)
         data = response.json()
         assert len(data) == 1
         assert data[0]["app_info"]["app_id"] == "recent.app"
+
+    def test_distribution_display_lists_build_after_its_size_analysis_expired(self) -> None:
+        build = self.create_preprod_artifact(
+            app_id="distributed.app",
+            date_expires=before_now(days=-300),
+            date_size_analysis_expires=before_now(days=1),
+        )
+        self.create_preprod_artifact_size_metrics(build, max_install_size=1000000)
+        self.create_preprod_artifact(
+            app_id="expired.app",
+            date_expires=before_now(days=1),
+            date_size_analysis_expires=before_now(days=1),
+        )
+
+        response = self._request({"display": "distribution"})
+        self._assert_is_successful(response)
+        data = response.json()
+        assert [entry["app_info"]["app_id"] for entry in data] == ["distributed.app"]
+        assert data[0]["size_info"] is None
+
+        # The size display is about the size analysis, which has expired.
+        response = self._request({"display": "size"})
+        self._assert_is_successful(response)
+        assert response.json() == []
 
     def test_query_image_count(self) -> None:
         matching_artifact = self.create_preprod_artifact(app_id="com.match.app")

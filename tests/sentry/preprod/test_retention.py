@@ -3,15 +3,20 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import DataCategory
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.retention import (
     DEFAULT_RETENTION_DAYS,
     MAX_RETENTION_DAYS,
     get_artifact_expiry,
     get_artifact_retention_days,
     get_retention_days,
+    is_expired,
+    is_size_analysis_expired,
+    unexpired_artifacts,
+    unexpired_size_analysis,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 def retention_by_category(
@@ -75,3 +80,75 @@ class GetArtifactExpiryTest(TestCase):
             "date_expires": date_added + timedelta(days=396),
             "date_size_analysis_expires": date_added + timedelta(days=30),
         }
+
+
+class ExpiredArtifactsTest(TestCase):
+    """
+    `is_expired` and `is_size_analysis_expired`, and the `unexpired_artifacts` and
+    `unexpired_size_analysis` filters, which must agree with them.
+    """
+
+    def assert_expired(
+        self, artifact: PreprodArtifact, expired: bool, size_analysis_expired: bool
+    ) -> None:
+        artifacts = PreprodArtifact.objects.filter(id=artifact.id)
+
+        assert is_expired(artifact) is expired
+        assert artifacts.filter(unexpired_artifacts()).exists() is not expired
+        assert is_size_analysis_expired(artifact, self.organization) is size_analysis_expired
+        assert (
+            artifacts.filter(unexpired_size_analysis(self.organization)).exists()
+            is not size_analysis_expired
+        )
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_stamped_expiry_outlives_a_shorter_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        # Ingested under a 396 day retention, and the plan was downgraded since.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=60),
+            date_expires=before_now(days=60 - 396),
+            date_size_analysis_expires=before_now(days=60 - 396),
+        )
+
+        assert not is_size_analysis_expired(artifact, self.organization)
+        mock_retention.assert_not_called()
+        self.assert_expired(artifact, expired=False, size_analysis_expired=False)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=396)
+    def test_stamped_expiry_is_not_extended_by_a_longer_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        # Ingested under a 30 day Size Analysis retention, and the plan was upgraded since.
+        # The build itself is retained for longer, for Build Distribution.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=60),
+            date_expires=before_now(days=60 - 396),
+            date_size_analysis_expires=before_now(days=60 - 30),
+        )
+
+        self.assert_expired(artifact, expired=False, size_analysis_expired=True)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=396)
+    def test_artifact_past_date_expires(self, mock_retention: MagicMock) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=100),
+            date_expires=before_now(days=10),
+            date_size_analysis_expires=before_now(days=10),
+        )
+
+        self.assert_expired(artifact, expired=True, size_analysis_expired=True)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_artifact_without_expiry_follows_the_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        recent = self.create_preprod_artifact(project=self.project, date_added=before_now(days=10))
+        old = self.create_preprod_artifact(project=self.project, date_added=before_now(days=60))
+
+        self.assert_expired(recent, expired=False, size_analysis_expired=False)
+        self.assert_expired(old, expired=False, size_analysis_expired=True)

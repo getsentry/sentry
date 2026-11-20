@@ -14,6 +14,7 @@ from sentry.constants import ObjectStatus
 from sentry.models.project import Project
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
 from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.retention import is_expired
 
 
 class PreprodArtifactResourceDoesNotExist(APIException):
@@ -77,6 +78,10 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
         if head_artifact.project.organization_id != organization.id:
             raise HeadPreprodArtifactResourceDoesNotExist
 
+        # An expired artifact is deleted by the next run of `cleanup`.
+        if is_expired(head_artifact):
+            raise HeadPreprodArtifactResourceDoesNotExist
+
         project = head_artifact.project
 
         if project.status != ObjectStatus.ACTIVE:
@@ -131,7 +136,7 @@ class PreprodArtifactEndpoint(OrganizationEndpoint):
         except (PreprodArtifact.DoesNotExist, ValueError):
             raise BasePreprodArtifactResourceDoesNotExist
 
-        if base_artifact.project_id != project.id:
+        if base_artifact.project_id != project.id or is_expired(base_artifact):
             raise BasePreprodArtifactResourceDoesNotExist
 
         kwargs["base_artifact"] = base_artifact
