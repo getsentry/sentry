@@ -80,13 +80,11 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'repos', width: '74px'},
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
-  {key: 'pr_iteration', width: '1fr'},
+  {key: 'pr_iteration', width: 'max-content'},
 ];
 
-const SWITCH_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.map(column =>
-  column.key === 'automation_steps' || column.key === 'pr_iteration'
-    ? {...column, width: 'max-content'}
-    : column
+const OPEN_PRS_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.map(column =>
+  column.key === 'automation_steps' ? {...column, width: 'max-content'} : column
 );
 
 export function SeerProjectTable() {
@@ -134,7 +132,7 @@ export function SeerProjectTable() {
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
   const showOpenPrs = useShowOpenPrs();
-  const columns = showOpenPrs ? SWITCH_TABLE_COLUMNS : TABLE_COLUMNS;
+  const columns = showOpenPrs ? OPEN_PRS_TABLE_COLUMNS : TABLE_COLUMNS;
 
   const bulkEdit = useMutation({
     ...getMutateSeerProjectsSettingsOptions({
@@ -205,7 +203,7 @@ export function SeerProjectTable() {
 
   return (
     <Fragment>
-      <Stack>
+      <Stack gap="md">
         <Flex gap="md" wrap="wrap">
           {agentSelectOptions.length ? (
             <CompactSelect
@@ -234,10 +232,9 @@ export function SeerProjectTable() {
           </InputGroup>
           <AddProjectButton disabled={!canWrite} />
         </Flex>
-        {showOpenPrs ? (
+        {showOpenPrs && searchTerm === '' && agentFilter === 'all' ? (
           <OpenPrsBanner
             bulkEdit={bulkEdit}
-            disabled={isRowDisabled}
             mutableSearch={mutableSearch}
             settings={data ?? []}
           />
