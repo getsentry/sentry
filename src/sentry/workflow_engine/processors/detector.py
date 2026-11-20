@@ -12,7 +12,6 @@ from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.options.rollout import in_rollout_group
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils import metrics
@@ -263,14 +262,27 @@ def get_preferred_detector(event_data: WorkflowEventData) -> Detector:
 
 
 def _get_detector_organization(detector: Detector) -> Organization | None:
-    """Look up the detector's organization, tolerating concurrent deletion."""
-    try:
-        organization_id = detector.get_organization_id()
-        if organization_id is not None:
-            return Organization.objects.get_from_cache(id=organization_id)
-    except (Project.DoesNotExist, Organization.DoesNotExist):
-        pass
-    return None
+    """
+    Lookup the detector's organization through the organization cache.
+
+    First this checks to see if we have the org id through the detector cache,
+    then check to see if it's an issue-stream detector.
+
+    If no org is found, return none.
+    """
+    org = None
+    organization_id = getattr(detector, "project_organization_id", None)
+
+    if organization_id is None:
+        organization_id = detector.config.get("organization_id")
+
+    if organization_id is not None:
+        try:
+            org = Organization.objects.get_from_cache(id=organization_id)
+        except Organization.DoesNotExist:
+            pass
+
+    return org
 
 
 def _emit_detector_evaluations(
