@@ -279,8 +279,9 @@ export function fieldsFromRows(rows: TraceMetricRow[]): Column[] {
  *
  * With `previous`, rows are matched back by kind and value, in order, so ids
  * and letters are kept across changes made outside the list (a display type
- * switch, a sort fix-up). Hidden rows that are still named keep their place.
- * Anything unmatched gets a new id and the next free letter.
+ * switch, a sort fix-up). An equation whose letters still produce its saved
+ * text keeps those letters and the hidden rows they name. Anything unmatched
+ * gets a new id and the next free letter.
  * @public used by the unified visualize list in a follow-up PR
  */
 export function rowsFromFields(
@@ -298,9 +299,42 @@ export function rowsFromFields(
     return undefined;
   };
 
-  // Metric rows the equations need that are not visible. Reused hidden rows
-  // go back to their old place; new ones sit above their first equation.
+  // Pair equation fields with the previous equation rows, in order. Where the
+  // old letters still spell the saved text, reserve the hidden rows they name
+  // so a visible field with the same aggregate cannot claim them.
+  const previousMap = getReferenceMap(previous);
+  const previousLetters = new Set(Object.keys(previousMap));
+  const previousEquations = previous.filter(isEquationRow);
   const reusedHidden: Array<{index: number; row: MetricRow}> = [];
+  const equationMatches = new Map<number, {keepsLetters: boolean; row: EquationRow}>();
+  fields.forEach((field, fieldIndex) => {
+    if (field.kind !== FieldValueKind.EQUATION) {
+      return;
+    }
+    const match = previousEquations[equationMatches.size];
+    if (!match) {
+      return;
+    }
+    unused.delete(match);
+    const keepsLetters = resolveExpression(match.expression, previousMap) === field.field;
+    equationMatches.set(fieldIndex, {row: match, keepsLetters});
+    if (!keepsLetters) {
+      return;
+    }
+    for (const token of tokenizeExpression(match.expression, previousLetters)) {
+      if (!isTokenReference(token)) {
+        continue;
+      }
+      const named = previous.find(
+        row => isMetricRow(row) && row.letter === token.text && !row.visible
+      );
+      if (named && isMetricRow(named) && unused.has(named)) {
+        unused.delete(named);
+        reusedHidden.push({index: previous.indexOf(named), row: {...named}});
+      }
+    }
+  });
+
   const rows: TraceMetricRow[] = [];
   const pendingEquations: Array<{reused: boolean; row: EquationRow; text: string}> = [];
 
@@ -316,17 +350,21 @@ export function rowsFromFields(
     rows.some(row => isMetricRow(row) && columnKey(row.field) === key) ||
     reusedHidden.some(({row}) => columnKey(row.field) === key);
 
-  for (const field of fields) {
+  fields.forEach((field, fieldIndex) => {
     if (field.kind === FieldValueKind.FIELD) {
       const key = columnKey(field);
       const match = take(row => row.kind === 'column' && columnKey(row.field) === key);
       rows.push({id: match?.id ?? newRowId(), kind: 'column', field});
-      continue;
+      return;
     }
 
     if (field.kind === FieldValueKind.FUNCTION) {
       const key = columnKey(field);
-      const match = take(row => isMetricRow(row) && columnKey(row.field) === key);
+      // Prefer a row that was already visible, so a hidden twin keeps its own
+      // id and letter.
+      const match =
+        take(row => isMetricRow(row) && row.visible && columnKey(row.field) === key) ??
+        take(row => isMetricRow(row) && columnKey(row.field) === key);
       rows.push({
         id: match?.id ?? newRowId(),
         kind: 'metric',
@@ -334,43 +372,45 @@ export function rowsFromFields(
         field,
         visible: true,
       });
-      continue;
+      return;
     }
 
     if (field.kind === FieldValueKind.EQUATION) {
-      for (const aggregate of getEquationAggregates(field.field)) {
-        const key = getAggregateKey(aggregate);
-        if (hasMetric(key)) {
-          continue;
-        }
-        const column = explodeFieldString(aggregate);
-        const match = take(row => isMetricRow(row) && columnKey(row.field) === key);
-        if (match && isMetricRow(match)) {
-          reusedHidden.push({
-            index: previous.indexOf(match),
-            row: {...match, field: column, visible: false},
-          });
-        } else {
-          rows.push({
-            id: newRowId(),
-            kind: 'metric',
-            letter: '',
-            field: column,
-            visible: false,
-          });
+      const match = equationMatches.get(fieldIndex);
+      if (!match?.keepsLetters) {
+        for (const aggregate of getEquationAggregates(field.field)) {
+          const key = getAggregateKey(aggregate);
+          if (hasMetric(key)) {
+            continue;
+          }
+          const column = explodeFieldString(aggregate);
+          const hidden = take(row => isMetricRow(row) && columnKey(row.field) === key);
+          if (hidden && isMetricRow(hidden)) {
+            reusedHidden.push({
+              index: previous.indexOf(hidden),
+              row: {...hidden, field: column, visible: false},
+            });
+          } else {
+            rows.push({
+              id: newRowId(),
+              kind: 'metric',
+              letter: '',
+              field: column,
+              visible: false,
+            });
+          }
         }
       }
-      const match = take(isEquationRow);
       const row: EquationRow = {
-        id: match?.id ?? newRowId(),
+        id: match?.row.id ?? newRowId(),
         kind: 'equation',
-        expression: match && isEquationRow(match) ? match.expression : '',
+        expression: match?.row.expression ?? '',
         alias: field.alias,
       };
       rows.push(row);
       pendingEquations.push({row, reused: !!match, text: field.field});
     }
-  }
+  });
 
   reusedHidden.sort((a, b) => a.index - b.index);
   for (const {index, row} of reusedHidden) {
