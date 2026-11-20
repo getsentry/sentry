@@ -127,6 +127,7 @@ export type ControlProps<
   BaseSelectProps<TValue, TOption>;
 
 const CREATE_KEY = 'create';
+const MENU_GAP = 8;
 const defaultFilter = createFilter();
 
 function optionText(option: SelectValue<unknown>) {
@@ -212,7 +213,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
       props.onOpenChange?.(open);
     },
     position: 'bottom-start',
-    offset: 4,
+    offset: MENU_GAP,
     strategy: menuPortalTarget ? 'fixed' : 'absolute',
     type: 'listbox',
     isKeyboardDismissDisabled: true,
@@ -583,7 +584,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
           size="zero"
           variant="transparent"
           aria-label={t('Clear choices')}
-          icon={<IconClose size="xs" />}
+          icon={<IconClose css={css.clearIcon} />}
           tabIndex={-1}
           onMouseDown={event => event.preventDefault()}
           onClick={clear}
@@ -600,7 +601,7 @@ export function Select<TValue, TOption extends SelectValue<TValue> = SelectValue
   const baseMenuStyle: CSSObject = {...css.menu, maxWidth: props.maxMenuWidth};
   const menuStyle = styles?.menu?.(baseMenuStyle, {}) ?? baseMenuStyle;
   const positionStyle: CSSObject = {
-    ...(menuStyle.position === 'initial' ? {} : overlayStyle),
+    ...(menuStyle.position === 'initial' ? {marginBlockStart: MENU_GAP} : overlayStyle),
     display: 'flex',
     flexDirection: 'column',
     zIndex: props.isInsideModal ? theme.zIndex.modal + 1 : theme.zIndex.dropdown,

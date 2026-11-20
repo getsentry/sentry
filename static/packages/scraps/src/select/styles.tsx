@@ -117,6 +117,7 @@ export function getSelectStyles(
       marginInlineStart: theme.space.sm,
       marginInlineEnd: controlInset,
     },
+    clearIcon: {width: 10, height: 10},
     chip: {
       display: 'flex',
       alignItems: 'center',
