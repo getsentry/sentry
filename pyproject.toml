@@ -333,6 +333,9 @@ filterwarnings = [
   # pytest has not yet implemented the replacement for this yet
   "ignore:The --looponfail command line argument.*",
 
+  # The Bigtable data client warns whenever it connects to the emulator.
+  "ignore:Connecting to Bigtable emulator.*:RuntimeWarning",
+
   # `ATTRIBUTE_NAMES` is a constant from the `sentry-conventions` library.
   # We don't want to immediately block any sentry-conventions library updates
   # with errors on new deprecations, and some code may depend on the value of
