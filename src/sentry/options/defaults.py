@@ -441,6 +441,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# A database error that replaces a task's deadline as a transaction block ends is left alone
+# ("off"), counted ("report"), or swapped back for the deadline and counted ("enforce").
+register(
+    "taskworker.deadline_restore.mode",
+    default="off",
+    type=String,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 
 register(
     "cleanup.abort_execution",
