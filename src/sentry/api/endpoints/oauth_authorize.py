@@ -16,6 +16,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.helpers.oauth_authorize.approval import approve_authorization
+from sentry.api.helpers.oauth_authorize.prompt import (
+    prompt_error,
+    requires_explicit_consent,
+    requires_reauthentication,
+)
 from sentry.api.helpers.oauth_authorize.request import build_authorization_request
 from sentry.api.helpers.oauth_authorize.response import (
     InvalidAuthorizationRequest,
@@ -62,6 +67,11 @@ class OAuthAuthorizeConsentResponse(TypedDict):
     # decision POST, which validates the bound transaction and current access.
     hasExistingConsent: bool
     organizationOptions: list[ControlSiloOrganizationSerializerResponse]
+
+
+class OAuthAuthorizeReauthenticateResponse(TypedDict):
+    # prompt=login: the client must sign in again before consent can be prepared.
+    stage: Literal["reauthenticate"]
 
 
 @dataclass(frozen=True, eq=False)
@@ -133,7 +143,10 @@ class OAuthAuthorizeEndpoint(Endpoint):
         parameters=[OAuthAuthorizeQuerySerializer],
         responses={
             200: inline_sentry_response_serializer(
-                "OAuthAuthorizeConsent", OAuthAuthorizeConsentResponse | OAuthRedirectResponse
+                "OAuthAuthorizeConsent",
+                OAuthAuthorizeConsentResponse
+                | OAuthAuthorizeReauthenticateResponse
+                | OAuthRedirectResponse,
             )
         },
     )
@@ -144,6 +157,20 @@ class OAuthAuthorizeEndpoint(Endpoint):
         authorization = build_authorization_request(serializer.validated_data)
         application = authorization.application
         prune_authorization_transactions(request.session)
+        if requires_reauthentication(authorization, request.session):
+            reauthenticate: OAuthAuthorizeReauthenticateResponse = {"stage": "reauthenticate"}
+            return Response(reauthenticate)
+
+        existing_consent = not requires_explicit_consent(authorization) and has_existing_consent(
+            application, request.user.id, authorization.scopes
+        )
+        if "none" in authorization.prompt:
+            # Organization-scoped applications need a selection on every request.
+            if application.requires_org_level_access:
+                raise prompt_error(authorization, "interaction_required")
+            if not existing_consent:
+                raise prompt_error(authorization, "consent_required")
+
         organizations = get_organization_options(application, request.user.id)
         if application.requires_org_level_access and not organizations:
             raise InvalidAuthorizationRequest(
@@ -155,9 +182,7 @@ class OAuthAuthorizeEndpoint(Endpoint):
                 request.session, authorization, request.user.id
             ),
             organizations=organizations,
-            has_existing_consent=has_existing_consent(
-                application, request.user.id, authorization.scopes
-            ),
+            has_existing_consent=existing_consent,
         )
         analytics.record(
             OAuthConsentEvent(
