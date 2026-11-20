@@ -792,6 +792,33 @@ class JiraServerRegionIntegrationTest(JiraServerIntegrationBaseTest):
                 installation.sync_status_outbound(external_issue, True, self.project.id)
                 mock_transition_issue.assert_called_with("SEN-5", "31")
 
+    def test_outbound_issue_sync_no_transition_to_status(self) -> None:
+        integration, _ = self.create_provider_integration_for(
+            organization=self.organization,
+            user=self.user,
+            provider="jira_server",
+            name="Example Jira",
+        )
+
+        external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=integration.id, key="SEN-5"
+        )
+        self.create_integration_external_project(
+            organization_id=self.organization.id,
+            integration_id=integration.id,
+            resolved_status="10101",
+            unresolved_status="99999",
+            external_id="10100",
+        )
+        installation = integration.get_installation(self.organization.id)
+        assert isinstance(installation, JiraServerIntegration)
+
+        with mock.patch.object(StubJiraApiClient, "transition_issue") as mock_transition_issue:
+            with mock.patch.object(installation, "get_client", get_client):
+                with pytest.raises(IntegrationConfigurationError):
+                    installation.sync_status_outbound(external_issue, False, self.project.id)
+                mock_transition_issue.assert_not_called()
+
     @responses.activate
     def test_sync_assignee_outbound_case_insensitive(self) -> None:
         user = serialize_rpc_user(self.create_user(email="bob@example.com"))
