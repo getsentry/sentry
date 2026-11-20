@@ -14,7 +14,7 @@ from sentry.constants import DataCategory
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.preprod.authentication import LaunchpadRpcSignatureAuthentication
-from sentry.preprod.retention import get_retention_days_or_default
+from sentry.preprod.retention import get_retention_days
 
 
 class LaunchpadServiceOrOrganizationPermission(OrganizationPermission):
@@ -58,8 +58,8 @@ class OrganizationPreprodRetentionEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization: Organization) -> Response:
         return Response(
             {
-                "size": get_retention_days_or_default(organization, DataCategory.SIZE_ANALYSIS),
-                "buildDistribution": get_retention_days_or_default(
+                "size": get_retention_days(organization, DataCategory.SIZE_ANALYSIS),
+                "buildDistribution": get_retention_days(
                     organization, DataCategory.INSTALLABLE_BUILD
                 ),
             }
