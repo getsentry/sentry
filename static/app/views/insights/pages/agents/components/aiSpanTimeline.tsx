@@ -286,6 +286,34 @@ const TimelineRow = memo(function TimelineRowImpl({
 
   return (
     <RowContainer data-selected={isSelected} depth={depth}>
+      {hasToggleColumn ? (
+        // Rows without children keep the space, so siblings line up whether or not
+        // they can be expanded.
+        <Flex
+          justify="center"
+          alignSelf="start"
+          flexShrink={0}
+          width="20px"
+          paddingTop="xs"
+        >
+          {canToggle ? (
+            <Button
+              size="zero"
+              variant="transparent"
+              aria-label={isExpanded ? t('Collapse') : t('Expand')}
+              aria-expanded={isExpanded}
+              icon={
+                <IconChevron
+                  direction={isExpanded ? 'down' : 'right'}
+                  size="xs"
+                  variant="muted"
+                />
+              }
+              onClick={() => onToggleExpanded(node.id, !isExpanded)}
+            />
+          ) : null}
+        </Flex>
+      ) : null}
       <Flex align="center" flex="1" minWidth="0">
         {flexProps => (
           <SelectButton type="button" {...flexProps} onClick={() => onSelectNode(node)}>
@@ -360,35 +388,6 @@ const TimelineRow = memo(function TimelineRowImpl({
           </SelectButton>
         )}
       </Flex>
-      {hasToggleColumn ? (
-        // Sits at the end of the row so the spans' own content keeps its
-        // indentation. Rows without children keep the space, so the durations of
-        // all rows line up.
-        <Flex
-          justify="center"
-          alignSelf="start"
-          flexShrink={0}
-          width="24px"
-          paddingTop="xs"
-        >
-          {canToggle ? (
-            <Button
-              size="zero"
-              variant="transparent"
-              aria-label={isExpanded ? t('Collapse') : t('Expand')}
-              aria-expanded={isExpanded}
-              icon={
-                <IconChevron
-                  direction={isExpanded ? 'down' : 'right'}
-                  size="xs"
-                  variant="muted"
-                />
-              }
-              onClick={() => onToggleExpanded(node.id, !isExpanded)}
-            />
-          ) : null}
-        </Flex>
-      ) : null}
     </RowContainer>
   );
 });
