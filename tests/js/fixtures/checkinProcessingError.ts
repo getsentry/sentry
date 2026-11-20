@@ -16,12 +16,7 @@ export function CheckinProcessingErrorFixture(
         type: 'check_in',
       },
       partition: 0,
-      payload: {
-        check_in_id: '',
-        environment: 'prod',
-        monitor_slug: '',
-        status: 'ok',
-      },
+      payload: {check_in_id: '', environment: 'prod', monitor_slug: '', status: 'ok'},
       ts: '2024-05-25T00:24:29.739000',
     },
     errors: [{type: 1}],

@@ -99,11 +99,7 @@ export function parseFilterValue(
   const parsedResult = parseQueryBuilderValue(
     filterValue,
     () => getFieldDefinitionForDataset(globalFilter.tag, globalFilter.dataset),
-    {
-      filterKeys: {
-        [globalFilter.tag.key]: globalFilter.tag,
-      },
-    }
+    {filterKeys: {[globalFilter.tag.key]: globalFilter.tag}}
   );
   if (!parsedResult) {
     return [];
@@ -134,13 +130,7 @@ export function isValidNumericFilterValue(
     globalFilter.dataset
   );
   const valueType = getFilterValueType(filterToken, fieldDefinition);
-  return (
-    cleanFilterValue({
-      value,
-      valueType,
-      token: filterToken,
-    }) !== null
-  );
+  return cleanFilterValue({value, valueType, token: filterToken}) !== null;
 }
 
 export function newNumericFilterQuery(
@@ -155,11 +145,7 @@ export function newNumericFilterQuery(
     globalFilter.dataset
   );
   const valueType = getFilterValueType(filterToken, fieldDefinition);
-  const cleanedValue = cleanFilterValue({
-    value: newValue,
-    valueType,
-    token: filterToken,
-  });
+  const cleanedValue = cleanFilterValue({value: newValue, valueType, token: filterToken});
   if (!cleanedValue) {
     return '';
   }

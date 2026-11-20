@@ -19,9 +19,7 @@ describe('DisabledAlert', () => {
   it('does not render when automation is enabled', () => {
     const automation = AutomationFixture({enabled: true});
 
-    const {container} = render(<DisabledAlert automation={automation} />, {
-      organization,
-    });
+    const {container} = render(<DisabledAlert automation={automation} />, {organization});
 
     expect(container).toBeEmptyDOMElement();
   });
@@ -29,9 +27,7 @@ describe('DisabledAlert', () => {
   it('renders alert with message and enable button when automation is disabled', () => {
     const automation = AutomationFixture({enabled: false});
 
-    render(<DisabledAlert automation={automation} />, {
-      organization,
-    });
+    render(<DisabledAlert automation={automation} />, {organization});
 
     expect(
       screen.getByText('This alert is disabled and will not send notifications.')
@@ -40,10 +36,7 @@ describe('DisabledAlert', () => {
   });
 
   it('enables automation when enable button is clicked', async () => {
-    const automation = AutomationFixture({
-      id: '123',
-      enabled: false,
-    });
+    const automation = AutomationFixture({id: '123', enabled: false});
 
     const updateRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/workflows/123/',
@@ -51,9 +44,7 @@ describe('DisabledAlert', () => {
       body: {...automation, enabled: true},
     });
 
-    render(<DisabledAlert automation={automation} />, {
-      organization,
-    });
+    render(<DisabledAlert automation={automation} />, {organization});
 
     const enableButton = await screen.findByRole('button', {name: 'Enable'});
     expect(enableButton).toBeEnabled();

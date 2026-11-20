@@ -35,9 +35,7 @@ const installationConfigSchema = z.object({
 });
 
 interface InstallationConfigStepData {
-  defaults?: {
-    verifySsl?: boolean;
-  };
+  defaults?: {verifySsl?: boolean};
 }
 
 interface InstallationConfigAdvanceData {

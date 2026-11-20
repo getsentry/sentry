@@ -42,10 +42,7 @@ describe('EAP SampledEventsTable', () => {
   function addDataMock(row: Record<string, unknown>) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {fields: META_FIELDS},
-        data: [row],
-      },
+      body: {meta: {fields: META_FIELDS}, data: [row]},
       match: [
         (_url, options) =>
           options.query?.field?.includes('span_id') &&
@@ -77,10 +74,7 @@ describe('EAP SampledEventsTable', () => {
     // Count query
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {fields: {'count()': 'integer'}},
-        data: [{'count()': 3}],
-      },
+      body: {meta: {fields: {'count()': 'integer'}}, data: [{'count()': 3}]},
       match: [(_url, options) => options.query?.field?.includes('count()')],
     });
   });

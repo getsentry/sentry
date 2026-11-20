@@ -115,10 +115,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
 
   useMarkPreviewedGroupSeen(group);
   useTrackPreviewedGroup(group);
@@ -205,10 +202,7 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
   function openSeer(action?: string) {
     navigate(
       makeSeerLocation({

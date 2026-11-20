@@ -244,10 +244,7 @@ export const SEER_EMBED_SCHEMAS = {
   myWidget: {
     description: 'A short description for the LLM.',
     level: ['block'],
-    schema: z.object({
-      title: z.string(),
-      value: z.number(),
-    }),
+    schema: z.object({title: z.string(), value: z.number()}),
     examples: [{label: 'Basic', data: {title: 'Errors', value: 42}}],
   },
 } as const satisfies Record<string, SeerEmbedSchema>;

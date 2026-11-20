@@ -43,11 +43,7 @@ export class TransactionEventBuilder {
     problemType?: IssueType,
     transactionSettings?: TransactionSettings
   ) {
-    const perfEvidenceData = {
-      causeSpanIds: [],
-      offenderSpanIds: [],
-      parentSpanIds: [],
-    };
+    const perfEvidenceData = {causeSpanIds: [], offenderSpanIds: [], parentSpanIds: []};
     this.#event = {
       id: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
       eventID: id ?? 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
@@ -64,12 +60,7 @@ export class TransactionEventBuilder {
           type: 'trace',
         },
       },
-      entries: [
-        {
-          data: this.#spans,
-          type: EntryType.SPANS,
-        },
-      ],
+      entries: [{data: this.#spans, type: EntryType.SPANS}],
 
       // For the purpose of mock data, we don't care as much about the properties below.
       // They're here to satisfy the type constraints, but in the future if we need actual values here
@@ -82,12 +73,7 @@ export class TransactionEventBuilder {
       fingerprints: [],
       location: null,
       message: '',
-      measurements: {
-        fcp: {
-          value: transactionSettings?.fcp ?? 0,
-          unit: 'millisecond',
-        },
-      },
+      measurements: {fcp: {value: transactionSettings?.fcp ?? 0, unit: 'millisecond'}},
       metadata: {
         current_level: undefined,
         filename: undefined,

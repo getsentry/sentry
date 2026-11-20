@@ -2,10 +2,11 @@ import logging
 from collections.abc import Mapping
 from typing import Any, cast
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from requests.exceptions import RequestException
 
-from sentry import http, options
+from sentry import http
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import (
@@ -83,11 +84,11 @@ class GitHubIdentityProvider(OAuth2Provider):
     oauth_scopes = ()
 
     def get_oauth_client_id(self) -> str:
-        client_id = options.get("github-app.client-id")
+        client_id = settings.SENTRY_GITHUB_APP_CLIENT_ID
         return client_id
 
     def get_oauth_client_secret(self) -> str:
-        client_secret = options.get("github-app.client-secret")
+        client_secret = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
         return client_secret
 
     def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:

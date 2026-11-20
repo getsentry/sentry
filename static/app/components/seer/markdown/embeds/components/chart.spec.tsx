@@ -6,9 +6,7 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {Chart} from './chart';
 import {renderEmbedMarkdown} from './resourceEmbedTestUtils';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 function ExampleChartEmbed({body}: {body: Record<string, unknown>}) {
   return <SeerMarkdown raw={`{% chart %}${JSON.stringify(body)}{% /chart %}`} />;

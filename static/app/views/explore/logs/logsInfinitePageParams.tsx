@@ -41,10 +41,7 @@ export function getLogPageParam(
     const isDescending = sortBy.kind === 'desc';
     // Previous pages have to have the sort order reversed in order to start at the limit from the initial page.
     const querySortDirection: Sort | undefined = isGetPreviousPage
-      ? {
-          field: OurLogKnownFieldKey.TIMESTAMP,
-          kind: isDescending ? 'asc' : 'desc',
-        }
+      ? {field: OurLogKnownFieldKey.TIMESTAMP, kind: isDescending ? 'asc' : 'desc'}
       : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
@@ -169,10 +166,7 @@ export function getParamBasedQuery(
   }
 
   if (isFlexTimePageParam(pageParam)) {
-    return {
-      ...query,
-      cursor: pageParam.cursor,
-    };
+    return {...query, cursor: pageParam.cursor};
   }
 
   const comparison =

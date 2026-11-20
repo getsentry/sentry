@@ -12,9 +12,7 @@ export function TeamFixture(params: Partial<DetailedTeam> = {}): DetailedTeam {
     isMember: true,
     memberCount: 0,
     avatar: {avatarType: 'letter_avatar', avatarUuid: uuid4()},
-    flags: {
-      'idp:provisioned': false,
-    },
+    flags: {'idp:provisioned': false},
     externalTeams: [],
     projects: [],
     hasAccess: false,

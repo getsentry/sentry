@@ -130,15 +130,9 @@ export function ReleaseAdoption({
 
   const axisLineConfig = {
     scale: true,
-    axisLine: {
-      show: false,
-    },
-    axisTick: {
-      show: false,
-    },
-    splitLine: {
-      show: false,
-    },
+    axisLine: {show: false},
+    axisTick: {show: false},
+    splitLine: {show: false},
     max: 100,
     axisLabel: {
       formatter: (value: number) => `${value}%`,
@@ -149,18 +143,8 @@ export function ReleaseAdoption({
   const chartOptions: Omit<LineChartProps, 'series' | 'ref'> = {
     height: hasUsers ? 280 : 140,
     grid: [
-      {
-        top: '40px',
-        left: '10px',
-        right: '10px',
-        height: '100px',
-      },
-      {
-        top: '180px',
-        left: '10px',
-        right: '10px',
-        height: '100px',
-      },
+      {top: '40px', left: '10px', right: '10px', height: '100px'},
+      {top: '180px', left: '10px', right: '10px', height: '100px'},
     ],
     axisPointer: {
       // Link each x-axis together.
@@ -172,14 +156,8 @@ export function ReleaseAdoption({
       show: false,
     })),
     yAxes: [
-      {
-        gridIndex: sessionsAxisIndex,
-        ...axisLineConfig,
-      },
-      {
-        gridIndex: usersAxisIndex,
-        ...axisLineConfig,
-      },
+      {gridIndex: sessionsAxisIndex, ...axisLineConfig},
+      {gridIndex: usersAxisIndex, ...axisLineConfig},
     ],
     // utc: utc === 'true', //TODO(release-comparison)
     isGroupedByDate: true,
@@ -222,10 +200,7 @@ export function ReleaseAdoption({
     start,
     end,
     utc,
-  } = getReleaseParams({
-    location,
-    releaseBounds: getReleaseBounds(release),
-  });
+  } = getReleaseParams({location, releaseBounds: getReleaseBounds(release)});
 
   const adoptionStage = release.adoptionStages?.[project.slug]?.stage;
   const adoptionStageLabel = adoptionStage ? ADOPTION_STAGE_LABELS[adoptionStage] : null;

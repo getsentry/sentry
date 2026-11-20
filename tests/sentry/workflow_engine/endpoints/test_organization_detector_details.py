@@ -47,6 +47,7 @@ from sentry.workflow_engine.models import (
 )
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.types import DetectorAPIOperation, DetectorPriorityLevel, FeatureGate
 from sentry.workflow_engine.typings.grouptype import IssueStreamGroupType
 from tests.sentry.workflow_engine.endpoints.test_helpers import (
@@ -504,6 +505,25 @@ class OrganizationDetectorDetailsPutTest(OrganizationDetectorDetailsBaseTest):
         snuba_query = SnubaQuery.objects.get(id=query_subscription.snuba_query.id)
         self.assert_snuba_query_updated(snuba_query)
         mock_schedule_update_project_config.assert_called_once_with(detector)
+
+    def test_update_cannot_remove_internal_condition_without_group_id(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
+        del self.valid_data["conditionGroup"]["id"]
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.detector.id,
+                raw_data={"conditionGroup": self.valid_data["conditionGroup"]},
+                status_code=400,
+            )
+        assert "Internal condition groups" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.type == Condition.FIRST_SEEN_EVENT
 
     def test_update_description(self) -> None:
         assert self.detector.description is None

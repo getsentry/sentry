@@ -208,9 +208,7 @@ describe('ScmCreateProject', () => {
     for (const repository of repositories) {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
-        body: {
-          platforms: [DetectedPlatformFixture({platform: 'python'})],
-        },
+        body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
       });
     }
     return MockApiClient.addMockResponse({
@@ -228,16 +226,7 @@ describe('ScmCreateProject', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegration.id}/channels/`,
-      body: {
-        results: [
-          {
-            id: 'C123',
-            name: 'alerts',
-            display: '#alerts',
-            type: 'text',
-          },
-        ],
-      },
+      body: {results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'text'}]},
     });
   }
 
@@ -284,10 +273,7 @@ describe('ScmCreateProject', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/new/',
-            query,
-          },
+          location: {pathname: '/organizations/org-slug/projects/new/', query},
         },
       }
     );
@@ -939,10 +925,7 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(projectDeletionRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/`,
-        expect.objectContaining({
-          method: 'DELETE',
-          data: {origin: 'getting_started'},
-        })
+        expect.objectContaining({method: 'DELETE', data: {origin: 'getting_started'}})
       );
     });
   });
@@ -1059,10 +1042,7 @@ describe('ScmCreateProject', () => {
             environment: null,
             config: {frequency: 1440},
             detectorIds: [detector.id],
-            triggers: {
-              logicType: 'any-short',
-              conditions: [],
-            },
+            triggers: {logicType: 'any-short', conditions: []},
             actionFilters: [
               {
                 logicType: 'all',

@@ -29,11 +29,7 @@ export default function ProjectKeyDetails() {
   const projectKeyOptions = apiOptions.as<ProjectKey>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: projectId,
-        keyId,
-      },
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId, keyId},
       staleTime: 0,
     }
   );

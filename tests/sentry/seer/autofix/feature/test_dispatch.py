@@ -665,7 +665,7 @@ class TestSingleRunStart(TestCase):
         super().setUp()
         self.group = self.create_group(project=self.project)
 
-    def _start(self, **kwargs: Any) -> MagicMock:
+    def _start(self, seat_or_token_billed: bool = True, **kwargs: Any) -> MagicMock:
         args = {
             "referrer": AutofixReferrer.AGENTIC_TRIAGE,
             "step": AutofixStep.ROOT_CAUSE,
@@ -677,6 +677,10 @@ class TestSingleRunStart(TestCase):
             patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls,
             patch("sentry.seer.autofix.feature.dispatch.quotas") as mock_quotas,
             patch("sentry.seer.autofix.feature.dispatch.require_autofix_run_for_group"),
+            patch(
+                "sentry.seer.autofix.feature.dispatch.is_seer_seat_or_token_billed_enabled",
+                return_value=seat_or_token_billed,
+            ),
         ):
             mock_quotas.backend.check_seer_quota.return_value = True
             mock_client_cls.return_value.start_feature_run.return_value = fake_run
@@ -712,6 +716,12 @@ class TestSingleRunStart(TestCase):
         mock_client_cls = self._start(single_run=True)
 
         assert self._started_feature_id(mock_client_cls) == SINGLE_RUN_FEATURE_ID
+
+    def test_legacy_org_starts_steps(self) -> None:
+        with self.feature("organizations:autofix-single-run"):
+            mock_client_cls = self._start(seat_or_token_billed=False, single_run=True)
+
+        assert self._started_feature_id(mock_client_cls) == FEATURE_ID
 
     def test_handoff_project_starts_single_run(self) -> None:
         self._set_handoff()
@@ -865,6 +875,12 @@ class TestContinueSingleRun(TestCase):
         )
         self.project.update_option("sentry:seer_automated_run_stopping_point", "root_cause")
         self.organization.update_option("sentry:enable_seer_coding", True)
+        tier = patch(
+            "sentry.seer.autofix.feature.dispatch.is_seer_seat_or_token_billed_enabled",
+            return_value=True,
+        )
+        self.seat_or_token_billed = tier.start()
+        self.addCleanup(tier.stop)
 
     def _reply(
         self,
@@ -922,6 +938,12 @@ class TestContinueSingleRun(TestCase):
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is False
         assert kwargs["payload"]["pr_internal_settings"] is None
         assert kwargs["payload"]["coding_agent_handoff"] is True
+
+    def test_legacy_org_cannot_reply(self) -> None:
+        self.seat_or_token_billed.return_value = False
+
+        with pytest.raises(SeerPermissionError):
+            self._reply()
 
     def test_reply_without_handoff_does_not_send_the_flag(self) -> None:
         kwargs = self._continue_kwargs(self._reply())
@@ -993,6 +1015,12 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
             )
         ]
         self.author: SeerCommitAuthor = {"name": "Octo", "email": "octo@example.com"}
+        tier = patch(
+            "sentry.seer.autofix.feature.dispatch.is_seer_seat_or_token_billed_enabled",
+            return_value=True,
+        )
+        self.seat_or_token_billed = tier.start()
+        self.addCleanup(tier.stop)
 
     def _send(self) -> MagicMock:
         with patch("sentry.seer.autofix.feature.dispatch.SeerAgentClient") as mock_client_cls:
@@ -1023,6 +1051,12 @@ class TestContinueSingleRunFromPrFeedback(TestCase):
         assert kwargs["agent_run_options"]["enable_pr_context_tools"] is True
         assert kwargs["agent_run_options"]["enable_write_pull_request"] is True
         assert mock_client_cls.call_args.kwargs["user"] is None
+
+    def test_legacy_org_cannot_iterate(self) -> None:
+        self.seat_or_token_billed.return_value = False
+
+        with pytest.raises(SeerPermissionError):
+            self._send()
 
     def test_bills_as_pr_iteration(self) -> None:
         with patch("sentry.seer.autofix.feature.dispatch.check_autofix_billing") as mock_billing:

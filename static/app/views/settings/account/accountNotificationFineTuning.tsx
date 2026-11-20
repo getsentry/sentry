@@ -124,11 +124,7 @@ export function AccountNotificationFineTuning() {
     isError: isErrorProjects,
   } = useQuery({
     ...apiOptions.as<Project[]>()('/projects/', {
-      query: {
-        organizationId,
-        cursor,
-        query,
-      },
+      query: {organizationId, cursor, query},
       staleTime: 0,
     }),
     enabled: Boolean(organizationId),

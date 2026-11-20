@@ -12,10 +12,7 @@ import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/t
 
 export function makeTransactionProfilingLink(
   profileId: string,
-  options: {
-    organization: Organization;
-    projectSlug: string;
-  }
+  options: {organization: Organization; projectSlug: string}
 ): LocationDescriptor | null {
   if (!options.projectSlug || !options.organization) {
     return null;
@@ -50,10 +47,7 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
-  const query: Record<string, string> = {
-    spanId: node.id,
-    traceId: options.traceId,
-  };
+  const query: Record<string, string> = {spanId: node.id, traceId: options.traceId};
   const transactionSpanId = isEAPSpanNode(node) ? node.transactionSpanId : undefined;
 
   if (transactionSpanId) {

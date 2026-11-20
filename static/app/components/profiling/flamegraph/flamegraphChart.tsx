@@ -210,10 +210,7 @@ export function FlamegraphChart({
     canvas: chartCanvasRef,
   });
 
-  useInteractionViewCheckPoint({
-    view: chartView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: chartView, lastInteraction});
 
   // When a user click anywhere outside the spans, clear cursor and selected node
   useEffect(() => {

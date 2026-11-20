@@ -87,6 +87,7 @@ class AuditLogEntrySerializerTest(TestCase):
             data={
                 "unrequired_field1": "value1",
                 "unrequired_field2": "value2",
+                "sentry:token": "source-token",
             },
         )
 
@@ -94,6 +95,10 @@ class AuditLogEntrySerializerTest(TestCase):
         result = serialize(log, serializer=serializer)
 
         assert result["data"] == {}
+        assert result["note"] == (
+            "edited project settings in unrequired_field1 to value1 "
+            "in unrequired_field2 to value2 in sentry:token to [Filtered]"
+        )
 
     def test_scim_logname(self) -> None:
         uuid_prefix = "681d6e"

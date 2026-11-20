@@ -14,9 +14,7 @@ describe('GroupUserFeedback', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/issues/${group.id}/`},
     route: '/organizations/:orgId/issues/:groupId/',
   };
 
@@ -43,9 +41,7 @@ describe('GroupUserFeedback', () => {
       {organization, initialRouterConfig}
     );
     expect(
-      await screen.findByRole('heading', {
-        name: 'What do users think?',
-      })
+      await screen.findByRole('heading', {name: 'What do users think?'})
     ).toBeInTheDocument();
   });
 
@@ -68,10 +64,7 @@ describe('GroupUserFeedback', () => {
             ipAddress: '127.0.0.1',
             avatarUrl: null,
           },
-          event: {
-            id: '123',
-            eventID: 'abc',
-          },
+          event: {id: '123', eventID: 'abc'},
         },
       ],
     });
@@ -80,10 +73,7 @@ describe('GroupUserFeedback', () => {
       <GroupIdProvider groupId={group.id}>
         <GroupUserFeedback />
       </GroupIdProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     expect(await screen.findByText('Test User')).toBeInTheDocument();
     expect(await screen.findByText('custom comment')).toBeInTheDocument();

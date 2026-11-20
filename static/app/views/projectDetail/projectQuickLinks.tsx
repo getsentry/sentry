@@ -23,10 +23,7 @@ import {
 
 import {SidebarSection} from './styles';
 
-type Props = {
-  organization: Organization;
-  project?: Project;
-};
+type Props = {organization: Organization; project?: Project};
 
 export function ProjectQuickLinks({organization, project}: Props) {
   const domainView = project

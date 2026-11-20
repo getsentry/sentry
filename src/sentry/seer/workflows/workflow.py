@@ -275,7 +275,7 @@ class SeerWorkflow:
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
     def delete(self) -> None:
-        """Delete the config with its project links, runs, trigger bindings, and service account."""
+        """Delete the config with its project links, runs, and service account."""
         self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
             get_definition(config.strategy).teardown(config)

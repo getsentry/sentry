@@ -6,16 +6,7 @@ function getFeatures({
 }: ToolboxComponentOption['feature'] = {}): ToolboxComponentOption['feature'] {
   return {
     ...(dataZoom
-      ? {
-          dataZoom: {
-            yAxisIndex: 'none',
-            title: {
-              zoom: 'zoom',
-              back: 'undo',
-            },
-            ...dataZoom,
-          },
-        }
+      ? {dataZoom: {yAxisIndex: 'none', title: {zoom: 'zoom', back: 'undo'}, ...dataZoom}}
       : {}),
     ...features,
   };

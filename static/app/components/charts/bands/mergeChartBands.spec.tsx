@@ -9,10 +9,13 @@ type ClickEvent = Parameters<EChartClickHandler>[0];
 
 const instance = {} as ECharts;
 
-function band(id: string, height: number, onClick?: () => void): ChartBand {
+function band(id: string, height: number, onClick?: (start: number) => void): ChartBand {
   return {
     id,
-    buckets: [],
+    buckets: [
+      {start: 0, end: 60_000},
+      {start: 60_000, end: 120_000},
+    ],
     height,
     onClick,
     series: offset => ({type: 'custom', name: `${id} at ${offset}`}),
@@ -92,17 +95,30 @@ describe('mergeChartBands', () => {
       band('second', 8, onSecondClick),
     ]);
 
-    merged.onClick?.({seriesId: 'second'} as ClickEvent, instance);
+    merged.onClick?.({seriesId: 'second', dataIndex: 1} as ClickEvent, instance);
 
-    expect(onSecondClick).toHaveBeenCalledTimes(1);
+    expect(onSecondClick).toHaveBeenCalledWith(60_000);
     expect(onFirstClick).not.toHaveBeenCalled();
     expect(onClick).not.toHaveBeenCalled();
 
-    const seriesClick = {seriesId: 'count()'} as ClickEvent;
+    const seriesClick = {seriesId: 'count()', dataIndex: 0} as ClickEvent;
     merged.onClick?.(seriesClick, instance);
 
     expect(onClick).toHaveBeenCalledWith(seriesClick, instance);
     expect(onFirstClick).not.toHaveBeenCalled();
     expect(onSecondClick).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores band clicks outside its buckets', () => {
+    const onBandClick = jest.fn();
+    const onClick = jest.fn();
+    const merged = mergeChartBands({grid: {bottom: 0}, yAxes: [], onClick}, [
+      band('first', 12, onBandClick),
+    ]);
+
+    merged.onClick?.({seriesId: 'first', dataIndex: 5} as ClickEvent, instance);
+
+    expect(onBandClick).not.toHaveBeenCalled();
+    expect(onClick).not.toHaveBeenCalled();
   });
 });

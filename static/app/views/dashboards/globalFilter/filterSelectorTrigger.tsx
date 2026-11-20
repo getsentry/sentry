@@ -16,10 +16,7 @@ import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 
 type FilterSelectorTriggerButtonProps = React.ComponentProps<
   typeof OverlayTrigger.Button
-> & {
-  globalFilter: GlobalFilter;
-  showDatasetLabel?: boolean;
-};
+> & {globalFilter: GlobalFilter; showDatasetLabel?: boolean};
 
 /**
  * Trigger button shared by all global filter selectors. Always shows the

@@ -4,9 +4,7 @@ import {Container} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-type Props = {
-  seriesCount: number;
-};
+type Props = {seriesCount: number};
 
 export function NoEvents({seriesCount}: Props) {
   return (

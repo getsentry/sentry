@@ -1971,6 +1971,7 @@ SENTRY_SCOPES = {
     "alerts:write",
     "dashboard:read",
     "dashboard:write",
+    "membership:read",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -1994,6 +1995,7 @@ SENTRY_READONLY_SCOPES = {
     "event:read",
     "alerts:read",
     "dashboard:read",
+    "membership:read",
     "saved_query:read",
     "seer:read",
     "service_account:read",
@@ -2028,6 +2030,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # Granular scopes are explicit: write does not imply read, so a token that reads
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
+    "membership:read": {"membership:read"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2065,6 +2068,8 @@ GRANULAR_SCOPES = frozenset(
         "saved_query:write",
         "user_preference:read",
         "user_preference:write",
+        # Accepted by endpoints, but not granted by any role yet.
+        "membership:read",
     ]
 )
 
@@ -2090,6 +2095,8 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
         [
             # Removed once member:read has a full 1:1 translation to granular scopes.
             "member:read",
+            # Org and team membership reads.
+            "membership:read",
             "user_preference:read",
             "user_preference:write",
         ]
@@ -2160,6 +2167,7 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
+    (("membership:read", "Read access to organization and team membership."),),
     (
         ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),
@@ -2837,6 +2845,7 @@ SENTRY_GITHUB_CONSOLE_SDK_APP_ID: int = 0
 SENTRY_SLACK_CLIENT_ID: str = ""
 SENTRY_SLACK_STAGING_CLIENT_ID: str = ""
 SENTRY_MSTEAMS_CLIENT_ID: str = ""
+# Empty tenant ID uses the multi-tenant botframework.com OAuth authority.
 SENTRY_MSTEAMS_TENANT_ID: str = ""
 SENTRY_VERCEL_CLIENT_ID: str = ""
 SENTRY_DISCORD_APPLICATION_ID: str = ""
@@ -2865,8 +2874,6 @@ SENTRY_DSYM_CACHE_PATH: str = "/tmp/sentry-dsym-cache"
 SENTRY_RELEASEFILE_CACHE_PATH: str = "/tmp/sentry-releasefile-cache"
 SENTRY_MAIL_ENABLE_REPLIES: bool = False
 SENTRY_MAIL_REPLY_HOSTNAME: str = ""
-SENTRY_SYSTEM_SUPPORT_EMAIL: str = ""
-SENTRY_SYSTEM_SECURITY_EMAIL: str = ""
 SENTRY_U2F_FACETS: list[str] = []
 SENTRY_SMS_TWILIO_ACCOUNT: str = ""
 SENTRY_SMS_TWILIO_NUMBER: str = ""
@@ -2883,6 +2890,9 @@ EMAIL_SUBJECT_PREFIX = DEAD
 # Shared btw Auth Provider and Social Auth Plugin
 GITHUB_APP_ID = DEAD
 GITHUB_API_SECRET = DEAD
+# The GitHub login client ID before single-organization mode replaces
+# GITHUB_APP_ID with the integration app's. Bootstrap derives it.
+SENTRY_GITHUB_LOGIN_CLIENT_ID: str = ""
 
 # Used by Auth Provider
 GITHUB_REQUIRE_VERIFIED_EMAIL = DEAD
@@ -3276,9 +3286,9 @@ SYMBOLICATOR_POLL_TIMEOUT = 5
 # defined in `src/sentry/lang/native/symbolicator.py`.
 # If a specific setting does not exist, this will fall back to the `default` pool.
 # If that is not configured, it will fall back to the `url` configured in
-# `symbolicator.options`.
+# `SENTRY_SYMBOLICATOR_OPTIONS`.
 # The settings here are intentionally empty and will fall back to
-# `symbolicator.options` for backwards compatibility.
+# `SENTRY_SYMBOLICATOR_OPTIONS` for deployments with a single pool.
 SYMBOLICATOR_POOL_URLS: dict[str, str] = {
     # "default": "...",
     # "js": "...",

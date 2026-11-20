@@ -25,15 +25,8 @@ describe('useFocusedToolSpan', () => {
 
     const {rerender} = renderHook(
       ({focusedTool}) =>
-        useFocusedToolSpan({
-          nodes,
-          focusedTool,
-          isLoading: false,
-          onSpanFound,
-        }),
-      {
-        initialProps: {focusedTool: 'first-tool' as string | null},
-      }
+        useFocusedToolSpan({nodes, focusedTool, isLoading: false, onSpanFound}),
+      {initialProps: {focusedTool: 'first-tool' as string | null}}
     );
 
     expect(onSpanFound).toHaveBeenNthCalledWith(1, 'span-a');

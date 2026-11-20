@@ -28,29 +28,13 @@ export function getRuntimeContextData({
   return getContextKeys({data, hiddenKeys: ['runtime']}).map(ctxKey => {
     switch (ctxKey) {
       case RuntimeContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
+        return {key: ctxKey, subject: t('Name'), value: data.name};
       case RuntimeContextKeys.BUILD:
-        return {
-          key: ctxKey,
-          subject: t('Build'),
-          value: data.build,
-        };
+        return {key: ctxKey, subject: t('Build'), value: data.build};
       case RuntimeContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: data.version,
-        };
+        return {key: ctxKey, subject: t('Version'), value: data.version};
       case RuntimeContextKeys.RAW_DESCRIPTION:
-        return {
-          key: ctxKey,
-          subject: t('Raw Description'),
-          value: data.raw_description,
-        };
+        return {key: ctxKey, subject: t('Raw Description'), value: data.raw_description};
       default:
         return {
           key: ctxKey,

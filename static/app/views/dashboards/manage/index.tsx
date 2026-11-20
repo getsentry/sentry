@@ -216,33 +216,24 @@ function ManageDashboards() {
   }
 
   function handleSearch(query: string) {
-    trackAnalytics('dashboards_manage.search', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.search', {organization});
 
     setQueryParams({cursor: null, query});
   }
 
   const handleSortChange = (value: string) => {
-    trackAnalytics('dashboards_manage.change_sort', {
-      organization,
-      sort: value,
-    });
+    trackAnalytics('dashboards_manage.change_sort', {organization, sort: value});
     setQueryParams({cursor: null, sort: value});
   };
 
   function onCreate() {
-    trackAnalytics('dashboards_manage.create.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.create.start', {organization});
 
     navigate(normalizeUrl(`/organizations/${organization.slug}/dashboards/new/`));
   }
 
   function onGenerateDashboard() {
-    trackAnalytics('dashboards_manage.generate.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.generate.start', {organization});
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
@@ -332,9 +323,7 @@ function ManageDashboards() {
               variant="primary"
               icon={<IconAdd />}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              tooltipProps={{
-                title: limitMessage,
-              }}
+              tooltipProps={{title: limitMessage}}
             >
               {t('Create Dashboard')}
             </Button>
@@ -403,11 +392,7 @@ function ManageDashboards() {
                 <Feature features="dashboards-import">
                   <Button
                     onClick={() => {
-                      openImportDashboardFromFileModal({
-                        organization,
-                        api,
-                        location,
-                      });
+                      openImportDashboardFromFileModal({organization, api, location});
                     }}
                     variant="primary"
                     icon={<IconAdd />}

@@ -2,7 +2,14 @@ import {Fragment, useState} from 'react';
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import type {
   AutofixExplorerStep,
@@ -312,6 +319,7 @@ describe('AutofixRef embed', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -976,10 +984,7 @@ describe('autofix embed', () => {
           title: 'Pass an initial accumulator',
           description: `Add the guard in ${longFilename}.`,
         },
-        {
-          title: 'Cover the regression',
-          description: `Add a test for ${longFilename}.`,
-        },
+        {title: 'Cover the regression', description: `Add a test for ${longFilename}.`},
       ],
     });
 
