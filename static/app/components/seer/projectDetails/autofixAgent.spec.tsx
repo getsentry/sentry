@@ -320,7 +320,7 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {
       organization: OrganizationFixture({
-        features: ['autofix-single-run', 'seat-based-seer-enabled'],
+        features: ['autofix-single-run'],
       }),
     });
 

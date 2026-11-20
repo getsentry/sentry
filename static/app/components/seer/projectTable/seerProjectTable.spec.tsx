@@ -606,7 +606,7 @@ describe('SeerProjectTable', () => {
   describe('Open PRs toggle', () => {
     const singleRunOrg = OrganizationFixture({
       access: ['org:write'],
-      features: ['autofix-single-run', 'seat-based-seer-enabled'],
+      features: ['autofix-single-run'],
     });
 
     it('replaces Automation Steps with an Open PRs switch per project', async () => {
