@@ -82,6 +82,12 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'pr_iteration', width: '1fr'},
 ];
 
+const SWITCH_TABLE_COLUMNS: TableColumnConfig[] = TABLE_COLUMNS.map(column =>
+  column.key === 'automation_steps' || column.key === 'pr_iteration'
+    ? {...column, width: 'max-content'}
+    : column
+);
+
 export function SeerProjectTable() {
   const queryClient = useQueryClient();
   const location = useLocation();
@@ -127,6 +133,7 @@ export function SeerProjectTable() {
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
   const showOpenPrs = useShowOpenPrs();
+  const columns = showOpenPrs ? SWITCH_TABLE_COLUMNS : TABLE_COLUMNS;
 
   const bulkEdit = useMutation({
     ...getMutateSeerProjectsSettingsOptions({
@@ -232,7 +239,7 @@ export function SeerProjectTable() {
         knownIds={data?.map(item => String(item.projectId)) ?? []}
         endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
-        <InfiniteTable.Table columns={TABLE_COLUMNS}>
+        <InfiniteTable.Table columns={columns}>
           <ProjectTableHeader
             settings={data ?? []}
             sort={sortBy}
