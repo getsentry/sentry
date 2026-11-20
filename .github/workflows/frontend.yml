@@ -342,6 +342,19 @@ jobs:
           'Embed widgets JSON schema'
           'pnpm run gen:embed-widgets'
 
+  # Runs on every PR: nav files import constants from anywhere, so no path filter is complete.
+  seer-nav-snapshot:
+    name: seer nav snapshot
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      # The generator is standard library only, so no sentry env is needed.
+      - name: Check the Seer nav snapshot
+        run: python3 -m tools.seer_nav.generate_snapshot --check
+
   # This check runs once all dependant jobs have passed
   # It symbolizes that all required Frontend checks have succesfully passed (Or skipped)
   # This check is the only required Github check
@@ -356,6 +369,7 @@ jobs:
         knip,
         form-field-registry,
         embed-widgets,
+        seer-nav-snapshot,
       ]
     name: Frontend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped

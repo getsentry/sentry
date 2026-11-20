@@ -36,9 +36,7 @@ function TransactionOverview() {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection, addAlert);
     addRoutePerformanceContext(selection);
-    trackAnalytics('performance_views.transaction_summary.view', {
-      organization,
-    });
+    trackAnalytics('performance_views.transaction_summary.view', {organization});
   }, [selection, organization, api, addAlert]);
 
   return (
@@ -71,9 +69,7 @@ function EAPOverviewContentWrapper() {
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.insights.transaction-summary',
-    options: {
-      refetchOnWindowFocus: false,
-    },
+    options: {refetchOnWindowFocus: false},
   });
 
   // Count has to be total indexed events count because it's only used
@@ -136,10 +132,7 @@ function getEAPTotalsEventView(
   eventView: EventView
 ): EventView {
   const totalsColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['p95', '', undefined, undefined],
-    },
+    {kind: 'function', function: ['p95', '', undefined, undefined]},
   ];
 
   return eventView.withColumns(totalsColumns);

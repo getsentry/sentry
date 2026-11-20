@@ -59,17 +59,10 @@ export function FeedbackOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: false,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       docsFlow,
-      feedbackOptions: {
-        email,
-        name,
-        screenshot,
-      },
+      feedbackOptions: {email, name, screenshot},
       isSelfHosted,
       urlPrefix,
     };
@@ -138,16 +131,10 @@ export function FeedbackOnboardingLayout({
           content: feedbackConfigToggle,
         });
       }
-      return {
-        ...step,
-        content: newContent,
-      };
+      return {...step, content: newContent};
     }
 
-    return {
-      ...step,
-      codeHeader: feedbackConfigToggle,
-    };
+    return {...step, codeHeader: feedbackConfigToggle};
   });
 
   return (

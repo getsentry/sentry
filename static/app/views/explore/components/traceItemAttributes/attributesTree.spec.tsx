@@ -149,21 +149,9 @@ describe('attributesTree', () => {
 
   it('correctly renders attributes tree', () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'test value 1',
-        name: 'test.attribute1',
-      },
-      {
-        type: 'float',
-        value: 42,
-        name: 'test.attribute2',
-      },
-      {
-        type: 'bool',
-        value: true,
-        name: 'test.attribute3',
-      },
+      {type: 'str', value: 'test value 1', name: 'test.attribute1'},
+      {type: 'float', value: 42, name: 'test.attribute2'},
+      {type: 'bool', value: true, name: 'test.attribute3'},
     ];
 
     const renderers = {
@@ -184,12 +172,7 @@ describe('attributesTree', () => {
         attributes={attributes}
         getAdjustedAttributeKey={getAdjustedAttributeKey}
         renderers={renderers}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
       />
     );
 
@@ -215,43 +198,22 @@ describe('attributesTree', () => {
 
   it('correctly renders cell actions', async () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'test value 1',
-        name: 'test.attribute1',
-      },
-      {
-        type: 'str',
-        value: 'test value 2',
-        name: 'test',
-      },
-      {
-        type: 'str',
-        value: 'test value 3',
-        name: 'test.some-inner-thing.value',
-      },
+      {type: 'str', value: 'test value 1', name: 'test.attribute1'},
+      {type: 'str', value: 'test value 2', name: 'test'},
+      {type: 'str', value: 'test value 3', name: 'test.some-inner-thing.value'},
     ];
 
     render(
       <AttributesTree
         attributes={attributes}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
         getCustomActions={content => {
           if (!content.original) {
             return [];
           }
 
           const items: MenuItemProps[] = [
-            {
-              key: 'visible action',
-              label: 'Visible Action',
-              onAction: () => null,
-            },
+            {key: 'visible action', label: 'Visible Action', onAction: () => null},
             {
               key: 'hidden-action',
               label: 'Hidden Action',
@@ -293,23 +255,14 @@ describe('attributesTree', () => {
 
   it('renders an array attribute and types it as array in its details', async () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'array',
-        value: ['timestamp', 'message'],
-        name: 'tags[csv_headers,array]',
-      },
+      {type: 'array', value: ['timestamp', 'message'], name: 'tags[csv_headers,array]'},
     ];
 
     render(
       <AttributesTree
         attributes={attributes}
         config={{attributeDetailsType: 'log'}}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
       />
     );
 
@@ -328,11 +281,7 @@ describe('attributesTree', () => {
 
   it('describes an attribute key when an attribute details type is given', async () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'sentry.python',
-        name: 'sentry.logger.name',
-      },
+      {type: 'str', value: 'sentry.python', name: 'sentry.logger.name'},
     ];
 
     render(
@@ -340,12 +289,7 @@ describe('attributesTree', () => {
         attributes={attributes}
         config={{attributeDetailsType: 'log'}}
         getAdjustedAttributeKey={() => 'logger.name'}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
       />
     );
 
@@ -361,11 +305,7 @@ describe('attributesTree', () => {
 
   it('notes an attribute was scrubbed when its trace item meta carries a remark', async () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: '[Filtered]',
-        name: 'user.email',
-      },
+      {type: 'str', value: '[Filtered]', name: 'user.email'},
     ];
 
     render(
@@ -378,9 +318,7 @@ describe('attributesTree', () => {
           navigate: jest.fn(),
           organization,
           traceItemMeta: {
-            'user.email': {
-              meta: {value: {'': {len: 10, rem: [['@email', 's', 0, 10]]}}},
-            },
+            'user.email': {meta: {value: {'': {len: 10, rem: [['@email', 's', 0, 10]]}}}},
           },
         }}
       />
@@ -395,22 +333,13 @@ describe('attributesTree', () => {
 
   it('falls back to a plain browser tooltip when no attribute details type is given', () => {
     const attributes: TraceItemResponseAttribute[] = [
-      {
-        type: 'str',
-        value: 'sentry.python',
-        name: 'sentry.logger.name',
-      },
+      {type: 'str', value: 'sentry.python', name: 'sentry.logger.name'},
     ];
 
     render(
       <AttributesTree
         attributes={attributes}
-        rendererExtra={{
-          theme,
-          location,
-          navigate: jest.fn(),
-          organization,
-        }}
+        rendererExtra={{theme, location, navigate: jest.fn(), organization}}
       />
     );
 

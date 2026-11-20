@@ -54,10 +54,7 @@ function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
         to={
           isFeedbackFrame(frame)
             ? {
-                pathname: makeFeedbackPathname({
-                  path: '/',
-                  organization,
-                }),
+                pathname: makeFeedbackPathname({path: '/', organization}),
                 query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
               }
             : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`

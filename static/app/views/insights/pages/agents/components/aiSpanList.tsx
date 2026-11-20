@@ -30,11 +30,7 @@ export function getNodeTimeBounds(node: AITraceSpanNode | AITraceSpanNode[]) {
     return {startTime: 0, endTime: 0, duration: 0};
   }
 
-  return {
-    startTime,
-    endTime,
-    duration: endTime - startTime,
-  };
+  return {startTime, endTime, duration: endTime - startTime};
 }
 
 export interface TraceBounds {

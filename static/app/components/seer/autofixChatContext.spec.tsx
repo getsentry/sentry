@@ -186,14 +186,16 @@ describe('AutofixChatProvider', () => {
         writable: true,
         value: {
           window: null,
-          requestWindow: jest.fn().mockResolvedValue({
-            document: document.implementation.createHTMLDocument('pip'),
-            close: jest.fn(),
-            focus: jest.fn(),
-            addEventListener: jest.fn(),
-            removeEventListener: jest.fn(),
-            closed: false,
-          }),
+          requestWindow: jest
+            .fn()
+            .mockResolvedValue({
+              document: document.implementation.createHTMLDocument('pip'),
+              close: jest.fn(),
+              focus: jest.fn(),
+              addEventListener: jest.fn(),
+              removeEventListener: jest.fn(),
+              closed: false,
+            }),
         },
       });
     });

@@ -59,18 +59,9 @@ export function calculateHeatMapBucketDimensions(
     return null;
   }
 
-  return {
-    interval,
-    yBuckets,
-  };
+  return {interval, yBuckets};
 }
 
-type BucketDimensions = {
-  interval: string;
-  yBuckets: number;
-};
+type BucketDimensions = {interval: string; yBuckets: number};
 
-type CartesianDimensions = {
-  height: number;
-  width: number;
-};
+type CartesianDimensions = {height: number; width: number};

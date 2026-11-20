@@ -51,10 +51,7 @@ export function GroupsFixture() {
       title: "TypeError: Cannot read property 'length' of undefined",
       id: '271',
       logger: 'javascript',
-      metadata: {
-        type: 'TypeError',
-        value: "Cannot read property 'length' of undefined",
-      },
+      metadata: {type: 'TypeError', value: "Cannot read property 'length' of undefined"},
       status: GroupStatus.RESOLVED,
       subscriptionDetails: null,
       shortId: 'INTERNAL-4G',

@@ -40,9 +40,7 @@ describe('InvitationAuthentication', () => {
     const signIn = screen.getByRole('button', {name: 'Sign in'});
     expect(signIn.parentElement).toHaveTextContent('Have an account? Sign in');
     await userEvent.click(signIn);
-    const createAccount = await screen.findByRole('button', {
-      name: 'Create one',
-    });
+    const createAccount = await screen.findByRole('button', {name: 'Create one'});
     expect(createAccount.parentElement).toHaveTextContent(
       "Don't have an account? Create one"
     );
@@ -66,17 +64,10 @@ describe('InvitationAuthentication', () => {
   });
 
   it('reports registration without navigating away from the invitation', async () => {
-    const user = UserFixture({
-      email: 'invitee@example.com',
-      name: 'Jane Doe',
-    });
+    const user = UserFixture({email: 'invitee@example.com', name: 'Jane Doe'});
     const result = {nextUri: '/organizations/', user};
     const onAuthenticated = jest.fn();
-    MockApiClient.addMockResponse({
-      url: '/auth/register/',
-      method: 'POST',
-      body: result,
-    });
+    MockApiClient.addMockResponse({url: '/auth/register/', method: 'POST', body: result});
 
     render(
       <InvitationAuthentication
@@ -97,11 +88,7 @@ describe('InvitationAuthentication', () => {
   it('allows invitees to register when public signup is disabled', async () => {
     const result = {nextUri: '/organizations/', user: UserFixture()};
     const onAuthenticated = jest.fn();
-    MockApiClient.addMockResponse({
-      url: '/auth/login/',
-      method: 'POST',
-      body: result,
-    });
+    MockApiClient.addMockResponse({url: '/auth/login/', method: 'POST', body: result});
 
     render(
       <InvitationAuthentication
@@ -182,10 +169,7 @@ describe('InvitationAuthentication', () => {
   });
 
   it('cancels a configured MFA session and returns to password sign-in', async () => {
-    const cancel = MockApiClient.addMockResponse({
-      url: '/auth/2fa/',
-      method: 'DELETE',
-    });
+    const cancel = MockApiClient.addMockResponse({url: '/auth/2fa/', method: 'DELETE'});
 
     render(
       <InvitationAuthentication

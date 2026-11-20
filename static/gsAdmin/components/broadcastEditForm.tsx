@@ -8,6 +8,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
@@ -71,9 +72,9 @@ export function BroadcastEditForm({broadcastId, data, onCancel, onSaved}: Props)
       }),
     onSuccess: () => {
       toast.success('Broadcast updated.');
-      queryClient.invalidateQueries({
-        queryKey: [getApiUrl('/broadcasts/$broadcastId/', {path: {broadcastId}})],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/broadcasts/$broadcastId/', {path: {broadcastId}})
+      );
       onSaved();
     },
     onError: error => {

@@ -61,7 +61,4 @@ export interface AutomationFireHistory {
 /**
  * Warning information about the status of actions in an automation.
  */
-export type StatusWarning = {
-  color: 'danger' | 'warning';
-  message: string;
-};
+export type StatusWarning = {color: 'danger' | 'warning'; message: string};

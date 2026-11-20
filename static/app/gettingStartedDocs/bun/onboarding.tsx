@@ -169,11 +169,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains an intentional error and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'typescript',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'typescript', code: getVerifySnippet(params)},
       ],
     },
   ],

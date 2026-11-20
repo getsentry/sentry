@@ -6,10 +6,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 
-type ChartContextMenuProps = {
-  setVisible: (visible: boolean) => void;
-  visible: boolean;
-};
+type ChartContextMenuProps = {setVisible: (visible: boolean) => void; visible: boolean};
 
 export function ChartContextMenu({visible, setVisible}: ChartContextMenuProps) {
   const items: MenuItemProps[] = useMemo(() => {

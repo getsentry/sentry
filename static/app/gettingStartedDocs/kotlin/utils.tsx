@@ -10,14 +10,8 @@ export const platformOptions = {
   packageManager: {
     label: t('Package Manager'),
     items: [
-      {
-        label: t('Gradle'),
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: t('Maven'),
-        value: PackageManager.MAVEN,
-      },
+      {label: t('Gradle'), value: PackageManager.GRADLE},
+      {label: t('Maven'), value: PackageManager.MAVEN},
     ],
   },
 } satisfies BasePlatformOptions;

@@ -25,15 +25,10 @@ import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 
 import {ReplayDetailsEntityHeader} from './replayDetailsEntityHeader';
 
-const {organization, project} = initializeOrg({
-  organization: OrganizationFixture({}),
-});
+const {organization, project} = initializeOrg({organization: OrganizationFixture({})});
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
-  return ReplayRecordFixture({
-    ...replayRecord,
-    project_id: project.id,
-  });
+  return ReplayRecordFixture({...replayRecord, project_id: project.id});
 }
 
 /**
@@ -287,9 +282,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -300,11 +293,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
-      body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-      ],
+      body: [RRWebInitFrameEventsFixture({timestamp: startedAt})],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });
 
@@ -346,9 +335,7 @@ describe('ReplayDetailsEntityHeader', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
       headers: {
         Link: [
           '<http://localhost/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:1:0"',
@@ -360,13 +347,8 @@ describe('ReplayDetailsEntityHeader', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/replays/${replayRecord.id}/recording-segments/`,
       body: [
-        RRWebInitFrameEventsFixture({
-          timestamp: startedAt,
-        }),
-        ReplayNavigateEventFixture({
-          startTimestamp: startedAt,
-          endTimestamp: finishedAt,
-        }),
+        RRWebInitFrameEventsFixture({timestamp: startedAt}),
+        ReplayNavigateEventFixture({startTimestamp: startedAt, endTimestamp: finishedAt}),
       ],
       match: [(_url, options) => options.query?.cursor === '0:0:0'],
     });

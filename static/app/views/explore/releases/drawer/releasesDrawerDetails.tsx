@@ -211,9 +211,7 @@ export function ReleasesDrawerDetails({
         ? String(projectsFromMeta[0]?.id)
         : undefined);
 
-  const project = useProjectFromId({
-    project_id: projectId,
-  });
+  const project = useProjectFromId({project_id: projectId});
 
   const {
     // oxlint-disable-next-line react/todo
@@ -308,9 +306,7 @@ export function ReleasesDrawerDetails({
                             path: `/${encodeURIComponent(release)}/`,
                             organization,
                           }),
-                          query: {
-                            project: contentProjectId,
-                          },
+                          query: {project: contentProjectId},
                         })}
                         onClick={() => {
                           trackAnalytics('releases.drawer_view_full_details', {

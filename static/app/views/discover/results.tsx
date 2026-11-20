@@ -518,9 +518,7 @@ class ResultsContent extends Component<Props, State> {
 
   handleChangeShowTags = () => {
     const {organization} = this.props;
-    trackAnalytics('discover_v2.results.toggle_tag_facets', {
-      organization,
-    });
+    trackAnalytics('discover_v2.results.toggle_tag_facets', {organization});
     this.setState(state => {
       const newValue = !state.showTags;
       localStorageWrapper.setItem(SHOW_TAGS_STORAGE_KEY, newValue ? '1' : '0');
@@ -793,10 +791,7 @@ class ResultsContent extends Component<Props, State> {
                       [dayLimit:over more than 30 days] for [projectLimit:more than 10 projects].
                       A lot has happened during that time, so this might take awhile.
                       Are you sure you want to do this?`,
-                    {
-                      dayLimit: <strong />,
-                      projectLimit: <strong />,
-                    }
+                    {dayLimit: <strong />, projectLimit: <strong />}
                   )}
                 </p>
               }
@@ -917,9 +912,7 @@ function TransactionsDatasetDeprecationBanner({
         <Alert variant="warning">
           {tct(
             'This query has been migrated to Explore, the fancy new UI that will soon replace Discover. Try it out in [explore:Explore] instead.',
-            {
-              explore: <Link to={exploreUrl} />,
-            }
+            {explore: <Link to={exploreUrl} />}
           )}
         </Alert>
       </Alert.Container>
@@ -1036,10 +1029,7 @@ function TagsTable({
         isHomepage,
         hasDatasetSelector(organization) ? savedQueryDataset : undefined
       );
-      url.query = generateQueryWithTag(url.query, {
-        key: formatTagKey(key),
-        value,
-      });
+      url.query = generateQueryWithTag(url.query, {key: formatTagKey(key), value});
       return url;
     },
     [eventView, organization, isHomepage, savedQueryDataset]
@@ -1257,10 +1247,7 @@ function SaveQueryButton({
     if (starred) {
       try {
         await starQuery(
-          {
-            queryId: Number(createdSavedQuery.id),
-            queryType: SavedQueryType.DISCOVER,
-          },
+          {queryId: Number(createdSavedQuery.id), queryType: SavedQueryType.DISCOVER},
           true
         );
       } catch (err) {
@@ -1436,9 +1423,7 @@ function DiscoverPageFilters({
   isHomepage?: boolean;
 }) {
   // use the same data category as spans so the time period options across discover and traces are the same
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (
@@ -1499,13 +1484,7 @@ function SavedQueryAPI(
     () =>
       apiOptions.as<SavedQuery>()(
         '/organizations/$organizationIdOrSlug/discover/saved/$queryId/',
-        {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            queryId: id!,
-          },
-          staleTime: 0,
-        }
+        {path: {organizationIdOrSlug: organization.slug, queryId: id!}, staleTime: 0}
       ),
     [organization, id]
   );
@@ -1556,9 +1535,7 @@ export default function ResultsContainer() {
   const navigate = useNavigate();
   const {addAlert} = useGlobalAlerts();
   const [id] = useQueryState('id', parseAsScalar);
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
 
   /**
    * Block `<Results>` from mounting until GSH is ready since there are API

@@ -192,9 +192,7 @@ describe('Markdown', () => {
       render(
         <Markdown
           raw="![alt text](https://example.com/img.png)"
-          components={{
-            Image: ({src, alt}) => <img src={src} alt={alt} />,
-          }}
+          components={{Image: ({src, alt}) => <img src={src} alt={alt} />}}
         />
       );
       expect(screen.getByRole('img')).toHaveAttribute('alt', 'alt text');

@@ -1,13 +1,11 @@
 from __future__ import annotations
 
-from collections import Counter
 from datetime import timedelta
 from functools import partial
 from typing import Any
 
-from django.contrib.postgres.fields import ArrayField
 from django.db import IntegrityError, router, transaction
-from django.db.models import Case, Func, JSONField, Q, TextField, Value, When
+from django.db.models import Func, JSONField, TextField, Value
 from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
@@ -204,74 +202,56 @@ class DatabaseBackedRepositoryService(RepositoryService):
         provider: str,
         renames: list[RpcRepositoryRename],
     ) -> list[int]:
-        id_counts = Counter(rename.id for rename in renames)
-        matches = Q()
-        names = []
-        urls = []
-        for rename in renames:
-            if (
-                rename.expected_name == rename.name
-                and rename.expected_url == rename.url
-                and rename.expected_config_name == rename.name
-            ):
-                continue
-
-            match = Q(
-                id=rename.id,
-                external_id=rename.external_id,
-                name=rename.expected_name,
-                url=rename.expected_url,
-                config_name=rename.expected_config_name,
-            )
-            matches |= match
-            # For repeated IDs, take values only from an entry whose snapshot matched.
-            target = match if id_counts[rename.id] > 1 else Q(id=rename.id)
-            names.append(When(target, then=Value(rename.name)))
-            urls.append(When(target, then=Value(rename.url)))
-
-        if not names:
-            return []
-
-        # Repository.config is backed by text. Patch the current document in the
-        # UPDATE so that unrelated config keys written by a webhook are preserved.
+        # config is stored as text. Merge into the current document in the UPDATE
+        # so a concurrent change to an unrelated key is preserved.
         config = Cast(
             Coalesce(NullIf("config", Value("")), Value("{}"), output_field=TextField()),
             JSONField(),
         )
-        new_name = Case(*names)
-        rows = (
-            Repository.objects.get_queryset()
+        using = router.db_for_write(Repository)
+        repositories = (
+            Repository.objects.using(using)
+            .filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
+            )
             .alias(
                 config_name=Func(
                     config,
                     Value("name"),
                     function="jsonb_extract_path_text",
                     output_field=TextField(),
-                ),
-            )
-            .filter(
-                matches,
-                organization_id=organization_id,
-                integration_id=integration_id,
-                provider=provider,
-                status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
-            )
-            .update_with_returning(
-                ["id"],
-                name=new_name,
-                url=Case(*urls),
-                config=Cast(
-                    Func(
-                        config,
-                        Value(["name"], output_field=ArrayField(TextField())),
-                        Func(new_name, function="to_jsonb"),
-                        function="jsonb_set",
-                    ),
-                    TextField(),
-                ),
+                )
             )
         )
-        return sorted(repo_id for (repo_id,) in rows)
+
+        renamed: set[int] = set()
+        with transaction.atomic(using=using):
+            # Acquire locks in a consistent order across overlapping batches.
+            for rename in sorted(renames, key=lambda r: r.id):
+                if rename.id in renamed or (
+                    rename.expected_name == rename.name
+                    and rename.expected_url == rename.url
+                    and rename.expected_config_name == rename.name
+                ):
+                    continue
+                matching = repositories.filter(
+                    id=rename.id,
+                    external_id=rename.external_id,
+                    name=rename.expected_name,
+                    url=rename.expected_url,
+                    config_name=rename.expected_config_name,
+                )
+                name_patch = Value({"name": rename.name}, output_field=JSONField())
+                if matching.update(
+                    name=rename.name,
+                    url=rename.url,
+                    config=Cast(Func(config, name_patch, function="jsonb_concat"), TextField()),
+                ):
+                    renamed.add(rename.id)
+        return sorted(renamed)
 
     def enable_repositories_by_external_ids(
         self,

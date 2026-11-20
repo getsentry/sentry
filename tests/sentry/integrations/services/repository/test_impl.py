@@ -756,7 +756,7 @@ class RenameRepositoriesTest(TestCase):
         self.repo.refresh_from_db()
         assert self.repo.url == "https://github.com/getsentry/new-name"
 
-    def test_batch_writes_each_matching_rename_in_one_query(self) -> None:
+    def test_batch_applies_first_matching_rename_per_repository(self) -> None:
         self.repo.update(config={"other": True})
         other = self.create_repo(
             project=self.project,
@@ -780,15 +780,22 @@ class RenameRepositoriesTest(TestCase):
             # A stale entry for the same ID must not supply the new name or URL.
             self._rename_request(name="example/stale", url="https://example.com/stale"),
             self._rename_request(expected_config_name=None),
+            # This only matches after the previous rename; don't rename the row twice.
+            self._rename_request(
+                expected_name="getsentry/new-name",
+                expected_url="https://github.com/getsentry/new-name",
+                expected_config_name="getsentry/new-name",
+                name="example/chained",
+                url="https://example.com/chained",
+            ),
         ]
 
-        with self.assertNumQueries(1, using=router.db_for_write(Repository)):
-            renamed = repository_service.rename_repositories(
-                organization_id=self.organization.id,
-                integration_id=self.integration.id,
-                provider="integrations:github",
-                renames=renames,
-            )
+        renamed = repository_service.rename_repositories(
+            organization_id=self.organization.id,
+            integration_id=self.integration.id,
+            provider="integrations:github",
+            renames=renames,
+        )
 
         assert renamed == [self.repo.id, other.id]
         self.repo.refresh_from_db()

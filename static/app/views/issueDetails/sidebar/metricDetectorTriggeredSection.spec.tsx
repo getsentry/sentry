@@ -57,11 +57,7 @@ describe('MetricDetectorTriggeredSection', () => {
       issueTitle: 'Test Issue',
       subtitle: 'Subtitle',
       resourceId: 'resource-1',
-      evidenceData: {
-        conditions: [condition],
-        dataSources: [dataSource],
-        value: 150,
-      },
+      evidenceData: {conditions: [condition], dataSources: [dataSource], value: 150},
       evidenceDisplay: [],
       type: 8001,
       detectionTime: '2024-01-01T00:00:00Z',
@@ -75,18 +71,9 @@ describe('MetricDetectorTriggeredSection', () => {
   beforeEach(() => {
     ConfigStore.set('customerDomain', null);
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       body: [],
@@ -131,13 +118,9 @@ describe('MetricDetectorTriggeredSection', () => {
         titleGeneration: {status: 'completed'},
       },
     });
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
-    await screen.findByRole('region', {
-      name: 'Seer Investigation',
-    });
+    await screen.findByRole('region', {name: 'Seer Investigation'});
     expect(await screen.findByText('Seer investigation completed')).toBeInTheDocument();
     expect(screen.getByText('Errors rose across releases')).toBeInTheDocument();
     expect(
@@ -188,9 +171,7 @@ describe('MetricDetectorTriggeredSection', () => {
       }),
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
     expect(screen.getByTestId('seer-status-block')).toHaveAttribute(
@@ -239,9 +220,7 @@ describe('MetricDetectorTriggeredSection', () => {
       }),
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(
       await screen.findByText('Seer needs more information to continue')
@@ -302,9 +281,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(await screen.findByText('Errors rose across releases')).toBeInTheDocument();
     expect(screen.getByText('Seer investigation completed')).toBeInTheDocument();
@@ -355,9 +332,7 @@ describe('MetricDetectorTriggeredSection', () => {
       }),
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(
       await screen.findByText("Seer couldn't finish this investigation")
@@ -386,9 +361,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
@@ -434,9 +407,7 @@ describe('MetricDetectorTriggeredSection', () => {
       }),
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(await screen.findByText('Seer is gathering context')).toBeInTheDocument();
 
@@ -501,9 +472,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
@@ -551,9 +520,7 @@ describe('MetricDetectorTriggeredSection', () => {
       },
     });
 
-    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {
-      organization,
-    });
+    render(<MetricIssueSeerInvestigationSection {...defaultProps} />, {organization});
 
     expect(
       await screen.findByRole('button', {name: 'View Investigation'})
@@ -825,9 +792,7 @@ describe('MetricDetectorTriggeredSection', () => {
   });
 
   it('renders nothing when event has no occurrence', () => {
-    const event = EventFixture({
-      occurrence: null,
-    });
+    const event = EventFixture({occurrence: null});
 
     const {container} = render(
       <MetricDetectorTriggeredSectionWithProvider {...defaultProps} event={event} />
@@ -866,11 +831,7 @@ describe('MetricDetectorTriggeredSection', () => {
         issueTitle: 'Test Issue',
         subtitle: 'Subtitle',
         resourceId: 'resource-1',
-        evidenceData: {
-          conditions: [],
-          dataSources: [dataSource],
-          value: 150,
-        },
+        evidenceData: {conditions: [], dataSources: [dataSource], value: 150},
         evidenceDisplay: [],
         type: 8001,
         detectionTime: '2024-01-01T00:00:00Z',
@@ -919,11 +880,7 @@ describe('MetricDetectorTriggeredSection', () => {
         issueTitle: 'Test Issue',
         subtitle: 'Subtitle',
         resourceId: 'resource-1',
-        evidenceData: {
-          conditions: [condition],
-          dataSources: [dataSource],
-          value: 150,
-        },
+        evidenceData: {conditions: [condition], dataSources: [dataSource], value: 150},
         evidenceDisplay: [],
         type: 8001,
         detectionTime: '2024-01-01T00:00:00Z',
@@ -996,11 +953,7 @@ describe('MetricDetectorTriggeredSection', () => {
         issueTitle: 'Test Issue',
         subtitle: 'Subtitle',
         resourceId: 'resource-1',
-        evidenceData: {
-          conditions: [condition],
-          dataSources: [dataSource],
-          value: null,
-        },
+        evidenceData: {conditions: [condition], dataSources: [dataSource], value: null},
         evidenceDisplay: [],
         type: 8001,
         detectionTime: '2024-01-01T00:00:00Z',
@@ -1066,11 +1019,7 @@ describe('MetricDetectorTriggeredSection', () => {
         issueTitle: 'Test Issue',
         subtitle: 'Subtitle',
         resourceId: 'resource-1',
-        evidenceData: {
-          conditions: [condition],
-          dataSources: [dataSource],
-          value: 150,
-        },
+        evidenceData: {conditions: [condition], dataSources: [dataSource], value: 150},
         evidenceDisplay: [],
         type: 8001,
         detectionTime: '2024-01-01T00:00:00Z',

@@ -8,11 +8,7 @@ import {docs} from '.';
 describe('GettingStartedWithKotlin', () => {
   it('renders gradle docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.android.gradle-plugin': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.java.android.gradle-plugin': {version: '1.99.9'}},
     });
 
     // Renders main headings
@@ -30,14 +26,8 @@ describe('GettingStartedWithKotlin', () => {
 
   it('renders maven docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.java.maven-plugin': {
-          version: '3.99.9',
-        },
-      },
-      selectedOptions: {
-        packageManager: PackageManager.MAVEN,
-      },
+      releaseRegistry: {'sentry.java.maven-plugin': {version: '3.99.9'}},
+      selectedOptions: {packageManager: PackageManager.MAVEN},
     });
 
     // Renders main headings

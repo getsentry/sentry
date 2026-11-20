@@ -71,9 +71,7 @@ export function SdkUpdateAlert({
     <Alert variant="warning">
       {tct(
         'Your [packageName] version is below the minimum required for agent monitoring.',
-        {
-          packageName: <code>{outdatedPackageName}</code>,
-        }
+        {packageName: <code>{outdatedPackageName}</code>}
       )}{' '}
       {tct('Update to [minVersionCode] or later.', {
         minVersionCode: <code>{minVersion}</code>,

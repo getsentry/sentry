@@ -17,10 +17,7 @@ export function formatNumberWithDynamicDecimalPoints(
 
   const maximumFractionDigits =
     exponent >= 0 ? maxFractionDigits : Math.abs(exponent) + 1;
-  const numberFormat = {
-    maximumFractionDigits,
-    minimumFractionDigits: 0,
-  };
+  const numberFormat = {maximumFractionDigits, minimumFractionDigits: 0};
 
   return value.toLocaleString(undefined, numberFormat);
 }
