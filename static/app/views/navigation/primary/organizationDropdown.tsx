@@ -36,6 +36,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
+import {useCanCreateOrganization} from 'sentry/utils/organization/useCanCreateOrganization';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -72,6 +73,7 @@ interface OrganizationDropdownProps {
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
+  const canCreateOrganization = useCanCreateOrganization();
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -171,7 +173,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       )}
     </SettingsNavigationTourElement>
   );
-  const createOrganizationItem = makeCreateOrganizationMenuItem();
+  const createOrganizationItem = makeCreateOrganizationMenuItem(canCreateOrganization);
 
   if (settingsV3) {
     const memberProjects = sortProjectsByBookmarkAndMembership(
@@ -485,14 +487,14 @@ function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemPro
   };
 }
 
-function makeCreateOrganizationMenuItem(): MenuItemProps {
+function makeCreateOrganizationMenuItem(canCreateOrganization: boolean): MenuItemProps {
   const link = getCreateOrganizationLink();
 
   return {
     key: 'create-organization',
     leadingItems: <IconAdd />,
     label: t('Create Organization'),
-    hidden: !ConfigStore.get('features').has('organizations:create'),
+    hidden: !canCreateOrganization,
     ...('href' in link ? {externalHref: link.href} : {to: link.to}),
   };
 }

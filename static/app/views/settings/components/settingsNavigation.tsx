@@ -18,6 +18,7 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
+import {useCanCreateOrganization} from 'sentry/utils/organization/useCanCreateOrganization';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -234,7 +235,7 @@ function SettingsOrganizationSelector() {
   const location = useLocation();
   const organization = useOrganization();
   const organizations = useOrganizations();
-  const canCreateOrganization = ConfigStore.get('features').has('organizations:create');
+  const canCreateOrganization = useCanCreateOrganization();
 
   // Read the matched route directly: our useParams fills in orgId on customer
   // domains even when the path has no slug.
