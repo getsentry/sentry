@@ -749,11 +749,9 @@ def handle_other_status_updates(
     if result.get("substatus"):
         new_substatus = SUBSTATUS_UPDATE_CHOICES[result["substatus"]]
     new_substatus = infer_substatus(new_status, new_substatus, status_details, group_list)
-    is_condition_archive = (
-        new_status == GroupStatus.IGNORED and new_substatus != GroupSubStatus.UNTIL_ESCALATING
-    )
+    is_archive_until_escalating = new_substatus == GroupSubStatus.UNTIL_ESCALATING
     prepared_ignore = None
-    if is_condition_archive:
+    if new_status == GroupStatus.IGNORED and not is_archive_until_escalating:
         prepared_ignore = prepare_ignored(group_list, status_details, acting_user)
 
     with transaction.atomic(router.db_for_write(Group)):
@@ -771,7 +769,7 @@ def handle_other_status_updates(
                 relationship=GroupLink.Relationship.resolves,
             ).delete()
         if new_status == GroupStatus.IGNORED:
-            if new_substatus == GroupSubStatus.UNTIL_ESCALATING:
+            if is_archive_until_escalating:
                 result["statusDetails"] = handle_archived_until_escalating(
                     group_list, acting_user, projects, sender=update_groups
                 )

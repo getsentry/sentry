@@ -63,8 +63,9 @@ class IgnoredStatusDetails(TypedDict, total=False):
 
 @dataclass(frozen=True)
 class PreparedIgnore:
-    """An archive's unsaved snoozes, empty when it has no condition, and its response details."""
+    """An archive's unsaved snoozes and its response details."""
 
+    has_condition: bool
     snoozes: list[GroupSnooze]
     status_details: IgnoredStatusDetails
 
@@ -122,7 +123,7 @@ def prepare_ignored(
     status_details: dict[str, Any],
     acting_user: RpcUser | User | None,
 ) -> PreparedIgnore:
-    """The snoozes for archiving `group_list`, built before the archive transaction opens."""
+    """Snoozes for archiving `group_list`; calls other services, so run before the transaction."""
     ignore_duration = _pop_condition(status_details, "ignoreDuration")
     if ignore_duration is None:
         ignore_duration = _pop_condition(status_details, "snoozeDuration")
@@ -131,7 +132,7 @@ def prepare_ignored(
     ignore_user_count = _pop_condition(status_details, "ignoreUserCount")
     ignore_user_window = _pop_condition(status_details, "ignoreUserWindow")
     if not (ignore_duration or ignore_count or ignore_user_count):
-        return PreparedIgnore(snoozes=[], status_details={})
+        return PreparedIgnore(has_condition=False, snoozes=[], status_details={})
 
     if ignore_duration:
         ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
@@ -181,7 +182,7 @@ def prepare_ignored(
         ignoreWindow=ignore_window,
         actor=actor,
     )
-    return PreparedIgnore(snoozes=snoozes, status_details=new_status_details)
+    return PreparedIgnore(has_condition=True, snoozes=snoozes, status_details=new_status_details)
 
 
 def handle_ignored(
@@ -195,7 +196,7 @@ def handle_ignored(
     groups = Group.objects.filter(id__in=group_ids)
     bulk_remove_groups_from_inbox(groups, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
-    if not prepared.snoozes:
+    if not prepared.has_condition:
         GroupSnooze.objects.filter(group__in=group_list).delete()
         return prepared.status_details
 
@@ -207,7 +208,7 @@ def handle_ignored(
         unique_fields=["group"],
         update_fields=SNOOZE_UPDATE_FIELDS,
     )
-    # bulk_create skips post_save, which refreshes both snooze caches that event processing reads.
+    # bulk_create skips post_save, which refreshes the caches post_process and get_status read.
     database = router.db_for_write(GroupSnooze)
     for snooze in snoozes:
         post_save.send(

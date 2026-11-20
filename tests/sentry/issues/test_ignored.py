@@ -19,6 +19,7 @@ from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
@@ -34,10 +35,12 @@ class HandleIgnoredTest(TestCase):
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
     def archive(
-        self, group_list: list[Group], status_details: dict[str, int]
+        self, group_list: list[Group], status_details: dict[str, int], user: User | None = None
     ) -> IgnoredStatusDetails:
-        prepared = prepare_ignored(group_list, status_details, self.user)
-        return handle_ignored(group_list, prepared, self.user)
+        if user is None:
+            user = self.user
+        prepared = prepare_ignored(group_list, status_details, user)
+        return handle_ignored(group_list, prepared, user)
 
     def test_ignored_forever(self) -> None:
         status_details = self.archive(self.group_list, {})
@@ -59,6 +62,12 @@ class HandleIgnoredTest(TestCase):
         snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.count == status_details.get("ignoreCount")
 
+    def test_empty_ignore_duration_falls_back_to_snooze_duration(self) -> None:
+        status_details = self.archive(self.group_list, {"ignoreDuration": 0, "snoozeDuration": 30})
+        snooze = GroupSnooze.objects.get(group=self.group)
+        assert snooze.until is not None
+        assert snooze.until == status_details.get("ignoreUntil")
+
     def test_archive_writes_open_no_savepoint(self) -> None:
         group_list = [self.create_group() for _ in range(40)]
         prepared = prepare_ignored(group_list, {"ignoreUserCount": 10}, self.user)
@@ -76,13 +85,19 @@ class HandleIgnoredTest(TestCase):
         GroupSnooze.objects.get_from_cache(group=self.group)
         cache.set(GroupSnooze.get_cache_key(self.group.id), first, 3600)
 
-        self.archive(self.group_list, {"ignoreCount": 80})
+        other_user = self.create_user()
+        self.archive(self.group_list, {"ignoreCount": 80, "ignoreWindow": 60}, other_user)
 
         stored = GroupSnooze.objects.get(group=self.group)
         cached_for_status = GroupSnooze.objects.get_from_cache(group=self.group)
         cached_for_events = cache.get(GroupSnooze.get_cache_key(self.group.id))
+        assert first.state == {"times_seen": self.group.times_seen}
+        assert first.actor_id == self.user.id
         assert stored.id == first.id
         assert stored.count == 80
+        assert stored.window == 60
+        assert stored.state == {}
+        assert stored.actor_id == other_user.id
         assert cached_for_status.count == 80
         assert cached_for_events.count == 80
 
