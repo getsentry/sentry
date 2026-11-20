@@ -8,6 +8,7 @@ import sentry_sdk
 from django.http import HttpResponse
 from django.http.response import HttpResponseBase
 
+from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.outbox.category import WebhookProviderIdentifier
 from sentry.integrations.jira.endpoints import JiraDescriptorEndpoint, JiraSearchEndpoint
@@ -101,6 +102,11 @@ class JiraRequestParser(BaseRequestParser):
             return JiraSentryIssueDetailsControlView.as_view()(self.request, **self.match.kwargs)
 
         if self.view_class in self.outbox_response_cell_classes:
+            # Its changes arrive as Forge events instead.
+            if self.view_class == JiraIssueUpdatedWebhook and integration.id in options.get(
+                "jira.forge.issue-events-integration-ids"
+            ):
+                return HttpResponse(status=202)
             return self.get_response_from_webhookpayload(
                 cells=cells,
                 mailbox=self.get_mailbox(integration, self.get_request_body()),
@@ -135,15 +141,19 @@ class JiraRequestParser(BaseRequestParser):
         if not has_applied_change(self.get_request_body()):
             return HttpResponse(status=202)
 
-        # Only Forge-native sites are keyed by cloud ID for now. Sites that moved from
-        # Connect keep their clientKey, so their events are dropped here and they keep
-        # getting the Connect issue-updated webhook until they're rekeyed to the cloud ID.
+        # Sites that moved from Connect are found here once they're rekeyed to the cloud ID.
         integration = Integration.objects.get_or_none(
             provider=self.provider, external_id=cloud_id, status=ObjectStatus.ACTIVE
         )
         forge = (integration.metadata.get("forge") or {}) if integration else {}
         # Only the installation that owns the integration may update its issues.
         if integration is None or forge.get("installation_id") != invocation.installation_id:
+            return HttpResponse(status=202)
+        # A site that moved from Connect also gets the Connect issue-updated webhook, so
+        # only one of the two feeds applies its changes.
+        if "shared_secret" in integration.metadata and integration.id not in options.get(
+            "jira.forge.issue-events-integration-ids"
+        ):
             return HttpResponse(status=202)
 
         organizations = self.get_organizations_from_integration(integration)

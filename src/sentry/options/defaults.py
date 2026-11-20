@@ -1040,6 +1040,15 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Jira integrations that still have a Connect secret but take inbound issue changes from
+# Forge events instead of the Connect issue-updated webhook, which is ignored for them so
+# a change isn't applied twice while both feeds run. Forge-only integrations always do.
+register(
+    "jira.forge.issue-events-integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # MsTeams Integration
 register("msteams.client-id", flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE)
