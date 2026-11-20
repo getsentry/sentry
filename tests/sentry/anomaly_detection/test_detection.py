@@ -3,18 +3,23 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
     Metric,
     SeriesKey,
     SeriesRow,
     Signal,
 )
 from sentry.anomaly_detection.evaluation.baseline import Baseline
+from sentry.anomaly_detection.evaluation.rate_shifts import ChangePointConfig, RateShiftTracker
 from sentry.anomaly_detection.evaluation.series import Series, build
 
 START = datetime(2024, 1, 8, 12)
 REQUESTS = SeriesKey(1, "prod", Signal.REQUESTS, Metric.COUNT)
+ERRORS = SeriesKey(1, "prod", Signal.ERRORS, Metric.COUNT)
 LATENCY = SeriesKey(1, "prod", Signal.OUTBOUND_DB, Metric.P95_DURATION, "catalog-db")
 FAILURES = SeriesKey(1, "prod", Signal.ENDPOINTS, Metric.FAILURE_RATE, "/api/task")
+ERROR_RATE = SeriesKey(1, "prod", Signal.ERROR_RATE, Metric.ERRORS_PER_REQUEST)
 
 
 def minute(i: int) -> datetime:
@@ -96,3 +101,80 @@ def test_build_masks_empty_latency_and_distinguishes_zero_from_missing_rate_inpu
         minute(0): 0.0,
         minute(1): None,
     }
+
+
+def test_change_point_ignores_known_spikes_in_the_pooled_gate() -> None:
+    series = {
+        REQUESTS: points(0, 230, 10_000.0),
+        ERRORS: points(0, 170, 20.0) | points(130, 135, 1000.0) | points(170, 230, 30.0),
+        ERROR_RATE: points(0, 230, None),
+    }
+    detector = RateShiftTracker(series, Baseline({}))
+    spike = ChangeEvent(ERROR_RATE, ChangeType.SPIKE, minute(130), 0.1, 0.002, 0.9)
+    detector.note_spike(spike, minute(134))
+    [(action, event)] = [action for i in range(230) for action in detector.step(minute(i))]
+    assert action == "open"
+    assert event.expected == pytest.approx(0.002, rel=0.01)
+    assert event.actual == 0.003
+
+
+def test_uncovered_change_point_tick_resets_persistence() -> None:
+    series = {
+        REQUESTS: points(0, 220, 1000.0),
+        ERRORS: points(0, 170, 20.0) | points(170, 220, 40.0),
+        ERROR_RATE: points(0, 220, None),
+    }
+    detector = RateShiftTracker(series, Baseline({}), ChangePointConfig(persist=2))
+    assert detector.step(minute(185)) == []
+    assert detector.state[ERROR_RATE].hits == 1
+    counts = series[ERRORS]
+    series[ERRORS] = points(0, 220, None)
+    assert detector.step(minute(190)) == []
+    series[ERRORS] = counts
+    assert detector.step(minute(195)) == []
+    assert detector.state[ERROR_RATE].hits == 1
+
+
+def test_change_point_hold_closes_while_traffic_is_too_low_to_measure() -> None:
+    series = {
+        REQUESTS: points(0, 200, 1000.0) | points(200, 400, 100.0),
+        ERRORS: points(0, 170, 20.0) | points(170, 200, 40.0) | points(200, 400, 4.0),
+        ERROR_RATE: points(0, 400, None),
+    }
+    detector = RateShiftTracker(series, Baseline({}))
+    [(opened, event)] = [action for i in range(200) for action in detector.step(minute(i))]
+    assert opened == "open"
+    hold_until = detector.state[ERROR_RATE].hold_until
+    assert hold_until is not None
+    # The whole window at hold expiry is below min_requests, so recovery cannot be measured.
+    assert [action for i in range(200, 400) for action in detector.step(minute(i))] == [
+        ("close", event)
+    ]
+    assert event.ended_at == hold_until
+    assert event.evidence[-1] == "held: new level"
+
+
+def test_change_point_recovery_uses_the_same_seasonal_scale_as_open() -> None:
+    # A high-rate hour falls out of the window while the 50% regression is still present.
+    hourly: Series = {
+        START + timedelta(hours=hour, days=-day): 0.008 if hour == 0 else 0.002
+        for day in range(1, 15)
+        for hour in range(-3, 6)
+    }
+    errors = (
+        points(-180, 0, 20.0)
+        | points(0, 60, 80.0)
+        | points(60, 65, 20.0)
+        | points(65, 200, 30.0)
+        | points(200, 240, 20.0)
+    )
+    detector = RateShiftTracker(
+        {REQUESTS: points(-180, 240, 10_000.0), ERRORS: errors, ERROR_RATE: dict.fromkeys(errors)},
+        Baseline({ERROR_RATE: hourly}),
+    )
+    [(opened, event)] = [action for i in range(-180, 200) for action in detector.step(minute(i))]
+    assert opened == "open"
+    assert [action for i in range(200, 240) for action in detector.step(minute(i))] == [
+        ("close", event)
+    ]
+    assert event.evidence[-1] == "recovered"
