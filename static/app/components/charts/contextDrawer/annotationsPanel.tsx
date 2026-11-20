@@ -1,4 +1,4 @@
-import {useEffect, useRef, type ReactNode, type Ref} from 'react';
+import {lazy, useEffect, useRef, type ReactNode, type Ref} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import {Flex, Stack, type StackProps} from '@sentry/scraps/layout';
@@ -14,11 +14,18 @@ import type {
   AnnotationItem,
   AnnotationKind,
 } from 'sentry/components/charts/annotations/types';
+import {LazyLoad} from 'sentry/components/lazyLoad';
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
-import {ReleasesDrawerTable} from 'sentry/views/explore/releases/drawer/releasesDrawerTable';
 
 import type {ChartContextSection} from './chartContextDrawer';
+
+const LazyReleasesDrawerTable = lazy(() =>
+  import('sentry/views/explore/releases/drawer/releasesDrawerTable').then(module => ({
+    default: module.ReleasesDrawerTable,
+  }))
+);
 
 interface AnnotationsPanelProps {
   items: readonly AnnotationItem[];
@@ -71,7 +78,9 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
               count={activityItems.filter(item => item.kind === kind).length}
             >
               {kind === 'release' ? (
-                <ReleasesDrawerTable
+                <LazyLoad
+                  LazyComponent={LazyReleasesDrawerTable}
+                  loadingFallback={<LoadingIndicator mini />}
                   {...selection}
                   releaseDrawerSource="chart-context-drawer"
                 />

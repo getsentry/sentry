@@ -38,12 +38,13 @@ describe('AnnotationsPanel', () => {
     ).toBeInTheDocument();
   });
 
-  it('says when nothing is severe', () => {
+  it('says when nothing is severe', async () => {
     render(<AnnotationsPanel items={[release]} kinds={['release']} />);
 
     expect(
       screen.getByText('No severe annotations in this time range')
     ).toBeInTheDocument();
+    expect(await screen.findByText('No releases')).toBeInTheDocument();
   });
 
   it('lists releases that open the releases drawer', async () => {
