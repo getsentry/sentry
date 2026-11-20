@@ -1,15 +1,87 @@
-import type {FrameVariable, NativeFrameVariable} from 'sentry/types/event';
+import type {
+  FrameVariable,
+  NativeFrameVariable,
+  NativeFrameVariableValue,
+} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 
 import {getStructuredDataConfig} from './getStructuredDataConfig';
 
+const NULL_ADDRESS_REGEX = /^0x0+$/;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+function isNativeValue(value: unknown): value is NativeFrameVariableValue {
+  return isRecord(value) && typeof value.type === 'string';
+}
+
 function isNativeVariable(value: unknown): value is NativeFrameVariable {
-  return isRecord(value) && 'formatted' in value;
+  return isNativeValue(value) && 'kind' in value;
+}
+
+/**
+ * Convert a Symbolicator value into a tree node. A pointer becomes the value it points to,
+ * with the addresses that lead there; a pointer that could not be dereferenced becomes
+ * its last address, or null when that address is zero.
+ */
+function toNativeVariable(
+  name: string,
+  value: NativeFrameVariableValue,
+  meta: unknown
+): FrameVariable {
+  // Symbolicator still sends a single address with the value nested under `pointee`.
+  // Only the flattened list is read, so those pointers are unavailable.
+  const addresses = Array.isArray(value.pointer_address) ? value.pointer_address : [];
+  const localMeta = isRecord(meta) ? meta : undefined;
+  const ownMeta = localMeta?.[''];
+  const base = {
+    name,
+    type: value.type || undefined,
+    meta: isRecord(ownMeta) ? (ownMeta as Partial<Meta>) : undefined,
+  };
+  const pointer = addresses.length > 0 ? {pointerAddresses: addresses} : undefined;
+
+  if (isRecord(value.members) && Object.keys(value.members).length > 0) {
+    const membersMeta = isRecord(localMeta?.members) ? localMeta.members : undefined;
+    const collectionMeta = membersMeta?.[''];
+    return {
+      ...base,
+      ...pointer,
+      meta: isRecord(collectionMeta) ? (collectionMeta as Partial<Meta>) : base.meta,
+      kind: 'object',
+      // Keep the order of the payload, Symbolicator lists members in declaration order.
+      children: Object.entries(value.members).map(([memberName, member]) =>
+        toNativeMember(memberName, member, membersMeta?.[memberName])
+      ),
+    };
+  }
+
+  if (value.value !== undefined) {
+    return {
+      ...toVariable(name, value.value, localMeta?.value, 'native'),
+      ...pointer,
+      type: base.type,
+    };
+  }
+
+  const lastAddress = addresses.at(-1);
+  if (lastAddress === undefined) {
+    return {...base, kind: 'unavailable'};
+  }
+  const leading = addresses.length > 1 ? {pointerAddresses: addresses.slice(0, -1)} : {};
+  return NULL_ADDRESS_REGEX.test(lastAddress)
+    ? {...base, ...leading, kind: 'null'}
+    : {...base, ...leading, kind: 'unformatted', value: lastAddress};
+}
+
+function toNativeMember(name: string, value: unknown, meta: unknown): FrameVariable {
+  // Relay's depth limit serializes deeply nested values to strings, show those verbatim.
+  return isNativeValue(value)
+    ? toNativeVariable(name, value, meta)
+    : toVariable(name, value, meta, 'native');
 }
 
 /** Convert frame variables into a tree, preserving SDK formatting and annotations at each path. */
@@ -38,15 +110,7 @@ function toVariable(
   };
 
   if (platform === 'native' && isNativeVariable(value)) {
-    const formattedMeta = localMeta?.formatted as {'': Partial<Meta>} | undefined;
-    const nativeBase = {
-      ...base,
-      type: value.type,
-      meta: formattedMeta?.[''] ?? base.meta,
-    };
-    return value.formatted === null
-      ? {...nativeBase, kind: 'unavailable'}
-      : {...nativeBase, kind: 'unformatted', value: value.formatted};
+    return toNativeVariable(name, value, meta);
   }
 
   if (value === null || config.isNull?.(value)) {
