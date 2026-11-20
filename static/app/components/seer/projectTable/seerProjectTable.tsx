@@ -39,6 +39,7 @@ import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
+import {openPrsStoppingPoint, useShowOpenPrs} from 'sentry/utils/seer/openPrs';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -46,10 +47,7 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {
-  NON_GITHUB_PR_ITERATION_WARNING,
-  PR_ITERATION_OPTIONS,
-} from 'sentry/utils/seer/prIteration';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
   isGitHubDotComProvider,
@@ -128,6 +126,7 @@ export function SeerProjectTable() {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+  const showOpenPrs = useShowOpenPrs();
 
   const bulkEdit = useMutation({
     ...getMutateSeerProjectsSettingsOptions({
@@ -330,22 +329,34 @@ export function SeerProjectTable() {
                             queryClient,
                           })}
                         >
-                          {field => (
-                            <field.Select
-                              disabled={isRowDisabled}
-                              menuPortalTarget={document.body}
-                              onChange={field.handleChange}
-                              options={stoppingPointOptions}
-                              size="xs"
-                              value={field.state.value}
-                            />
-                          )}
+                          {field =>
+                            showOpenPrs ? (
+                              <field.Switch
+                                aria-label={t('Open PRs for %s', item.projectSlug)}
+                                checked={field.state.value === 'open_pr'}
+                                disabled={isRowDisabled}
+                                onChange={on =>
+                                  field.handleChange(openPrsStoppingPoint(on))
+                                }
+                                size="sm"
+                              />
+                            ) : (
+                              <field.Select
+                                disabled={isRowDisabled}
+                                menuPortalTarget={document.body}
+                                onChange={field.handleChange}
+                                options={stoppingPointOptions}
+                                size="xs"
+                                value={field.state.value}
+                              />
+                            )
+                          }
                         </AutoSaveForm>
                       </Stack>
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
-                        <PrIterationSelectCell
+                        <PrIterationSwitchCell
                           key={bulkEditVersion}
                           projectSlug={item.projectSlug}
                           initialValue={item.prIteration}
@@ -446,19 +457,19 @@ function AgentSelectCell({
   );
 }
 
-interface PrIterationSelectCellProps {
+interface PrIterationSwitchCellProps {
   disabled: boolean;
   initialValue: boolean;
   projectSlug: string;
   repoProviders: string[] | undefined;
 }
 
-function PrIterationSelectCell({
+function PrIterationSwitchCell({
   disabled,
   initialValue,
   projectSlug,
   repoProviders,
-}: PrIterationSelectCellProps) {
+}: PrIterationSwitchCellProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   // Auto-Iterate only runs on github.com PRs. Older responses don't list the
@@ -478,14 +489,12 @@ function PrIterationSelectCell({
       })}
     >
       {field => (
-        <field.Select
+        <field.Switch
           aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          checked={unavailable ? false : field.state.value}
           disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
-          menuPortalTarget={document.body}
           onChange={field.handleChange}
-          options={PR_ITERATION_OPTIONS}
-          size="xs"
-          value={unavailable ? false : field.state.value}
+          size="sm"
         />
       )}
     </AutoSaveForm>

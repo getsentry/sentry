@@ -17,15 +17,17 @@ import {t, tct} from 'sentry/locale';
 import type {DetailedProject} from 'sentry/types/project';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {
+  OPEN_PRS_TOOLTIP,
+  openPrsStoppingPoint,
+  useShowOpenPrs,
+} from 'sentry/utils/seer/openPrs';
+import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
 } from 'sentry/utils/seer/preferredAgent';
-import {
-  NON_GITHUB_PR_ITERATION_WARNING,
-  PR_ITERATION_OPTIONS,
-} from 'sentry/utils/seer/prIteration';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 import {
   getSeerProjectReposInfiniteQueryOptions,
   isGitHubDotComProvider,
@@ -59,6 +61,7 @@ export function AutofixAgent({canWrite, project}: Props) {
     seerAgentIntegrationsSelectQueryOptions({organization})
   );
   const stoppingPointOptions = useStoppingPointSelectOptions();
+  const showAutomationSteps = !useShowOpenPrs();
 
   // Only GitHub repos can hand off to an external coding agent, so the agent
   // dropdown is disabled when this project has any non-GitHub repo attached.
@@ -211,26 +214,36 @@ export function AutofixAgent({canWrite, project}: Props) {
             queryClient,
           })}
         >
-          {field => (
-            <field.Layout.Row
-              label={t('Automation Steps')}
-              hintText={tct(
-                'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
-                {
-                  actionable: (
-                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
-                  ),
-                }
-              )}
-            >
-              <field.Select
-                disabled={!canWrite}
-                value={field.state.value}
-                onChange={field.handleChange}
-                options={stoppingPointOptions}
-              />
-            </field.Layout.Row>
-          )}
+          {field =>
+            showAutomationSteps ? (
+              <field.Layout.Row
+                label={t('Automation Steps')}
+                hintText={tct(
+                  'Choose which steps Seer should run automatically on issues. Depending on how [actionable:actionable] the issue is, Seer may stop at an earlier step.',
+                  {
+                    actionable: (
+                      <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/seer/autofix/#how-issue-autofix-works" />
+                    ),
+                  }
+                )}
+              >
+                <field.Select
+                  disabled={!canWrite}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  options={stoppingPointOptions}
+                />
+              </field.Layout.Row>
+            ) : (
+              <field.Layout.Row label={t('Open PRs')} hintText={OPEN_PRS_TOOLTIP}>
+                <field.Switch
+                  checked={field.state.value === 'open_pr'}
+                  disabled={!canWrite}
+                  onChange={on => field.handleChange(openPrsStoppingPoint(on))}
+                />
+              </field.Layout.Row>
+            )
+          }
         </AutoSaveForm>
 
         <AutoSaveForm
@@ -250,15 +263,14 @@ export function AutofixAgent({canWrite, project}: Props) {
                 'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
               )}
             >
-              <field.Select
+              <field.Switch
+                checked={prIterationUnavailable ? false : field.state.value}
                 disabled={
                   prIterationUnavailable
                     ? NON_GITHUB_PR_ITERATION_WARNING
                     : !canWrite || prIterationLoading
                 }
-                value={prIterationUnavailable ? false : field.state.value}
                 onChange={field.handleChange}
-                options={PR_ITERATION_OPTIONS}
               />
             </field.Layout.Row>
           )}
