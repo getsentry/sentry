@@ -44,12 +44,10 @@ export function ArtifactLoadingDetails({
  * stopped.
  */
 export function ArtifactPartialDetails({blocks}: {blocks: AutofixSection['blocks']}) {
-  const partialBlocks = useMemo(() => {
-    const lastBlock = blocks.at(-1);
-    return defined(lastBlock) && isSeerErrorBlock(lastBlock)
-      ? blocks.slice(0, -1)
-      : blocks;
-  }, [blocks]);
+  const partialBlocks = useMemo(
+    () => blocks.filter(block => !isSeerErrorBlock(block)),
+    [blocks]
+  );
   const transcript = useStepTranscript(partialBlocks);
 
   if (!transcript.responses.length) {
@@ -77,7 +75,7 @@ function useStepTranscript(blocks: AutofixSection['blocks']) {
 
 /**
  * A step's responses, the way the Seer Agent chat draws them. `blocks` is the
- * step's full list, including the error block left out of `responses`.
+ * step's full list, including the error blocks left out of `responses`.
  */
 function StepResponses({
   blocks,

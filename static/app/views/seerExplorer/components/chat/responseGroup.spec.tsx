@@ -348,7 +348,7 @@ describe('ResponseGroup', () => {
     );
   });
 
-  it('ends the timer at the answer when the run stopped after it', () => {
+  it('ends the timer at the answer when given a later end time', () => {
     const group = [
       {...toolUseBlock('t1'), timestamp: '2024-01-01T00:00:00Z'},
       {...assistantBlock('a1', 'Done'), timestamp: '2024-01-01T00:00:05Z'},
