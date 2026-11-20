@@ -9,6 +9,7 @@ import {
 } from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {getAutofixNextStep, type AutofixNextStep} from './getAutofixNextStep';
+import {hasCreatedPullRequests} from './pullRequests';
 import {
   getAutofixArtifactFromSection,
   hasSingleRunOutOfCreditsRetry,
@@ -101,12 +102,18 @@ export function getAutofixContinueAction({
     return null;
   }
 
-  // A single run offers no next step; its only follow-up is opening the chat.
-  // One that stopped for credits is retried with a new run, which starts at
-  // the root cause. Its PR and coding agent sections come after the one it
-  // stopped in, so every section is checked, not just the last.
+  // A single run offers no next step; its follow-ups go through the chat. Like
+  // a multi-step run's, an open PR takes feedback even while a run is going.
+  // One that stopped for credits is otherwise retried with a new run, which
+  // starts at the root cause. Its PR and coding agent sections come after the
+  // one it stopped in, so every section is checked, not just the last.
   if (isSingleRunAutofix(runState)) {
-    return sections.some(hasSingleRunOutOfCreditsRetry) ? 'root_cause' : null;
+    if (hasCreatedPullRequests(runState?.repo_pr_states)) {
+      return 'pr_iteration';
+    }
+    return sections.some(stopped => hasSingleRunOutOfCreditsRetry(stopped, runState))
+      ? 'root_cause'
+      : null;
   }
 
   // An open PR takes feedback even while a run is going, and a failed create is

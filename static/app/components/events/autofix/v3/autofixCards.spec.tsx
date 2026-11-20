@@ -2881,36 +2881,59 @@ describe('out of credits', () => {
     }
   );
 
-  it('offers a single run no retry for a PR update that stopped, since single runs take feedback in the chat', () => {
-    render(
-      <CodeChangesCard
-        autofix={{
-          ...mockAutofix,
-          runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
-        }}
-        groupId="1"
-        section={makeOutOfCreditsSection(
-          'code_changes',
-          [
-            makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
-            makePrIterationBlock(0, {text: 'Add a regression test'}),
-            seerErrorBlock,
-          ],
-          [[makePatch('org/repo', 'src/cart.py')]]
-        )}
-      />,
-      {organization}
-    );
+  describe('a single run whose reply stopped', () => {
+    // Seer adds a user block for every message, so the reply is the second.
+    function makeUserBlock(id: string, content: string, step: string) {
+      return {
+        id,
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {role: 'user' as const, content, metadata: {step}},
+      };
+    }
 
-    expect(
-      screen.getByText(
-        'Seer stopped before updating the pull request because your organization is out of credits.'
-      )
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Add context & retry'})
-    ).not.toBeInTheDocument();
+    const blocks = [
+      makeUserBlock('request', 'Fix issue', 'single_run'),
+      makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
+      makeUserBlock('reply', 'Also cover an empty cart', 'single_run'),
+      seerErrorBlock,
+    ];
+
+    it.each([
+      [
+        'RootCauseCard',
+        RootCauseCard,
+        makeOutOfCreditsSection('root_cause', blocks),
+        'Seer stopped before finishing the root cause because your organization is out of credits.',
+      ],
+      [
+        'CodeChangesCard',
+        CodeChangesCard,
+        makeOutOfCreditsSection('code_changes', blocks, [
+          [makePatch('org/repo', 'src/cart.py')],
+        ]),
+        'Seer stopped before finishing the code changes because your organization is out of credits.',
+      ],
+    ])(
+      '%s offers no Re-run, since the chat resends the reply',
+      (_name, Card, section, message) => {
+        const creditCheck = mockCreditCheck('autofix_root_cause', true);
+        render(
+          <Card
+            autofix={{
+              ...mockAutofix,
+              runState: {...stoppedRunState, feature_id: 'autofix_single_run', blocks},
+            }}
+            groupId="1"
+            section={section}
+          />,
+          {organization}
+        );
+
+        expect(screen.getByText(message)).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+        expect(creditCheck).not.toHaveBeenCalled();
+      }
+    );
   });
 
   it('leaves the retry to the backend without token-billed Seer', () => {

@@ -745,12 +745,17 @@ export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerSte
 
 /**
  * Whether a single run that stopped for credits in this section is retried
- * from its card, with a new run. Single runs take PR feedback in the chat, so
- * a PR update that stopped gets no retry.
+ * from its card, with a new run. Only a stop in the run's first request is.
+ * Seer adds a user block for every message it takes, so a second one means a
+ * reply or PR feedback is what stopped. The chat resends that message, where
+ * a new run would start over without it.
  */
-export function hasSingleRunOutOfCreditsRetry(section: AutofixSection): boolean {
-  const stoppedStep = getOutOfCreditsStep(section);
-  return defined(stoppedStep) && stoppedStep !== 'pr_iteration';
+export function hasSingleRunOutOfCreditsRetry(
+  section: AutofixSection,
+  runState: ExplorerAutofixState | null
+): boolean {
+  const messages = runState?.blocks.filter(block => block.message.role === 'user') ?? [];
+  return isOutOfCreditsSection(section) && messages.length < 2;
 }
 
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {

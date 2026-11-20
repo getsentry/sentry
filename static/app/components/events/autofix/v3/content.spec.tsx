@@ -10,7 +10,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {
   CodingAgentProvider,
   CodingAgentStatus,
-  DiffFileType,
 } from 'sentry/components/events/autofix/types';
 import {
   useExplorerAutofix,
@@ -582,7 +581,7 @@ describe('SeerDrawerContent', () => {
         );
       });
 
-      it('checks nothing for a PR update, since the chat takes PR feedback', async () => {
+      it('checks nothing for a reply that stopped, since the chat resends it', async () => {
         const creditCheck = MockApiClient.addMockResponse({
           url: creditCheckUrl,
           body: {hasEnoughCredits: false},
@@ -594,36 +593,20 @@ describe('SeerDrawerContent', () => {
             autofix={makeAutofix({
               runState: {
                 ...stoppedSingleRun,
+                // Seer adds a user block for every message, so the reply is the second.
                 blocks: [
                   {
-                    ...rootCauseBlock,
-                    merged_file_patches: [
-                      {
-                        repo_name: 'org/repository',
-                        diff: '',
-                        patch: {
-                          path: 'src/weights.py',
-                          added: 1,
-                          removed: 0,
-                          hunks: [],
-                          source_file: 'src/weights.py',
-                          target_file: 'src/weights.py',
-                          type: DiffFileType.MODIFIED,
-                        },
-                      },
-                    ],
+                    id: 'b0',
+                    timestamp: '2026-01-01T00:00:00Z',
+                    message: {role: 'user', content: 'Fix issue'},
                   },
+                  rootCauseBlock,
                   {
                     id: 'b2',
                     timestamp: '2026-01-01T00:01:00Z',
-                    message: {
-                      role: 'user',
-                      content: 'Add a regression test',
-                      metadata: {step: 'pr_iteration', iteration_index: '0'},
-                    },
+                    message: {role: 'user', content: 'Also cover empty weights'},
                   },
                 ],
-                repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
               },
             })}
             group={GroupFixture()}
@@ -633,12 +616,57 @@ describe('SeerDrawerContent', () => {
 
         expect(
           await screen.findByText(
-            'Seer stopped before updating the pull request because your organization is out of credits.'
+            'Seer stopped before finishing the code changes because your organization is out of credits.'
           )
         ).toBeInTheDocument();
         expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
         expect(creditCheck).not.toHaveBeenCalled();
       });
+    });
+
+    it("checks a single run's PR feedback against the run's billing feature", async () => {
+      // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE, which PR feedback is billed to.
+      mockCreditCheck('autofix_pr_iteration', false, 4);
+
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              run_id: 777,
+              feature_id: 'autofix_single_run',
+              status: 'completed',
+              billing_feature: 4,
+              updated_at: '2026-01-01T00:00:00Z',
+              blocks: [
+                {
+                  id: 'b1',
+                  timestamp: '2026-01-01T00:00:00Z',
+                  message: {
+                    role: 'assistant',
+                    content: 'Opened a PR.',
+                    metadata: {step: 'single_run'},
+                  },
+                  artifacts: [
+                    {
+                      key: 'single_run_root_cause',
+                      reason: 'found',
+                      data: {headline: 'Divides by zero', cause: 'Empty weights.'},
+                    },
+                  ],
+                },
+              ],
+              repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
+            },
+          })}
+          group={GroupFixture()}
+        />,
+        {organization}
+      );
+
+      expect(await screen.findByTestId('seer-out-of-credits-cta')).toHaveTextContent(
+        'warning autofix-continue'
+      );
     });
 
     it('does not check credits while a step is running', () => {

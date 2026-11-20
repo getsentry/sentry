@@ -98,7 +98,7 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
   const stoppedStep = getOutOfCreditsStep(section);
   const isOutOfCredits = defined(stoppedStep);
   const hasOutOfCreditsRetry = isSingleRun
-    ? hasSingleRunOutOfCreditsRetry(section)
+    ? hasSingleRunOutOfCreditsRetry(section, autofix.runState)
     : isOutOfCredits;
   const outOfCreditsRetry = useOutOfCreditsRetry(
     // A single run is retried with a new one, which starts at the root cause.
