@@ -15,6 +15,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
+import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -79,7 +80,7 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
             deleteAccount.mutate(undefined, {
               onSuccess: () => {
                 toast.success(t('Service account deleted.'));
-                navigate(listUrl);
+                navigate(normalizeUrl(listUrl));
               },
               onError: error => {
                 toast.error(
