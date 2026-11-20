@@ -468,7 +468,7 @@ def _build_success_comparison(
     """Build a comparison result with inlined diff data for SUCCESS state."""
     assert head_metric.metrics_artifact_type is not None
 
-    if comparison_obj.file_id is None:
+    if comparison_obj.file_id is None and comparison_obj.storage_path is None:
         sentry_sdk.capture_message(
             "preprod.public_api.compare.success_no_file",
             level="warning",
@@ -477,7 +477,7 @@ def _build_success_comparison(
         return _build_failed_comparison(head_metric, "FILE_ERROR", "Comparison file missing")
 
     try:
-        file_obj = File.objects.get(id=comparison_obj.file_id)
+        file_obj = comparison_obj.get_result_file()
         with file_obj.getfile() as fp:
             content = fp.read()
         comparison_data = json.loads(content)
@@ -624,14 +624,14 @@ def build_size_analysis_summary(
         return response
 
     # COMPLETED state — load analysis results from file
-    analysis_file_id = main_metric.analysis_file_id
+    analysis_file_id = main_metric.analysis_storage_path or main_metric.analysis_file_id
     if not analysis_file_id:
         raise SizeAnalysisSummaryBuildError(
             f"Missing analysis_file_id for completed metric {main_metric.id}"
         )
 
     try:
-        file_obj = File.objects.get(id=analysis_file_id)
+        file_obj = main_metric.get_analysis_file()
     except File.DoesNotExist:
         raise SizeAnalysisSummaryBuildError(f"Analysis file {analysis_file_id} not found")
 

@@ -160,7 +160,7 @@ def build_build_distribution_summary(
     cannot be mapped (e.g. invalid error code).
     """
     error_code_value = artifact.installable_app_error_code
-    has_file = artifact.installable_app_file_id is not None
+    has_file = artifact.has_installable_file
     has_error = error_code_value is not None
 
     # Non-terminal: neither success nor failure fields are set
