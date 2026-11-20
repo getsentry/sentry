@@ -1,6 +1,6 @@
 ---
 name: django-queries
-description: Write Django ORM queries, raw SQL, and transactions in Sentry that work on its production databases, where some tables live on separate Postgres databases. Use when a query, subquery, join, or raw SQL touches more than one model, when a `transaction.atomic` block writes more than one model, when adding a foreign key to or a new table next to an existing model, or when adding an index for a query. Trigger on "id__in queryset", "Subquery", "Exists", "join across", "raw SQL", "connection.cursor", "transaction.atomic", "cross-database", "which database is this table on", "db_for_read", "db_for_write", "add an index", "composite index". Not for migration files (use generate-migration) or model silo design (use django-models).
+description: Write Django ORM queries, raw SQL, transactions, and indexes that work on Sentry's production databases. Use when writing or reviewing database access code in Sentry. Not for migration files (use generate-migration) or model design (use django-models).
 ---
 
 # Django Queries on Sentry's Databases
