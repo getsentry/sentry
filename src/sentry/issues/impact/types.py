@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Annotated, Any, Final, Literal, TypedDict
+from typing import Annotated, Any, Final, Literal, NotRequired, TypedDict, cast
 
 from pydantic import BaseModel, Field, StrictFloat, StrictInt, StrictStr
 
@@ -48,6 +48,120 @@ class ImpactClaimData(TypedDict):
     ]
 
 
+class CitationIssueStatData(TypedDict):
+    name: Annotated[str, ApiDescription("Statistic: users, events, firstSeen or lastSeen")]
+    value: Annotated[int | float | str, ApiDescription("Value of the statistic")]
+
+
+class CitationEventFocusData(TypedDict):
+    type: Annotated[str, ApiDescription("Part of the event: frame, tag, breadcrumb or context")]
+    exceptionIndex: NotRequired[
+        Annotated[int, ApiDescription("Index of the exception in the event")]
+    ]
+    frameIndex: NotRequired[Annotated[int, ApiDescription("Index of the cited stack frame")]]
+    function: NotRequired[Annotated[str, ApiDescription("Function of the cited frame")]]
+    filename: NotRequired[Annotated[str, ApiDescription("File of the cited frame")]]
+    lineNo: NotRequired[Annotated[int, ApiDescription("Line of the cited frame")]]
+    key: NotRequired[Annotated[str, ApiDescription("Tag or context key")]]
+    value: NotRequired[Annotated[str, ApiDescription("Tag value")]]
+    index: NotRequired[Annotated[int, ApiDescription("Index of the cited breadcrumb")]]
+
+
+class CitationLocatorData(TypedDict):
+    groupId: NotRequired[
+        Annotated[str, ApiDescription("Issue (group) ID: issue, event and feedback citations")]
+    ]
+    shortId: NotRequired[Annotated[str, ApiDescription("Issue short ID, e.g. PROJECT-1A")]]
+    stat: NotRequired[
+        Annotated[CitationIssueStatData, ApiDescription("The issue-level statistic cited")]
+    ]
+    eventId: NotRequired[Annotated[str, ApiDescription("Event ID: event citations")]]
+    focus: NotRequired[
+        Annotated[CitationEventFocusData, ApiDescription("The part of the event cited")]
+    ]
+    traceId: NotRequired[Annotated[str, ApiDescription("Trace ID: trace and log citations")]]
+    spanId: NotRequired[Annotated[str, ApiDescription("Span ID within the trace")]]
+    logId: NotRequired[Annotated[str, ApiDescription("Log item ID")]]
+    timestamp: NotRequired[
+        Annotated[str, ApiDescription("ISO 8601 time of the cited log line or replay moment")]
+    ]
+    replayId: NotRequired[Annotated[str, ApiDescription("Replay ID")]]
+    offsetMs: NotRequired[
+        Annotated[int, ApiDescription("Milliseconds from the start of the replay")]
+    ]
+    profileId: NotRequired[Annotated[str, ApiDescription("Profile ID")]]
+    projectSlug: NotRequired[Annotated[str, ApiDescription("Slug of the profile's project")]]
+    function: NotRequired[Annotated[str, ApiDescription("Function the profile citation is about")]]
+    dataset: NotRequired[
+        Annotated[
+            str,
+            ApiDescription(
+                "Dataset a query citation ran against: spans, logs, errors, issues, metrics or replays"
+            ),
+        ]
+    ]
+    query: NotRequired[Annotated[str, ApiDescription("Search query of a query citation")]]
+    fields: NotRequired[Annotated[list[str], ApiDescription("Table columns of a query citation")]]
+    yAxes: NotRequired[Annotated[list[str], ApiDescription("Aggregates of a query citation")]]
+    groupBy: NotRequired[
+        Annotated[list[str], ApiDescription("Group-by columns of a query citation")]
+    ]
+    projects: NotRequired[
+        Annotated[list[str], ApiDescription("Project IDs a query citation ran over")]
+    ]
+    statsPeriod: NotRequired[
+        Annotated[str, ApiDescription("Relative time range of a query citation, e.g. 24h")]
+    ]
+    start: NotRequired[
+        Annotated[str, ApiDescription("Start of a query citation's absolute time range")]
+    ]
+    end: NotRequired[
+        Annotated[str, ApiDescription("End of a query citation's absolute time range")]
+    ]
+    resultSummary: NotRequired[Annotated[str, ApiDescription("What the query returned")]]
+    feedbackId: NotRequired[Annotated[str, ApiDescription("User feedback ID")]]
+    repo: NotRequired[
+        Annotated[
+            str, ApiDescription("Repository (owner/name): code, commit and pull request citations")
+        ]
+    ]
+    path: NotRequired[Annotated[str, ApiDescription("File path of a code citation")]]
+    ref: NotRequired[
+        Annotated[str, ApiDescription("Commit SHA or branch the cited code came from")]
+    ]
+    startLine: NotRequired[Annotated[int, ApiDescription("First cited line")]]
+    endLine: NotRequired[Annotated[int, ApiDescription("Last cited line")]]
+    sha: NotRequired[Annotated[str, ApiDescription("Commit SHA")]]
+    number: NotRequired[Annotated[int, ApiDescription("Pull request number")]]
+    url: NotRequired[Annotated[str, ApiDescription("URL of an external citation")]]
+    source: NotRequired[
+        Annotated[str, ApiDescription("Where an external citation came from, e.g. docs")]
+    ]
+
+
+class CitationData(TypedDict):
+    id: Annotated[str, ApiDescription("Citation ID that claims cite")]
+    kind: Annotated[
+        str,
+        ApiDescription(
+            "Kind of datum: issue, event, trace, log, replay, profile, query, feedback, code, commit, pullRequest or external"
+        ),
+    ]
+    title: Annotated[str, ApiDescription("Short human label for the cited datum")]
+    locator: Annotated[
+        CitationLocatorData,
+        ApiDescription("Where the cited datum lives; which fields are set depends on kind"),
+    ]
+    excerpt: NotRequired[
+        Annotated[str, ApiDescription("The exact text or value the claim relies on")]
+    ]
+    observedAt: NotRequired[
+        Annotated[str, ApiDescription("When the cited datum happened, as ISO 8601")]
+    ]
+    projectId: NotRequired[Annotated[str, ApiDescription("Project the cited datum belongs to")]]
+    url: NotRequired[Annotated[str, ApiDescription("Link to the cited datum")]]
+
+
 class AvailableImpactCitation(TypedDict):
     reference: str
     source: str
@@ -78,7 +192,7 @@ class ImpactDerivedData(TypedDict):
         ApiDescription("Claims the assessment rests on, each citing entries in `evidence`"),
     ]
     evidence: Annotated[
-        list[dict[str, Any]],
+        list[CitationData],
         ApiDescription(
             "Typed citations (an event frame, span, log line, replay moment, query result, ...) "
             "backing the claims"
@@ -258,5 +372,5 @@ class StoredCitation(BaseModel):
     projectId: str | None = None
     url: str | None = None
 
-    def to_api(self) -> dict[str, Any]:
-        return self.dict(exclude_none=True)
+    def to_api(self) -> CitationData:
+        return cast(CitationData, self.dict(exclude_none=True))

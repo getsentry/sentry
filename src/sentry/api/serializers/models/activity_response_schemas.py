@@ -19,10 +19,18 @@ doesn't keep, so only the Activity path returns them.
 from __future__ import annotations
 
 from collections.abc import Callable
-from typing import Any
+from typing import Annotated, Any, get_args, get_origin, get_type_hints
 
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.json_schemas import to_response_schema
 from sentry.issues.action_log.types import GroupAction, GroupActionType
+from sentry.issues.impact.types import (
+    CitationData,
+    CitationEventFocusData,
+    CitationIssueStatData,
+    CitationLocatorData,
+    StoredCitation,
+)
 from sentry.types.activity import HIDDEN_ACTIVITY_TYPES, ActivityType
 
 _INTEGRATION_PROPERTIES: dict[str, dict[str, Any]] = {
@@ -105,6 +113,33 @@ _ACTIVITY_ONLY_PROPERTIES: dict[ActivityType, dict[str, dict[str, Any]]] = {
         "pull_requests": _SEER_PULL_REQUESTS,
     },
 }
+
+
+def _citation_schema() -> dict[str, Any]:
+    """
+    Impact citations, from the model they're stored with. Descriptions come from the
+    TypedDicts the derived `impact` field is typed with, so both stay in one place.
+    """
+    descriptions: dict[str, str] = {}
+    for definition, typed_dict in (
+        ("StoredCitation", CitationData),
+        ("CitationLocator", CitationLocatorData),
+        ("CitationEventFocus", CitationEventFocusData),
+        ("CitationIssueStat", CitationIssueStatData),
+    ):
+        for field, hint in get_type_hints(typed_dict, include_extras=True).items():
+            while get_origin(hint) is not Annotated and get_args(hint):
+                hint = get_args(hint)[0]
+            for meta in getattr(hint, "__metadata__", ()):
+                if isinstance(meta, ApiDescription):
+                    descriptions[f"{definition}.{field}"] = meta.text
+    model_schema = StoredCitation.schema()
+    return to_response_schema(
+        {"$ref": "#/definitions/StoredCitation"},
+        definitions={**model_schema.get("definitions", {}), "StoredCitation": model_schema},
+        descriptions=descriptions,
+    )
+
 
 _DESCRIPTIONS = {
     "referrer": "What started the Autofix run, such as api.web or slack",
@@ -317,7 +352,7 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
                 "evidence": {
                     "type": "array",
                     "description": "Typed citations backing the claims",
-                    "items": {"type": "object"},
+                    "items": _citation_schema(),
                 },
             },
             required=("score", "level", "description", "citations", "sourceEventId"),
