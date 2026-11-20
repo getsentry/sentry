@@ -20,6 +20,7 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
+import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {getDatasetLabel} from './datasetLabels';
@@ -49,6 +50,10 @@ interface NumericFilterState {
   renderInputField: () => React.ReactNode;
   renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
+  /**
+   * Untruncated plain-text version of the selector trigger.
+   */
+  selectorDescription: string;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
   stagedOperator: Operator;
@@ -137,6 +142,9 @@ function useNativeOperatorFilter(
     hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: `${prettifyTagKey(globalFilter.tag.key)} ${getOperatorLabel(
+      stagedFilterOperator
+    )} ${stagedFilterValue}`,
     isValidValue,
     buildFilterQuery,
   };
@@ -170,6 +178,7 @@ function useBetweenOperatorFilter(
   };
 
   const isValidValue = lowerBound.isValidValue && upperBound.isValidValue;
+  const betweenOperatorLabel = getOperatorLabel(TermOperator.LESS_THAN_EQUAL);
 
   const resetValues = () => {
     lowerBound.resetValues();
@@ -186,6 +195,9 @@ function useBetweenOperatorFilter(
     hasStagedChanges: lowerBound.hasStagedChanges || upperBound.hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: `${lowerBound.stagedValue} ${betweenOperatorLabel} ${prettifyTagKey(
+      globalFilter.tag.key
+    )} ${betweenOperatorLabel} ${upperBound.stagedValue}`,
     isValidValue,
     buildFilterQuery: () =>
       lowerBound.buildFilterQuery() +
@@ -320,6 +332,7 @@ export function NumericFilterSelector({
           <FilterSelectorTriggerButton
             {...triggerProps}
             globalFilter={globalFilter}
+            description={filter.selectorDescription}
             showDatasetLabel={showDatasetLabel}
           >
             {filter.renderSelectorTrigger()}

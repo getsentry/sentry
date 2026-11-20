@@ -1,3 +1,5 @@
+import {Fragment} from 'react';
+
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -12,19 +14,32 @@ import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {getDatasetLabel} from './datasetLabels';
-import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
+import {
+  FILTER_SELECTOR_TOOLTIP_MAX_WIDTH,
+  FILTER_SELECTOR_TRIGGER_MAX_WIDTH,
+} from './settings';
 
 type FilterSelectorTriggerButtonProps = React.ComponentProps<
   typeof OverlayTrigger.Button
-> & {globalFilter: GlobalFilter; showDatasetLabel?: boolean};
+> & {
+  /**
+   * The full, untruncated filter (e.g. `span.op is db, http`), shown in the
+   * tooltip because the trigger ellipsizes long keys and values.
+   */
+  description: string;
+  globalFilter: GlobalFilter;
+  showDatasetLabel?: boolean;
+};
 
 /**
  * Trigger button shared by all global filter selectors. Always shows the
- * filter's dataset in a tooltip, and optionally inline as a muted prefix (used
- * to disambiguate filters on the same key across different datasets).
+ * filter's dataset and full description in a tooltip, and optionally the
+ * dataset inline as a muted prefix (used to disambiguate filters on the same
+ * key across different datasets).
  */
 export function FilterSelectorTriggerButton({
   globalFilter,
+  description,
   showDatasetLabel,
   children,
   ...triggerProps
@@ -33,7 +48,15 @@ export function FilterSelectorTriggerButton({
 
   return (
     <Tooltip
-      title={t('%s Filter', datasetLabel)}
+      title={
+        <Fragment>
+          <Tooltip.Header>{t('%s Filter', datasetLabel)}</Tooltip.Header>
+          <Tooltip.Grid>
+            <Text>{description}</Text>
+          </Tooltip.Grid>
+        </Fragment>
+      }
+      maxWidth={FILTER_SELECTOR_TOOLTIP_MAX_WIDTH}
       // The open menu already shows the dataset in its title
       disabled={!!triggerProps['aria-expanded']}
       skipWrapper
@@ -58,6 +81,33 @@ type FilterSelectorTriggerProps = {
   operator: TermOperator;
   options: Array<SelectOption<string>>;
 };
+
+/**
+ * Plain-text version of `FilterSelectorTrigger` with nothing truncated.
+ */
+export function getFilterSelectorDescription({
+  globalFilter,
+  activeFilterValues,
+  operator,
+  options,
+}: FilterSelectorTriggerProps): string {
+  const tagKey = prettifyTagKey(globalFilter.tag.key);
+
+  if (activeFilterValues.length === 0) {
+    return `${tagKey}: ${t('All')}`;
+  }
+
+  // Prefer `textValue`: long values get a middle-ellipsized `label`
+  const values = activeFilterValues.map(value => {
+    const option = options.find(opt => opt.value === value);
+    if (option?.textValue) {
+      return option.textValue;
+    }
+    return typeof option?.label === 'string' && option.label ? option.label : value;
+  });
+
+  return `${tagKey} ${OP_LABELS[operator]} ${values.join(', ')}`;
+}
 
 export function FilterSelectorTrigger({
   globalFilter,

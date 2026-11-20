@@ -94,6 +94,38 @@ describe('FilterSelector', () => {
     expect(screen.getByRole('checkbox', {name: 'Select chrome'})).toBeChecked();
   });
 
+  it('shows the full filter in the trigger tooltip', async () => {
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: 'browser:[firefox,chrome]'}}
+        searchBarData={mockSearchBarData}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    await userEvent.hover(screen.getByRole('button', {name: /^browser :/}));
+
+    expect(await screen.findByText('Errors Filter')).toBeInTheDocument();
+    expect(screen.getByText('browser is firefox, chrome')).toBeInTheDocument();
+  });
+
+  it('shows long values in full in the trigger tooltip', async () => {
+    const longValue = `checkout-${'a'.repeat(80)}`;
+    render(
+      <FilterSelector
+        globalFilter={{...mockGlobalFilter, value: `browser:${longValue}`}}
+        searchBarData={{...mockSearchBarData, getTagValues: () => Promise.resolve([])}}
+        onUpdateFilter={mockOnUpdateFilter}
+        onRemoveFilter={mockOnRemoveFilter}
+      />
+    );
+
+    await userEvent.hover(screen.getByRole('button', {name: /^browser :/}));
+
+    expect(await screen.findByText(`browser is ${longValue}`)).toBeInTheDocument();
+  });
+
   it('calls onRemoveFilter when remove button is clicked', async () => {
     render(
       <FilterSelector
