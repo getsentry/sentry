@@ -242,6 +242,57 @@ export function replaceAggregateInEquations(
 }
 
 /**
+ * Whether a visible row other than `index` has the same aggregate.
+ */
+export function hasDuplicateAggregate(
+  fields: Column[],
+  index: number,
+  aggregate: string
+): boolean {
+  const key = getAggregateKey(aggregate);
+  return fields.some(
+    (field, i) =>
+      i !== index &&
+      field.kind === FieldValueKind.FUNCTION &&
+      getAggregateKey(generateFieldAsString(field)) === key
+  );
+}
+
+/**
+ * Turns a saved equation back into row letters. When several rows share an
+ * aggregate, each repeated use of it takes the next such letter in turn, so
+ * `x + x` with rows A and B both on `x` reads as `A + B`.
+ */
+export function unresolveEquationWithDuplicates(
+  equation: string,
+  referenceMap: Record<string, string>
+): string {
+  const labelsByKey = new Map<string, string[]>();
+  for (const [label, aggregate] of Object.entries(referenceMap)) {
+    const key = getAggregateKey(aggregate);
+    labelsByKey.set(key, [...(labelsByKey.get(key) ?? []), label]);
+  }
+
+  const uses = new Map<string, number>();
+  return tokenizeExpression(equation)
+    .map(token => {
+      if (!isTokenFunction(token)) {
+        return token.text;
+      }
+      const key = getAggregateKey(token.text);
+      const labels = labelsByKey.get(key);
+      if (!labels?.length) {
+        return token.text;
+      }
+      const n = uses.get(key) ?? 0;
+      uses.set(key, n + 1);
+      return labels[n % labels.length]!;
+    })
+    .filter(text => text.length > 0)
+    .join(' ');
+}
+
+/**
  * Whether an aggregate column is used by any equation in the list.
  */
 export function isAggregateReferenced(

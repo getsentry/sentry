@@ -3,6 +3,8 @@ import {useCallback, useState} from 'react';
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 
+import {unresolveEquationWithDuplicates} from './unifiedEquations';
+
 interface TraceMetricEquationRowProps {
   /**
    * The equation in its saved, fully inlined form (without the `equation|` prefix).
@@ -53,7 +55,7 @@ export function TraceMetricEquationRow({
       storedInternalExpression={
         internal?.equation === equation && internal.references === references
           ? internal.text
-          : undefined
+          : unresolveEquationWithDuplicates(equation, referenceMap)
       }
       disabled={disabled}
     />

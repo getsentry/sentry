@@ -3059,6 +3059,28 @@ describe('Visualize', () => {
       ).toBeInTheDocument();
     });
 
+    it('keeps the equation when editing one of two identical series', async () => {
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_ALPHA,
+        `equation|${SUM_ALPHA} + ${SUM_ALPHA}`,
+      ]);
+      await screen.findByRole('button', {name: 'Hide series A'});
+
+      // Point row B at beta_metric. Row A still provides sum(alpha), so the
+      // equation must not be rewritten.
+      await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[1]!);
+      await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
+
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_ALPHA,
+          SUM_BETA,
+          `equation|${SUM_ALPHA} + ${SUM_ALPHA}`,
+        ]);
+      });
+    });
+
     it('shows a hidden series again', async () => {
       const {router} = renderUnified([`equation|${SUM_BETA} * 2`]);
 
