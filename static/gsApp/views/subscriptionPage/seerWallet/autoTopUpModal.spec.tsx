@@ -1,7 +1,17 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
+import {
+  act,
+  renderGlobalModal,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
+
+import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import {openSeerAutoTopUpModal} from 'getsentry/views/subscriptionPage/seerWallet/autoTopUpModal';
 import type {SeerWalletAutoTopUp} from 'getsentry/views/subscriptionPage/seerWallet/seerWalletOptions';
 
@@ -771,5 +781,282 @@ describe('openSeerAutoTopUpModal', () => {
       await screen.findByText('Unable to load your Seer credits.')
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Retry'})).toBeInTheDocument();
+  });
+
+  describe('without billing access', () => {
+    const member = OrganizationFixture({access: ['org:read']});
+
+    function openForMember({
+      canSelfServe,
+      denialReason,
+    }: {
+      canSelfServe: boolean;
+      denialReason: SeerCreditDenialReason | null;
+    }) {
+      act(() =>
+        SubscriptionStore.set(
+          member.slug,
+          // Tests run with the clock frozen at 2017-10-17, inside this period.
+          SubscriptionFixture({
+            organization: member,
+            canSelfServe,
+            onDemandPeriodStart: '2017-10-01',
+          })
+        )
+      );
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        body: {},
+      });
+      renderGlobalModal({organization: member});
+      act(() => openSeerAutoTopUpModal({organization: member, denialReason}));
+    }
+
+    it('lets members of self-serve orgs ask their admins about what stopped Seer', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
+      openForMember({canSelfServe: true, denialReason: 'daily_cap_exceeded'});
+
+      expect(
+        await screen.findByText(
+          'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+        )
+      );
+      expect(await screen.findByRole('button', {name: 'Admins emailed'})).toBeDisabled();
+    });
+
+    it('lets members email their admins when the link does not say why Seer stopped', async () => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        method: 'PUT',
+      });
+      const request = MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/seer-top-up-request/`,
+        method: 'POST',
+      });
+      openForMember({canSelfServe: true, denialReason: null});
+
+      expect(
+        screen.getByText(
+          'Only owners and billing members can manage auto-reload. Ask your admin to turn it on or increase your daily usage limit.'
+        )
+      ).toBeInTheDocument();
+      await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+      await waitFor(() =>
+        expect(request).toHaveBeenCalledWith(
+          `/organizations/${member.slug}/seer-top-up-request/`,
+          expect.objectContaining({data: {denialReason: null}})
+        )
+      );
+    });
+
+    describe('with credit checks', () => {
+      const checkedMember = OrganizationFixture({
+        access: ['org:read'],
+        features: ['token-billed-seer-enabled'],
+      });
+
+      function openWithCreditCheck({
+        linkDenialReason,
+        creditCheck,
+      }: {
+        creditCheck: {
+          denialReason: SeerCreditDenialReason | null;
+          hasEnoughCredits: boolean;
+        };
+        linkDenialReason: SeerCreditDenialReason;
+      }) {
+        act(() =>
+          SubscriptionStore.set(
+            checkedMember.slug,
+            SubscriptionFixture({
+              organization: checkedMember,
+              canSelfServe: true,
+              onDemandPeriodStart: '2017-10-01',
+            })
+          )
+        );
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/prompts-activity/`,
+          body: {},
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/prompts-activity/`,
+          method: 'PUT',
+        });
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: creditCheck,
+          // Autofix's most expensive step, so a balance a chat message fits in
+          // can't hide Contact Admin while Autofix is blocked.
+          match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
+        });
+        const request = MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer-top-up-request/`,
+          method: 'POST',
+        });
+        renderGlobalModal({organization: checkedMember});
+        act(() =>
+          openSeerAutoTopUpModal({
+            organization: checkedMember,
+            denialReason: linkDenialReason,
+          })
+        );
+        return request;
+      }
+
+      it('tells members what stops Seer now, not what the link says', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'not_enough_credits',
+          creditCheck: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+
+        expect(
+          await screen.findByText(
+            'Your organization hit its daily Seer usage limit. Only owners and billing members can manage auto-reload, so ask your admin to increase the limit.'
+          )
+        ).toBeInTheDocument();
+        // Tests run in UTC with the clock frozen at 2017-10-17T02:41:20Z, so the
+        // limit resets at the next midnight UTC.
+        expect(screen.getByRole('dialog')).toHaveTextContent(
+          'This will reset at 12:00 AM UTC.'
+        );
+        await userEvent.click(await screen.findByRole('button', {name: 'Contact Admin'}));
+
+        await waitFor(() =>
+          expect(request).toHaveBeenCalledWith(
+            `/organizations/${checkedMember.slug}/seer-top-up-request/`,
+            expect.objectContaining({data: {denialReason: 'daily_cap_exceeded'}})
+          )
+        );
+      });
+
+      it('tells members Seer is available once it is no longer stopped', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: true, denialReason: null},
+        });
+
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
+        expect(request).not.toHaveBeenCalled();
+      });
+
+      it('waits for a new check rather than a cached one when opened again', async () => {
+        openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: true, denialReason: null},
+        });
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('button', {name: 'Close'}));
+        await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+
+        // The org hits its daily usage limit before the member opens the link again.
+        MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        act(() =>
+          openSeerAutoTopUpModal({
+            organization: checkedMember,
+            denialReason: 'daily_cap_exceeded',
+          })
+        );
+
+        expect(
+          screen.queryByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).not.toBeInTheDocument();
+        expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+      });
+
+      it('does not email admins when Seer is available again by the time of the click', async () => {
+        const request = openWithCreditCheck({
+          linkDenialReason: 'daily_cap_exceeded',
+          creditCheck: {hasEnoughCredits: false, denialReason: 'daily_cap_exceeded'},
+        });
+        const contactAdmin = await screen.findByRole('button', {name: 'Contact Admin'});
+
+        // The daily usage limit resets while the modal is open.
+        const recheck = MockApiClient.addMockResponse({
+          url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
+          body: {hasEnoughCredits: true, denialReason: null},
+        });
+        await userEvent.click(contactAdmin);
+
+        expect(
+          await screen.findByText(
+            'Seer is available, so there is no need to contact your admin.'
+          )
+        ).toBeInTheDocument();
+        expect(recheck).toHaveBeenCalled();
+        expect(request).not.toHaveBeenCalled();
+        expect(
+          screen.queryByRole('button', {name: 'Contact Admin'})
+        ).not.toBeInTheDocument();
+      });
+    });
+
+    it('loads the subscription when the page has not', async () => {
+      act(() => SubscriptionStore.init());
+      MockApiClient.addMockResponse({
+        url: `/customers/${member.slug}/`,
+        body: SubscriptionFixture({organization: member, canSelfServe: true}),
+      });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${member.slug}/prompts-activity/`,
+        body: {},
+      });
+      renderGlobalModal({organization: member});
+      act(() =>
+        openSeerAutoTopUpModal({organization: member, denialReason: 'not_enough_credits'})
+      );
+
+      // The title and close button stay up while the subscription loads.
+      expect(
+        screen.getByRole('heading', {name: 'Auto-reload credits'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Close Modal'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Contact Admin'})).toBeEnabled();
+    });
+
+    it('gives members of orgs that cannot self-serve no Contact Admin', () => {
+      openForMember({canSelfServe: false, denialReason: 'not_enough_credits'});
+
+      expect(
+        screen.getByText(
+          'Your organization ran out of Seer credits. Only owners and billing members can manage auto-reload, so ask your admin to turn it on.'
+        )
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Contact Admin'})
+      ).not.toBeInTheDocument();
+    });
   });
 });
