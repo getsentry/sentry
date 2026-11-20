@@ -1174,9 +1174,7 @@ class Factories:
             artifact_bundle.update(
                 storage_path=key,
                 checksum=file.checksum,
-                content_type=file.headers.get("Content-Type", "application/octet-stream"),
                 file_size=file.size,
-                date_created=file.timestamp,
                 file=None,
             )
             file.delete()

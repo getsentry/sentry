@@ -160,7 +160,7 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 file = File.objects.create(
                     name="artifact-bundle.zip",
                     type="artifact.bundle",
-                    headers={"Content-Type": source_artifact_bundle.get_content_type()},
+                    headers={"Content-Type": "application/octet-stream"},
                 )
                 with source_artifact_bundle.get_file() as contents:
                     file.putfile(contents)

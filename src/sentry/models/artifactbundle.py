@@ -7,7 +7,6 @@ import tempfile
 import zipfile
 from collections.abc import Callable, Mapping
 from contextlib import ExitStack
-from datetime import datetime
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
@@ -104,13 +103,6 @@ class ArtifactBundle(Model):
         assert self.file is not None
         return self.file.checksum
 
-    def get_content_type(self) -> str:
-        if self.storage_path is not None:
-            assert self.content_type is not None
-            return self.content_type
-        assert self.file is not None
-        return self.file.headers.get("Content-Type", "application/octet-stream")
-
     def get_file_size(self) -> int:
         if self.storage_path is not None:
             size = self.file_size
@@ -119,15 +111,6 @@ class ArtifactBundle(Model):
             size = self.file.size
         assert size is not None
         return size
-
-    def get_date_created(self) -> datetime:
-        if self.storage_path is not None:
-            date = self.date_created
-        else:
-            assert self.file is not None
-            date = self.file.timestamp
-        assert date is not None
-        return date
 
     def get_objectstore_session(self) -> Session:
         # Bundles can be associated with multiple projects in the organization.
