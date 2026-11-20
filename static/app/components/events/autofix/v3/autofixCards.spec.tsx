@@ -2849,6 +2849,18 @@ describe('out of credits', () => {
     });
   });
 
+  // Seer adds a user block for every message it takes, starting with the
+  // request that began the run.
+  function makeUserBlock(id: string, content: string, step: string) {
+    return {
+      id,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {role: 'user' as const, content, metadata: {step}},
+    };
+  }
+
+  const singleRunRequest = makeUserBlock('request', 'Fix issue', 'single_run');
+
   it.each([
     ['RootCauseCard', RootCauseCard, rootCauseSection],
     ['CodeChangesCard', CodeChangesCard, codeChangesSection],
@@ -2862,7 +2874,11 @@ describe('out of credits', () => {
           autofix={{
             ...mockAutofix,
             startStep,
-            runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
+            runState: {
+              ...stoppedRunState,
+              feature_id: 'autofix_single_run',
+              blocks: [singleRunRequest],
+            },
           }}
           groupId="1"
           section={section}
@@ -2880,6 +2896,53 @@ describe('out of credits', () => {
       expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: undefined});
     }
   );
+
+  describe('a single run whose reply stopped', () => {
+    // The reply is the run's second user block.
+    const blocks = [
+      singleRunRequest,
+      makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
+      makeUserBlock('reply', 'Also cover an empty cart', 'single_run'),
+      seerErrorBlock,
+    ];
+
+    it.each([
+      [
+        'RootCauseCard',
+        RootCauseCard,
+        makeOutOfCreditsSection('root_cause', blocks),
+        'Seer stopped before finishing the root cause because your organization ran out of credits.',
+      ],
+      [
+        'CodeChangesCard',
+        CodeChangesCard,
+        makeOutOfCreditsSection('code_changes', blocks, [
+          [makePatch('org/repo', 'src/cart.py')],
+        ]),
+        'Seer stopped before finishing the code changes because your organization ran out of credits.',
+      ],
+    ])(
+      '%s offers no Re-run, since the chat resends the reply',
+      (_name, Card, section, message) => {
+        const creditCheck = mockCreditCheck('autofix_root_cause', true);
+        render(
+          <Card
+            autofix={{
+              ...mockAutofix,
+              runState: {...stoppedRunState, feature_id: 'autofix_single_run', blocks},
+            }}
+            groupId="1"
+            section={section}
+          />,
+          {organization}
+        );
+
+        expect(screen.getByText(message)).toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: 'Re-run'})).not.toBeInTheDocument();
+        expect(creditCheck).not.toHaveBeenCalled();
+      }
+    );
+  });
 
   it('leaves the retry to the backend without token-billed Seer', () => {
     const creditCheck = mockCreditCheck('autofix_code_changes', false);

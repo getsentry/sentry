@@ -743,6 +743,21 @@ export function getOutOfCreditsStep(section: AutofixSection): AutofixExplorerSte
   return marker && isPrIterationBlock(marker) ? 'pr_iteration' : 'code_changes';
 }
 
+/**
+ * Whether a single run that stopped for credits in this section is retried
+ * from its card, with a new run. Only a stop in the run's first request is.
+ * Seer adds a user block for every message it takes, so a second one means a
+ * reply or PR feedback is what stopped. The chat resends that message, where
+ * a new run would start over without it.
+ */
+export function hasSingleRunOutOfCreditsRetry(
+  section: AutofixSection,
+  runState: ExplorerAutofixState | null
+): boolean {
+  const messages = runState?.blocks.filter(block => block.message.role === 'user') ?? [];
+  return isOutOfCreditsSection(section) && messages.length < 2;
+}
+
 export function isPrIterationPaused(runState: ExplorerAutofixState | null): boolean {
   return runState?.pr_iteration_paused === true;
 }

@@ -72,11 +72,7 @@ export function getRefusedStepMessage(
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
 const STOPPED_PR_ITERATION_MESSAGE: Record<
   SeerCreditDenialReason,
-  {
-    branch_moved_retry: string;
-    push: string;
-    queued: (count: number) => string;
-  }
+  {branch_moved_retry: string; push: string; queued: (count: number) => string}
 > = {
   not_enough_credits: {
     push: t(
@@ -128,12 +124,20 @@ export const STOPPED_CHAT_MESSAGE = t(
   'Seer stopped because your organization ran out of available credits.'
 );
 
+const REFUSED_RETRY_TOOLTIP: Record<SeerCreditDenialReason, string> = {
+  not_enough_credits: t('Your organization does not have enough Seer credits for this.'),
+  daily_cap_exceeded: t('Your organization hit its daily usage limit.'),
+};
+
 /**
- * Tooltip for a retry that stays disabled until the organization can afford it.
+ * Tooltip for a retry that stays disabled until the organization can afford it,
+ * with the credit check's `denialReason`.
  */
-export const OUT_OF_CREDITS_RETRY_TOOLTIP = t(
-  'Your organization does not have enough Seer credits for this.'
-);
+export function getRefusedRetryTooltip(
+  denialReason: SeerCreditDenialReason | null
+): string {
+  return REFUSED_RETRY_TOOLTIP[denialReason ?? 'not_enough_credits'];
+}
 
 // TODO(CW-3133): Add daily_cap_exceeded copies.
 /**
