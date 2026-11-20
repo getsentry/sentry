@@ -3,7 +3,9 @@ from typing import Literal, TypedDict
 from django.db.models import Exists, F, OuterRef, Q, QuerySet
 from rest_framework import serializers
 
+from sentry.constants import ObjectStatus
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
+from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxItemEvent
 
@@ -59,6 +61,22 @@ class InboxFilterSerializer(serializers.Serializer[InboxFilters]):
         if "subject_id" in attrs and len(attrs.get("subject_type", [])) != 1:
             raise serializers.ValidationError("subject_id requires exactly one subject_type.")
         return attrs
+
+
+def active_inbox_items(organization: Organization, user_id: int) -> QuerySet[InboxItem]:
+    return with_inbox_subjects(
+        InboxItem.objects.filter(
+            organization=organization, user_id=user_id, status=ObjectStatus.ACTIVE
+        )
+    )
+
+
+def with_inbox_subjects(items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+    existing_subject = Q(pk__in=[])
+    for item_type in inbox_item_type_registry.registrations.values():
+        items = item_type.join_subject(items)
+        existing_subject |= Q(**{f"{item_type.subject_match_alias}__isnull": False})
+    return items.filter(existing_subject).select_related("organization")
 
 
 def filter_inbox_items(items: QuerySet[InboxItem], filters: InboxFilters) -> QuerySet[InboxItem]:

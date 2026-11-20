@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import hashlib
 from abc import ABC, abstractmethod
-from collections.abc import Iterable, Mapping, Sequence
+from collections.abc import Iterable, Sequence
 from dataclasses import asdict, dataclass
 from enum import StrEnum
 from functools import partial
@@ -11,10 +11,13 @@ from typing import TYPE_CHECKING, Literal
 
 import orjson
 from django.db import router, transaction
+from django.db.models import BigIntegerField, Case, Q, QuerySet, When
+from django.db.models.functions import Cast, Length
 from django.utils import timezone
 
 from sentry import features, options
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.event_retention import cleanup_inbox_item_events
 from sentry.inbox.item_retention import cleanup_inbox_items
@@ -68,7 +71,7 @@ def _schedule_event_retention(items: Sequence[InboxItem]) -> None:
 
 @dataclass(frozen=True, kw_only=True)
 class InboxSubject(ABC):
-    """Details about a subject, fetched from its source each time inbox items are serialized."""
+    """Details about the subject of an inbox item."""
 
     id: int
     title: str
@@ -77,10 +80,29 @@ class InboxSubject(ABC):
     def serialize(self) -> InboxSubjectResponse: ...
 
 
+def with_bigint_subject_pk(items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+    """Alias canonical numeric subject IDs as bigint_subject_pk for joins to bigint keys."""
+    max_id = str(I64_MAX)
+    decimal_id = Q(subject_id__regex=r"^(0|[1-9][0-9]*)$")
+    # Equal-length decimal strings sort in numeric order.
+    fits_bigint = Q(id_length__lt=len(max_id)) | Q(id_length=len(max_id), subject_id__lte=max_id)
+    return items.alias(
+        id_length=Length("subject_id"),
+        bigint_subject_pk=Case(
+            When(decimal_id & fits_bigint, then=Cast("subject_id", BigIntegerField()))
+        ),
+    )
+
+
 class InboxItemType[SubjectT](ABC):
     """Groups activity for the same subject into one inbox item per recipient."""
 
     subject_type: str
+
+    @property
+    def subject_match_alias(self) -> str:
+        """The joined row whose presence confirms an organization-scoped match."""
+        return self.subject_type
 
     @abstractmethod
     def get_subject_id(self, subject: SubjectT) -> str:
@@ -90,10 +112,11 @@ class InboxItemType[SubjectT](ABC):
     def get_organization_id(self, subject: SubjectT) -> int: ...
 
     @abstractmethod
-    def get_subjects(
-        self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> Mapping[str, InboxSubject]:
-        """Subjects keyed by subject ID, scoped to organization. Omit missing subjects."""
+    def join_subject(self, items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+        """Join the matching subject as subject_type, scoped to the item's organization."""
+
+    @abstractmethod
+    def build_subject(self, item: InboxItem) -> InboxSubject: ...
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:

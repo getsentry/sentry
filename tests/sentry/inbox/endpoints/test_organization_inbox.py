@@ -15,6 +15,7 @@ import sentry.apidocs.extensions  # noqa: F401
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.apidocs.response_coverage import find_violations
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.bounded import I64_MAX
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.deletions.tasks.scheduled import run_deletion, run_scheduled_deletions
 from sentry.inbox.endpoints.base import OrganizationInboxEndpoint
@@ -512,8 +513,9 @@ class OrganizationInboxIndexTest(APITestCase):
         assert back.status_code == 200, back.data
         assert [entry["id"] for entry in back.data] == [str(items[2].id), str(items[1].id)]
 
-    def test_items_with_missing_subjects_are_omitted(self) -> None:
-        item = self.create_inbox_item(subject_id=str(self.group.id))
+    def test_items_with_missing_subjects_are_omitted_before_pagination(self) -> None:
+        group = self.create_group(id=I64_MAX)
+        item = self.create_inbox_item(subject_id=str(group.id))
         self.create_inbox_item_event(
             inbox_item=item, data={"assignment_source": None, "activity_id": 1}
         )
@@ -528,8 +530,21 @@ class OrganizationInboxIndexTest(APITestCase):
             inbox_item=unregistered, data={"assignment_source": None, "activity_id": 1}
         )
 
-        response = self.get_success_response(self.organization.slug)
+        other_org = self.create_organization()
+        other_notebook = self.create_notebook(organization=other_org)
+        self.create_inbox_item(subject_type="notebook", subject_id=str(other_notebook.id))
+        other_group = self.create_group(project=self.create_project(organization=other_org))
+        self.create_inbox_item(subject_id=str(other_group.id))
+        self.create_inbox_item(subject_id="invalid")
+        self.create_inbox_item(subject_id=str(I64_MAX + 1))
+        self.create_inbox_item(subject_id=str(10**19))
+        self.create_inbox_item(subject_id=f"0{self.group.id}")
 
+        response = self.get_success_response(self.organization.slug, per_page=1)
+
+        assert all(
+            attrs["results"] == "false" for attrs in parse_link_header(response["Link"]).values()
+        )
         assert [entry["id"] for entry in response.data] == [str(item.id)]
 
     def test_empty_inbox_pagination(self) -> None:

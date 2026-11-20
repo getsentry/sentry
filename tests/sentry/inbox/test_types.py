@@ -1,4 +1,4 @@
-from collections.abc import Mapping, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, replace
 from threading import Barrier
 from typing import Any, assert_type
@@ -7,6 +7,7 @@ from urllib.parse import urlsplit
 
 import pytest
 from django.db import connections, router, transaction
+from django.db.models import QuerySet
 from openapi_schema_validator import OAS30Validator
 
 from sentry.apidocs.spectacular_ports import resolve_type_hint
@@ -60,9 +61,10 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
     def get_organization_id(self, subject: SubjectT) -> int:
         raise NotImplementedError
 
-    def get_subjects(
-        self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> Mapping[str, InboxSubject]:
+    def join_subject(self, items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+        raise NotImplementedError
+
+    def build_subject(self, item: InboxItem) -> InboxSubject:
         raise NotImplementedError
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:

@@ -21,7 +21,7 @@ from sentry.auth.principal import require_user
 from sentry.constants import ObjectStatus
 from sentry.deletions.models.scheduleddeletion import CellScheduledDeletion
 from sentry.inbox.endpoints.base import PAGINATION_PARAMETERS, OrganizationInboxEndpoint
-from sentry.inbox.filters import InboxFilterSerializer, filter_inbox_items
+from sentry.inbox.filters import InboxFilterSerializer, active_inbox_items, filter_inbox_items
 from sentry.inbox.paginator import InboxPaginator
 from sentry.inbox.response_types import InboxItemResponse, InboxUpdateResponse
 from sentry.inbox.serializers import InboxItemSerializer
@@ -109,10 +109,8 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
         if not filters.is_valid():
             raise ParseError({"detail": filters.errors})
         user = request.user
-        items: QuerySet[InboxItem] = InboxItem.objects.filter(
-            organization=organization, user_id=user.id, status=ObjectStatus.ACTIVE
-        )
-        items = filter_inbox_items(items, filters.validated_data).select_related("organization")
+        items = active_inbox_items(organization, user.id)
+        items = filter_inbox_items(items, filters.validated_data)
         return self.paginate(
             request,
             queryset=items,
@@ -121,11 +119,7 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             cursor_cls=StringCursor,
             default_per_page=25,
             max_per_page=100,
-            # Subject deletion removes its inbox items, so a missing subject is rare and
-            # short-lived. Drop it rather than filter every query.
-            on_results=lambda page: [
-                item for item in serialize(page, user, InboxItemSerializer()) if item is not None
-            ],
+            on_results=lambda page: serialize(page, user, InboxItemSerializer()),
         )
 
     @extend_schema(

@@ -1,6 +1,8 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
 
+from django.db.models import F, FilteredRelation, Q, QuerySet
+
 from sentry.inbox.event_data import (
     InboxEventData,
     NotebookCompletedDataResponse,
@@ -9,11 +11,18 @@ from sentry.inbox.event_data import (
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxNotebookSubjectResponse
-from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType, InboxSubject
+from sentry.inbox.types import (
+    InboxEventSummary,
+    InboxEventType,
+    InboxItemType,
+    InboxSubject,
+    with_bigint_subject_pk,
+)
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.notebooks.access import NOTEBOOK_SCOPES, has_notebooks_access
 from sentry.notebooks.models import Notebook
+from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.types import NotificationSettingEnum
 
 
@@ -32,15 +41,24 @@ class NotebookItemType(InboxItemType[Notebook]):
     def get_organization_id(self, subject: Notebook) -> int:
         return subject.organization_id
 
-    def get_subjects(
-        self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> dict[str, NotebookSubject]:
-        ids = [int(subject_id) for subject_id in subject_ids if subject_id.isdecimal()]
-        notebooks = Notebook.objects.filter(organization=organization, id__in=ids)
-        return {
-            str(notebook.id): NotebookSubject(id=notebook.id, title=notebook.title)
-            for notebook in notebooks
-        }
+    def join_subject(self, items: QuerySet[InboxItem]) -> QuerySet[InboxItem]:
+        return (
+            with_bigint_subject_pk(items)
+            .alias(
+                notebook=FilteredRelation(
+                    "organization__notebook",
+                    condition=Q(
+                        subject_type=self.subject_type,
+                        organization__notebook__pk=F("bigint_subject_pk"),
+                    ),
+                ),
+            )
+            .select_related(self.subject_type)
+        )
+
+    def build_subject(self, item: InboxItem) -> NotebookSubject:
+        subject: Notebook = getattr(item, self.subject_type)
+        return NotebookSubject(id=subject.id, title=subject.title)
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
         return organization.absolute_url(
