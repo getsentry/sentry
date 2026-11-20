@@ -45,6 +45,7 @@ const ALL_AVAILABLE_FEATURES = [
 ];
 
 const mockUsingCustomerDomain = jest.fn();
+const mockCustomerDomain = jest.fn();
 
 // Navigation inference tests are slow and will exceed the default 5 second timeout.
 jest.setTimeout(30_000);
@@ -55,6 +56,9 @@ jest.mock('sentry/constants', () => {
     ...sentryConstant,
     get USING_CUSTOMER_DOMAIN() {
       return mockUsingCustomerDomain();
+    },
+    get CUSTOMER_DOMAIN() {
+      return mockCustomerDomain();
     },
   };
 });
@@ -440,6 +444,8 @@ describe('desktop navigation', () => {
         cleanup();
         OrganizationsStore.init();
         ConfigStore.set('features', new Set());
+        mockUsingCustomerDomain.mockReset();
+        mockCustomerDomain.mockReset();
       });
 
       it('switches organizations and keeps the settings section', async () => {
@@ -476,6 +482,8 @@ describe('desktop navigation', () => {
           name: 'Members Org',
         });
         OrganizationsStore.load([membersOrganization, otherOrganization]);
+        mockUsingCustomerDomain.mockReturnValue(true);
+        mockCustomerDomain.mockReturnValue('members');
         for (const path of [
           'broadcasts',
           'projects',

@@ -1,5 +1,5 @@
 import {cloneElement, Fragment} from 'react';
-import {matchPath} from 'react-router';
+import {matchPath, useParams as useRouteParams} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 import orderBy from 'lodash/orderBy';
@@ -224,7 +224,7 @@ function SettingsOrganizationHeader() {
  */
 function getOrganizationSettingsSection(pathname: string, hasOrgInPath: boolean) {
   // Customer domain routes leave the organization slug out of the path. Rely on
-  // the route params rather than comparing segments to the slug, which could
+  // the matched route rather than comparing segments to the slug, which could
   // match a section name.
   return pathname.split('/').filter(Boolean)[hasOrgInPath ? 2 : 1];
 }
@@ -236,7 +236,9 @@ function SettingsOrganizationSelector() {
   const organizations = useOrganizations();
   const canCreateOrganization = ConfigStore.get('features').has('organizations:create');
 
-  const {orgId} = useParams<{orgId?: string}>();
+  // Read the matched route directly: our useParams fills in orgId on customer
+  // domains even when the path has no slug.
+  const {orgId} = useRouteParams();
   const section = getOrganizationSettingsSection(location.pathname, orgId !== undefined);
 
   return (
