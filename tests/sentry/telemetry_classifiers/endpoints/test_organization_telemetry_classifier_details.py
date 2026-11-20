@@ -34,8 +34,8 @@ class OrganizationTelemetryClassifierDetailsGetTest(APITestCase):
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": None,
-            "naturalLanguagePrompt": "Is the user frustrated?",
+            "prebuiltClassifierKey": "conversation_user_frustration",
+            "naturalLanguagePrompt": None,
             "outputType": "binary",
             "binaryThreshold": 0.8,
             "dateAdded": self.classifier.date_added,
@@ -88,10 +88,6 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
         self.classifier = self.create_telemetry_classifier(
             name="Refusals",
             result_attribute="refusal",
-            prebuilt_classifier_key="refusal",
-            natural_language_prompt=None,
-            compiled_prompt=None,
-            output_type=None,
             created_by_id=self.user.id,
         )
 
@@ -124,10 +120,10 @@ class OrganizationTelemetryClassifierDetailsPutTest(APITestCase):
                 "dataset": "conversation",
                 "filterQuery": "",
                 "status": "disabled",
-                "prebuiltClassifierKey": "refusal",
+                "prebuiltClassifierKey": "conversation_user_frustration",
                 "naturalLanguagePrompt": None,
-                "outputType": None,
-                "binaryThreshold": None,
+                "outputType": "binary",
+                "binaryThreshold": 0.8,
                 "dateAdded": self.classifier.date_added,
                 "dateUpdated": self.classifier.date_updated,
             }

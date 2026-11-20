@@ -1295,14 +1295,14 @@ function DebugIdMismatchMessage({
     return (
       <Fragment>
         {t(
-          "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID"
+          "When Sentry processed this event, it did not find a file with this stack frame's Debug ID."
         )}
       </Fragment>
     );
   }
 
   return tct(
-    "You already uploaded artifacts with Debug IDs but none of the uploaded source files had a Debug ID matching this stack frame's Debug ID: [debugId]",
+    "When Sentry processed this event, it did not find a file with this stack frame's Debug ID: [debugId]",
     {
       debugId: projectSlug ? (
         <LinkButton
@@ -1336,8 +1336,8 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
-  const successMessage = t('Source file with a matching Debug ID was uploaded');
-  const errorMessage = t('Missing source file with a matching Debug ID');
+  const successMessage = t('Source file with a matching Debug ID was found');
+  const errorMessage = t('No source file with a matching Debug ID was found');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1360,7 +1360,7 @@ function UploadedSourceFileWithCorrectDebugIdChecklistItem({
           </p>
           <p>
             {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+              'Your project has artifacts with Debug IDs. You may have uploaded the matching source file after Sentry processed this event. Inject Debug IDs into all of your source files and upload them before you deploy. Then redeploy and capture a new event.'
             )}
           </p>
         </CheckListInstruction>
@@ -1395,8 +1395,8 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
 }) {
   const platform = getPlatform(sourceResolutionResults);
   const sourceMapsDocLinks = getSourceMapsDocLinks(platform);
-  const successMessage = t('Uploaded source map with a matching Debug ID');
-  const errorMessage = t('Missing source map with a matching Debug ID');
+  const successMessage = t('Source map with a matching Debug ID was found');
+  const errorMessage = t('No source map with a matching Debug ID was found');
 
   if (!shouldValidate) {
     return <CheckListItem status="none" title={successMessage} />;
@@ -1419,7 +1419,7 @@ function UploadedSourceMapWithCorrectDebugIdChecklistItem({
           </p>
           <p>
             {t(
-              'Make sure to inject Debug IDs into all of your source files and to upload all of them to Sentry.'
+              'Your project has artifacts with Debug IDs. You may have uploaded the matching source map after Sentry processed this event. Inject Debug IDs into all of your source files and upload the source files and source maps before you deploy. Then redeploy and capture a new event.'
             )}
           </p>
         </CheckListInstruction>

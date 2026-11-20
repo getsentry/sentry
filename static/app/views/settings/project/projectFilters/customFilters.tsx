@@ -623,7 +623,14 @@ export function CustomFilters({project}: {project: Project}) {
                   <SimpleTable.RowCell>
                     <Stack gap="xs" minWidth="0">
                       {filter.conditions.map((condition, index) => (
-                        <ConditionSummary key={index} condition={condition} />
+                        <Fragment key={index}>
+                          {index > 0 && (
+                            <Text size="xs" variant="muted">
+                              {t('and')}
+                            </Text>
+                          )}
+                          <ConditionSummary condition={condition} />
+                        </Fragment>
                       ))}
                     </Stack>
                   </SimpleTable.RowCell>

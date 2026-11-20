@@ -1,8 +1,11 @@
 from typing import Any
+from unittest.mock import patch
 
 from sentry.telemetry_classifiers.models import TelemetryClassifier
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
     Dataset,
+    PrebuiltClassifier,
     TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
 )
@@ -25,59 +28,39 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=404)
 
     def test_lists_classifiers(self) -> None:
-        custom = self.create_telemetry_classifier(
+        enabled = self.create_telemetry_classifier(
             name="Frustration",
             result_attribute="frustration",
             filter_query="gen_ai.agent.name:support",
             created_by_id=self.user.id,
         )
-        prebuilt = self.create_telemetry_classifier(
-            name="Refusals",
-            dataset=Dataset.TRACE_SPANS,
-            status=TelemetryClassifierStatus.DISABLED,
-            prebuilt_classifier_key="refusal",
-            natural_language_prompt=None,
-            compiled_prompt=None,
-            output_type=None,
+        disabled = self.create_telemetry_classifier(
+            name="Refusals", status=TelemetryClassifierStatus.DISABLED
         )
 
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug)
 
-        assert [c["id"] for c in response.data] == [str(custom.id), str(prebuilt.id)]
-        custom_data, prebuilt_data = response.data
-        assert custom_data.pop("createdBy")["id"] == str(self.user.id)
-        assert custom_data == {
-            "id": str(custom.id),
+        assert [c["id"] for c in response.data] == [str(enabled.id), str(disabled.id)]
+        enabled_data, disabled_data = response.data
+        assert enabled_data.pop("createdBy")["id"] == str(self.user.id)
+        assert enabled_data == {
+            "id": str(enabled.id),
             "projectId": str(self.project.id),
             "name": "Frustration",
             "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": None,
-            "naturalLanguagePrompt": "Is the user frustrated?",
+            "prebuiltClassifierKey": "conversation_user_frustration",
+            "naturalLanguagePrompt": None,
             "outputType": "binary",
             "binaryThreshold": 0.8,
-            "dateAdded": custom.date_added,
-            "dateUpdated": custom.date_updated,
+            "dateAdded": enabled.date_added,
+            "dateUpdated": enabled.date_updated,
         }
-        assert prebuilt_data["dataset"] == "trace_spans"
-        assert prebuilt_data["status"] == "disabled"
-        assert prebuilt_data["prebuiltClassifierKey"] == "refusal"
-        assert prebuilt_data["naturalLanguagePrompt"] is None
-        assert prebuilt_data["outputType"] is None
-        assert prebuilt_data["binaryThreshold"] is None
-        assert prebuilt_data["createdBy"] is None
-
-    def test_non_binary_custom_classifier_has_no_binary_threshold(self) -> None:
-        self.create_telemetry_classifier(output_type=TelemetryClassifierOutputType.SCORE)
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.organization.slug)
-
-        assert response.data[0]["outputType"] == "score"
-        assert response.data[0]["binaryThreshold"] is None
+        assert disabled_data["status"] == "disabled"
+        assert disabled_data["createdBy"] is None
 
     def test_sorts_newest_first_with_disabled_last(self) -> None:
         oldest = self.create_telemetry_classifier()
@@ -189,12 +172,26 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
         assert [c["id"] for c in not_enabled_response.data] == [str(disabled.id)]
 
     def test_filters_by_dataset(self) -> None:
+        spans_prebuilt = PrebuiltClassifier(
+            key="spans_classifier",
+            dataset=Dataset.TRACE_SPANS,
+            output_type=TelemetryClassifierOutputType.BINARY,
+            name="Spans",
+            description="Classifies spans.",
+            result_attribute="spans",
+            binary_threshold=0.8,
+        )
         conversation = self.create_telemetry_classifier(result_attribute="conversation")
         spans = self.create_telemetry_classifier(
-            result_attribute="spans", dataset=Dataset.TRACE_SPANS
+            result_attribute="spans",
+            dataset=Dataset.TRACE_SPANS,
+            prebuilt_classifier_key=spans_prebuilt.key,
         )
 
-        with self.feature(self.features):
+        with (
+            patch.dict(PREBUILT_CLASSIFIERS, {spans_prebuilt.key: spans_prebuilt}),
+            self.feature(self.features),
+        ):
             response = self.get_success_response(
                 self.organization.slug, query="dataset:trace_spans"
             )

@@ -1,11 +1,8 @@
-import type {ReactNode} from 'react';
-
-import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CollapsibleChatRow} from 'sentry/components/ai/chat/collapsibleContent';
-import {TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {TurnMeta, TurnMetaValue} from 'sentry/components/ai/chat/turnMeta';
 import {t, tn} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
@@ -143,15 +140,11 @@ export function MessageToolCalls({
       meta={
         <TurnMeta
           metric={
-            totalBytes > 0 ? <MetaValue>{formatBytesBase10(totalBytes)}</MetaValue> : null
-          }
-          duration={
-            totalDuration > 0 ? (
-              <MetaValue>
-                {getDuration(totalDuration, {precision: 2, style: 'short'})}
-              </MetaValue>
+            totalBytes > 0 ? (
+              <TurnMetaValue>{formatBytesBase10(totalBytes)}</TurnMetaValue>
             ) : null
           }
+          duration={totalDuration}
         />
       }
       onOpenChange={open => {
@@ -195,29 +188,14 @@ function ToolCallRow({tool, node, isSelected, onSelectNode}: ToolCallRowProps) {
       meta={
         <TurnMeta
           metric={node ? <ToolOutputSize node={node} /> : null}
-          duration={
-            tool.duration === undefined || tool.duration <= 0 ? null : (
-              <MetaValue>
-                {getDuration(tool.duration, {precision: 2, style: 'short'})}
-              </MetaValue>
-            )
-          }
+          duration={tool.duration}
         />
       }
     />
   );
 }
 
-/** Shared right-aligned styling for the size/duration values in the meta column. */
-function MetaValue({children}: {children: ReactNode}) {
-  return (
-    <Text size="xs" variant="muted" tabular align="right">
-      {children}
-    </Text>
-  );
-}
-
 function ToolOutputSize({node}: {node: AITraceSpanNode}) {
   const bytes = getToolOutputBytes(node);
-  return <MetaValue>{formatBytesBase10(bytes)}</MetaValue>;
+  return <TurnMetaValue>{formatBytesBase10(bytes)}</TurnMetaValue>;
 }

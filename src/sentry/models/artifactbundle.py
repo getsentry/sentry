@@ -192,7 +192,7 @@ class DebugIdArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    source_file_type = models.IntegerField(choices=SourceFileType.choices())
+    source_file_type = models.IntegerField(choices=SourceFileType.choices(), null=True)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
