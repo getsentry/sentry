@@ -1,10 +1,9 @@
-import {useEffect} from 'react';
 import {useStore} from 'zustand';
 
+import {Redirect} from 'sentry/components/redirect';
 import {DEFAULT_APP_ROUTE} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {useNavigate} from 'sentry/utils/useNavigate';
 
 /**
  * This view is used when a user lands on the route `/` which historically
@@ -19,20 +18,13 @@ import {useNavigate} from 'sentry/utils/useNavigate';
  */
 function AppRoot() {
   const lastOrganization = useStore(ConfigStore, state => state.lastOrganization);
-  const navigate = useNavigate();
+  if (!lastOrganization) {
+    return null;
+  }
 
-  useEffect(() => {
-    if (!lastOrganization) {
-      return;
-    }
-
-    const orgSlug = lastOrganization;
-    const url = replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug});
-
-    navigate(url, {replace: true});
-  }, [lastOrganization, navigate]);
-
-  return null;
+  return (
+    <Redirect to={replaceRouterParams(DEFAULT_APP_ROUTE, {orgSlug: lastOrganization})} />
+  );
 }
 
 export default AppRoot;

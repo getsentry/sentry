@@ -95,7 +95,9 @@ export function useRouteActivatedHook({location, matches}: Props) {
     }
 
     // On mount prevRoute equals currentRoute, so the first page keeps no referrer.
-    if (prevRoute !== currentRoute) {
+    // Redirects carry the location they replaced, preserving the original referrer.
+    const wasRedirect = location.state?.redirectFromLocationKey === prevLocation.key;
+    if (prevRoute !== currentRoute && !wasRedirect) {
       setReferrerRoute(prevRoute);
     }
 

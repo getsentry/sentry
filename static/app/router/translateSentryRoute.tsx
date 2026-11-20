@@ -1,10 +1,9 @@
 import {useEffect} from 'react';
-import {Navigate, type NavigateProps, type RouteObject} from 'react-router';
+import type {NavigateProps, RouteObject} from 'react-router';
 import * as Sentry from '@sentry/react';
 
+import {Redirect as BaseRedirect} from 'sentry/components/redirect';
 import {USING_CUSTOMER_DOMAIN} from 'sentry/constants';
-import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
 import {withDomainRequired} from 'sentry/utils/withDomainRequired';
@@ -20,10 +19,9 @@ interface RedirectProps extends Omit<NavigateProps, 'to'> {
 }
 
 /**
- * Wraps a declarative `Navigate` component to interpolate the params of `to`
+ * Adds route tracing to the shared declarative redirect.
  */
-export function Redirect({to, ...rest}: RedirectProps) {
-  const params = useParams();
+export function Redirect({to, replace = false, ...rest}: RedirectProps) {
   const routes = useRoutes();
 
   // Capture sentry span for this redirect. This will help us understand if we
@@ -46,7 +44,7 @@ export function Redirect({to, ...rest}: RedirectProps) {
     );
   }, [routes]);
 
-  return <Navigate to={replaceRouterParams(to, params)} {...rest} />;
+  return <BaseRedirect to={to} replace={replace} {...rest} />;
 }
 Redirect.displayName = 'Redirect';
 

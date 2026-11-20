@@ -7,9 +7,12 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {Redirect} from 'sentry/components/redirect';
 import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
+import {ConfigStore} from 'sentry/stores/configStore';
 import {useLocation} from 'sentry/utils/useLocation';
+import AppRoot from 'sentry/views/app/root';
 
 import {
   DELAY_TIME_MS,
@@ -337,12 +340,137 @@ describe('useRouteActivatedHook', () => {
       return null;
     }
 
+    function Layout() {
+      return <Outlet />;
+    }
+
+    function ComponentRedirect() {
+      return <Redirect to="/settings/account/details/" />;
+    }
+
     const childRoutes: SentryRouteObject[] = [
       {path: '/organizations/:orgId/issues/', component: Page},
       {path: '/settings/account/details/', component: Page},
+      {path: '/account/', redirectTo: '/settings/account/details/'},
+      {path: '/component-redirect/', component: ComponentRedirect},
+      {path: '/redirect-chain/', redirectTo: '/component-redirect/'},
+      {path: '/app-root/', component: AppRoot},
+      {path: '/organizations/:orgId/', redirectTo: 'issues/'},
+      {
+        path: '/settings/account/',
+        component: Layout,
+        children: [{index: true, redirectTo: 'details/'}],
+      },
     ];
 
     const issuesUrl = `/organizations/${organization.slug}/issues/`;
+
+    it.each([
+      '/settings/account/',
+      '/account/',
+      '/component-redirect/',
+      '/redirect-chain/',
+    ])('preserves the original referrer through %s', pathname => {
+      jest.useFakeTimers();
+      const {router} = render(<Root />, {
+        initialRouterConfig: {
+          location: {pathname: issuesUrl},
+          route: '/',
+          children: childRoutes.map(translateSentryRoute),
+        },
+      });
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      act(() => router.navigate(pathname));
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(router.location.pathname).toBe('/settings/account/details/');
+      expect(rawTrackAnalyticsEvent).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          parameterized_path: 'settings.account.details',
+          previous_parameterized_path: 'organizations.:org_id.issues',
+        }),
+        expect.anything()
+      );
+    });
+
+    it.each([
+      '/settings/account/',
+      '/account/',
+      '/component-redirect/',
+      '/redirect-chain/',
+    ])('omits the referrer when loading directly through %s', pathname => {
+      jest.useFakeTimers();
+      const {router} = render(<Root />, {
+        initialRouterConfig: {
+          location: {pathname},
+          route: '/',
+          children: childRoutes.map(translateSentryRoute),
+        },
+      });
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(router.location.pathname).toBe('/settings/account/details/');
+      const event = jest.mocked(rawTrackAnalyticsEvent).mock.calls.at(-1)![0];
+      expect(event.parameterized_path).toBe('settings.account.details');
+      expect(event).not.toHaveProperty('previous_parameterized_path');
+    });
+
+    it('preserves the referrer through AppRoot and its index redirect', () => {
+      jest.useFakeTimers();
+      const lastOrganization = ConfigStore.get('lastOrganization');
+      ConfigStore.set('lastOrganization', organization.slug);
+      try {
+        const {router} = render(<Root />, {
+          initialRouterConfig: {
+            location: {pathname: '/settings/account/details/'},
+            route: '/',
+            children: childRoutes.map(translateSentryRoute),
+          },
+        });
+        act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+        act(() => router.navigate('/app-root/'));
+        act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+        expect(router.location.pathname).toBe(issuesUrl);
+        expect(rawTrackAnalyticsEvent).toHaveBeenLastCalledWith(
+          expect.objectContaining({
+            parameterized_path: 'organizations.:org_id.issues',
+            previous_parameterized_path: 'settings.account.details',
+          }),
+          expect.anything()
+        );
+      } finally {
+        ConfigStore.set('lastOrganization', lastOrganization);
+      }
+    });
+
+    it('does not treat a later navigation carrying old redirect state as a redirect', () => {
+      jest.useFakeTimers();
+      const {router} = render(<Root />, {
+        initialRouterConfig: {
+          location: {pathname: issuesUrl},
+          route: '/',
+          children: childRoutes.map(translateSentryRoute),
+        },
+      });
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+      act(() => router.navigate('/component-redirect/'));
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      const state = router.location.state;
+      act(() => router.navigate(issuesUrl, {state}));
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+
+      expect(rawTrackAnalyticsEvent).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          parameterized_path: 'organizations.:org_id.issues',
+          previous_parameterized_path: 'settings.account.details',
+        }),
+        expect.anything()
+      );
+    });
 
     it.each([1000, DEFAULT_ADVANCE_PERIOD])(
       'preserves the previous route on a replace navigation after %s ms',
