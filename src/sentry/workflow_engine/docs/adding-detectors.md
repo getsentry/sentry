@@ -33,7 +33,7 @@ flowchart TD
     Conditions -->|No| Base[Inherit BaseDetectorHandler]
     Stateful --> Hooks[Implement extract_value, extract_dedupe_value, and create_occurrence]
     Handler --> Minimal[Implement extract_value and create_occurrence]
-    Base --> Full[Implement extract_value, evaluate, and create_occurrence; use DetectorStateManager if tracking per-group state]
+    Base --> Full[Implement extract_value, evaluate, and create_occurrence]
 ```
 
 ### Handler hierarchy

@@ -152,9 +152,7 @@ therefore use the stateful handler's default `OK` priority. A missing trigger gr
 invalid and produces no transition.
 
 Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`; ones that track per-group state use `DetectorStateManager` directly.
-Detectors that extend the condition evaluation override `evaluate` and call
-`super().evaluate()`, then own the orchestration they add.
+implement `evaluate`.
 
 ### 5. Produce detector output
 
