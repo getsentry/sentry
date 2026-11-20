@@ -1,5 +1,6 @@
 from sentry.incidents.grouptype import MetricIssue
 from sentry.workflow_engine.caches.data_source import (
+    detector_has_data_sources,
     get_data_sources_by_detector_and_source_id,
 )
 from sentry.workflow_engine.models import DataSourceDetector
@@ -155,3 +156,23 @@ class TestDataSourcesByDetectorCacheInvalidationSignals(BaseWorkflowTest):
             result = get_data_sources_by_detector_and_source_id(detector2.id, "dsd_evidence_test_3")
             assert len(result) == 1
             assert result[0].id == data_source.id
+
+
+class TestDetectorHasDataSourcesCacheInvalidationSignals(BaseWorkflowTest):
+    def test_cache_invalidated_on_data_source_detector_create_and_delete(self) -> None:
+        detector = self.create_detector(
+            project=self.project, name="Test Detector", type=MetricIssue.slug
+        )
+        data_source = self.create_data_source(source_id="dsd_has_sources_test", type="test")
+
+        assert detector_has_data_sources(detector.id) is False
+
+        self.create_data_source_detector(data_source=data_source, detector=detector)
+
+        with self.assertNumQueries(1):
+            assert detector_has_data_sources(detector.id) is True
+
+        DataSourceDetector.objects.filter(data_source=data_source, detector=detector).delete()
+
+        with self.assertNumQueries(1):
+            assert detector_has_data_sources(detector.id) is False

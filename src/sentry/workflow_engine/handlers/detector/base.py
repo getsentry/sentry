@@ -16,10 +16,11 @@ from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.types.actor import Actor
 from sentry.utils import metrics
 from sentry.workflow_engine.caches.data_source import (
+    detector_has_data_sources,
     get_data_sources_by_detector_and_source_id,
 )
 from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
-from sentry.workflow_engine.models import DataPacket, DataSourceDetector, Detector
+from sentry.workflow_engine.models import DataPacket, Detector
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.types import (
     DetectorGroupKey,
@@ -360,7 +361,7 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
 
             if not data_sources:
                 # Detectors invoked directly (e.g. via `process_detectors`) may have no data sources.
-                if not DataSourceDetector.objects.filter(detector_id=self.detector.id).exists():
+                if not detector_has_data_sources(self.detector.id):
                     return []
 
                 logger.warning(

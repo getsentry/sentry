@@ -718,6 +718,17 @@ class TestDetectorHandlerEvidenceData(ConditionDetectorHandlerTest):
             },
         )
 
+    def test_detector_evidence_data_sources_skip_the_warning_without_connected_data_sources(
+        self,
+    ) -> None:
+        self.data_source.detectors.clear()
+
+        with mock.patch("sentry.workflow_engine.handlers.detector.base.logger") as mock_logger:
+            data_sources = self.handler._build_evidence_data_sources(self.source_id)
+
+        assert data_sources == []
+        mock_logger.warning.assert_not_called()
+
     def test_detector_evidence_data_sources_are_empty_when_serialization_fails(self) -> None:
         with (
             mock.patch(

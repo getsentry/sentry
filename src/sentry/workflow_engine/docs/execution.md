@@ -56,8 +56,8 @@ invalidation is connected to source, detector, and mapping updates.
 The default manager excludes pending-deletion and deletion-in-progress rows, but this
 path does not exclude every non-active status such as plan-level `DISABLED`.
 
-Not every producer uses this generic lookup. Uptime, processing errors, preprod, and
-anomaly detection paths can identify detectors through product-specific data and call
+Not every producer uses this generic lookup. Uptime, processing errors, and preprod
+paths can identify detectors through product-specific data and call
 [`process_detectors`](../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 

@@ -5,6 +5,7 @@ from sentry.workflow_engine.caches.data_source import (
     CACHE_TTL,
     _data_sources_by_detector_and_source_id,
     _DataSourceCacheKey,
+    detector_has_data_sources,
     get_data_sources_by_detector_and_source_id,
 )
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
@@ -113,3 +114,25 @@ class TestGetDataSourcesByDetectorAndSourceId(BaseWorkflowTest):
             )
 
             mock_cache_get.assert_called_once_with(expected_cache_key)
+
+
+class TestDetectorHasDataSources(BaseWorkflowTest):
+    def test_detector_has_data_sources__connected(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+        data_source = self.create_data_source(source_id="12345", type="test")
+        data_source.detectors.set([detector])
+
+        with self.assertNumQueries(1):
+            assert detector_has_data_sources(detector.id) is True
+
+        with self.assertNumQueries(0):
+            assert detector_has_data_sources(detector.id) is True
+
+    def test_detector_has_data_sources__caches_missing_data_sources(self) -> None:
+        detector = self.create_detector(project=self.project, name="Test Detector")
+
+        with self.assertNumQueries(1):
+            assert detector_has_data_sources(detector.id) is False
+
+        with self.assertNumQueries(0):
+            assert detector_has_data_sources(detector.id) is False
