@@ -425,6 +425,22 @@ describe('rowModel', () => {
       expect(next[2]).toMatchObject({expression: 'A / B'});
     });
 
+    it('hides a named row whose field was removed outside the model', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_BAR),
+        eq(`${SUM_FOO} + ${SUM_BAR}`),
+      ]);
+
+      // A y-axis cap dropped A's field but the equation still names it.
+      const next = rowsFromFields([fn(SUM_BAR), eq(`${SUM_FOO} + ${SUM_BAR}`)], rows);
+
+      expect(letters(next)).toEqual(['A', 'B', 'equation']);
+      expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
+      expect(next[2]).toMatchObject({expression: 'A + B'});
+      expect(fieldsFromRows(next)).toEqual([fn(SUM_BAR), eq(`${SUM_FOO} + ${SUM_BAR}`)]);
+    });
+
     it('gives new letters to rows it cannot match', () => {
       const rows = rowsFromFields([fn(SUM_FOO)]);
 

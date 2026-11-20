@@ -299,9 +299,19 @@ export function rowsFromFields(
     return undefined;
   };
 
+  // An aggregate any visible field provides needs no hidden row, even when
+  // that field comes after the equation.
+  const visibleKeys = new Set(
+    fields
+      .filter(field => field.kind === FieldValueKind.FUNCTION)
+      .map(field => columnKey(field))
+  );
+
   // Pair equation fields with the previous equation rows, in order. Where the
-  // old letters still spell the saved text, reserve the hidden rows they name
-  // so a visible field with the same aggregate cannot claim them.
+  // old letters still spell the saved text, reserve the rows they name that no
+  // visible field will match: hidden rows, so a visible field with the same
+  // aggregate cannot claim them, and visible rows whose field went away, which
+  // become hidden rows.
   const previousMap = getReferenceMap(previous);
   const previousLetters = new Set(Object.keys(previousMap));
   const previousEquations = previous.filter(isEquationRow);
@@ -325,12 +335,18 @@ export function rowsFromFields(
       if (!isTokenReference(token)) {
         continue;
       }
-      const named = previous.find(
-        row => isMetricRow(row) && row.letter === token.text && !row.visible
-      );
-      if (named && isMetricRow(named) && unused.has(named)) {
+      const named = previous.find(row => isMetricRow(row) && row.letter === token.text);
+      if (
+        named &&
+        isMetricRow(named) &&
+        unused.has(named) &&
+        (!named.visible || !visibleKeys.has(columnKey(named.field)))
+      ) {
         unused.delete(named);
-        reusedHidden.push({index: previous.indexOf(named), row: {...named}});
+        reusedHidden.push({
+          index: previous.indexOf(named),
+          row: {...named, visible: false},
+        });
       }
     }
   });
@@ -338,13 +354,6 @@ export function rowsFromFields(
   const rows: TraceMetricRow[] = [];
   const pendingEquations: Array<{reused: boolean; row: EquationRow; text: string}> = [];
 
-  // An aggregate any visible field provides needs no hidden row, even when
-  // that field comes after the equation.
-  const visibleKeys = new Set(
-    fields
-      .filter(field => field.kind === FieldValueKind.FUNCTION)
-      .map(field => columnKey(field))
-  );
   const hasMetric = (key: string) =>
     visibleKeys.has(key) ||
     rows.some(row => isMetricRow(row) && columnKey(row.field) === key) ||
