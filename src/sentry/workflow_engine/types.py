@@ -80,6 +80,7 @@ class DetectorType(StrEnum):
     PERFORMANCE_SLOW_DB_QUERY = "performance_slow_db_query"
     PERFORMANCE_LARGE_HTTP_PAYLOAD = "performance_large_http_payload"
     QUERY_INJECTION_VULNERABILITY = "query_injection_vulnerability"
+    ANOMALY_DETECTION = "anomaly_detection"
 
 
 class DetectorPriorityLevel(IntEnum):
