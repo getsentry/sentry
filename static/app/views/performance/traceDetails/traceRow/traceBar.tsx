@@ -1,6 +1,7 @@
 import {Fragment, useCallback} from 'react';
 
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
+import {ClockDriftLabelIcon} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
 
@@ -90,7 +91,7 @@ export function MissingInstrumentationTraceBar(
         </div>
       </div>
       <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
+        {duration}
       </div>
     </Fragment>
   );
@@ -165,8 +166,16 @@ export function TraceBar(props: TraceBarProps) {
           />
         ) : null}
       </div>
-      <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
+      <div
+        ref={registerSpanBarTextRef}
+        className={
+          props.node.clockDriftCorrection
+            ? 'TraceBarDuration WithClockDriftIcon'
+            : 'TraceBarDuration'
+        }
+      >
+        <ClockDriftLabelIcon correction={props.node.clockDriftCorrection} />
+        {duration}
       </div>
     </Fragment>
   );
@@ -265,7 +274,7 @@ export function AutogroupedTraceBar(props: AutogroupedTraceBarProps) {
         ) : null}
       </div>
       <div ref={registerAutogroupedSpanBarTextRef} className="TraceBarDuration">
-        <span className="TraceBarDurationText">{duration}</span>
+        {duration}
       </div>
     </Fragment>
   );

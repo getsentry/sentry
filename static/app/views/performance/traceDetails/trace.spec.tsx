@@ -1375,6 +1375,86 @@ describe('trace view', () => {
     });
   });
 
+  describe('clock drift correction', () => {
+    it('shows and hides the clock drift icon when toggling the preference', async () => {
+      mockPerformanceSubscriptionDetailsResponse();
+      mockProjectDetailsResponse();
+      mockTraceResponse({
+        body: makeEAPTrace([
+          makeEAPSpan({
+            event_id: 'browser-request',
+            op: 'http.client',
+            description: 'GET /api/0/projects/',
+            project_id: 1,
+            sdk_name: 'sentry.javascript.react',
+            start_timestamp: 10,
+            end_timestamp: 10.5,
+            children: [
+              makeEAPSpan({
+                event_id: 'server-request',
+                op: 'http.server',
+                description: 'server request',
+                is_transaction: true,
+                project_id: 2,
+                sdk_name: 'sentry.python.django',
+                parent_span_id: 'browser-request',
+                // Recorded 2s before the browser sent the request
+                start_timestamp: 8,
+                end_timestamp: 8.2,
+              }),
+            ],
+          }),
+        ]),
+      });
+      mockTraceMetaResponse({
+        body: {
+          errorsCount: 0,
+          logsCount: 0,
+          metricsCount: 0,
+          performanceIssuesCount: 0,
+          spansCount: 2,
+          spansCountMap: {},
+        },
+      });
+      mockTraceRootFacets();
+      mockEventsResponse();
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project_slug/trace-items/browser-request/',
+        body: {
+          itemId: 'browser-request',
+          links: null,
+          meta: {},
+          timestamp: new Date(10e3).toISOString(),
+          attributes: [],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/logs/',
+        body: {data: []},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/dashboards/',
+        body: [],
+      });
+
+      render(<TraceView />, {initialRouterConfig});
+
+      expect(await screen.findByText('server request')).toBeInTheDocument();
+      expect(screen.getByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Trace Preferences'}));
+      await userEvent.click(screen.getByRole('option', {name: /Clock Drift Correction/}));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-clock-drift-icon')).not.toBeInTheDocument();
+      });
+
+      await userEvent.click(screen.getByRole('option', {name: /Clock Drift Correction/}));
+
+      expect(await screen.findByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+    });
+  });
+
   describe('pageload', () => {
     it('expands and collapses loaded EAP children with keyboard navigation', async () => {
       mockPerformanceSubscriptionDetailsResponse();

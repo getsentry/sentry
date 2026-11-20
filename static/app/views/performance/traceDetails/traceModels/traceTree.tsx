@@ -31,7 +31,7 @@ import {
   isTraceError,
   isUptimeCheck,
 } from 'sentry/views/performance/traceDetails/traceGuards';
-import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import type {TraceTreePreferences} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {EapSpanNode} from './traceTreeNode/eapSpanNode';
@@ -44,6 +44,10 @@ import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
+import {
+  applyClockDriftCorrection,
+  removeClockDriftCorrection,
+} from './clockDriftCorrection';
 import {makeExampleTraceData} from './makeExampleTraceData';
 import {
   collectTraceMeasurements,
@@ -337,6 +341,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   list: BaseNode[] = [];
 
+  /**
+   * The start and end of the replay the trace belongs to, in milliseconds. The trace space always
+   * covers it.
+   */
+  replay_bounds: [start: number, end: number] | null = null;
+
   static MISSING_INSTRUMENTATION_THRESHOLD_MS = 100;
 
   static Empty() {
@@ -369,7 +379,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     root: BaseNode,
     options: {
       organization: Organization;
-      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+      preferences?: TraceTreePreferences;
     }
   ): void {
     if (options?.preferences?.missing_instrumentation) {
@@ -390,7 +400,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     options: {
       organization: Organization;
       replay: HydratedReplayRecord | null;
-      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+      preferences?: TraceTreePreferences;
       // This is used to track the traceslug associated with a trace in a replay.
       // This is necessary because a replay has multiple traces and the current ui requires
       // us to merge them into one trace. We still need to keep track of the original traceSlug
@@ -466,6 +476,13 @@ export class TraceTree extends TraceTreeEventDispatcher {
       visit(traceNode, item);
     }
 
+    // Runs before we compute the trace space, so it does not stretch to where the misaligned
+    // spans were recorded, and before missing instrumentation and autogrouping, as they derive
+    // their spaces from the spans.
+    if (options.preferences?.clock_drift_correction) {
+      TraceTree.ApplyClockDriftCorrection(tree.root);
+    }
+
     // At this point, the tree is built, we need  iterate over it again to collect all of the
     // measurements, web vitals, errors and perf issues as well as calculate the min and max space
     // the trace should take up.
@@ -521,6 +538,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     if (options.replay) {
       const replayStart = options.replay.started_at.getTime();
       const replayEnd = options.replay.finished_at.getTime();
+      tree.replay_bounds = [replayStart, replayEnd];
 
       traceSpaceBounds[0] = Math.min(traceSpaceBounds[0]!, replayStart);
       traceSpaceBounds[1] = Math.max(traceSpaceBounds[1]!, replayEnd);
@@ -557,6 +575,48 @@ export class TraceTree extends TraceTreeEventDispatcher {
     TraceTree.ApplyPreferences(tree.root, options);
 
     return tree;
+  }
+
+  /**
+   * Recomputes the trace space from its nodes, e.g. after clock drift correction moved some of them.
+   */
+  refreshTraceSpace(): void {
+    let start = Number.POSITIVE_INFINITY;
+    let end = Number.NEGATIVE_INFINITY;
+
+    const nodes: BaseNode[] = [];
+    for (const traceNode of this.root.children) {
+      traceNode.forEachChild(node => nodes.push(node));
+    }
+
+    for (const node of nodes) {
+      start = Math.min(start, node.space[0]);
+      end = Math.max(end, node.space[0] + node.space[1]);
+    }
+
+    for (const indicator of this.indicators) {
+      start = Math.min(start, indicator.start);
+      end = Math.max(end, indicator.start);
+    }
+
+    if (this.replay_bounds) {
+      start = Math.min(start, this.replay_bounds[0]);
+      end = Math.max(end, this.replay_bounds[1]);
+    }
+
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+      return;
+    }
+
+    if (this.root.space[0] === start && this.root.space[1] === end - start) {
+      return;
+    }
+
+    this.root.space = [start, end - start];
+    for (const traceNode of this.root.children) {
+      traceNode.space = [start, end - start];
+    }
+    this.dispatch('trace timeline change', this.root.space);
   }
 
   appendTree(tree: TraceTree) {
@@ -673,6 +733,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
       );
       parent.children.unshift(placeholder);
     }
+  }
+
+  static ApplyClockDriftCorrection(root: BaseNode): number {
+    return applyClockDriftCorrection(root);
+  }
+
+  static RemoveClockDriftCorrection(root: BaseNode): number {
+    return removeClockDriftCorrection(root);
   }
 
   static DetectMissingInstrumentation(root: BaseNode): number {
@@ -1293,7 +1361,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     replayTraces: ReplayTrace[];
     rerender: () => void;
     urlParams: Location['query'];
-    preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+    preferences?: TraceTreePreferences;
   }): () => void {
     let cancelled = false;
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;

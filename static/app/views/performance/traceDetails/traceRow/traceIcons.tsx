@@ -38,7 +38,11 @@ export function TraceIssueIcons(props: TraceIssueIconsProps) {
   return (
     <Fragment>
       {issues.map(({issue, additionalIssueCount}, i) => {
-        const timestamp = getTraceIssueTimestamp(issue, node_space);
+        const timestamp = getTraceIssueTimestamp(
+          issue,
+          node_space,
+          props.node.clockDriftOffsetMs
+        );
         const className = getTraceIssueSeverityClassName(issue);
 
         if (additionalIssueCount !== undefined) {

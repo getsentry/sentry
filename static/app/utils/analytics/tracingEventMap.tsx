@@ -73,6 +73,7 @@ export type TracingEventParameters = {
     trace_duration_seconds: number;
   };
   'trace.preferences.autogrouping_change': {enabled: boolean};
+  'trace.preferences.clock_drift_correction_change': {enabled: boolean};
   'trace.preferences.compressed_timeline_change': {enabled: boolean};
   'trace.preferences.missing_instrumentation_change': {enabled: boolean};
   'trace.quality.missing_spans.doc_link_clicked': Record<string, unknown>;
@@ -210,6 +211,8 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
   'trace_explorer.toggle_span_details': 'Trace Explorer: Toggle Span Details in Table',
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
+  'trace.preferences.clock_drift_correction_change':
+    'Changed Clock Drift Correction Preference',
   'trace.preferences.compressed_timeline_change':
     'Changed Compressed Timeline Preference',
   'trace.preferences.missing_instrumentation_change':
