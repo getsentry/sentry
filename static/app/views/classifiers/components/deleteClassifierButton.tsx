@@ -5,11 +5,10 @@ import {toast} from '@sentry/scraps/toast';
 import {t} from 'sentry/locale';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useCanEditClassifier} from 'sentry/views/classifiers/hooks/useCanEditClassifier';
 import {useDeleteClassifier} from 'sentry/views/classifiers/hooks/useClassifier';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 import {getClassifiersPath} from 'sentry/views/classifiers/utils';
-
-import {useCanEditClassifier} from './classifierStatus';
 
 export function DeleteClassifierButton({classifier}: {classifier: TelemetryClassifier}) {
   const organization = useOrganization();
