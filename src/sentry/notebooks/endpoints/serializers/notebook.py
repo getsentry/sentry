@@ -63,6 +63,12 @@ class NotebookSourceSerializerResponseOptional(TypedDict, total=False):
             "What Sentry knew about the source when the notebook started. Only on source-backed notebooks"
         ),
     ]
+    prompt: Annotated[
+        str,
+        ApiDescription(
+            "The question a manual investigation started with. Only on manual investigations that have one"
+        ),
+    ]
 
 
 class NotebookSourceSerializerResponse(NotebookSourceSerializerResponseOptional):
@@ -346,6 +352,9 @@ class NotebookDetailsSerializer(NotebookSerializer):
         snapshot = resolved_source.get("snapshot")
         if isinstance(snapshot, dict):
             source["snapshot"] = snapshot
+        prompt = resolved_source.get("prompt")
+        if isinstance(prompt, str) and prompt.strip():
+            source["prompt"] = prompt
         return {
             **super().serialize(obj, attrs, user, **kwargs),
             "template": None,
