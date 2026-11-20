@@ -139,13 +139,7 @@ export function ClockDriftGhost({
       return;
     }
     manager.registerClockDriftGhost(
-      {
-        ghostRef: ghostRef.current,
-        connectorRef: connectorRef.current,
-        offsetMs,
-        recorded: [space[0] - offsetMs, space[1]],
-        space,
-      },
+      {ghostRef: ghostRef.current, connectorRef: connectorRef.current, offsetMs, space},
       virtualizedIndex
     );
     return () => manager.registerClockDriftGhost(null, virtualizedIndex);

@@ -152,7 +152,7 @@ export class VirtualizedViewManager {
    * The recorded position of a span that was shifted to correct for clock drift. Only registered
    * for the selected row.
    */
-  clock_drift_ghosts: Array<ClockDriftGhost | undefined> = [];
+  clock_drift_ghosts: Array<RegisteredClockDriftGhost | undefined> = [];
 
   row_depth_padding = 22;
 
@@ -524,7 +524,7 @@ export class VirtualizedViewManager {
     }
   }
 
-  registerClockDriftGhost(ghost: ClockDriftGhost | null, index: number) {
+  registerClockDriftGhost(ghost: RegisteredClockDriftGhost | null, index: number) {
     if (!ghost) {
       this.clock_drift_ghosts[index] = undefined;
       return;
@@ -1896,13 +1896,13 @@ export class VirtualizedViewManager {
    * shown now. If the recorded position is out of view or inside a collapsed gap, where its position
    * would be meaningless, only the connector is drawn, from the edge of the view it lies beyond.
    */
-  drawClockDriftGhost(ghost: ClockDriftGhost | undefined, index: number) {
+  drawClockDriftGhost(ghost: RegisteredClockDriftGhost | undefined, index: number) {
     if (!ghost) {
       return;
     }
 
-    const [recordedStart, duration] = ghost.recorded;
-    const recordedEnd = recordedStart + duration;
+    const recordedStart = ghost.space[0] - ghost.offsetMs;
+    const recordedEnd = recordedStart + ghost.space[1];
     const width = this.view.trace_physical_space.width;
     // The span was recorded earlier than it is shown if it was shifted right, and vice versa
     const movedRight = ghost.offsetMs > 0;
@@ -1952,7 +1952,7 @@ export class VirtualizedViewManager {
    * duration label if that sits outside of the bar, so the connector never runs through the label.
    */
   private getClockDriftTargetBounds(
-    ghost: ClockDriftGhost,
+    ghost: RegisteredClockDriftGhost,
     index: number
   ): [left: number, right: number] {
     let left = this.transformXFromTimestamp(ghost.space[0]);
@@ -2466,14 +2466,10 @@ const CLOCK_DRIFT_GHOST_MIN_WIDTH_PX = 2;
  */
 const CLOCK_DRIFT_CONNECTOR_MIN_WIDTH_PX = 12;
 
-export type ClockDriftGhost = {
+type RegisteredClockDriftGhost = {
   connectorRef: HTMLElement;
   ghostRef: HTMLElement;
   offsetMs: number;
-  /**
-   * Where the span was recorded, before the correction.
-   */
-  recorded: [number, number];
   /**
    * Where the span is shown, after the correction.
    */
