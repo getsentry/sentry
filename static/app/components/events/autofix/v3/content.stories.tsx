@@ -262,6 +262,13 @@ function makeRun(
  */
 const SINGLE_RUN_STOPPED_FOR_CREDITS = makeRun(
   [
+    // Seer adds this for the request that began the run.
+    {
+      id: 'request',
+      timestamp: TIMESTAMP,
+      loading: false,
+      message: {role: 'user', content: 'Fix issue', metadata: {step: 'single_run'}},
+    },
     {
       id: 'single-run',
       timestamp: TIMESTAMP,

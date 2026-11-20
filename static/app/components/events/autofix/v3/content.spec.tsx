@@ -494,6 +494,14 @@ describe('SeerDrawerContent', () => {
     });
 
     describe('single runs that stopped', () => {
+      // Seer adds a user block for every message it takes, starting with the
+      // request that began the run.
+      const requestBlock: ExplorerAutofixState['blocks'][number] = {
+        id: 'b0',
+        timestamp: '2026-01-01T00:00:00Z',
+        message: {role: 'user', content: 'Fix issue', metadata: {step: 'single_run'}},
+      };
+
       const stoppedSingleRun: ExplorerAutofixState = {
         run_id: 776,
         feature_id: 'autofix_single_run',
@@ -501,6 +509,7 @@ describe('SeerDrawerContent', () => {
         failure_reason: 'out_of_credits',
         updated_at: '2026-01-01T00:00:00Z',
         blocks: [
+          requestBlock,
           {
             id: 'b1',
             timestamp: '2026-01-01T00:00:00Z',
@@ -559,7 +568,7 @@ describe('SeerDrawerContent', () => {
             autofix={makeAutofix({
               runState: {
                 ...stoppedSingleRun,
-                blocks: [rootCauseBlock],
+                blocks: [requestBlock, rootCauseBlock],
                 coding_agents: {
                   'agent-1': {
                     id: 'agent-1',
@@ -593,13 +602,9 @@ describe('SeerDrawerContent', () => {
             autofix={makeAutofix({
               runState: {
                 ...stoppedSingleRun,
-                // Seer adds a user block for every message, so the reply is the second.
+                // The reply is the run's second user block.
                 blocks: [
-                  {
-                    id: 'b0',
-                    timestamp: '2026-01-01T00:00:00Z',
-                    message: {role: 'user', content: 'Fix issue'},
-                  },
+                  requestBlock,
                   rootCauseBlock,
                   {
                     id: 'b2',

@@ -2849,6 +2849,18 @@ describe('out of credits', () => {
     });
   });
 
+  // Seer adds a user block for every message it takes, starting with the
+  // request that began the run.
+  function makeUserBlock(id: string, content: string, step: string) {
+    return {
+      id,
+      timestamp: '2026-01-01T00:00:00Z',
+      message: {role: 'user' as const, content, metadata: {step}},
+    };
+  }
+
+  const singleRunRequest = makeUserBlock('request', 'Fix issue', 'single_run');
+
   it.each([
     ['RootCauseCard', RootCauseCard, rootCauseSection],
     ['CodeChangesCard', CodeChangesCard, codeChangesSection],
@@ -2862,7 +2874,11 @@ describe('out of credits', () => {
           autofix={{
             ...mockAutofix,
             startStep,
-            runState: {...stoppedRunState, feature_id: 'autofix_single_run'},
+            runState: {
+              ...stoppedRunState,
+              feature_id: 'autofix_single_run',
+              blocks: [singleRunRequest],
+            },
           }}
           groupId="1"
           section={section}
@@ -2882,17 +2898,9 @@ describe('out of credits', () => {
   );
 
   describe('a single run whose reply stopped', () => {
-    // Seer adds a user block for every message, so the reply is the second.
-    function makeUserBlock(id: string, content: string, step: string) {
-      return {
-        id,
-        timestamp: '2026-01-01T00:00:00Z',
-        message: {role: 'user' as const, content, metadata: {step}},
-      };
-    }
-
+    // The reply is the run's second user block.
     const blocks = [
-      makeUserBlock('request', 'Fix issue', 'single_run'),
+      singleRunRequest,
       makeBlock('block-1', 'Guarded the handler.', {step: 'single_run'}),
       makeUserBlock('reply', 'Also cover an empty cart', 'single_run'),
       seerErrorBlock,
