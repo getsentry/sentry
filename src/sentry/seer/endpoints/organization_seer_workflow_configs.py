@@ -587,8 +587,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
           for other strategies.
         - Enabling or pausing requires access to every project the config covers.
         - ``environments`` replaces the environments the automation covers; ``[]``
-          selects all environments. Like enabling, it requires access to every project
-          the config covers.
+          selects all environments.
         - ``serviceAccount`` replaces the scopes and projects of the automation's service
           account. Like ``projectIds``, the account's projects the caller can't access are
           kept, and scopes can't be added while any are.
@@ -656,7 +655,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if enabled is not None or environments is not None:
+                if enabled is not None:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -670,7 +669,6 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     if denied is not None:
                         raise PermissionDenied(detail=denied)
 
-                if enabled is not None:
                     update.set_enabled(enabled)
 
                 if environments is not None:
