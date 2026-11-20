@@ -15,7 +15,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 class UptimeIpsEndpoint(Endpoint):
     owner = ApiOwner.CRONS
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     # Disable authentication and permission requirements.
     permission_classes = ()
