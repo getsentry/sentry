@@ -32,6 +32,11 @@ interface Baseline {
   version: number;
 }
 
+export interface EntryChanges {
+  added: number;
+  removed: number;
+}
+
 interface Repo {
   owner: string;
   repo: string;
@@ -43,7 +48,10 @@ interface Repo {
  */
 export interface PublishArgs {
   context: {repo: Repo; sha: string};
-  core: {info: (message: string) => void};
+  core: {
+    info: (message: string) => void;
+    summary: {addRaw: (text: string) => {write: () => Promise<unknown>}};
+  };
   github: {
     rest: {
       git: {
@@ -71,6 +79,17 @@ export interface PublishArgs {
         list: (
           params: Repo & {base: string; head: string; state: 'open'}
         ) => Promise<{data: Array<{number: number}>}>;
+        update: (
+          params: Repo & {pull_number: number; state: 'closed'}
+        ) => Promise<unknown>;
+      };
+      repos: {
+        getCommit: (
+          params: Repo & {ref: string}
+        ) => Promise<{data: {parents: Array<{sha: string}>}}>;
+        getContent: (
+          params: Repo & {path: string; ref: string}
+        ) => Promise<{data: {content: string}}>;
       };
     };
   };
@@ -110,10 +129,66 @@ export function canonicalJson(value: unknown): string {
   return JSON.stringify(value);
 }
 
-// `generated` and `commit` change on every run, so only the entries decide
+// `generated` and `commit` change on every run so only the entries decide
 // whether there is anything to publish.
 function entriesChanged(current: Baseline, next: Baseline): boolean {
   return canonicalJson(current.entries) !== canonicalJson(next.entries);
+}
+
+function entryKey(entry: unknown): string {
+  const {rule, path, scope, key} = entry as Record<string, unknown>;
+  return JSON.stringify([rule, path, scope, key]);
+}
+
+/**
+ * How many entries the scan added and removed compared to master's file. A removed
+ * entry is one the rescan no longer finds, i.e it was fixed or its file was renamed
+ */
+export function countEntryChanges(current: Baseline, next: Baseline): EntryChanges {
+  const currentKeys = new Set(current.entries.map(entryKey));
+  const nextKeys = new Set(next.entries.map(entryKey));
+  let added = 0;
+  for (const key of nextKeys) {
+    if (!currentKeys.has(key)) {
+      added++;
+    }
+  }
+  let removed = 0;
+  for (const key of currentKeys) {
+    if (!nextKeys.has(key)) {
+      removed++;
+    }
+  }
+  return {added, removed};
+}
+
+async function readFileAt(
+  github: PublishArgs['github'],
+  repo: Repo,
+  ref: string
+): Promise<string> {
+  const {data} = await github.rest.repos.getContent({...repo, path: BASELINE_PATH, ref});
+  return Buffer.from(data.content, 'base64').toString('utf8');
+}
+
+/**
+ * Whether the bot branch already holds these entries on top of master's current
+ * exceptions.json, so updating it would only re-run CI on the open PR
+ */
+async function branchAlreadyMatches(
+  github: PublishArgs['github'],
+  repo: Repo,
+  currentText: string,
+  next: Baseline
+): Promise<boolean> {
+  const onBranch = parseBaseline(await readFileAt(github, repo, BRANCH), BRANCH);
+  if (entriesChanged(onBranch, next)) {
+    return false;
+  }
+  // if master's copy changed since the bot commit, the open PR would conflict, so
+  // it still needs rebuilding on the new master
+  const {data: head} = await github.rest.repos.getCommit({...repo, ref: BRANCH});
+  return (await readFileAt(github, repo, head.parents[0]!.sha)) === currentText;
 }
 
 async function forceUpdateBranch(
@@ -141,16 +216,39 @@ export async function publishApiBaseline({
 }: PublishArgs): Promise<void> {
   const newText = readFileSync(newBaselinePath, 'utf8');
   const next = parseBaseline(newText, newBaselinePath);
-  const current = parseBaseline(
-    readFileSync(currentBaselinePath, 'utf8'),
-    currentBaselinePath
-  );
+  const currentText = readFileSync(currentBaselinePath, 'utf8');
+  const current = parseBaseline(currentText, currentBaselinePath);
+
+  const {added, removed} = countEntryChanges(current, next);
+  await core.summary
+    .addRaw(
+      `Compared to master's exceptions.json: ${added} new entries, ${removed} removed (fixed, or the file was renamed)\n`
+    )
+    .write();
+
+  const repo = context.repo;
+  const {data: open} = await github.rest.pulls.list({
+    ...repo,
+    state: 'open',
+    base: BASE_BRANCH,
+    head: `${repo.owner}:${BRANCH}`,
+  });
+
   if (!entriesChanged(current, next)) {
+    // master caught up without the bot PR (i.e, someone ran `--files`) so an open one is stale
+    for (const pr of open) {
+      await github.rest.pulls.update({...repo, pull_number: pr.number, state: 'closed'});
+      core.info(`closed #${pr.number}, master already has these entries`);
+    }
     core.info('entries unchanged, nothing to publish');
     return;
   }
 
-  const repo = context.repo;
+  if (open.length > 0 && (await branchAlreadyMatches(github, repo, currentText, next))) {
+    core.info(`#${open[0]!.number} already has these entries, leaving it alone`);
+    return;
+  }
+
   const {data: parent} = await github.rest.git.getCommit({
     ...repo,
     commit_sha: context.sha,
@@ -169,13 +267,6 @@ export async function publishApiBaseline({
   await forceUpdateBranch(github, repo, commit.sha);
   core.info(`pushed ${commit.sha} to ${BRANCH}`);
 
-  // the force-update above already updated an open PR, so only open one when there isn't
-  const {data: open} = await github.rest.pulls.list({
-    ...repo,
-    state: 'open',
-    base: BASE_BRANCH,
-    head: `${repo.owner}:${BRANCH}`,
-  });
   if (open.length > 0) {
     core.info(`updated #${open[0]!.number}`);
     return;

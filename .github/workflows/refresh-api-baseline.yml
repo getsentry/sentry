@@ -15,7 +15,7 @@ permissions:
 
 concurrency:
   group: refresh-api-baseline-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   scan:

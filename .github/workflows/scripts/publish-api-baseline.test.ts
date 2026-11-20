@@ -9,6 +9,7 @@ import {
   BASELINE_PATH,
   BRANCH,
   canonicalJson,
+  countEntryChanges,
   parseBaseline,
   publishApiBaseline,
   TITLE,
@@ -40,7 +41,12 @@ function writeBaselines(current: string, next: string) {
   return {currentBaselinePath, newBaselinePath};
 }
 
-function makeGithub({branchExists = true, openPrs = [] as number[]} = {}) {
+function makeGithub({
+  branchExists = true,
+  openPrs = [] as number[],
+  branchText = baseline([ENTRY]),
+  branchParentText = baseline([ENTRY]),
+} = {}) {
   const calls: Array<[string, Record<string, unknown>]> = [];
   const record =
     <T>(name: string, result: () => T) =>
@@ -65,6 +71,17 @@ function makeGithub({branchExists = true, openPrs = [] as number[]} = {}) {
       pulls: {
         list: record('list', () => ({data: openPrs.map(number => ({number}))})),
         create: record('create', () => ({data: {number: 999}})),
+        update: record('update', () => ({})),
+      },
+      repos: {
+        getCommit: record('getBranchCommit', () => ({
+          data: {parents: [{sha: 'bot-parent'}]},
+        })),
+        getContent: async (params: Record<string, unknown>) => {
+          calls.push(['getContent', params]);
+          const text = params.ref === BRANCH ? branchText : branchParentText;
+          return {data: {content: Buffer.from(text).toString('base64')}};
+        },
       },
     },
   } as unknown as PublishArgs['github'];
@@ -72,7 +89,7 @@ function makeGithub({branchExists = true, openPrs = [] as number[]} = {}) {
 }
 
 const context = {repo: {owner: 'getsentry', repo: 'sentry'}, sha: 'master-sha'};
-const core = {info: () => {}};
+const core = {info: () => {}, summary: {addRaw: () => ({write: async () => {}})}};
 
 describe('parseBaseline', () => {
   it('rejects a file without a number version and an entries array', () => {
@@ -98,9 +115,9 @@ describe('canonicalJson', () => {
 describe('publishApiBaseline', () => {
   it('does nothing when only generated and commit changed', async () => {
     const paths = writeBaselines(baseline([ENTRY]), baseline([ENTRY], '2026-11-20'));
-    const {github, calls} = makeGithub();
+    const {github, names} = makeGithub();
     await publishApiBaseline({github, context, core, ...paths});
-    assert.deepEqual(calls, []);
+    assert.deepEqual(names(), ['list']);
   });
 
   it('fails before any API call when the new file is not an exceptions file', async () => {
@@ -117,11 +134,11 @@ describe('publishApiBaseline', () => {
     await publishApiBaseline({github, context, core, ...paths});
 
     assert.deepEqual(names(), [
+      'list',
       'getCommit',
       'createTree',
       'createCommit',
       'updateRef',
-      'list',
       'create',
     ]);
     const params = Object.fromEntries(calls);
@@ -150,7 +167,7 @@ describe('publishApiBaseline', () => {
     const {github, calls, names} = makeGithub({branchExists: false});
     await publishApiBaseline({github, context, core, ...paths});
 
-    assert.deepEqual(names().slice(3, 5), ['updateRef', 'createRef']);
+    assert.deepEqual(names().slice(4, 6), ['updateRef', 'createRef']);
     assert.equal(Object.fromEntries(calls).createRef!.ref, `refs/heads/${BRANCH}`);
   });
 
@@ -160,5 +177,61 @@ describe('publishApiBaseline', () => {
     await publishApiBaseline({github, context, core, ...paths});
 
     assert.ok(!names().includes('create'));
+  });
+
+  it('closes the open PR when master already has the scanned entries', async () => {
+    const paths = writeBaselines(baseline([ENTRY]), baseline([ENTRY], '2026-11-20'));
+    const {github, calls, names} = makeGithub({openPrs: [123]});
+    await publishApiBaseline({github, context, core, ...paths});
+
+    assert.deepEqual(names(), ['list', 'update']);
+    const params = Object.fromEntries(calls);
+    assert.equal(params.update!.pull_number, 123);
+    assert.equal(params.update!.state, 'closed');
+  });
+
+  it('leaves the open PR alone when its branch already has the scanned entries', async () => {
+    const current = baseline([ENTRY]);
+    const paths = writeBaselines(current, baseline([], '2026-11-20'));
+    const {github, names} = makeGithub({
+      openPrs: [123],
+      branchText: baseline([]),
+      branchParentText: current,
+    });
+    await publishApiBaseline({github, context, core, ...paths});
+
+    assert.deepEqual(names(), ['list', 'getContent', 'getBranchCommit', 'getContent']);
+  });
+
+  it('rebuilds the open PR when master changed exceptions.json since the bot commit', async () => {
+    const paths = writeBaselines(baseline([ENTRY], '2026-11-20'), baseline([]));
+    const {github, names} = makeGithub({
+      openPrs: [123],
+      branchText: baseline([]),
+      branchParentText: baseline([ENTRY]),
+    });
+    await publishApiBaseline({github, context, core, ...paths});
+
+    assert.deepEqual(names().slice(4), [
+      'getCommit',
+      'createTree',
+      'createCommit',
+      'updateRef',
+    ]);
+  });
+});
+
+describe('countEntryChanges', () => {
+  it('counts entries by rule, path, scope and key, ignoring count changes', () => {
+    const other = {...ENTRY, key: 'query:other'};
+    const current = parseBaseline(baseline([ENTRY, other]), 'current');
+    const next = parseBaseline(
+      baseline([
+        {...other, count: 3},
+        {...ENTRY, key: 'body:name'},
+      ]),
+      'next'
+    );
+    assert.deepEqual(countEntryChanges(current, next), {added: 1, removed: 1});
   });
 });
