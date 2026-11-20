@@ -145,7 +145,10 @@ export function SearchQueryBuilderConditionalAggregateParameters({
 
   const onArgumentKeyDown = useCallback(
     (index: number, e: KeyboardEvent) => {
-      const input = e.target as HTMLInputElement;
+      const input = e.target;
+      if (!(input instanceof HTMLInputElement)) {
+        return;
+      }
       const atStart = input.selectionStart === 0 && input.selectionEnd === 0;
       const atEnd =
         input.selectionStart === input.value.length &&
