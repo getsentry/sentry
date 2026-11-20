@@ -39,6 +39,13 @@ class OrganizationPreprodRetentionEndpointTest(APITestCase):
         assert response.data["size"] == 30
         assert response.data["buildDistribution"] == 60
 
+    @patch("sentry.quotas.backend.get_event_retention", return_value=730)
+    def test_get_retention_is_cut_to_the_maximum(self, mock_get_retention: MagicMock) -> None:
+        response = self.get_success_response(self.organization.slug)
+
+        assert response.data["size"] == 396
+        assert response.data["buildDistribution"] == 396
+
     def test_get_requires_authentication(self) -> None:
         client = APIClient()
         response = client.get(self.url)
