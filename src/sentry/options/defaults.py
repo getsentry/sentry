@@ -95,38 +95,6 @@ register(
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
 
-# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
-# Only used when a lock manager is configured with the matching selector in
-# sentry.utils.locking.backends.migration.
-register(
-    "locks.default.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When on, MigrationLockBackend also checks the new backend for keys that go to the old
-# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
-# after the rate is back at 0 and all locks on the new backend have expired. See the
-# MigrationLockBackend docstring for the full sequence.
-register(
-    "locks.default.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Processing worker caches
 register(
     "dsym.cache-path",
@@ -1697,6 +1665,14 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Organizations whose telemetry classifiers aren't processed.
+register(
+    "telemetry-classifiers.killswitch-organization-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.
 register(
     "cadence.tick.enabled",
@@ -3118,6 +3094,16 @@ register(
 register(
     "crons.system_incidents.collect_metrics",
     default=False,
+    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Temporary killswitch for the system incident dual-write to
+# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
+# secondary writes at once. Has no effect when the setting is unset.
+# To be removed as part of INFRENG-1053
+register(
+    "crons.system_incidents.secondary_redis_writes",
+    default=True,
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4637,6 +4623,13 @@ register(
     type=Int,
     default=5,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "autofix.pr-iteration.check-suite-local-prefilter.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # TODO(telkins): Remove once we no longer need integration_id on SLO metrics

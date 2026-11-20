@@ -2,6 +2,7 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {SizeUnit} from 'sentry/utils/discover/fields';
+import {DisplayType} from 'sentry/views/dashboards/types';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 
 import {MobileAppSizeConfig} from './mobileAppSize';
@@ -31,15 +32,16 @@ const timeSeriesWidgetQuery = {
 
 describe('MobileAppSizeConfig with events-timeseries responses', () => {
   describe('transformTimeSeries', () => {
-    it('names a single series by its alias and skips empty buckets', () => {
+    it('names a single series by its alias and carries the last build into empty buckets', () => {
       const result = MobileAppSizeConfig.transformTimeSeries!(
         {
           timeSeries: [
             makeTimeSeries('max(install_size)', [
-              [1000, 1000000],
-              [2000, null],
-              [3000, 0],
-              [4000, 1200000],
+              [1000, null],
+              [2000, 1000000],
+              [3000, null],
+              [4000, 0],
+              [5000, 1200000],
             ]),
           ],
         },
@@ -52,8 +54,32 @@ describe('MobileAppSizeConfig with events-timeseries responses', () => {
       expect(
         result[0]!.timeSeries.values.map(({timestamp, value}) => [timestamp, value])
       ).toEqual([
-        [1000, 1000000],
-        [4000, 1200000],
+        [1000, null],
+        [2000, 1000000],
+        [3000, 1000000],
+        [4000, 1000000],
+        [5000, 1200000],
+      ]);
+    });
+
+    it('keeps empty buckets for bar charts', () => {
+      const result = MobileAppSizeConfig.transformTimeSeries!(
+        {
+          timeSeries: [
+            makeTimeSeries('max(install_size)', [
+              [1000, 1000000],
+              [2000, null],
+              [3000, 0],
+              [4000, 1200000],
+            ]),
+          ],
+        },
+        WidgetFixture({displayType: DisplayType.BAR, queries: [timeSeriesWidgetQuery]}),
+        0
+      );
+
+      expect(result[0]!.timeSeries.values.map(({timestamp}) => timestamp)).toEqual([
+        1000, 2000, 3000, 4000,
       ]);
     });
 

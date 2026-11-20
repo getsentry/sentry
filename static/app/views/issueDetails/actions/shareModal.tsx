@@ -25,7 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -108,16 +108,11 @@ export function ShareIssueModal({
         orgId: organization.slug,
         projectId: projectSlug,
         itemIds: [groupId],
-        data: {
-          isPublic: reshare ?? !isPublished,
-        },
+        data: {isPublic: reshare ?? !isPublished},
       });
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId,
-        }),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId})
+      );
     } catch {
       toast.error(t('Error sharing'));
       // oxlint-disable-next-line react/todo
@@ -155,10 +150,7 @@ export function ShareIssueModal({
               onClick={handleCopyMarkdownLink}
               analyticsEventKey="issue_details.copy_issue_markdown_link_clicked"
               analyticsEventName="Issue Details: Copy Issue Markdown Link"
-              analyticsParams={{
-                ...getAnalyticsDataForGroup(group),
-                streamline: true,
-              }}
+              analyticsParams={{...getAnalyticsDataForGroup(group), streamline: true}}
             >
               {t('Copy as Markdown')}
             </Button>
@@ -183,10 +175,7 @@ export function ShareIssueModal({
                       ...getAnalyticsDataForEvent(event),
                       streamline: true,
                     }
-                  : {
-                      ...getAnalyticsDataForGroup(group),
-                      streamline: true,
-                    }
+                  : {...getAnalyticsDataForGroup(group), streamline: true}
               }
             >
               {t('Copy Link')}

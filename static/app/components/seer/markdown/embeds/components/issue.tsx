@@ -31,10 +31,7 @@ function isGroupId(value: string) {
 function normalizeIds({id, shortId}: {id: string | number; shortId?: string}) {
   // A numeric `shortId` is the group ID under the wrong name. Dropping it beats
   // passing it to `issue:`, which resolves short IDs only and would reject it.
-  return {
-    id: String(id),
-    shortId: shortId && !isGroupId(shortId) ? shortId : undefined,
-  };
+  return {id: String(id), shortId: shortId && !isGroupId(shortId) ? shortId : undefined};
 }
 
 /** Shared by the inline link and the block's header link, so the two cannot drift. */

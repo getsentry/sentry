@@ -1,6 +1,4 @@
-from collections.abc import Iterable
 from datetime import datetime
-from typing import cast
 from unittest.mock import patch
 
 from django.http import HttpResponseBase
@@ -48,7 +46,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         assert response.status_code == 200
         assert response.streaming
         assert response["Content-Type"] == "text/csv"
-        rows = list(cast(Iterable[bytes], getattr(response, "streaming_content")))
+        rows = list(getattr(response, "streaming_content"))
         for idx, chunk in enumerate(rows):
             row = chunk.decode("utf-8")
             assert row.endswith("\r\n")

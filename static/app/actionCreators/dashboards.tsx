@@ -35,10 +35,7 @@ export function fetchDashboards(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
-    {
-      method: 'GET',
-      query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
-    }
+    {method: 'GET', query: {sort: 'myDashboardsAndRecentlyViewed', ...query}}
   );
 
   promise.catch(response => {
@@ -92,10 +89,7 @@ export function createDashboard(
         utc,
         ...(queryPriority ? {queryPriority} : {}),
       },
-      query: {
-        project: projects,
-        environment,
-      },
+      query: {project: projects, environment},
     }
   );
 
@@ -139,13 +133,7 @@ export function validateDashboard(
       filters,
       utc,
     },
-    options: {
-      query: {
-        validateOnly: '1',
-        project: projects,
-        environment,
-      },
-    },
+    options: {query: {validateOnly: '1', project: projects, environment}},
   });
 }
 
@@ -158,9 +146,7 @@ export function updateDashboardVisit(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
       path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
     }),
-    {
-      method: 'POST',
-    }
+    {method: 'POST'}
   );
 
   return promise;
@@ -184,16 +170,9 @@ export async function updateDashboardFavorite(
           },
         }
       ),
-      {
-        method: 'PUT',
-        data: {
-          shouldFavorite: isFavorited,
-        },
-      }
+      {method: 'PUT', data: {shouldFavorite: isFavorited}}
     );
-    queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
-    });
+    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
     toast.success(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse =
@@ -219,9 +198,7 @@ export function fetchDashboard(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: orgId, dashboardId},
     }),
-    {
-      method: 'GET',
-    }
+    {method: 'GET'}
   );
 
   promise.catch(response => {
@@ -281,12 +258,7 @@ export function updateDashboard(
     }),
     method: 'PUT',
     data,
-    options: {
-      query: {
-        project: projects,
-        environment,
-      },
-    },
+    options: {query: {project: projects, environment}},
   });
 
   // We let the callers of `updateDashboard` handle adding a success message, so
@@ -324,15 +296,11 @@ export function deleteDashboard(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: organization.slug, dashboardId},
     }),
-    {
-      method: 'DELETE',
-    }
+    {method: 'DELETE'}
   );
 
   promise.then(() => {
-    queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
-    });
+    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
   });
 
   promise.catch(response => {
@@ -411,17 +379,12 @@ export function updateDashboardPermissions(
   dashboard: DashboardDetails | DashboardListItem
 ): Promise<DashboardDetails> {
   const {permissions} = dashboard;
-  const data = {
-    permissions,
-  };
+  const data = {permissions};
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
     }),
-    {
-      method: 'PUT',
-      data,
-    }
+    {method: 'PUT', data}
   );
 
   promise.catch(showDashboardPermissionsError);
@@ -485,10 +448,7 @@ function _enforceWidgetLimit(widget: Widget) {
     // The default we historically assign for charts with a grouping is 5,
     // continue using that default unless there are conditions which make 5
     // too large to automatically apply.
-    return {
-      ...widget,
-      limit: Math.min(maxLimit, TOP_N),
-    };
+    return {...widget, limit: Math.min(maxLimit, TOP_N)};
   }
 
   if (hasColumns && defined(widget.limit) && widget.limit > maxLimit) {

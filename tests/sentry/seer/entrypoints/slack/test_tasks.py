@@ -546,7 +546,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_credit_check_flag_on_with_enough_credits_runs(
+    def test_token_billed_with_enough_credits_runs(
         self,
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
@@ -557,9 +557,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.return_value.trigger_agent.return_value = None
         mock_check.return_value = MagicMock(has_enough_credits=True)
 
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._run_task(
                 user_id=self.user.id,
                 mock_agent_cls=mock_agent_cls,
@@ -574,7 +572,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
     @patch("sentry.seer.entrypoints.slack.tasks.SeerAgentOperator")
     @patch("sentry.seer.entrypoints.slack.tasks.SlackAgentEntrypoint")
     @patch("sentry.seer.entrypoints.slack.tasks._resolve_user")
-    def test_credit_check_flag_on_without_enough_credits_halts(
+    def test_token_billed_without_enough_credits_halts(
         self,
         mock_resolve_user: MagicMock,
         mock_agent_cls: MagicMock,
@@ -584,9 +582,7 @@ class ProcessMentionSeerCreditsTest(TestCase):
         mock_operator_cls.has_access.return_value = True
         mock_check.return_value = MagicMock(has_enough_credits=False)
 
-        with self.feature(
-            ["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"]
-        ):
+        with self.feature("organizations:token-billed-seer-enabled"):
             self._run_task(
                 user_id=self.user.id,
                 mock_agent_cls=mock_agent_cls,

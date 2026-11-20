@@ -10,6 +10,7 @@ import type {
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import * as Storybook from 'sentry/stories';
 import type {Group} from 'sentry/types/group';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -252,13 +253,7 @@ function makeRun(
   blocks: Block[],
   overrides: Partial<ExplorerAutofixState> = {}
 ): ExplorerAutofixState {
-  return {
-    run_id: 123,
-    blocks,
-    status: 'completed',
-    updated_at: TIMESTAMP,
-    ...overrides,
-  };
+  return {run_id: 123, blocks, status: 'completed', updated_at: TIMESTAMP, ...overrides};
 }
 
 /**
@@ -279,7 +274,7 @@ class SimulatedCreditsQueryClient extends QueryClient {
       return defaulted;
     }
 
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     let json: unknown = [];
     if (url.includes('/seer/credit-check/')) {
       json = {hasEnoughCredits: this.hasEnoughCredits};
@@ -320,11 +315,7 @@ function DrawerStory({
       <OrganizationContext.Provider
         value={{
           ...organization,
-          features: [
-            ...organization.features,
-            'seer-credit-checks',
-            'token-billed-seer-enabled',
-          ],
+          features: [...organization.features, 'token-billed-seer-enabled'],
         }}
       >
         <QueryClientProvider client={queryClient}>

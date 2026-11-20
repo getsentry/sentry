@@ -87,9 +87,7 @@ def check_seer_operation(
     organization: Organization, feature: int, operation: SeerOperation
 ) -> CheckSeerCreditsResponse:
     """Checks whether the organization is token-billed and has enough Seer credits to run the operation."""
-    if not features.has("organizations:seer-credit-checks", organization) or not features.has(
-        "organizations:token-billed-seer-enabled", organization
-    ):
+    if not features.has("organizations:token-billed-seer-enabled", organization):
         return CheckSeerCreditsResponse(has_enough_credits=True)
     return _check_seer_credits(organization, feature, operation)
 

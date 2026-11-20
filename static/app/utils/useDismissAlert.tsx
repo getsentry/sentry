@@ -51,8 +51,5 @@ export function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}:
     setDismissedTimestamp(Date.now().toString());
   }, [setDismissedTimestamp]);
 
-  return {
-    isDismissed,
-    dismiss,
-  };
+  return {isDismissed, dismiss};
 }

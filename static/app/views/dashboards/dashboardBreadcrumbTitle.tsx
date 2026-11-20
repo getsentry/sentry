@@ -261,10 +261,7 @@ export function DashboardBreadcrumbTitle({
     return (
       <TopBar.Slot
         name="breadcrumbs"
-        title={{
-          type: 'page-title',
-          label: dashboard.title,
-        }}
+        title={{type: 'page-title', label: dashboard.title}}
         items={[
           {
             type: 'link',

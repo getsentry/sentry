@@ -17,7 +17,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.supabase.client import (
     SUPABASE_AUTHORIZATION_ERROR,
-    SUPABASE_MCP_RESOURCE,
     SUPABASE_ORGANIZATIONS_URL,
     SUPABASE_REVOKE_URL,
     SUPABASE_TOKEN_URL,
@@ -262,7 +261,7 @@ class SupabaseApiPipelineTest(APITestCase):
         assert params["response_type"] == ["code"]
         assert params["redirect_uri"] == [absolute_uri("/extensions/supabase/setup/")]
         assert params["code_challenge_method"] == ["S256"]
-        assert params["resource"] == [SUPABASE_MCP_RESOURCE]
+        assert "resource" not in params
         assert len(params["code_challenge"][0]) == 43
         assert params["state"][0]
         assert "sentry-app-secret" not in oauth_url
@@ -313,7 +312,7 @@ class SupabaseApiPipelineTest(APITestCase):
             == params["code_challenge"][0]
         )
         assert token_params["redirect_uri"] == params["redirect_uri"]
-        assert token_params["resource"] == [SUPABASE_MCP_RESOURCE]
+        assert "resource" not in token_params
         assert (
             responses.calls[0].request.headers["Authorization"]
             == "Basic c2VudHJ5LWFwcC1pZDpzZW50cnktYXBwLXNlY3JldA=="

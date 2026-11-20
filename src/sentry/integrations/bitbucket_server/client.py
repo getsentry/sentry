@@ -257,12 +257,9 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     def get_last_commits(
         self, project: str, repo: str, limit: int = 10
     ) -> Sequence[Mapping[str, object]]:
-        data = cast(
-            "_ValuesResponse",
-            self.get_mapping(
-                BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
-                params={"merges": "exclude", "limit": limit},
-            ),
+        data = self.get_mapping(
+            BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
+            params={"merges": "exclude", "limit": limit},
         )
         return data["values"]
 
@@ -306,7 +303,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
                 start,
                 extra={"uri": uri, "params": new_params},
             )
-            data = cast("_ValuesResponse", self.get_mapping(uri, params=new_params))
+            data = self.get_mapping(uri, params=new_params)
             logger.debug(
                 "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
             )

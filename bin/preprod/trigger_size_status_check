@@ -384,7 +384,7 @@ def show_rule_evaluation(artifact_id: int) -> None:
     for art in all_artifacts:
         size_metrics = art.preprodartifactsizemetrics_set.filter(
             metrics_artifact_type=PreprodArtifactSizeMetrics.MetricsArtifactType.MAIN_ARTIFACT
-        ).first()
+        ).first()  # noqa: S035
 
         if not size_metrics:
             continue

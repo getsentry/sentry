@@ -6,11 +6,7 @@ import type {Deploy} from './release';
 import type {DynamicSamplingBias} from './sampling';
 
 // Minimal project representation for use with avatars.
-export type AvatarProject = {
-  slug: string;
-  id?: string | number;
-  platform?: PlatformKey;
-};
+export type AvatarProject = {slug: string; id?: string | number; platform?: PlatformKey};
 
 export type ProjectStats = TimeseriesValue[];
 
@@ -119,11 +115,9 @@ export interface DetailedProject extends ProjectSummary {
   builtinSymbolSources?: string[];
   debugFilesRole?: string | null;
   defaultEnvironment?: string;
+  enableNativeSourceServerMapping?: boolean;
   highlightContext?: Record<string, string[]>;
-  highlightPreset?: {
-    context: Record<string, string[]>;
-    tags: string[];
-  };
+  highlightPreset?: {context: Record<string, string[]>; tags: string[]};
   highlightTags?: string[];
   options?: Record<string, boolean | string>;
   preprodDistributionEnabledByCustomer?: boolean;
@@ -160,9 +154,7 @@ export type MinimalProject = Pick<ProjectSummary, 'id' | 'slug' | 'platform'>;
 
 // Response from project_keys endpoints.
 export type ProjectKey = {
-  browserSdk: {
-    choices: Array<[key: string, value: string]>;
-  };
+  browserSdk: {choices: Array<[key: string, value: string]>};
   browserSdkVersion: ProjectKey['browserSdk']['choices'][number][0];
   dateCreated: string;
   dsn: {
@@ -192,10 +184,7 @@ export type ProjectKey = {
   name: string;
   projectId: number;
   public: string;
-  rateLimit: {
-    count: number;
-    window: number;
-  } | null;
+  rateLimit: {count: number; window: number} | null;
   secret: string;
   useCase?: string;
 };
@@ -207,11 +196,7 @@ export type ProjectSdkUpdates = {
   suggestions: SDKUpdatesSuggestion[];
 };
 
-export type Environment = {
-  displayName: string;
-  id: string;
-  name: string;
-};
+export type Environment = {displayName: string; id: string; name: string};
 
 export interface TeamWithProjects extends Team {
   projects: Project[];
@@ -230,7 +215,5 @@ export type PlatformIntegration = {
    * `deprecated`.
    */
   hidden?: boolean;
-  iconConfig?: {
-    withLanguageIcon: boolean;
-  };
+  iconConfig?: {withLanguageIcon: boolean};
 };

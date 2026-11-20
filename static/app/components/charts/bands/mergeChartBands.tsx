@@ -9,16 +9,18 @@ import type {
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
 
-import {BAND_Y_AXIS} from './bandShapes';
+import {BAND_Y_AXIS, BAND_Z, type BandBucket} from './bandShapes';
 
 /**
  * A strip of per-bucket markers drawn under a chart's plot.
  */
 export interface ChartBand {
+  buckets: BandBucket[];
   height: number;
   id: string;
   series: (offset: number) => CustomSeriesOption;
-  onClick?: () => void;
+  onClick?: (start: number) => void;
+  tooltipSection?: (start: number) => React.ReactElement | null;
 }
 
 interface ChartBandsOptions {
@@ -56,6 +58,7 @@ export function mergeChartBands(
       ...band.series(bandOffset),
       id: band.id,
       yAxisIndex: yAxes.length + index,
+      z: BAND_Z,
     };
     bandOffset += band.height;
     return bandSeriesOption;
@@ -75,7 +78,10 @@ export function mergeChartBands(
     onClick: (event, instance) => {
       const clickedBand = visibleBands.find(band => band.id === event.seriesId);
       if (clickedBand) {
-        clickedBand.onClick?.();
+        const bucket = clickedBand.buckets[event.dataIndex];
+        if (bucket) {
+          clickedBand.onClick?.(bucket.start);
+        }
         return;
       }
       onClick?.(event, instance);

@@ -15,11 +15,7 @@ export function parseFilterValueDate(
   query: string
 ): TokenResult<Token.VALUE_ISO_8601_DATE | Token.VALUE_RELATIVE_DATE> | null {
   try {
-    return parse(query, {
-      TokenConverter,
-      config: {parse: true},
-      startRule: 'date',
-    });
+    return parse(query, {TokenConverter, config: {parse: true}, startRule: 'date'});
   } catch (e) {
     return null;
   }

@@ -2,7 +2,7 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
 import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
@@ -54,9 +54,7 @@ type SessionSnapshot = {
   previousData: SeerExplorerResponse | undefined;
 };
 
-type SeerExplorerUpdateResponse = {
-  run_id: number;
-};
+type SeerExplorerUpdateResponse = {run_id: number};
 
 /**
  * Build the explorer-update endpoint URL. `runId` can originate from an
@@ -301,7 +299,7 @@ export const useSeerExplorer = () => {
         },
       });
     },
-    onSuccess: (response, params) => {
+    onSuccess: async (response, params) => {
       if (isLatestRequest(params) && isCurrentRun(params.runId)) {
         setRequestError(null);
       }
@@ -312,8 +310,10 @@ export const useSeerExplorer = () => {
           payload: response.sentry_run_id ?? response.run_id,
         });
       } else {
-        // invalidate the query so fresh data is fetched
-        queryClient.invalidateQueries({
+        // Stay pending until the refetch lands. A poll that ran before the server saved the
+        // message may have stored a finished session; ending the send before fresh data
+        // arrives would drop the optimistic message until then.
+        await queryClient.invalidateQueries({
           queryKey: makeSeerExplorerQueryKey(params.orgSlug, params.runId),
         });
       }
@@ -403,21 +403,14 @@ export const useSeerExplorer = () => {
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {
-      orgSlug: string;
-      runId: SeerExplorerRunId | null;
-    }
+    {orgSlug: string; runId: SeerExplorerRunId | null}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
-        data: {
-          payload: {
-            type: 'interrupt',
-          },
-        },
+        data: {payload: {type: 'interrupt'}},
       });
     },
     onError: () => {
@@ -760,10 +753,7 @@ export const useSeerExplorer = () => {
       updated_at: new Date().toISOString(),
     };
 
-    return {
-      ...baseSession,
-      blocks: visibleBlocks,
-    };
+    return {...baseSession, blocks: visibleBlocks};
   }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
   return {

@@ -195,9 +195,7 @@ describe('Sentry Application Dashboard', () => {
     beforeEach(() => {
       sentryApp = SentryAppFixture({
         status: 'internal',
-        schema: {
-          elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}],
-        },
+        schema: {elements: [{type: 'stacktrace-link', uri: '/test', url: '/test'}]},
       });
       webhookRequest = SentryAppWebhookRequestFixture();
 

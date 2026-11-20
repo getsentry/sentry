@@ -7,8 +7,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import Factories
 
 
-class GetDefinitionTest(TestCase):
-    def test_metric_alert_trigger_scopes_by_connected_monitors(self) -> None:
+class GetTriggerTest(TestCase):
+    def test_metric_alert_definition_scopes_by_connected_monitors(self) -> None:
         monitored = self.create_project()
         config = Factories.create_seer_workflow_config(
             self.organization,
@@ -19,11 +19,11 @@ class GetDefinitionTest(TestCase):
 
         definition = get_definition(config.strategy)
 
-        assert definition.trigger.scoped_by == "monitors"
+        assert definition.scoped_by == "monitors"
         assert definition.project_ids(config) == [monitored.id]
         assert not is_scheduled(config.strategy)
 
-    def test_schedule_trigger_scopes_by_selected_projects(self) -> None:
+    def test_schedule_definition_scopes_by_selected_projects(self) -> None:
         selected = self.create_project()
         config = Factories.create_seer_workflow_config(
             self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
@@ -32,7 +32,7 @@ class GetDefinitionTest(TestCase):
 
         definition = get_definition(config.strategy)
 
-        assert definition.trigger.scoped_by == "projects"
+        assert definition.scoped_by == "projects"
         assert definition.project_ids(config) == [selected.id]
         assert is_scheduled(config.strategy)
 

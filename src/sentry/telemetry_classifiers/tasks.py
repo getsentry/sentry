@@ -87,6 +87,9 @@ def select_entities(classifier_id: int) -> None:
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         return
+    if _is_org_killswitched(classifier):
+        _count_selection("org_killswitched", classifier.dataset)
+        return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
         _count_selection("unsupported_dataset", classifier.dataset)
@@ -131,6 +134,10 @@ def classify_entity(classifier_id: int, entity_id: str) -> None:
     classifier = _get_enabled_classifier(classifier_id)
     if classifier is None:
         _count_classification("classifier_missing", None)
+        return
+    # Classifications enqueued before the organization was killswitched stop here.
+    if _is_org_killswitched(classifier):
+        _count_classification("org_killswitched", classifier.dataset)
         return
     dataset = DATASETS.get(classifier.dataset)
     if dataset is None:
@@ -203,6 +210,11 @@ def _get_enabled_classifier(classifier_id: int) -> TelemetryClassifier | None:
         .select_related("project__organization")
         .get_or_none()
     )
+
+
+def _is_org_killswitched(classifier: TelemetryClassifier) -> bool:
+    killswitched = options.get("telemetry-classifiers.killswitch-organization-ids")
+    return classifier.project.organization_id in killswitched
 
 
 def _enqueue_classifications(classifier_id: int, entity_ids: Sequence[str], limit: int) -> int:

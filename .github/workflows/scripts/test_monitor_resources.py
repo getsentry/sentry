@@ -69,6 +69,38 @@ def test_summarize_cpu_by_group_splits_out_test_run() -> None:
     }
 
 
+def test_summarize_cpu_by_phase() -> None:
+    samples = [
+        {"ts": 0.0, "cpu_s_by_group": {"docker:snuba-clickhouse-1": 1.0}},
+        {
+            "ts": 5.0,
+            "phase": "snuba-bootstrap",
+            "cpu_s_by_group": {"docker:snuba-clickhouse-1": 10.0},
+        },
+        {"ts": 7.0, "phase": "setup", "cpu_s_by_group": {"docker:snuba-clickhouse-1": 0.5}},
+        {"ts": 12.0, "phase": "tests", "cpu_s_by_group": {"pytest:worker": 15.0}},
+    ]
+    assert _mod.summarize(samples)["cpu_s_by_phase"] == {
+        "setup": {"duration_s": 2.0, "cpu_s_by_group": {"docker:snuba-clickhouse-1": 1.5}},
+        "snuba-bootstrap": {
+            "duration_s": 5.0,
+            "cpu_s_by_group": {"docker:snuba-clickhouse-1": 10.0},
+        },
+        "tests": {"duration_s": 5.0, "cpu_s_by_group": {"pytest:worker": 15.0}},
+    }
+
+
+def test_phase_change_ends_the_sample_early(tmp_path, monkeypatch) -> None:
+    monkeypatch.setattr(_mod, "STATE_DIR", tmp_path)
+    monkeypatch.setattr(_mod, "PHASE_FILE", tmp_path / "phase")
+    assert _mod.read_phase() == "setup"
+    _mod.set_phase("tests")
+    start = time.monotonic()
+    assert _mod.wait_for_next_sample("setup", 60.0) == "tests"
+    assert time.monotonic() - start < 1
+    assert _mod.wait_for_next_sample("tests", 0.01) == "tests"
+
+
 def test_read_pressure_uses_some_line(tmp_path) -> None:
     psi = tmp_path / "cpu"
     psi.write_text(

@@ -158,10 +158,7 @@ export const FRAMELESS_STYLES = {
  */
 const STARRED_COLUMN_WIDTH = 'max-content';
 
-const tableUrlParsers = {
-  sort: parseAsSort,
-  width: parseAsNativeArrayOf(parseAsString),
-};
+const tableUrlParsers = {sort: parseAsSort, width: parseAsNativeArrayOf(parseAsString)};
 
 const loadTableUrlParams = createLoader(tableUrlParsers);
 const serializeTableUrlParams = createSerializer(tableUrlParsers);
@@ -226,14 +223,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   ): RenderFunctionBaggage => {
     const unit = meta.units?.[field] as string | undefined;
 
-    return {
-      organization,
-      theme,
-      location,
-      navigate,
-      unit,
-      projects,
-    };
+    return {organization, theme, location, navigate, unit, projects};
   };
 
   const {data, meta} = tableData;
@@ -255,10 +245,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   // Fallback to extracting fields from the tableData if no columns are provided
   const columnOrder: TabularColumn[] =
-    columns?.map((column, index) => ({
-      ...column,
-      width: widths[index],
-    })) ??
+    columns?.map((column, index) => ({...column, width: widths[index]})) ??
     Object.keys(meta.fields).map((key, index) => ({
       key,
       width: widths[index],
@@ -333,22 +320,14 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const column = columnOrder[columnIndex]!;
           const cellAllowedActions =
             typeof allowedCellActions === 'function'
-              ? allowedCellActions({
-                  column,
-                  dataRow,
-                  columnIndex,
-                  rowIndex,
-                })
+              ? allowedCellActions({column, dataRow, columnIndex, rowIndex})
               : allowedCellActions;
           const formattedColumn = {
             key: column.key,
             name: column.key,
             isSortable: !!column.sortable,
             type: column.type ?? FieldValueType.NEVER,
-            column: {
-              field: column.key,
-              kind: 'field',
-            } as Column,
+            column: {field: column.key, kind: 'field'} as Column,
           };
 
           return (

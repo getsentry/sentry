@@ -1,12 +1,17 @@
 import type {InboxItem} from 'sentry/views/inbox/types';
 
-export function InboxItemFixture(params: Partial<InboxItem> = {}): InboxItem {
+export function InboxItemFixture({
+  subjectType = 'issue',
+  subjectId = '1',
+  ...params
+}: Partial<InboxItem> = {}): InboxItem {
   return {
     id: '1',
-    subjectType: 'issue',
-    subjectId: '1',
+    subjectType,
+    subjectId,
     title: 'TypeError: Cannot read properties of undefined',
     subtitle: 'Assigned to you',
+    url: `https://sentry.example.com/organizations/org-slug/inbox/${subjectType}/${subjectId}/`,
     eventTypes: ['issue.user_assigned'],
     eventCount: 1,
     unreadEventCount: 1,

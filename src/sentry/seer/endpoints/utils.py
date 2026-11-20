@@ -77,7 +77,7 @@ def get_seer_run(seer_run_state_id: int, organization: Organization) -> SeerRun 
     or None when no row exists (legacy runs predating SeerRun mirroring)."""
     return SeerRun.objects.filter(
         seer_run_state_id=seer_run_state_id, organization=organization
-    ).first()
+    ).first()  # noqa: S035
 
 
 _NO_ACCESS_DETAIL = "You do not have access to this run."

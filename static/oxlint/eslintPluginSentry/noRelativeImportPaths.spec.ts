@@ -3,13 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {noRelativeImportPaths} from './noRelativeImportPaths';
 
 const ruleTester = new RuleTester();
-const options = [
-  {
-    prefix: 'sentry',
-    rootDir: 'static/app',
-    allowSameFolder: true,
-  },
-];
+const options = [{prefix: 'sentry', rootDir: 'static/app', allowSameFolder: true}];
 
 ruleTester.run('no-relative-import-paths', noRelativeImportPaths, {
   valid: [

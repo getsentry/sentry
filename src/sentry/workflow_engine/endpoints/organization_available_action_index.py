@@ -142,8 +142,8 @@ class OrganizationAvailableActionIndexEndpoint(OrganizationEndpoint):
 
         actions = []
         for action_type, handler in action_handler_registry.registrations.items():
-            # Seer provisions bindings separately; the alert editor cannot configure this action.
-            if action_type == Action.Type.SEER_WORKFLOW:
+            # Seer provisions this action; the alert editor cannot configure it.
+            if action_type == Action.Type.SEER_INVESTIGATION:
                 continue
             if requested_action_types and str(action_type) not in requested_action_types:
                 continue

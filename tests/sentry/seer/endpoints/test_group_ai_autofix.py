@@ -1864,7 +1864,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["detail"] == "Seer can no longer iterate on this pull request"
         mock_enqueue.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.autofix.pr_iteration.manual_trigger.get_autofix_run_state")
     def test_pr_iteration_rejected_when_out_of_credits(self, mock_run_state: MagicMock) -> None:
         group = self.create_group()
@@ -1907,7 +1907,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
                     == SEER_OPERATION_ESTIMATES[SeerOperation.AUTOFIX_PR_ITERATION]()
                 )
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(
@@ -1949,7 +1949,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         (row,) = open_iterations(seer_run)
         assert row.data[FAILURE_REASON_DATA_KEY] == PrIterationOutcome.SENTRY_OUT_OF_CREDITS.value
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -2330,7 +2330,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 404, response.data
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.agent.client_utils.make_agent_state_request")
     @patch("sentry.seer.agent.client.make_agent_update_request")
     def test_open_pr_out_of_credits(

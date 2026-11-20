@@ -106,7 +106,7 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
                 user_id=user.id,
                 integration_id=external_issue.integration_id,
                 organization=external_issue.organization,
-            ).first()
+            ).first()  # noqa: S035
             if not external_actor:
                 logger.info("assignee-outbound.external-actor-not-found", extra=log_context)
                 return
@@ -319,14 +319,11 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         encoded_project_id = quote(project_id, safe="")
 
-        return cast(
-            "Mapping[str, Any] | None",
-            self.get_client().update_comment(
-                encoded_project_id,
-                parsed_issue_id,
-                group_note.data["external_id"],
-                {"body": quoted_comment},
-            ),
+        return self.get_client().update_comment(
+            encoded_project_id,
+            parsed_issue_id,
+            group_note.data["external_id"],
+            {"body": quoted_comment},
         )
 
     def create_comment(self, issue_id: str, user_id: int, group_note: Activity) -> IssuePayload:
@@ -347,9 +344,6 @@ class GitlabIssueSyncSpec(IssueSyncIntegration):
 
         encoded_project_id = quote(project_id, safe="")
 
-        return cast(
-            "Mapping[str, Any]",
-            self.get_client().create_comment(
-                encoded_project_id, parsed_issue_id, {"body": quoted_comment}
-            ),
+        return self.get_client().create_comment(
+            encoded_project_id, parsed_issue_id, {"body": quoted_comment}
         )

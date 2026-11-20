@@ -80,9 +80,7 @@ function GroupRelatedIssues({group}: {group: Group}) {
         </Flex>
       </HeaderWrapper>
       <GroupList
-        queryParams={{
-          query: `issue.id:[${issueIds}]`,
-        }}
+        queryParams={{query: `issue.id:[${issueIds}]`}}
         source="similar-issues-tab"
         canSelectGroups={false}
         withChart={false}

@@ -3,7 +3,7 @@
 # Detector for the `no-deprecated-callsite` convention.
 #
 # Flags every callsite that references an `@deprecated` symbol, using the
-# type-aware oxlint rule `typescript/no-deprecated` (backed by oxlint-tsgolint).
+# type-aware oxlint rule `typescript/no-deprecated` (backed by tsrs).
 # Because the rule resolves each symbol through the TypeScript checker, its
 # message includes the symbol's own `@deprecated` JSDoc text (the migration
 # instruction) — which the scanner surfaces as the finding's explanation.
@@ -45,7 +45,7 @@ report() {
   fi
 }
 
-# Bring up the repo's toolchain. No `pnpm add` — oxlint and oxlint-tsgolint are
+# Bring up the repo's toolchain. No `pnpm add` — oxlint and tsrs are
 # already repo dependencies, so the working tree stays clean.
 if ! pnpm install --frozen-lockfile 1>&2; then
   report "pnpm install --frozen-lockfile failed; cannot lint without the repo toolchain"

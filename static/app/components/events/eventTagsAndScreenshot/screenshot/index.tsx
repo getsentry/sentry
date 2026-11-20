@@ -63,9 +63,7 @@ export function Screenshot({
   }
 
   function handleDelete(screenshotAttachmentId: string) {
-    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
-      organization,
-    });
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {organization});
     onDelete(screenshotAttachmentId);
   }
 
@@ -188,9 +186,7 @@ export function Screenshot({
                         window.location.assign(`${downloadUrl}?download=1`);
                         trackAnalytics(
                           'issue_details.issue_tab.screenshot_dropdown_download',
-                          {
-                            organization,
-                          }
+                          {organization}
                         );
                       },
                     },

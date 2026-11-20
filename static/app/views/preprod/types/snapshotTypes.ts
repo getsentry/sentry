@@ -1,3 +1,5 @@
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+
 /* eslint-disable @sentry/sort-interface-keys */
 import type {
   BuildDetailsVcsInfo,
@@ -81,6 +83,13 @@ export enum DiffStatus {
 
 export function getImageName(image: SnapshotImage): string {
   return image.display_name ?? image.image_file_name;
+}
+
+export function getSnapshotImageBaseUrls(orgSlug: string, projectId: string) {
+  // CSS mask-image fetches cross-origin without cookies, so the diff mask must stay same-origin.
+  // eslint-disable-next-line @sentry/no-relative-api-url
+  const path = `/api/0/projects/${orgSlug}/${projectId}/files/images/`;
+  return {imageBaseUrl: resolveHostname(path), diffImageBaseUrl: path};
 }
 
 export function getSnapshotImageUrlForKey(

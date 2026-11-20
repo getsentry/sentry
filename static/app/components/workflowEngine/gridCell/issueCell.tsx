@@ -14,10 +14,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {EmptyCell} from './emptyCell';
 
-type IssueCellProps = {
-  group: SimpleGroup | null;
-  className?: string;
-};
+type IssueCellProps = {group: SimpleGroup | null; className?: string};
 
 export function IssueCell({group, className}: IssueCellProps) {
   const organization = useOrganization();

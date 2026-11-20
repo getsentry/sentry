@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Generator, Mapping, Sequence
 from datetime import datetime, timedelta
-from typing import Any, Literal, cast
+from typing import Any, Literal
 
 from snuba_sdk import (
     Column,
@@ -35,6 +35,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.replays.usecases.query.conditions.ip_address import IP_ADDRESS_TEXT
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.utils import get_dataset
 from sentry.types.actor import Actor
@@ -128,21 +129,18 @@ def query_replay_instance(
     else:
         project_ids = [project_id]
 
-    return cast(
-        "list[object]",
-        execute_query(
-            query=make_full_aggregation_query(
-                fields=[],
-                replay_ids=[replay_id],
-                project_ids=project_ids,
-                period_start=start,
-                period_end=end,
-                request_user_id=request_user_id,
-            ),
-            tenant_id={"organization_id": organization.id} if organization else {},
-            referrer="replays.query.details_query",
-        )["data"],
-    )
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=[],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+            request_user_id=request_user_id,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.details_query",
+    )["data"]
 
 
 def query_replay_id_by_prefix(
@@ -233,21 +231,18 @@ def query_replay_viewed_by_ids(
         if project_id in options.get("replay.viewed-by.project-denylist"):
             raise BadRequest(message=VIEWED_BY_DENYLIST_MSG)
 
-    return cast(
-        "list[dict[str, Any]]",
-        execute_query(
-            query=make_full_aggregation_query(
-                fields=["viewed_by_ids"],
-                replay_ids=[replay_id],
-                project_ids=project_ids,
-                period_start=start,
-                period_end=end,
-                request_user_id=request_user_id,
-            ),
-            tenant_id={"organization_id": organization.id} if organization else {},
-            referrer="replays.query.viewed_by_query",
-        )["data"],
-    )
+    return execute_query(
+        query=make_full_aggregation_query(
+            fields=["viewed_by_ids"],
+            replay_ids=[replay_id],
+            project_ids=project_ids,
+            period_start=start,
+            period_end=end,
+            request_user_id=request_user_id,
+        ),
+        tenant_id={"organization_id": organization.id} if organization else {},
+        referrer="replays.query.viewed_by_query",
+    )["data"]
 
 
 def query_replays_count(
@@ -957,13 +952,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
     "user.id": Column("user_id"),
     "user.username": Column("user_name"),
     "user.email": Column("user_email"),
-    "user.ip": Function(
-        "coalesce",
-        parameters=[
-            Function("IPv4NumToString", parameters=[Column("ip_address_v4")]),
-            Function("IPv6NumToString", parameters=[Column("ip_address_v6")]),
-        ],
-    ),
+    "user.ip": IP_ADDRESS_TEXT,
     "sdk.name": Column("sdk_name"),
     "sdk.version": Column("sdk_version"),
     "os.name": Column("os_name"),

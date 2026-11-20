@@ -4,17 +4,17 @@ import type {Location} from 'history';
 
 import {FeatureBadge, Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline, type TimelineItemProps} from 'sentry/components/timeline';
 import {t} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {
@@ -161,11 +161,11 @@ function getReadOutcome(
 
 /** `cache.item_age` and `cache.ttl` are whole seconds, so 0 means under a second. */
 function formatAge(seconds: number): string {
-  return seconds < 1 ? t('<1s') : getDuration(seconds, 0, true);
+  return seconds < 1 ? t('<1s') : getDuration(seconds, {style: 'short'});
 }
 
 function formatMs(ms: number): string {
-  return getDuration(ms / 1000, 2, true);
+  return getDuration(ms / 1000, {precision: 2, style: 'short'});
 }
 
 export function CacheLifecycleSection(props: CacheLifecycleSectionProps) {
@@ -230,7 +230,7 @@ function TimestampText({
     <InfoText
       size="sm"
       variant="muted"
-      title={<DateTime date={timestamp * 1000} seconds timeZone />}
+      title={<DateTime date={timestamp * 1000} precision="second" showTimezone />}
     >
       {children}
     </InfoText>
@@ -388,11 +388,7 @@ function CacheOriginContent({
     timestamp: fillTimestamp,
     enabled: isSampled && !isPastRetention,
   });
-  const originSpanLink = useLinkedSpanTarget({
-    ...props,
-    link,
-    timestamp: fillTimestamp,
-  });
+  const originSpanLink = useLinkedSpanTarget({...props, link, timestamp: fillTimestamp});
 
   if (!isSampled) {
     // The origin trace does not exist, so the existing link is a dead end

@@ -16,7 +16,6 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.supabase.client import (
     SUPABASE_AUTHORIZATION_ERROR,
-    SUPABASE_MCP_RESOURCE,
     SUPABASE_ORGANIZATIONS_URL,
     SUPABASE_PERMISSIONS_ERROR,
     SUPABASE_RESPONSE_ERROR,
@@ -70,7 +69,6 @@ class TestSupabaseOAuthTokens:
                         "code": "authorization-code",
                         "redirect_uri": "https://example.com/extensions/supabase/setup/",
                         "code_verifier": "pkce-verifier",
-                        "resource": SUPABASE_MCP_RESOURCE,
                     }
                 ),
                 matchers.header_matcher(
@@ -108,7 +106,6 @@ class TestSupabaseOAuthTokens:
                     {
                         "grant_type": "refresh_token",
                         "refresh_token": "previous-refresh-token",
-                        "resource": SUPABASE_MCP_RESOURCE,
                     }
                 )
             ],
@@ -159,6 +156,7 @@ class TestSupabaseOAuthTokens:
             None,
             [],
             "projects:read",
+            "organizations:read projects:read analytics:read database:read",
             " ".join(SUPABASE_SCOPES) + " projects:write",
             " ".join(SUPABASE_SCOPES) + " analytics_config:read",
             " ".join(SUPABASE_SCOPES) + " environment:read",
@@ -174,7 +172,7 @@ class TestSupabaseOAuthTokens:
         responses.add(
             responses.POST,
             SUPABASE_TOKEN_URL,
-            json={**TOKEN_RESPONSE, "scope": " ".join(reversed(SUPABASE_SCOPES))},
+            json={**TOKEN_RESPONSE, "scope": "analytics:read projects:read organizations:read"},
         )
         assert refresh_access_token("refresh-token").access_token.get_secret_value() == (
             "supabase-access-token"
@@ -360,7 +358,6 @@ class SupabaseTokenRefreshTest(TestCase):
                     {
                         "grant_type": "refresh_token",
                         "refresh_token": "supabase-refresh-token",
-                        "resource": SUPABASE_MCP_RESOURCE,
                     }
                 )
             ],

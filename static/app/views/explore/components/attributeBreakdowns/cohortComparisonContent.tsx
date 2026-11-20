@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {useDebouncedValue} from '@tanstack/react-pacer';
 import moment from 'moment-timezone';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,7 +14,6 @@ import {Panel} from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {getUserTimezone} from 'sentry/utils/dates';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useAttributeBreakdownComparison} from 'sentry/views/explore/hooks/useAttributeBreakdownComparison';
 import {useAttributeBreakdownsTooltipAction} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 import {useFilteredRankedAttributes} from 'sentry/views/explore/hooks/useFilteredRankedAttributes';
@@ -92,10 +92,7 @@ export function CohortComparison({
     const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
     const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
-    return {
-      start,
-      end,
-    };
+    return {start, end};
   }, [selection]);
 
   return (
@@ -105,9 +102,7 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={value => {
-              setQueryParams({
-                breakdownQuery: value,
-              });
+              setQueryParams({breakdownQuery: value});
             }}
             query={searchQuery}
             size="sm"
@@ -129,8 +124,8 @@ export function CohortComparison({
                         selectedRangeToDates.start,
                         selectedRangeToDates.end,
                         yAttribute,
-                        getDuration(yRange[0] / 1000, 2, true),
-                        getDuration(yRange[1] / 1000, 2, true)
+                        getDuration(yRange[0] / 1000, {precision: 2, style: 'short'}),
+                        getDuration(yRange[1] / 1000, {precision: 2, style: 'short'})
                       )
                     : t(
                         'Selection is data between %s - %s',

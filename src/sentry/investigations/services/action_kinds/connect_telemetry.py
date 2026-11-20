@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from typing import Annotated, Literal, TypedDict, cast
+from typing import Annotated, Literal, TypedDict
 
 from django.db import router, transaction
 from django.db.models import QuerySet
@@ -54,7 +54,7 @@ def telemetry_available(organization: Organization, provider: TelemetryProvider)
 def _provider(action_request: NotebookActionRequest) -> TelemetryProvider:
     payload = action_request.action_payload
     assert payload is not None
-    return cast("TelemetryProvider", payload["provider"])
+    return payload["provider"]
 
 
 def telemetry_provider_for_integration(integration_provider: str) -> TelemetryProvider | None:
