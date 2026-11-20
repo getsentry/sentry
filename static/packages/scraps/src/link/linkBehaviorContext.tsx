@@ -31,10 +31,7 @@ function AnchorLink({
 }
 
 const defaultLinkBehavior = <T extends LinkProps>() =>
-  ({
-    component: AnchorLink,
-    behavior: props => props,
-  }) satisfies LinkBehavior<T>;
+  ({component: AnchorLink, behavior: props => props}) satisfies LinkBehavior<T>;
 
 export const LinkBehaviorContextProvider = LinkBehaviorContext.Provider;
 

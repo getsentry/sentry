@@ -52,13 +52,7 @@ export function getCompareApiUrl(params: {
   const {organizationSlug, headArtifactId, baseArtifactId} = params;
   return getApiUrl(
     '/organizations/$organizationIdOrSlug/preprodartifacts/size-analysis/compare/$headArtifactId/$baseArtifactId/',
-    {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        headArtifactId,
-        baseArtifactId,
-      },
-    }
+    {path: {organizationIdOrSlug: organizationSlug, headArtifactId, baseArtifactId}}
   );
 }
 

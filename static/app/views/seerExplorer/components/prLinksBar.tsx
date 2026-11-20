@@ -57,9 +57,7 @@ function PRButton({state}: {state: RepoPRState}) {
         disabled
         size="sm"
         icon={<LoadingIndicator size={16} style={{margin: 0}} />}
-        tooltipProps={{
-          title: state.pr_number ? t('Pushing changes…') : t('Opening PR…'),
-        }}
+        tooltipProps={{title: state.pr_number ? t('Pushing changes…') : t('Opening PR…')}}
       >
         {label}
       </Button>

@@ -3,20 +3,14 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {parseAsThresholds, Thresholds, type ThresholdsConfig} from './thresholds';
 
 const exampleThresholdsConfig: ThresholdsConfig = {
-  max_values: {
-    max1: 100,
-    max2: 200,
-  },
+  max_values: {max1: 100, max2: 200},
   unit: null,
 };
 
 describe('Widget Builder > ThresholdsStep', () => {
   it('renders without crashing when max_values is undefined', async () => {
     const onChange = jest.fn();
-    const configWithoutMaxValues: ThresholdsConfig = {
-      max_values: undefined,
-      unit: null,
-    };
+    const configWithoutMaxValues: ThresholdsConfig = {max_values: undefined, unit: null};
     render(
       <Thresholds
         thresholdsConfig={configWithoutMaxValues}

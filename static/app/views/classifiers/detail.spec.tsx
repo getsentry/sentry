@@ -226,7 +226,7 @@ describe('ClassifierDetail', () => {
     expect(screen.queryByRole('heading', {name: 'Filters'})).not.toBeInTheDocument();
   });
 
-  it('shows the number of classified conversations', async () => {
+  it('shows the number of classified conversations and affected users', async () => {
     MockApiClient.addMockResponse({
       url: detailUrl,
       body: TelemetryClassifierFixture({
@@ -237,26 +237,48 @@ describe('ClassifierDetail', () => {
     });
     const countRequest = MockApiClient.addMockResponse({
       url: eventsUrl,
-      body: {data: [{'count_unique(gen_ai.conversation.id)': 1234}]},
+      body: {
+        data: [{'count_unique(gen_ai.conversation.id)': 1234, 'count_unique(user)': 56}],
+      },
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
 
     renderDetail();
 
-    expect(await screen.findByText('1.2K conversations classified')).toBeInTheDocument();
+    expect(await screen.findByText('1.2K conversations')).toBeInTheDocument();
+    expect(screen.getByText('56 users')).toBeInTheDocument();
     expect(countRequest).toHaveBeenCalledWith(
       eventsUrl,
       expect.objectContaining({
         query: expect.objectContaining({
           dataset: 'enrichment_attributes',
-          query: `has:${RESULT_FIELD}`,
+          query: `${RESULT_FIELD}:>=0.8`,
           project: [1],
           statsPeriod: '24h',
         }),
       })
     );
+  });
+
+  it('resets the table cursor when the time range changes', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+
+    const {router} = renderDetail(organization, {tableCursor: '0:20:0'});
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: '24H', expanded: false})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Last 7 days'}));
+
+    await waitFor(() => expect(router.location.query.statsPeriod).toBe('7d'));
+    expect(router.location.query.tableCursor).toBeUndefined();
   });
 
   it('scopes the results to the selected environment and time range', async () => {
@@ -272,7 +294,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     const timeSeriesRequest = MockApiClient.addMockResponse({
@@ -300,10 +324,7 @@ describe('ClassifierDetail', () => {
     expect(timeSeriesRequest).toHaveBeenCalledWith(
       timeSeriesUrl,
       expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['production'],
-          statsPeriod: '7d',
-        }),
+        query: expect.objectContaining({environment: ['production'], statsPeriod: '7d'}),
       })
     );
   });
@@ -322,7 +343,9 @@ describe('ClassifierDetail', () => {
       url: eventsUrl,
       body: {data: [{'count_unique(gen_ai.conversation.id)': 5}]},
       match: [
-        MockApiClient.matchQuery({field: ['count_unique(gen_ai.conversation.id)']}),
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
       ],
     });
     ProjectsStore.loadInitialData([
@@ -336,9 +359,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(countRequest).toHaveBeenCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({environment: []}),
-        })
+        expect.objectContaining({query: expect.objectContaining({environment: []})})
       )
     );
   });
@@ -389,19 +410,14 @@ describe('ClassifierDetail', () => {
     renderDetail();
 
     expect(await screen.findByText('Second conversation')).toBeInTheDocument();
-    expect(
-      screen.getByRole('columnheader', {name: 'sentry.enrichment.user_frustration'})
-    ).toBeInTheDocument();
     expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
-      ['Conversation', 'sentry.enrichment.user_frustration', 'Age']
+      ['Conversation', 'Age']
     );
 
     const [, secondRow, firstRow] = screen.getAllByRole('row');
     expect(within(secondRow!).getByText('Second conversation')).toBeInTheDocument();
-    expect(within(secondRow!).getByText('90%')).toBeInTheDocument();
     expect(within(secondRow!).getByText('5m ago')).toBeInTheDocument();
     expect(within(firstRow!).getByText('First conversation')).toBeInTheDocument();
-    expect(within(firstRow!).getByText('25%')).toBeInTheDocument();
     expect(within(firstRow!).getByText('10m ago')).toBeInTheDocument();
 
     expect(resultsRequest).toHaveBeenCalledWith(
@@ -410,7 +426,7 @@ describe('ClassifierDetail', () => {
         query: expect.objectContaining({
           dataset: 'enrichment_attributes',
           field: ['gen_ai.conversation.id', RESULT_FIELD, 'timestamp'],
-          query: `has:${RESULT_FIELD}`,
+          query: `${RESULT_FIELD}:>=0.8`,
           sort: '-timestamp',
           per_page: 20,
           project: [1],
@@ -434,9 +450,30 @@ describe('ClassifierDetail', () => {
 
     expect(resultsRequest).toHaveBeenLastCalledWith(
       eventsUrl,
-      expect.objectContaining({
-        query: expect.objectContaining({cursor: '0:20:0'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({cursor: '0:20:0'})})
+    );
+  });
+
+  it('sorts by age while the result column is hidden', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const resultsRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.classifiers.detail.conversations'}),
+      ],
+    });
+
+    renderDetail(organization, {results: 'matches', sort: '-result'});
+
+    await waitFor(() =>
+      expect(resultsRequest).toHaveBeenCalledWith(
+        eventsUrl,
+        expect.objectContaining({query: expect.objectContaining({sort: '-timestamp'})})
+      )
     );
   });
 
@@ -469,7 +506,7 @@ describe('ClassifierDetail', () => {
       body: [ConversationFixture('conv-1', 'First conversation')],
     });
 
-    renderDetail();
+    renderDetail(organization, {results: 'all'});
 
     await screen.findByText('First conversation');
     expect(screen.getByRole('columnheader', {name: 'Age'})).toHaveAttribute(
@@ -503,9 +540,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(resultsRequest).toHaveBeenLastCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({sort: RESULT_FIELD}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort: RESULT_FIELD})})
       )
     );
 
@@ -520,9 +555,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(resultsRequest).toHaveBeenLastCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({sort: 'timestamp'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
       )
     );
   });
@@ -589,11 +622,226 @@ describe('ClassifierDetail', () => {
 
     expect(timeSeriesRequest).toHaveBeenLastCalledWith(
       timeSeriesUrl,
+      expect.objectContaining({query: expect.objectContaining({interval: '10m'})})
+    );
+  });
+
+  it('filters the results to non-matches', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const resultsRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: []},
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.classifiers.detail.conversations'}),
+      ],
+    });
+    const countRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {data: [{'count_unique(gen_ai.conversation.id)': 3}]},
+      match: [
+        MockApiClient.matchQuery({
+          field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+        }),
+      ],
+    });
+    const timeSeriesRequest = MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: []},
+    });
+
+    const {router} = renderDetail(organization, {tableCursor: '0:20:0'});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Show matches'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Show non-matches'}));
+
+    expect(await screen.findByText('3 conversations')).toBeInTheDocument();
+    expect(router.location.query.results).toBe('non-matches');
+    expect(router.location.query.tableCursor).toBeUndefined();
+    const nonMatchQuery = expect.objectContaining({
+      query: expect.objectContaining({query: `${RESULT_FIELD}:<0.8`}),
+    });
+    expect(resultsRequest).toHaveBeenLastCalledWith(eventsUrl, nonMatchQuery);
+    expect(countRequest).toHaveBeenLastCalledWith(eventsUrl, nonMatchQuery);
+    expect(timeSeriesRequest).toHaveBeenLastCalledWith(timeSeriesUrl, nonMatchQuery);
+  });
+
+  it('shows whether each result matches when showing all', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const resultsRequest = MockApiClient.addMockResponse({
+      url: eventsUrl,
+      body: {
+        data: [
+          {
+            'gen_ai.conversation.id': 'conv-2',
+            [RESULT_FIELD]: 0.9,
+            timestamp: minutesAgo(5),
+          },
+          {
+            'gen_ai.conversation.id': 'conv-1',
+            [RESULT_FIELD]: 0.25,
+            timestamp: minutesAgo(10),
+          },
+        ],
+      },
+      match: [
+        MockApiClient.matchQuery({referrer: 'api.classifiers.detail.conversations'}),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: conversationsUrl,
+      body: [
+        ConversationFixture('conv-1', 'First conversation'),
+        ConversationFixture('conv-2', 'Second conversation'),
+      ],
+    });
+
+    renderDetail(organization, {results: 'all'});
+
+    expect(await screen.findByText('Second conversation')).toBeInTheDocument();
+    expect(screen.getAllByRole('columnheader').map(header => header.textContent)).toEqual(
+      ['Conversation', 'sentry.enrichment.user_frustration', 'Age']
+    );
+    const [, secondRow, firstRow] = screen.getAllByRole('row');
+    expect(within(secondRow!).getByText('True')).toBeInTheDocument();
+    expect(within(firstRow!).getByText('False')).toBeInTheDocument();
+    expect(screen.queryByText('90%')).not.toBeInTheDocument();
+    expect(resultsRequest).toHaveBeenCalledWith(
+      eventsUrl,
       expect.objectContaining({
-        query: expect.objectContaining({interval: '10m'}),
+        query: expect.objectContaining({query: `has:${RESULT_FIELD}`}),
       })
     );
   });
+
+  it('charts matches and non-matches separately when showing all', async () => {
+    const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const matchesRequest = MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: [TimeSeriesFixture({yAxis})]},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:>=0.8`})],
+    });
+    const nonMatchesRequest = MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: [TimeSeriesFixture({yAxis})]},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:<0.8`})],
+    });
+
+    renderDetail(organization, {results: 'all'});
+
+    await waitFor(() => expect(matchesRequest).toHaveBeenCalled());
+    expect(nonMatchesRequest).toHaveBeenCalled();
+  });
+
+  it('drops a failed non-match chart request after leaving show all', async () => {
+    const yAxis = 'count(tags[sentry.enrichment.user_frustration,number])';
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      body: {timeSeries: [TimeSeriesFixture({yAxis})]},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:>=0.8`})],
+    });
+    MockApiClient.addMockResponse({
+      url: timeSeriesUrl,
+      statusCode: 400,
+      body: {detail: 'Non-match query failed'},
+      match: [MockApiClient.matchQuery({query: `${RESULT_FIELD}:<0.8`})],
+    });
+
+    renderDetail(organization, {results: 'all'});
+
+    expect(await screen.findByText('Non-match query failed')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Show all'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Show matches'}));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Non-match query failed')).not.toBeInTheDocument()
+    );
+  });
+
+  it.each([
+    {name: 'without a threshold', outputType: 'score' as const, binaryThreshold: null},
+    {name: 'with a stray threshold', outputType: 'choice' as const, binaryThreshold: 0.8},
+  ])(
+    'keeps the default view for non-binary classifiers $name',
+    async ({outputType, binaryThreshold}) => {
+      MockApiClient.addMockResponse({
+        url: detailUrl,
+        body: TelemetryClassifierFixture({
+          id: '10',
+          projectId: '1',
+          outputType,
+          binaryThreshold,
+        }),
+      });
+      const countRequest = MockApiClient.addMockResponse({
+        url: eventsUrl,
+        body: {data: [{'count_unique(gen_ai.conversation.id)': 2}]},
+        match: [
+          MockApiClient.matchQuery({
+            field: ['count_unique(gen_ai.conversation.id)', 'count_unique(user)'],
+          }),
+        ],
+      });
+      const resultsRequest = MockApiClient.addMockResponse({
+        url: eventsUrl,
+        body: {
+          data: [
+            {
+              'gen_ai.conversation.id': 'conv-1',
+              [RESULT_FIELD]: 0.42,
+              timestamp: minutesAgo(5),
+            },
+          ],
+        },
+        match: [
+          MockApiClient.matchQuery({referrer: 'api.classifiers.detail.conversations'}),
+        ],
+      });
+      MockApiClient.addMockResponse({
+        url: conversationsUrl,
+        body: [ConversationFixture('conv-1', 'First conversation')],
+      });
+      const timeSeriesRequest = MockApiClient.addMockResponse({
+        url: timeSeriesUrl,
+        body: {timeSeries: []},
+      });
+
+      renderDetail(organization, {results: 'non-matches'});
+
+      expect(await screen.findByText('First conversation')).toBeInTheDocument();
+      expect(screen.getByText('2 conversations')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Show non-matches'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getAllByRole('columnheader').map(header => header.textContent)
+      ).toEqual(['Conversation', 'sentry.enrichment.user_frustration', 'Age']);
+      expect(screen.getByText('0.42')).toBeInTheDocument();
+      expect(screen.queryByText('False')).not.toBeInTheDocument();
+
+      const defaultQuery = expect.objectContaining({
+        query: expect.objectContaining({query: `has:${RESULT_FIELD}`}),
+      });
+      expect(countRequest).toHaveBeenCalledWith(eventsUrl, defaultQuery);
+      expect(resultsRequest).toHaveBeenCalledWith(eventsUrl, defaultQuery);
+      expect(timeSeriesRequest).toHaveBeenCalledTimes(1);
+      expect(timeSeriesRequest).toHaveBeenCalledWith(timeSeriesUrl, defaultQuery);
+    }
+  );
 
   it('shows an empty state when the classifier has no instances', async () => {
     MockApiClient.addMockResponse({
@@ -717,6 +965,81 @@ describe('ClassifierDetail', () => {
     );
 
     expect(await screen.findByRole('button', {name: 'Disable'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('deletes the classifier after confirming', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'DELETE',
+    });
+
+    const {router} = renderDetail();
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+    const modal = await screen.findByRole('dialog');
+    expect(
+      within(modal).getByText(
+        'Are you sure you want to delete this classifier? This action cannot be undone.'
+      )
+    ).toBeInTheDocument();
+    expect(deleteRequest).not.toHaveBeenCalled();
+
+    await userEvent.click(within(modal).getByRole('button', {name: 'Delete'}));
+
+    expect(deleteRequest).toHaveBeenCalledWith(
+      detailUrl,
+      expect.objectContaining({method: 'DELETE'})
+    );
+    await waitFor(() =>
+      expect(router.location.pathname).toBe(
+        `/organizations/${organization.slug}/seer/classifiers/`
+      )
+    );
+  });
+
+  it('does not delete the classifier when cancelling', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    const deleteRequest = MockApiClient.addMockResponse({
+      url: detailUrl,
+      method: 'DELETE',
+    });
+
+    renderDetail();
+    renderGlobalModal();
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Delete'}));
+    const modal = await screen.findByRole('dialog');
+    await userEvent.click(within(modal).getByRole('button', {name: 'Cancel'}));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(deleteRequest).not.toHaveBeenCalled();
+  });
+
+  it('disables the delete button without project access', async () => {
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: TelemetryClassifierFixture({id: '10', projectId: '1'}),
+    });
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'frontend', access: []}),
+    ]);
+
+    renderDetail(
+      OrganizationFixture({features: ['classifiers-ui'], access: ['org:read']})
+    );
+
+    expect(await screen.findByRole('button', {name: 'Delete'})).toHaveAttribute(
       'aria-disabled',
       'true'
     );

@@ -68,10 +68,7 @@ describe('useOnboardingAgentSetupRun', () => {
       method: 'POST',
       body: run,
     });
-    const options = {
-      organization,
-      additionalWrapper: OnboardingContextProvider,
-    };
+    const options = {organization, additionalWrapper: OnboardingContextProvider};
 
     const firstRender = renderHookWithProviders(
       () => useOnboardingAgentSetupRun({enabled: true}),

@@ -114,10 +114,7 @@ export function parseFlamegraphAttachment(value: unknown): FlamegraphAttachmentD
 export function treeToSamples(
   data: FlamegraphAttachmentData,
   tree: FlamegraphAttachmentTree
-): {
-  samples: number[][];
-  weights: number[];
-} {
+): {samples: number[][]; weights: number[]} {
   const samples: number[][] = [];
   const weights: number[] = [];
   const pending = tree.roots.map(id => ({id, path: [] as number[]})).reverse();

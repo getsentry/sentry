@@ -2,11 +2,17 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {hasAnnotations, stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {getToolOutputBytes} from 'sentry/views/insights/pages/agents/utils/getToolOutputBytes';
 import {SpanFields} from 'sentry/views/insights/types';
 
-import {useConversation, type ConversationStats} from './useConversation';
+import {
+  buildConversationNodes,
+  useConversation,
+  type ConversationStats,
+} from './useConversation';
 
 const BASE_SPAN = {
   'gen_ai.conversation.id': 'conv-123',
@@ -96,13 +102,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-title/`,
       body: envelope(
-        [
-          {
-            ...BASE_SPAN,
-            'gen_ai.conversation.id': 'conv-title',
-            span_id: 'span-title',
-          },
-        ],
+        [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
         'My great conversation'
       ),
     });
@@ -139,11 +139,7 @@ describe('useConversation', () => {
     const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
-        match: [
-          MockApiClient.matchQuery({
-            cursor: index === 0 ? undefined : `${index}`,
-          }),
-        ],
+        match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
         body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
         headers: {
           Link: `<${url}?cursor=${
@@ -231,6 +227,67 @@ describe('useConversation', () => {
       node?.value as {additional_attributes?: Record<string, unknown>} | undefined
     )?.additional_attributes;
     expect(attrs?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(inputMessages);
+  });
+
+  describe('scrubbed values', () => {
+    const inputMessages = JSON.stringify([{role: 'user', content: 'Mail [email] now'}]);
+    const start = inputMessages.indexOf('[email]');
+    const meta = {
+      'gen_ai.input.messages': {
+        meta: {
+          value: {
+            '': {rem: [['@email:replace', 's', start, start + '[email]'.length]], len: 0},
+          },
+        },
+      },
+    };
+
+    async function loadInputMessages(span: Record<string, unknown>) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/agents/conversations/conv-123/`,
+        body: envelope([
+          {...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta, ...span},
+        ]),
+      });
+
+      const {result} = renderHookWithProviders(
+        () => useConversation({conversationId: 'conv-123'}),
+        {organization}
+      );
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      return result.current.nodes[0]?.attributes?.[
+        SpanFields.GEN_AI_INPUT_MESSAGES
+      ] as string;
+    }
+
+    it('marks the values that PII scrubbing changed', async () => {
+      const marked = await loadInputMessages({});
+
+      expect(hasAnnotations(marked)).toBe(true);
+      expect(stripAnnotations(marked)).toBe(inputMessages);
+    });
+
+    it('leaves them alone unless asked to mark them, like for the export', () => {
+      const {nodes} = buildConversationNodes([
+        {...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta},
+      ]);
+
+      expect(nodes[0]?.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
+        inputMessages
+      );
+    });
+
+    it.each(['decide', 'extract'])(
+      'leaves %s spans, which are rendered as plain text, alone',
+      async operationName => {
+        const value = await loadInputMessages({'gen_ai.operation.name': operationName});
+
+        expect(value).toBe(inputMessages);
+      }
+    );
   });
 
   it('maps gen_ai.output.messages to node attributes', async () => {
@@ -683,9 +740,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({project: [456]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [456]})})
     );
   });
 
@@ -740,11 +795,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
     );
     // No statsPeriod sent — backend uses its 30d retention fallback
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
@@ -755,12 +806,7 @@ describe('useConversation', () => {
 
   it('uses relative period from page filters when explicitly set', async () => {
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null})
     );
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -777,11 +823,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
     expect(queryArg).not.toHaveProperty('start');
@@ -893,11 +935,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-no-issues/`,
       body: envelope([
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-no-issues',
-          span_id: 'span-x',
-        },
+        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
       ]),
     });
 

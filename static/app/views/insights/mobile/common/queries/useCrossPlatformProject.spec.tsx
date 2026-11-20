@@ -12,12 +12,7 @@ import {useCrossPlatformProject} from './useCrossPlatformProject';
 function initializePageFilters(projects: number[]) {
   PageFiltersStore.onInitializeUrlState(
     PageFiltersFixture({
-      datetime: {
-        period: '10d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '10d', start: null, end: null, utc: false},
       projects,
     })
   );

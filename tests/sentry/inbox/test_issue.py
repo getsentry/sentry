@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.db import IntegrityError, router, transaction
 
+from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.issue import (
     ISSUE,
     ISSUE_USER_ASSIGNED,
@@ -11,7 +12,7 @@ from sentry.inbox.issue import (
     IssuePRReadyForReviewData,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
-from sentry.inbox.types import InboxActor, InboxEventData
+from sentry.inbox.types import InboxActor
 from sentry.issues.comments import create_comment, update_comment
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.groupassignee import GroupAssignee

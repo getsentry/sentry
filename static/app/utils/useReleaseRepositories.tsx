@@ -40,11 +40,7 @@ export function useReleaseRepositories({
   options,
 }: UseReleaseReposProps) {
   return useQuery({
-    ...getReleaseRepositoriesApiOptions({
-      orgSlug,
-      projectSlug,
-      release,
-    }),
+    ...getReleaseRepositoriesApiOptions({orgSlug, projectSlug, release}),
     ...options,
   });
 }

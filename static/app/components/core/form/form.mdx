@@ -124,10 +124,7 @@ Use `.refine()` for validation that depends on multiple fields:
 
 ```jsx
 const schema = z
-  .object({
-    password: z.string(),
-    confirmPassword: z.string(),
-  })
+  .object({password: z.string(), confirmPassword: z.string()})
   .refine(data => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
@@ -141,12 +138,7 @@ For conditional validation on an individual field, use the `validators` prop on 
 ```jsx
 <form.Field
   name="secret"
-  validators={[
-    {
-      run: z.string().min(1, 'Secret is required'),
-      triggers: ['change'],
-    },
-  ]}
+  validators={[{run: z.string().min(1, 'Secret is required'), triggers: ['change']}]}
 >
   {field => (
     <field.Layout.Row label={t('Secret')} required>

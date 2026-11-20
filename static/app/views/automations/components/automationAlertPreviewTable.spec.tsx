@@ -14,21 +14,9 @@ describe('AutomationAlertPreviewTable', () => {
     const previews = [
       {
         results: [
-          {
-            groupId: group.id,
-            triggeredAt: '2026-09-24T12:00:00Z',
-            isThrottled: false,
-          },
-          {
-            groupId: group.id,
-            triggeredAt: '2026-09-24T11:00:00Z',
-            isThrottled: false,
-          },
-          {
-            groupId: group.id,
-            triggeredAt: '2026-09-24T10:00:00Z',
-            isThrottled: true,
-          },
+          {groupId: group.id, triggeredAt: '2026-09-24T12:00:00Z', isThrottled: false},
+          {groupId: group.id, triggeredAt: '2026-09-24T11:00:00Z', isThrottled: false},
+          {groupId: group.id, triggeredAt: '2026-09-24T10:00:00Z', isThrottled: true},
         ],
       },
     ];
@@ -52,11 +40,7 @@ describe('AutomationAlertPreviewTable', () => {
     expect(groupsRequest).toHaveBeenCalledWith(
       groupsUrl,
       expect.objectContaining({
-        query: {
-          group: [group.id],
-          project: [1],
-          collapse: ['stats', 'unhandled'],
-        },
+        query: {group: [group.id], project: [1], collapse: ['stats', 'unhandled']},
       })
     );
   });

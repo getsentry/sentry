@@ -17,17 +17,13 @@ describe('useBrandedArtworkLoading', () => {
     'decode'
   );
   const originalMatchMedia = window.matchMedia;
-  const requests: Array<{
-    reject: (error: Error) => void;
-    resolve: () => void;
-  }> = [];
+  const requests: Array<{reject: (error: Error) => void; resolve: () => void}> = [];
 
   beforeEach(() => {
     requests.length = 0;
-    jest.spyOn(window, 'matchMedia').mockImplementation(query => ({
-      ...originalMatchMedia(query),
-      matches: true,
-    }));
+    jest
+      .spyOn(window, 'matchMedia')
+      .mockImplementation(query => ({...originalMatchMedia(query), matches: true}));
     Object.defineProperty(HTMLImageElement.prototype, 'decode', {
       configurable: true,
       value(this: HTMLImageElement) {

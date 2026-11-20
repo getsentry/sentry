@@ -40,11 +40,7 @@ export function PasswordForm() {
   });
 
   const form = useScrapsForm({
-    defaultValues: {
-      password: '',
-      passwordNew: '',
-      passwordVerify: '',
-    },
+    defaultValues: {password: '', passwordNew: '', passwordVerify: ''},
     validators: defaultFormValidators(schema),
     onSubmit: ({value, formApi}) => {
       return mutation

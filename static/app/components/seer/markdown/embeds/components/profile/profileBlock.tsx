@@ -2,11 +2,11 @@ import {useMemo, useState, type ReactNode} from 'react';
 import {IconProfiling} from '@sentry/icons/profiling';
 import {useQuery} from '@tanstack/react-query';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {FlamegraphPreview} from 'sentry/components/profiling/flamegraph/flamegraphPreview';
@@ -153,11 +153,7 @@ export default function ProfileBlock({projectSlug, profileId}: EmbedOutput<'prof
   const [canvasView, setCanvasView] = useState<CanvasView<FlamegraphModel> | null>(null);
 
   const {data, isError, isPending} = useQuery({
-    ...profileApiOptions({
-      organizationSlug: organization.slug,
-      projectSlug,
-      profileId,
-    }),
+    ...profileApiOptions({organizationSlug: organization.slug, projectSlug, profileId}),
     retry: false,
   });
 

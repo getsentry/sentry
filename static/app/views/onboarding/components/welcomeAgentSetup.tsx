@@ -5,6 +5,7 @@ import type {AgenticProgressRun} from 'sentry/components/onboarding/agenticProgr
 interface WelcomeAgentSetupProps {
   hasInitFailed: boolean;
   hasProgressFailed: boolean;
+  hasRunFailed: boolean;
   isAgentConnected: boolean;
   onCopyCommand: (source: AgentSetupCopySource, handoffId: string) => void;
   onRefresh: () => void;
@@ -12,17 +13,16 @@ interface WelcomeAgentSetupProps {
   onSelectSnippet: (source: AgentSetupCopySource) => void;
   onSetupInBrowser: () => void;
   run: AgenticProgressRun | undefined;
-  onboardingCode?: string;
+  metaAction?: React.ReactNode;
 }
 
-export function WelcomeAgentSetup({onSetupInBrowser, ...props}: WelcomeAgentSetupProps) {
+export function WelcomeAgentSetup(props: WelcomeAgentSetupProps) {
   return (
     <AgenticSetup
       {...props}
       layered
       feedbackSource="onboarding-agent-setup"
       issueLinkReferrer="onboarding-agentic-first-issue"
-      onSetupInBrowser={onSetupInBrowser}
     />
   );
 }

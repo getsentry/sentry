@@ -1,6 +1,5 @@
 /* eslint import/no-nodejs-modules:0 */
 import fs from 'node:fs';
-import {createRequire} from 'node:module';
 import path from 'node:path';
 
 import {defineConfig} from '@rsbuild/core';
@@ -18,7 +17,6 @@ import {ReactRefreshRspackPlugin} from '@rspack/plugin-react-refresh';
 import {sentryWebpackPlugin} from '@sentry/bundler-plugins/webpack';
 import CompressionPlugin from 'compression-webpack-plugin';
 import HtmlWebpackPlugin from 'html-webpack-plugin';
-import {TsCheckerRspackPlugin} from 'ts-checker-rspack-plugin';
 
 import {
   createHostCheckMiddleware,
@@ -79,8 +77,6 @@ const HAS_WEBPACK_DEV_SERVER_CONFIG =
 
 // User/tooling configurable environment variables
 const NO_DEV_SERVER = !!env.NO_DEV_SERVER; // Do not run webpack dev server
-// Type checking is resource intensive, enable it explicitly with ENABLE_TS_CHECKER=1.
-const SHOULD_CHECK_TYPES = DEV_MODE && Boolean(env.ENABLE_TS_CHECKER);
 const SHOULD_HOT_MODULE_RELOAD = DEV_MODE && !!env.SENTRY_UI_HOT_RELOAD;
 const SHOULD_ADD_RSDOCTOR = Boolean(env.RSDOCTOR);
 // Only entry points are eagerly built, lazy build routes. Saves memory and startup time.
@@ -94,8 +90,6 @@ const DEPLOY_PREVIEW_CONFIG = IS_DEPLOY_PREVIEW && {
   githubOrg: env.NOW_GITHUB_COMMIT_ORG,
   githubRepo: env.NOW_GITHUB_COMMIT_REPO,
 };
-
-const require = createRequire(import.meta.url);
 
 // When deploy previews are enabled always enable experimental SPA mode --
 // deploy previews are served standalone. Otherwise fallback to the environment
@@ -151,9 +145,7 @@ const localeCatalogPath = path.join(
   'catalogs.json'
 );
 
-type LocaleCatalog = {
-  supported_locales: string[];
-};
+type LocaleCatalog = {supported_locales: string[]};
 
 const localeCatalog: LocaleCatalog = JSON.parse(
   fs.readFileSync(localeCatalogPath, 'utf8')
@@ -255,19 +247,12 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
             },
             // We don't want to add source path attributes in production
             // as it will unnecessarily bloat the bundle size
-            IS_PRODUCTION
-              ? {}
-              : {
-                  'source-path-attr': 'data-sentry-source-path',
-                }
+            IS_PRODUCTION ? {} : {'source-path-attr': 'data-sentry-source-path'}
           ),
         ],
       ],
     },
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-    },
+    parser: {syntax: 'typescript', tsx: true},
     transform: {
       reactCompiler: options.reactCompiler,
       react: {
@@ -288,9 +273,7 @@ const swcReactLoaderConfig = (options: {reactCompiler: boolean}): SwcLoaderOptio
 // Resolve workspace imports from the importing package's declared dependencies.
 const workspaceResolutionRules = ['app', 'gsApp', 'gsAdmin'].map(directory => ({
   include: path.join(staticPrefix, directory),
-  resolve: {
-    modules: [path.join(staticPrefix, directory, 'node_modules')],
-  },
+  resolve: {modules: [path.join(staticPrefix, directory, 'node_modules')]},
 }));
 
 const appConfig: Configuration = {
@@ -385,13 +368,7 @@ const appConfig: Configuration = {
             loader: 'builtin:swc-loader',
             options: swcReactLoaderConfig({reactCompiler: false}),
           },
-          {
-            loader: '@mdx-js/loader',
-            options: {
-              remarkPlugins,
-              rehypePlugins,
-            },
-          },
+          {loader: '@mdx-js/loader', options: {remarkPlugins, rehypePlugins}},
         ],
       },
       {
@@ -405,11 +382,7 @@ const appConfig: Configuration = {
           {loader: path.resolve(import.meta.dirname, './build-utils/peggy-loader.ts')},
         ],
       },
-      {
-        test: /\.css$/,
-        include: [legacyCssPath],
-        type: 'css/auto',
-      },
+      {test: /\.css$/, include: [legacyCssPath], type: 'css/auto'},
       {
         test: /\.css$/,
         exclude: [legacyCssPath],
@@ -438,10 +411,7 @@ const appConfig: Configuration = {
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
      */
-    new rspack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    new rspack.IgnorePlugin({contextRegExp: /moment$/, resourceRegExp: /^\.\/locale$/}),
 
     /**
      * Restrict translation files that are pulled in through app/translations.jsx
@@ -475,18 +445,6 @@ const appConfig: Configuration = {
      */
     new rspack.DefinePlugin(DEFINED_ENV_VARS),
 
-    ...(SHOULD_CHECK_TYPES
-      ? [
-          new TsCheckerRspackPlugin({
-            typescript: {
-              configFile: path.resolve(import.meta.dirname, './tsconfig.json'),
-              typescriptPath: require.resolve('typescript-7/package.json'),
-            },
-            devServer: false,
-          }),
-        ]
-      : []),
-
     new StoryManifestPlugin(),
 
     ...(SHOULD_ADD_RSDOCTOR ? [new RsdoctorRspackPlugin({})] : []),
@@ -517,11 +475,7 @@ const appConfig: Configuration = {
     }),
   ],
 
-  resolveLoader: {
-    alias: {
-      'type-loader': typeLoaderPath,
-    },
-  },
+  resolveLoader: {alias: {'type-loader': typeLoaderPath}},
 
   resolve: {
     alias: {
@@ -623,9 +577,7 @@ const workerConfig: Configuration = {
   mode: appConfig.mode,
   target: 'webworker',
   bail: appConfig.bail,
-  entry: {
-    'service-worker': 'sentry/serviceWorker/worker/worker',
-  },
+  entry: {'service-worker': 'sentry/serviceWorker/worker/worker'},
   context: staticPrefix,
   experiments: appConfig.experiments,
   lazyCompilation: appConfig.lazyCompilation,
@@ -647,16 +599,9 @@ const workerConfig: Configuration = {
             shippedProposals: true,
           },
           jsc: {
-            parser: {
-              syntax: 'typescript',
-              tsx: true,
-            },
+            parser: {syntax: 'typescript', tsx: true},
             transform: {
-              react: {
-                runtime: 'automatic',
-                development: DEV_MODE,
-                refresh: false,
-              },
+              react: {runtime: 'automatic', development: DEV_MODE, refresh: false},
             },
           },
           isModule: 'unknown',
@@ -671,10 +616,7 @@ const workerConfig: Configuration = {
      * Without this, webpack will chunk the locales but attempt to load them all
      * eagerly.
      */
-    new rspack.IgnorePlugin({
-      contextRegExp: /moment$/,
-      resourceRegExp: /^\.\/locale$/,
-    }),
+    new rspack.IgnorePlugin({contextRegExp: /moment$/, resourceRegExp: /^\.\/locale$/}),
 
     /**
      * Defines environment specific flags.
@@ -702,10 +644,7 @@ if (IS_ACCEPTANCE_TEST) {
   workerConfig.plugins?.push(new LastBuiltPlugin({basePath: import.meta.dirname}));
 }
 
-let serverConfig: ServerConfig = {
-  htmlFallback: false,
-  publicDir: false,
-};
+let serverConfig: ServerConfig = {htmlFallback: false, publicDir: false};
 
 // Dev only! Hot module reloading
 if (
@@ -750,9 +689,7 @@ if (
 
   serverConfig = {
     ...serverConfig,
-    headers: {
-      'Document-Policy': 'js-profiling',
-    },
+    headers: {'Document-Policy': 'js-profiling'},
     host: SENTRY_WEBPACK_PROXY_HOST,
     port: Number(SENTRY_WEBPACK_PROXY_PORT),
     setup: setupHostCheck,
@@ -799,11 +736,7 @@ if (
 
     serverConfig = {
       ...serverConfig,
-      publicDir: {
-        name: 'src/sentry/static/sentry',
-        watch: true,
-        copyOnBuild: false,
-      },
+      publicDir: {name: 'src/sentry/static/sentry', watch: true, copyOnBuild: false},
       // Preserve the static URL prefix, with compiled assets taking precedence.
       setup: [
         setupHostCheck,
@@ -931,9 +864,7 @@ if (IS_UI_DEV_ONLY) {
           origin: 'https://sentry.io',
         },
         cookieDomainRewrite: {'.sentry.io': 'localhost'},
-        pathRewrite: {
-          '^/region/[^/]*': '',
-        },
+        pathRewrite: {'^/region/[^/]*': ''},
         router: req => {
           const regionPathPattern = /^\/region\/([^/]+)/;
           const regionname = (req.url ?? '').match(regionPathPattern);
@@ -972,9 +903,7 @@ if (IS_UI_DEV_ONLY || SENTRY_EXPERIMENTAL_SPA) {
       mobile: true,
       excludeChunks: IS_ADMIN_UI_DEV ? ['app'] : ['gsAdmin'],
       title: 'Sentry',
-      window: {
-        __SENTRY_DEV_UI: true,
-      },
+      window: {__SENTRY_DEV_UI: true},
     })
   );
 }
@@ -1004,9 +933,7 @@ if (IS_PRODUCTION) {
     sentryWebpackPlugin({
       applicationKey: 'sentry-spa',
       telemetry: false,
-      sourcemaps: {
-        disable: true,
-      },
+      sourcemaps: {disable: true},
       release: {
         create: false,
         // The SDK sets `release` itself. Injecting it puts the commit SHA in
@@ -1123,10 +1050,7 @@ const rsbuildConfig: RsbuildConfig = {
         },
       },
       output: {target: 'web', distPath: {root: distPath}, cleanDistPath: false},
-      tools: {
-        htmlPlugin: false,
-        rspack: config => ({...config, ...appConfig}),
-      },
+      tools: {htmlPlugin: false, rspack: config => ({...config, ...appConfig})},
     },
     'service-worker': {
       source: {
@@ -1135,10 +1059,7 @@ const rsbuildConfig: RsbuildConfig = {
         },
       },
       output: {target: 'web-worker', distPath: {root: distPath}, cleanDistPath: false},
-      tools: {
-        htmlPlugin: false,
-        rspack: config => ({...config, ...workerConfig}),
-      },
+      tools: {htmlPlugin: false, rspack: config => ({...config, ...workerConfig})},
     },
   },
 };

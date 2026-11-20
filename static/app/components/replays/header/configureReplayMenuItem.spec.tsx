@@ -30,10 +30,7 @@ describe('useConfigureReplayMenuItem', () => {
   });
 
   it('returns the configuration documentation submenu', () => {
-    const item = renderMenuItem({
-      sdkName: 'sentry.javascript.react',
-      isMobile: false,
-    });
+    const item = renderMenuItem({sdkName: 'sentry.javascript.react', isMobile: false});
 
     expect(item).toMatchObject({
       key: 'configure-replay',

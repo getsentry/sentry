@@ -33,8 +33,5 @@ export function useSelectedProjectsHaveField(field: keyof Project) {
     return hasSetupOneFeedback;
   }, [field, selection.projects, projects]);
 
-  return {
-    hasField,
-    fetching,
-  };
+  return {hasField, fetching};
 }

@@ -129,11 +129,7 @@ type DataTypeOption = {label: string; value: FilterDataType};
 
 // The modal edits the conditions as one text. See `ConditionEditor` for how the
 // text translates.
-type FilterFormValues = {
-  conditions: string;
-  dataType: FilterDataType;
-  name: string;
-};
+type FilterFormValues = {conditions: string; dataType: FilterDataType; name: string};
 
 type DataTypeSpec = {
   label: string;

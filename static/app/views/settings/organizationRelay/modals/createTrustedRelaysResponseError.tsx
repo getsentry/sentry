@@ -14,9 +14,7 @@ type TrustedRelaysResponseError = {
 };
 
 interface TrustedRelaysRequestError extends RequestError {
-  responseJSON?: {
-    trustedRelays: string[];
-  };
+  responseJSON?: {trustedRelays: string[]};
 }
 
 export function createTrustedRelaysResponseError(
@@ -32,45 +30,27 @@ export function createTrustedRelaysResponseError(
   }
 
   if (errorMessage === 'Bad structure received for Trusted Relays') {
-    return {
-      type: 'bad-structure',
-      message: t('An invalid structure was sent.'),
-    };
+    return {type: 'bad-structure', message: t('An invalid structure was sent.')};
   }
 
   if (errorMessage === 'Relay key info with missing name in Trusted Relays') {
-    return {
-      type: 'missing-name',
-      message: t('Field Required'),
-    };
+    return {type: 'missing-name', message: t('Field Required')};
   }
 
   if (errorMessage === 'Relay key info with empty name in Trusted Relays') {
-    return {
-      type: 'empty-name',
-      message: t('Invalid Field'),
-    };
+    return {type: 'empty-name', message: t('Invalid Field')};
   }
 
   if (errorMessage.startsWith('Missing public key for Relay key info with name:')) {
-    return {
-      type: 'missing-key',
-      message: t('Field Required'),
-    };
+    return {type: 'missing-key', message: t('Field Required')};
   }
 
   if (errorMessage.startsWith('Invalid public key for relay key info with name:')) {
-    return {
-      type: 'invalid-key',
-      message: t('Invalid Relay key'),
-    };
+    return {type: 'invalid-key', message: t('Invalid Relay key')};
   }
 
   if (errorMessage.startsWith('Duplicated key in Trusted Relays:')) {
-    return {
-      type: 'duplicated-key',
-      message: t('Relay key already taken'),
-    };
+    return {type: 'duplicated-key', message: t('Relay key already taken')};
   }
 
   return {

@@ -93,10 +93,7 @@ interface DataCategoryFormattingInfo {
    * minFractionDigits: minimum fraction digits (bytes use 2, counts use 5)
    * maxFractionDigits: maximum fraction digits (bytes use 2, counts use 7)
    */
-  priceFormatting: {
-    maxFractionDigits: number;
-    minFractionDigits: number;
-  };
+  priceFormatting: {maxFractionDigits: number; minFractionDigits: number};
   /**
    * Whether to use abbreviated formatting for projected values.
    * Most categories use true, but ATTACHMENTS uses false for full precision.

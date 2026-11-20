@@ -254,10 +254,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       })
     );
 
-    return {
-      [notificationType]: defaultValue,
-      ...childTypesDefaults,
-    };
+    return {[notificationType]: defaultValue, ...childTypesDefaults};
   };
 
   const getLinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
@@ -406,9 +403,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       mutationFn: (data: Record<string, string>) =>
         fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
-          url: getApiUrl('/users/$userId/notification-options/', {
-            path: {userId: 'me'},
-          }),
+          url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
           data: {
             type: fieldName,
             scopeType: 'user',
@@ -444,9 +439,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
     mutationFn: (data: {provider: string[]}) =>
       fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-providers/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
         data: {
           type: notificationType,
           scopeType: 'user',
@@ -455,9 +448,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
         },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: providerOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: providerOptions.queryKey});
     },
   });
 

@@ -14,9 +14,7 @@ import type {IntegrationWithConfig} from 'sentry/types/integrations';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
-const apiKeySchema = z.object({
-  apiKey: z.string().min(1, t('API key is required')),
-});
+const apiKeySchema = z.object({apiKey: z.string().min(1, t('API key is required'))});
 
 function CursorApiKeyStep({
   advance,

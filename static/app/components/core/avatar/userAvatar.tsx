@@ -50,59 +50,24 @@ export function getUserAvatarProps(
   const name = user.name || user.email || user.username || '';
 
   if (!user.avatar?.avatarType) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
+    return {type: 'letter_avatar', identifier, name, title: name};
   }
 
   switch (user.avatar.avatarType) {
     case 'letter_avatar':
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
     case 'upload':
       if (!user.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
-      return {
-        type: 'upload',
-        uploadUrl: user.avatar.avatarUrl,
-        identifier,
-        name,
-      };
+      return {type: 'upload', uploadUrl: user.avatar.avatarUrl, identifier, name};
     case 'gravatar':
       if (!user.email) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
-      return {
-        type: 'gravatar',
-        gravatarId: user.email.toLowerCase(),
-        identifier,
-        name,
-      };
+      return {type: 'gravatar', gravatarId: user.email.toLowerCase(), identifier, name};
     default:
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
   }
 }
 

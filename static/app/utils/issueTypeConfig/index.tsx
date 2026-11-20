@@ -50,10 +50,7 @@ const BASE_CONFIG: IssueTypeConfig = {
     tagDistribution: {enabled: true},
     occurrenceSummary: {enabled: false},
   },
-  customCopy: {
-    resolution: t('Resolved'),
-    eventUnits: t('Events'),
-  },
+  customCopy: {resolution: t('Resolved'), eventUnits: t('Events')},
   pages: {
     landingPage: Tab.DETAILS,
     events: {enabled: true},
@@ -140,9 +137,7 @@ const eventOccurrenceTypeToIssueCategory = (eventOccurrenceType: number) => {
 export const getIssueCategoryAndTypeFromOccurrenceType = (
   eventOccurrenceType: number
 ): IssueCategoryAndType => {
-  return {
-    issueCategory: eventOccurrenceTypeToIssueCategory(eventOccurrenceType),
-  };
+  return {issueCategory: eventOccurrenceTypeToIssueCategory(eventOccurrenceType)};
 };
 
 /**
@@ -176,10 +171,5 @@ export const getConfigForIssueType = (
     ? getErrorHelpResource({title: title!, project})
     : null;
 
-  return {
-    ...BASE_CONFIG,
-    ...categoryConfig,
-    ...overrideConfig,
-    ...errorResourceConfig,
-  };
+  return {...BASE_CONFIG, ...categoryConfig, ...overrideConfig, ...errorResourceConfig};
 };

@@ -100,13 +100,15 @@ const CONFIGS: Record<string, AutomationConfig[]> = {
 };
 
 function renderList(width: number, result: Partial<ReturnType<typeof useFetchConfigs>>) {
-  jest.mocked(useFetchConfigs).mockReturnValue({
-    data: undefined,
-    isPending: false,
-    isLoadingError: false,
-    refetch: jest.fn(),
-    ...result,
-  } as ReturnType<typeof useFetchConfigs>);
+  jest
+    .mocked(useFetchConfigs)
+    .mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isLoadingError: false,
+      refetch: jest.fn(),
+      ...result,
+    } as ReturnType<typeof useFetchConfigs>);
   jest
     .mocked(useMonitorsById)
     .mockReturnValue({data: MONITORS} as ReturnType<typeof useMonitorsById>);

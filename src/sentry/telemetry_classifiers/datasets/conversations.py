@@ -34,6 +34,16 @@ MAX_MESSAGE_CHARS = 4_000
 # Message attributes and the role assumed when a message doesn't name one.
 _MESSAGE_ATTRIBUTES = {"gen_ai.input.messages": "user", "gen_ai.output.messages": "assistant"}
 _ROLES = frozenset({"user", "assistant"})
+# Span columns copied from the newest span onto results, by public alias and EAP attribute name.
+_COPIED_ATTRIBUTES = {
+    "environment": "sentry.environment",
+    "release": "sentry.release",
+    "user": "sentry.user",
+    "user.id": "sentry.user.id",
+    "user.email": "sentry.user.email",
+    "user.username": "sentry.user.username",
+    "user.ip": "sentry.user.ip",
+}
 
 
 class ConversationDataset:
@@ -108,7 +118,7 @@ class ConversationDataset:
                 "timestamp",
                 "trace",
                 "client_sample_rate",
-                "environment",
+                *_COPIED_ATTRIBUTES,
                 *_MESSAGE_ATTRIBUTES,
             ],
             orderby=["-timestamp"],
@@ -136,7 +146,11 @@ class ConversationDataset:
             timestamp=datetime.fromisoformat(newest["timestamp"]),
             client_sample_rate=newest.get("client_sample_rate") or 1.0,
             conversation_id=entity_id,
-            environment=newest.get("environment") or None,
+            copied_attributes={
+                name: value
+                for column, name in _COPIED_ATTRIBUTES.items()
+                if (value := newest.get(column))
+            },
         )
 
 

@@ -31,10 +31,7 @@ function useAgentActivityLink(event: Event) {
       const traceTarget = getTraceTargetFromEvent(
         event,
         organization,
-        {
-          ...location,
-          query: {groupId: event.groupID, referrer: location.query.referrer},
-        },
+        {...location, query: {groupId: event.groupID, referrer: location.query.referrer}},
         TraceViewSources.ISSUE_DETAILS
       );
       if (typeof traceTarget === 'string') {

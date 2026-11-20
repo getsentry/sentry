@@ -21,20 +21,11 @@ export const feedback: OnboardingConfig = {
           type: 'text',
           text: tct(
             'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/nextjs]) installed, minimum version 7.85.0.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'text',
-          text: t('Install the Next.js SDK using our installation wizard:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: getInstallSnippet(params),
-        },
+        {type: 'text', text: t('Install the Next.js SDK using our installation wizard:')},
+        {type: 'code', language: 'bash', code: getInstallSnippet(params)},
       ],
     },
   ],
@@ -70,9 +61,7 @@ export const feedback: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Note: The User Feedback integration only needs to be added to your [code:instrumentation-client.(js|ts)] file. Adding it to any server-side configuration files (like [code:instrumentation.(js|ts)]) will break your build because the Feedback integration depends on Browser APIs.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

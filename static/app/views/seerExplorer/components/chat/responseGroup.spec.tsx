@@ -173,9 +173,7 @@ describe('ResponseGroup', () => {
         latestTodos={findLatestTodos(group)}
         showThinking
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // One consolidated reasoning toggle for the whole response.
@@ -290,9 +288,7 @@ describe('ResponseGroup', () => {
         latestTodos={findLatestTodos(group)}
         showThinking
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // A completed response's reasoning starts collapsed, so the thinking prose is hidden.
@@ -378,9 +374,7 @@ describe('ResponseGroup', () => {
         latestTodos={findLatestTodos(group)}
         showThinking
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(

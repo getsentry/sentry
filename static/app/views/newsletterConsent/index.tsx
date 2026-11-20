@@ -20,9 +20,7 @@ const schema = z.object({
 });
 const defaultValues: z.input<typeof schema> = {subscribed: ''};
 
-type Props = {
-  onSubmitSuccess?: () => void;
-};
+type Props = {onSubmitSuccess?: () => void};
 
 function NewsletterConsent({onSubmitSuccess}: Props) {
   const mutation = useMutation({

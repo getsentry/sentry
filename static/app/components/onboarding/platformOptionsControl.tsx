@@ -86,13 +86,7 @@ export function PlatformOptionsControl({
   const handleChange = (key: string, value: string) => {
     onChange?.({[key]: value});
     navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
+      {...location, query: {...location.query, [key]: value}},
       // The location descriptor drops history state, and the getting-started
       // page reads it to know it was reached from project creation.
       {replace: true, state: location.state}

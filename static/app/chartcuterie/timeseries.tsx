@@ -24,10 +24,7 @@ import {ChartType} from './types';
 export const FONT_SIZE = 28;
 export const CHART_SIZE = {width: 1200, height: 400};
 
-export type TimeseriesChartData = {
-  timeSeries: TimeSeries[];
-  type?: DisplayType;
-};
+export type TimeseriesChartData = {timeSeries: TimeSeries[]; type?: DisplayType};
 
 /**
  * Per-series callback passed to {@link buildTimeseriesChartOption}. The
@@ -106,10 +103,7 @@ export function buildTimeseriesChartOption<T extends TimeSeries>({
         lineHeight: FONT_SIZE * 1.1,
         fontFamily: DEFAULT_FONT_FAMILY,
       },
-      pageTextStyle: {
-        fontSize: FONT_SIZE,
-        fontFamily: DEFAULT_FONT_FAMILY,
-      },
+      pageTextStyle: {fontSize: FONT_SIZE, fontFamily: DEFAULT_FONT_FAMILY},
       pageIconSize: FONT_SIZE * 0.6,
     }),
   };

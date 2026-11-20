@@ -11,10 +11,7 @@ export function useDividerResizeSync(traceScheduler: TraceScheduler) {
 
   useLayoutEffect(() => {
     function onDividerResizeEnd(list_width: number) {
-      traceDispatch({
-        type: 'set list width',
-        payload: list_width,
-      });
+      traceDispatch({type: 'set list width', payload: list_width});
     }
     traceScheduler.on('divider resize end', onDividerResizeEnd);
     return () => {

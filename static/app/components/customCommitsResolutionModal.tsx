@@ -9,9 +9,10 @@ import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {t} from 'sentry/locale';
 import type {ResolvedStatusDetails} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {getShortCommitHash} from 'sentry/utils/git/getShortCommitHash';
 
+import {formatCommitMessage} from './commitRow';
 import {TimeSince} from './timeSince';
-import {Version} from './version';
 
 interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   onSelected: (x: ResolvedStatusDetails) => void;
@@ -19,22 +20,22 @@ interface CustomCommitsResolutionModalProps extends ModalRenderProps {
   projectSlug: string;
 }
 
+const DETAILS_SEPARATOR = ' \u00B7 ';
+
 const commitSchema = z.object({
   commit: z
     .looseObject({
       id: z.string(),
-      repository: z.looseObject({
-        name: z.string(),
-      }),
+      message: z.string().nullable().optional(),
+      author: z.looseObject({name: z.string().nullable().optional()}).optional(),
+      repository: z.looseObject({name: z.string()}),
       dateCreated: z.string(),
     })
     .nullable()
     .refine(val => val !== null, t('Please select a commit')),
 });
 
-const defaultValues: z.input<typeof commitSchema> = {
-  commit: null,
-};
+const defaultValues: z.input<typeof commitSchema> = {commit: null};
 
 type Commit = z.output<typeof commitSchema>['commit'];
 
@@ -52,10 +53,7 @@ export function CustomCommitsResolutionModal({
     validators: defaultFormValidators(commitSchema),
     onSubmit: ({value}) => {
       onSelected({
-        inCommit: {
-          commit: value.commit?.id,
-          repository: value.commit?.repository?.name,
-        },
+        inCommit: {commit: value.commit?.id, repository: value.commit?.repository?.name},
       });
       closeModal();
     },
@@ -90,10 +88,13 @@ export function CustomCommitsResolutionModal({
                       commits.map(c => ({
                         value: c,
                         textValue: c.id,
-                        label: <Version version={c.id} anchor={false} />,
+                        label: formatCommitMessage(c.message ?? null),
                         details: (
                           <span>
-                            {t('Created')} <TimeSince date={c.dateCreated} />
+                            {[getShortCommitHash(c.id), c.repository.name, c.author?.name]
+                              .filter(Boolean)
+                              .map(part => `${part}${DETAILS_SEPARATOR}`)}
+                            <TimeSince date={c.dateCreated} />
                           </span>
                         ),
                       })),

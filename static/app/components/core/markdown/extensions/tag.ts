@@ -146,14 +146,7 @@ function tokenize(src: string, level: 'block' | 'inline'): TagToken | undefined 
   if (selfClosingMatch) {
     const [raw, name, attrStr = ''] = selfClosingMatch;
     if (raw !== undefined && name !== undefined) {
-      return {
-        type: 'tag',
-        raw,
-        level,
-        name,
-        attrs: parseAttrs(attrStr),
-        data: undefined,
-      };
+      return {type: 'tag', raw, level, name, attrs: parseAttrs(attrStr), data: undefined};
     }
   }
 

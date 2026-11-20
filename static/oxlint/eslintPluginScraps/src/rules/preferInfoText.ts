@@ -55,9 +55,7 @@ function getElementName(nameNode: ESTree.JSXElementName): string {
 export const preferInfoText = defineRule({
   meta: {
     type: 'suggestion',
-    docs: {
-      description: 'Prefer <InfoText> over <Tooltip> wrapping text content.',
-    },
+    docs: {description: 'Prefer <InfoText> over <Tooltip> wrapping text content.'},
     hasSuggestions: true,
     schema: [],
     messages: {

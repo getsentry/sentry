@@ -129,10 +129,7 @@ export function SyntheticMetricBreachForm() {
         Number(b.slug.toLowerCase() === normalizedOrganizationSearch) -
         Number(a.slug.toLowerCase() === normalizedOrganizationSearch)
     )
-    .map(({id, name, slug}) => ({
-      value: {id, name, slug},
-      label: `${name} (${slug})`,
-    }));
+    .map(({id, name, slug}) => ({value: {id, name, slug}, label: `${name} (${slug})`}));
   if (
     values.organization &&
     !organizations.data?.some(org => org.id === values.organization?.id)

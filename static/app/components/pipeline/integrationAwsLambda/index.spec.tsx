@@ -5,9 +5,7 @@ import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
-Object.defineProperty(globalThis.crypto, 'randomUUID', {
-  value: () => 'mock-uuid-1234',
-});
+Object.defineProperty(globalThis.crypto, 'randomUUID', {value: () => 'mock-uuid-1234'});
 
 import {createMakeStepProps} from 'sentry/components/pipeline/testUtils';
 
@@ -195,9 +193,7 @@ describe('InstrumentationStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Instrument Functions'}));
 
     await waitFor(() => {
-      expect(advance).toHaveBeenCalledWith({
-        enabledFunctions: ['lambdaA', 'lambdaB'],
-      });
+      expect(advance).toHaveBeenCalledWith({enabledFunctions: ['lambdaA', 'lambdaB']});
     });
   });
 
@@ -211,9 +207,7 @@ describe('InstrumentationStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Instrument Functions'}));
 
     await waitFor(() => {
-      expect(advance).toHaveBeenCalledWith({
-        enabledFunctions: ['lambdaA'],
-      });
+      expect(advance).toHaveBeenCalledWith({enabledFunctions: ['lambdaA']});
     });
   });
 
@@ -294,9 +288,7 @@ describe('InstrumentationStep', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Instrument Functions'}));
 
     await waitFor(() => {
-      expect(advance).toHaveBeenCalledWith({
-        enabledFunctions: ['lambdaA', 'lambdaB'],
-      });
+      expect(advance).toHaveBeenCalledWith({enabledFunctions: ['lambdaA', 'lambdaB']});
     });
   });
 });

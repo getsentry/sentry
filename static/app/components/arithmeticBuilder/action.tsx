@@ -6,13 +6,9 @@ import {defined} from 'sentry/utils/defined';
 import {Expression} from './expression';
 import type {Token} from './token';
 
-type ArithmeticBuilderUpdateResetFocusOverrideAction = {
-  type: 'RESET_FOCUS_OVERRIDE';
-};
+type ArithmeticBuilderUpdateResetFocusOverrideAction = {type: 'RESET_FOCUS_OVERRIDE'};
 
-export type FocusOverride = {
-  itemKey: Key;
-};
+export type FocusOverride = {itemKey: Key};
 
 type ArithmeticBuilderDeleteAction = {
   token: Token;
@@ -62,10 +58,7 @@ export function useArithmeticBuilderAction({
   updateExpression,
 }: UseArithmeticBuilderActionOptions): {
   dispatch: (action: ArithmeticBuilderAction) => void;
-  state: {
-    expression: Expression;
-    focusOverride: FocusOverride | null;
-  };
+  state: {expression: Expression; focusOverride: FocusOverride | null};
 } {
   const [expressionString, setExpressionString] = useState(initialExpression);
   const [prevInitialExpression, setPrevInitialExpression] = useState(initialExpression);
@@ -106,13 +99,7 @@ export function useArithmeticBuilderAction({
     [expressionString, references, updateExpression]
   );
 
-  const state = useMemo(
-    () => ({
-      expression,
-      focusOverride,
-    }),
-    [expression, focusOverride]
-  );
+  const state = useMemo(() => ({expression, focusOverride}), [expression, focusOverride]);
 
   return {state, dispatch};
 }

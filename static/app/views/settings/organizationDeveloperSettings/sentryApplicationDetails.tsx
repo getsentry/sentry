@@ -120,10 +120,7 @@ function SentryAppAvatarChooser({
       onSave={addAvatar}
       title={isColor ? t('Logo') : t('Small Icon')}
       help={styleProps.help.concat(isInternal ? '' : t(' Required for publishing.'))}
-      defaultChoice={{
-        label: styleProps.label,
-        description: styleProps.description,
-      }}
+      defaultChoice={{label: styleProps.label, description: styleProps.description}}
     />
   );
 }
@@ -156,11 +153,7 @@ const APP_TOKEN_COLUMNS: TableColumnConfig[] = [
 
 function requireField(ctx: z.RefinementCtx, value: string, field: string) {
   if (!value.trim()) {
-    ctx.addIssue({
-      code: 'custom',
-      message: t('This field is required'),
-      path: [field],
-    });
+    ctx.addIssue({code: 'custom', message: t('This field is required'), path: [field]});
   }
 }
 
@@ -180,11 +173,7 @@ function requireValidSchemaJson(ctx: z.RefinementCtx, data: SentryAppFormValues)
     try {
       JSON.parse(data.schema);
     } catch {
-      ctx.addIssue({
-        code: 'custom',
-        message: t('Invalid JSON'),
-        path: ['schema'],
-      });
+      ctx.addIssue({code: 'custom', message: t('Invalid JSON'), path: ['schema']});
     }
   }
 }
@@ -268,9 +257,7 @@ type SaveSentryAppPayload = {
   webhookUrl?: string;
 };
 
-type RotateSecretResponse = {
-  clientSecret: string;
-};
+type RotateSecretResponse = {clientSecret: string};
 
 function getSchemaFieldValue(schema: SentryApp['schema'] | null | undefined) {
   const formattedSchema = JSON.stringify(schema ?? {}, null, 2);
@@ -567,10 +554,7 @@ const TEMPLATE_FORMS: Record<string, React.ComponentType> = {
   'claude-routine': ClaudeRoutineTemplateForm,
 };
 
-const templateQueryParsers = {
-  template: parseAsString,
-  referrer: parseAsString,
-};
+const templateQueryParsers = {template: parseAsString, referrer: parseAsString};
 
 const serializeTemplateQuery = createSerializer(templateQueryParsers);
 

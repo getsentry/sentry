@@ -37,9 +37,5 @@ export function useImpactedEventsCount({project}: Options): ImpactedEventsCount 
     })
   );
 
-  return {
-    count: data?.data?.[0]?.['count_unique(event_id)'] ?? null,
-    isLoading,
-    isError,
-  };
+  return {count: data?.data?.[0]?.['count_unique(event_id)'] ?? null, isLoading, isError};
 }

@@ -11,7 +11,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 
 import {Feature} from 'sentry/components/acl/feature';
@@ -98,10 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // oxlint-disable-next-line react/refs
   const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
 
-  useResizeObserver({
-    ref: navigationRef,
-    onResize: () => setSmallNav(checkNavIsSmall),
-  });
+  useResizeObserver({ref: navigationRef, onResize: () => setSmallNav(checkNavIsSmall)});
 
   // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
   // dropdown rather than getting the tab list ahead of everyone else.
@@ -125,9 +122,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({
@@ -257,7 +252,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
       {showContentTabs ? (
         <Container maxWidth="100%">
           {props => (
-            <Tabs
+            <LinkTabs
               size="sm"
               value={selectedContentTab}
               onChange={trackContentSelected}
@@ -287,7 +282,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
                   ))}
                 </TabList>
               )}
-            </Tabs>
+            </LinkTabs>
           )}
         </Container>
       ) : (

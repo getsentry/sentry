@@ -15,10 +15,7 @@ type ObjectKey = string | number;
 
 export type {ColumnAlign};
 
-export type GridColumn<K = ObjectKey> = {
-  key: K;
-  width?: number;
-};
+export type GridColumn<K = ObjectKey> = {key: K; width?: number};
 
 export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
   name: string;
@@ -27,9 +24,7 @@ export type GridColumnHeader<K = ObjectKey> = GridColumn<K> & {
 
 export type GridColumnOrder<K = ObjectKey> = GridColumnHeader<K>;
 
-export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {
-  order: 'desc' | 'asc';
-};
+export type GridColumnSortBy<K = ObjectKey> = GridColumn<K> & {order: 'desc' | 'asc'};
 
 /**
  * How a column offers sorting. `to` navigates, `onSort` calls back; giving

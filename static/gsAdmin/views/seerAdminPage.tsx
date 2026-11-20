@@ -80,15 +80,10 @@ type AutofixRetryResult =
   | {retried: true; run_id: number; step: string}
   | {reason: string; retried: false; run_id: number};
 
-type AutofixRetryResponse = {
-  results: AutofixRetryResult[];
-};
+type AutofixRetryResponse = {results: AutofixRetryResult[]};
 
 function regionOptions(localities: Region[]) {
-  return localities.map(locality => ({
-    label: locality.name,
-    value: locality.url,
-  }));
+  return localities.map(locality => ({label: locality.name, value: locality.url}));
 }
 
 function NightShiftForm() {

@@ -57,9 +57,7 @@ describe('ScmFeatureSelectionPanel', () => {
   it('shows the trial banner and per-feature volumes during onboarding', async () => {
     render(
       <ScmFeatureSelectionPanel {...defaultProps({analyticsFlow: 'onboarding'})} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('What do you want to track?')).toBeInTheDocument();

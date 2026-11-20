@@ -177,10 +177,7 @@ export const useFetchIssueTags = ({
       organization: org,
     });
 
-    return {
-      ...renamedTags,
-      ...additionalTags,
-    };
+    return {...renamedTags, ...additionalTags};
   }, [
     eventsTagsQuery.data,
     issuePlatformTagsQuery.data,
@@ -218,11 +215,7 @@ function builtInIssuesFields({
     (acc, tag) => {
       return {
         ...acc,
-        [tag.key]: {
-          predefined: false,
-          ...tag,
-          kind: FieldKind.EVENT_FIELD,
-        },
+        [tag.key]: {predefined: false, ...tag, kind: FieldKind.EVENT_FIELD},
       };
     },
     {}

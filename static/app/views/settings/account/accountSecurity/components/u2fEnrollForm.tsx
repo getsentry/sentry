@@ -84,10 +84,7 @@ export function U2fEnrollForm({
       z.object({
         deviceName: z.string().max(60, t('Device name must be 60 characters or fewer.')),
         enrollment: z
-          .object({
-            challenge: z.string(),
-            response: z.string(),
-          })
+          .object({challenge: z.string(), response: z.string()})
           .refine(value => Boolean(value.challenge), {
             message: t('Enroll your device before continuing.'),
           }),
@@ -95,10 +92,7 @@ export function U2fEnrollForm({
     ),
     onSubmit: async ({value, createValidationError, formApi}) => {
       try {
-        await enrollAuthenticator({
-          ...value.enrollment,
-          deviceName: value.deviceName,
-        });
+        await enrollAuthenticator({...value.enrollment, deviceName: value.deviceName});
       } catch (caughtError) {
         if (caughtError instanceof RequestError) {
           const fieldErrors = getWebAuthnFieldErrors(caughtError.responseJSON);

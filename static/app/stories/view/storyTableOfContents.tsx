@@ -6,10 +6,7 @@ import styled from '@emotion/styled';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-type Entry = {
-  ref: HTMLElement;
-  title: string;
-};
+type Entry = {ref: HTMLElement; title: string};
 
 function toAlphaNumeric(str: string): string {
   return str.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
@@ -26,10 +23,7 @@ function getContentEntries(main: HTMLElement): Entry[] {
     if (!entry.id) {
       entry.id = toAlphaNumeric(entry.textContent ?? '');
     }
-    entries.push({
-      title: entry.textContent ?? '',
-      ref: entry as HTMLElement,
-    });
+    entries.push({title: entry.textContent ?? '', ref: entry as HTMLElement});
   }
 
   return entries;
@@ -111,9 +105,7 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
             return false;
           });
       },
-      {
-        rootMargin: '0px 0px -35% 0px',
-      }
+      {rootMargin: '0px 0px -35% 0px'}
     );
 
     entries.forEach(entry => observer.observe(entry.ref));
@@ -124,10 +116,7 @@ function useActiveSection(entries: Entry[]): [string, (id: string) => void] {
   return [activeId, setActiveId];
 }
 
-type NestedEntry = {
-  children: NestedEntry[];
-  entry: Entry;
-};
+type NestedEntry = {children: NestedEntry[]; entry: Entry};
 
 const TAGNAME_ORDER = ['H6', 'H5', 'H4', 'H3', 'H2'];
 
@@ -143,10 +132,7 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
     const previousEntry = entries[i - 1];
 
     if (!previousEntry) {
-      nestedEntries.push({
-        entry: entries[i]!,
-        children: [],
-      });
+      nestedEntries.push({entry: entries[i]!, children: []});
       parentEntry = nestedEntries[nestedEntries.length - 1] ?? null;
       continue;
     }
@@ -162,18 +148,12 @@ function nestContentEntries(entries: Entry[]): NestedEntry[] {
           TAGNAME_ORDER.indexOf(entries[i - 1]?.ref.tagName ?? '');
 
     if (isAfter && shouldNest && parentEntry) {
-      const parent: NestedEntry = {
-        entry,
-        children: [],
-      };
+      const parent: NestedEntry = {entry, children: []};
       parentEntry.children.push(parent);
       continue;
     }
 
-    nestedEntries.push({
-      entry,
-      children: [],
-    });
+    nestedEntries.push({entry, children: []});
     parentEntry = nestedEntries[nestedEntries.length - 1] ?? null;
   }
 

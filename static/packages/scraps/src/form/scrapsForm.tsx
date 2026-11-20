@@ -111,12 +111,7 @@ const fieldComponents = {
 
 export type BoundFieldComponents = typeof fieldComponents;
 
-const formComponents = {
-  FieldGroup,
-  SubmitButton,
-  ResetButton,
-  Form,
-} as const;
+const formComponents = {FieldGroup, SubmitButton, ResetButton, Form} as const;
 
 export type BoundFormComponents = typeof formComponents;
 
@@ -162,14 +157,8 @@ export function ScrapsForm<TFormData, TFormErrorTypes extends FormErrorTypes>({
 export const defaultFormValidators = createValidators([
   {
     triggers: [
-      {
-        trigger: 'change',
-        when: ({formApi}) => formApi.state.submissionAttempts > 0,
-      },
-      {
-        trigger: 'blur',
-        when: ({formApi}) => formApi.state.submissionAttempts > 0,
-      },
+      {trigger: 'change', when: ({formApi}) => formApi.state.submissionAttempts > 0},
+      {trigger: 'blur', when: ({formApi}) => formApi.state.submissionAttempts > 0},
     ],
   },
 ]);

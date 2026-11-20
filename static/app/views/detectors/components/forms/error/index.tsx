@@ -131,11 +131,7 @@ export function EditExistingErrorDetectorForm({
 
   const form = useScrapsForm({
     defaultValues: {workflowIds: detector.workflowIds},
-    validators: defaultFormValidators(
-      z.object({
-        workflowIds: z.array(z.string()),
-      })
-    ),
+    validators: defaultFormValidators(z.object({workflowIds: z.array(z.string())})),
     onSubmit: async ({value}) => {
       await submitEditDetector({
         detectorId: detector.id,

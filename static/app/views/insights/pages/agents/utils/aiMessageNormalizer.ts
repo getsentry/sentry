@@ -1,3 +1,5 @@
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {isRecord} from 'sentry/utils/object/isRecord';
 import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
 import {
@@ -76,10 +78,7 @@ export function normalizeToMessages(
   );
   const messages = normalizeRawMessages(rawMessages, defaultRole);
 
-  return {
-    fixedInvalidJson,
-    messages: messages.length > 0 ? messages : null,
-  };
+  return {fixedInvalidJson, messages: messages.length > 0 ? messages : null};
 }
 
 /**
@@ -166,10 +165,7 @@ function rawMessagesFromAttribute(
     return {fixedInvalidJson, messages: []};
   }
 
-  return {
-    fixedInvalidJson,
-    messages: rawMessagesFromValue(parsed, defaultRole),
-  };
+  return {fixedInvalidJson, messages: rawMessagesFromValue(parsed, defaultRole)};
 }
 
 function parseAttribute(raw: string): {fixedInvalidJson: boolean; parsed: unknown} {
@@ -521,7 +517,8 @@ function parseJsonString(value: string): unknown {
 }
 
 function looksLikeJson(raw: string): boolean {
-  const trimmed = raw.trim();
+  // Marks on a scrubbed value, see `markScrubbedValue`, don't change what it is.
+  const trimmed = stripAnnotations(raw).trim();
   if (!trimmed) {
     return false;
   }

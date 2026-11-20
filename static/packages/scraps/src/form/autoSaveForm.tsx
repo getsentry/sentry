@@ -53,9 +53,7 @@ function pickSchema<
   Record<TFieldName, SchemaOutput<TSchema>[TFieldName]>,
   Record<TFieldName, SchemaInput<TSchema>[TFieldName]>
 > {
-  const pickMask: Record<string, true> = {
-    [name]: true,
-  };
+  const pickMask: Record<string, true> = {[name]: true};
   const pickedSchema = schema.pick(pickMask);
   return pickedSchema as unknown as z.ZodType<
     Record<TFieldName, SchemaOutput<TSchema>[TFieldName]>,
@@ -156,12 +154,7 @@ export function AutoSaveForm<
       TFieldName,
       SchemaInput<TSchema>[TFieldName]
     >,
-    validators: [
-      {
-        run: fieldSchema,
-        triggers: ['change'],
-      },
-    ],
+    validators: [{run: fieldSchema, triggers: ['change']}],
     listeners: [
       {
         run: ({formApi, triggerFieldApi}) => {

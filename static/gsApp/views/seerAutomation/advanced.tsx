@@ -18,9 +18,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {SeerSettingsPageBanners} from 'getsentry/views/seerAutomation/components/seerSettingsPageBanners';
 
-const schema = z.object({
-  enableSeerCoding: z.boolean(),
-});
+const schema = z.object({enableSeerCoding: z.boolean()});
 
 export default function SeerAutomationAdvancedSettings() {
   const organization = useOrganization();

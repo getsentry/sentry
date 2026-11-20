@@ -39,10 +39,7 @@ export type RawSpanType = {
   project_slug?: string;
   same_process_as_parent?: boolean;
   sentry_tags?: Record<string, string>;
-  'span.averageResults'?: {
-    'avg(span.duration)'?: number;
-    'avg(span.self_time)'?: number;
-  };
+  'span.averageResults'?: {'avg(span.duration)'?: number; 'avg(span.self_time)'?: number};
   status?: string;
   tags?: Record<string, string>;
 };
@@ -50,12 +47,7 @@ export type RawSpanType = {
 export type AggregateSpanType = RawSpanType & {
   count: number;
   frequency: number;
-  samples: Array<{
-    span: string;
-    timestamp: number;
-    trace: string;
-    transaction: string;
-  }>;
+  samples: Array<{span: string; timestamp: number; trace: string; transaction: string}>;
   total: number;
   type: 'aggregate';
 };
@@ -63,13 +55,9 @@ export type AggregateSpanType = RawSpanType & {
 /**
  * Extends the Raw type from json with a type for discriminating the union.
  */
-type BaseSpanType = RawSpanType & {
-  type?: undefined;
-};
+type BaseSpanType = RawSpanType & {type?: undefined};
 
-type OrphanSpanType = RawSpanType & {
-  type: 'orphan';
-};
+type OrphanSpanType = RawSpanType & {type: 'orphan'};
 
 type SpanType = BaseSpanType | OrphanSpanType | AggregateSpanType;
 

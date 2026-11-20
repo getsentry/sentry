@@ -616,11 +616,7 @@ export function SpanTimeRenderer({
 }) {
   const date = new Date(timestamp);
   return (
-    <TimeSince
-      unitStyle="extraShort"
-      date={date}
-      tooltipShowSeconds={tooltipShowSeconds}
-    />
+    <TimeSince unitStyle="narrow" date={date} tooltipShowSeconds={tooltipShowSeconds} />
   );
 }
 

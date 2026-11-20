@@ -56,9 +56,7 @@ function ProjectSelectStep({
   });
 
   const form = useScrapsForm({
-    defaultValues: {
-      projectId: autoSelectedProjectId,
-    },
+    defaultValues: {projectId: autoSelectedProjectId},
     validators: defaultFormValidators(projectSchema),
     onSubmit: ({value, createValidationError}) =>
       advance({projectId: Number(value.projectId)}).catch(error => {
@@ -159,11 +157,7 @@ function CloudFormationStep({
   const [defaultExternalId] = useState<string>(() => crypto.randomUUID());
 
   const form = useScrapsForm({
-    defaultValues: {
-      accountNumber: '',
-      region: '',
-      awsExternalId: defaultExternalId,
-    },
+    defaultValues: {accountNumber: '', region: '', awsExternalId: defaultExternalId},
     validators: defaultFormValidators(cloudFormationSchema),
     onSubmit: ({value, createValidationError}) =>
       advance(value).catch(error => {

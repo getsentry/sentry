@@ -44,11 +44,7 @@ jest.mock('lodash/debounce', () =>
   })
 );
 
-type EventWithTime = {
-  data: any;
-  timestamp: number;
-  type: number;
-};
+type EventWithTime = {data: any; timestamp: number; type: number};
 
 jest.useFakeTimers();
 
@@ -87,9 +83,7 @@ function createCanvasEvent(id: number, timestamp: number): EventWithTime {
 function createReplayer(getNodeImpl: (id: number) => Node | null) {
   return {
     getMirror() {
-      return {
-        getNode: getNodeImpl,
-      };
+      return {getNode: getNodeImpl};
     },
   } as Replayer;
 }

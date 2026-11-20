@@ -37,9 +37,7 @@ describe('ProjectTags', () => {
       organization: org,
       outletContext: {project},
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/projects/${project.slug}/tags/`,
-        },
+        location: {pathname: `/settings/projects/${project.slug}/tags/`},
         route: '/settings/projects/:projectId/tags/',
       },
     });
@@ -62,9 +60,7 @@ describe('ProjectTags', () => {
       organization: org,
       outletContext: {project},
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/projects/${project.slug}/tags/`,
-        },
+        location: {pathname: `/settings/projects/${project.slug}/tags/`},
         route: '/settings/projects/:projectId/tags/',
       },
     });
@@ -76,9 +72,7 @@ describe('ProjectTags', () => {
       organization: OrganizationFixture({access: []}),
       outletContext: {project},
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/projects/${project.slug}/tags/`,
-        },
+        location: {pathname: `/settings/projects/${project.slug}/tags/`},
         route: '/settings/projects/:projectId/tags/',
       },
     });
@@ -93,9 +87,7 @@ describe('ProjectTags', () => {
       organization: org,
       outletContext: {project},
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/projects/${project.slug}/tags/`,
-        },
+        location: {pathname: `/settings/projects/${project.slug}/tags/`},
         route: '/settings/projects/:projectId/tags/',
       },
     });

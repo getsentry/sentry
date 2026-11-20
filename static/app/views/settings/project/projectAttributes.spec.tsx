@@ -96,10 +96,7 @@ describe('ProjectAttributes', () => {
   });
 
   it('requests sorted results from the first page when a column header is clicked', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
-    });
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
 
     const {router} = render(<ProjectAttributes />, {
       organization,
@@ -256,10 +253,7 @@ describe('ProjectAttributes', () => {
 
   it('hides the page when the feature is disabled', () => {
     const {organization: organizationWithoutFeature} = initializeOrg();
-    const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
-    });
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
 
     render(<ProjectAttributes />, {
       organization: organizationWithoutFeature,

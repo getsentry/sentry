@@ -30,9 +30,7 @@ describe('instance level OAuth client details', () => {
   };
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`,
-    },
+    location: {pathname: `/_admin/instance-level-oauth/${mockClientDetails.clientID}/`},
     route: '/_admin/instance-level-oauth/:clientID/',
   };
   let mockGetDetailsCall: jest.Mock;
@@ -60,9 +58,7 @@ describe('instance level OAuth client details', () => {
   });
 
   it('renders client details properly', async () => {
-    render(<InstanceLevelOAuthDetails />, {
-      initialRouterConfig,
-    });
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
     expect(
       await screen.findByText('Details For Instance Level OAuth Client: CodeCov')
     ).toBeInTheDocument();
@@ -121,9 +117,7 @@ describe('instance level OAuth client details', () => {
   });
 
   it('allows a client to be updated', async () => {
-    render(<InstanceLevelOAuthDetails />, {
-      initialRouterConfig,
-    });
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
 
     // Wait for page load then clear current client details
     await screen.findByText('Details For Instance Level OAuth Client: CodeCov');
@@ -297,9 +291,7 @@ describe('instance level OAuth client details', () => {
   });
 
   it('deletes a client correctly', async () => {
-    render(<InstanceLevelOAuthDetails />, {
-      initialRouterConfig,
-    });
+    render(<InstanceLevelOAuthDetails />, {initialRouterConfig});
     await userEvent.click(await screen.findByRole('button', {name: 'Delete client'}));
     renderGlobalModal();
     expect(

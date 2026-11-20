@@ -25,10 +25,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcrumb/breadcrumbTitle';
 
 function userDetailsQueryOptions(userId: string) {
-  return apiOptions.as<User>()('/users/$userId/', {
-    path: {userId},
-    staleTime: 0,
-  });
+  return apiOptions.as<User>()('/users/$userId/', {path: {userId}, staleTime: 0});
 }
 
 const schema = z.object({
@@ -141,11 +138,7 @@ function AdminUserEditForm({
 
   const deactivateMutation = useMutation({
     mutationFn: () =>
-      fetchMutation<User>({
-        url: userEndpoint,
-        method: 'PUT',
-        data: {isActive: false},
-      }),
+      fetchMutation<User>({url: userEndpoint, method: 'PUT', data: {isActive: false}}),
     onSuccess: response => {
       queryClient.setQueryData(userDetailsQueryOptions(user.id).queryKey, prev => ({
         json: response,

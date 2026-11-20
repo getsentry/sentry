@@ -169,9 +169,7 @@ describe('AddCodeOwnerModal', () => {
     await waitFor(() => {
       expect(addFileRequest).toHaveBeenCalledWith(
         `/projects/${org.slug}/${project.slug}/codeowners/`,
-        expect.objectContaining({
-          data: {codeMappingId: '2', raw: '* @MeredithAnya\n'},
-        })
+        expect.objectContaining({data: {codeMappingId: '2', raw: '* @MeredithAnya\n'}})
       );
     });
 

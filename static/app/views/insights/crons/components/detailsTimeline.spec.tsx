@@ -137,10 +137,7 @@ describe('DetailsTimeline', () => {
     const {router} = render(<DetailsTimeline monitor={monitor} />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/monitors/1/',
-          query: {statsPeriod: '7d', project: '1'},
-        },
+        location: {pathname: '/monitors/1/', query: {statsPeriod: '7d', project: '1'}},
       },
     });
 

@@ -134,11 +134,7 @@ export default function ProjectAlertSettings() {
                 min={1}
                 max={60}
                 step={1}
-                formatOptions={{
-                  style: 'unit',
-                  unit: 'minute',
-                  unitDisplay: 'long',
-                }}
+                formatOptions={{style: 'unit', unit: 'minute', unitDisplay: 'long'}}
                 disabled={!canEditRule}
               />
             </field.Layout.Row>
@@ -165,11 +161,7 @@ export default function ProjectAlertSettings() {
                 min={1}
                 max={60}
                 step={1}
-                formatOptions={{
-                  style: 'unit',
-                  unit: 'minute',
-                  unitDisplay: 'long',
-                }}
+                formatOptions={{style: 'unit', unit: 'minute', unitDisplay: 'long'}}
                 disabled={!canEditRule}
               />
             </field.Layout.Row>

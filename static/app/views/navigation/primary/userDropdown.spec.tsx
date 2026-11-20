@@ -27,10 +27,7 @@ describe('UserDropdown', () => {
   });
 
   it('can sign out', async () => {
-    const mockLogout = MockApiClient.addMockResponse({
-      url: '/auth/',
-      method: 'DELETE',
-    });
+    const mockLogout = MockApiClient.addMockResponse({url: '/auth/', method: 'DELETE'});
 
     render(<UserDropdown />);
 
@@ -84,7 +81,7 @@ describe('UserDropdown', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Sign Out'})).toBeInTheDocument();
     expect(screen.getByText('Foo Bar')).toBeInTheDocument();
 
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Preferences'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Preferences'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Dark'}));
 
     await waitFor(() => {
@@ -121,7 +118,7 @@ describe('UserDropdown', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'foo@example.com'}));
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'Preferences'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Preferences'}));
     await userEvent.click(await screen.findByRole('menuitemradio', {name: '24 hour'}));
 
     await waitFor(() => {

@@ -7,13 +7,13 @@ import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Tag} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {CursorHandler} from '@sentry/scraps/pagination';
 import {Pagination} from '@sentry/scraps/pagination';
 import {Text} from '@sentry/scraps/text';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -22,7 +22,6 @@ import {t} from 'sentry/locale';
 import type {AuditLog} from 'sentry/types/organization';
 import type {User} from 'sentry/types/user';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {getTimeFormat} from 'sentry/utils/dates';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
@@ -94,6 +93,7 @@ export default function UsageLog() {
     cursor: parseAsString,
   });
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const {data, isPending, isError, refetch} = useQuery({
     ...apiOptions.as<UsageLogs>()(
       '/customers/$organizationIdOrSlug/subscription/usage-logs/',
@@ -126,10 +126,7 @@ export default function UsageLog() {
   };
 
   const eventNameOptions =
-    eventNames?.map(type => ({
-      label: formatEntryTitle(type),
-      value: type,
-    })) ?? [];
+    eventNames?.map(type => ({label: formatEntryTitle(type), value: type})) ?? [];
   const selectedEventName = selectedEvent || undefined;
 
   const usageLogContent = (
@@ -180,11 +177,18 @@ export default function UsageLog() {
                           {' ・ '}
                         </Text>
                         <Grid columns="max-content auto" gap="md">
-                          <DateTime
-                            format={`MMM D, YYYY ・ ${getTimeFormat({timeZone: true})}`}
-                            date={entry.dateCreated}
-                            style={{fontSize: theme.font.size.sm}}
-                          />
+                          <time style={{fontSize: theme.font.size.sm}}>
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'date',
+                              year: 'always',
+                              showTimezone: false,
+                            })}
+                            {' ・ '}
+                            {formatDateTime(entry.dateCreated, {
+                              mode: 'time',
+                              showTimezone: true,
+                            })}
+                          </time>
                         </Grid>
                         {entry.actor && entry.actor.name !== 'Sentry' && (
                           <Fragment>

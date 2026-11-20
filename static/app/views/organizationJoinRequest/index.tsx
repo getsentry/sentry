@@ -36,10 +36,7 @@ export default function OrganizationJoinRequest() {
         data,
       }),
     onSuccess: () => {
-      trackAnalytics('join_request.created', {
-        organization: orgId,
-        referrer,
-      });
+      trackAnalytics('join_request.created', {organization: orgId, referrer});
     },
     onError: () => {
       toast.error(t('Request to join failed'));
@@ -89,9 +86,7 @@ export default function OrganizationJoinRequest() {
             {t('Request to Join')}
           </Heading>
           <Text as="p">
-            {tct('Ask the admins if you can join the [orgId] organization.', {
-              orgId,
-            })}
+            {tct('Ask the admins if you can join the [orgId] organization.', {orgId})}
           </Text>
         </Stack>
         <ScrapsForm form={form}>

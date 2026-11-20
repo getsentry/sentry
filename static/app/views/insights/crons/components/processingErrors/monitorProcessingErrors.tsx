@@ -3,14 +3,15 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {IconClose} from '@sentry/icons/close';
 import groupBy from 'lodash/groupBy';
+import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {List} from 'sentry/components/list';
@@ -28,12 +29,14 @@ import {ProcessingErrorItem} from './processingErrorItem';
 import {ProcessingErrorTitle} from './processingErrorTitle';
 
 function CheckinTooltip({checkin}: {checkin: CheckInPayload}) {
+  // The backend serializes the Kafka timestamp as UTC without an offset.
+  const checkinDate = moment.utc(checkin.ts).toDate();
   return (
     <StyledHovercard
       skipWrapper
       showUnderline
       position="bottom"
-      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkin.ts} />})}
+      header={tct('Check-in on [datetime]', {datetime: <DateTime date={checkinDate} />})}
       body={
         // Prevent clicks inside the hovercard from closing the expandable alert
         <div onClick={e => e.stopPropagation()}>

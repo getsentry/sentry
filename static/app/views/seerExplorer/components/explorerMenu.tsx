@@ -170,10 +170,7 @@ export function useExplorerMenu({
     }
 
     if (!inputAnchorRef?.current) {
-      setMenuPosition({
-        bottom: '100%',
-        left: '16px',
-      });
+      setMenuPosition({bottom: '100%', left: '16px'});
       return;
     }
 
@@ -217,11 +214,7 @@ export function useExplorerMenu({
     </Activity>
   );
 
-  return {
-    menu,
-    isMenuOpen: isVisible,
-    closeMenu: close,
-  };
+  return {menu, isMenuOpen: isVisible, closeMenu: close};
 }
 
 function useSlashCommands({
@@ -238,12 +231,7 @@ function useSlashCommands({
 
   return useMemo(
     (): MenuItemProps[] => [
-      {
-        title: '/new',
-        key: '/new',
-        description: 'Start a new session',
-        handler: onNew,
-      },
+      {title: '/new', key: '/new', description: 'Start a new session', handler: onNew},
       ...(canInvestigate
         ? [
             {
@@ -341,9 +329,7 @@ function useSlashCommands({
   );
 }
 
-const MenuPanel = styled('div')<{
-  panelSize: 'max' | 'med';
-}>`
+const MenuPanel = styled('div')<{panelSize: 'max' | 'med'}>`
   position: absolute;
   width: 300px;
   background: ${p => p.theme.tokens.background.primary};

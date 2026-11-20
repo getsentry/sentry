@@ -1,10 +1,6 @@
 import {defineRule, type ESTree} from '@oxlint/plugins';
 
-type Options = {
-  caseSensitive?: boolean;
-  natural?: boolean;
-  requiredFirst?: boolean;
-};
+type Options = {caseSensitive?: boolean; natural?: boolean; requiredFirst?: boolean};
 
 type SortableMember = ESTree.TSSignature;
 

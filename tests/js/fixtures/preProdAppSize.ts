@@ -17,10 +17,7 @@ export function ProcessedInsightFixture(
         percentage: 7.5,
         data: {
           fileType: 'regular' as const,
-          originalFile: {
-            file_path: 'src/components/Button.js',
-            total_savings: 512000,
-          },
+          originalFile: {file_path: 'src/components/Button.js', total_savings: 512000},
         },
       },
       {
@@ -29,10 +26,7 @@ export function ProcessedInsightFixture(
         percentage: 4,
         data: {
           fileType: 'regular' as const,
-          originalFile: {
-            file_path: 'src/components/Icon.js',
-            total_savings: 256000,
-          },
+          originalFile: {file_path: 'src/components/Icon.js', total_savings: 256000},
         },
       },
       {
@@ -72,35 +66,19 @@ export function InsightResultsFixture(
           name: 'Duplicate files',
           total_savings: 768000,
           files: [
-            {
-              file_path: 'src/components/Button.js',
-              total_savings: 512000,
-            },
-            {
-              file_path: 'src/components/Icon.js',
-              total_savings: 256000,
-            },
+            {file_path: 'src/components/Button.js', total_savings: 512000},
+            {file_path: 'src/components/Icon.js', total_savings: 256000},
           ],
         },
       ],
     },
     large_images: {
       total_savings: 512000,
-      files: [
-        {
-          file_path: 'src/assets/logo.png',
-          total_savings: 512000,
-        },
-      ],
+      files: [{file_path: 'src/assets/logo.png', total_savings: 512000}],
     },
     large_videos: {
       total_savings: 256000,
-      files: [
-        {
-          file_path: 'src/assets/video.mp4',
-          total_savings: 256000,
-        },
-      ],
+      files: [{file_path: 'src/assets/video.mp4', total_savings: 256000}],
     },
     ...params,
   };

@@ -59,9 +59,7 @@ const drawerWidthStorage: DrawerWidthStorage = {
   set(key, widthPercent) {
     localStorageWrapper.setItem(key, JSON.stringify(widthPercent));
     window.dispatchEvent(
-      new CustomEvent('synced-local-storage', {
-        detail: {key, value: widthPercent},
-      })
+      new CustomEvent('synced-local-storage', {detail: {key, value: widthPercent}})
     );
   },
   subscribe(key, listener) {
@@ -87,10 +85,7 @@ export function SentryOverlayProvider({children}: PropsWithChildren) {
       headerHeight: `${PRIMARY_HEADER_HEIGHT}px`,
       location,
       modal: {getAppElement, boundaryComponent: ModalErrorBoundary},
-      drawer: {
-        boundaryComponent: DrawerErrorBoundary,
-        widthStorage: drawerWidthStorage,
-      },
+      drawer: {boundaryComponent: DrawerErrorBoundary, widthStorage: drawerWidthStorage},
     }),
     [contentTop, location]
   );

@@ -34,10 +34,7 @@ interface SubscriptionNotificationsProps {
   subscription: Subscription;
 }
 
-type ThresholdsType = {
-  perProductOndemandPercent: number[];
-  reservedPercent: number[];
-};
+type ThresholdsType = {perProductOndemandPercent: number[]; reservedPercent: number[]};
 
 function getThresholdsSchema(onDemandEnabled: boolean) {
   return z.object({
@@ -64,10 +61,7 @@ function SubscriptionNotifications({subscription}: SubscriptionNotificationsProp
   } = useQuery({
     ...apiOptions.as<ThresholdsType>()(
       '/customers/$organizationIdOrSlug/spend-notifications/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
     ),
     gcTime: 0,
   });

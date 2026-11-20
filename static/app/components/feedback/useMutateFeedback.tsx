@@ -76,8 +76,5 @@ export function useMutateFeedback({feedbackIds, organization, projectIds}: Props
     [mutate, feedbackIds]
   );
 
-  return {
-    markAsRead,
-    resolve,
-  };
+  return {markAsRead, resolve};
 }

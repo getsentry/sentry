@@ -24,7 +24,7 @@ import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct, tn} from 'sentry/locale';
 import type {AvatarProject} from 'sentry/types/project';
 import {getIntegrationDisplayName} from 'sentry/utils/integrationUtil';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {getMutateSeerProjectRepoOptions} from 'sentry/utils/seer/seerProjectRepos';
 import type {SeerProjectReposResponse} from 'sentry/utils/seer/types';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -97,9 +97,7 @@ export function AutofixRepositoriesItem({
   const resetOnErrorRef = useRef(false);
 
   const form = useScrapsForm({
-    defaultValues: {
-      branchOverrides: repository.branchOverrides,
-    },
+    defaultValues: {branchOverrides: repository.branchOverrides},
     validators: defaultFormValidators(repoSchema),
     listeners: [
       {
@@ -141,7 +139,7 @@ export function AutofixRepositoriesItem({
           </Flex>
         </SimpleTable.RowCell>
 
-        {!isSeerTokenBasedBillingOnboardingEnabled(organization) && (
+        {!isTokenBilledSeerEnabled(organization) && (
           <SimpleTable.RowCell>
             <Confirm
               disabled={!canWrite}

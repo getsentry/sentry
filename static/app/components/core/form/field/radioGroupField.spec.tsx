@@ -5,9 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {AutoSaveForm, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
-const testSchema = z.object({
-  priority: z.enum(['low', 'medium', 'high']),
-});
+const testSchema = z.object({priority: z.enum(['low', 'medium', 'high'])});
 
 type Priority = z.infer<typeof testSchema>['priority'];
 
@@ -26,11 +24,7 @@ function TestForm({
   defaultValue = 'low',
   disabled,
 }: TestFormProps) {
-  const form = useScrapsForm({
-    defaultValues: {
-      priority: defaultValue,
-    },
-  });
+  const form = useScrapsForm({defaultValues: {priority: defaultValue}});
 
   return (
     <ScrapsForm form={form}>

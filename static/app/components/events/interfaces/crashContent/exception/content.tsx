@@ -95,11 +95,7 @@ const useHiddenExceptions = (values?: ExceptionValue[]) => {
     });
   };
 
-  return {
-    toggleRelatedExceptions,
-    hiddenExceptions,
-    expandException,
-  };
+  return {toggleRelatedExceptions, hiddenExceptions, expandException};
 };
 
 function ToggleExceptionButton({
@@ -275,9 +271,7 @@ export function Content({
 
   const isSampleError = useIsSampleEvent();
 
-  useRouteAnalyticsParams({
-    num_exceptions: values?.length ?? 0,
-  });
+  useRouteAnalyticsParams({num_exceptions: values?.length ?? 0});
 
   // Organization context may be unavailable for the shared event view, so we need
   // to account for this possibility if we rely on the `useOrganization` hook.

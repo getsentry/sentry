@@ -19,9 +19,7 @@ import {
 } from 'getsentry/utils/trackSpendVisibilityAnalytics';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from 'getsentry/views/spikeProtection/constants';
 
-const spikeProtectionSchema = z.object({
-  enabled: z.boolean(),
-});
+const spikeProtectionSchema = z.object({enabled: z.boolean()});
 
 interface SpikeProtectionProjectToggleProps {
   project: ProjectSummaryWithOptions;

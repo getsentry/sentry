@@ -65,9 +65,7 @@ describe('search-syntax fixtures', () => {
     describe(file.replace(/\.json$/, ''), () => {
       for (const testCase of cases) {
         it(`handles ${JSON.stringify(testCase.query)}`, () => {
-          const result = parseSearch(testCase.query, {
-            config: testCase.additionalConfig,
-          });
+          const result = parseSearch(testCase.query, {config: testCase.additionalConfig});
           if (testCase.raisesError) {
             expect(result).toBeNull();
             return;
@@ -135,9 +133,7 @@ describe('parseSearch', () => {
   it('builds paren tokens instead of groups with flattenParenGroups', () => {
     const grouped = parseSearchOrThrow('(a:b)');
     expect(grouped.map(token => token.type)).toContain(Token.LOGIC_GROUP);
-    const flat = parseSearchOrThrow('(a:b)', {
-      config: {flattenParenGroups: true},
-    });
+    const flat = parseSearchOrThrow('(a:b)', {config: {flattenParenGroups: true}});
     expect(flat.map(token => token.type)).toEqual([
       Token.SPACES,
       Token.L_PAREN,
@@ -269,10 +265,8 @@ describe('getKeyName', () => {
     expect(getKeyName(firstKey('flags[beta]:on'))).toBe('flags[beta]');
     expect(getKeyName(firstKey('foo[*]:bar'))).toBe('foo');
     expect(getKeyName(firstKey('count():>1'))).toBe('count');
-    expect(
-      getKeyName(firstKey('p95(span.duration):>1'), {
-        aggregateWithArgs: true,
-      })
-    ).toBe('p95(span.duration)');
+    expect(getKeyName(firstKey('p95(span.duration):>1'), {aggregateWithArgs: true})).toBe(
+      'p95(span.duration)'
+    );
   });
 });

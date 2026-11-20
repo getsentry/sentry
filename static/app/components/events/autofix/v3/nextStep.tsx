@@ -162,13 +162,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'root_cause',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'root_cause', referrer});
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -194,10 +188,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   );
 
   const rethinkPrompt = t('How can this root cause be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('solution', {
@@ -252,13 +243,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'solution',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'solution', referrer});
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});
@@ -284,10 +269,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   );
 
   const rethinkPrompt = t('How can this plan be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
@@ -452,10 +434,7 @@ function CodeChangesNextStepContent({
   );
 
   const rethinkPrompt = t('How can this code change be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'code_changes',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'code_changes'});
 
   return (
     <NextStepTemplate

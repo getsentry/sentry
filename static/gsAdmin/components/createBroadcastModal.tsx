@@ -65,11 +65,7 @@ export function CreateBroadcastModal({
   const navigate = useNavigate();
   const mutation = useMutation({
     mutationFn: (data: CreateBroadcastPayload) =>
-      fetchMutation<Broadcast>({
-        url: getApiUrl('/broadcasts/'),
-        method: 'POST',
-        data,
-      }),
+      fetchMutation<Broadcast>({url: getApiUrl('/broadcasts/'), method: 'POST', data}),
     onSuccess: data => navigate(`/_admin/broadcasts/${data.id}/`),
   });
 

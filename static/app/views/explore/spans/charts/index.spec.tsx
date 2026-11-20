@@ -33,10 +33,7 @@ jest.mock('echarts-for-react/lib/core', () => {
       string,
       (event: Record<string, unknown>, instance: Record<string, unknown>) => void
     >;
-    option: {
-      series: Array<{data?: Array<{value: [number, number]}>}>;
-      brush?: unknown;
-    };
+    option: {series: Array<{data?: Array<{value: [number, number]}>}>; brush?: unknown};
   }) {
     return (
       <div>
@@ -350,9 +347,7 @@ describe('ExploreCharts', () => {
           />
         </ChartSelectionProvider>
       </SpansQueryParamsProvider>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(
@@ -643,9 +638,7 @@ describe('ExploreCharts', () => {
         <ControlledExploreCharts
           initialVisualizes={[{yAxes: ['count(span.duration)']}]}
         />,
-        {
-          organization: OrganizationFixture(),
-        }
+        {organization: OrganizationFixture()}
       );
 
       await userEvent.click(await screen.findByRole('button', {name: 'Chart type'}));

@@ -67,12 +67,7 @@ export function DrawerPanel({
   resizable = true,
 }: DrawerPanelProps) {
   const {panelRef, resizeHandleRef, handleResizeStart, persistedWidthPercent, enabled} =
-    useDrawerResizing({
-      drawerKey,
-      drawerWidth,
-      drawerMaxWidth,
-      enabled: resizable,
-    });
+    useDrawerResizing({drawerKey, drawerWidth, drawerMaxWidth, enabled: resizable});
   const [tooltipContainer, setTooltipContainer] = useState<HTMLDivElement | null>(null);
 
   // Calculate actual drawer width in pixels
@@ -354,8 +349,4 @@ const ResizeHandle = styled('div')`
   }
 `;
 
-export const DrawerComponents = {
-  DrawerBody,
-  DrawerHeader,
-  DrawerPanel,
-};
+export const DrawerComponents = {DrawerBody, DrawerHeader, DrawerPanel};

@@ -22,17 +22,10 @@ describe('useReplaySummary', () => {
   beforeEach(() => {
     jest.clearAllMocks();
 
-    mockReplayRecord = {
-      id: 'replay-123',
-      count_segments: 1,
-    };
-    mockReplay = {
-      getReplay: jest.fn().mockReturnValue(mockReplayRecord),
-    };
+    mockReplayRecord = {id: 'replay-123', count_segments: 1};
+    mockReplay = {getReplay: jest.fn().mockReturnValue(mockReplayRecord)};
     mockOrganization = OrganizationFixture();
-    mockProject = ProjectFixture({
-      slug: 'test-project',
-    });
+    mockProject = ProjectFixture({slug: 'test-project'});
 
     mockUseProjectFromId.mockReturnValue(mockProject);
   });
@@ -41,10 +34,7 @@ describe('useReplaySummary', () => {
     it('should fetch summary data successfully', async () => {
       const mockSummaryData = {
         status: ReplaySummaryStatus.COMPLETED,
-        data: {
-          summary: 'This is a test summary',
-          time_ranges: [{start: 0, end: 1000}],
-        },
+        data: {summary: 'This is a test summary', time_ranges: [{start: 0, end: 1000}]},
       };
 
       const mockRequest = MockApiClient.addMockResponse({
@@ -94,9 +84,7 @@ describe('useReplaySummary', () => {
 
       const {result} = renderHookWithProviders(
         () => useReplaySummary(mockReplay, {enabled: false, staleTime: 0}),
-        {
-          organization: mockOrganization,
-        }
+        {organization: mockOrganization}
       );
 
       // The hook should not make API calls when disabled
@@ -116,9 +104,7 @@ describe('useReplaySummary', () => {
 
       const {result} = renderHookWithProviders(
         () => useReplaySummary(mockReplay, {enabled: true, staleTime: 0}),
-        {
-          organization: mockOrganization,
-        }
+        {organization: mockOrganization}
       );
 
       await waitFor(() => {
@@ -226,9 +212,7 @@ describe('useReplaySummary', () => {
 
       const {result, rerender} = renderHookWithProviders(
         () => useReplaySummary(mockReplay),
-        {
-          organization: mockOrganization,
-        }
+        {organization: mockOrganization}
       );
 
       await waitFor(() => {

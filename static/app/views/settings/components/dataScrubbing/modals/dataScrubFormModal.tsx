@@ -14,11 +14,12 @@ import {
   ScrapsForm,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {toast} from '@sentry/scraps/toast';
 
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
@@ -142,15 +143,11 @@ export function DataScrubFormModal({
           case ErrorType.INVALID_SELECTOR:
           case ErrorType.ATTRIBUTE_INVALID:
             return createValidationError({
-              fields: {
-                source: {message: parsedError.message},
-              },
+              fields: {source: {message: parsedError.message}},
             });
           case ErrorType.REGEX_PARSE:
             return createValidationError({
-              fields: {
-                pattern: {message: parsedError.message},
-              },
+              fields: {pattern: {message: parsedError.message}},
             });
           default:
             toast.error(parsedError.message);
@@ -471,8 +468,14 @@ export function DataScrubFormModal({
                           </sourceField.Layout.Stack>
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: '8px'}}>
-                              {t(
-                                "Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)"
+                              {tct(
+                                'Deep wildcards ([wildcard]) also apply to log and metric attributes marked as [conventionsLink:auto scrubbed in Sentry Conventions], and to attributes not listed there.',
+                                {
+                                  wildcard: <code>**</code>,
+                                  conventionsLink: (
+                                    <ExternalLink href="https://conventions.sentry.dev/attributes/?scrubbing=auto" />
+                                  ),
+                                }
                               )}
                             </Alert>
                           )}

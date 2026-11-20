@@ -101,10 +101,7 @@ function EditRepositoryFormBody({
   });
 
   const form = useConnectRepoForm({
-    defaultValues: {
-      repository: null as string | null,
-      pathMappings: seededPathMappings,
-    },
+    defaultValues: {repository: null as string | null, pathMappings: seededPathMappings},
     onSubmit: value => {
       if (
         !seededMappings ||

@@ -6,9 +6,7 @@ import {useScrapsForm, ScrapsForm} from '@sentry/scraps/form';
 import type {InputFieldProps} from '@sentry/scraps/form/field/inputField';
 
 function TestForm() {
-  const form = useScrapsForm({
-    defaultValues: {amount: ''},
-  });
+  const form = useScrapsForm({defaultValues: {amount: ''}});
 
   return (
     <ScrapsForm form={form}>
@@ -29,15 +27,9 @@ function TestForm() {
 
 describe('InputField', () => {
   it('requires onChange unless readOnly is true', () => {
-    expectTypeOf<{
-      readOnly: true;
-      value: string;
-    }>().toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{readOnly: true; value: string}>().toMatchTypeOf<InputFieldProps>();
     expectTypeOf<{value: string}>().not.toMatchTypeOf<InputFieldProps>();
-    expectTypeOf<{
-      readOnly: false;
-      value: string;
-    }>().not.toMatchTypeOf<InputFieldProps>();
+    expectTypeOf<{readOnly: false; value: string}>().not.toMatchTypeOf<InputFieldProps>();
     expectTypeOf<{
       readOnly: boolean;
       value: string;

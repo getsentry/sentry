@@ -23,10 +23,7 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {parseAsSingleScalar} from 'sentry/views/explore/queryParams/parsers';
 
-type TransferDetails = {
-  organizations: Organization[];
-  project: Project;
-};
+type TransferDetails = {organizations: Organization[]; project: Project};
 
 const schema = z.object({
   organization: z
@@ -98,9 +95,7 @@ function AcceptProjectTransferForm({
   });
 
   // z.input accepts null; z.output (after refine) does not
-  const defaultValues: z.input<typeof schema> = {
-    organization: options[0]?.value ?? null,
-  };
+  const defaultValues: z.input<typeof schema> = {organization: options[0]?.value ?? null};
 
   const form = useScrapsForm({
     defaultValues,

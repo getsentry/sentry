@@ -7,7 +7,7 @@ from typing import Any, TypedDict, override
 from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer, register
-from sentry.notebooks.models import NotebookComment
+from sentry.notebooks.models import Mention, NotebookComment
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -25,6 +25,7 @@ class NotebookCommentSerializerResponse(TypedDict):
     blockId: str | None
     author: UserSerializerResponse | None
     body: str
+    mentions: list[Mention]
     dateCreated: datetime
     dateUpdated: datetime
 
@@ -64,6 +65,7 @@ class NotebookCommentSerializer(Serializer[NotebookCommentSerializerResponse]):
             "blockId": str(obj.block_id) if obj.block_id is not None else None,
             "author": attrs["author"],
             "body": obj.body,
+            "mentions": obj.mentions,
             "dateCreated": obj.date_added,
             "dateUpdated": obj.date_updated,
         }

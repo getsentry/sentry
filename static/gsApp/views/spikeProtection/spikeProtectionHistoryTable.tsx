@@ -187,10 +187,7 @@ function SpikeRow({
             })
           }
           to={{
-            pathname: makeDiscoverPathname({
-              organization,
-              path: '/',
-            }),
+            pathname: makeDiscoverPathname({organization, path: '/'}),
             query: {
               project: [project.id],
               start: decodeScalar(spike.start),

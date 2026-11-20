@@ -24,10 +24,7 @@ export function useOrganizationMemberSearch(): MemberSearchResult {
   const [search, setSearch] = useState('');
   const defaultMembersQuery = useMembers();
   const searchMembersQuery = useQuery({
-    ...memberUsersQueryOptions({
-      orgSlug: organization.slug,
-      search,
-    }),
+    ...memberUsersQueryOptions({orgSlug: organization.slug, search}),
     enabled: search !== '',
   });
 

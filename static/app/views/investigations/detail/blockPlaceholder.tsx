@@ -6,10 +6,7 @@ import {Heading} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 
-type InvestigationBlockPlaceholderProps = {
-  className?: string;
-  title?: string | null;
-};
+type InvestigationBlockPlaceholderProps = {className?: string; title?: string | null};
 
 /** What a notebook block looks like while Seer is still writing it. */
 export function InvestigationBlockPlaceholder({

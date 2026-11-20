@@ -105,9 +105,7 @@ function ApiApplicationsDetails() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {
-    path: {appId},
-  });
+  const apiApplicationEndpoint = getApiUrl('/api-applications/$appId/', {path: {appId}});
 
   const onSaveError = () => toast.error(t('Unable to save change'));
   const onSaveSuccess = (updated: ApiApplication) => {

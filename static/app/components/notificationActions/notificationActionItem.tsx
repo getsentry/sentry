@@ -398,9 +398,7 @@ export function NotificationActionItem({
       apiMethod: 'POST' as const,
       apiEndpoint: getApiUrl(
         '/organizations/$organizationIdOrSlug/notifications/actions/',
-        {
-          path: {organizationIdOrSlug: organization.slug},
-        }
+        {path: {organizationIdOrSlug: organization.slug}}
       ),
       successMessage: t('Successfully added notification action'),
       errorMessage: t('Unable to add notification action'),

@@ -32,10 +32,7 @@ export function useOrganizationsWithRegion() {
           // an organization's locality is missing from the known localities.
           Sentry.captureMessage('Could not match organization region URL to a locality', {
             level: 'warning',
-            extra: {
-              organizationSlug: org.slug,
-              regionUrl: org.links.regionUrl,
-            },
+            extra: {organizationSlug: org.slug, regionUrl: org.links.regionUrl},
           });
           return [];
         }
@@ -44,9 +41,5 @@ export function useOrganizationsWithRegion() {
     },
   });
 
-  return {
-    data: query.data ?? [],
-    isError: query.isError,
-    isPending: query.isPending,
-  };
+  return {data: query.data ?? [], isError: query.isError, isPending: query.isPending};
 }

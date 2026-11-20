@@ -16,18 +16,11 @@ describe('ProjectSecurityHeaders', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: keysUrl,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: keysUrl, method: 'GET', body: []});
   });
 
   it('renders', async () => {
-    render(<ProjectSecurityHeaders />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectSecurityHeaders />, {organization, initialRouterConfig});
 
     // Panel heading
     expect(await screen.findByText('Additional Configuration')).toBeInTheDocument();
@@ -40,10 +33,7 @@ describe('ProjectSecurityHeaders', () => {
       statusCode: 400,
       body: {},
     });
-    render(<ProjectSecurityHeaders />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ProjectSecurityHeaders />, {organization, initialRouterConfig});
 
     expect(
       await screen.findByText('There was an error loading data.')

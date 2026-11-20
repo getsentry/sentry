@@ -28,9 +28,7 @@ describe('ReleasesDrawerDetails', () => {
   const organization = OrganizationFixture();
   const renderOptions = {
     organization,
-    initialRouterConfig: {
-      location: {pathname: '/releases/', query: {}},
-    },
+    initialRouterConfig: {location: {pathname: '/releases/', query: {}}},
   };
 
   beforeEach(() => {

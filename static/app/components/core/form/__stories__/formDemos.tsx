@@ -30,10 +30,7 @@ const quickStartSchema = z.object({
 export function QuickStartDemo() {
   const {t} = useTranslation();
   const form = useScrapsForm({
-    defaultValues: {
-      email: '',
-      name: '',
-    },
+    defaultValues: {email: '', name: ''},
     validators: defaultFormValidators(quickStartSchema),
     onSubmit: async ({value}) => {
       await sleep(1000);
@@ -133,10 +130,7 @@ export function CompactDemo() {
   );
 }
 
-const conditionalSchema = z.object({
-  plan: z.string(),
-  billingEmail: z.string(),
-});
+const conditionalSchema = z.object({plan: z.string(), billingEmail: z.string()});
 
 export function ConditionalDemo() {
   const {t} = useTranslation();
@@ -172,10 +166,7 @@ export function ConditionalDemo() {
               <form.Field
                 name="billingEmail"
                 validators={[
-                  {
-                    run: z.email(t('Please enter a valid email')),
-                    triggers: ['change'],
-                  },
+                  {run: z.email(t('Please enter a valid email')), triggers: ['change']},
                 ]}
               >
                 {field => (
@@ -283,9 +274,7 @@ export function BaseFieldDemo() {
   const form = useScrapsForm({
     defaultValues: {color: '#3c74dd'},
     validators: defaultFormValidators(
-      z.object({
-        color: z.string().min(1, 'Please select a color'),
-      })
+      z.object({color: z.string().min(1, 'Please select a color')})
     ),
     onSubmit: ({value}) => {
       // eslint-disable-next-line no-alert

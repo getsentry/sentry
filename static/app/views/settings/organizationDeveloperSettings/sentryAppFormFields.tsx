@@ -105,12 +105,7 @@ function WebhookUrlFieldImpl({
   return (
     <fields.Field
       name="webhookUrl"
-      listeners={[
-        {
-          run: ({value}) => onValueChange?.(value),
-          triggers: ['change'],
-        },
-      ]}
+      listeners={[{run: ({value}) => onValueChange?.(value), triggers: ['change']}]}
     >
       {field => (
         <field.Layout.Row label={fieldLabel} hintText={fieldHint} required={required}>

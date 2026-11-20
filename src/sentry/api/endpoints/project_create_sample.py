@@ -12,10 +12,12 @@ from sentry.models.groupinbox import GroupInboxReason, add_group_to_inbox
 from sentry.models.project import Project
 from sentry.utils.samples import create_sample_event
 
-# we have a more modern python example for python, and Expo apps use the React Native SDK
+# we have a more modern python example for python, Expo apps use the React Native SDK,
+# and Bref apps use the PHP SDK
 PLATFORM_MAPPING = {
     "python": "python-modern",
     "expo": "react-native",
+    "php-bref": "php",
 }
 
 

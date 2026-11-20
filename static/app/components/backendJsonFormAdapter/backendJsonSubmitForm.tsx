@@ -177,11 +177,7 @@ function buildAsyncSelectQuery(
   query: string,
   dynamicFieldValues?: Record<string, unknown>
 ): Record<string, unknown> {
-  return {
-    ...dynamicFieldValues,
-    field: fieldName,
-    query,
-  };
+  return {...dynamicFieldValues, field: fieldName, query};
 }
 
 function hasFieldValue(value: unknown): boolean {
@@ -288,9 +284,7 @@ export function BackendJsonSubmitForm({
         field,
         currentValue,
         defaultValues[field.name],
-        {
-          validateChoices: !hasAsyncChoices,
-        }
+        {validateChoices: !hasAsyncChoices}
       );
       if (!Object.is(reconciledValue, currentValue)) {
         form.setFieldValue(field.name, reconciledValue);
@@ -623,10 +617,7 @@ export function BackendJsonSubmitForm({
                               onLabelAdd={(key, label) => {
                                 setChoiceMapperLabels(prev => ({
                                   ...prev,
-                                  [field.name]: {
-                                    ...prev[field.name],
-                                    [key]: label,
-                                  },
+                                  [field.name]: {...prev[field.name], [key]: label},
                                 }));
                               }}
                               onChange={handleChange}

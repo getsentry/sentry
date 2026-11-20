@@ -24,9 +24,7 @@ export type CreateReleaseIntegrationModalOptions = {
 type CreateReleaseIntegrationModalProps = CreateReleaseIntegrationModalOptions &
   ModalRenderProps;
 
-const schema = z.object({
-  name: z.string().min(1, t('Field is required')),
-});
+const schema = z.object({name: z.string().min(1, t('Field is required'))});
 
 type FormValues = z.infer<typeof schema>;
 

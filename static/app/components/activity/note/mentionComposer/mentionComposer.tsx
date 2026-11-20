@@ -67,9 +67,7 @@ export function MentionComposer(props: MentionComposerProps) {
   const isCompact = variant === 'compact';
 
   const form = useScrapsForm({
-    defaultValues: {
-      value: initialEditorValue,
-    },
+    defaultValues: {value: initialEditorValue},
     onSubmit: async ({value}) => {
       const editorValue = value.value;
       const validMentionIds = editorValue.mentions.flatMap(mention =>
@@ -78,10 +76,7 @@ export function MentionComposer(props: MentionComposerProps) {
           : []
       );
       const uniqueMentionIds = [...new Set(validMentionIds)];
-      const data = {
-        text: serializeNoteMentions(editorValue),
-        mentions: uniqueMentionIds,
-      };
+      const data = {text: serializeNoteMentions(editorValue), mentions: uniqueMentionIds};
 
       await onSubmit(data);
 

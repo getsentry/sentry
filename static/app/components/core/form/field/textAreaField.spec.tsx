@@ -23,11 +23,7 @@ function TestForm({
   rows,
   autosize,
 }: TestFormProps) {
-  const form = useScrapsForm({
-    defaultValues: {
-      bio: defaultValue,
-    },
-  });
+  const form = useScrapsForm({defaultValues: {bio: defaultValue}});
 
   return (
     <ScrapsForm form={form}>
@@ -48,9 +44,7 @@ function TestForm({
   );
 }
 
-const testSchema = z.object({
-  bio: z.string(),
-});
+const testSchema = z.object({bio: z.string()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {bio: string}) => Promise<{bio: string}>;

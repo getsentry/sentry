@@ -30,9 +30,7 @@ import {apiTokensOptions} from './apiTokensOptions';
 
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
-type FetchApiTokenParameters = {
-  tokenId: string;
-};
+type FetchApiTokenParameters = {tokenId: string};
 type FetchApiTokenResponse = InternalAppApiToken;
 
 const tokenOptions = ({tokenId}: FetchApiTokenParameters) =>
@@ -41,9 +39,7 @@ const tokenOptions = ({tokenId}: FetchApiTokenParameters) =>
     staleTime: Infinity,
   });
 
-const schema = z.object({
-  name: z.string(),
-});
+const schema = z.object({name: z.string()});
 
 function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   const navigate = useNavigate();
@@ -161,9 +157,7 @@ function ApiTokenDetails() {
       <TextBlock>
         {tct(
           'For more information on how to use the web API, see our [link:documentation].',
-          {
-            link: <ExternalLink href="https://docs.sentry.io/api/" />,
-          }
+          {link: <ExternalLink href="https://docs.sentry.io/api/" />}
         )}
       </TextBlock>
 

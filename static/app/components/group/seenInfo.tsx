@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Body, Header, Hovercard} from 'sentry/components/hovercard';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
@@ -12,11 +12,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 type RelaxedDateType = React.ComponentProps<typeof TimeSince>['date'];
 
-type Props = {
-  date: RelaxedDateType;
-  dateGlobal: RelaxedDateType;
-  environment?: string;
-};
+type Props = {date: RelaxedDateType; dateGlobal: RelaxedDateType; environment?: string};
 
 export function SeenInfo({date, dateGlobal, environment}: Props) {
   return (

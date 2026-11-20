@@ -9,10 +9,10 @@ import {useModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {formatChartDateTime} from 'sentry/components/charts/formatChartDateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
@@ -80,10 +80,7 @@ const clientSchema = z.object({
 function clientDetailsQueryOptions(clientID: string) {
   return apiOptions.as<ClientDetailsResponse>()(
     '/_admin/instance-level-oauth/$clientId/',
-    {
-      path: {clientId: clientID},
-      staleTime: 0,
-    }
+    {path: {clientId: clientID}, staleTime: 0}
   );
 }
 
@@ -250,7 +247,9 @@ export function InstanceLevelOAuthDetails() {
         name: data.name,
         id: data.id,
         clientID: data.clientID,
-        createdAt: getFormattedDate(data.dateAdded, 'MMM Do YYYY'),
+        createdAt: formatChartDateTime(data.dateAdded, 'ordinalDateWithYear', {
+          timezone: 'UTC',
+        }),
         allowedOrigins: data.allowedOrigins.join(' '),
         homepageUrl: data.homepageUrl,
         redirectUris: data.redirectUris.join(' '),

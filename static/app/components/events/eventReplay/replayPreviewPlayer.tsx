@@ -67,9 +67,7 @@ export function ReplayPreviewPlayer({
     useReplayContext();
 
   const fullscreenRef = useRef<HTMLDivElement | null>(null);
-  const {toggle: toggleFullscreen} = useFullscreen({
-    elementRef: fullscreenRef,
-  });
+  const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
   const isFullscreen = useIsFullscreen();
   const startOffsetMs = replay?.getStartOffsetMs() ?? 0;
 
@@ -120,10 +118,7 @@ export function ReplayPreviewPlayer({
         <LinkButton
           size="sm"
           to={{
-            pathname: makeReplaysPathname({
-              path: `/${replayId}/`,
-              organization,
-            }),
+            pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
             query: {
               referrer,
               t_main: fromFeedback ? TabKey.BREADCRUMBS : TabKey.ERRORS,

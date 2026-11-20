@@ -55,10 +55,7 @@ const schema = z.object({
 
 function MyForm() {
   const form = useScrapsForm({
-    defaultValues: {
-      email: '',
-      name: '',
-    },
+    defaultValues: {email: '', name: ''},
     validators: defaultFormValidators(schema),
     onSubmit: ({value}) => {
       // Handle submission
@@ -598,10 +595,7 @@ const schema = z.object({
 });
 
 // z.input allows null for the provider field
-const defaultValues: z.input<typeof schema> = {
-  provider: null,
-  name: '',
-};
+const defaultValues: z.input<typeof schema> = {provider: null, name: ''};
 
 const form = useScrapsForm({
   defaultValues,
@@ -623,10 +617,7 @@ only while it is displayed; put that validator on the conditional field instead.
 
 ```tsx
 const schema = z
-  .object({
-    password: z.string(),
-    confirmPassword: z.string(),
-  })
+  .object({password: z.string(), confirmPassword: z.string()})
   .refine(data => data.password === data.confirmPassword, {
     message: 'Passwords do not match',
     path: ['confirmPassword'],
@@ -845,9 +836,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-const schema = z.object({
-  displayName: z.string().min(1, 'Display name is required'),
-});
+const schema = z.object({displayName: z.string().min(1, 'Display name is required')});
 
 function SettingsForm() {
   return (
@@ -857,11 +846,7 @@ function SettingsForm() {
       initialValue={user.displayName}
       mutationOptions={{
         mutationFn: data => {
-          return fetchMutation({
-            url: '/user/',
-            method: 'PUT',
-            data,
-          });
+          return fetchMutation({url: '/user/', method: 'PUT', data});
         },
         onSuccess: data => {
           // Update React Query cache

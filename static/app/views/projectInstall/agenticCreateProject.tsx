@@ -68,7 +68,6 @@ export function AgenticCreateProject({
   const [hasOpenedManualSetup, setHasOpenedManualSetup] = useState(false);
   const {
     run,
-    onboardingCode,
     isAgentConnected,
     isSetupComplete,
     hasRunFailed,
@@ -120,10 +119,10 @@ export function AgenticCreateProject({
               <AgenticSetup
                 handoffFlow={AgentHandoffFlow.CREATE_PROJECT}
                 run={run}
-                onboardingCode={onboardingCode}
                 isAgentConnected={isAgentConnected}
                 hasInitFailed={hasInitFailed}
                 hasProgressFailed={hasProgressFailed}
+                hasRunFailed={hasRunFailed}
                 onRefresh={() => void refreshRun()}
                 onRetry={restartRun}
                 onCopyCommand={handleCopyCommand}

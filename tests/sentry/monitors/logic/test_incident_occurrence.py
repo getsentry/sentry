@@ -73,6 +73,7 @@ class IncidentOccurrenceTestCase(TestCase):
             monitor_environment=self.monitor_environment,
             starting_checkin=self.failed_checkin,
             starting_timestamp=self.last_checkin,
+            last_successful_timestamp=self.successful_checkin.date_added,
             grouphash="abcd",
         )
 
@@ -157,6 +158,42 @@ class IncidentOccurrenceTestCase(TestCase):
                 },
             },
         ) == dict(event)
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_last_successful_timestamp(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        stored = self.successful_checkin.date_added - timedelta(hours=1)
+        self.incident.update(last_successful_timestamp=stored)
+
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].name == "Last successful check-in"
+        assert evidence[2].value == stored.isoformat()
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_never_successful(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        self.incident.update(last_successful_timestamp=None)
+
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].value == "Never"
 
     @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_send_incident_occurrence_detector(

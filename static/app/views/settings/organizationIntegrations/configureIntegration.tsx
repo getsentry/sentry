@@ -78,10 +78,7 @@ function organizationIntegrationApiOptions({
 }) {
   return apiOptions.as<OrganizationIntegration>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, integrationId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, integrationId}, staleTime: 0}
   );
 }
 
@@ -125,13 +122,7 @@ function withJiraStatusMappingRemovals(
       .map(key => [key, null])
   );
 
-  return {
-    ...data,
-    sync_status_forward: {
-      ...submittedMappings,
-      ...removedMappings,
-    },
-  };
+  return {...data, sync_status_forward: {...submittedMappings, ...removedMappings}};
 }
 
 function IntegrationAction({
@@ -230,12 +221,7 @@ function IntegrationMainTab({
 
   const integrationEndpoint = getApiUrl(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        integrationId: integration.id,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
   );
 
   const integrationQueryOptions = organizationIntegrationApiOptions({
@@ -271,11 +257,7 @@ function IntegrationMainTab({
         );
       }
 
-      return fetchMutation({
-        method: 'POST',
-        url: integrationEndpoint,
-        data: requestData,
-      });
+      return fetchMutation({method: 'POST', url: integrationEndpoint, data: requestData});
     },
     onSuccess: async () => {
       const verifiesConnection = provider.key === 'gcp';
@@ -381,18 +363,14 @@ function IntegrationMainTab({
           <Alert variant="info" showIcon={false}>
             {instructions.length === 1 ? (
               <span
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(instructions[0]!),
-                }}
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
               />
             ) : (
               <List symbol={<IconArrow size="xs" direction="right" />}>
                 {instructions.map((instruction, i) => (
                   <ListItem key={i}>
                     <span
-                      dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(instruction),
-                      }}
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
                     />
                   </ListItem>
                 )) ?? null}
@@ -451,12 +429,10 @@ function ConfigureIntegration() {
     isError: isErrorConfig,
     refetch: refetchConfig,
   } = useQuery(
-    apiOptions.as<{
-      providers: IntegrationProvider[];
-    }>()('/organizations/$organizationIdOrSlug/config/integrations/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    })
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
   const {
     data: integration,
@@ -505,12 +481,7 @@ function ConfigureIntegration() {
     'Integrations: Details Viewed'
   );
   useRouteAnalyticsParams(
-    provider
-      ? {
-          integration: provider.key,
-          integration_type: 'first_party',
-        }
-      : {}
+    provider ? {integration: provider.key, integration_type: 'first_party'} : {}
   );
 
   useEffect(() => {

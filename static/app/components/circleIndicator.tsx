@@ -12,10 +12,7 @@ type Props = {
   size?: number;
 };
 
-const defaultProps = {
-  enabled: true,
-  size: 14,
-};
+const defaultProps = {enabled: true, size: 14};
 
 export const CircleIndicator = styled('div')<Props>`
   display: inline-block;

@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {useLocation} from 'sentry/utils/useLocation';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 
 import {useCreateProjectFromWizard} from './utils/useCreateProjectFromWizard';
@@ -37,10 +38,6 @@ import type {OrganizationSummaryWithLocality} from './types';
 import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
 
 const CREATE_PROJECT_VALUE = 'create-new-project';
-
-const urlParams = new URLSearchParams(location.search);
-const platformParam = urlParams.get('project_platform');
-const orgSlugParam = urlParams.get('org_slug');
 
 type WizardFormValues = {
   newProjectName: string;
@@ -68,7 +65,10 @@ function getOrgDisplayName(organization: OrganizationSummary) {
   return organization.name || organization.slug;
 }
 
-function getInitialOrgId(organizations: OrganizationSummary[]) {
+function getInitialOrgId(
+  organizations: OrganizationSummary[],
+  orgSlugParam: string | null
+) {
   if (organizations.length === 1) {
     return organizations[0]!.id;
   }
@@ -96,6 +96,10 @@ export function WizardProjectSelection({
   hash: string;
   organizations: OrganizationSummaryWithLocality[];
 }) {
+  const {query} = useLocation();
+  const platformParam =
+    typeof query.project_platform === 'string' ? query.project_platform : null;
+  const orgSlugParam = typeof query.org_slug === 'string' ? query.org_slug : null;
   const [search, setSearch] = useState('');
 
   const [debouncedSearch] = useDebouncedValue(search, {wait: 300});
@@ -104,7 +108,7 @@ export function WizardProjectSelection({
   const createProjectMutation = useCreateProjectFromWizard();
 
   const defaultValues: WizardFormValues = {
-    organizationId: getInitialOrgId(organizations),
+    organizationId: getInitialOrgId(organizations, orgSlugParam),
     projectId: null,
     newProjectName: platformParam || '',
     newProjectPlatform: platformParam || null,
@@ -141,10 +145,7 @@ export function WizardProjectSelection({
       }
 
       await updateWizardCacheMutation
-        .mutateAsync({
-          organizationId: organization.id,
-          projectId,
-        })
+        .mutateAsync({organizationId: organization.id, projectId})
         .catch(() => {});
     },
   });
@@ -157,9 +158,7 @@ export function WizardProjectSelection({
     [organizations, selectedOrgId]
   );
 
-  const orgDetailsRequest = useOrganizationDetails({
-    organization: selectedOrg,
-  });
+  const orgDetailsRequest = useOrganizationDetails({organization: selectedOrg});
   const teamsRequest = useOrganizationTeams({organization: selectedOrg});
 
   const accessTeams = useMemo(() => {

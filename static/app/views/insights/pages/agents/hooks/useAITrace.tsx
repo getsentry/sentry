@@ -55,10 +55,7 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
 
   const organization = useOrganization();
 
-  const trace = useTrace({
-    traceSlug,
-    additionalAttributes: AI_TRACE_BASE_ATTRIBUTES,
-  });
+  const trace = useTrace({traceSlug, additionalAttributes: AI_TRACE_BASE_ATTRIBUTES});
 
   useEffect(() => {
     if (trace.status !== 'success' || !trace.data) {
@@ -97,9 +94,5 @@ export function useAITrace(traceSlug: string): UseAITraceResult {
     loadAllSpans();
   }, [trace.status, trace.data, organization]);
 
-  return {
-    nodes,
-    isLoading,
-    error,
-  };
+  return {nodes, isLoading, error};
 }

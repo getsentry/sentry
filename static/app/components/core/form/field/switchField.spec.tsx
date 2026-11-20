@@ -29,9 +29,7 @@ function TestForm({
   validator,
 }: TestFormProps) {
   const form = useScrapsForm({
-    defaultValues: {
-      enabled: defaultValue,
-    },
+    defaultValues: {enabled: defaultValue},
     validators: validator ? [{run: validator, triggers: ['blur']}] : undefined,
   });
 
@@ -52,9 +50,7 @@ function TestForm({
   );
 }
 
-const testSchema = z.object({
-  enabled: z.boolean(),
-});
+const testSchema = z.object({enabled: z.boolean()});
 
 interface AutoSaveTestFormProps {
   mutationFn: (data: {enabled: boolean}) => Promise<{enabled: boolean}>;
