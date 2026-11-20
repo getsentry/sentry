@@ -323,6 +323,8 @@ def assemble_dif(
     checksum: str,
     chunks: Sequence[str],
     debug_id: str | None = None,
+    code_id: str | None = None,
+    shader_group: str | None = None,
     **kwargs: object,
 ) -> None:
     """
@@ -372,7 +374,13 @@ def assemble_dif(
             # We only permit split difs to hit this endpoint.
             # The client is required to split them up first or we error.
             try:
-                meta = detect_single_dif_from_path(temp_file.name, name=name, debug_id=debug_id)
+                meta = detect_single_dif_from_path(
+                    temp_file.name,
+                    name=name,
+                    debug_id=debug_id,
+                    code_id=code_id,
+                    shader_group=shader_group,
+                )
                 if file is None:
                     temp_file.seek(0)
                     dif, created = create_dif_from_fileobj(project, meta, temp_file)
