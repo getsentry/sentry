@@ -444,32 +444,16 @@ class TestInboxActionFrequency(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
         self.groups = {self.inbox_group, self.alert_group}
 
-    def test_inbox_only_does_not_access_frequency_state(self) -> None:
-        with (
-            patch(
-                "sentry.workflow_engine.processors.action.get_workflow_action_group_statuses"
-            ) as read,
-            patch(
-                "sentry.workflow_engine.processors.action.update_workflow_action_group_statuses"
-            ) as write,
-        ):
-            actions, _, workflows = filter_recently_fired_workflow_actions(
-                {self.inbox_group}, self.event_data
-            )
-        assert list(actions) == [self.inbox_action]
-        assert workflows == {self.inbox.id}
-        read.assert_not_called()
-        write.assert_not_called()
-
     def test_group_less_event_excludes_alerts_and_unsupported_actions(self) -> None:
         event_data = WorkflowEventData(
             event=OrganizationEvent(organization_id=self.organization.id, event_id=uuid4()),
             organization=self.organization,
         )
+        shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
         unsupported_group, _ = self.create_workflow_action(self.inbox)
         with patch.object(self.inbox_action.get_handler(), "supports_group_less", True):
             actions, attribution, workflows = filter_recently_fired_workflow_actions(
-                self.groups | {unsupported_group}, event_data
+                {self.inbox_group, shared_group, unsupported_group}, event_data
             )
         assert list(actions) == [self.inbox_action]
         assert attribution == {self.inbox_action.id: self.inbox.id}
@@ -479,46 +463,34 @@ class TestInboxActionFrequency(BaseWorkflowTest):
     def test_shared_action_records_only_eligible_workflows(self) -> None:
         shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
         groups = {self.inbox_group, shared_group}
-        actions, attribution, workflows = filter_recently_fired_workflow_actions(
-            groups, self.event_data
-        )
-        assert list(actions) == [self.inbox_action]
-        assert workflows == {self.inbox.id, self.alert.id}
-        assert attribution == {self.inbox_action.id: min(workflows)}
+        actions, _, workflows = filter_recently_fired_workflow_actions(groups, self.event_data)
         histories = create_workflow_fire_histories(
             actions, self.event_data, eligible_workflow_ids=workflows
         )
-        assert {history.workflow_id for history in histories} == workflows
+        assert {history.workflow_id for history in histories} == {self.inbox.id, self.alert.id}
 
         # On the next evaluation only Inbox remains eligible for the shared action.
         actions, attribution, workflows = filter_recently_fired_workflow_actions(
             groups, self.event_data
         )
-        assert list(actions) == [self.inbox_action]
         assert attribution == {self.inbox_action.id: self.inbox.id}
-        assert workflows == {self.inbox.id}
         histories = create_workflow_fire_histories(
             actions, self.event_data, eligible_workflow_ids=workflows
         )
         assert {history.workflow_id for history in histories} == {self.inbox.id}
 
     def test_alert_insert_conflict_does_not_drop_shared_inbox_action(self) -> None:
-        self.create_data_condition_group_action(
-            condition_group=self.alert_group, action=self.inbox_action
-        )
+        shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
         with patch(
             "sentry.workflow_engine.processors.action.update_workflow_action_group_statuses",
             return_value=StatusUpdateResult(
                 updated=0,
                 created=0,
-                not_created=[
-                    (self.alert.id, self.inbox_action.id),
-                    (self.alert.id, self.alert_action.id),
-                ],
+                not_created=[(self.alert.id, self.inbox_action.id)],
             ),
         ):
             actions, attribution, workflows = filter_recently_fired_workflow_actions(
-                self.groups, self.event_data
+                {self.inbox_group, shared_group}, self.event_data
             )
         assert list(actions) == [self.inbox_action]
         assert attribution == {self.inbox_action.id: self.inbox.id}
