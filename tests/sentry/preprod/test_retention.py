@@ -9,7 +9,6 @@ from sentry.preprod.retention import (
     get_artifact_expiry,
     get_artifact_retention_days,
     get_retention_days,
-    get_retention_days_or_default,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -22,7 +21,7 @@ def retention_by_category(
     return lambda organization, category: days[category]
 
 
-# Size Analysis on the Developer and Team plans, Build Distribution on every plan.
+# Size Analysis and Build Distribution on the Team plan.
 TEAM_PLAN = {DataCategory.SIZE_ANALYSIS: 30, DataCategory.INSTALLABLE_BUILD: 396}
 
 
@@ -42,16 +41,11 @@ class GetRetentionDaysTest(TestCase):
         )
 
     @patch("sentry.quotas.backend.get_event_retention", return_value=None)
-    def test_unlimited_retention(self, mock_retention: MagicMock) -> None:
-        assert get_retention_days(self.organization, DataCategory.SIZE_ANALYSIS) is None
+    def test_default_where_no_retention_is_configured(self, mock_retention: MagicMock) -> None:
         assert (
-            get_retention_days_or_default(self.organization, DataCategory.SIZE_ANALYSIS)
+            get_retention_days(self.organization, DataCategory.SIZE_ANALYSIS)
             == DEFAULT_RETENTION_DAYS
         )
-
-    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
-    def test_or_default_returns_a_limited_retention(self, mock_retention: MagicMock) -> None:
-        assert get_retention_days_or_default(self.organization, DataCategory.SIZE_ANALYSIS) == 30
 
 
 class GetArtifactExpiryTest(TestCase):
@@ -60,16 +54,6 @@ class GetArtifactExpiryTest(TestCase):
         mock_retention.side_effect = retention_by_category(TEAM_PLAN)
 
         assert get_artifact_retention_days(self.organization) == 396
-
-    @patch("sentry.quotas.backend.get_event_retention")
-    def test_artifact_retention_is_unlimited_if_a_category_is(
-        self, mock_retention: MagicMock
-    ) -> None:
-        mock_retention.side_effect = retention_by_category(
-            {DataCategory.SIZE_ANALYSIS: 30, DataCategory.INSTALLABLE_BUILD: None}
-        )
-
-        assert get_artifact_retention_days(self.organization) is None
 
     @freeze_time("2026-01-01T00:00:00Z")
     @patch("sentry.quotas.backend.get_event_retention")
@@ -90,11 +74,4 @@ class GetArtifactExpiryTest(TestCase):
         assert get_artifact_expiry(self.organization, date_added) == {
             "date_expires": date_added + timedelta(days=396),
             "date_size_analysis_expires": date_added + timedelta(days=30),
-        }
-
-    @patch("sentry.quotas.backend.get_event_retention", return_value=None)
-    def test_no_expiry_with_unlimited_retention(self, mock_retention: MagicMock) -> None:
-        assert get_artifact_expiry(self.organization) == {
-            "date_expires": None,
-            "date_size_analysis_expires": None,
         }
