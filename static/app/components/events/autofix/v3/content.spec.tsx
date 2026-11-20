@@ -621,7 +621,7 @@ describe('SeerDrawerContent', () => {
 
         expect(
           await screen.findByText(
-            'Seer stopped before finishing the code changes because your organization is out of credits.'
+            'Seer stopped before finishing the code changes because your organization ran out of credits.'
           )
         ).toBeInTheDocument();
         expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();

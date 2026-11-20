@@ -305,11 +305,7 @@ const SINGLE_RUN_STOPPED_FOR_CREDITS = makeRun(
       },
     },
   ],
-  {
-    feature_id: 'autofix_single_run',
-    status: 'error',
-    failure_reason: 'out_of_credits',
-  }
+  {feature_id: 'autofix_single_run', status: 'error', failure_reason: 'out_of_credits'}
 );
 
 /**

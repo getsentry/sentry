@@ -2911,7 +2911,7 @@ describe('out of credits', () => {
         'RootCauseCard',
         RootCauseCard,
         makeOutOfCreditsSection('root_cause', blocks),
-        'Seer stopped before finishing the root cause because your organization is out of credits.',
+        'Seer stopped before finishing the root cause because your organization ran out of credits.',
       ],
       [
         'CodeChangesCard',
@@ -2919,7 +2919,7 @@ describe('out of credits', () => {
         makeOutOfCreditsSection('code_changes', blocks, [
           [makePatch('org/repo', 'src/cart.py')],
         ]),
-        'Seer stopped before finishing the code changes because your organization is out of credits.',
+        'Seer stopped before finishing the code changes because your organization ran out of credits.',
       ],
     ])(
       '%s offers no Re-run, since the chat resends the reply',
