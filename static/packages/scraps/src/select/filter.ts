@@ -1,16 +1,7 @@
-import type {SelectValue} from './types';
+// oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
+import {getSearchScore} from '../fzf';
 
-function normalize(text: string) {
-  return text
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .replaceAll('æ', 'ae')
-    .replaceAll('œ', 'oe')
-    .replaceAll('ø', 'o')
-    .replaceAll('ł', 'l');
-}
+import type {SelectValue} from './types';
 
 export function createFilter<
   TValue = unknown,
@@ -23,6 +14,6 @@ export function createFilter<
       config?.stringify(option) ??
       option.textValue ??
       `${typeof option.label === 'string' || typeof option.label === 'number' ? option.label : ''} ${option.value}`;
-    return normalize(text).includes(normalize(input));
+    return getSearchScore(text, input.trim()) > 0;
   };
 }

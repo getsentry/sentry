@@ -723,6 +723,18 @@ it('can retain focus in a single select without firing blur', async () => {
   expect(onBlur).not.toHaveBeenCalled();
 });
 
+it('matches letters in order when searching options', async () => {
+  render(
+    <Select value={null} onChange={jest.fn()} aria-label="Fruit" options={options} />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.type(screen.getByRole('combobox', {name: 'Fruit'}), 'PPL');
+
+  expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
+  expect(screen.queryByRole('option', {name: 'Cherry'})).not.toBeInTheDocument();
+});
+
 it('filters numeric labels as text', async () => {
   render(
     <Select
