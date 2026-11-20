@@ -22,6 +22,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.endpoints.organization_trace_item_attributes import adjust_start_end_window
 from sentry.api.endpoints.organization_trace_item_attributes_types import (
     AttributeBucket,
@@ -68,6 +69,7 @@ PARALLELIZATION_FACTOR = 2
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemsAttributesRankedEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationTelemetryPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

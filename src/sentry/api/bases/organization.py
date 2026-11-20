@@ -215,6 +215,18 @@ class OrganizationEventPermission(OrganizationPermission):
     }
 
 
+class OrganizationTelemetryPermission(OrganizationPermission):
+    """For endpoints that only read telemetry: spans, logs, trace metrics, and profiles.
+
+    Endpoints that can also return issues or replays, depending on a dataset or item type
+    parameter, don't use this.
+    """
+
+    scope_map = {
+        "GET": ["org:read", "org:write", "org:admin", "telemetry:read"],
+    }
+
+
 # These are based on ProjectReleasePermission
 # additional checks to limit actions to releases
 # associated with projects people have access to

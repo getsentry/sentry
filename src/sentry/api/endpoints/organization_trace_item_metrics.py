@@ -10,6 +10,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
     OrganizationTraceItemAttributesEndpointBase,
     adjust_start_end_window,
@@ -142,6 +143,7 @@ CONTEXT_ONLY_QUERY_PARAM = OpenApiParameter(
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceItemMetricsEndpoint(OrganizationTraceItemAttributesEndpointBase):
+    permission_classes = (OrganizationTelemetryPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }

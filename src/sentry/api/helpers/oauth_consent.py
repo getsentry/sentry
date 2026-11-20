@@ -221,6 +221,14 @@ _PERMISSION_RESOURCES = (
         },
     ),
     OAuthPermissionResource(
+        "telemetry",
+        "Telemetry",
+        ("telemetry:read",),
+        access_descriptions={
+            "read": "View spans, logs, trace metrics, and profiles.",
+        },
+    ),
+    OAuthPermissionResource(
         "user_preferences",
         "Your preferences",
         ("user_preference:read", "user_preference:write"),

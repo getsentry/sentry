@@ -46,6 +46,8 @@ class ApiScopes(Sequence[str]):
 
     seer = (("seer:read"), ("seer:write"))
 
+    telemetry = ("telemetry:read",)
+
     user_preference = (("user_preference:read"), ("user_preference:write"))
 
     def __init__(self) -> None:
@@ -60,6 +62,7 @@ class ApiScopes(Sequence[str]):
             + self.__class__.membership
             + self.__class__.saved_query
             + self.__class__.seer
+            + self.__class__.telemetry
             + self.__class__.user_preference
         )
 

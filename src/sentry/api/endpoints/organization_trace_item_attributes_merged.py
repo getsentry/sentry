@@ -10,6 +10,7 @@ from sentry import features, options
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.endpoints.organization_trace_item_attributes import (
     POSSIBLE_ATTRIBUTE_TYPES,
     SCALAR_ATTRIBUTE_TYPES,
@@ -244,6 +245,7 @@ def list_merged_attributes(
 
 @cell_silo_endpoint
 class OrganizationTraceItemAttributesMergedEndpoint(OrganizationTraceItemAttributesEndpoint):
+    permission_classes = (OrganizationTelemetryPermission,)
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
