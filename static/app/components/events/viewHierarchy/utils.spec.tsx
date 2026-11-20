@@ -6,29 +6,12 @@ import {Rect} from 'sentry/utils/profiling/speedscope';
 
 import {calculateScale, getDeepestNodeAtPoint, getHierarchyDimensions} from './utils';
 
-const LEAF_NODE = {
-  x: 2,
-  y: 2,
-  width: 5,
-  height: 5,
-};
+const LEAF_NODE = {x: 2, y: 2, width: 5, height: 5};
 
-const INTERMEDIATE_NODE = {
-  x: 10,
-  y: 5,
-  width: 10,
-  height: 10,
-  children: [LEAF_NODE],
-};
+const INTERMEDIATE_NODE = {x: 10, y: 5, width: 10, height: 10, children: [LEAF_NODE]};
 
 const DEFAULT_MOCK_HIERARCHY = [
-  {
-    x: 0,
-    y: 0,
-    width: 10,
-    height: 10,
-    children: [INTERMEDIATE_NODE],
-  },
+  {x: 0, y: 0, width: 10, height: 10, children: [INTERMEDIATE_NODE]},
   {x: 10, y: 0, width: 20, height: 20},
 ] as ViewHierarchyWindow[];
 
@@ -76,10 +59,7 @@ describe('View Hierarchy Utils', () => {
       actual: number,
       border: {x: number; y: number};
 
-    const bounds = {
-      height: 10,
-      width: 10,
-    };
+    const bounds = {height: 10, width: 10};
 
     beforeEach(() => {
       border = {x: 0, y: 0};
@@ -120,13 +100,7 @@ describe('View Hierarchy Utils', () => {
   describe('getDeepestNodeAtPoint', () => {
     beforeEach(() => {
       MOCK_HIERARCHY = [
-        {
-          x: 0,
-          y: 0,
-          width: 10,
-          height: 10,
-          children: [INTERMEDIATE_NODE],
-        },
+        {x: 0, y: 0, width: 10, height: 10, children: [INTERMEDIATE_NODE]},
       ] as ViewHierarchyWindow[];
     });
 

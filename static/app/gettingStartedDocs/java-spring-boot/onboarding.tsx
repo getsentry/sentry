@@ -83,16 +83,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-            {
-              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
-            }
+            {link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
-        },
+        {type: 'code', language: 'bash', code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___'},
         {
           type: 'conditional',
           condition: params.platformOptions.packageManager === PackageManager.GRADLE,
@@ -109,11 +103,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'groovy',
-              code: getGradleInstallSnippet(params),
-            },
+            {type: 'code', language: 'groovy', code: getGradleInstallSnippet(params)},
           ],
         },
         {
@@ -132,11 +122,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'xml',
-              code: getMavenInstallSnippet(params),
-            },
+            {type: 'code', language: 'xml', code: getMavenInstallSnippet(params)},
           ],
         },
         {
@@ -158,11 +144,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'bash',
-              code: getOpenTelemetryRunSnippet(params),
-            },
+            {type: 'code', language: 'bash', code: getOpenTelemetryRunSnippet(params)},
           ],
         },
         {
@@ -187,9 +169,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'Open up [code:src/main/application.properties] (or [code:src/main/application.yml]) and configure the DSN, and any other settings you need:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -223,16 +203,8 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Java',
-              language: 'javascript',
-              code: getVerifyJavaSnippet(),
-            },
-            {
-              label: 'Kotlin',
-              language: 'javascript',
-              code: getVerifyKotlinSnippet(),
-            },
+            {label: 'Java', language: 'javascript', code: getVerifyJavaSnippet()},
+            {label: 'Kotlin', language: 'javascript', code: getVerifyKotlinSnippet()},
           ],
         },
         metricsVerify(params),

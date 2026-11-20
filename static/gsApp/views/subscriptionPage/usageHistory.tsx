@@ -129,10 +129,7 @@ function UsageHistory({subscription}: Props) {
   );
 }
 
-type RowProps = {
-  history: BillingHistory;
-  subscription: Subscription;
-};
+type RowProps = {history: BillingHistory; subscription: Subscription};
 
 function OnDemandUsage({
   history,
@@ -177,9 +174,7 @@ function OnDemandUsage({
         <tr>
           <th>
             {tct('[budgetTerm] Spend[suffix]', {
-              budgetTerm: displayBudgetName(history.planDetails, {
-                title: true,
-              }),
+              budgetTerm: displayBudgetName(history.planDetails, {title: true}),
               suffix: history.planDetails?.hasOnDemandModes
                 ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? ' (Per-Category)'
@@ -272,10 +267,7 @@ function UsageHistoryRow({history}: RowProps) {
                 {t('Download Project Breakdown')}
               </OverlayTrigger.Button>
             )}
-            search={{
-              placeholder: t('Filter projects'),
-              onChange: onProjectSearch,
-            }}
+            search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
             options={projects.map(project => ({
               value: project.slug,
               label: project.slug,

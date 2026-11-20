@@ -11,10 +11,7 @@ describe('PolicyDetails', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/policies/${policy.slug}/`,
-      body: policy,
-    });
+    MockApiClient.addMockResponse({url: `/policies/${policy.slug}/`, body: policy});
     MockApiClient.addMockResponse({
       url: `/policies/${policy.slug}/revisions/`,
       body: revisions,
@@ -29,9 +26,7 @@ describe('PolicyDetails', () => {
 
     render(<PolicyDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/_admin/policies/${policy.slug}/`,
-        },
+        location: {pathname: `/_admin/policies/${policy.slug}/`},
         route: '/_admin/policies/:policySlug/',
       },
     });
@@ -42,10 +37,7 @@ describe('PolicyDetails', () => {
 
     expect(updateMock).toHaveBeenCalledWith(
       `/policies/${policy.slug}/revisions/${revisions[0]!.version}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {current: true},
-      })
+      expect.objectContaining({method: 'PUT', data: {current: true}})
     );
   });
 });

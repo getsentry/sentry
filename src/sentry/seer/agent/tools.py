@@ -8,7 +8,7 @@ from typing import Any, Literal, TypedDict, cast
 
 from django.core.exceptions import BadRequest
 from django.db import models
-from django.db.models import Q
+from django.db.models import Q, QuerySet
 from rest_framework.exceptions import ParseError
 from sentry_protos.snuba.v1.endpoint_get_trace_pb2 import GetTraceRequest
 from sentry_protos.snuba.v1.request_common_pb2 import TraceItemType
@@ -857,9 +857,11 @@ def rpc_get_profile_flamegraph(
             )
             break
 
-    # Determine profile type and actual ID to use
-    is_continuous = bool(full_profiler_id and not full_profile_id)
-    actual_profile_id = full_profiler_id or full_profile_id
+    # A span can carry both a transaction profile id and a continuous profiler id, and
+    # each is fetched differently, so use the one the caller asked for.
+    asked_for_transaction_profile = bool(full_profile_id and full_profile_id.startswith(profile_id))
+    is_continuous = bool(full_profiler_id) and not asked_for_transaction_profile
+    actual_profile_id = full_profiler_id if is_continuous else full_profile_id
 
     if not actual_profile_id:
         logger.info(
@@ -994,6 +996,22 @@ def _is_named(repo: Repository, repo_full_name: str) -> bool:
     return requested in (repo.name.casefold(), get_repo_url_path(repo).casefold())
 
 
+def _openable_repositories(organization_id: int, providers: list[str]) -> QuerySet[Repository]:
+    """The organization's repositories Seer can open: active, on a provider it reads code from,
+    and linked to an integration.
+
+    Seer reaches a repository only through its integration. Removing an integration in Sentry
+    unlinks its repositories but leaves them active, and the old plugins' repositories (bare
+    ``github`` or ``gitlab`` providers) never had one. Finding one of these would send Seer to a
+    repository it can't open, instead of saying why it isn't there."""
+    return Repository.objects.filter(
+        organization_id=organization_id,
+        status=ObjectStatus.ACTIVE,
+        provider__in=providers,
+        integration_id__isnull=False,
+    )
+
+
 def _find_repository_by_external_id(
     organization_id: int, external_id: str, repo_full_name: str, providers: list[str]
 ) -> tuple[Repository | None, RepoResolution]:
@@ -1001,12 +1019,9 @@ def _find_repository_by_external_id(
     separately, so one id can name a repository on two providers (``github`` and
     ``github_enterprise``). The unique constraint allows at most one per provider."""
     matches = list(
-        Repository.objects.filter(
-            organization_id=organization_id,
-            external_id=external_id,
-            status=ObjectStatus.ACTIVE,
-            provider__in=providers,
-        ).order_by("id")
+        _openable_repositories(organization_id, providers)
+        .filter(external_id=external_id)
+        .order_by("id")
     )
     if len(matches) > 1:
         # The name picks among the repositories this id names, never outside them.
@@ -1022,14 +1037,13 @@ def _find_repository(
     """Find the one repository with this name or URL path. They're the same except on GitLab, where
     the name is a display name ("My Group / App") and the path is "my-group/app".
 
-    Several matches are ambiguous: a re-installed integration leaves a second row with the same
-    name, and a GitHub repository and its GitLab mirror share a URL path."""
-    candidates = Repository.objects.filter(
-        Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"),
-        organization_id=organization_id,
-        status=ObjectStatus.ACTIVE,
-        provider__in=providers,
-    ).order_by("id")
+    Several matches are ambiguous: one name can be on two supported providers, and a GitHub
+    repository and its GitLab mirror share a URL path."""
+    candidates = (
+        _openable_repositories(organization_id, providers)
+        .filter(Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"))
+        .order_by("id")
+    )
     matches: list[Repository] = []
     for repo in candidates:
         # A URL can also end this way for a repository further down: ".../parent/my-group/app".
@@ -1084,6 +1098,7 @@ def get_repository_definition(
     """
     Look up a repository that the org has access to.
     Returns full RepoDefinition if found and accessible via code mappings, None otherwise.
+    A repository no longer linked to an integration isn't found: Seer can't open it.
 
     Lookup priority:
     1. external_id (GitHub's repo ID - stable across renames)
@@ -2904,11 +2919,11 @@ def get_dsn(
         logger.warning("Organization not found", extra={"organization_id": organization_id})
         return None
 
-    project = Project.objects.filter(
+    project = Project.objects.get_or_none(
         organization=organization,
         status=ObjectStatus.ACTIVE,
         slug=project_slug,
-    ).first()
+    )
     if project is None or not caller_can_access_project(project):
         return None
 

@@ -45,10 +45,7 @@ describe('Quick Context', () => {
     });
 
     it('Renders quick context hover body', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/3512441874/',
         method: 'GET',
@@ -62,10 +59,7 @@ describe('Quick Context', () => {
     });
 
     it('Renders quick context failure message', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/3512441874/',
         statusCode: 400,

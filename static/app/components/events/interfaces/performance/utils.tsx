@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import keyBy from 'lodash/keyBy';
 
 import {getContextMeta} from 'sentry/components/events/contexts/dataUtils';
 import type {
@@ -13,6 +12,7 @@ import {
   type Event,
 } from 'sentry/types/event';
 import {getIssueTypeFromOccurrenceType, IssueType} from 'sentry/types/group';
+import {defined} from 'sentry/utils/defined';
 
 export const TRACE_WATERFALL_PREFERENCES_KEY =
   'issue-details-trace-waterfall-preferences';
@@ -107,26 +107,26 @@ export function getSpanInfoFromTransactionEvent(
   }
 
   // Let's dive into the event to pick off the span evidence data by using the IDs we know
-  const spanEntry = event.entries.find((entry: EntrySpans | any): entry is EntrySpans => {
-    return entry.type === EntryType.SPANS;
-  });
+  const spanEntry = event.entries.find(
+    (entry): entry is EntrySpans => entry.type === EntryType.SPANS
+  );
 
   const spans: Array<RawSpanType | TraceContextSpanProxy> = spanEntry?.data
     ? [...spanEntry.data]
     : [];
 
-  if (event?.contexts?.trace?.span_id) {
+  if (event.contexts?.trace?.span_id) {
     // TODO: Fix this conditional and check if span_id is ever actually undefined.
     spans.push(event.contexts.trace as TraceContextSpanProxy);
   }
-  const spansById = keyBy(spans, 'span_id');
-  const parentSpanIDs = perfEvidenceData?.parentSpanIds ?? [];
-  const offendingSpanIDs = perfEvidenceData?.offenderSpanIds ?? [];
-  const causeSpanIDs = perfEvidenceData?.causeSpanIds ?? [];
+  const spansById = new Map(spans.map(span => [span.span_id, span]));
+  const [parentSpanID]: string[] = perfEvidenceData.parentSpanIds ?? [];
+  const offendingSpanIDs: string[] = perfEvidenceData.offenderSpanIds ?? [];
+  const causeSpanIDs: string[] = perfEvidenceData.causeSpanIds ?? [];
   return {
-    parentSpan: spansById[parentSpanIDs[0]],
-    offendingSpans: offendingSpanIDs.map((spanID: any) => spansById[spanID]),
-    causeSpans: causeSpanIDs.map((spanID: any) => spansById[spanID]),
+    parentSpan: parentSpanID ? spansById.get(parentSpanID) : undefined,
+    offendingSpans: offendingSpanIDs.map(spanID => spansById.get(spanID)).filter(defined),
+    causeSpans: causeSpanIDs.map(spanID => spansById.get(spanID)).filter(defined),
   };
 }
 

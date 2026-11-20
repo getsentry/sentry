@@ -9,10 +9,14 @@ import msgpack
 from sentry.replays.tasks import process_replay_recording
 from sentry.utils import json
 
+# Options read on this path are boolean toggles we want enabled, except for the segment size
+# limit which needs a real byte count.
+_OPTIONS: dict[str, object] = {"replay.consumer.max-segment-decompressed-size": 100 * 1024 * 1024}
+
 
 @mock.patch("sentry.options.get")
 def test_recording_task(options_get: MagicMock) -> None:
-    options_get.return_value = True
+    options_get.side_effect = lambda key, *args, **kwargs: _OPTIONS.get(key, True)
 
     headers = json.dumps({"segment_id": 42}).encode()
     recording_payload = headers + b"\n" + zlib.compress(json.dumps(MOCK_EVENTS).encode())

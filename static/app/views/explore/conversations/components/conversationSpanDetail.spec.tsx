@@ -2,7 +2,9 @@ import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+
+import {hasAnnotations} from '@sentry/scraps/markdown/annotation';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
@@ -156,6 +158,76 @@ describe('ConversationSpanDetail', () => {
       expect(screen.getByText(value)).toAppearBefore(dashboardButton);
     }
   );
+
+  describe('scrubbed values', () => {
+    const toolArguments = JSON.stringify({to: '[email]', subject: 'Hello'});
+    const toolResult = 'Sent to [email]';
+
+    function remark(value: string) {
+      const start = value.indexOf('[email]');
+      return {
+        meta: {
+          value: {
+            '': {rem: [['@email:replace', 's', start, start + '[email]'.length]], len: 0},
+          },
+        },
+      };
+    }
+
+    function renderToolSpan(activeTab: 'input' | 'output') {
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.slug}/trace-items/tool-span/`,
+        body: {
+          itemId: 'tool-span',
+          timestamp: '2020-01-01T00:00:00Z',
+          attributes: [
+            {name: 'gen_ai.operation.type', type: 'str', value: 'tool'},
+            {name: 'gen_ai.tool.call.arguments', type: 'str', value: toolArguments},
+            {name: 'gen_ai.tool.call.result', type: 'str', value: toolResult},
+          ],
+          meta: {
+            'gen_ai.tool.call.arguments': remark(toolArguments),
+            'gen_ai.tool.call.result': remark(toolResult),
+          },
+        },
+      });
+      return render(
+        <ConversationSpanDetail
+          node={makeNode('tool-span', 'execute_tool')}
+          traceId="trace-id"
+          activeTab={activeTab}
+          onTabChange={jest.fn()}
+        />,
+        {organization}
+      );
+    }
+
+    it('marks the scrubbed values of the input', async () => {
+      const {container} = renderToolSpan('input');
+
+      expect(await screen.findByText('[email]')).toBeInTheDocument();
+      expect(container).toHaveTextContent('subject: "Hello"');
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+    });
+
+    it('explains the scrubbed values of the output', async () => {
+      const {container} = renderToolSpan('output');
+
+      await userEvent.hover(await screen.findByText('[email]'));
+
+      expect(await screen.findByText(/Replaced because of/)).toBeInTheDocument();
+      expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+    });
+
+    it('copies the tool output without marks', async () => {
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
+      renderToolSpan('output');
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Copy output'}));
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(toolResult);
+    });
+  });
 
   it('shows a Decision tab in place of Input and Output on decision spans', async () => {
     mockDecisionAttributes();

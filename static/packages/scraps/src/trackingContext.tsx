@@ -31,9 +31,7 @@ interface ClickableProps<Element extends HTMLElement> extends AnalyticsProps {
 }
 
 export type TrackingProps = AnalyticsProps &
-  Record<string, unknown> & {
-    clickType: ClickTrackingType;
-  };
+  Record<string, unknown> & {clickType: ClickTrackingType};
 
 const TrackingContext = createContext<(props: TrackingProps) => void>(() => {});
 

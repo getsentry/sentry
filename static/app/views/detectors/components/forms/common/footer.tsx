@@ -33,10 +33,7 @@ export function NewDetectorFooter({
         label: t('Cancel'),
         to: makeMonitorDetailsPathname(organization.slug, duplicateDetector.id),
       }
-    : {
-        label: t('Back'),
-        to: makeMonitorCreatePathname(organization.slug),
-      };
+    : {label: t('Back'), to: makeMonitorCreatePathname(organization.slug)};
 
   return (
     <FormContext.Consumer>

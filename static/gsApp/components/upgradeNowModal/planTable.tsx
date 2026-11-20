@@ -3,7 +3,8 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -111,12 +112,8 @@ export function PlanTable({
 
         <TableItem
           isTotal
-          prev={displayPriceWithCents({
-            cents: billedAmount,
-          })}
-          next={displayPriceWithCents({
-            cents: billedAmount,
-          })}
+          prev={displayPriceWithCents({cents: billedAmount})}
+          next={displayPriceWithCents({cents: billedAmount})}
         >
           {t('Total Due')}
         </TableItem>
@@ -127,7 +124,7 @@ export function PlanTable({
             <PlanValue isTotal>
               <EffectiveDate>
                 {tct('Effective on [date]', {
-                  date: <DateTime timeOnly date={effectiveAt} />,
+                  date: <DateTime date={effectiveAt} mode="time" />,
                 })}
               </EffectiveDate>
             </PlanValue>

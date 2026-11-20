@@ -190,33 +190,6 @@ export const sourceMaps: PlatformKey[] = [
   'electron',
 ];
 
-export const performance: PlatformKey[] = [
-  'bun',
-  'deno',
-  'javascript',
-  'javascript-ember',
-  'javascript-react',
-  'javascript-vue',
-  'php',
-  'php-laravel',
-  'python',
-  'python-django',
-  'python-flask',
-  'python-fastapi',
-  'python-starlette',
-  'python-sanic',
-  'python-celery',
-  'python-bottle',
-  'python-pylons',
-  'python-pyramid',
-  'python-tornado',
-  'python-rq',
-  'node',
-  'node-express',
-  'node-koa',
-  'node-connect',
-];
-
 // List of platforms that have tracing custom instrumentation guide docs for its nested frameworks
 // i.e. for a platform like `javascript-react`, we have a custom instrumentation guide for `react` that can be
 // accessed at `https://docs.sentry.io/platforms/javascript/guides/react/tracing/instrumentation/custom-instrumentation/`

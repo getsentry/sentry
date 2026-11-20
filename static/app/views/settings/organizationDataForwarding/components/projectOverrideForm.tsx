@@ -43,11 +43,7 @@ export function ProjectOverrideForm({
 }) {
   const organization = useOrganization();
   const {mutate: updateDataForwarder} = useMutateDataForwarderProject({
-    params: {
-      orgSlug: organization.slug,
-      dataForwarderId: dataForwarder.id,
-      project,
-    },
+    params: {orgSlug: organization.slug, dataForwarderId: dataForwarder.id, project},
     onSuccess: () => {
       trackAnalytics('data_forwarding.edit_override_complete', {
         organization,
@@ -80,10 +76,7 @@ export function ProjectOverrideForm({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      ...emptyDefaults,
-      ...projectConfig?.overrides,
-    },
+    defaultValues: {...emptyDefaults, ...projectConfig?.overrides},
     validators: {onDynamic: dataForwarderOverrideSchema},
     onSubmit: ({value}) => {
       const {is_enabled, ...allOverrides} = value;
@@ -97,11 +90,7 @@ export function ProjectOverrideForm({
           overrides[key] = overrideValue;
         }
       }
-      updateDataForwarder({
-        project_id: `${project.id}`,
-        overrides,
-        is_enabled,
-      });
+      updateDataForwarder({project_id: `${project.id}`, overrides, is_enabled});
     },
   });
 
@@ -354,9 +343,7 @@ export function ProjectOverrideForm({
                       overrides: {},
                       is_enabled: projectConfig?.isEnabled ?? false,
                     },
-                    {
-                      onSuccess: () => form.reset(emptyDefaults),
-                    }
+                    {onSuccess: () => form.reset(emptyDefaults)}
                   );
                 }}
               >

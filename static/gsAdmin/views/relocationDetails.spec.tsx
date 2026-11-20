@@ -20,16 +20,8 @@ describe('Relocation Details', () => {
       dateAdded: '2023-12-18T07:02:03:45.678Z',
       dateUpdated: '2023-12-18T08:02:03:45.678Z',
       uuid: in_progress_relocation_uuid,
-      creator: {
-        email: 'admin@example.com',
-        id: '1',
-        username: 'admin',
-      },
-      owner: {
-        email: 'claire@example.com',
-        id: '4',
-        username: 'claire',
-      },
+      creator: {email: 'admin@example.com', id: '1', username: 'admin'},
+      owner: {email: 'claire@example.com', id: '4', username: 'claire'},
       status: 'IN_PROGRESS',
       step: 'UPLOADING',
       provenance: 'SELF_HOSTED',
@@ -48,16 +40,8 @@ describe('Relocation Details', () => {
       dateAdded: '2023-12-18T05:02:03:45.678Z',
       dateUpdated: '2023-12-18T06:02:03:45.678Z',
       uuid: paused_relocation_uuid,
-      creator: {
-        email: 'admin@example.com',
-        id: '1',
-        username: 'admin',
-      },
-      owner: {
-        email: 'bob@example.com',
-        id: '2',
-        username: 'bob',
-      },
+      creator: {email: 'admin@example.com', id: '1', username: 'admin'},
+      owner: {email: 'bob@example.com', id: '2', username: 'bob'},
       status: 'PAUSE',
       step: 'VALIDATING',
       provenance: 'SELF_HOSTED',
@@ -72,12 +56,7 @@ describe('Relocation Details', () => {
   }
 
   beforeEach(() => {
-    ConfigStore.set('localities', [
-      {
-        name: 'test',
-        url: 'https://example.com/api/0/',
-      },
-    ]);
+    ConfigStore.set('localities', [{name: 'test', url: 'https://example.com/api/0/'}]);
   });
 
   it('renders', async () => {
@@ -92,9 +71,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -124,9 +101,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -145,10 +120,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const pausedModel = {...model, scheduledPauseAtStep: 'PREPROCESSING'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: pausedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: pausedModel});
     const firstPauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/pause/`,
       method: 'PUT',
@@ -182,10 +154,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const rePausedModel = {...model, scheduledPauseAtStep: 'VALIDATING'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: rePausedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: rePausedModel});
     const secondPauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/pause/`,
       method: 'PUT',
@@ -213,10 +182,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const unpausedModel = {...model, scheduledPauseAtStep: null};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: unpausedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: unpausedModel});
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
@@ -245,9 +211,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -266,10 +230,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const unpausedModel = {...model, status: 'IN_PROGRESS'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: unpausedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: unpausedModel});
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
@@ -297,16 +258,8 @@ describe('Relocation Details', () => {
       dateAdded: '2023-12-18T01:02:03:45.678Z',
       dateUpdated: '2023-12-18T02:02:03:45.678Z',
       uuid,
-      creator: {
-        email: 'alice@example.com',
-        id: '2',
-        username: 'alice',
-      },
-      owner: {
-        email: 'alice@example.com',
-        id: '2',
-        username: 'alice',
-      },
+      creator: {email: 'alice@example.com', id: '2', username: 'alice'},
+      owner: {email: 'alice@example.com', id: '2', username: 'alice'},
       status: 'SUCCESS',
       step: 'IMPORTING',
       provenance: 'SELF_HOSTED',
@@ -325,9 +278,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -353,9 +304,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -374,10 +323,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const cancelledModel = {...model, scheduledCancelAtStep: 'VALIDATING'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: cancelledModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: cancelledModel});
     const firstCancelCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/cancel/`,
       method: 'PUT',
@@ -406,10 +352,7 @@ describe('Relocation Details', () => {
     expect(screen.queryByText('Retry')).not.toBeInTheDocument();
 
     const reCancelledModel = {...model, scheduledCancelAtStep: 'NOTIFYING'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: reCancelledModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: reCancelledModel});
     const secondCancelCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/cancel/`,
       method: 'PUT',
@@ -440,10 +383,7 @@ describe('Relocation Details', () => {
       scheduledCancelAtStep: null,
       failureReason: 'Some reason',
     };
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: abortedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: abortedModel});
     const abortCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/abort/`,
       method: 'PUT',
@@ -469,9 +409,7 @@ describe('Relocation Details', () => {
 
     render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });
@@ -487,10 +425,7 @@ describe('Relocation Details', () => {
     const {waitForModalToHide} = renderGlobalModal();
 
     const unpausedModel = {...model, status: 'IN_PROGRESS'};
-    MockApiClient.addMockResponse({
-      url: `/relocations/${uuid}/`,
-      body: unpausedModel,
-    });
+    MockApiClient.addMockResponse({url: `/relocations/${uuid}/`, body: unpausedModel});
     const unpauseCall = MockApiClient.addMockResponse({
       url: `/relocations/${uuid}/unpause/`,
       method: 'PUT',
@@ -515,10 +450,7 @@ describe('Relocation Details', () => {
 
   it('retries failed relocation', async () => {
     const old_uuid = paused_relocation_uuid;
-    const old_model = {
-      ...get_paused_relocation_model(),
-      status: 'FAILURE',
-    };
+    const old_model = {...get_paused_relocation_model(), status: 'FAILURE'};
 
     MockApiClient.addMockResponse({
       url: `/relocations/${old_uuid}/`,
@@ -528,9 +460,7 @@ describe('Relocation Details', () => {
 
     const {router} = render(<RelocationDetails />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/admin/relocations/test/${old_uuid}/`,
-        },
+        location: {pathname: `/admin/relocations/test/${old_uuid}/`},
         route: '/admin/relocations/:regionName/:relocationUuid/',
       },
     });

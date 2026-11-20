@@ -40,9 +40,7 @@ export function hydrateBreadcrumbs(
         }
 
         if (frame.category === 'replay.hydrate-error') {
-          frame.data = {
-            description: t('Encountered an error while hydrating'),
-          };
+          frame.data = {description: t('Encountered an error while hydrating')};
         }
         return {
           ...frame,

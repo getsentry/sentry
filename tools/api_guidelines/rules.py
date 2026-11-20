@@ -18,3 +18,8 @@ class ApiRule(StrEnum):
     S027 = "S027"
     S028 = "S028"
     S034 = "S034"
+
+
+# the only rules whose existing findings are kept as a baseline of legacy debt. Rules that are
+# always enforced (S021-S023, S034) have no baseline
+BASELINED_RULES = frozenset({ApiRule.S025, ApiRule.S026, ApiRule.S027, ApiRule.S028})

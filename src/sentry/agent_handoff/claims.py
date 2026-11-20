@@ -1,3 +1,4 @@
+from dataclasses import dataclass, field
 from enum import StrEnum
 
 from django.views.decorators.debug import sensitive_variables
@@ -12,7 +13,6 @@ from sentry.agent_handoff.codes import (
 )
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
-from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.api.helpers.oauth_consent import (
@@ -45,9 +45,20 @@ def _record_claim(outcome: ClaimOutcome, handoff: AgentHandoff | None) -> None:
     )
 
 
+@dataclass(frozen=True)
+class ClaimedHandoff:
+    organization_slug: str
+    organization_name: str
+    user_email: str
+    sentry_url: str
+    client_id: str
+    setup_code: str = field(repr=False)
+    flow_instructions: str = field(repr=False)
+
+
 @sensitive_variables()
-def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
-    """Consume a handoff and render credentials after revalidating its authorization."""
+def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandoff | None:
+    """Consume a handoff and mint credentials after revalidating its authorization."""
     try:
         handoff = consume_handoff(code, ip_address=ip_address)
     except HandoffExpired as error:
@@ -61,14 +72,14 @@ def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
         _record_claim(ClaimOutcome.INVALID, None)
         return None
 
-    guide = _render_guide(handoff)
-    _record_claim(ClaimOutcome.ACCEPTED if guide is not None else ClaimOutcome.INVALID, handoff)
-    return guide
+    claim = _claim(handoff)
+    _record_claim(ClaimOutcome.ACCEPTED if claim is not None else ClaimOutcome.INVALID, handoff)
+    return claim
 
 
 @sensitive_variables()
-def _render_guide(handoff: AgentHandoff) -> str | None:
-    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
+def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
+    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
         return None
@@ -113,7 +124,7 @@ def _render_guide(handoff: AgentHandoff) -> str | None:
             flow=handoff.flow.value,
         )
     )
-    return render_agent_runbook(
+    return ClaimedHandoff(
         organization_slug=context.organization.slug,
         organization_name=context.organization.name,
         user_email=user.email,

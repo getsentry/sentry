@@ -36,21 +36,14 @@ export type Secret = {
 
 type FetchSecretResponse = {data: Secret[]};
 
-type FetchSecretParameters = {
-  orgSlug: string;
-};
+type FetchSecretParameters = {orgSlug: string};
 
-type RemoveSecretQueryVariables = {
-  id: number;
-};
+type RemoveSecretQueryVariables = {id: number};
 
 export const makeFetchSecretOptions = ({orgSlug}: FetchSecretParameters) =>
   apiOptions.as<FetchSecretResponse>()(
     '/organizations/$organizationIdOrSlug/flags/signing-secrets/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 
 function SecretList({
@@ -126,9 +119,7 @@ function OrganizationFeatureFlagsChangeTracking() {
           '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
           {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
 
     onSuccess: (_data, {id}) => {
@@ -169,7 +160,7 @@ function OrganizationFeatureFlagsChangeTracking() {
           'Integrating Sentry with your feature flag provider enables Sentry to correlate feature flag changes with new error events and mark certain changes as suspicious. Learn more about how to interact with feature flag insights within the Sentry UI by reading the [link:documentation].',
           {
             link: (
-              <ExternalLink href="https://docs.sentry.io/product/explore/feature-flags/#change-tracking" />
+              <ExternalLink href="https://docs.sentry.io/product/issues/issue-details/feature-flags/#change-tracking" />
             ),
           }
         )}

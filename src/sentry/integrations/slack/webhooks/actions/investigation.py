@@ -149,7 +149,7 @@ def handle_seer_investigation_start(
         log_unavailable(InvestigationUnavailableReason.INTEGRATION_NOT_INSTALLED)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
 
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.get_or_none(id=organization_id)
     if organization is None:
         log_unavailable(InvestigationUnavailableReason.ORGANIZATION_NOT_FOUND)
         return _respond_ephemeral(INVESTIGATION_UNAVAILABLE_MESSAGE)
@@ -168,7 +168,7 @@ def handle_seer_investigation_start(
         user_id=identity_user.id,
         organization_id=organization.id,
         invite_status=InviteStatus.APPROVED.value,
-    ).first()
+    ).first()  # noqa: S035
     if member is None:
         log_unavailable(InvestigationUnavailableReason.NOT_MEMBER)
         return _respond_ephemeral(

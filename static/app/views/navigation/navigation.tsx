@@ -16,13 +16,13 @@ import {IconMail} from '@sentry/icons/mail';
 import {IconSeer} from '@sentry/icons/seer';
 import {IconSettings} from '@sentry/icons/settings';
 import {IconSiren} from '@sentry/icons/siren';
+import {useQuery} from '@tanstack/react-query';
 import {motion, type MotionProps} from 'framer-motion';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Stack, Flex} from '@sentry/scraps/layout';
 import {SizeProvider} from '@sentry/scraps/sizeContext';
 
-import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Override} from 'sentry/components/override';
 import {t} from 'sentry/locale';
@@ -33,6 +33,7 @@ import {getReturnPath} from 'sentry/utils/useReturnPath';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
 import {getClassifiersPath, useClassifiersEnabled} from 'sentry/views/classifiers/utils';
 import {getDefaultExploreRoute} from 'sentry/views/explore/utils';
+import {inboxUnreadCountApiOptions} from 'sentry/views/inbox/inboxApiOptions';
 import {
   getInvestigationsPath,
   useInvestigationsEnabled,
@@ -282,6 +283,7 @@ interface PrimaryNavigationItemsProps {
 
 export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
   const organization = useOrganization({allowNull: true});
+  const {data: inboxUnreadCount} = useQuery(inboxUnreadCountApiOptions(organization));
   const investigationsEnabled = useInvestigationsEnabled();
   const automationsEnabled = useAutomationsEnabled();
   const classifiersEnabled = useClassifiersEnabled();
@@ -336,6 +338,7 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
             to={`/${prefix}/inbox/`}
             analyticsKey="inbox"
             label={t('Inbox')}
+            unreadCount={inboxUnreadCount?.count}
             {...makeNavigationItemProps('inbox', `/${prefix}/inbox/`)}
           >
             <IconMail />
@@ -423,33 +426,31 @@ export function PrimaryNavigationItems({listRef}: PrimaryNavigationItemsProps) {
       </NavigationTourElement>
 
       {!organization.features.includes('insights-to-dashboards-ui-rollout') && (
-        <Feature features={['performance-view']}>
-          <NavigationTourElement
-            id={NavigationTour.INSIGHTS}
-            title={null}
-            description={null}
-          >
-            {tourProps => (
-              <PrimaryNavigation.ListItem>
-                <PrimaryNavigation.Link
-                  to={`/${prefix}/insights/`}
-                  analyticsKey="insights"
-                  label={t('Insights')}
-                  {...mergeProps(
-                    makeNavigationItemProps(
-                      'insights',
-                      `/${prefix}/insights/`,
-                      `/${prefix}/insights`
-                    ),
-                    tourProps
-                  )}
-                >
-                  <IconGraph type="area" />
-                </PrimaryNavigation.Link>
-              </PrimaryNavigation.ListItem>
-            )}
-          </NavigationTourElement>
-        </Feature>
+        <NavigationTourElement
+          id={NavigationTour.INSIGHTS}
+          title={null}
+          description={null}
+        >
+          {tourProps => (
+            <PrimaryNavigation.ListItem>
+              <PrimaryNavigation.Link
+                to={`/${prefix}/insights/`}
+                analyticsKey="insights"
+                label={t('Insights')}
+                {...mergeProps(
+                  makeNavigationItemProps(
+                    'insights',
+                    `/${prefix}/insights/`,
+                    `/${prefix}/insights`
+                  ),
+                  tourProps
+                )}
+              >
+                <IconGraph type="area" />
+              </PrimaryNavigation.Link>
+            </PrimaryNavigation.ListItem>
+          )}
+        </NavigationTourElement>
       )}
 
       <PrimaryNavigation.ListItem>
@@ -515,10 +516,7 @@ const makeCollapsedSecondaryWrapperAnimationProps = (
   return {
     initial: 'hidden',
     animate: open ? 'visible' : 'hidden',
-    variants: {
-      visible: {x: 0},
-      hidden: {x: -left - 10},
-    },
+    variants: {visible: {x: 0}, hidden: {x: -left - 10}},
     transition: {
       type: 'spring',
       damping: 50,

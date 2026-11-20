@@ -66,10 +66,7 @@ export function DemoSandboxButton({
       external
       href={url.toString()}
       onClick={() =>
-        trackAnalytics('growth.clicked_enter_sandbox', {
-          scenario,
-          organization,
-        })
+        trackAnalytics('growth.clicked_enter_sandbox', {scenario, organization})
       }
       {...buttonProps}
     />

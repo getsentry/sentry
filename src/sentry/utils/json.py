@@ -27,7 +27,7 @@ TKey = TypeVar("TKey")
 TValue = TypeVar("TValue")
 
 
-def datetime_to_str(o: datetime.datetime) -> str:
+def datetime_to_str(o: datetime.date) -> str:
     return o.strftime("%Y-%m-%dT%H:%M:%S.%fZ")
 
 

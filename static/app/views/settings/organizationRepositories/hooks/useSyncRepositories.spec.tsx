@@ -93,10 +93,7 @@ describe('useSyncRepositories', () => {
 
     const onSynced = jest.fn();
     const {result} = renderHookWithProviders(
-      () =>
-        useSyncRepositories(integration, {
-          onSynced,
-        }),
+      () => useSyncRepositories(integration, {onSynced}),
       {organization}
     );
 

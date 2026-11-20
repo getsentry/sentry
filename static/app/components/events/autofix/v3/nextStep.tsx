@@ -133,7 +133,9 @@ export function SeerDrawerNextStep({sections, group, autofix}: SeerDrawerNextSte
 }
 
 function PullRequestNextStep({autofix, group, runId, referrer}: NextStepProps) {
-  const creditsDisabled = useAutofixCreditsDisabled('pr_iteration');
+  const creditsDisabled = useAutofixCreditsDisabled('pr_iteration', {
+    billingFeature: autofix.runState?.billing_feature,
+  });
 
   return (
     <PrIterationFeedbackForm
@@ -160,13 +162,7 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'root_cause',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'root_cause', referrer});
 
   const handleYesClick = () => {
     startStep('solution', {runId});
@@ -192,13 +188,11 @@ function RootCauseNextStep({autofix, group, runId, section, referrer}: NextStepP
   );
 
   const rethinkPrompt = t('How can this root cause be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('solution', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -249,13 +243,7 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   const {askSeer, isCodeMode} = useAskSeerHandoff();
 
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
-    useCodingAgents({
-      autofix,
-      runId,
-      group,
-      step: 'solution',
-      referrer,
-    });
+    useCodingAgents({autofix, runId, group, step: 'solution', referrer});
 
   const handleYesClick = () => {
     startStep('code_changes', {runId});
@@ -281,13 +269,11 @@ function SolutionNextStep({autofix, group, runId, section, referrer}: NextStepPr
   );
 
   const rethinkPrompt = t('How can this plan be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   const artifact = useMemo(() => getAutofixArtifactFromSection(section), [section]);
   const creditsDisabled = useAutofixCreditsDisabled('code_changes', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -340,6 +326,7 @@ function CodeChangesNextStep({autofix, group, runId, section, referrer}: NextSte
     enabled: defined(artifact),
   });
   const creditsDisabled = useAutofixCreditsDisabled('create_pr', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: defined(artifact),
   });
 
@@ -447,10 +434,7 @@ function CodeChangesNextStepContent({
   );
 
   const rethinkPrompt = t('How can this code change be improved?');
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'code_changes',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'code_changes'});
 
   return (
     <NextStepTemplate

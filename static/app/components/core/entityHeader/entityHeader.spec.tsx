@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {IconStar} from '@sentry/icons/star';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
@@ -10,8 +11,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
-import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
+import type {
+  EntityHeaderMetadataItemProps,
+  EntityHeaderMetadataListEntry,
+  EntityHeaderProps,
+  EntityHeaderStatProps,
+} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
+import {ContainerQueryContext} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 describe('EntityHeader', () => {
@@ -218,7 +225,7 @@ describe('EntityHeader', () => {
   });
 
   describe('stats and metadata', () => {
-    it('names a stat link by where it leads, not by its number', () => {
+    it('names a label link by its label, leaving the count beside it', () => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
@@ -226,12 +233,14 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'link',
-                label: 'Dead Clicks',
+                label: {
+                  type: 'link',
+                  content: 'Dead Clicks',
+                  to: '/replays/1/?t_main=breadcrumbs',
+                },
                 value: 4,
-                to: '/replays/1/?t_main=breadcrumbs',
               },
-              {type: 'text', label: 'Rage Clicks', value: 0},
+              {label: 'Rage Clicks', value: 0},
             ],
           }}
         />
@@ -259,17 +268,18 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'text', label: 'Text', value: 1},
-              {type: 'link', label: 'Link', value: 2, to: '/a/'},
-              {type: 'text', label: 'Label tip', value: 3, labelTooltip: 'About'},
-              {type: 'text', label: 'Value tip', value: 4, valueTooltip: 'Split'},
+              {label: 'Text', value: 1},
+              {label: {type: 'link', content: 'Link', to: '/a/'}, value: 2},
+              {label: {type: 'text', content: 'Label tip', tooltip: 'About'}, value: 3},
+              {label: 'Value tip', value: {type: 'text', content: 4, tooltip: 'Split'}},
               {
-                type: 'link',
-                label: 'Both tips',
-                value: 5,
-                to: '/b/',
-                labelTooltip: 'About',
-                valueTooltip: 'Split',
+                label: {type: 'link', content: 'Both tips', to: '/b/', tooltip: 'About'},
+                value: {type: 'text', content: 5, tooltip: 'Split'},
+              },
+              {label: 'Value link', value: {type: 'link', content: 6, to: '/c/'}},
+              {
+                label: {type: 'link', content: 'Both links', to: '/d/'},
+                value: {type: 'link', content: 7, to: '/d/'},
               },
             ],
           }}
@@ -285,6 +295,8 @@ describe('EntityHeader', () => {
       expect(items[2]).toHaveTextContent(/^Label tip3$/);
       expect(items[3]).toHaveTextContent(/^Value tip4$/);
       expect(items[4]).toHaveTextContent(/^Both tips5$/);
+      expect(items[5]).toHaveTextContent(/^Value link6$/);
+      expect(items[6]).toHaveTextContent(/^Both links7$/);
     });
 
     it('visits each tooltip in turn, label first, each opening its own', async () => {
@@ -295,11 +307,12 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'text',
-                label: 'Errors',
-                value: 3,
-                labelTooltip: 'Errors recorded during this replay',
-                valueTooltip: 'From 2 projects',
+                label: {
+                  type: 'text',
+                  content: 'Errors',
+                  tooltip: 'Errors recorded during this replay',
+                },
+                value: {type: 'text', content: 3, tooltip: 'From 2 projects'},
               },
             ],
           }}
@@ -326,11 +339,8 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'link',
-                label: 'Errors',
-                value: 3,
-                to: '/replays/1/?t_main=errors',
-                valueTooltip: 'From 2 projects',
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: {type: 'text', content: 3, tooltip: 'From 2 projects'},
               },
             ],
           }}
@@ -356,10 +366,12 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'text',
-                label: 'Dead Clicks',
+                label: {
+                  type: 'text',
+                  content: 'Dead Clicks',
+                  tooltip: 'A click that did not change anything.',
+                },
                 value: 4,
-                labelTooltip: 'A click that did not change anything.',
               },
             ],
           }}
@@ -380,22 +392,24 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'text',
                 label: 'Errors',
-                value: 3,
-                valueTooltip: (
-                  <Fragment>
-                    <Tooltip.Header>Errors</Tooltip.Header>
-                    <Tooltip.Grid columns="1fr max-content">
-                      <Tooltip.Row trailingItems={<span>2</span>}>
-                        <span>javascript</span>
-                      </Tooltip.Row>
-                      <Tooltip.Row trailingItems={<span>1</span>}>
-                        <span>python</span>
-                      </Tooltip.Row>
-                    </Tooltip.Grid>
-                  </Fragment>
-                ),
+                value: {
+                  type: 'text',
+                  content: 3,
+                  tooltip: (
+                    <Fragment>
+                      <Tooltip.Header>Errors</Tooltip.Header>
+                      <Tooltip.Grid columns="1fr max-content">
+                        <Tooltip.Row trailingItems={<span>2</span>}>
+                          <span>javascript</span>
+                        </Tooltip.Row>
+                        <Tooltip.Row trailingItems={<span>1</span>}>
+                          <span>python</span>
+                        </Tooltip.Row>
+                      </Tooltip.Grid>
+                    </Fragment>
+                  ),
+                },
               },
             ],
           }}
@@ -418,11 +432,13 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'link',
-                label: 'Errors',
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/?t_main=errors',
+                  tooltip: 'Errors recorded during this replay',
+                },
                 value: 3,
-                to: '/replays/1/?t_main=errors',
-                labelTooltip: 'Errors recorded during this replay',
               },
             ],
           }}
@@ -453,7 +469,10 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 0, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 0,
+              },
             ],
           }}
         />
@@ -467,7 +486,10 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 3,
+              },
             ],
           }}
         />
@@ -475,6 +497,210 @@ describe('EntityHeader', () => {
 
       expect(screen.getByRole('link', {name: 'Errors'})).toBe(before);
       expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors3$/);
+    });
+
+    it('names a value link by its own text, after the label', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          stats={{
+            label: 'Conversation stats',
+            items: [
+              {
+                label: 'Errors',
+                value: {type: 'link', content: 7, to: '/explore/traces/?query=errors'},
+              },
+            ],
+          }}
+        />
+      );
+
+      // Nothing is renamed: the link reads "7", and the label beside it in the
+      // same list item says what it counts.
+      const link = screen.getByRole('link', {name: '7'});
+      expect(link).toHaveAttribute('href', '/explore/traces/?query=errors');
+      expect(link).not.toHaveAttribute('aria-label');
+      expect(screen.queryByRole('link', {name: 'Errors'})).not.toBeInTheDocument();
+      expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors7$/);
+    });
+
+    it('attaches a value tooltip to the value link rather than nesting a tab stop', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          stats={{
+            label: 'Conversation stats',
+            items: [
+              {
+                label: 'Errors',
+                value: {
+                  type: 'link',
+                  content: 7,
+                  to: '/explore/traces/?query=errors',
+                  tooltip: 'From 2 tools',
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: '7'});
+
+      await userEvent.tab();
+      expect(link).toHaveFocus();
+      expect(await screen.findByText('From 2 tools')).toBeInTheDocument();
+
+      await userEvent.tab();
+      expect(document.body).toHaveFocus();
+    });
+
+    it('lets both halves link, visiting the label first', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: {type: 'link', content: 3, to: '/issues/?query=replay'},
+              },
+            ],
+          }}
+        />
+      );
+
+      const label = screen.getByRole('link', {name: 'Errors'});
+      const value = screen.getByRole('link', {name: '3'});
+      expect(label).toHaveAttribute('href', '/replays/1/?t_main=errors');
+      expect(value).toHaveAttribute('href', '/issues/?query=replay');
+      expect(label).not.toContainElement(value);
+
+      await userEvent.tab();
+      expect(label).toHaveFocus();
+      await userEvent.tab();
+      expect(value).toHaveFocus();
+    });
+
+    it('opens an external stat link in a new tab, on either half', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Build', value: '1.0.0'}}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {
+                label: {
+                  type: 'link',
+                  content: 'Install Size',
+                  externalHref: 'https://docs.sentry.io/size/',
+                },
+                value: {
+                  type: 'link',
+                  content: '12 MB',
+                  externalHref: 'https://github.com/getsentry/sentry/pull/1',
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      const label = screen.getByRole('link', {name: 'Install Size'});
+      expect(label).toHaveAttribute('href', 'https://docs.sentry.io/size/');
+      expect(label).toHaveAttribute('target', '_blank');
+
+      const value = screen.getByRole('link', {name: '12 MB'});
+      expect(value).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/1');
+      expect(value).toHaveAttribute('target', '_blank');
+    });
+
+    it('calls each half its own click handler', async () => {
+      const onLabelClick = jest.fn();
+      const onValueClick = jest.fn();
+
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/?t_main=errors',
+                  onClick: onLabelClick,
+                },
+                value: {
+                  type: 'link',
+                  content: 3,
+                  to: '/issues/?query=replay',
+                  onClick: onValueClick,
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Errors'}));
+      expect(onLabelClick).toHaveBeenCalledTimes(1);
+      expect(onValueClick).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('link', {name: '3'}));
+      expect(onValueClick).toHaveBeenCalledTimes(1);
+      expect(onLabelClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls the click handler of an external link half', async () => {
+      const onClick = jest.fn();
+
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Build', value: '1.0.0'}}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {
+                label: 'Install Size',
+                value: {
+                  type: 'link',
+                  content: '12 MB',
+                  externalHref: 'https://github.com/getsentry/sentry/pull/1',
+                  onClick,
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: '12 MB'}));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the same element when a value link receives its value', () => {
+      const build = (content: number): EntityHeaderProps => ({
+        title: {type: 'text', label: 'Replay user', value: 'Session'},
+        stats: {
+          label: 'Replay stats',
+          items: [
+            {
+              label: 'Errors',
+              value: {type: 'link', content, to: '/issues/?query=replay'},
+            },
+          ],
+        },
+      });
+
+      const {rerender} = render(<EntityHeader {...build(0)} />);
+      const before = screen.getByRole('link', {name: '0'});
+
+      rerender(<EntityHeader {...build(3)} />);
+
+      expect(screen.getByRole('link', {name: '3'})).toBe(before);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
@@ -485,10 +711,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              isVideoReplay
-                ? null
-                : {type: 'text' as const, label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 2},
+              isVideoReplay ? null : {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 2},
             ],
           }}
           metadata={{
@@ -517,8 +741,8 @@ describe('EntityHeader', () => {
             stats={{
               label: 'Replay stats',
               items: [
-                showViewers ? {type: 'text' as const, label: 'Seen By', value: 2} : null,
-                {type: 'text', label: 'Note', value: 7},
+                showViewers ? {label: 'Seen By', value: 2} : null,
+                {label: 'Note', value: 7},
               ],
             }}
           />
@@ -545,10 +769,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -558,10 +779,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -628,10 +846,7 @@ describe('EntityHeader', () => {
               },
             ],
           }}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -653,10 +868,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -682,10 +894,7 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -698,10 +907,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -723,7 +929,7 @@ describe('EntityHeader', () => {
       );
 
       // A links list showing "8.42.0" says nothing about what it leads to.
-      // The mirror of a stat, where the label links and carries the count.
+      // Unlike a stat, the key is hidden, so the link has to carry it.
       expect(screen.getByRole('link', {name: 'Version 8.42.0'})).toHaveAttribute(
         'href',
         '/releases/8.42.0/'
@@ -822,9 +1028,7 @@ describe('EntityHeader', () => {
       expect(screen.getByText('144.0.0')).toBeVisible();
       // Both keys are present for a screen reader, clipped out of the layout.
       expect(screen.getByText('Browser')).toHaveStyle({clipPath: 'inset(50%)'});
-      expect(screen.getByText('Browser version')).toHaveStyle({
-        clipPath: 'inset(50%)',
-      });
+      expect(screen.getByText('Browser version')).toHaveStyle({clipPath: 'inset(50%)'});
 
       rerender(
         <EntityHeader
@@ -848,53 +1052,70 @@ describe('EntityHeader', () => {
       // is unchanged, and the child key stays hidden either way.
       const item = screen.getByRole('listitem');
       expect(screen.getByText('Browser')).not.toHaveStyle({clipPath: 'inset(50%)'});
-      expect(screen.getByText('Browser version')).toHaveStyle({
-        clipPath: 'inset(50%)',
-      });
+      expect(screen.getByText('Browser version')).toHaveStyle({clipPath: 'inset(50%)'});
       expect(item).toHaveTextContent(/^BrowserChromeBrowser version144\.0\.0$/);
     });
 
-    it.each([
+    it.each<[string, EntityHeaderStatProps]>([
       [
-        'a link stat with a label tooltip',
-        {type: 'link', to: '/e/', labelTooltip: 'Why'},
+        'a link label with a tooltip',
+        {label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'}, value: 3},
       ],
       [
-        'a link stat with a value tooltip',
-        {type: 'link', to: '/e/', valueTooltip: 'Split'},
+        'a link label with a value tooltip',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/'},
+          value: {type: 'text', content: 3, tooltip: 'Split'},
+        },
       ],
       [
-        'a link stat with both tooltips',
-        {type: 'link', to: '/e/', labelTooltip: 'Why', valueTooltip: 'Split'},
+        'a link value with a tooltip',
+        {label: 'Errors', value: {type: 'link', content: 3, to: '/e/', tooltip: 'Split'}},
       ],
       [
-        'a text stat with both tooltips',
-        {type: 'text', labelTooltip: 'Why', valueTooltip: 'Split'},
+        'a link label and a link value, both with tooltips',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'},
+          value: {type: 'link', content: 3, to: '/e/', tooltip: 'Split'},
+        },
       ],
       [
-        'an empty link stat with a label tooltip',
-        {type: 'link', to: '/e/', value: null, labelTooltip: 'Why'},
+        'a text label and a text value, both with tooltips',
+        {
+          label: {type: 'text', content: 'Errors', tooltip: 'Why'},
+          value: {type: 'text', content: 3, tooltip: 'Split'},
+        },
       ],
       [
-        'an empty link stat with a value tooltip',
-        {type: 'link', to: '/e/', value: null, valueTooltip: 'Not recorded'},
+        'an empty value under a link label with a tooltip',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'},
+          value: null,
+        },
       ],
       [
-        'an empty text stat with a value tooltip',
-        {type: 'text', value: null, valueTooltip: 'Not recorded'},
+        'an empty link value with a tooltip',
+        {
+          label: 'Errors',
+          value: {type: 'link', content: null, to: '/e/', tooltip: 'Not recorded'},
+        },
       ],
       [
-        'an empty text stat with both tooltips',
-        {type: 'text', value: null, labelTooltip: 'Why', valueTooltip: 'Not recorded'},
+        'an empty text value with a tooltip',
+        {label: 'Errors', value: {type: 'text', content: null, tooltip: 'Not recorded'}},
       ],
-    ] as const)('never hides a focusable element on %s', (_, stat) => {
+      [
+        'an empty text value, both with tooltips',
+        {
+          label: {type: 'text', content: 'Errors', tooltip: 'Why'},
+          value: {type: 'text', content: null, tooltip: 'Not recorded'},
+        },
+      ],
+    ])('never hides a focusable element on %s', (_, stat) => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{label: 'Errors', value: 3, ...stat}],
-          }}
+          stats={{label: 'Replay stats', items: [stat]}}
         />
       );
 
@@ -913,10 +1134,7 @@ describe('EntityHeader', () => {
         render(
           <EntityHeader
             title={{type: 'text', label: 'Build', value: '1.0.0'}}
-            stats={{
-              label: 'Build stats',
-              items: [{type: 'text', label: 'Cost', value: null}],
-            }}
+            stats={{label: 'Build stats', items: [{label: 'Cost', value: null}]}}
           />
         );
 
@@ -940,10 +1158,12 @@ describe('EntityHeader', () => {
               label: 'Replay stats',
               items: [
                 {
-                  type: 'link',
-                  label: 'Errors',
+                  label: {
+                    type: 'link',
+                    content: 'Errors',
+                    to: '/replays/1/?t_main=errors',
+                  },
                   value: null,
-                  to: '/replays/1/?t_main=errors',
                 },
               ],
             }}
@@ -960,6 +1180,30 @@ describe('EntityHeader', () => {
         );
       });
 
+      it('keeps an empty link value a link, read as no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{
+              label: 'Replay stats',
+              items: [
+                {
+                  label: 'Errors',
+                  value: {type: 'link', content: null, to: '/replays/1/?t_main=errors'},
+                },
+              ],
+            }}
+          />
+        );
+
+        // Named by its own text, the same as any value link — the dash is
+        // hidden and "No data" is read in its place.
+        const link = screen.getByRole('link', {name: 'No data'});
+        expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
+        expect(within(link).getByText('—')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors—No data$/);
+      });
+
       it('explains why there is no value from the value trigger', async () => {
         render(
           <EntityHeader
@@ -968,10 +1212,12 @@ describe('EntityHeader', () => {
               label: 'Build stats',
               items: [
                 {
-                  type: 'text',
                   label: 'Cost',
-                  value: null,
-                  valueTooltip: 'No cost is recorded for local builds',
+                  value: {
+                    type: 'text',
+                    content: null,
+                    tooltip: 'No cost is recorded for local builds',
+                  },
                 },
               ],
             }}
@@ -997,10 +1243,12 @@ describe('EntityHeader', () => {
               label: 'Build stats',
               items: [
                 {
-                  type: 'text',
-                  label: 'Install Size',
+                  label: {
+                    type: 'text',
+                    content: 'Install Size',
+                    tooltip: 'Size on device',
+                  },
                   value: null,
-                  labelTooltip: 'Size on device',
                 },
               ],
             }}
@@ -1019,10 +1267,7 @@ describe('EntityHeader', () => {
         render(
           <EntityHeader
             title={{type: 'text', label: 'Replay user', value: 'Session'}}
-            stats={{
-              label: 'Replay stats',
-              items: [{type: 'text', label: 'Errors', value: 0}],
-            }}
+            stats={{label: 'Replay stats', items: [{label: 'Errors', value: 0}]}}
           />
         );
 
@@ -1039,7 +1284,7 @@ describe('EntityHeader', () => {
             title={{type: 'text', label: 'Build', value: '1.0.0'}}
             stats={{
               label: 'Build stats',
-              items: [{type: 'text', label: 'Cost', value: null, isLoading: true}],
+              items: [{label: 'Cost', value: null, isLoading: true}],
             }}
           />
         );
@@ -1063,8 +1308,8 @@ describe('EntityHeader', () => {
             stats={{
               label: 'Build stats',
               items: [
-                {type: 'text', label: 'Placeholder Size', value: '-'},
-                {type: 'text', label: 'Real Size', value: '12 MB'},
+                {label: 'Placeholder Size', value: '-'},
+                {label: 'Real Size', value: '12 MB'},
               ],
             }}
           />
@@ -1082,8 +1327,8 @@ describe('EntityHeader', () => {
             stats={{
               label: 'Build stats',
               items: [
-                {type: 'text', label: 'Placeholder Size', value: '-'},
-                {type: 'text', label: 'Real Size', value: '13 MB'},
+                {label: 'Placeholder Size', value: '-'},
+                {label: 'Real Size', value: '13 MB'},
               ],
             }}
           />
@@ -1095,10 +1340,7 @@ describe('EntityHeader', () => {
         rerender(
           <EntityHeader
             title={{type: 'text', label: 'Build', value: '1.0.0'}}
-            stats={{
-              label: 'Build stats',
-              items: [{type: 'text', label: 'Padded Size', value: ' — '}],
-            }}
+            stats={{label: 'Build stats', items: [{label: 'Padded Size', value: ' — '}]}}
           />
         );
 
@@ -1132,6 +1374,310 @@ describe('EntityHeader', () => {
     });
   });
 
+  describe('metadata lists', () => {
+    function toolEntries(names: string[]): EntityHeaderMetadataListEntry[] {
+      return names.map(name => ({key: name, label: 'Tool', type: 'text', value: name}));
+    }
+
+    const tools = ['search', 'fetch', 'browse', 'summarize', 'translate'];
+
+    function renderTools(
+      list: Partial<Extract<EntityHeaderMetadataItemProps, {type: 'list'}>>,
+      props: Partial<EntityHeaderProps> = {}
+    ) {
+      return render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {label: 'Model', type: 'text', value: 'gpt-5'},
+              {label: 'Tools', type: 'list', items: toolEntries(tools), ...list},
+            ],
+          }}
+          {...props}
+        />
+      );
+    }
+
+    it('shows up to maxVisible entries, then a collapsed "+N more" button', () => {
+      renderTools({maxVisible: 3});
+
+      const list = screen.getByRole('list', {name: 'Tools'});
+      const entries = within(list).getAllByRole('listitem');
+      // Collapsed entries are not drawn; the button says how many remain.
+      expect(entries.map(entry => entry.textContent)).toEqual([
+        ...tools.slice(0, 3).map(tool => `Tool${tool}`),
+        '+2 more',
+      ]);
+      expect(within(entries[3]!).getByRole('button', {name: '+2 more'})).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
+
+      // The nested list is one item of the metadata row, beside the others.
+      const row = screen.getByRole('list', {name: 'Conversation properties'});
+      const items = [...row.children];
+      expect(items).toHaveLength(2);
+      expect(items[1]).toContainElement(list);
+    });
+
+    it('draws the label in full mode without reading it twice', () => {
+      const {rerender} = renderTools({maxVisible: 3});
+      expect(screen.queryByText('Tools')).not.toBeInTheDocument();
+
+      rerender(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {label: 'Tools', type: 'list', items: toolEntries(tools), mode: 'full'},
+            ],
+          }}
+        />
+      );
+
+      expect(isInaccessible(screen.getByText('Tools'))).toBe(true);
+      expect(screen.getByRole('list', {name: 'Tools'})).toBeInTheDocument();
+    });
+
+    it.each([undefined, tools.length])(
+      'shows every entry and no trigger when maxVisible is %s',
+      maxVisible => {
+        renderTools({maxVisible});
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries).toHaveLength(tools.length);
+        expect(screen.queryByRole('button', {name: /more$/})).not.toBeInTheDocument();
+      }
+    );
+
+    it('renders a skeleton while loading', () => {
+      renderTools({maxVisible: 3}, {isLoading: true});
+
+      // Title, the text item and the list item.
+      expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(3);
+      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
+      expect(screen.queryByText('search')).not.toBeInTheDocument();
+    });
+
+    it('draws each entry as a metadata value, link and qualifiers included', () => {
+      renderTools({
+        items: [
+          {
+            key: 'search',
+            label: 'Tool',
+            type: 'link',
+            value: 'search',
+            to: '/tools/search/',
+          },
+          {
+            key: 'fetch',
+            label: 'Tool',
+            type: 'text',
+            value: 'fetch',
+            secondary: {label: 'calls', value: '3'},
+          },
+        ],
+      });
+
+      const list = screen.getByRole('list', {name: 'Tools'});
+      expect(within(list).getByRole('link', {name: 'Tool search'})).toHaveAttribute(
+        'href',
+        '/tools/search/'
+      );
+      expect(within(list).getByText('Tool calls')).toBeInTheDocument();
+    });
+
+    it('reads an entry without a label as its value only', () => {
+      renderTools({
+        items: [
+          {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+          {
+            key: 'fetch',
+            type: 'text',
+            value: 'fetch',
+            secondary: {label: 'calls', value: '3'},
+          },
+        ],
+      });
+
+      // The list's name says what the entries are, so nothing repeats it.
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => entry.textContent)).toEqual(['search', 'fetchcalls3']);
+      expect(screen.getByRole('link', {name: 'search'})).not.toHaveAttribute(
+        'aria-label'
+      );
+    });
+
+    describe('expanding', () => {
+      const linkAndTooltipEntries: EntityHeaderMetadataListEntry[] = [
+        {key: 'search', label: 'Tool', type: 'text', value: 'search'},
+        {
+          key: 'fetch',
+          label: 'Tool',
+          type: 'link',
+          value: 'fetch',
+          to: '/tools/fetch/',
+          tooltip: 'Fetches a page',
+        },
+        {
+          key: 'browse',
+          label: 'Tool',
+          type: 'text',
+          value: 'browse',
+          tooltip: 'Opens a browser',
+          secondary: {label: 'calls', value: '3'},
+        },
+      ];
+
+      const tabStops = () =>
+        Array.from(
+          screen
+            .getByRole('banner')
+            .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+          stop => stop.textContent
+        );
+
+      it('reveals the collapsed entries in place, drawn as visible entries are', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
+
+        // Collapsed, the button is the list's only tab stop.
+        expect(tabStops()).toEqual(['+2 more']);
+
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries.map(entry => entry.textContent)).toEqual([
+          'Toolsearch',
+          // A link is named by its aria-label, so it draws no label of its own.
+          'fetch',
+          'ToolbrowseTool calls3',
+        ]);
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveAttribute(
+          'href',
+          '/tools/fetch/'
+        );
+        expect(tabStops()).toEqual(['fetch', 'browse', '3']);
+        await userEvent.hover(screen.getByText('browse'));
+        expect(await screen.findByText('Opens a browser')).toBeInTheDocument();
+      });
+
+      it('moves focus to the first revealed entry, and Tab continues through them', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
+
+        await userEvent.tab();
+        expect(screen.getByRole('button', {name: '+2 more'})).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries[1]).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByText('browse')).toHaveFocus();
+      });
+
+      it('does not move focus again when the items change after expanding', async () => {
+        function Page({names}: {names: string[]}) {
+          return (
+            <Fragment>
+              <EntityHeader
+                title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+                metadata={{
+                  label: 'Conversation properties',
+                  items: [
+                    {
+                      label: 'Tools',
+                      type: 'list',
+                      maxVisible: 1,
+                      items: toolEntries(names),
+                    },
+                  ],
+                }}
+              />
+              <input aria-label="Elsewhere" />
+            </Fragment>
+          );
+        }
+
+        const {rerender} = render(<Page names={['search', 'fetch', 'browse']} />);
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+        await userEvent.click(screen.getByRole('textbox', {name: 'Elsewhere'}));
+
+        // A different entry now sits where the first revealed one was.
+        rerender(<Page names={['search', 'browse', 'fetch']} />);
+
+        expect(screen.getByRole('textbox', {name: 'Elsewhere'})).toHaveFocus();
+      });
+    });
+
+    it('resolves a responsive maxVisible against the header width', () => {
+      render(
+        <ContainerQueryContext.Provider value="md">
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{
+              label: 'Conversation properties',
+              items: [
+                {
+                  label: 'Tools',
+                  type: 'list',
+                  items: toolEntries(tools),
+                  maxVisible: {zero: 1, md: 3, lg: 4},
+                },
+              ],
+            }}
+          />
+        </ContainerQueryContext.Provider>
+      );
+
+      expect(screen.getByText('+2 more')).toBeInTheDocument();
+    });
+
+    it('draws the label and graphic before "+N more" when maxVisible is 0', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Tools',
+                type: 'list',
+                mode: 'full',
+                leadingGraphic: <IconStar data-test-id="tools-graphic" />,
+                items: toolEntries(tools),
+                maxVisible: 0,
+              },
+              {label: 'Region', type: 'text', value: 'us'},
+            ],
+          }}
+        />
+      );
+
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries).toHaveLength(1);
+
+      const trigger = entries[0]!;
+      expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
+      expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
+      expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
+      expect(screen.getAllByTestId('metadata-divider')).toHaveLength(1);
+    });
+  });
+
   describe('loading', () => {
     it('renders one skeleton per declared slot, preserving the slot count', () => {
       render(
@@ -1142,8 +1688,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'text', label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 2},
+              {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 2},
             ],
           }}
           metadata={{
@@ -1186,10 +1732,7 @@ describe('EntityHeader', () => {
             hasData ? {label: 'Browser', type: 'text', value: 'Chrome'} : null,
           ],
         },
-        stats: {
-          label: 'Replay stats',
-          items: [{type: 'text', label: 'Errors', value: 0}],
-        },
+        stats: {label: 'Replay stats', items: [{label: 'Errors', value: 0}]},
       });
 
       const {rerender} = render(<EntityHeader {...build(false)} />);
@@ -1209,10 +1752,7 @@ describe('EntityHeader', () => {
           isLoading
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -1222,10 +1762,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -1240,8 +1777,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'text', label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 0, isLoading: true},
+              {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 0, isLoading: true},
             ],
           }}
         />
@@ -1260,7 +1797,7 @@ describe('EntityHeader', () => {
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 0, isLoading: true}],
+            items: [{label: 'Errors', value: 0, isLoading: true}],
           }}
         />
       );
@@ -1270,14 +1807,259 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
       expect(screen.getByRole('banner')).toHaveAttribute('aria-busy', 'false');
+    });
+  });
+
+  describe('metadata dividers', () => {
+    const pipesIn = (element: HTMLElement) =>
+      within(element).queryAllByTestId('metadata-divider');
+
+    const tools = (names: string[]): EntityHeaderMetadataListEntry[] =>
+      names.map(name => ({key: name, label: 'Tool', type: 'text', value: name}));
+
+    function renderRow(
+      items: Array<EntityHeaderMetadataItemProps | null>,
+      props: Partial<EntityHeaderProps> = {}
+    ) {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{label: 'Conversation properties', items}}
+          {...props}
+        />
+      );
+      return screen.getByRole('list', {name: 'Conversation properties'});
+    }
+
+    // The row's own items, not the entries of a list nested in it.
+    const topLevelItems = (row: HTMLElement) =>
+      within(row)
+        .getAllByRole('listitem')
+        .filter(item => item.parentElement === row);
+
+    it('ends every property but the last with a pipe', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Release', type: 'link', value: '8.42.0', to: '/releases/8.42.0/'},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      expect(topLevelItems(row).map(item => pipesIn(item).length)).toEqual([1, 1, 0]);
+    });
+
+    it('puts no pipe between list entries, and ends the list on its last entry', () => {
+      const row = renderRow([
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch', 'browse'])},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+        'listitem'
+      );
+      expect(entries.map(entry => pipesIn(entry).length)).toEqual([0, 0, 1]);
+      expect(pipesIn(row)).toHaveLength(1);
+    });
+
+    it('ends a collapsed list on "+N more", and an expanded one on its last entry', async () => {
+      renderRow([
+        {
+          label: 'Tools',
+          type: 'list',
+          items: tools(['search', 'fetch', 'browse', 'summarize']),
+          maxVisible: 2,
+        },
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const entries = () =>
+        within(screen.getByRole('list', {name: 'Tools'})).getAllByRole('listitem');
+      // Two shown, then the trigger.
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('+2 more');
+
+      await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('summarize');
+    });
+
+    it('ends a list that closes the row without a pipe', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch']), maxVisible: 1},
+      ]);
+
+      expect(screen.getByText('+1 more')).toBeInTheDocument();
+      expect(pipesIn(row)).toHaveLength(1);
+      expect(pipesIn(topLevelItems(row)[0]!)).toHaveLength(1);
+    });
+
+    it('renders nothing for an empty list, and leaves no dangling pipe before it', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        null,
+        {label: 'Tools', type: 'list', items: []},
+      ]);
+
+      expect(screen.queryByRole('list', {name: 'Tools'})).not.toBeInTheDocument();
+      expect(within(row).getAllByRole('listitem')).toHaveLength(1);
+      expect(row).toHaveTextContent(/^Modelgpt-5$/);
+      expect(pipesIn(row)).toHaveLength(0);
+    });
+
+    describe('with an empty value', () => {
+      // Labels are unique to each test: the warning is deduplicated for the
+      // life of the module.
+      let warn: jest.SpyInstance;
+      beforeEach(() => {
+        warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+      });
+      afterEach(() => {
+        warn.mockRestore();
+      });
+
+      it('leaves out a label-less link entry, and does not count it in "+N more"', () => {
+        renderRow([
+          {
+            label: 'Linked Tools',
+            type: 'list',
+            maxVisible: 2,
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'search', type: 'link', value: 'search', to: '/tools/search/'},
+              {key: 'fetch', type: 'link', value: 'fetch', to: '/tools/fetch/'},
+              {key: 'browse', type: 'link', value: 'browse', to: '/tools/browse/'},
+            ],
+          },
+        ]);
+
+        const list = screen.getByRole('list', {name: 'Linked Tools'});
+        expect(
+          within(list)
+            .getAllByRole('link')
+            .map(link => link.textContent)
+        ).toEqual(['search', 'fetch']);
+        expect(within(list).getAllByRole('listitem')).toHaveLength(3);
+        expect(within(list).getByRole('button', {name: '+1 more'})).toBeInTheDocument();
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          expect.stringContaining('entry of "Linked Tools"')
+        );
+      });
+
+      it.each(['', '  ', null, undefined, false])(
+        'leaves out a text item whose value is %p, with no dangling pipe before it',
+        value => {
+          const label = `Empty Region ${JSON.stringify(value)}`;
+          const row = renderRow([
+            {label: 'Model', type: 'text', value: 'gpt-5'},
+            {label, type: 'text', value},
+          ]);
+
+          expect(topLevelItems(row)).toHaveLength(1);
+          expect(row).toHaveTextContent(/^Modelgpt-5$/);
+          expect(pipesIn(row)).toHaveLength(0);
+          expect(warn).toHaveBeenCalledWith(expect.stringContaining(`"${label}"`));
+        }
+      );
+
+      it('keeps a component value', () => {
+        const row = renderRow([
+          {label: 'Started at', type: 'text', value: <span>today</span>},
+        ]);
+
+        expect(row).toHaveTextContent('Started attoday');
+        expect(warn).not.toHaveBeenCalled();
+      });
+
+      it('warns once per label in development', () => {
+        const items: EntityHeaderMetadataItemProps[] = [
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          {label: 'Blank Browser', type: 'text', value: ''},
+        ];
+        const {rerender} = render(
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{label: 'Conversation properties', items}}
+          />
+        );
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+            metadata={{label: 'Conversation properties', items}}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(
+          'EntityHeader metadata item "Blank Browser" has an empty value and was left out.'
+        );
+      });
+
+      it('does not warn while loading', () => {
+        renderRow([{label: 'Loading Browser', type: 'text', value: ''}], {
+          isLoading: true,
+        });
+
+        expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
+        expect(warn).not.toHaveBeenCalled();
+      });
+
+      it('renders nothing for a list whose entries are all empty', () => {
+        const row = renderRow([
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          {
+            label: 'Blank Tools',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'link', value: '', to: '/tools/a/'},
+              {key: 'b', type: 'text', value: ' '},
+            ],
+          },
+        ]);
+
+        expect(screen.queryByRole('list', {name: 'Blank Tools'})).not.toBeInTheDocument();
+        expect(screen.queryByRole('link')).not.toBeInTheDocument();
+        expect(row).toHaveTextContent(/^Modelgpt-5$/);
+        expect(pipesIn(row)).toHaveLength(0);
+      });
+    });
+
+    it('ends every skeleton but the last with a pipe while loading', () => {
+      const row = renderRow(
+        [
+          {label: 'Model', type: 'text', value: 'gpt-5'},
+          null,
+          {label: 'Region', type: 'text', value: 'us'},
+        ],
+        {isLoading: true}
+      );
+
+      expect(topLevelItems(row).map(item => pipesIn(item).length)).toEqual([1, 1, 0]);
+    });
+
+    it('keeps the pipes out of the accessibility tree', () => {
+      const row = renderRow([
+        {label: 'Model', type: 'text', value: 'gpt-5'},
+        {label: 'Tools', type: 'list', items: tools(['search', 'fetch'])},
+        {label: 'Region', type: 'text', value: 'us'},
+      ]);
+
+      const pipes = pipesIn(row);
+      expect(pipes).toHaveLength(2);
+      for (const pipe of pipes) {
+        expect(pipe).toHaveAttribute('aria-hidden', 'true');
+        expect(pipe).toBeEmptyDOMElement();
+        expect(isInaccessible(pipe)).toBe(true);
+      }
+      // Model, Tools and Region, then the two tools inside the nested list.
+      expect(within(row).getAllByRole('listitem')).toHaveLength(5);
+      expect(row).toHaveTextContent(/^Modelgpt-5ToolsearchToolfetchRegionus$/);
     });
   });
 
@@ -1289,7 +2071,10 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 3,
+              },
             ],
           }}
           metadata={{

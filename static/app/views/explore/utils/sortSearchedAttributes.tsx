@@ -5,7 +5,11 @@ import type {
   SelectOptionWithKey,
 } from '@sentry/scraps/compactSelect';
 
-import {getFieldDefinition, type GetFieldDefinitionType} from 'sentry/utils/fields';
+import {
+  getFieldDefinition,
+  prettifyTagKey,
+  type GetFieldDefinitionType,
+} from 'sentry/utils/fields';
 import {fzf} from 'sentry/utils/search/fzf';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
@@ -38,7 +42,15 @@ export function sortSearchedAttributes<Value extends SelectKey>({
     return {score: 0};
   }
 
-  const result = fzf(text, normalizedSearch, false);
+  // Typed keys like `tags[foo,number]` display as `foo`. Rank on the displayed
+  // name so the `tags[` prefix doesn't cost an exact match its prefix boost.
+  // Fall back to the raw key when the search only matches the typed syntax
+  // (e.g. `tags[foo`), so those searches still match.
+  const displayText = prettifyTagKey(text);
+  const scoreText = displayText.toLowerCase().includes(normalizedSearch)
+    ? displayText
+    : text;
+  const result = fzf(scoreText, normalizedSearch, false);
   if (result.end === -1) {
     return {score: 0};
   }

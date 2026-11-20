@@ -2,10 +2,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleCountCategoricalData: CategoricalSeries = {
   valueAxis: 'count()',
-  meta: {
-    valueType: 'integer',
-    valueUnit: null,
-  },
+  meta: {valueType: 'integer', valueUnit: null},
   values: [
     {category: 'Chrome', value: 1250},
     {category: 'Firefox', value: 890},

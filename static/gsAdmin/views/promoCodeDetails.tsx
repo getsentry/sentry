@@ -37,10 +37,7 @@ export function PromoCodeDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (updatedData: Record<string, any>) => {
-      return api.requestPromise(ENDPOINT, {
-        method: 'PUT',
-        data: updatedData,
-      });
+      return api.requestPromise(ENDPOINT, {method: 'PUT', data: updatedData});
     },
     onMutate: () => {
       toast.loading('Saving Changes...');
@@ -102,10 +99,7 @@ export function PromoCodeDetails() {
       rootName="Promo Codes"
       name={promoCode.code}
       badges={[
-        {
-          name: isActive ? 'Active' : 'Inactive',
-          level: isActive ? 'success' : 'danger',
-        },
+        {name: isActive ? 'Active' : 'Inactive', level: isActive ? 'success' : 'danger'},
       ]}
       actions={[
         {
@@ -115,9 +109,7 @@ export function PromoCodeDetails() {
             ? 'Disable this promo, preventing future claims'
             : 'Restore this promo, allowing it to be claimed',
           onAction: () =>
-            onUpdateMutation.mutate({
-              status: isActive ? 'inactive' : 'active',
-            }),
+            onUpdateMutation.mutate({status: isActive ? 'inactive' : 'active'}),
         },
         {
           key: 'edit-code',

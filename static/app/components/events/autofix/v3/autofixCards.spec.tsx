@@ -28,10 +28,7 @@ import {SolutionCard} from './solutionCard';
 
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
   const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
-  return {
-    ...actual,
-    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
-  };
+  return {...actual, useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext)};
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
@@ -150,19 +147,11 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
 };
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
-  return {
-    key: 'root-cause',
-    reason: 'Found root cause',
-    data,
-  };
+  return {key: 'root-cause', reason: 'Found root cause', data};
 }
 
 function makeSolutionArtifact(data: SolutionArtifact | null) {
-  return {
-    key: 'solution',
-    reason: 'Found solution',
-    data,
-  };
+  return {key: 'solution', reason: 'Found solution', data};
 }
 
 describe('ArtifactCard', () => {
@@ -187,10 +176,9 @@ describe('ArtifactCard', () => {
     );
 
     beforeEach(() => {
-      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
-        ...actualUseSeerExplorerContext(),
-        openChatPrompt,
-      }));
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(() => ({...actualUseSeerExplorerContext(), openChatPrompt}));
     });
 
     afterEach(() => {
@@ -368,7 +356,7 @@ describe('ArtifactCard', () => {
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -488,11 +476,7 @@ describe('ArtifactCard', () => {
     });
 
     it('shows why a single run stopped instead of the failure text', () => {
-      const stop = {
-        key: 'stop',
-        reason: 'stop',
-        data: {reason: 'R', suggestion: 'N'},
-      };
+      const stop = {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}};
 
       render(
         <RootCauseCard
@@ -714,7 +698,7 @@ describe('ArtifactCard', () => {
 
     it('holds Re-run disabled when the org cannot afford a new single run', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -1238,7 +1222,7 @@ describe('ArtifactCard', () => {
 
     it('holds the PR feedback form disabled when the org cannot afford another iteration', async () => {
       const creditsOrganization = OrganizationFixture({
-        features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+        features: ['token-billed-seer-enabled'],
       });
       const creditCheck = MockApiClient.addMockResponse({
         url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
@@ -1353,10 +1337,7 @@ describe('ArtifactCard', () => {
         />,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/',
-              query: {seerDrawerAction: 'retry_code_changes'},
-            },
+            location: {pathname: '/', query: {seerDrawerAction: 'retry_code_changes'}},
           },
         }
       );
@@ -1405,10 +1386,7 @@ describe('ArtifactCard', () => {
           metadata: {
             step: 'pr_iteration',
             iteration_index: '0',
-            feedback: JSON.stringify({
-              text: 'ignored',
-              source: {type: 'mystery'},
-            }),
+            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
           },
         },
       };
@@ -2364,9 +2342,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('Pull Requests')).toBeInTheDocument();
-      const button = screen.getByRole('button', {
-        name: 'View org/repo#42',
-      });
+      const button = screen.getByRole('button', {name: 'View org/repo#42'});
       expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
     });
 
@@ -2376,16 +2352,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [
             [
-              makePR({
-                repo_name: 'org/repo-a',
-                pr_number: 10,
-                pr_url: 'https://pr/10',
-              }),
-              makePR({
-                repo_name: 'org/repo-b',
-                pr_number: 20,
-                pr_url: 'https://pr/20',
-              }),
+              makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
+              makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
             ],
           ])}
         />
@@ -2407,11 +2375,7 @@ describe('ArtifactCard', () => {
             [
               makePR({repo_name: 'org/repo-a', pr_url: null}),
               makePR({repo_name: 'org/repo-b', pr_number: null}),
-              makePR({
-                repo_name: 'org/valid',
-                pr_number: 55,
-                pr_url: 'https://pr/55',
-              }),
+              makePR({repo_name: 'org/valid', pr_number: 55, pr_url: 'https://pr/55'}),
             ],
           ])}
         />
@@ -2523,11 +2487,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
           ])}
         />
       );
@@ -2540,11 +2500,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
           ])}
         />
       );
@@ -2557,11 +2513,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
           ])}
         />
       );
@@ -2600,11 +2552,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );
@@ -2645,16 +2593,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
-              makeCodingAgent({
-                id: 'agent-1',
-                name: 'Agent One',
-                status: 'completed',
-              }),
-              makeCodingAgent({
-                id: 'agent-2',
-                name: 'Agent Two',
-                status: 'running',
-              }),
+              makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
+              makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
             ],
           ])}
         />
@@ -2671,11 +2611,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );
@@ -2704,9 +2640,7 @@ describe('ArtifactCard', () => {
 });
 
 describe('out of credits', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
   const retryTooltip = 'Your organization does not have enough Seer credits for this.';
 
   function mockCreditCheck(operation: string, hasEnoughCredits: boolean) {
@@ -2947,7 +2881,7 @@ describe('out of credits', () => {
     }
   );
 
-  it('leaves the retry to the backend without seer-credit-checks', () => {
+  it('leaves the retry to the backend without token-billed Seer', () => {
     const creditCheck = mockCreditCheck('autofix_code_changes', false);
     render(
       <CodeChangesCard
@@ -3009,6 +2943,83 @@ describe('out of credits', () => {
       );
     }
   );
+
+  it('shows only the stop line when a stopped PR iteration has queued feedback too', () => {
+    mockCreditCheck('autofix_pr_iteration', false);
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            ...stoppedRunState,
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: 'agent_turn',
+              denial_reason: null,
+            },
+            queued_feedback: [{text: 'Also log it', source: {type: 'user-ui'}}],
+          },
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection('code_changes', [
+          makePrIterationBlock(0, {text: 'Please add a test'}),
+          seerErrorBlock,
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText(
+        'Seer stopped before updating the pull request because your organization is out of credits.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Seer couldn't start on/)).not.toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      null,
+      "Seer couldn't start on 2 feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+    ],
+    [
+      'daily_cap_exceeded' as const,
+      "Seer couldn't start on 2 feedback items because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+    ],
+  ])('says queued feedback is waiting when denied for %s', (denialReason, message) => {
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {
+            run_id: 123,
+            blocks: [],
+            status: 'completed',
+            updated_at: '2026-01-01T00:00:00Z',
+            repo_pr_states: {'org/repo': makePR()},
+            pr_iteration_out_of_credits: {
+              unfinished_action: null,
+              denial_reason: denialReason,
+            },
+            queued_feedback: [
+              {text: 'Also log it', source: {type: 'user-ui'}},
+              {text: 'And rename it', source: {type: 'user-ui'}},
+            ],
+          },
+        }}
+        groupId="1"
+        section={makeSection(
+          'code_changes',
+          'completed',
+          [[makePatch('org/repo', 'src/cart.py')]],
+          [makePrIterationBlock(0, {text: 'Please add a test'})]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText(message)).toBeInTheDocument();
+  });
 
   describe('a PR that failed for credits', () => {
     const section = makeSection('pull_request', 'completed', [

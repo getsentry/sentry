@@ -6,7 +6,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
@@ -34,11 +34,7 @@ interface BuildCompareHeaderContentProps {
   onRerunComparison?: () => void;
 }
 
-const buildCompareFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildCompareFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 function getInstallSizeStatLabels(platform: Platform | null) {
   if (platform === 'android') {
@@ -88,7 +84,9 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
       label: headArtifactId,
       to: headBuildPath,
       leadingGraphic: project && (
-        <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+        <ProjectsBadge
+          projectPlatforms={project.platform ? [project.platform] : ['default']}
+        />
       ),
     });
   }
@@ -121,16 +119,20 @@ export function BuildCompareHeaderContent(props: BuildCompareHeaderContentProps)
           label: t('Build size'),
           items: [
             {
-              type: 'text',
-              label: installStat.label,
-              labelTooltip: installStat.tooltip,
+              label: {
+                type: 'text',
+                content: installStat.label,
+                tooltip: installStat.tooltip,
+              },
               value: formattedPrimaryMetricInstallSize(sizeInfo),
               isLoading,
             },
             {
-              type: 'text',
-              label: t('Bytes Transferred'),
-              labelTooltip: t('Over the network'),
+              label: {
+                type: 'text',
+                content: t('Bytes Transferred'),
+                tooltip: t('Over the network'),
+              },
               value: formattedPrimaryMetricDownloadSize(sizeInfo),
               isLoading,
             },

@@ -32,9 +32,23 @@ compare_and_delete = redis.load_redis_script("utils/compare_and_delete.lua")
 
 
 class HandoffFlow(StrEnum):
+    ADD_FEATURE = "add_feature"
     CREATE_PROJECT = "create_project"
     GUIDED_NEXT_STEPS = "guided_next_steps"
     ONBOARDING = "onboarding"
+
+
+class AddFeatureProduct(StrEnum):
+    TRACING = "tracing"
+
+
+class AddFeatureContext(BaseModel):
+    product: AddFeatureProduct
+    project_id: StrictInt
+
+    class Config:
+        frozen = True
+        extra = Extra.forbid
 
 
 class ProjectSetupContext(BaseModel):
@@ -45,7 +59,7 @@ class ProjectSetupContext(BaseModel):
         extra = Extra.forbid
 
 
-HandoffContext = ProjectSetupContext | None
+HandoffContext = AddFeatureContext | ProjectSetupContext | None
 
 
 class _AgentHandoff(BaseModel):
@@ -65,6 +79,11 @@ class _AgentHandoff(BaseModel):
         extra = Extra.forbid
 
 
+class AddFeatureHandoff(_AgentHandoff):
+    flow: Literal[HandoffFlow.ADD_FEATURE]
+    context: AddFeatureContext
+
+
 class GuidedNextStepsHandoff(_AgentHandoff):
     flow: Literal[HandoffFlow.GUIDED_NEXT_STEPS] = HandoffFlow.GUIDED_NEXT_STEPS
     context: None = None
@@ -80,7 +99,7 @@ class CreateProjectHandoff(_AgentHandoff):
     context: ProjectSetupContext
 
 
-AgentHandoff = CreateProjectHandoff | GuidedNextStepsHandoff | OnboardingHandoff
+AgentHandoff = AddFeatureHandoff | CreateProjectHandoff | GuidedNextStepsHandoff | OnboardingHandoff
 
 
 class _StoredAgentHandoff(BaseModel):
@@ -118,7 +137,7 @@ def _get_redis_client() -> RedisCluster[bytes] | StrictRedis[bytes]:
 def _handoff_key(code: str) -> str:
     # Versioned because replicas on an older payload schema reject unknown fields. During a
     # rollout each version sees the other's codes as unavailable instead of failing to parse.
-    return f"agent-handoff:v3:{hashlib.sha256_text(code).hexdigest()}"
+    return f"agent-handoff:v4:{hashlib.sha256_text(code).hexdigest()}"
 
 
 def issue_handoff(

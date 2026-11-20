@@ -15,14 +15,7 @@ import {GroupIdProvider} from './groupIdContext';
 
 describe('GroupCheckIns', () => {
   const monitorId = 'f75a223c-aae1-47e4-8f77-6c72243cb76e';
-  const event = EventFixture({
-    tags: [
-      {
-        key: 'monitor.id',
-        value: monitorId,
-      },
-    ],
-  });
+  const event = EventFixture({tags: [{key: 'monitor.id', value: monitorId}]});
   const project = ProjectFixture();
   const group = GroupFixture({
     issueCategory: IssueCategory.CRON,
@@ -80,10 +73,7 @@ describe('GroupCheckIns', () => {
       <GroupIdProvider groupId={group.id}>
         <GroupCheckIns />
       </GroupIdProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();

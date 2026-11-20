@@ -45,9 +45,7 @@ export function getTimeseriesWidgetQueryOptions({
         }));
       if (queue) {
         return new Promise((resolve, reject) => {
-          const fetchFnRef = {
-            current: () => fetchTimeseries().then(resolve, reject),
-          };
+          const fetchFnRef = {current: () => fetchTimeseries().then(resolve, reject)};
           queue.addItem({fetchDataRef: fetchFnRef});
         });
       }

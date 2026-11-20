@@ -31,20 +31,9 @@ export const profiling: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry',
-        },
-        {
-          type: 'text',
-          text: t('Install the Excimer extension via PECL:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'pecl install excimer',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry'},
+        {type: 'text', text: t('Install the Excimer extension via PECL:')},
+        {type: 'code', language: 'bash', code: 'pecl install excimer'},
         {
           type: 'text',
           text: tct(
@@ -69,11 +58,7 @@ export const profiling: OnboardingConfig = {
             'To capture profiling data, you should initialize the Sentry PHP SDK as soon as possible.'
           ),
         },
-        {
-          type: 'code',
-          language: 'php',
-          code: getProfilingConfigureSnippet(params),
-        },
+        {type: 'code', language: 'php', code: getProfilingConfigureSnippet(params)},
         {
           type: 'text',
           text: tct(

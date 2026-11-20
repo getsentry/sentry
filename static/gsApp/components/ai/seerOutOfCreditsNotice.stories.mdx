@@ -54,8 +54,8 @@ The org has credits but hit its daily usage limit: the credit check's
 which reloads credits until the limit stops it. The notice says when the limit
 resets, at the next midnight UTC in the viewer's timezone. Billing members
 configure auto-reload, where the limit is set. Members can't raise the limit,
-and more credits won't lift it, so they get no button and are told to ask their
-admin. Autofix uses the same copy for its own steps.
+so they are told to ask their admin, and "Contact Admin" emails the admins a
+request to raise it. Autofix uses the same copy for its own steps.
 
 <Storybook.Demo>
   <Stack gap="md" width="100%">
@@ -68,7 +68,8 @@ admin. Autofix uses the same copy for its own steps.
     <SeerOutOfCreditsNotice
       reason="agent-chat"
       denialReason="daily_cap_exceeded"
-      escalation="contact"
+      escalation="request"
+      onRequestCredits={() => {}}
     />
     <SeerOutOfCreditsNotice
       reason="autofix-continue"
@@ -86,7 +87,12 @@ admin. Autofix uses the same copy for its own steps.
   escalation="configure"
   onConfigureAutoReload={openAutoReloadModal}
 />
-<SeerOutOfCreditsNotice reason="agent-chat" denialReason="daily_cap_exceeded" escalation="contact" />
+<SeerOutOfCreditsNotice
+  reason="agent-chat"
+  denialReason="daily_cap_exceeded"
+  escalation="request"
+  onRequestCredits={handleRequestCredits}
+/>
 <SeerOutOfCreditsNotice
   reason="autofix-continue"
   denialReason="daily_cap_exceeded"

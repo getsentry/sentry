@@ -44,7 +44,7 @@ function mountModal(
 }
 
 describe('TransactionThresholdModal', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
   const eventView = EventView.fromSavedQuery({
     id: '1',
@@ -69,9 +69,7 @@ describe('TransactionThresholdModal', () => {
     postTransactionThresholdMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/project-transaction-threshold-override/',
       method: 'POST',
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
   });
 
@@ -148,10 +146,7 @@ describe('TransactionThresholdModal', () => {
     const getProjectThresholdMock = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/transaction-threshold/configure/',
       method: 'GET',
-      body: {
-        threshold: '200',
-        metric: 'duration',
-      },
+      body: {threshold: '200', metric: 'duration'},
     });
 
     await userEvent.click(await screen.findByTestId('reset-all'));

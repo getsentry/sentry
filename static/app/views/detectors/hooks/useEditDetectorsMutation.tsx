@@ -26,19 +26,11 @@ export function useUpdateDetectorsMutation() {
         }),
         method: 'PUT',
         data: {enabled: params.enabled},
-        options: {
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
-        },
+        options: {query: {id: params.ids, query: params.query, project: params.projects}},
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
     onError: (_, variables) => {
