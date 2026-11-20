@@ -1,5 +1,3 @@
-from contextvars import Token
-
 import pytest
 
 from sentry.testutils.cases import TestCase
@@ -7,18 +5,14 @@ from sentry.workflow_engine.models.detector import Detector
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
     WorkflowEventContext,
     WorkflowEventContextData,
+    isolated_workflow_event_context,
 )
 
 
 class WorkflowEventContextTestCase(TestCase):
     def setUp(self) -> None:
         super().setUp()
-        self.ctx_token: Token[WorkflowEventContextData] | None = None
-
-    def tearDown(self) -> None:
-        if self.ctx_token:
-            WorkflowEventContext.reset(self.ctx_token)
-            self.ctx_token = None
+        self.enterContext(isolated_workflow_event_context())
 
 
 class MockContextualClass:
@@ -32,7 +26,7 @@ class TestWorkflowEventContextUsage(WorkflowEventContextTestCase):
         ctx_data = WorkflowEventContextData(
             detector=detector,
         )
-        self.ctx_token = WorkflowEventContext.set(ctx_data)
+        WorkflowEventContext.set(ctx_data)
 
         mock_cls = MockContextualClass()
         result = mock_cls.run()
@@ -62,20 +56,19 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         ctx_data = WorkflowEventContextData(
             organization=self.organization,
         )
-        self.ctx_token = WorkflowEventContext.set(ctx_data)
+        WorkflowEventContext.set(ctx_data)
         ctx = WorkflowEventContext.get()
 
         assert ctx.detector is None
         assert ctx.environment is None
         assert ctx.organization == self.organization
 
-    @pytest.mark.skip(reason="flaky: #104683")
     def test_resetting_context(self) -> None:
         detector = self.create_detector()
         organization = self.organization
         environment = self.create_environment()
 
-        self.ctx_token = WorkflowEventContext.set(
+        token = WorkflowEventContext.set(
             WorkflowEventContextData(
                 detector=detector,
                 organization=organization,
@@ -84,11 +77,48 @@ class TestWorkflowEventContext(WorkflowEventContextTestCase):
         )
 
         # Reset context
-        WorkflowEventContext.reset(self.ctx_token)
-        self.ctx_token = None
+        WorkflowEventContext.reset(token)
 
         ctx = WorkflowEventContext.get()
 
         assert ctx.detector is None
         assert ctx.organization is None
         assert ctx.environment is None
+
+    def test_isolated_context_restores_previous_context(self) -> None:
+        previous_context = WorkflowEventContextData(organization=self.organization)
+        WorkflowEventContext.set(previous_context)
+
+        with isolated_workflow_event_context():
+            assert WorkflowEventContext.get() == WorkflowEventContextData()
+            WorkflowEventContext.set(WorkflowEventContextData(detector=self.create_detector()))
+
+        assert WorkflowEventContext.get() is previous_context
+
+    def test_isolated_context_restores_previous_context_on_exception(self) -> None:
+        previous_context = WorkflowEventContextData(organization=self.organization)
+        WorkflowEventContext.set(previous_context)
+
+        with pytest.raises(ValueError, match="workflow failed"):
+            with isolated_workflow_event_context():
+                WorkflowEventContext.set(WorkflowEventContextData(detector=self.create_detector()))
+                raise ValueError("workflow failed")
+
+        assert WorkflowEventContext.get() is previous_context
+
+    def test_nested_isolated_contexts(self) -> None:
+        previous_context = WorkflowEventContextData(organization=self.organization)
+        WorkflowEventContext.set(previous_context)
+        inner_context = WorkflowEventContextData(detector=self.create_detector())
+
+        with isolated_workflow_event_context():
+            WorkflowEventContext.set(inner_context)
+            with isolated_workflow_event_context():
+                assert WorkflowEventContext.get() == WorkflowEventContextData()
+                WorkflowEventContext.set(
+                    WorkflowEventContextData(environment=self.create_environment())
+                )
+
+            assert WorkflowEventContext.get() is inner_context
+
+        assert WorkflowEventContext.get() is previous_context
