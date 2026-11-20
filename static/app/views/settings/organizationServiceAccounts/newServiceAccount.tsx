@@ -6,17 +6,15 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getServiceAccountsUrl, getServiceAccountUrl} from './paths';
 import {useCreateServiceAccount} from './serviceAccountApi';
-import {ServiceAccountForm, useDefaultValues} from './serviceAccountForm';
+import {ServiceAccountForm, useServiceAccountFormValues} from './serviceAccountForm';
 
 export default function NewServiceAccount() {
   const organization = useOrganization();
   const navigate = useNavigate();
   const createAccount = useCreateServiceAccount(organization);
-  const defaultValues = useDefaultValues();
-
-  const basePath = `/settings/${organization.slug}/service-accounts/`;
-
+  const defaultValues = useServiceAccountFormValues();
   return (
     <Fragment>
       <SentryDocumentTitle title={t('New Service Account')} orgSlug={organization.slug} />
@@ -24,10 +22,10 @@ export default function NewServiceAccount() {
       <ServiceAccountForm
         defaultValues={defaultValues}
         submitLabel={t('Create Service Account')}
-        onCancel={() => navigate(basePath)}
+        onCancel={() => navigate(getServiceAccountsUrl(organization.slug))}
         onSubmit={async input => {
           const account = await createAccount.mutateAsync(input);
-          navigate(`${basePath}${account.id}/`);
+          navigate(getServiceAccountUrl(organization.slug, account.id));
         }}
       />
     </Fragment>

@@ -12,8 +12,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getServiceAccountUrl} from './paths';
 import {serviceAccountApiOptions, useUpdateServiceAccount} from './serviceAccountApi';
-import {ServiceAccountForm, useDefaultValues} from './serviceAccountForm';
+import {ServiceAccountForm, useServiceAccountFormValues} from './serviceAccountForm';
 import type {ServiceAccount} from './types';
 import {useCannotManageReason} from './useServiceAccountAccess';
 
@@ -21,10 +22,10 @@ function EditServiceAccountForm({account}: {account: ServiceAccount}) {
   const organization = useOrganization();
   const navigate = useNavigate();
   const updateAccount = useUpdateServiceAccount(organization, account.id);
-  const defaultValues = useDefaultValues(account);
+  const defaultValues = useServiceAccountFormValues(account);
   const cannotManageReason = useCannotManageReason(account);
 
-  const detailsPath = `/settings/${organization.slug}/service-accounts/${account.id}/`;
+  const detailsUrl = getServiceAccountUrl(organization.slug, account.id);
 
   if (cannotManageReason) {
     return (
@@ -38,10 +39,10 @@ function EditServiceAccountForm({account}: {account: ServiceAccount}) {
     <ServiceAccountForm
       defaultValues={defaultValues}
       submitLabel={t('Save Changes')}
-      onCancel={() => navigate(detailsPath)}
+      onCancel={() => navigate(detailsUrl)}
       onSubmit={async input => {
         await updateAccount.mutateAsync(input);
-        navigate(detailsPath);
+        navigate(detailsUrl);
       }}
     />
   );
@@ -78,7 +79,7 @@ export default function EditServiceAccount() {
           {
             type: 'link',
             label: account.name,
-            to: `/settings/${organization.slug}/service-accounts/${account.id}/`,
+            to: getServiceAccountUrl(organization.slug, account.id),
           },
         ]}
       />

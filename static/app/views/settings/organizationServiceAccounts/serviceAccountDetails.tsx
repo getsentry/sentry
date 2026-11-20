@@ -20,6 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getEditServiceAccountUrl, getServiceAccountsUrl} from './paths';
 import {serviceAccountApiOptions, useDeleteServiceAccount} from './serviceAccountApi';
 import {ServiceAccountOwnerKind} from './serviceAccountOwnerKind';
 import {
@@ -45,7 +46,7 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
   const cannotManageReason = useCannotManageReason(account);
   const deleteAccount = useDeleteServiceAccount(organization, account.id);
 
-  const listPath = `/settings/${organization.slug}/service-accounts/`;
+  const listUrl = getServiceAccountsUrl(organization.slug);
   const disabledProps = cannotManageReason
     ? {disabled: true, tooltipProps: {title: cannotManageReason}}
     : {};
@@ -59,7 +60,7 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
     <Flex gap="md">
       <LinkButton
         icon={<IconEdit />}
-        to={`${listPath}${account.id}/edit/`}
+        to={getEditServiceAccountUrl(organization.slug, account.id)}
         {...disabledProps}
       >
         {t('Edit')}
@@ -78,7 +79,7 @@ function ServiceAccountActions({account}: {account: ServiceAccount}) {
             deleteAccount.mutate(undefined, {
               onSuccess: () => {
                 toast.success(t('Service account deleted.'));
-                navigate(listPath);
+                navigate(listUrl);
               },
               onError: error => {
                 toast.error(

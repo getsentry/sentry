@@ -19,6 +19,7 @@ import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {getNewServiceAccountUrl, getServiceAccountUrl} from './paths';
 import {serviceAccountsApiOptions} from './serviceAccountApi';
 import {ServiceAccountOwnerKind} from './serviceAccountOwnerKind';
 import {PermissionCount} from './serviceAccountPermissionTable';
@@ -44,13 +45,11 @@ export default function OrganizationServiceAccounts() {
 
   const {canWrite} = useServiceAccountAccess();
 
-  const basePath = `/settings/${organization.slug}/service-accounts/`;
-
   const newAccountButton = (
     <LinkButton
       variant="primary"
       icon={<IconAdd />}
-      to={`${basePath}new/`}
+      to={getNewServiceAccountUrl(organization.slug)}
       disabled={!canWrite}
       tooltipProps={canWrite ? undefined : {title: NO_WRITE_ACCESS_REASON}}
     >
@@ -101,7 +100,9 @@ export default function OrganizationServiceAccounts() {
         {accounts?.map(account => (
           <SimpleTable.Row key={account.id}>
             <SimpleTable.RowCell>
-              <Link to={`${basePath}${account.id}/`}>{account.name}</Link>
+              <Link to={getServiceAccountUrl(organization.slug, account.id)}>
+                {account.name}
+              </Link>
             </SimpleTable.RowCell>
             <SimpleTable.RowCell>
               <ServiceAccountOwnerKind ownerKind={account.ownerKind} />

@@ -43,6 +43,11 @@ import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
 import {redirectDeprecatedProjectRoute} from 'sentry/views/projects/redirectDeprecatedProjectRoute';
 import {RouteNotFound} from 'sentry/views/routeNotFound';
 import {SettingsWrapper} from 'sentry/views/settings/components/settingsWrapper';
+import {
+  EDIT_SERVICE_ACCOUNT_PATH,
+  NEW_SERVICE_ACCOUNT_PATH,
+  SERVICE_ACCOUNTS_PATH,
+} from 'sentry/views/settings/organizationServiceAccounts/paths';
 
 import {translateSentryRoute} from './translateSentryRoute';
 import {type SentryRouteObject} from './types';
@@ -1176,7 +1181,7 @@ function buildRoutes(): RouteObject[] {
       ],
     },
     {
-      path: 'service-accounts/',
+      path: SERVICE_ACCOUNTS_PATH,
       name: t('Service Accounts'),
       children: [
         {
@@ -1196,12 +1201,12 @@ function buildRoutes(): RouteObject[] {
                 settingsBreadcrumb: {
                   type: 'link',
                   label: t('Service Accounts'),
-                  to: '/settings/:orgId/service-accounts/',
+                  to: `/settings/:orgId/${SERVICE_ACCOUNTS_PATH}`,
                 },
               },
               children: [
                 {
-                  path: 'new/',
+                  path: NEW_SERVICE_ACCOUNT_PATH,
                   name: t('New Service Account'),
                   component: make(
                     () =>
@@ -1217,7 +1222,7 @@ function buildRoutes(): RouteObject[] {
                   ),
                 },
                 {
-                  path: ':serviceAccountId/edit/',
+                  path: `:serviceAccountId/${EDIT_SERVICE_ACCOUNT_PATH}`,
                   name: t('Edit Service Account'),
                   component: make(
                     () =>

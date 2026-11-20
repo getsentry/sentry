@@ -56,7 +56,9 @@ function getFieldErrors(error: RequestError) {
   );
 }
 
-export function useDefaultValues(account?: ServiceAccount): FormValues {
+const NO_PROJECT_IDS: string[] = [];
+
+export function useServiceAccountFormValues(account?: ServiceAccount): FormValues {
   const organization = useOrganization();
   const {hasGlobalRole} = useServiceAccountAccess();
   if (!account) {
@@ -64,7 +66,7 @@ export function useDefaultValues(account?: ServiceAccount): FormValues {
     return {
       name: '',
       projectAccess: hasGlobalRole ? 'all' : 'specific',
-      projectIds: [],
+      projectIds: NO_PROJECT_IDS,
       scopes: DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantable.has(scope)),
     };
   }
@@ -210,7 +212,7 @@ export function ServiceAccountForm({
           {field => (
             <field.Layout.Stack
               label={t('Permissions')}
-              hintText={t("You can't grant access you don't have.")}
+              hintText={t('You can’t grant access you don’t have.')}
             >
               <field.Base>
                 {() => (
