@@ -116,7 +116,9 @@ def test_main_lists_one_teams_entries(exceptions: Path, capsys: pytest.CaptureFi
 
 
 def test_team_findings_skip_other_teams() -> None:
-    assert team_findings(ENTRIES, "ingest") == [f"S026 {INGEST} IngestEndpoint.get query:id (x1)"]
+    assert team_findings(ENTRIES, "ingest", {}) == [
+        f"S026 {INGEST} (not in current code) IngestEndpoint.get query:id (x1)"
+    ]
 
 
 def test_main_stops_on_a_team_that_isnt_in_the_file(
@@ -167,7 +169,7 @@ NEWER = [
 
 
 def test_changes_only_show_one_team_under_team() -> None:
-    assert format_changes(OLDER, NEWER, team="ingest") == [
+    assert format_changes(OLDER, NEWER, team="ingest", lines={}) == [
         "Changes: 0 new, 1 fixed, 0 changed count",
         "ingest",
         f"  fixed    S027 {INGEST} IngestEndpoint.get body:name (x1)",
@@ -191,3 +193,57 @@ def test_main_compare_knows_teams_that_were_fully_fixed(
         f"  fixed    S026 {INGEST} IngestEndpoint.get query:id (x1)\n"
         f"  fixed    S027 {INGEST} IngestEndpoint.get body:name (x1)\n"
     )
+
+
+# the code for issues-feed's S026 entry: query:id is read twice, on lines 5 and 6. Its S028 entry
+# isn't in this code, like a finding that was fixed after the file was written
+FEED_ENDPOINT = """\
+class FeedEndpoint(Endpoint):
+    publish_status = {"GET": ApiPublishStatus.PUBLIC}
+
+    def get(self, request) -> Response[X]:
+        a = request.GET.get("id")
+        b = request.GET.get("id")
+        return Response(a)
+"""
+
+
+@pytest.fixture
+def repo(tmp_path: Path) -> Path:
+    """A checkout with only FeedEndpoint's code, to rescan for line numbers"""
+    endpoint = tmp_path / FEED
+    endpoint.parent.mkdir(parents=True)
+    endpoint.write_text(FEED_ENDPOINT)
+    return tmp_path
+
+
+def test_team_prints_every_line_of_a_multi_count_entry(
+    exceptions: Path, repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["--exceptions", str(exceptions), "--team", "issues-feed"], root=repo) == 0
+
+    out = capsys.readouterr().out
+    assert f"{FEED}:5, {FEED}:6 FeedEndpoint.get query:id (x2)" in out
+
+
+def test_team_marks_an_entry_that_isnt_in_the_current_code(
+    exceptions: Path, repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    assert main(["--exceptions", str(exceptions), "--team", "issues-feed"], root=repo) == 0
+
+    out = capsys.readouterr().out
+    assert f"S028 {FEED} (not in current code) FeedEndpoint.get" in out
+
+
+def test_compare_prints_lines_for_new_entries_and_plain_paths_for_fixed_ones(
+    tmp_path: Path, repo: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    # the feed S026 entry is new since the older file, and ingest's entry was fixed
+    newer = _write(tmp_path / "exceptions.json", [ENTRIES[0]], "2026-11-16")
+    older = _write(tmp_path / "older.json", [ENTRIES[2]], "2026-11-02")
+
+    assert main(["--exceptions", str(newer), "--compare", str(older)], root=repo) == 0
+
+    out = capsys.readouterr().out
+    assert f"  new      S026 {FEED}:5, {FEED}:6 FeedEndpoint.get" in out
+    assert f"  fixed    S026 {INGEST} IngestEndpoint.get" in out
