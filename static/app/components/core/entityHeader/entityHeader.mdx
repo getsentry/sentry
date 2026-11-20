@@ -1076,10 +1076,7 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 
 ### Lists
 
-`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text or link metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more". Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
-
-> [!NOTE]
-> A collapsed entry shows in the "+N more" tooltip without its own `tooltip`, and links show as text.
+`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text or link metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more", which expands the list in place. Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
 
 export const tools = [
   {name: 'search_flights', hasError: false},
@@ -1156,7 +1153,7 @@ export const tools = [
 - **No data:** the dash is hidden from screen readers and "No data" is read instead.
 - **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
 - **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
-- **Metadata lists:** a nested list named by its `label`. Screen readers hear every entry, collapsed ones included, then "+N more", which is the only tab stop for the collapsed entries.
+- **Metadata lists:** a nested list named by its `label`. It holds the visible entries and the "+N more" button; activating the button reveals the rest and moves focus to the first of them.
 - **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
 - **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
 

@@ -55,6 +55,33 @@ const toolNames = [
   'send_itinerary',
 ];
 
+function ToolsHeader({maxVisible}: {maxVisible?: {md: number; zero: number}}) {
+  return (
+    <EntityHeader
+      title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+      metadata={{
+        label: 'Conversation properties',
+        items: [
+          {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+          {
+            label: 'Tools',
+            type: 'list',
+            mode: 'full',
+            maxVisible,
+            items: toolNames.map(name => ({
+              key: name,
+              type: 'text',
+              value: name,
+              variant: name === 'book_hotel' ? 'danger' : undefined,
+            })),
+          },
+          {label: 'Started at', type: 'text', value: '2h ago'},
+        ],
+      }}
+    />
+  );
+}
+
 describe('EntityHeader', () => {
   // The stats sit beside the title above the `lg` container breakpoint (640px)
   // and drop below the metadata under it. The header establishes its own query
@@ -180,32 +207,17 @@ describe('EntityHeader', () => {
   // every width.
   it.snapshot.each([480, 900])(
     'metadata list at %s',
-    () => (
-      <EntityHeader
-        title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
-        metadata={{
-          label: 'Conversation properties',
-          items: [
-            {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
-            {
-              label: 'Tools',
-              type: 'list',
-              mode: 'full',
-              maxVisible: {zero: 6, md: 8},
-              items: toolNames.map(name => ({
-                key: name,
-                type: 'text',
-                value: name,
-                variant: name === 'book_hotel' ? 'danger' : undefined,
-              })),
-            },
-            {label: 'Started at', type: 'text', value: '2h ago'},
-          ],
-        }}
-      />
-    ),
+    () => <ToolsHeader maxVisible={{zero: 6, md: 8}} />,
     viewport => ({viewport, tags: {area: 'core'}})
   );
+
+  // What "+N more" expands to. The harness cannot click, so a list with no
+  // `maxVisible` draws the same entries; beside the collapsed case at the same
+  // width, only the added lines may differ.
+  it.snapshot('metadata list expanded', () => <ToolsHeader />, {
+    viewport: 480,
+    tags: {area: 'core'},
+  });
 
   // A value wider than the header truncates, so the pipe after it follows the
   // text that shows rather than landing on top of it.

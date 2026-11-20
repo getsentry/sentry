@@ -1,11 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
 import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
+import {Button} from '@sentry/scraps/button';
 import {
+  METADATA_ROW_HEIGHT,
   METADATA_TEXT_HEIGHT,
   METADATA_TEXT_STYLES,
 } from '@sentry/scraps/entityHeader/constants';
@@ -113,8 +115,8 @@ interface EntityHeaderMetadataListOptions {
   items: EntityHeaderMetadataListEntry[];
   type: 'list';
   /**
-   * Entries past this collapse behind "+N more", which lists them on hover or
-   * focus. Omitted, every entry is shown. Responsive: plain keys resolve
+   * Entries past this collapse behind "+N more", which reveals them in place.
+   * Omitted, every entry is shown. Responsive: plain keys resolve
    * against the header's width, `screen:` keys against the viewport.
    */
   maxVisible?: Responsive<number>;
@@ -125,7 +127,7 @@ type EntityHeaderMetadataListProps = EntityHeaderMetadataItemShared &
 
 /**
  * A list takes no `tooltip`, `secondary` or `variant` of its own: each entry
- * carries its own, and "+N more" owns the list's only tooltip.
+ * carries its own.
  */
 export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataValueProps
@@ -176,10 +178,8 @@ function MetadataGraphic({children}: {children?: React.ReactNode}) {
 
 interface MetadataItemFrameProps {
   children: React.ReactNode;
-  /**
-   * Omitted where the frame is not in a list, as in a tooltip.
-   */
-  role?: 'listitem';
+  ref?: React.Ref<HTMLDivElement>;
+  tabIndex?: number;
   /**
    * Drawn after the content: the pipe that ends a property in the row.
    */
@@ -189,14 +189,16 @@ interface MetadataItemFrameProps {
 // One named list item rather than a `dt`/`dd` pair: as a description list,
 // VoiceOver narrated the pairing — "term", "selectable list item", "end of
 // term" — before it ever reached the value.
-function MetadataItemFrame({children, role, trailing}: MetadataItemFrameProps) {
+function MetadataItemFrame({children, ref, tabIndex, trailing}: MetadataItemFrameProps) {
   return (
     <Flex
-      role={role}
+      ref={ref}
+      role="listitem"
+      tabIndex={tabIndex}
       align="center"
       gap="md"
       minWidth={0}
-      minHeight={METADATA_TEXT_HEIGHT}
+      minHeight={METADATA_ROW_HEIGHT}
     >
       <Flex align="center" gap="xs" minWidth={0}>
         {children}
@@ -217,30 +219,20 @@ export function EntityHeaderMetadataItemSkeleton({
   hasGraphic?: boolean;
 }) {
   return (
-    <MetadataItemFrame role="listitem" trailing={trailing}>
+    <MetadataItemFrame trailing={trailing}>
       {hasGraphic && <MetadataGraphic />}
       <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
     </MetadataItemFrame>
   );
 }
 
-interface MetadataValueProps {
-  value: MetadataValueData;
-  /**
-   * Draws a copy that is only read, such as a collapsed entry's: a link draws
-   * as text and no tooltip is drawn, so the copy adds no tab stop.
-   */
-  readOnly?: boolean;
-}
-
-function MetadataValue({value: props, readOnly = false}: MetadataValueProps) {
+function MetadataValue({value: props}: {value: MetadataValueData}) {
   const {label, mode = 'compact', secondary} = props;
-  const isLink = props.type === 'link' && !readOnly;
+  const isLink = props.type === 'link';
   // A link names itself from `label`; text needs the label beside it.
   const needsOwnLabel = Boolean(label) && (!isLink || mode === 'full');
-  const behavior: EntityHeaderTextBehavior = readOnly
-    ? {type: 'text', variant: props.type === 'text' ? props.variant : undefined}
-    : props.type === 'link'
+  const behavior: EntityHeaderTextBehavior =
+    props.type === 'link'
       ? {
           type: 'link',
           ...toLinkDestination(props),
@@ -280,11 +272,7 @@ function MetadataValue({value: props, readOnly = false}: MetadataValueProps) {
             `aria-describedby`, which is not announced on focus.
           */}
           <VisuallyHidden>{secondaryLabel}</VisuallyHidden>
-          <InfoText
-            title={readOnly ? null : secondaryLabel}
-            variant="muted"
-            {...METADATA_TEXT_STYLES}
-          >
+          <InfoText title={secondaryLabel} variant="muted" {...METADATA_TEXT_STYLES}>
             {secondary.value}
           </InfoText>
         </Fragment>
@@ -300,20 +288,17 @@ interface MetadataEntryProps {
    * carries the list's graphic and label.
    */
   lead?: React.ReactNode;
-  /**
-   * Draws a read-only copy, for a collapsed entry.
-   */
-  readOnly?: boolean;
-  role?: 'listitem';
+  ref?: React.Ref<HTMLDivElement>;
+  tabIndex?: number;
   trailing?: React.ReactNode;
 }
 
-function MetadataEntry({entry, lead, readOnly, role, trailing}: MetadataEntryProps) {
+function MetadataEntry({entry, lead, ref, tabIndex, trailing}: MetadataEntryProps) {
   return (
-    <MetadataItemFrame role={role} trailing={trailing}>
+    <MetadataItemFrame ref={ref} tabIndex={tabIndex} trailing={trailing}>
       {lead}
       {entry.leadingGraphic && <MetadataGraphic>{entry.leadingGraphic}</MetadataGraphic>}
-      <MetadataValue value={entry} readOnly={readOnly} />
+      <MetadataValue value={entry} />
     </MetadataItemFrame>
   );
 }
@@ -328,8 +313,12 @@ function MetadataList({
 }: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
   const cut = useResponsivePropValue(maxVisible) ?? items.length;
-  const visible = items.slice(0, cut);
-  const hidden = items.slice(cut);
+  // Where the list was cut when "+N more" was pressed; null while collapsed.
+  // Kept rather than re-read from `cut`, so a later resize neither collapses
+  // the list again nor moves focus.
+  const [revealedFrom, setRevealedFrom] = useState<number | null>(null);
+  const isCollapsed = revealedFrom === null && cut < items.length;
+  const shown = isCollapsed ? items.slice(0, cut) : items;
 
   // The list's graphic and label travel with its first drawn item, so they
   // wrap with it: the first entry, or "+N more" when every entry collapses.
@@ -351,51 +340,44 @@ function MetadataList({
     // accessibility tree.
     <Container role="listitem" display="contents">
       <Container role="list" aria-label={label} display="contents">
-        {visible.map((entry, index) => (
+        {shown.map((entry, index) => (
           <MetadataEntry
             key={entry.key}
             entry={entry}
             lead={index === 0 ? lead : undefined}
-            trailing={
-              hidden.length === 0 && index === visible.length - 1 ? trailing : undefined
-            }
-            role="listitem"
+            trailing={!isCollapsed && index === shown.length - 1 ? trailing : undefined}
+            // "+N more" unmounts as it reveals the rest, so focus moves to
+            // the first revealed entry rather than falling to the page.
+            ref={index === revealedFrom ? focusOnMount : undefined}
+            tabIndex={index === revealedFrom ? -1 : undefined}
           />
         ))}
         {/*
-          Collapsed entries stay in the list, so a screen reader hears every
-          entry, and "+N more" is the list's last item. Read-only, so they add
-          no tab stop that cannot be seen.
+          A button rather than a `Disclosure`, which lays out its own row and
+          so cannot sit inline in the wrapping metadata row.
         */}
-        {hidden.map(entry => (
-          <VisuallyHidden key={entry.key} role="listitem">
-            <MetadataEntry entry={entry} readOnly />
-          </VisuallyHidden>
-        ))}
-        {/*
-          An item of its own, read after every entry, and wrapping with them.
-        */}
-        {hidden.length > 0 && (
-          <MetadataItemFrame role="listitem" trailing={trailing}>
-            {visible.length === 0 && lead}
-            <InfoText
-              {...METADATA_TEXT_STYLES}
-              variant="muted"
-              title={
-                <Flex wrap="wrap" gap="sm md" paddingTop="xs" paddingBottom="xs">
-                  {hidden.map(entry => (
-                    <MetadataEntry key={entry.key} entry={entry} readOnly />
-                  ))}
-                </Flex>
-              }
+        {isCollapsed && (
+          <MetadataItemFrame trailing={trailing}>
+            {shown.length === 0 && lead}
+            <Button
+              variant="transparent"
+              size="zero"
+              aria-expanded={false}
+              onClick={() => setRevealedFrom(cut)}
             >
-              {t('+%s more', hidden.length)}
-            </InfoText>
+              <Text {...METADATA_TEXT_STYLES} variant="inherit">
+                {t('+%s more', items.length - cut)}
+              </Text>
+            </Button>
           </MetadataItemFrame>
         )}
       </Container>
     </Container>
   );
+}
+
+function focusOnMount(element: HTMLElement | null) {
+  element?.focus();
 }
 
 export function EntityHeaderMetadataItem({
@@ -416,5 +398,5 @@ export function EntityHeaderMetadataItem({
     return <MetadataList {...props} trailing={trailing} />;
   }
 
-  return <MetadataEntry entry={props} role="listitem" trailing={trailing} />;
+  return <MetadataEntry entry={props} trailing={trailing} />;
 }

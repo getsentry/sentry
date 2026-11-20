@@ -7,7 +7,6 @@ import {
   render,
   screen,
   userEvent,
-  waitFor,
   within,
 } from 'sentry-test/reactTestingLibrary';
 
@@ -1432,56 +1431,26 @@ describe('EntityHeader', () => {
       );
     }
 
-    // The tooltip has no role of its own; the trigger points at it.
-    async function findTooltipOf(trigger: HTMLElement) {
-      const id = trigger.getAttribute('aria-describedby') ?? '';
-      return await waitFor(() => {
-        const tooltip = document.getElementById(id);
-        expect(tooltip).toBeInTheDocument();
-        return tooltip!;
-      });
-    }
-
-    const isClipped = (element: Element) =>
-      (element as HTMLElement).style.clipPath === 'inset(50%)';
-
-    it('shows up to maxVisible entries, and reads every entry in a list named by the label', () => {
+    it('shows up to maxVisible entries, then a collapsed "+N more" button', () => {
       renderTools({maxVisible: 3});
 
       const list = screen.getByRole('list', {name: 'Tools'});
       const entries = within(list).getAllByRole('listitem');
-      // The collapsed entries stay in the list, clipped, and the trigger comes
-      // last, after every entry has been read.
+      // Collapsed entries are not drawn; the button says how many remain.
       expect(entries.map(entry => entry.textContent)).toEqual([
-        ...tools.map(tool => `Tool${tool}`),
+        ...tools.slice(0, 3).map(tool => `Tool${tool}`),
         '+2 more',
       ]);
-      expect(entries.map(entry => isClipped(entry))).toEqual([
-        false,
-        false,
-        false,
-        true,
-        true,
-        false,
-      ]);
+      expect(within(entries[3]!).getByRole('button', {name: '+2 more'})).toHaveAttribute(
+        'aria-expanded',
+        'false'
+      );
 
       // The nested list is one item of the metadata row, beside the others.
       const row = screen.getByRole('list', {name: 'Conversation properties'});
       const items = [...row.children];
       expect(items).toHaveLength(2);
       expect(items[1]).toContainElement(list);
-    });
-
-    it('lists the collapsed entries in a tooltip on keyboard focus', async () => {
-      renderTools({maxVisible: 3});
-
-      const trigger = screen.getByText('+2 more');
-      await userEvent.tab();
-      expect(trigger).toHaveFocus();
-      const tooltip = await findTooltipOf(trigger);
-      expect(within(tooltip).getByText('summarize')).toBeInTheDocument();
-      expect(within(tooltip).getByText('translate')).toBeInTheDocument();
-      expect(within(tooltip).queryByText('search')).not.toBeInTheDocument();
     });
 
     it('draws the label in full mode without reading it twice', () => {
@@ -1518,8 +1487,7 @@ describe('EntityHeader', () => {
           'listitem'
         );
         expect(entries).toHaveLength(tools.length);
-        expect(entries.some(isClipped)).toBe(false);
-        expect(screen.queryByText(/more$/)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', {name: /more$/})).not.toBeInTheDocument();
       }
     );
 
@@ -1583,48 +1551,77 @@ describe('EntityHeader', () => {
       );
     });
 
-    it('collapses link and tooltip entries without adding tab stops', async () => {
-      renderTools({
-        maxVisible: 1,
-        items: [
-          {key: 'search', label: 'Tool', type: 'text', value: 'search'},
-          {
-            key: 'fetch',
-            label: 'Tool',
-            type: 'link',
-            value: 'fetch',
-            to: '/tools/fetch/',
-            tooltip: 'Fetches a page',
-          },
-          {
-            key: 'browse',
-            label: 'Tool',
-            type: 'text',
-            value: 'browse',
-            tooltip: 'Opens a browser',
-            secondary: {label: 'calls', value: '3'},
-          },
-        ],
+    describe('expanding', () => {
+      const linkAndTooltipEntries: EntityHeaderMetadataListEntry[] = [
+        {key: 'search', label: 'Tool', type: 'text', value: 'search'},
+        {
+          key: 'fetch',
+          label: 'Tool',
+          type: 'link',
+          value: 'fetch',
+          to: '/tools/fetch/',
+          tooltip: 'Fetches a page',
+        },
+        {
+          key: 'browse',
+          label: 'Tool',
+          type: 'text',
+          value: 'browse',
+          tooltip: 'Opens a browser',
+          secondary: {label: 'calls', value: '3'},
+        },
+      ];
+
+      const tabStops = () =>
+        Array.from(
+          screen
+            .getByRole('banner')
+            .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])'),
+          stop => stop.textContent
+        );
+
+      it('reveals the collapsed entries in place, drawn as visible entries are', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
+
+        // Collapsed, the button is the list's only tab stop.
+        expect(tabStops()).toEqual(['+2 more']);
+
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries.map(entry => entry.textContent)).toEqual([
+          'Toolsearch',
+          // A link is named by its aria-label, so it draws no label of its own.
+          'fetch',
+          'ToolbrowseTool calls3',
+        ]);
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveAttribute(
+          'href',
+          '/tools/fetch/'
+        );
+        expect(tabStops()).toEqual(['fetch', 'browse', '3']);
+        await userEvent.hover(screen.getByText('browse'));
+        expect(await screen.findByText('Opens a browser')).toBeInTheDocument();
       });
 
-      const tabStops = screen
-        .getByRole('banner')
-        .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
-      expect(Array.from(tabStops, stop => stop.textContent)).toEqual(['+2 more']);
-      expect([...tabStops].filter(isInaccessible)).toEqual([]);
+      it('moves focus to the first revealed entry, and Tab continues through them', async () => {
+        renderTools({maxVisible: 1, items: linkAndTooltipEntries});
 
-      // Still read in full: key and value, as text.
-      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-        'listitem'
-      );
-      expect(entries[1]).toHaveTextContent(/^Toolfetch$/);
-      expect(entries[2]).toHaveTextContent(/^ToolbrowseTool calls3$/);
+        await userEvent.tab();
+        expect(screen.getByRole('button', {name: '+2 more'})).toHaveFocus();
+        await userEvent.keyboard('{Enter}');
 
-      const trigger = screen.getByText('+2 more');
-      await userEvent.hover(trigger);
-      const tooltip = await findTooltipOf(trigger);
-      expect(within(tooltip).getByText('fetch')).toBeInTheDocument();
-      expect(within(tooltip).queryByRole('link')).not.toBeInTheDocument();
+        const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
+          'listitem'
+        );
+        expect(entries[1]).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByRole('link', {name: 'Tool fetch'})).toHaveFocus();
+        await userEvent.tab();
+        expect(screen.getByText('browse')).toHaveFocus();
+      });
     });
 
     it('resolves a responsive maxVisible against the header width', () => {
@@ -1674,16 +1671,9 @@ describe('EntityHeader', () => {
       const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
         'listitem'
       );
-      expect(entries.map(entry => isClipped(entry))).toEqual([
-        true,
-        true,
-        true,
-        true,
-        true,
-        false,
-      ]);
+      expect(entries).toHaveLength(1);
 
-      const trigger = entries.at(-1)!;
+      const trigger = entries[0]!;
       expect(trigger).toHaveTextContent(/^Tools\+5 more$/);
       expect(within(trigger).getByTestId('tools-graphic')).toBeInTheDocument();
       expect(within(trigger).getAllByTestId('metadata-divider')).toHaveLength(1);
@@ -1890,7 +1880,7 @@ describe('EntityHeader', () => {
       expect(pipesIn(row)).toHaveLength(1);
     });
 
-    it('ends a collapsed list on "+N more", not on a hidden entry', () => {
+    it('ends a collapsed list on "+N more", and an expanded one on its last entry', async () => {
       renderRow([
         {
           label: 'Tools',
@@ -1901,12 +1891,16 @@ describe('EntityHeader', () => {
         {label: 'Region', type: 'text', value: 'us'},
       ]);
 
-      const entries = within(screen.getByRole('list', {name: 'Tools'})).getAllByRole(
-        'listitem'
-      );
-      // Two shown, two collapsed, then the trigger.
-      expect(entries.map(entry => pipesIn(entry).length)).toEqual([0, 0, 0, 0, 1]);
-      expect(entries.at(-1)).toHaveTextContent('+2 more');
+      const entries = () =>
+        within(screen.getByRole('list', {name: 'Tools'})).getAllByRole('listitem');
+      // Two shown, then the trigger.
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('+2 more');
+
+      await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+
+      expect(entries().map(entry => pipesIn(entry).length)).toEqual([0, 0, 0, 1]);
+      expect(entries().at(-1)).toHaveTextContent('summarize');
     });
 
     it('ends a list that closes the row without a pipe', () => {

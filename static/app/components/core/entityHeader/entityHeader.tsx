@@ -16,7 +16,7 @@ import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
-import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
+import {METADATA_ROW_HEIGHT, METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
   /**
@@ -195,7 +195,7 @@ export function EntityHeader({
                 gap="md"
                 wrap="wrap"
                 minWidth={0}
-                minHeight={METADATA_TEXT_HEIGHT}
+                minHeight={METADATA_ROW_HEIGHT}
               >
                 {metadataSlots.map(({item, index}, position) => {
                   const isLast = position === metadataSlots.length - 1;
