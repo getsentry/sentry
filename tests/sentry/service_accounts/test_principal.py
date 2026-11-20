@@ -1,9 +1,7 @@
-import pytest
 from django.contrib.auth.models import AnonymousUser
 from django.test import RequestFactory
 from rest_framework.request import Request
 
-from sentry.api.exceptions import UserRequired
 from sentry.auth.principal import (
     RequestPrincipal,
     acting_user_id,
@@ -12,26 +10,9 @@ from sentry.auth.principal import (
     set_request_principal,
 )
 from sentry.auth.services.auth import AuthenticatedToken
-from sentry.models.organizationmember import OrganizationMember
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
-from sentry.service_accounts.principal import ServiceAccountId, ServiceAccountPrincipal
-from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import cell_silo_test
-from sentry.users.services.user.service import user_service
+from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.viewer_context import Actor, ActorType
-
-
-def test_id_never_equals_a_user_id() -> None:
-    account_id: object = ServiceAccountId(42)
-    assert account_id != 42
-    assert account_id not in {42}
-    assert account_id == ServiceAccountId(42)
-    assert str(account_id) == "service_account:42"
-
-
-def test_id_refuses_int_conversion() -> None:
-    with pytest.raises(UserRequired):
-        int(ServiceAccountId(42))
 
 
 def test_principal() -> None:
@@ -45,6 +26,7 @@ def test_principal() -> None:
     assert principal.get_display_name() == "autofix"
     assert not hasattr(principal, "email")
     assert not hasattr(principal, "pk")
+    assert not hasattr(principal, "id")
 
 
 def _principal() -> ServiceAccountPrincipal:
@@ -74,20 +56,3 @@ def test_django_request_stays_anonymous() -> None:
     request = RequestFactory().get("/")
     set_request_principal(request, _principal(), _token())
     assert isinstance(request.user, AnonymousUser)
-
-
-@cell_silo_test
-class ServiceAccountIdCollisionTest(TestCase):
-    def test_orm_lookup_by_id_raises(self) -> None:
-        principal = ServiceAccountPrincipal(
-            service_account_id=self.user.id, organization_id=self.organization.id, name="a"
-        )
-        with pytest.raises(UserRequired):
-            OrganizationMember.objects.filter(user_id=principal.id).exists()  # type: ignore[attr-defined]
-
-    def test_rpc_lookup_by_id_raises(self) -> None:
-        principal = ServiceAccountPrincipal(
-            service_account_id=self.user.id, organization_id=self.organization.id, name="a"
-        )
-        with pytest.raises(UserRequired):
-            user_service.get_user(user_id=principal.id)  # type: ignore[attr-defined]
