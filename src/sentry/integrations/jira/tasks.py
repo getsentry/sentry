@@ -1,6 +1,7 @@
 from typing import Any
 
 import orjson
+from django.core.cache import cache
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
@@ -18,6 +19,13 @@ FORGE_INSTALLATION_PAYLOAD_TTL = 15 * 60
 # The installation Forge's preUninstall call came from, so a sync for it that was already
 # queued or retrying can't put its token back or re-enable the integration.
 FORGE_UNINSTALLED_INSTALLATION_KEY = "forge_uninstalled_installation_id"
+# preUninstall can arrive before the installation's own sync has run or found its
+# integration, so it's also noted here, for longer than a sync can be queued or retrying.
+FORGE_UNINSTALLED_CACHE_SECONDS = 60 * 60
+
+
+def _uninstalled_cache_key(installation_id: str) -> str:
+    return f"jira.forge.uninstalled:{installation_id}"
 
 
 @instrumented_task(
@@ -57,6 +65,8 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
         )
     )
     cloud_id = payload["cloud_id"]
+    if cache.get(_uninstalled_cache_key(payload["installation_id"])):
+        return
     api_base_url = payload["api_base_url"]
     system_token = payload["system_token"]
     client = ForgeInstallationClient(api_base_url, system_token)
@@ -129,6 +139,7 @@ def record_forge_uninstall(*, cloud_id: str, installation_id: str) -> None:
     Forge calls this once and doesn't promise it for every uninstall. A site it misses
     stops getting hourly tokens, so its stored token expires within hours anyway.
     """
+    cache.set(_uninstalled_cache_key(installation_id), True, FORGE_UNINSTALLED_CACHE_SECONDS)
     with transaction.atomic(using=router.db_for_write(Integration)):
         try:
             integration = Integration.objects.select_for_update().get(

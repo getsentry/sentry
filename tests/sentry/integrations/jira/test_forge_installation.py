@@ -276,6 +276,17 @@ class SyncForgeInstallationTest(TestCase):
         }
 
     @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
+    def test_uninstall_before_the_install_sync_runs(self) -> None:
+        # Uninstalled while the install's sync was still queued or retrying.
+        record_forge_uninstall(cloud_id=CLOUD_ID, installation_id=INSTALLATION_ID)
+
+        self.sync()
+
+        assert not Integration.objects.filter(provider="jira", external_id=CLOUD_ID).exists()
+        assert len(responses.calls) == 0
+
+    @responses.activate
     def test_does_not_record_unless_the_site_matches(self) -> None:
         integration = self.create_integration(
             organization=self.organization,
