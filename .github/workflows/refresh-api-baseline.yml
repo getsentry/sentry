@@ -7,7 +7,8 @@ on:
   pull_request:
     paths:
       - .github/workflows/refresh-api-baseline.yml
-      - .github/workflows/scripts/publish-api-baseline.sh
+      - .github/workflows/scripts/publish-api-baseline.ts
+      - .github/workflows/scripts/publish-api-baseline.test.ts
 
 permissions:
   contents: read
@@ -65,8 +66,18 @@ jobs:
           permission-pull-requests: write
 
       - name: Publish baseline pull request
+        uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
-          GH_TOKEN: ${{ steps.bot.outputs.token }}
-          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
           NEW_BASELINE: ${{ runner.temp }}/api-exceptions/exceptions.json
-        run: ./.github/workflows/scripts/publish-api-baseline.sh
+        with:
+          github-token: ${{ steps.bot.outputs.token }}
+          script: |
+            const {publishApiBaseline} = await import(
+              `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/publish-api-baseline.ts`
+            );
+            await publishApiBaseline({
+              github,
+              context,
+              core,
+              newBaselinePath: process.env.NEW_BASELINE,
+            });
