@@ -279,6 +279,16 @@ class GetInboxNotifiedUserIdsTest(TestCase):
         ) == {self.recipient.id}
 
     @with_feature(INBOX_FEATURES)
+    def test_excludes_actor(self) -> None:
+        activity = self.create_group_activity(
+            type=ActivityType.ASSIGNED.value,
+            user_id=self.recipient.id,
+            data={"assignee": str(self.team.id), "assigneeType": "team"},
+        )
+
+        assert get_inbox_notified_user_ids(activity) == {self.user.id}
+
+    @with_feature(INBOX_FEATURES)
     def test_team_assignment(self) -> None:
         assert self._activity(
             ActivityType.ASSIGNED, {"assignee": str(self.team.id), "assigneeType": "team"}

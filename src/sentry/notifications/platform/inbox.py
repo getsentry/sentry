@@ -96,11 +96,14 @@ def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
         case _:
             return set()
 
-    return set(
+    recipient_user_ids = set(
         _get_recipient_user_ids(
             organization_id=organization.id, user_ids=user_ids, team_ids=team_ids
         )
     )
+    if activity.user_id is not None:
+        recipient_user_ids.discard(activity.user_id)
+    return recipient_user_ids
 
 
 def _send_notifications[SubjectT, DataT: InboxEventData](
