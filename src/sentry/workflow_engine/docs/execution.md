@@ -372,10 +372,9 @@ imply Workflow execution order.
 
 ### History and task dispatch
 
-Actions that do not opt into group-less execution are excluded for events without
-an issue group before dispatch. `ActionInvocation` still requires a detector;
-an opted-in handler can use an organization-scoped detector without a project.
-Investigation detector resolution and task transport are not yet implemented.
+Handlers validate their required event context before dispatch and execution.
+Invocations require a detector from the event's organization; handlers decide
+whether a group or detector project is required.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
@@ -392,8 +391,7 @@ The action task:
 4. Validates handler compatibility and detector/event organization consistency.
 5. Creates an [`ActionInvocation`](../types.py) and calls the registered handler.
 
-`UnsupportedActionEvent`, including a detector organization mismatch, is logged
-without retrying the action.
+`UnsupportedActionEvent` is logged without retries.
 
 External integration calls therefore run outside the workflow evaluation task. Action
 handlers must handle deleted integrations and other expected external-state changes.

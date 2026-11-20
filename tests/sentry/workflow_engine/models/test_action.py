@@ -200,8 +200,8 @@ class TestAction(TestCase):
         mock_get_detector.return_value = detector
         notification_uuid = str(uuid.uuid4())
         with (
-            patch.object(ActionHandler, "supports_group_less", True),
-            patch.object(self.action.get_handler(), "execute") as execute,
+            patch.object(Action, "get_handler", return_value=ActionHandler),
+            patch.object(ActionHandler, "execute") as execute,
         ):
             self.action.trigger(self.organization_event, notification_uuid, self.workflow.id)
         execute.assert_called_once_with(
@@ -234,7 +234,7 @@ class TestAction(TestCase):
             self.create_organization()
         )
         with (
-            patch.object(ActionHandler, "supports_group_less", True),
+            patch.object(Action, "get_handler", return_value=ActionHandler),
             pytest.raises(UnsupportedActionEvent, match="same organization"),
         ):
             self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
@@ -246,3 +246,20 @@ class TestAction(TestCase):
         ):
             self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
         execute.assert_not_called()
+
+    def test_seer_handler_rejects_group_less_event(self) -> None:
+        self.action.type = Action.Type.SEER_INVESTIGATION
+        with pytest.raises(UnsupportedActionEvent, match="issue group"):
+            self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
+
+    @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
+    def test_seer_action_does_not_require_detector_project(
+        self, mock_get_detector: MagicMock
+    ) -> None:
+        detector = self.create_all_projects_detector(self.organization)
+        mock_get_detector.return_value = detector
+        self.action.type = Action.Type.SEER_INVESTIGATION
+        with patch.object(self.action.get_handler(), "_handle") as handle:
+            self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
+        handle.assert_called_once()
+        assert handle.call_args.args[0].detector == detector
