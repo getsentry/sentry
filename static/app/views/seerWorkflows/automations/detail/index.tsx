@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useRef, useState} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
 import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
@@ -91,15 +91,11 @@ export default function AutomationDetail() {
   }
   // Start each tab at the top. Reset every ancestor's scroll on tab change.
   const pageRef = useRef<HTMLDivElement>(null);
-  const scrolledTabRef = useRef(activeTab);
-  useEffect(() => {
-    if (scrolledTabRef.current !== activeTab) {
-      scrolledTabRef.current = activeTab;
-      for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
-        node.scrollTop = 0;
-      }
+  const scrollToTop = () => {
+    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+      node.scrollTop = 0;
     }
-  }, [activeTab]);
+  };
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
@@ -267,6 +263,7 @@ export default function AutomationDetail() {
           setIsConfiguring(true);
           // The form lives on the configuration tab
           if (activeTab !== 'configuration') {
+            scrollToTop();
             navigate(basePath);
           }
         }}
@@ -351,7 +348,7 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <LinkTabs value={activeTab} size="sm">
+          <LinkTabs value={activeTab} size="sm" onChange={scrollToTop}>
             {({TabList}) => (
               <TabList>
                 <TabList.Item
