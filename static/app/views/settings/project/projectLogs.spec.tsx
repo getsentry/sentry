@@ -10,14 +10,10 @@ describe('ProjectLogs', () => {
     organization: {features: ['explore-automatic-json-expansion-ui']},
   });
   const project = DetailedProjectFixture({
-    options: {
-      'sentry:relay_automatic_json_expansion': false,
-    },
+    options: {'sentry:relay_automatic_json_expansion': false},
   });
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/${project.slug}/logs/`,
-    },
+    location: {pathname: `/settings/projects/${project.slug}/logs/`},
     route: '/settings/projects/:projectId/logs/',
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
@@ -85,9 +81,7 @@ describe('ProjectLogs', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:relay_automatic_json_expansion': true},
-          },
+          data: {options: {'sentry:relay_automatic_json_expansion': true}},
         })
       )
     );

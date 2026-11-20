@@ -23,11 +23,7 @@ export function mergeMetricUnit(
     ...series,
     meta: {
       ...series.meta,
-      yAxis: {
-        ...series.meta.yAxis,
-        valueType: fieldType,
-        valueUnit: unit as DataUnit,
-      },
+      yAxis: {...series.meta.yAxis, valueType: fieldType, valueUnit: unit as DataUnit},
     },
   };
 }

@@ -69,11 +69,7 @@ describe('reconcilePrScope', () => {
   });
 
   it('removes stale backend metadata from a frontend-only pull request', async () => {
-    const warning = {
-      id: 456,
-      user: {login: 'github-actions[bot]'},
-      body: COMMENT_MARKER,
-    };
+    const warning = {id: 456, user: {login: 'github-actions[bot]'}, body: COMMENT_MARKER};
     const {github, context, core, calls, logs} = setup({
       labels: [FRONTEND_LABEL, BACKEND_LABEL],
       comments: [warning],
@@ -146,11 +142,7 @@ describe('reconcilePrScope', () => {
   });
 
   it('does not warn when all matching files are warning exemptions', async () => {
-    const warning = {
-      id: 456,
-      user: {login: 'github-actions[bot]'},
-      body: COMMENT_MARKER,
-    };
+    const warning = {id: 456, user: {login: 'github-actions[bot]'}, body: COMMENT_MARKER};
     const {github, context, core, calls} = setup({comments: [warning]});
 
     await reconcilePrScope({

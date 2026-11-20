@@ -92,10 +92,7 @@ export function CohortComparison({
     const start = moment.tz(startTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
     const end = moment.tz(endTimestamp, userTimezone).format('MMM D YYYY h:mm A z');
 
-    return {
-      start,
-      end,
-    };
+    return {start, end};
   }, [selection]);
 
   return (
@@ -105,9 +102,7 @@ export function CohortComparison({
           <AttributeBreakdownsComponent.StyledBaseSearchBar
             placeholder={t('Search keys')}
             onChange={value => {
-              setQueryParams({
-                breakdownQuery: value,
-              });
+              setQueryParams({breakdownQuery: value});
             }}
             query={searchQuery}
             size="sm"

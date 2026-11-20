@@ -33,9 +33,7 @@ describe('EAPChartsWidget', () => {
         route: '/organizations/:orgId/insights/summary/',
         location: {
           pathname: '/organizations/org-slug/insights/summary/',
-          query: {
-            chartDisplay: 'some_widget_that_does_not_exist',
-          },
+          query: {chartDisplay: 'some_widget_that_does_not_exist'},
         },
       },
     });

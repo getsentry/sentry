@@ -355,10 +355,7 @@ function ColumnEditorRow({
     <RowContainer
       key={column.id}
       ref={setNodeRef}
-      style={{
-        transform: CSS.Transform.toString(transform),
-        transition,
-      }}
+      style={{transform: CSS.Transform.toString(transform), transition}}
       {...attributes}
     >
       <StyledDragReorderButton
@@ -390,9 +387,7 @@ function ColumnEditorRow({
           <OverlayTrigger.Button
             {...triggerProps}
             prefix={t('Column')}
-            style={{
-              width: '100%',
-            }}
+            style={{width: '100%'}}
           >
             {label}
           </OverlayTrigger.Button>

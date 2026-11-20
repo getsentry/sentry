@@ -5,6 +5,7 @@ from typing import Any
 
 import boto3
 import orjson
+from django.conf import settings
 
 from sentry import options
 
@@ -29,8 +30,8 @@ def gen_aws_client(
 
     role_arn = f"arn:aws:iam::{account_number}:role/SentryRole"
 
-    aws_access_key_id = options.get("aws-lambda.access-key-id")
-    aws_secret_access_key = options.get("aws-lambda.secret-access-key")
+    aws_access_key_id = settings.SENTRY_AWS_LAMBDA_ACCESS_KEY_ID
+    aws_secret_access_key = settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY
 
     # throw a configuration error if we don't have keys
     if not aws_access_key_id or not aws_secret_access_key:

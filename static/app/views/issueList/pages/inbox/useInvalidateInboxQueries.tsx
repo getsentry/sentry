@@ -15,18 +15,11 @@ export function useInvalidateInboxQueries(groupId: string) {
     });
     const issueCountUrl = getApiUrl(
       '/organizations/$organizationIdOrSlug/issues-count/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-      }
+      {path: {organizationIdOrSlug: organization.slug}}
     );
     const issueActivitiesUrl = getApiUrl(
       '/organizations/$organizationIdOrSlug/issues/$issueId/activities/',
-      {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          issueId: groupId,
-        },
-      }
+      {path: {organizationIdOrSlug: organization.slug, issueId: groupId}}
     );
 
     void queryClient.invalidateQueries({

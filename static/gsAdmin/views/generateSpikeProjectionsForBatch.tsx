@@ -28,12 +28,8 @@ export function GenerateSpikeProjectionsForBatch() {
           path: {region: cell?.name!},
         }),
         method: 'POST',
-        data: {
-          batch_id: batchId,
-        },
-        options: {
-          host: cell?.locality_url,
-        },
+        data: {batch_id: batchId},
+        options: {host: cell?.locality_url},
       });
     },
     onSuccess: () => {
@@ -78,10 +74,7 @@ export function GenerateSpikeProjectionsForBatch() {
             <OverlayTrigger.Button {...triggerProps} prefix="Region" />
           )}
           value={cell ? cell.locality_url : undefined}
-          options={cells.map(c => ({
-            label: c.name,
-            value: c.locality_url,
-          }))}
+          options={cells.map(c => ({label: c.name, value: c.locality_url}))}
           onChange={opt => {
             const cellOption = cells.find(c => c.locality_url === opt.value);
             if (cellOption === undefined) {

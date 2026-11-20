@@ -19,16 +19,8 @@ describe('spanEvidence', () => {
 
   it('renders settings button for issue with configurable thresholds', () => {
     const event = EventFixture({
-      occurrence: {
-        type: 1001,
-        issueTitle: IssueTitle.PERFORMANCE_SLOW_DB_QUERY,
-      },
-      entries: [
-        {
-          data: [],
-          type: EntryType.SPANS,
-        },
-      ],
+      occurrence: {type: 1001, issueTitle: IssueTitle.PERFORMANCE_SLOW_DB_QUERY},
+      entries: [{data: [], type: EntryType.SPANS}],
     });
 
     render(
@@ -57,12 +49,7 @@ describe('spanEvidence', () => {
       occurrence: {
         type: 2003, // profile_json_decode_main_thread
       },
-      entries: [
-        {
-          data: [],
-          type: EntryType.SPANS,
-        },
-      ],
+      entries: [{data: [], type: EntryType.SPANS}],
     });
 
     render(

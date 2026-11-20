@@ -306,10 +306,7 @@ export function FlamegraphSpans({
     renderer: selectedSpanRenderer,
   });
 
-  useInteractionViewCheckPoint({
-    view: spansView,
-    lastInteraction,
-  });
+  useInteractionViewCheckPoint({view: spansView, lastInteraction});
 
   useEffect(() => {
     window.addEventListener('mouseup', onMinimapCanvasMouseUp);

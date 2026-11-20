@@ -50,10 +50,7 @@ export function ScmFeatureSelectionCards({
   return (
     <MotionGrid
       width="100%"
-      columns={{
-        zero: '1fr',
-        md: 'repeat(2, minmax(0, 1fr))',
-      }}
+      columns={{zero: '1fr', md: 'repeat(2, minmax(0, 1fr))'}}
       gap="lg"
       role="group"
       aria-labelledby={labelledBy}

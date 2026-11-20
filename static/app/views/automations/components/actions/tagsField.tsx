@@ -11,9 +11,7 @@ export function TagsField() {
       placeholder={t('e.g., environment,my_tag')}
       value={action.data.tags ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          data: {...action.data, tags: e.target.value},
-        });
+        onUpdate({data: {...action.data, tags: e.target.value}});
       }}
     />
   );

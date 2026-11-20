@@ -11,11 +11,7 @@ import {t} from 'sentry/locale';
 import {NEGATIVE_POLARITY_COLOR_ORDER, POSITIVE_POLARITY_COLOR_ORDER} from './constants';
 import type {ThresholdsConfig} from './thresholds';
 
-type Props = {
-  children: React.ReactNode;
-  thresholds: ThresholdsConfig;
-  type?: string;
-};
+type Props = {children: React.ReactNode; thresholds: ThresholdsConfig; type?: string};
 
 export function ThresholdsHoverWrapper({children, thresholds, type}: Props) {
   const {unit, max_values: {max1, max2} = {}} = thresholds;

@@ -36,21 +36,14 @@ export type Secret = {
 
 type FetchSecretResponse = {data: Secret[]};
 
-type FetchSecretParameters = {
-  orgSlug: string;
-};
+type FetchSecretParameters = {orgSlug: string};
 
-type RemoveSecretQueryVariables = {
-  id: number;
-};
+type RemoveSecretQueryVariables = {id: number};
 
 export const makeFetchSecretOptions = ({orgSlug}: FetchSecretParameters) =>
   apiOptions.as<FetchSecretResponse>()(
     '/organizations/$organizationIdOrSlug/flags/signing-secrets/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 
 function SecretList({
@@ -126,9 +119,7 @@ function OrganizationFeatureFlagsChangeTracking() {
           '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
           {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
 
     onSuccess: (_data, {id}) => {

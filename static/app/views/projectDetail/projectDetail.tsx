@@ -84,13 +84,7 @@ export function ProjectDetail() {
   const handleSearch = useCallback(
     (searchQuery: string) => {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            query: searchQuery,
-          },
-        },
+        {pathname: location.pathname, query: {...location.query, query: searchQuery}},
         {replace: true}
       );
     },

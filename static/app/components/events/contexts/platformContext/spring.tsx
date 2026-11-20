@@ -16,17 +16,9 @@ export function getSpringContextData({data}: {data: SpringContext}): KeyValueLis
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case SpringContextKeys.ACTIVE_PROFILES:
-        return {
-          key: ctxKey,
-          subject: t('Active Profiles'),
-          value: data.active_profiles,
-        };
+        return {key: ctxKey, subject: t('Active Profiles'), value: data.active_profiles};
       default:
-        return {
-          key: ctxKey,
-          subject: ctxKey,
-          value: data[ctxKey],
-        };
+        return {key: ctxKey, subject: ctxKey, value: data[ctxKey]};
     }
   });
 }
