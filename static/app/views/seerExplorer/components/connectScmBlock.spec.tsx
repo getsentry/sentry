@@ -170,6 +170,49 @@ describe('ConnectScmBlock', () => {
     ).toBeInTheDocument();
   });
 
+  it("keeps a member's request when the chat moves", async () => {
+    function MovingChat() {
+      const [place, setPlace] = useState('sidebar');
+      return (
+        <Fragment>
+          <Button onClick={() => setPlace('popped out')}>Pop out</Button>
+          <ConnectScmBlock
+            key={place}
+            pendingInput={{
+              id: 'input-id',
+              input_type: 'connect_scm',
+              data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+            }}
+            respondToUserInput={jest.fn()}
+          />
+        </Fragment>
+      );
+    }
+    mockRepoAccess('no_scm_integration');
+    const request = MockApiClient.addMockResponse({
+      url: INTEGRATION_REQUEST_URL,
+      method: 'POST',
+      statusCode: 201,
+    });
+    render(<MovingChat />, {organization: memberOrganization});
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Request installation'})
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pop out'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Correct repo name'})
+    ).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
   it('lets a member request source control when none is connected', async () => {
     mockRepoAccess('no_scm_integration');
     renderBlock({org: memberOrganization});

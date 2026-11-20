@@ -1,5 +1,5 @@
 import {useEffect, useState} from 'react';
-import {useMutation, useQuery} from '@tanstack/react-query';
+import {useMutation, useMutationState, useQuery} from '@tanstack/react-query';
 import {motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -34,6 +34,15 @@ const POLL_FOR_MS = 10 * 60_000;
 // install integrations (Sentry owners, managers and admins), and where a member's request sends
 // the owners.
 const SCM_CATEGORY = 'source code management';
+
+/**
+ * The key of a member's requests to the owners during one pause. The requests live in the query
+ * client rather than in the popup, so moving the chat in or out of its popped-out window (which
+ * remounts the popup) doesn't forget them.
+ */
+function getRequestInstallKey(pauseId: string) {
+  return ['seer-explorer-request-scm-install', {pauseId}] as const;
+}
 
 interface RepoAccess {
   connectedAccounts: string[];
@@ -122,15 +131,18 @@ function getProblem(access: RepoAccess, orgSlug: string): Problem | null {
  */
 function RequestInstallButton({
   message,
-  onRequested,
+  pauseId,
   requested,
 }: {
   message: string;
-  onRequested: (message: string) => void;
+  pauseId: string;
   requested: boolean;
 }) {
   const organization = useOrganization();
   const request = useMutation({
+    mutationKey: getRequestInstallKey(pauseId),
+    // Keep the request for as long as the page is open, however long the popup is gone.
+    gcTime: Infinity,
     mutationFn: (requestMessage: string) =>
       fetchMutation({
         url: getApiUrl('/organizations/$organizationIdOrSlug/integration-requests/', {
@@ -144,8 +156,7 @@ function RequestInstallButton({
           message: requestMessage,
         },
       }),
-    onSuccess: (_data, requestMessage) => {
-      onRequested(requestMessage);
+    onSuccess: () => {
       toast.success(t('Request sent to your organization owners.'));
     },
     onError: () => {
@@ -244,7 +255,7 @@ function getPrompt({
   repoName,
   orgSlug,
   canInstall,
-  requestedMessage,
+  requestedMessages,
   onCheckAgain,
   onContinue,
 }: {
@@ -256,8 +267,8 @@ function getPrompt({
   onContinue: () => void;
   orgSlug: string;
   repoName: string;
-  /** The message of the member's last request to the owners, if any. */
-  requestedMessage: string | null;
+  /** The messages of the member's requests to the owners during this pause. */
+  requestedMessages: string[];
 }): Prompt {
   const checkAgain = {label: t('Check again'), onClick: onCheckAgain};
   const continueRun = {label: t('Continue'), onClick: onContinue};
@@ -307,7 +318,7 @@ function getPrompt({
   // connected a different account) needs a new request, so only a request for this one counts.
   const mustRequest = problem.needsInstall && !canInstall;
   const requestMessage = `${t("Seer can't access %s.", repoName)} ${problem.body}`;
-  const requested = mustRequest && requestedMessage === requestMessage;
+  const requested = mustRequest && requestedMessages.includes(requestMessage);
   const fix: PromptAction = mustRequest ? {requestMessage, requested} : problem.fix;
   const hint = mustRequest
     ? t(
@@ -363,8 +374,11 @@ export function ConnectScmBlock({
   // Whether the field to correct the repo name is open. A later request remounts the block, so
   // it starts closed.
   const [isCorrecting, setIsCorrecting] = useState(false);
-  // The message of the member's last request to the owners.
-  const [requestedMessage, setRequestedMessage] = useState<string | null>(null);
+  // The messages of the member's requests to the owners during this pause.
+  const requestedMessages = useMutationState({
+    filters: {mutationKey: getRequestInstallKey(pendingInput.id), status: 'success'},
+    select: mutation => mutation.state.variables as string,
+  });
   // Whether to keep checking: for POLL_FOR_MS after the popup opens.
   const [isWatching, setIsWatching] = useState(true);
   const {start: startWatching} = useTimeout({
@@ -413,7 +427,7 @@ export function ConnectScmBlock({
     repoName: data.repo_name,
     orgSlug: organization.slug,
     canInstall: canManageIntegrations(organization),
-    requestedMessage,
+    requestedMessages,
     onCheckAgain: () => {
       setIsWatching(true);
       startWatching();
@@ -464,7 +478,7 @@ export function ConnectScmBlock({
                       <RequestInstallButton
                         key="request-installation"
                         message={action.requestMessage}
-                        onRequested={setRequestedMessage}
+                        pauseId={pendingInput.id}
                         requested={action.requested}
                       />
                     );
