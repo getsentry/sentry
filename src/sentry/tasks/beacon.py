@@ -27,6 +27,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import selfhosted_tasks
 from sentry.tsdb.base import TSDBModel
 from sentry.utils import json
+from sentry.utils.latest_version import set_latest_version
 
 BEACON_URL = "https://sentry.io/remote/beacon/"
 
@@ -180,7 +181,7 @@ def send_beacon() -> None:
     data = json.loads(response)
 
     if "version" in data:
-        options.set("sentry:latest_version", data["version"]["stable"])
+        set_latest_version(data["version"]["stable"])
 
     if "notices" in data:
         upstream_ids = set()

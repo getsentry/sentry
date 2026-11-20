@@ -163,11 +163,12 @@ schemas may retire before individual row deletion once those paths cannot use
 configuration rows. Keep inventory and restore tooling through table-removal gates.
 Remove obsolete watcher IAM, RBAC, and restart permissions last.
 
-The six application-state keys remain on the existing `options.get()`,
-`options.set()`, and `options.delete()` APIs and their Option/ControlOption store
-and cache. The keys are `sentry:system-token`, `sentry:install-id`,
-`sentry:latest_version`, `sentry:last_worker_ping`, `sentry:last_worker_version`,
-and `sentry:version-configured`.
+Application state is moving off the Option/ControlOption store. The beacon
+task keeps `sentry:latest_version` in the default cache, and nothing schedules
+the ping task that wrote `sentry:last_worker_ping` and
+`sentry:last_worker_version`, which nothing read. Only self-hosted reads and
+writes `sentry:version-configured`, which drives its setup wizard.
+`sentry:system-token` and `sentry:install-id` remain options.
 
 Until the policy release, runtime options retain their existing manager, storage,
 cache, permissions and update channels. Legacy `sentry configoptions`, drift checks and presenters

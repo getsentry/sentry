@@ -37,6 +37,7 @@ class SystemOptionsTest(APITestCase):
         response = self.client.get(self.url)
         assert response.status_code == 403
 
+    @override_settings(SENTRY_SELF_HOSTED=True)
     def test_setup_records_configured_version(self) -> None:
         self.login_as(user=self.user, superuser=True)
         options.delete("sentry:version-configured")
@@ -47,6 +48,15 @@ class SystemOptionsTest(APITestCase):
             options.get_last_update_channel("sentry:version-configured")
             == options.UpdateChannel.APPLICATION
         )
+
+    @override_settings(SENTRY_SELF_HOSTED=False)
+    def test_saas_setup_leaves_configured_version_unset(self) -> None:
+        self.login_as(user=self.user, superuser=True)
+        self.add_user_permission(self.user, "options.admin")
+        options.delete("sentry:version-configured")
+        response = self.client.put(self.url, {}, format="json")
+        assert response.status_code == 200
+        assert not options.isset("sentry:version-configured")
 
     def test_simple(self) -> None:
         self.login_as(user=self.user, superuser=True)

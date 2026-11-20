@@ -42,7 +42,8 @@ from sentry.testutils.silo import (
 )
 from sentry.types import cell
 from sentry.users.models.user import User
-from sentry.web.client_config import get_client_config
+from sentry.utils.latest_version import set_latest_version
+from sentry.web.client_config import _needs_upgrade, get_client_config
 
 
 @request_factory
@@ -100,6 +101,27 @@ multiregion_client_config_test = control_silo_test(
 def test_client_config_default() -> None:
     cfg = get_client_config()
     assert cfg["sentryMode"] == "SELF_HOSTED"
+
+
+@no_silo_test
+@django_db_all
+def test_client_config_version_reads_beacon_cache() -> None:
+    set_latest_version("999.0.0")
+    try:
+        version = get_client_config()["version"]
+    finally:
+        cache.delete("sentry:latest_version")
+    assert version["latest"] == "999.0.0"
+    assert version["upgradeAvailable"] is True
+
+
+@no_silo_test
+@django_db_all
+@override_settings(SENTRY_SELF_HOSTED=False)
+def test_saas_never_needs_upgrade_or_records_configured_version() -> None:
+    options.delete("sentry:version-configured")
+    assert _needs_upgrade() is False
+    assert not options.isset("sentry:version-configured")
 
 
 @multiregion_client_config_test
