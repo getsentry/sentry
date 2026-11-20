@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {focusManager} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -155,6 +155,7 @@ describe('ConnectScmBlock', () => {
     afterEach(() => {
       try {
         focusManager.setFocused(undefined);
+        cleanup();
         // The popup's own timers update its state.
         act(() => jest.runOnlyPendingTimers());
       } finally {
@@ -384,6 +385,7 @@ describe('ConnectScmBlock', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         // The popup's own timers update its state.
         act(() => jest.runOnlyPendingTimers());
       } finally {

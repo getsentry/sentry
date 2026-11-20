@@ -9,10 +9,6 @@ export enum LogsAnalyticsPageSource {
 }
 
 export type LogsAnalyticsEventParameters = {
-  'logs.auto_refresh.timeout': {
-    organization: Organization;
-    page_source: LogsAnalyticsPageSource;
-  };
   'logs.auto_refresh.toggled': {
     fromPaused: boolean;
     organization: Organization;
@@ -112,25 +108,11 @@ export type LogsAnalyticsEventParameters = {
   'logs.timestamp_tooltip.add_timezone_clicked': {
     organization: Organization;
   };
-  'logs.tracing_onboarding': {
-    organization: Organization;
-    platform: PlatformKey | 'unknown';
-    supports_onboarding_checklist: boolean;
-  };
-  'logs.tracing_onboarding_performance_docs_viewed': {
-    organization: Organization;
-    platform: PlatformKey | 'unknown';
-  };
-  'logs.tracing_onboarding_platform_docs_viewed': {
-    organization: Organization;
-    platform: PlatformKey | 'unknown';
-  };
 };
 
 type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;
 
 export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null> = {
-  'logs.auto_refresh.timeout': 'Log Auto-refresh Timeout',
   'logs.auto_refresh.toggled': 'Log Auto-refresh Toggled',
   'logs.export_modal': 'Logs Export Modal',
   'logs.explorer.continue_searching_clicked': 'Log Explorer Continue Searching Clicked',
@@ -142,11 +124,6 @@ export const logsAnalyticsEventMap: Record<LogsAnalyticsEventKey, string | null>
   'logs.timestamp_tooltip.add_timezone_clicked':
     'Logs Timestamp Tooltip Add Timezone Clicked',
   'logs.table.row_expanded': 'Expanded Log Row Details',
-  'logs.tracing_onboarding': 'Logs Tracing Onboarding',
-  'logs.tracing_onboarding_performance_docs_viewed':
-    'Logs Tracing Onboarding Performance Docs Viewed',
-  'logs.tracing_onboarding_platform_docs_viewed':
-    'Logs Tracing Onboarding Platform Docs Viewed',
   'logs.save_as': 'Logs Save As',
   'logs.save_query_modal': 'Logs Save Query Modal',
   'logs.star_query': 'Logs Star Query',

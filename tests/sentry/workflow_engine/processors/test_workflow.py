@@ -1439,6 +1439,60 @@ class TestEnqueueWorkflows(BaseWorkflowTest):
         )
 
 
+class TestActivityTypeInWorkflowEvaluation(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.detector = self.create_all_projects_detector(self.organization)
+        self.condition_group = self.create_data_condition_group(
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT
+        )
+        self.create_data_condition(
+            condition_group=self.condition_group,
+            type=Condition.ACTIVITY_TYPE_IN,
+            comparison=["issue.assigned"],
+            condition_result=True,
+        )
+        self.workflow = self.create_workflow(when_condition_group=self.condition_group)
+        self.action_group, self.action = self.create_workflow_action(self.workflow)
+        self.activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+
+    def test_activity_evaluates_without_group(self) -> None:
+        _, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow},
+            WorkflowEventData(event=self.activity, organization=self.organization),
+            FROZEN_TIME,
+            detector=self.detector,
+        )
+        assert action_groups == {self.action_group}
+        assert delayed_items == {}
+
+    def test_nonmatching_activity_stops_workflow(self) -> None:
+        activity = self.create_group_activity(group=self.group, type=ActivityType.UNASSIGNED.value)
+        _, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow},
+            WorkflowEventData(event=activity, group=self.group),
+            FROZEN_TIME,
+            detector=self.detector,
+        )
+        assert action_groups == set()
+        assert delayed_items == {}
+
+    def test_unsupported_organization_event_is_clean_nonmatch(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        evaluation, action_groups, delayed_items = _evaluate_workflows(
+            {self.workflow},
+            WorkflowEventData(event=source, organization=self.organization),
+            FROZEN_TIME,
+            detector=self.detector,
+        )
+        assert action_groups == set()
+        assert delayed_items == {}
+        assert evaluation.evaluations[self.workflow.id].outcome != WorkflowEvaluationOutcome.ERROR
+
+
 class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
     def setUp(self) -> None:
         self.source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())

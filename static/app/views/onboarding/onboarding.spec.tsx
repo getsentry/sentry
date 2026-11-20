@@ -302,6 +302,7 @@ describe('Onboarding', () => {
             name: 'Next.js',
             link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
           },
+          createdProject: {slug: nextJsProject.slug, messagingSelection: undefined},
         }}
       >
         <OnboardingWithoutContext />
@@ -317,6 +318,79 @@ describe('Onboarding', () => {
     );
 
     expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+  });
+
+  it('keeps a legacy session on the setup docs step after a refresh', async () => {
+    // Sessions written before createdProject existed hold only the slug under
+    // createdProjectSlug. A refresh on setup-docs must resolve it on the first
+    // render rather than redirect before the context lifts it.
+    const organization = OrganizationFixture();
+    const nextJsProject = ProjectFixture({
+      platform: 'javascript-nextjs',
+      id: '2',
+      slug: 'javascript-nextjs-slug',
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sdks/`,
+      body: {},
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/docs/javascript-nextjs-with-error-monitoring/`,
+      body: null,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/`,
+      body: [nextJsProject],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/issues/`,
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${nextJsProject.slug}/keys/`,
+      method: 'GET',
+      body: [ProjectKeysFixture()[0]],
+    });
+
+    const recentCreatedProjectSpy = jest
+      .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+      .mockImplementation(() => ({project: nextJsProject, isProjectActive: false}));
+
+    sessionStorage.setItem(
+      'onboarding',
+      JSON.stringify({
+        selectedPlatform: {
+          key: 'javascript-nextjs',
+          type: 'framework',
+          language: 'javascript',
+          category: 'browser',
+          name: 'Next.js',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/nextjs/',
+        },
+        createdProjectSlug: nextJsProject.slug,
+      })
+    );
+
+    const {router} = render(
+      <OnboardingContextProvider>
+        <OnboardingWithoutContext />
+      </OnboardingContextProvider>,
+      {
+        initialRouterConfig: {
+          location: {
+            pathname: `/onboarding/${organization.slug}/setup-docs/`,
+          },
+          route: '/onboarding/:orgId/:step/',
+        },
+      }
+    );
+
+    expect(await screen.findByText('Configure Next.js SDK')).toBeInTheDocument();
+    expect(router.location.pathname).toBe(`/onboarding/${organization.slug}/setup-docs/`);
+    expect(recentCreatedProjectSpy).toHaveBeenCalledWith(
+      expect.objectContaining({projectSlug: nextJsProject.slug})
+    );
   });
 
   it('does not render SDK data removal modal when going back', async () => {
@@ -368,6 +442,7 @@ describe('Onboarding', () => {
             name: 'React',
             link: 'https://docs.sentry.io/platforms/javascript/guides/react/',
           },
+          createdProject: {slug: reactProject.slug, messagingSelection: undefined},
         }}
       >
         <OnboardingWithoutContext />
@@ -524,6 +599,62 @@ describe('Onboarding', () => {
       });
     });
 
+    it('does not load a project named after the staged platform on setup-docs', async () => {
+      // An unrelated project whose slug matches the platform key. Setup docs
+      // must not adopt it, since Back from that step can delete the project.
+      const unrelatedProject = ProjectFixture({
+        id: '99',
+        slug: nextJsPlatform.key,
+        platform: nextJsPlatform.key,
+      });
+      ProjectsStore.loadInitialData([unrelatedProject]);
+      const overviewMock = MockApiClient.addMockResponse({
+        url: `/projects/${scmOrganization.slug}/${unrelatedProject.slug}/overview/`,
+        body: unrelatedProject,
+      });
+
+      const {router} = renderOnboarding('setup-docs', {
+        initialContext: {selectedPlatform: nextJsPlatform},
+      });
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+      expect(overviewMock).not.toHaveBeenCalled();
+      expect(screen.queryByText('Configure Next.js SDK')).not.toBeInTheDocument();
+    });
+
+    it('stages a ?platform= deep link on the platform step instead of setup-docs', async () => {
+      const {router} = render(
+        <OnboardingContextProvider>
+          <OnboardingWithoutContext />
+        </OnboardingContextProvider>,
+        {
+          organization: scmOrganization,
+          initialRouterConfig: {
+            location: {
+              pathname: `/onboarding/${scmOrganization.slug}/setup-docs/`,
+              query: {platform: nextJsPlatform.key},
+            },
+            route: '/onboarding/:orgId/:step/',
+          },
+        }
+      );
+
+      await waitFor(() => {
+        expect(router.location.pathname).toBe(
+          `/onboarding/${scmOrganization.slug}/scm-platform-features/`
+        );
+      });
+      await waitFor(() => {
+        expect(
+          JSON.parse(sessionStorage.getItem('onboarding') ?? '{}').selectedPlatform?.key
+        ).toBe(nextJsPlatform.key);
+      });
+    });
+
     it('navigates from welcome to scm-connect', async () => {
       const {router} = renderOnboarding('welcome');
 
@@ -553,10 +684,7 @@ describe('Onboarding', () => {
       expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
         screen.getByRole('link', {name: 'See the full instructions'})
-      ).toHaveAttribute(
-        'href',
-        'https://sentry.io/agent-handoff.md?preview=1&flow=onboarding'
-      );
+      ).toHaveAttribute('href', 'https://sentry.io/agent-handoff.md');
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();
@@ -1229,7 +1357,12 @@ describe('Onboarding', () => {
         });
 
         return render(
-          <OnboardingContextProvider initialValue={{selectedPlatform: nextJsPlatform}}>
+          <OnboardingContextProvider
+            initialValue={{
+              selectedPlatform: nextJsPlatform,
+              createdProject: {slug: project.slug, messagingSelection: undefined},
+            }}
+          >
             <OnboardingWithoutContext />
           </OnboardingContextProvider>,
           {

@@ -146,9 +146,12 @@ build-chartcuterie-config:
 	@echo "--> Building chartcuterie config module"
 	pnpm run build-chartcuterie-config
 
+# CI sets this to pytest-selected.py when it has test durations to balance
+# shards with.
+ACCEPTANCE_PYTEST ?= -m pytest
 run-acceptance:
 	@echo "--> Running acceptance tests"
-	python3 -b -m pytest tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
+	python3 -b $(ACCEPTANCE_PYTEST) tests/acceptance --reuse-db --json-report --json-report-file=".artifacts/pytest.acceptance.json" --json-report-omit=log --junit-xml=".artifacts/acceptance.junit.xml" -o junit_suite_name=acceptance
 	@echo ""
 
 test-cli: create-db

@@ -588,6 +588,22 @@ class MonitorConsumerTest(TestCase):
         assert checkin.monitor_environment.next_checkin.minute == 13
         assert MonitorEnvironment.objects.filter(monitor=monitor).count() == 1
 
+    def test_check_in_upsert_reuses_loaded_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(
+                monitor.slug,
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            )
+
+        selects = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("SELECT")]
+        assert not [q for q in selects if q.startswith('SELECT "sentry_monitor"."id"')]
+
+        monitor.refresh_from_db()
+        assert monitor.config["schedule"] == "13 * * * *"
+
     def test_missing_monitor_creates_no_environment(self) -> None:
         self.send_checkin(
             "my-missing-monitor",
@@ -807,6 +823,7 @@ class MonitorConsumerTest(TestCase):
                     }
                 ],
             ),
+            expected_monitor_slug="my-new-monitor",
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
