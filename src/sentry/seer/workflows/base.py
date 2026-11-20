@@ -332,6 +332,14 @@ class ConfigUpdate:
             workflow.name = name
             self.mark_workflow("name")
 
+    def set_environments(self, environments: Sequence[str]) -> None:
+        """Replace the environments the automation covers. An empty list means all."""
+        filters = SeerWorkflowFilters.parse_obj(self.config.filters)
+        if filters.environments != list(environments):
+            filters.environments = list(environments)
+            self.config.filters = self.config.filters | filters.dict()
+            self.mark("filters")
+
     def _backing_workflow(self) -> Workflow:
         workflow = self.config.backing_workflow
         if workflow is None:
