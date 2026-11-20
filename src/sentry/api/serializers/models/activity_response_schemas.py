@@ -299,6 +299,26 @@ def _data_overrides(resolve: Callable[[Any], dict[str, Any]]) -> dict[str, dict[
                     "type": "string",
                     "description": "ID of the event the assessment is based on",
                 },
+                "claims": {
+                    "type": "array",
+                    "description": "Claims the assessment rests on, each citing entries in evidence",
+                    "items": _object(
+                        {
+                            "claim": {"type": "string", "description": "What is claimed"},
+                            "citationIds": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                                "description": "IDs of the evidence that backs the claim",
+                            },
+                        },
+                        required=("claim", "citationIds"),
+                    ),
+                },
+                "evidence": {
+                    "type": "array",
+                    "description": "Typed citations backing the claims",
+                    "items": {"type": "object"},
+                },
             },
             required=("score", "level", "description", "citations", "sourceEventId"),
         ),

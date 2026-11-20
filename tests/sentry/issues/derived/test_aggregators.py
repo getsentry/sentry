@@ -236,6 +236,8 @@ def test_impact_assessment_is_projected() -> None:
         "description": "Users cannot submit an order.",
         "citations": [{"reference": "trace", "claim": "The request failed.", "source": "trace"}],
         "sourceEventId": "a" * 32,
+        "claims": [],
+        "evidence": [],
     }
 
 

@@ -64,3 +64,24 @@ class AssessImpactForGroupTest(TestCase):
             assess_impact_for_group(group=group)
 
         mock_client_cls.assert_not_called()
+
+    @patch("sentry.issues.impact.assessment.SeerAgentClient")
+    def test_typed_citations_send_no_catalog(self, mock_client_cls: MagicMock) -> None:
+        event = self.store_event(
+            data={"exception": {"values": [{"type": "TypeError", "value": "boom"}]}},
+            project_id=self.project.id,
+        )
+        assert event.group is not None
+
+        with self.feature(
+            ["organizations:seer-impact-assessment", "organizations:seer-impact-typed-citations"]
+        ):
+            assess_impact_for_group(group=event.group)
+
+        call = mock_client_cls.return_value.start_feature_run.call_args.kwargs
+        assert call["payload"]["citation_contract_version"] == 2
+        assert "available_citations" not in call["payload"]
+        assert call["extras"] == {
+            "source_event_id": event.event_id,
+            "citation_contract_version": 2,
+        }

@@ -1,17 +1,25 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
+from typing import Any
 from uuid import UUID
 
 from sentry.issues.action_log import ActionSource, publish_action
 from sentry.issues.action_log.types import ImpactAssessmentAction
 from sentry.issues.impact.types import (
     IMPACT_FEATURE_ID,
+    TYPED_CITATION_CONTRACT_VERSION,
+    ImpactClaim,
     SeerImpactAssessmentResponse,
+    SeerImpactAssessmentResponseV2,
+    StoredCitation,
+    legacy_citations,
 )
 from sentry.issues.models.groupactionlogentry import GroupActionLogEntry
 from sentry.models.group import Group
 from sentry.seer.agent.types import FeatureRunStatus
+from sentry.seer.citations import validate_citations
 from sentry.seer.models.run import SeerAgentRun
 
 logger = logging.getLogger(__name__)
@@ -46,11 +54,11 @@ def deliver_impact_assessment(
         return
 
     try:
-        assessment = SeerImpactAssessmentResponse.parse_obj(result)
         source_event_id = str(agent_run.extras["source_event_id"])
-        available_references = set(agent_run.extras["available_citation_references"])
-        if any(citation.reference not in available_references for citation in assessment.citations):
-            raise ValueError("Seer returned an unavailable Impact citation")
+        if agent_run.extras.get("citation_contract_version") == TYPED_CITATION_CONTRACT_VERSION:
+            action = _typed_citation_action(organization_id, result, source_event_id)
+        else:
+            action = _catalog_citation_action(result, agent_run.extras, source_event_id)
     except (KeyError, TypeError, ValueError):
         logger.exception("impact.delivery.invalid_result", extra=log_extra)
         return
@@ -70,14 +78,57 @@ def deliver_impact_assessment(
         return
 
     publish_action(
-        ImpactAssessmentAction(
-            score=assessment.score,
-            description=assessment.description,
-            citations=assessment.citations,
-            source_event_id=source_event_id,
-        ),
+        action,
         source=ActionSource.SEER_EXPLORER,
         group_id=group.id,
         project=group.project,
         idempotency_key=idempotency_key,
+    )
+
+
+def _catalog_citation_action(
+    result: dict[str, object], extras: Mapping[str, Any], source_event_id: str
+) -> ImpactAssessmentAction:
+    assessment = SeerImpactAssessmentResponse.parse_obj(result)
+    available_references = set(extras["available_citation_references"])
+    if any(citation.reference not in available_references for citation in assessment.citations):
+        raise ValueError("Seer returned an unavailable Impact citation")
+    return ImpactAssessmentAction(
+        score=assessment.score,
+        description=assessment.description,
+        citations=assessment.citations,
+        source_event_id=source_event_id,
+    )
+
+
+def _typed_citation_action(
+    organization_id: int, result: dict[str, object], source_event_id: str
+) -> ImpactAssessmentAction:
+    """
+    Keep the claims whose citations survive validation.
+
+    Citations that fail validation are dropped (see validate_citations), and so is
+    any claim left with nothing backing it.
+    """
+    assessment = SeerImpactAssessmentResponseV2.parse_obj(result)
+    evidence = validate_citations(
+        assessment.citations, organization_id=organization_id, referrer=IMPACT_FEATURE_ID
+    )
+    known_ids = {citation["id"] for citation in evidence}
+    claims = [
+        ImpactClaim(claim=claim.claim, citation_ids=ids)
+        for claim in assessment.claims
+        if (ids := [cid for cid in dict.fromkeys(claim.citationIds) if cid in known_ids])
+    ]
+    if not claims:
+        raise ValueError("No Impact claim is backed by a valid citation")
+    cited_ids = {cid for claim in claims for cid in claim.citation_ids}
+    stored = [StoredCitation.parse_obj(c) for c in evidence if c["id"] in cited_ids]
+    return ImpactAssessmentAction(
+        score=assessment.score,
+        description=assessment.description,
+        citations=legacy_citations(claims, stored),
+        source_event_id=source_event_id,
+        claims=claims,
+        evidence=stored,
     )
