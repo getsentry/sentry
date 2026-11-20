@@ -131,9 +131,10 @@ export function AgentSelector({referrer}: AgentSelectorProps) {
     // oxlint-disable-next-line react/memo-dependencies
   }, [agentNames, stagedIsEmpty]);
 
-  // Without an explicit width the menu shrinks to the trigger's width, which truncates
-  // even "All Agents". Size it to the longest agent name (~0.6em per character, plus
-  // 6em for the checkbox and paddings), between 16em and 24em.
+  // Without an explicit width, CompactSelect locks the menu to whatever width it has
+  // when the search box autofocuses. That can be the narrow first-frame width, which
+  // truncates even "All Agents". Size it to the longest agent name (~0.6em per
+  // character, plus 6em for the checkbox and paddings), between 16em and 24em.
   const menuWidth = useMemo(() => {
     const longestNameLength = Math.max(0, ...agentNames.map(name => name.length));
     return `${Math.max(16, Math.min(24, longestNameLength * 0.6 + 6))}em`;
