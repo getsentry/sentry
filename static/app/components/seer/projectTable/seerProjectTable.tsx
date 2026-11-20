@@ -67,6 +67,7 @@ import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {OpenPrsBanner} from './openPrsBanner';
 import {ProjectTableHeader} from './seerProjectTableHeader';
 
 const estimateSize = () => 41;
@@ -235,6 +236,14 @@ export function SeerProjectTable() {
           </InputGroup>
           <AddProjectButton disabled={!canWrite} />
         </Flex>
+        {showOpenPrs ? (
+          <OpenPrsBanner
+            bulkEdit={bulkEdit}
+            disabled={isRowDisabled}
+            mutableSearch={mutableSearch}
+            settings={data ?? []}
+          />
+        ) : null}
       </Stack>
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
