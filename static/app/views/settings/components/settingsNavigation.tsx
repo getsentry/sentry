@@ -222,11 +222,11 @@ function SettingsOrganizationHeader() {
  * point at objects that only exist in the current organization, so switching
  * organizations keeps the section and drops the rest.
  */
-function getOrganizationSettingsSection(pathname: string, orgSlug: string) {
-  const segments = pathname.split('/').filter(Boolean);
-  // Customer domain URLs leave the organization slug out of the path.
-  const sectionIndex = segments[1] === orgSlug ? 2 : 1;
-  return segments[sectionIndex];
+function getOrganizationSettingsSection(pathname: string, hasOrgInPath: boolean) {
+  // Customer domain routes leave the organization slug out of the path. Rely on
+  // the route params rather than comparing segments to the slug, which could
+  // match a section name.
+  return pathname.split('/').filter(Boolean)[hasOrgInPath ? 2 : 1];
 }
 
 function SettingsOrganizationSelector() {
@@ -236,7 +236,8 @@ function SettingsOrganizationSelector() {
   const organizations = useOrganizations();
   const canCreateOrganization = ConfigStore.get('features').has('organizations:create');
 
-  const section = getOrganizationSettingsSection(location.pathname, organization.slug);
+  const {orgId} = useParams<{orgId?: string}>();
+  const section = getOrganizationSettingsSection(location.pathname, orgId !== undefined);
 
   return (
     <Container width="100%">

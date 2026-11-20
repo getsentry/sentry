@@ -451,6 +451,7 @@ describe('desktop navigation', () => {
             organization: settingsV3,
             initialRouterConfig: {
               location: {pathname: '/settings/org-slug/members/123/'},
+              route: '/settings/:orgId/*',
             },
           })
         );
@@ -461,6 +462,51 @@ describe('desktop navigation', () => {
         expect(
           screen.getByRole('button', {name: 'Create Organization'})
         ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'Other Org'}));
+
+        expect(router.location.pathname).toBe('/settings/other-org/members/');
+      });
+
+      it('keeps the section on a customer domain when the org slug matches it', async () => {
+        // Customer domain URLs have no org slug, so `members` here is the section
+        // even though it is also the current organization's slug.
+        const membersOrganization = OrganizationFixture({
+          ...settingsV3,
+          slug: 'members',
+          name: 'Members Org',
+        });
+        OrganizationsStore.load([membersOrganization, otherOrganization]);
+        for (const path of [
+          'broadcasts',
+          'projects',
+          'group-search-views/starred',
+          'issues-count',
+          'explore/all-queries',
+          'dashboards',
+          'inbox/count',
+        ]) {
+          MockApiClient.addMockResponse({
+            url: `/organizations/members/${path}/`,
+            body: [],
+          });
+        }
+
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          {
+            organization: membersOrganization,
+            initialRouterConfig: {
+              location: {pathname: '/settings/members/'},
+              route: '/settings/*',
+            },
+          }
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
         await userEvent.click(screen.getByRole('option', {name: 'Other Org'}));
 
         expect(router.location.pathname).toBe('/settings/other-org/members/');
