@@ -5,8 +5,9 @@ import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-de
 
 import {InlineCode} from '@sentry/scraps/code';
 
-import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import * as Storybook from 'sentry/stories';
+
+import {NegativeSpaceContainer} from './negativeSpaceContainer';
 
 export default Storybook.story('NegativeSpaceContainer', story => {
   story('Empty', () => (

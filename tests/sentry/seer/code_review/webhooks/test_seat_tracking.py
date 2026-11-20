@@ -5,6 +5,7 @@ import orjson
 
 from fixtures.gitlab import MERGE_REQUEST_OPENED_EVENT, GitLabTestCase
 from sentry.integrations.gitlab.webhooks import MergeEventWebhook
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.code_review.webhooks.merge_request import handle_merge_request_event
@@ -13,7 +14,6 @@ from sentry.seer.code_review.webhooks.seat_tracking import (
     track_gitlab_contributor_action_processor,
     track_gitlab_contributor_seat_processor,
 )
-from sentry.testutils.helpers.features import with_feature
 from sentry.utils.redis import redis_clusters
 
 
@@ -31,6 +31,8 @@ def test_processor_runs_before_code_review_handler() -> None:
 
 def _make_event(action: str = "open", **overrides: object) -> dict[str, Any]:
     event = orjson.loads(MERGE_REQUEST_OPENED_EVENT)
+    if not isinstance(event, dict):
+        raise TypeError("Merge request event is not a JSON object")
     event["object_attributes"]["action"] = action
     for key, value in overrides.items():
         event["object_attributes"][key] = value
@@ -52,10 +54,9 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
             event=event if event is not None else _make_event(),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_calls_track_contributor_seat_on_open(self, mock_track: Any) -> None:
         self._call()
@@ -70,23 +71,15 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         assert kwargs["user_username"] == "root"
 
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
-    def test_no_call_without_cohort_flag(self, mock_track: Any) -> None:
-        self._call()
-        mock_track.assert_not_called()
-
-    @with_feature("organizations:seer-gitlab-support")
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_on_update_action(self, mock_track: Any) -> None:
         self._call(event=_make_event(action="update"))
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_on_close_action(self, mock_track: Any) -> None:
         self._call(event=_make_event(action="close"))
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_without_integration(self, mock_track: Any) -> None:
         track_gitlab_contributor_seat_processor(
@@ -97,7 +90,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         )
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_author_id_missing(self, mock_track: Any) -> None:
         event = _make_event()
@@ -105,7 +97,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_username_missing(self, mock_track: Any) -> None:
         event = _make_event()
@@ -113,7 +104,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_actor_is_not_author(self, mock_track: Any) -> None:
         # The MR author (object_attributes.author_id) and the webhook actor
@@ -125,7 +115,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_no_call_when_actor_id_missing(self, mock_track: Any) -> None:
         event = _make_event()
@@ -133,7 +122,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         mock_track.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_actor_mismatch_does_not_poison_dedup(self, mock_track: Any) -> None:
         # A skipped mismatch delivery must not consume the dedup window: a later
@@ -146,7 +134,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=_make_event())
         mock_track.assert_called_once()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_duplicate_delivery_within_window_skipped(self, mock_track: Any) -> None:
         # GitLab redelivers webhooks on response timeout, and the endpoint
@@ -159,7 +146,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
 
         mock_track.assert_called_once()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_duplicate_delivery_after_ttl_processes_again(self, mock_track: Any) -> None:
         event = _make_event()
@@ -174,7 +160,6 @@ class TrackGitlabContributorSeatProcessorTest(GitLabTestCase):
         self._call(event=event)
         assert mock_track.call_count == 2
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.track_contributor_seat")
     def test_missing_organization_does_not_poison_dedup(self, mock_track: Any) -> None:
         # If the Organization can't be resolved, no Redis key is set, so a
@@ -204,14 +189,13 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         self.repo = self.create_gitlab_repo("getsentry/sentry")
         self.rpc_organization = _rpc_org(self.organization)
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_success(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
 
         mock_record.assert_called_once()
@@ -226,28 +210,16 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         assert kwargs["is_opened"] is True
         assert kwargs["tags"] == {"is_private": True}
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_is_opened_false_for_non_open_action(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
             event=_make_event(action="update"),
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         assert mock_record.call_args.kwargs["is_opened"] is False
 
-    @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
-    def test_no_feature_flag(self, mock_record: Any) -> None:
-        track_gitlab_contributor_action_processor(
-            event=_make_event(),
-            organization=self.rpc_organization,
-            repo=self.repo,
-            integration=self.integration,
-        )
-        mock_record.assert_not_called()
-
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_no_integration(self, mock_record: Any) -> None:
         track_gitlab_contributor_action_processor(
@@ -258,7 +230,6 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
         )
         mock_record.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_missing_author_id(self, mock_record: Any) -> None:
         event = _make_event()
@@ -267,11 +238,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_missing_iid(self, mock_record: Any) -> None:
         event = _make_event()
@@ -280,11 +250,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_no_call_when_actor_is_not_author(self, mock_record: Any) -> None:
         # The row is keyed by the author id but seeded with the actor's username
@@ -295,11 +264,10 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()
 
-    @with_feature("organizations:seer-gitlab-support")
     @patch("sentry.seer.code_review.webhooks.seat_tracking.record_contributor_action")
     def test_missing_actor_id(self, mock_record: Any) -> None:
         event = _make_event()
@@ -308,6 +276,6 @@ class TrackGitlabContributorActionProcessorTest(GitLabTestCase):
             event=event,
             organization=self.rpc_organization,
             repo=self.repo,
-            integration=self.integration,
+            integration=serialize_integration(self.integration),
         )
         mock_record.assert_not_called()

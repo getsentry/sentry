@@ -1,8 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
-import {UptimeTimingDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/uptime/timing';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 import {TraceUptimeCheckTimingNodeRow} from 'sentry/views/performance/traceDetails/traceRow/traceUptimeCheckTimingNode';
@@ -39,12 +37,6 @@ export class UptimeCheckTimingNode extends BaseNode<TraceTree.UptimeCheckTiming>
         node={this}
       />
     );
-  }
-
-  renderDetails<NodeType extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<NodeType>
-  ): React.ReactNode {
-    return <UptimeTimingDetails {...props} node={this} />;
   }
 
   matchWithFreeText(query: string): boolean {

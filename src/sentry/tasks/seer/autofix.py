@@ -1,4 +1,5 @@
 import logging
+from typing import cast
 
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
@@ -6,7 +7,7 @@ from django.utils import timezone
 from taskbroker_client.retry import Retry
 from taskbroker_client.state import current_task
 
-from sentry import analytics
+from sentry import analytics, features
 from sentry.analytics.events.autofix_automation_events import AiAutofixAutomationEvent
 from sentry.constants import (
     ObjectStatus,
@@ -69,8 +70,8 @@ def _get_group_or_log(group_id: int, task_name: str) -> Group | None:
     processing_deadline_duration=35,
     retry=Retry(times=1),
 )
-def generate_summary_and_run_automation(group_id: int, **kwargs) -> None:
-    trigger_path = kwargs.get("trigger_path", "unknown")
+def generate_summary_and_run_automation(group_id: int, **kwargs: object) -> None:
+    trigger_path = cast(str, kwargs.get("trigger_path", "unknown"))
     sentry_sdk.set_tag("trigger_path", trigger_path)
     sentry_sdk.set_attribute("trigger_path", trigger_path)
 
@@ -254,7 +255,10 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
     sentry_sdk.set_attribute("organization_id", organization.id)
     sentry_sdk.set_tag("organization_slug", organization.slug)
     sentry_sdk.set_attribute("organization_slug", organization.slug)
-    _clear_free_autofix_cohort_configuration(organization)
+    is_token_billed = features.has("organizations:token-billed-seer-enabled", organization)
+    # The cleanup deletes Seer repo config, which a token-billed org should keep.
+    if not is_token_billed:
+        _clear_free_autofix_cohort_configuration(organization)
 
     # Set org-level options
     organization.update_option(
@@ -318,7 +322,8 @@ def configure_seer_for_existing_org(organization_id: int) -> None:
 
     # Invalidate existing cache entry and set cache to True to prevent race conditions where another
     # request re-caches False before the billing flag has fully propagated
-    cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
+    if not is_token_billed:
+        cache.set(get_seer_seat_based_tier_cache_key(organization_id), True, timeout=60 * 5)
 
     logger.info(
         "Task: configure_seer_for_existing_org completed",

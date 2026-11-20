@@ -41,7 +41,6 @@ export interface IssueStackTraceFrameListProps {
   event: Event;
   hasScmSourceContext: boolean;
   stacktrace: StacktraceType | null;
-  collapseAll?: boolean;
   exceptionIndex?: number;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   meta?: StackTraceMeta;
@@ -51,14 +50,12 @@ export interface IssueStackTraceFrameListProps {
 interface IssueExceptionStackTraceProps {
   event: Event;
   values: ExceptionValue[];
-  collapseAll?: boolean;
   groupingCurrentLevel?: Group['metadata']['current_level'];
   hasScmSourceContext?: boolean;
   isStandalone?: boolean;
 }
 
 export function IssueExceptionStackTrace({
-  collapseAll,
   event,
   groupingCurrentLevel,
   hasScmSourceContext = false,
@@ -126,7 +123,6 @@ export function IssueExceptionStackTrace({
           </ErrorBoundary>
         )}
         <IssueStackTraceFrameList
-          collapseAll={collapseAll}
           event={event}
           exceptionIndex={isStandalone ? undefined : exception.exceptionIndex}
           groupingCurrentLevel={groupingCurrentLevel}
@@ -200,7 +196,6 @@ export function IssueExceptionStackTrace({
                   </ErrorBoundary>
                 ) : null}
                 <IssueStackTraceFrameList
-                  collapseAll={collapseAll}
                   event={event}
                   exceptionIndex={exception.exceptionIndex}
                   groupingCurrentLevel={groupingCurrentLevel}

@@ -9,7 +9,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import ProjectAttributes from 'sentry/views/settings/project/projectAttributes';
+import ProjectAttributes from './projectAttributes';
 
 describe('ProjectAttributes', () => {
   const {organization} = initializeOrg({
@@ -96,10 +96,7 @@ describe('ProjectAttributes', () => {
   });
 
   it('requests sorted results from the first page when a column header is clicked', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
-    });
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
 
     const {router} = render(<ProjectAttributes />, {
       organization,
@@ -174,6 +171,7 @@ describe('ProjectAttributes', () => {
 
     await waitFor(() => expect(router.location.query.dataset).toBe('logs'));
     expect(router.location.query.cursor).toBeUndefined();
+    expect(router.historyAction).toBe('PUSH');
     expect(request).toHaveBeenLastCalledWith(
       attributesEndpoint,
       expect.objectContaining({query: expect.objectContaining({dataset: 'logs'})})
@@ -227,12 +225,35 @@ describe('ProjectAttributes', () => {
     );
   });
 
+  it('links each attribute to its details page when attributes are listed', async () => {
+    MockApiClient.addMockResponse({
+      url: attributesEndpoint,
+      body: [
+        {
+          name: 'http/route',
+          attributeType: 'string',
+          attributeSource: {source_type: 'user'},
+          datasets: ['spans'],
+          context: {},
+        },
+      ],
+    });
+
+    render(<ProjectAttributes />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
+    expect(await screen.findByRole('link', {name: 'http/route'})).toHaveAttribute(
+      'href',
+      `/settings/${organization.slug}/projects/${project.slug}/attributes/string/http%2Froute/?source=user`
+    );
+  });
+
   it('hides the page when the feature is disabled', () => {
     const {organization: organizationWithoutFeature} = initializeOrg();
-    const request = MockApiClient.addMockResponse({
-      url: attributesEndpoint,
-      body: [],
-    });
+    const request = MockApiClient.addMockResponse({url: attributesEndpoint, body: []});
 
     render(<ProjectAttributes />, {
       organization: organizationWithoutFeature,

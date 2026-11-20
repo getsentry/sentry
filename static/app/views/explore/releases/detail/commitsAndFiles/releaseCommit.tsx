@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 import * as Sentry from '@sentry/react';
 
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -45,11 +45,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
       }
 
       openInviteMembersModal({
-        initialData: [
-          {
-            emails: new Set([commit.author.email]),
-          },
-        ],
+        initialData: [{emails: new Set([commit.author.email])}],
         source: 'suspect_commit',
       });
     },
@@ -87,7 +83,7 @@ export function ReleaseCommit({commit}: ReleaseCommitProps) {
               <AuthorWrapper>
                 {isUser ? t('You') : (commit.author?.name ?? t('Unknown author'))}
                 {commit.author && commit.author.id === undefined && (
-                  <IconQuestion size="xs" />
+                  <IconInfo size="xs" />
                 )}
               </AuthorWrapper>
             </Tooltip>

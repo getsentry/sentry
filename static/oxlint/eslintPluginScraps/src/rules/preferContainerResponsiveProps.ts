@@ -78,7 +78,7 @@ function allowsViewportSizing(
     );
   }
   if (
-    filename.endsWith('/static/app/components/core/drawer/components.tsx') &&
+    filename.endsWith('/static/packages/scraps/src/drawer/components.tsx') &&
     (name === 'DrawerContainer' || name === 'DrawerSlidePanel')
   ) {
     return hasOnlyAllowedMediaDeclarations(
@@ -87,7 +87,7 @@ function allowsViewportSizing(
     );
   }
   return (
-    filename.endsWith('/static/app/components/core/slideOverPanel/slideOverPanel.tsx') &&
+    filename.endsWith('/static/packages/scraps/src/slideOverPanel.tsx') &&
     name === '_SlideOverPanel' &&
     hasOnlyAllowedMediaDeclarations(
       node,
@@ -100,9 +100,7 @@ function allowsViewportSizing(
 export const preferContainerResponsiveProps = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Prevent new media and container queries in components',
-    },
+    docs: {description: 'Prevent new media and container queries in components'},
     schema: [],
     messages: {
       forbidden:
@@ -132,7 +130,7 @@ export const preferContainerResponsiveProps = defineRule({
         }
       },
       CallExpression(node) {
-        if (!importTracker.is(node.callee, 'sentry/utils/useMedia', 'useMedia')) {
+        if (!importTracker.is(node.callee, '@sentry/scraps/useMedia', 'useMedia')) {
           return;
         }
         const query = node.arguments[0];

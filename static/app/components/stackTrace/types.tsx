@@ -1,11 +1,12 @@
 import type {ReactNode} from 'react';
 
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import type {StackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event, Frame, Thread} from 'sentry/types/event';
 import type {Meta} from 'sentry/types/group';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import type {StackTraceRowPolicy} from './rowPolicy';
 
 export type StackTraceView = 'app' | 'full' | 'raw';
 

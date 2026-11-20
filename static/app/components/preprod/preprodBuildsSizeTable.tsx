@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
@@ -41,11 +41,7 @@ export function PreprodBuildsSizeTable({
   showProjectColumn,
 }: PreprodBuildsSizeTableProps) {
   const rows = builds.map(build => {
-    const linkUrl =
-      getSizeBuildPath({
-        organizationSlug,
-        baseArtifactId: build.id,
-      }) ?? '';
+    const linkUrl = getSizeBuildPath({organizationSlug, baseArtifactId: build.id}) ?? '';
     return (
       <SimpleTable.Row key={build.id}>
         <PreprodBuildsRowCells
@@ -78,7 +74,7 @@ export function PreprodBuildsSizeTable({
                   <Text as="span" variant="muted">
                     {labels.installSizeLabel}
                   </Text>
-                  <IconQuestion size="xs" variant="muted" />
+                  <IconInfo size="xs" variant="muted" />
                 </Flex>
               </Tooltip>
             ) : (

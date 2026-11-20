@@ -1,7 +1,8 @@
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
-import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {OurLogKnownFieldKey} from './logs/types';
+import {TraceMetricKnownFieldKey} from './metrics/types';
 
 const SENTRY_SEARCHABLE_SPAN_NUMBER_TAGS: string[] = [
   SpanFields.SPAN_DURATION,

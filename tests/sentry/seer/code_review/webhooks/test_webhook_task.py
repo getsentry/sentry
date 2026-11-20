@@ -9,6 +9,7 @@ from sentry.seer.code_review.webhooks.task import process_github_webhook_event
 from sentry.taskworker.adapters import ViewerContextHook
 from sentry.testutils.cases import TestCase
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -19,7 +20,6 @@ from sentry.viewer_context import (
 class ProcessGithubWebhookEventTest(TestCase):
     @override_settings(
         SEER_API_SHARED_SECRET="viewer-context-test-secret",
-        SENTRY_VIEWER_CONTEXT_ENABLED=True,
     )
     @patch("sentry.seer.code_review.utils.seer_code_review_connection_pool.urlopen")
     def test_propagates_webhook_viewer_context_to_seer(self, mock_urlopen: Mock) -> None:
@@ -43,6 +43,5 @@ class ProcessGithubWebhookEventTest(TestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            actor_type=ActorType.INTEGRATION,
+            actor=Actor(type=ActorType.INTEGRATION), organization_id=self.organization.id
         )

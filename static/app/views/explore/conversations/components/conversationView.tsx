@@ -8,23 +8,25 @@ import {Flex} from '@sentry/scraps/layout';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
-import {ConversationContentLayout} from 'sentry/views/explore/conversations/components/conversationLayout';
-import {
-  CONVERSATION_SPAN_DETAIL_TABS,
-  ConversationSpanDetail,
-} from 'sentry/views/explore/conversations/components/conversationSpanDetail';
-import {MessagesPanel} from 'sentry/views/explore/conversations/components/messagesPanel';
 import {
   useConversation,
   type UseConversationsOptions,
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {DEFAULT_TRACE_VIEW_PREFERENCES} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/traceDetails/traceState/traceStateProvider';
+
+import {ConversationContentLayout} from './conversationLayout';
+import {
+  CONVERSATION_SPAN_DETAIL_TABS,
+  ConversationSpanDetail,
+} from './conversationSpanDetail';
+import {MessagesPanel} from './messagesPanel';
 
 export type ConversationViewTab = 'transcript' | 'timeline';
 
@@ -37,6 +39,8 @@ interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  /** The transcript, for a page that already built it. Passed to `MessagesPanel`. */
+  messages?: ConversationMessage[];
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
   onViewTimeline?: () => void;
@@ -45,6 +49,7 @@ interface ConversationViewContentProps {
 
 export function ConversationViewContent({
   conversation,
+  messages,
   activeTab,
   selectedSpanId,
   onSelectSpan,
@@ -67,9 +72,7 @@ export function ConversationViewContent({
   } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
-    {
-      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
-    },
+    {detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input')},
     {history: 'replace'}
   );
 
@@ -188,6 +191,7 @@ export function ConversationViewContent({
               <MessagesPanel
                 isLoading={isLoading}
                 nodes={nodes}
+                messages={messages}
                 selectedNodeId={displayedNode?.id ?? null}
                 onSelectNode={handleSelectAndOpenDetail}
                 onViewTimeline={onViewTimeline}

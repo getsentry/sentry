@@ -1,3 +1,5 @@
+from datetime import UTC, datetime
+
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
@@ -17,10 +19,15 @@ class DebugNewUserFeedbackEmailView(View):
         project = Project(id=1, organization=org, slug="project", name="My Project")
 
         event = create_sample_event(
-            project=project, platform="python", event_id="595", timestamp=1452683305
+            project=project,
+            platform="python",
+            event_id="595",
+            timestamp=datetime.fromtimestamp(1452683305, tz=UTC),
         )
 
+        assert event is not None
         group = event.group
+        assert group is not None
         link = absolute_uri(
             f"/{project.organization.slug}/{project.slug}/issues/{group.id}/feedback/"
         )

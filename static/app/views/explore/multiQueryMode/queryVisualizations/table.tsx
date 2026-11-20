@@ -9,6 +9,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
+import type {MetaType} from 'sentry/utils/discover/eventView';
 import {
   fieldAlignment,
   parseFunction,
@@ -75,7 +76,7 @@ function AggregatesTable({
 
   const {result, eventView, fields} = aggregatesTableResult;
   const {sortBys} = queryParts;
-  const meta = result.meta ?? {};
+  const meta: MetaType = result.meta ?? {};
 
   const columns = useMemo(() => eventView.getColumns(), [eventView]);
 
@@ -180,7 +181,7 @@ interface SampleTableProps extends MultiQueryTableBaseProps {
 function SpansTable({spansTableResult, query: queryParts, index}: SampleTableProps) {
   const {result, eventView} = spansTableResult;
   const {fields, sortBys} = queryParts;
-  const meta = result.meta ?? {};
+  const meta: MetaType = result.meta ?? {};
 
   const columnsFromEventView = useMemo(() => eventView.getColumns(), [eventView]);
 

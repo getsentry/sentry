@@ -1,6 +1,6 @@
 import {GroupOpenPeriodFixture} from 'sentry-fixture/groupOpenPeriod';
 
-import {getOpenPeriodDurationSeconds} from 'sentry/views/detectors/utils/getOpenPeriodDurationSeconds';
+import {getOpenPeriodDurationSeconds} from './getOpenPeriodDurationSeconds';
 
 describe('getOpenPeriodDurationSeconds', () => {
   const now = new Date('2024-01-01T01:00:00Z');

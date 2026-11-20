@@ -11,7 +11,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
@@ -34,7 +33,6 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         DebugIdArtifactBundle.objects.create(
             organization_id=org.id,
             debug_id="c29728de-4dbd-4c08-bd50-7509e1ee2535",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
         ProjectArtifactBundle.objects.create(
@@ -50,7 +48,24 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not ReleaseArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
-        assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+        assert not File.objects.filter(id=artifact_bundle.file_id).exists()
+
+    def test_delete_when_file_already_deleted(self) -> None:
+        """Signal handler must not raise when the associated File is already gone."""
+        from sentry.models.artifactbundle import delete_file_for_artifact_bundle
+        from sentry.models.files.file import File
+
+        # Simulate an ArtifactBundle instance whose File no longer exists in the DB,
+        # which is what Django raises when accessing a FK whose row has been deleted.
+        class _MissingFile:
+            organization_id = None
+
+            @property
+            def file(self) -> None:
+                raise File.DoesNotExist("File matching query does not exist.")
+
+        # Must not raise File.DoesNotExist.
+        delete_file_for_artifact_bundle(_MissingFile())  # type: ignore[arg-type]
 
     def test_indices_deleted_by_cascade(self) -> None:
         org = self.create_organization()
@@ -62,7 +77,6 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
                     organization_id=org.id,
                     artifact_bundle=bundle,
                     debug_id=uuid4(),
-                    source_file_type=SourceFileType.MINIFIED_SOURCE.value,
                 )
                 for bundle in (artifact_bundle, other_bundle)
                 for _ in range(3)

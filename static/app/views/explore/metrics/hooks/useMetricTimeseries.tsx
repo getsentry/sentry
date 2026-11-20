@@ -7,7 +7,9 @@ import {parseFunction} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {shouldTriggerHighAccuracy} from 'sentry/views/explore/hooks/useExploreTimeseries';
 import {
   SAMPLING_MODE,
@@ -23,6 +25,7 @@ import {
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
 import {isVisualizeEquation} from 'sentry/views/explore/queryParams/visualize';
+import {getVisualizeTimeseriesQueries} from 'sentry/views/explore/utils/getVisualizeTimeseriesQueries';
 import {useSortedTimeSeries} from 'sentry/views/insights/common/queries/useSortedTimeSeries';
 
 export const METRIC_TIMESERIES_REFERRER = 'api.explore.tracemetrics-timeseries';
@@ -33,6 +36,8 @@ interface UseMetricTimeseriesOptions {
 }
 
 export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesOptions) {
+  const {isReady: querySpeedReady, samplingMode: querySamplingMode} =
+    useExploreQuerySpeed();
   const visualizes = useMetricVisualizes();
   const {selection} = usePageFilters();
   const search = useQueryParamsSearch();
@@ -109,12 +114,17 @@ export function useMetricTimeseries({traceMetric, enabled}: UseMetricTimeseriesO
 
   const progressiveResult = useProgressiveQuery<typeof useMetricTimeseriesImpl>({
     queryHookImplementation: useMetricTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {traceMetric, queryExtras: undefined, enabled},
+    queryHookArgs: {
+      traceMetric,
+      queryExtras: undefined,
+      enabled: enabled && querySpeedReady,
+    },
     queryOptions: {
       canTriggerHighAccuracy,
       onHighAccuracyRequest,
       onHighAccuracySuccess,
       onHighAccuracyError,
+      samplingMode: querySamplingMode,
     },
   });
 
@@ -152,21 +162,39 @@ function useMetricTimeseriesImpl({
   queryExtras,
   enabled,
 }: UseMetricTimeseriesImplOptions) {
+  const organization = useOrganization();
   const visualizes = useMetricVisualizes();
   const groupBys = useQueryParamsGroupBys();
   const [interval] = useChartInterval();
   const topEvents = useTopEvents();
   const search = useQueryParamsSearch();
   const sortBys = useQueryParamsAggregateSortBys();
+  const transformationsEnabled = organization.features.includes(
+    'explore-interpolation-and-smoothing'
+  );
+  const queries = useMemo(
+    () =>
+      transformationsEnabled
+        ? getVisualizeTimeseriesQueries(visualizes, true)
+        : visualizes.map(visualize => ({yAxis: visualize.yAxis, transformations: []})),
+    [transformationsEnabled, visualizes]
+  );
 
-  const yAxis = useMemo(() => {
-    return visualizes.map(v => v.yAxis);
-  }, [visualizes]);
+  const {yAxis, transformations} = useMemo(
+    () => ({
+      yAxis: queries.map(query => query.yAxis),
+      transformations: transformationsEnabled
+        ? queries.map(query => query.transformations)
+        : undefined,
+    }),
+    [queries, transformationsEnabled]
+  );
 
   const timeseriesResult = useSortedTimeSeries(
     {
       search,
       yAxis,
+      transformations,
       interval,
       fields: [...groupBys, ...yAxis],
       enabled:
@@ -183,7 +211,5 @@ function useMetricTimeseriesImpl({
     DiscoverDatasets.TRACEMETRICS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

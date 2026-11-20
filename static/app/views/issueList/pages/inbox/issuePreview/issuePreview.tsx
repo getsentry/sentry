@@ -20,6 +20,7 @@ import {useLinkedPullRequests} from 'sentry/components/group/externalIssuesList/
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
+import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {stripAnsi} from 'sentry/utils/ansiEscapeCodes';
@@ -48,21 +49,12 @@ import {
   groupEventApiOptions,
   ReprocessingStatus,
 } from 'sentry/views/issueDetails/utils';
-import {
-  IssuePreviewHeaderActions,
-  OpenIssueButton,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewHeaderActions';
-import {
-  IssuePreviewSeerProvider,
-  useIssuePreviewSeer,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSeer';
-import {
-  IssuePreviewSummary,
-  type IssueSummary,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewSummary';
 import {IssueSeenTimes} from 'sentry/views/issueList/pages/issueSeenTimes';
 import {useAssignmentFilter} from 'sentry/views/issueList/pages/useAssignmentFilter';
 
+import {IssuePreviewHeaderActions, OpenIssueButton} from './issuePreviewHeaderActions';
+import {IssuePreviewSeerProvider, useIssuePreviewSeer} from './issuePreviewSeer';
+import {IssuePreviewSummary, type IssueSummary} from './issuePreviewSummary';
 import {IssuePreviewTimeline} from './issuePreviewTimeline';
 
 interface IssuePreviewProps {
@@ -123,10 +115,7 @@ export function IssuePreview({groupId}: IssuePreviewProps) {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${groupId}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
 
   useMarkPreviewedGroupSeen(group);
   useTrackPreviewedGroup(group);
@@ -174,6 +163,8 @@ function IssuePreviewContent() {
   const organization = useOrganization();
   const {group, project} = useGroupData();
   const previewSeer = useIssuePreviewSeer();
+  const hasSeerContent =
+    previewSeer.state !== 'unavailable' && !!previewSeer.autofix.runState;
   const linkedPullRequests = useLinkedPullRequests({group});
   const {title: primaryTitle = ''} = getTitle(group);
   const secondaryTitle = getMessage(group);
@@ -211,10 +202,7 @@ function IssuePreviewContent() {
   const issueDetailsUrl = normalizeUrl(
     `/organizations/${organization.slug}/issues/${group.id}/`
   );
-  const issueDetailsLocation = {
-    pathname: issueDetailsUrl,
-    query: {referrer: 'inbox'},
-  };
+  const issueDetailsLocation = {pathname: issueDetailsUrl, query: {referrer: 'inbox'}};
   function openSeer(action?: string) {
     navigate(
       makeSeerLocation({
@@ -315,11 +303,28 @@ function IssuePreviewContent() {
         <LoadingIndicator />
       ) : (
         <Stack gap="2xl" paddingTop="xl" paddingBottom="md">
+          {/* The header's disabled Seer button has no room for the CTA. */}
+          {!previewSeer.creditCheck.hasEnoughCredits && (
+            <SeerOutOfCreditsCta
+              reason={
+                previewSeer.creditAction === 'root_cause'
+                  ? 'autofix-start'
+                  : 'autofix-continue'
+              }
+              denialReason={previewSeer.creditCheck.denialReason}
+            />
+          )}
           {summary && <IssuePreviewSummary summary={summary} />}
           {event && hasEventStackTrace(event, group, organization) && (
             <Container key={event.id}>
               <ErrorBoundary mini>
-                <EventStackTrace event={event} group={group} projectSlug={project.slug} />
+                <EventStackTrace
+                  key={hasSeerContent ? 'seer' : 'default'}
+                  event={event}
+                  group={group}
+                  projectSlug={project.slug}
+                  initialCollapse={hasSeerContent || undefined}
+                />
               </ErrorBoundary>
             </Container>
           )}

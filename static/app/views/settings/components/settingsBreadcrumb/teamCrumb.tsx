@@ -7,9 +7,9 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeams} from 'sentry/utils/useTeams';
-import type {SettingsBreadcrumbSelectorProps} from 'sentry/views/settings/components/settingsBreadcrumb/types';
 
 import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
+import type {SettingsBreadcrumbSelectorProps} from './types';
 
 export function TeamCrumb({to, switchTo, children}: SettingsBreadcrumbSelectorProps) {
   const navigate = useNavigate();

@@ -1,7 +1,8 @@
 import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {GlobalAlertProvider, useGlobalAlerts} from 'sentry/views/app/globalAlerts';
+
+import {GlobalAlertProvider, useGlobalAlerts} from './globalAlerts';
 
 jest.mock('sentry/utils/localStorage');
 
@@ -196,11 +197,7 @@ describe('GlobalAlertProvider', () => {
       const {result} = renderHook(useGlobalAlerts, {wrapper});
 
       act(() => {
-        result.current.addAlert({
-          id: 'persistent',
-          message: 'sticky',
-          variant: 'danger',
-        });
+        result.current.addAlert({id: 'persistent', message: 'sticky', variant: 'danger'});
       });
 
       act(() => {

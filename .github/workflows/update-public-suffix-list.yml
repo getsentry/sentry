@@ -1,0 +1,54 @@
+name: Update public suffix list
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '37 16 * * 1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: update-public-suffix-list
+  cancel-in-progress: false
+
+env:
+  PSL_PATH: src/sentry/uptime/autodetect/public_suffix_list.dat
+
+jobs:
+  update:
+    if: github.ref == 'refs/heads/master'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Download public suffix list
+        run: |
+          curl -fsSL --retry 3 -o "$PSL_PATH" https://publicsuffix.org/list/public_suffix_list.dat
+          grep -q '===END PRIVATE DOMAINS===' "$PSL_PATH"
+
+      - name: Get internal bot token
+        id: bot
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          client-id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
+          private-key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Publish update pull request
+        env:
+          GH_TOKEN: ${{ steps.bot.outputs.token }}
+          BOT_LOGIN: ${{ steps.bot.outputs.app-slug }}[bot]
+        run: .github/workflows/scripts/publish-public-suffix-list-pr.sh
+
+      # Tells us when this workflow stops running.
+      - name: Send cron check-in
+        if: always()
+        env:
+          SENTRY_DSN: ${{ secrets.SENTRY_WORKFLOW_CRONS_DSN }}
+          STATUS: ${{ job.status == 'success' && 'ok' || 'error' }}
+        run: .github/workflows/scripts/send-public-suffix-list-checkin.sh

@@ -21,10 +21,7 @@ function mockTransportRequests() {
   return widget.queries.map((query, index) => {
     const count = index === 0 ? 21 : 5;
     const grouped = query.columns.length > 0;
-    const meta = {
-      fields: {'mcp.transport': 'string', 'count()': 'integer'},
-      units: {},
-    };
+    const meta = {fields: {'mcp.transport': 'string', 'count()': 'integer'}, units: {}};
     const data = grouped
       ? [
           {'mcp.transport': 'CustomHTTPTransport', 'count()': 30},
@@ -56,10 +53,7 @@ function mockTransportRequests() {
     const tableRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
       match,
-      body: {
-        data,
-        meta,
-      },
+      body: {data, meta},
     });
     return {seriesRequest, tableRequest};
   });
@@ -72,10 +66,6 @@ describe('MCP Transport Distribution', () => {
       url: '/organizations/org-slug/releases/stats/',
       body: [],
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('counts standard transports together and preserves custom names in the existing chart', async () => {

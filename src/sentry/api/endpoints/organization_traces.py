@@ -78,7 +78,7 @@ CANDIDATE_SPAN_OPS = {"pageload", "navigation"}
 MATCHING_COUNT_ALIAS = "matching_count"
 
 
-def is_trace_name_candidate(span):
+def is_trace_name_candidate(span: Mapping[str, Any]) -> bool:
     return span["span.op"] in CANDIDATE_SPAN_OPS
 
 
@@ -179,14 +179,14 @@ class OrganizationTracesSerializer(serializers.Serializer):
             raise serializers.ValidationError("Only 1 query is supported.")
         return value
 
-    def validate_dataset(self, value):
+    def validate_dataset(self, value: str) -> Dataset:
         sentry_sdk.set_tag("query.dataset", value)
         sentry_sdk.set_attribute("query.dataset", value)
         if value == "spans":
             return Dataset.EventsAnalyticsPlatform
         raise ParseError(detail=f"Unsupported dataset: {value}")
 
-    def validate(self, data):
+    def validate(self, data: dict[str, Any]) -> dict[str, Any]:
         if data["dataset"] == Dataset.EventsAnalyticsPlatform:
             sort = data.get("sort")
             if sort is not None:
@@ -309,7 +309,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         get_all_projects: Callable[[], list[Project]],
-    ):
+    ) -> None:
         self.dataset = dataset
         self.snuba_params = snuba_params
         self.raw_user_queries = user_queries
@@ -327,7 +327,7 @@ class TracesExecutor:
 
         return all_projects_snuba_params
 
-    def execute(self, offset: int, limit: int):
+    def execute(self, offset: int, limit: int) -> dict[str, list[TraceResult]]:
         # To support pagination on only EAP, we use the offset/limit
         # values from the paginator here.
         self.offset = offset
@@ -335,7 +335,7 @@ class TracesExecutor:
 
         return {"data": self._execute_rpc()}
 
-    def _execute_rpc(self):
+    def _execute_rpc(self) -> list[TraceResult]:
         if self.snuba_params.organization_id is None:
             raise Exception("An organization is required to resolve queries")
 
@@ -397,7 +397,7 @@ class TracesExecutor:
         self,
         traces: list[TraceResult],
         snuba_params: SnubaParams,
-    ):
+    ) -> None:
         trace_ids = [trace["trace"] for trace in traces]
 
         breakdown_raw_results = Spans.run_table_query(
@@ -502,7 +502,7 @@ class TracesExecutor:
         spans: list[dict[str, Any]],
         traces_errors: dict[str, int],
         traces_occurrences: dict[str, int],
-    ):
+    ) -> None:
         traces_range = {
             trace["trace"]: {
                 "start": trace["start"],
@@ -596,7 +596,7 @@ class TracesExecutor:
             trace["numOccurrences"] = traces_occurrences.get(trace["trace"], 0)
             trace["breakdowns"] = traces_breakdowns[trace["trace"]]
 
-    def get_traces_rpc(self, projects: list[Project]):
+    def get_traces_rpc(self, projects: list[Project]) -> GetTracesRequest:
         assert self.snuba_params.organization_id is not None
         meta = RequestMeta(
             organization_id=self.snuba_params.organization_id,
@@ -727,7 +727,9 @@ class TracesExecutor:
         return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
 
 
-def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
+def convert_to_slice(
+    timestamp: float, trace_range: Mapping[str, int], left_bound: int | None = None
+) -> int:
     slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
@@ -741,7 +743,9 @@ def convert_to_slice(timestamp, trace_range, left_bound=None) -> int:
     return idx
 
 
-def quantize_range(span_start, span_end, trace_range):
+def quantize_range(
+    span_start: float, span_end: float, trace_range: Mapping[str, int]
+) -> tuple[tuple[int, int], tuple[int, int]]:
     slices = trace_range["slices"]
     trace_start = trace_range["start"]
     trace_end = trace_range["end"]
@@ -793,7 +797,7 @@ def quantize_range(span_start, span_end, trace_range):
     return (int(rounded_start), int(rounded_end)), (start_index, end_index)
 
 
-def new_trace_interval(row) -> TraceInterval:
+def new_trace_interval(row: Mapping[str, Any]) -> TraceInterval:
     parent_span = row.get("parent_span", "")
     return {
         "kind": "project",
@@ -810,11 +814,13 @@ def new_trace_interval(row) -> TraceInterval:
     }
 
 
-def process_breakdowns(data, traces_range):
-    breakdowns: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
-    stacks: Mapping[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+def process_breakdowns(
+    data: list[dict[str, Any]], traces_range: Mapping[str, Mapping[str, int]]
+) -> dict[str, list[TraceInterval]]:
+    breakdowns: dict[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
+    stacks: dict[str, list[TraceInterval]] = {trace: [] for trace in traces_range}
 
-    def should_merge(interval_a, interval_b):
+    def should_merge(interval_a: TraceInterval, interval_b: TraceInterval) -> bool:
         return (
             # only merge intervals that have parent spans, i.e. those that aren't the trace root
             not interval_a["isRoot"]
@@ -826,7 +832,7 @@ def process_breakdowns(data, traces_range):
             and interval_a["sdkName"] == interval_b["sdkName"]
         )
 
-    def breakdown_push(trace, interval):
+    def breakdown_push(trace: str, interval: TraceInterval) -> None:
         breakdown = breakdowns[trace]
 
         """ TODO: Add this back
@@ -859,7 +865,7 @@ def process_breakdowns(data, traces_range):
 
         breakdown.append(interval)
 
-    def stack_push(trace, interval):
+    def stack_push(trace: str, interval: TraceInterval) -> None:
         for last_interval in reversed(stacks[trace]):
             if not should_merge(last_interval, interval):
                 continue
@@ -894,17 +900,20 @@ def process_breakdowns(data, traces_range):
         stack = stacks[trace]
         stack.append(interval)
 
-    def stack_peek(trace):
+    def stack_peek(trace: str) -> TraceInterval | None:
         if not stacks[trace]:
             return None
         return stacks[trace][-1]
 
-    def stack_pop(trace):
+    def stack_pop(trace: str) -> TraceInterval:
         return stacks[trace].pop()
 
-    def stack_clear(trace, until=None):
+    def stack_clear(trace: str, until: int | None = None) -> None:
         while stacks[trace]:
-            if until is not None and stack_peek(trace)["end"] >= until:
+            last_interval = stack_peek(trace)
+            if last_interval is None:
+                break
+            if until is not None and last_interval["end"] >= until:
                 break
             stack_pop(trace)
 
@@ -1211,7 +1220,7 @@ def format_trace_result(
     return result
 
 
-def validate_attribute_type(attribute: TraceAttribute, type: AttributeKey.Type.ValueType):
+def validate_attribute_type(attribute: TraceAttribute, type: AttributeKey.Type.ValueType) -> None:
     if attribute.type != type:
         raise ValueError(f"Expected {attribute.key} to be of type {type} but got {attribute.type}")
 

@@ -1,11 +1,17 @@
+from typing import cast
+
 import pytest
+from django.http import HttpRequest
+from rest_framework.request import Request
 
 from sentry.api.exceptions import DataSecrecyError
 from sentry.auth import access
+from sentry.auth.access import Access
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.models.user import User
 
 
 class DataSecrecyTestCase(APITestCase):
@@ -74,12 +80,12 @@ class ImpersonationDataSecrecyTestCase(TestCase):
         self.organization.save()
         self.create_member(organization=self.organization, user=self.owner, role="owner")
 
-    def _build_impersonated_request(self, impersonated_user):
+    def _build_impersonated_request(self, impersonated_user: User) -> HttpRequest:
         request = self.make_request(user=impersonated_user)
         request.actual_user = self.superuser  # type: ignore[attr-defined]
         return request
 
-    def _from_request_org_and_scopes(self, request):
+    def _from_request_org_and_scopes(self, request: HttpRequest) -> Access:
         rpc_user_org_context = organization_service.get_organization_by_id(
             id=self.organization.id, user_id=request.user.id
         )
@@ -128,7 +134,7 @@ class ImpersonationDataSecrecyTestCase(TestCase):
         request = self._build_impersonated_request(self.owner)
         with self.settings(SENTRY_SELF_HOSTED=False):
             with pytest.raises(DataSecrecyError):
-                access.from_request(request, self.organization)
+                access.from_request(cast(Request, request), self.organization)
 
     @with_feature("organizations:data-secrecy")
     def test_impersonated_allowed_via_from_request_db_path_no_data_secrecy(self) -> None:
@@ -136,5 +142,5 @@ class ImpersonationDataSecrecyTestCase(TestCase):
         self.organization.save()
         request = self._build_impersonated_request(self.owner)
         with self.settings(SENTRY_SELF_HOSTED=False):
-            result = access.from_request(request, self.organization)
+            result = access.from_request(cast(Request, request), self.organization)
             assert result is not None

@@ -12,8 +12,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageState';
-import type {FoldSectionKey} from 'sentry/views/issueDetails/context';
-import {useIssueDetails} from 'sentry/views/issueDetails/context';
+
+import type {FoldSectionKey} from './context';
+import {useIssueDetails} from './context';
 
 export function getFoldSectionKey(key: FoldSectionKey) {
   // Original key had a typo, this will migrate existing keys to the correct key
@@ -164,10 +165,7 @@ export function FoldSection({
   // Unregister section when component unmounts
   useLayoutEffect(() => {
     return () => {
-      dispatch({
-        type: 'REMOVE_EVENT_SECTION',
-        key: sectionKey,
-      });
+      dispatch({type: 'REMOVE_EVENT_SECTION', key: sectionKey});
     };
   }, [dispatch, sectionKey]);
 

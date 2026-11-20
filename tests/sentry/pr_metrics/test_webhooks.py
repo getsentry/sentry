@@ -1905,6 +1905,7 @@ class HandleCheckEventsForPrMetricsTest(TestCase):
         e.g. a fork syncing from upstream) carry a different ``base.repo.id`` and
         must be skipped by the handler.
         """
+        assert self.repo.external_id is not None
         same = [
             {"number": n, "base": {"repo": {"id": int(self.repo.external_id)}}} for n in pr_numbers
         ]

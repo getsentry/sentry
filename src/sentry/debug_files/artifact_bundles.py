@@ -153,13 +153,15 @@ def index_urls_in_bundle(
     organization_id: int,
     artifact_bundle: ArtifactBundle,
     existing_archive: ArtifactBundleArchive | None,
-):
+) -> None:
     skip_debug_id_names = options.get("sourcemaps.artifact-bundles.index-skip-debug-id-names")
 
     # We first open up the bundle and extract all the things we want to index from it.
-    archive = existing_archive or ArtifactBundleArchive(
-        artifact_bundle.file.getfile(), build_memory_map=False
-    )
+    if existing_archive is None:
+        assert artifact_bundle.file is not None
+        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+    else:
+        archive = existing_archive
     urls_to_index = []
     skipped_urls = 0
     try:
@@ -221,7 +223,7 @@ def index_urls_in_bundle(
 # ===== Renewal of Artifact Bundles =====
 
 
-def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
+def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]) -> None:
     # We take a snapshot in time that MUST be consistent across all updates.
     now = timezone.now()
     # We compute the threshold used to determine whether we want to renew the specific bundle.
@@ -239,7 +241,7 @@ def maybe_renew_artifact_bundles(used_artifact_bundles: dict[int, datetime]):
 
 
 @traces.trace
-def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime):
+def renew_artifact_bundle(artifact_bundle_id: int, threshold_date: datetime, now: datetime) -> None:
     metrics.incr("artifact_bundle_renewal.need_renewal")
     # We want to use a transaction, in order to keep the `date_added` consistent across multiple tables.
     with atomic_transaction(
@@ -359,7 +361,7 @@ def query_artifact_bundles_containing_file(
     # coarse-grained to fine-grained.
     artifact_bundles: dict[int, tuple[datetime, str]] = dict()
 
-    def update_bundles(bundles: set[tuple[int, datetime]], resolved: str):
+    def update_bundles(bundles: set[tuple[int, datetime]], resolved: str) -> None:
         for bundle_id, date_added in bundles:
             artifact_bundles[bundle_id] = (date_added, resolved)
 
@@ -407,7 +409,7 @@ def get_bundles_indexing_state(
     total_bundles = 0
     indexed_bundles = 0
 
-    filter: dict = {
+    filter: dict[str, str | int] = {
         "releaseartifactbundle__release_name": release_name,
         "releaseartifactbundle__dist_name": dist_name,
     }
@@ -550,8 +552,9 @@ def get_project_bundle_ids_containing_debug_id(
     rows than the debug ID has. Each query here starts from the debug ID or from the bundles it
     found, whatever the table statistics say.
     """
-    # A bundle has a row for each of its files with the debug ID, and other organizations may
-    # have uploaded the same file. One more row than we use tells whether the debug ID has more.
+    # A bundle has one row for the debug ID, older bundles one for each of their files with it,
+    # and other organizations may have uploaded the same file. One more row than we use tells
+    # whether the debug ID has more.
     rows = list(
         DebugIdArtifactBundle.objects.filter(debug_id=debug_id).values_list(
             "artifact_bundle_id", flat=True

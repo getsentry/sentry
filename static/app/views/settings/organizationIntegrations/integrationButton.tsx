@@ -5,10 +5,11 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import type {Integration} from 'sentry/types/integrations';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
-import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
-import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
-import {RequestIntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationRequest/RequestIntegrationButton';
+
+import {RequestIntegrationButton} from './integrationRequest/RequestIntegrationButton';
+import {AddIntegrationButton} from './addIntegrationButton';
+import {DirectEnableButton} from './directEnableButton';
+import {IntegrationContext} from './integrationContext';
 
 type Props = {
   /**

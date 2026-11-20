@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 
 import onboardingFrameworkSelectionJavascript from 'sentry-images/spot/replay-dead-rage-changelog.svg';
 
-import {ClippedBox} from 'sentry/components/clippedBox';
 import * as Storybook from 'sentry/stories';
+
+import {ClippedBox} from './clippedBox';
 
 export default Storybook.story('ClippedBox', story => {
   story('Default', () => (

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from sentry.killswitches import normalize_value, value_matches
+from sentry.killswitches import Context, normalize_value, value_matches
 
 
 def test_normalize_value() -> None:
@@ -62,9 +62,9 @@ def test_normalize_value() -> None:
         ),
     ),
 )
-def test_value_matches_positive(cfg, value) -> None:
-    cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
-    assert value_matches("store.load-shed-group-creation-projects", cfg, value)
+def test_value_matches_positive(cfg: list[dict[str, object]], value: Context) -> None:
+    normalized = normalize_value("store.load-shed-group-creation-projects", cfg)
+    assert value_matches("store.load-shed-group-creation-projects", normalized, value)
 
 
 @pytest.mark.parametrize(
@@ -96,6 +96,6 @@ def test_value_matches_positive(cfg, value) -> None:
         ),
     ),
 )
-def test_value_matches_negative(cfg, value) -> None:
-    cfg = normalize_value("store.load-shed-group-creation-projects", cfg)
-    assert not value_matches("store.load-shed-group-creation-projects", cfg, value)
+def test_value_matches_negative(cfg: list[dict[str, object]], value: Context) -> None:
+    normalized = normalize_value("store.load-shed-group-creation-projects", cfg)
+    assert not value_matches("store.load-shed-group-creation-projects", normalized, value)

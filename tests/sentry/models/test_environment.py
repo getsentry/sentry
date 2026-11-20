@@ -14,7 +14,9 @@ class GetOrCreateTest(TestCase):
         env = Environment.get_or_create(project=project, name="prod")
 
         assert env.name == "prod"
-        assert env.projects.first().id == project.id
+        first_project = env.projects.first()
+        assert first_project is not None
+        assert first_project.id == project.id
 
         env2 = Environment.get_or_create(project=project, name="prod")
 

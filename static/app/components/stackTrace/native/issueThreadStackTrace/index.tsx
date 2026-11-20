@@ -23,11 +23,12 @@ type Props = {
   group: Group | undefined;
   groupingCurrentLevel: Group['metadata']['current_level'];
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
 };
 
 export function IssueThreadStackTrace({
-  collapseAll,
+  initialCollapse,
   data,
   event,
   projectSlug,
@@ -58,11 +59,12 @@ export function IssueThreadStackTrace({
             : t('Stack Trace')
         }
         actions={<IssueThreadStackTraceActions />}
+        initialCollapse={initialCollapse}
         disableCollapsePersistence
       >
         <Stack gap="lg">
           <ThreadSummary />
-          <ActiveThreadStackTrace collapseAll={collapseAll} />
+          <ActiveThreadStackTrace />
           <IssueThreadStackTraceSuspectCommits />
         </Stack>
       </FoldSection>

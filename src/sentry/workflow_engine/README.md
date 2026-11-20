@@ -77,11 +77,17 @@ relocation.
 ### Detector
 
 A [`Detector`](models/detector.py) describes what data to evaluate and can reference an
-optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `type` is the slug of an
-Issue Platform [`GroupType`](../issues/grouptype.py).
+optional trigger [`DataConditionGroup`](models/data_condition_group.py). Its `type` stores a
+[`DetectorType`](types.py) value that selects a [`DetectorSettings`](types.py) class in
+[`detector_settings_registry`](registry.py). Settings provide the handler, configuration
+schema, API validator, and visibility rules for that implementation.
 
-The GroupType is connected to the DetectorHandler through the `DetectorSettings` subclass.
-This class lives in a registry and maps a GroupType slug to a corresponding DetectorSettings class.
+An Issue Platform [`GroupType`](../issues/grouptype.py) describes the resulting issue.
+Settings, API validation, and handler lookup use the detector type directly. A detector
+type identifies an implementation; an issue type classifies a finding. Their string
+values do not need to match, and one implementation can emit several issue types.
+Settings control detector type discovery, while issue types have their own release
+controls. See [Data model](docs/data-model.md#detector).
 
 Detector implementations usually live in the product module that owns the issue type,
 not in this package. For example, uptime and metric issue handlers live in
@@ -101,6 +107,9 @@ for this shared layer and its subsystem-specific touchpoints.
 A [`Workflow`](models/workflow.py) belongs to an organization and connects to detectors
 through [`DetectorWorkflow`](models/detector_workflow.py). It can be global or limited
 to one environment.
+
+Every workflow has a `type` ([`Workflow.Type`](models/workflow.py)) indicating its use-case. The `VISIBLE_WORKFLOW_TYPES` constant lists the types that are exposed to users.
+For example, the `Workflow.Type.ALERT` type is the user-facing type for alerts (as seen on the Alerts page), while `Workflow.Type.INBOX` is a hidden automation type.
 
 Each workflow has zero or more IF groups through
 [`WorkflowDataConditionGroup`](models/workflow_data_condition_group.py). Actions are
@@ -133,13 +142,15 @@ See [Data model](docs/data-model.md) for ownership, constraints, and lifecycle d
 The package initializes registries and signal receivers from
 [`Config.ready`](apps.py). The primary extension points are:
 
-| Extension         | Registration                                                                                            |
-| ----------------- | ------------------------------------------------------------------------------------------------------- |
-| Detector type     | Define a `GroupType`, then `detector_settings_registry.register(slug)` on a `DetectorSettings` subclass |
-| Data source type  | `data_source_type_registry.register(...)`                                                               |
-| Condition type    | `condition_handler_registry.register(...)`                                                              |
-| Action type       | `action_handler_registry.register(...)`                                                                 |
-| Workflow activity | `workflow_activity_registry.register(...)`                                                              |
+| Extension         | Registration                                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Detector type     | Add a `DetectorType` member, then register a `DetectorSettings` class with `detector_settings_registry.register(DetectorType.MEMBER)` |
+| Issue type        | Define a concrete `GroupType` in the owning product module                                                                            |
+| Data source type  | `data_source_type_registry.register(...)`                                                                                             |
+| Condition type    | `condition_handler_registry.register(...)`                                                                                            |
+| Action type       | `action_handler_registry.register(...)`                                                                                               |
+| Workflow activity | `workflow_activity_registry.register(...)`                                                                                            |
+| Workflow type     | Add a `Workflow.Type` member; add it to `VISIBLE_WORKFLOW_TYPES` only if users should see it                                          |
 
 Import-time registration only works when the owning module is imported during
 application startup. Follow an existing product integration and add a focused test that
@@ -168,14 +179,17 @@ proves registry discovery.
 - Workflow Engine detectors are not the same as performance detectors in
   [`sentry.issue_detection`](../issue_detection/README.md). Performance detectors scan
   transaction spans through a separate runtime.
-- A `GroupType` may have Workflow Engine detector configuration without using
-  `process_detectors` for issue creation. Error, cron, issue-stream, and performance
-  configuration detectors have specialized roles.
+- Registered detector settings do not require a Workflow Engine handler. Error, cron,
+  issue-stream, and legacy performance detectors have specialized execution or
+  association roles outside the common `process_detectors` path.
 - A detector can use the generic `DataSource` lookup or a product-specific producer
   that calls `process_detectors` directly.
 - Actions are asynchronous and are not guaranteed to execute in a user-defined order.
 - Legacy alert models and APIs still coexist with Workflow Engine models. Do not infer
   current execution behavior from compatibility association tables.
+- Not every `Workflow` is an alert. The alert APIs hide workflows whose `type` is not in
+  `VISIBLE_WORKFLOW_TYPES`, but `process_workflows` does not filter by type, so a hidden
+  workflow connected through `DetectorWorkflow` still runs.
 
 ## Recommended Tests
 

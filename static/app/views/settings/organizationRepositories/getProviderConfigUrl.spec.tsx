@@ -1,7 +1,8 @@
 import {OrganizationIntegrationsFixture} from 'sentry-fixture/organizationIntegrations';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {getProviderPermissionsUrl} from 'sentry/views/settings/organizationRepositories/getProviderConfigUrl';
+
+import {getProviderPermissionsUrl} from './getProviderConfigUrl';
 
 const githubProvider: OrganizationIntegration['provider'] = {
   key: 'github',

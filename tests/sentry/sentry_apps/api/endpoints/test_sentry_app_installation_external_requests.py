@@ -71,7 +71,7 @@ class SentryAppInstallationExternalRequestsEndpointTest(APITestCase):
         )
         qs = urlencode(
             {
-                "projectId": self.project.id,
+                "projectId": str(self.project.id),
                 "uri": "/get-projects",
                 "query": "proj",
                 "dependentData": orjson.dumps({"org_id": "A"}).decode(),

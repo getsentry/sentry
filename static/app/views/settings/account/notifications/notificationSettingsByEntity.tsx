@@ -5,6 +5,7 @@ import {IconAdd} from '@sentry/icons/add';
 import {IconDelete} from '@sentry/icons/delete';
 import {skipToken, useQuery} from '@tanstack/react-query';
 import keyBy from 'lodash/keyBy';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
@@ -40,7 +41,7 @@ interface NotificationSettingsByEntityProps {
   handleRemoveNotificationOption: (id: string) => void;
   notificationOptions: NotificationOptionsObject[];
   notificationType: string;
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 }
 
 export function NotificationSettingsByEntity({
@@ -55,6 +56,7 @@ export function NotificationSettingsByEntity({
   const theme = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
+  const [organizationIdParam] = useQueryState('organizationId', parseAsString);
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [selectedValue, setSelectedValue] = useState<Value | null>(null);
 
@@ -64,7 +66,7 @@ export function NotificationSettingsByEntity({
   )?.id;
 
   const orgId =
-    (location.query?.organizationId as string | undefined) ??
+    organizationIdParam ??
     orgFromSubdomain ??
     (organizations.length === 1 ? organizations[0]?.id : undefined);
   let organization = organizations.find(({id}) => id === orgId);
@@ -83,10 +85,7 @@ export function NotificationSettingsByEntity({
     ...apiOptions.as<Project[]>()('/organizations/$organizationIdOrSlug/projects/', {
       path: organization ? {organizationIdOrSlug: organization.slug} : skipToken,
       host: organization?.links?.regionUrl,
-      query: {
-        all_projects: '1',
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: '1', collapse: ['latestDeploys', 'unusedFeatures']},
       staleTime: Infinity,
     }),
   });
@@ -97,13 +96,7 @@ export function NotificationSettingsByEntity({
   const entityById = keyBy<OrganizationSummary | Project>(entities, 'id');
 
   const handleOrgChange = (organizationId: string) => {
-    navigate(
-      {
-        ...location,
-        query: {organizationId},
-      },
-      {replace: true}
-    );
+    navigate({...location, query: {organizationId}}, {replace: true});
   };
 
   const handleAdd = () => {
@@ -122,8 +115,10 @@ export function NotificationSettingsByEntity({
     handleAddNotificationOption(data);
   };
 
-  const valueOptions =
-    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices;
+  const valueOptions = (
+    NOTIFICATION_SETTING_FIELDS[notificationType as NotificationSettingsType].choices ??
+    []
+  ).map(([value, label]) => ({value, label}));
 
   const renderOverrides = () => {
     const matchedOptions = notificationOptions.filter(
@@ -155,12 +150,9 @@ export function NotificationSettingsByEntity({
             placeholder={t('Value\u2026')}
             value={option.value}
             name={`${entity.id}-value`}
-            choices={valueOptions}
+            options={valueOptions}
             onChange={({value}: {value: string}) => {
-              handleEditNotificationOption({
-                ...option,
-                value: value as Value,
-              });
+              handleEditNotificationOption({...option, value: value as Value});
             }}
           />
           <Container margin="0 xs">
@@ -270,7 +262,7 @@ export function NotificationSettingsByEntity({
                 placeholder={t('Value\u2026')}
                 value={selectedValue}
                 name="value"
-                choices={valueOptions}
+                options={valueOptions}
                 onChange={({value}: {value: string}) => {
                   setSelectedValue(value as Value);
                 }}

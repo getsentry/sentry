@@ -1,9 +1,6 @@
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {
-  getEventSearchFromIssueQuery,
-  useEventQuery,
-} from 'sentry/views/issueDetails/hooks/useEventQuery';
+import {getEventSearchFromIssueQuery, useEventQuery} from './useEventQuery';
 
 describe('useEventQuery', () => {
   const [tagKey, tagValue] = ['user.email', 'leander@s.io'];
@@ -35,10 +32,7 @@ describe('useEventQuery', () => {
 
     const {result: onlyEventTokens} = renderHookWithProviders(() => useEventQuery(), {
       initialRouterConfig: {
-        location: {
-          pathname: '/issues/1234/',
-          query: {query: validQuery},
-        },
+        location: {pathname: '/issues/1234/', query: {query: validQuery}},
         route: '/issues/:issueId/',
       },
     });

@@ -10,7 +10,6 @@ import {Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Pagination} from '@sentry/scraps/pagination';
 
-import Feature from 'sentry/components/acl/feature';
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
 import {resetPageFilters} from 'sentry/components/pageFilters/actions';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -19,6 +18,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -120,10 +120,7 @@ function useSavedQueryActions({
 
     handleCreateQuery(api, organization, copy, yAxis).then(() => {
       refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
+      navigate({pathname: location.pathname, query: {}});
     });
   };
 
@@ -223,11 +220,7 @@ function PrebuiltQueryCard({
           query_name: eventView.name,
         });
       }}
-      renderContextMenu={() => (
-        <Feature organization={organization} features="dashboards-edit">
-          {({hasFeature}) => hasFeature && <HamburgerDropdown items={menuItems} />}
-        </Feature>
-      )}
+      renderContextMenu={() => <HamburgerDropdown items={menuItems} />}
     />
   );
 }
@@ -250,26 +243,22 @@ function SavedQueryCard({
     savedQuery.queryDataset
   );
 
-  const menuItems = (canAddToDashboard: boolean): MenuItemProps[] => [
-    ...(canAddToDashboard
-      ? [
-          {
-            key: 'add-to-dashboard',
-            label: t('Add to Dashboard'),
-            onAction: () =>
-              handleAddQueryToDashboard({
-                eventView,
-                location,
-                query: savedQuery,
-                organization,
-                yAxis: savedQuery?.yAxis ?? eventView.yAxis,
-                widgetType: getWidgetType(organization, location, savedQuery),
-                source: DashboardWidgetSource.DISCOVERV2,
-              }),
-            disabled: deprecateTransactionQuery,
-          },
-        ]
-      : []),
+  const menuItems: MenuItemProps[] = [
+    {
+      key: 'add-to-dashboard',
+      label: t('Add to Dashboard'),
+      onAction: () =>
+        handleAddQueryToDashboard({
+          eventView,
+          location,
+          query: savedQuery,
+          organization,
+          yAxis: savedQuery?.yAxis ?? eventView.yAxis,
+          widgetType: getWidgetType(organization, location, savedQuery),
+          source: DashboardWidgetSource.DISCOVERV2,
+        }),
+      disabled: deprecateTransactionQuery,
+    },
     {
       key: 'set-as-default',
       label: t('Set as Default'),
@@ -309,11 +298,7 @@ function SavedQueryCard({
           yAxis={savedQuery.yAxis?.length ? savedQuery.yAxis : ['count()']}
         />
       )}
-      renderContextMenu={() => (
-        <Feature organization={organization} features="dashboards-edit">
-          {({hasFeature}) => <HamburgerDropdown items={menuItems(hasFeature)} />}
-        </Feature>
-      )}
+      renderContextMenu={() => <HamburgerDropdown items={menuItems} />}
     />
   );
 }
@@ -392,8 +377,9 @@ export function QueryList({
         )}
       </Grid>
       <PaginationRow
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, query, direction) => {
+        {...getPaginationProps(pageLinks)}
+        onCursor={(cursor, direction) => {
+          const {pathname: path, query} = location;
           const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
@@ -403,10 +389,7 @@ export function QueryList({
             delete newQuery.cursor;
           }
 
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
+          navigate({pathname: path, query: newQuery});
         }}
       />
     </Fragment>

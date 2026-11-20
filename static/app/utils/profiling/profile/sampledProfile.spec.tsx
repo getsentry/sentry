@@ -1,8 +1,8 @@
 import {Frame} from 'sentry/utils/profiling/frame';
-import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
-import {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
+import {SampledProfile} from './sampledProfile';
 import {firstCallee, makeTestingBoilerplate} from './testUtils';
+import {createFrameIndex} from './utils';
 
 describe('SampledProfile', () => {
   it('imports the base properties', () => {
@@ -404,9 +404,7 @@ describe('SampledProfile', () => {
     const profile = SampledProfile.FromProfile(
       trace,
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
-      {
-        type: 'flamegraph',
-      }
+      {type: 'flamegraph'}
     );
 
     expect(profile.callTree.children[0]!.frame.name).toBe('f0');

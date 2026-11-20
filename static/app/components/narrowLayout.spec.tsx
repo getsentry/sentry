@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {NarrowLayout} from 'sentry/components/narrowLayout';
+import {NarrowLayout} from './narrowLayout';
 
 describe('NarrowLayout', () => {
   it('renders without logout', () => {

@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import {StackTraceViewStateProvider} from 'sentry/components/stackTrace/stackTraceContext';
+
+import {RawDownloadAction} from './rawDownloadAction';
 
 describe('RawDownloadAction', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
@@ -27,7 +28,7 @@ describe('RawDownloadAction', () => {
 
     expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
-      '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
+      '/api/0/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
     );
   });
 

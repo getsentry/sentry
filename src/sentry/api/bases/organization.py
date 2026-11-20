@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any, Literal, NamedTuple, NotRequired, TypedDict, overload
 
 import sentry_sdk
+from django.conf import settings
 from django.core.cache import cache
 from django.db.models import Q
 from django.http.request import HttpRequest, QueryDict
@@ -15,8 +16,14 @@ from rest_framework.request import Request
 from rest_framework.views import APIView
 from sentry_sdk import traces
 
+from sentry import features, options
+from sentry.api.authentication import UserAuthTokenAuthentication
 from sentry.api.base import Endpoint
-from sentry.api.exceptions import ResourceDoesNotExist, SuperuserRequired
+from sentry.api.exceptions import (
+    INSUFFICIENT_SCOPE_ATTR,
+    ResourceDoesNotExist,
+    SuperuserRequired,
+)
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.projects import (
     ParsedProjectIdOrSlugParams,
@@ -26,6 +33,9 @@ from sentry.api.helpers.projects import (
 )
 from sentry.api.permissions import DemoSafePermission, StaffPermissionMixin
 from sentry.api.utils import get_date_range_from_params, is_member_disabled_from_limit
+from sentry.auth import access
+from sentry.auth.principal import acting_user_id, require_user
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS_SLUG, ObjectStatus
 from sentry.exceptions import InvalidParams
@@ -43,6 +53,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.seer.agent_token import is_agent_auth
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.types.cell import subdomain_is_locality
 from sentry.utils import auth
 from sentry.utils.hashlib import hash_values
@@ -84,6 +95,12 @@ class OrganizationPermission(DemoSafePermission):
         "PUT": ["org:write", "org:admin"],
         "DELETE": ["org:admin"],
     }
+    # Stop accepting `settings.DEPRECATED_SCOPES` in orgs with granular scopes while the
+    # deprecated scope translation is enabled. Members get the replacements from the granular
+    # roles, and tokens holding a deprecated scope get them from the translation. Only opt in
+    # once every deprecated scope in `scope_map` has a translated replacement that the granular
+    # roles grant and this permission accepts.
+    rejects_deprecated_scopes = False
 
     def is_not_2fa_compliant(
         self, request: Request, organization: RpcOrganization | Organization
@@ -91,7 +108,7 @@ class OrganizationPermission(DemoSafePermission):
         if not organization.flags.require_2fa:
             return False
 
-        if request.user.is_authenticated and request.user.has_2fa():
+        if request.user.is_authenticated and require_user(request).has_2fa():
             return False
 
         if request.user.is_authenticated and request.user.is_sentry_app:
@@ -133,8 +150,30 @@ class OrganizationPermission(DemoSafePermission):
             if not has_staff_perm:
                 raise SuperuserRequired(orgSlug=org_slug)
 
-        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        allowed_scopes = self.get_allowed_scopes(request, organization)
         return any(request.access.has_scope(s) for s in allowed_scopes)
+
+    def get_allowed_scopes(
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization | RpcUserOrganizationContext,
+    ) -> set[str]:
+        """The scopes that grant access to `organization` for the request's method."""
+        allowed_scopes = set(self.scope_map.get(request.method or "", []))
+        if self.rejects_deprecated_scopes and self._deprecated_scopes_retired(organization):
+            allowed_scopes -= settings.DEPRECATED_SCOPES
+        return allowed_scopes
+
+    def _deprecated_scopes_retired(
+        self, organization: Organization | RpcOrganization | RpcUserOrganizationContext
+    ) -> bool:
+        if isinstance(organization, RpcUserOrganizationContext):
+            organization = organization.organization
+        # TODO: Remove deprecated scopes from opted-in scope maps once the translation is
+        # enabled everywhere.
+        return options.get("auth.deprecated-scope-translation.enabled") and features.has(
+            "organizations:granular-permission-scopes", organization
+        )
 
     def is_member_disabled_from_limit(
         self,
@@ -180,6 +219,12 @@ class OrganizationEventPermission(OrganizationPermission):
 # additional checks to limit actions to releases
 # associated with projects people have access to
 class OrganizationReleasePermission(OrganizationPermission):
+    """
+    Includes org:ci so CI org-auth-tokens (e.g. sentry-cli) can manage releases.
+    Use only for release endpoints. Do not reuse an org:ci permission for endpoints
+    exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin", "project:releases", "org:ci"],
         "POST": ["project:write", "project:admin", "project:releases", "org:ci"],
@@ -198,6 +243,15 @@ class OrganizationIntegrationsPermission(OrganizationPermission):
 
 
 class OrganizationIntegrationsLoosePermission(OrganizationPermission):
+    """
+    "Loose" because GET also grants org:ci, so CI org-auth-tokens (e.g. sentry-cli)
+    can call it; this was added for the repositories list. Use only for integration
+    reads that are safe for CI tokens. Do NOT reuse for endpoints returning repo or
+    source content (PR diffs, file trees, source) — or any other data a CI token
+    should not read. Prefer OrganizationIntegrationsPermission (no org:ci), or
+    SessionNoAuthTokenAuthentication for UI-only endpoints.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations"],
@@ -207,6 +261,12 @@ class OrganizationIntegrationsLoosePermission(OrganizationPermission):
 
 
 class OrganizationCodeMappingsBulkPermission(OrganizationPermission):
+    """
+    Grants org:ci on GET/POST so sentry-cli can set up bulk code mappings in CI.
+    Use only for CI-driven code-mapping setup. Do not reuse an org:ci permission for
+    endpoints exposing data a CI token should not read.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
         "POST": ["org:read", "org:write", "org:admin", "org:integrations", "org:ci"],
@@ -265,11 +325,52 @@ class OrganizationDetectorPermission(OrganizationPermission):
 
 
 class OrgAuthTokenPermission(OrganizationPermission):
+    """
+    Org auth tokens can be managed from a browser session, or by an OAuth application
+    token (e.g. the Sentry CLI) acting for a member who consented to `org:tokens`.
+
+    Every other token type is rejected: personal tokens cannot hold token-only scopes
+    like `org:tokens`, and org auth / integration tokens must never mint new tokens.
+    """
+
     scope_map = {
         "GET": ["org:read", "org:write", "org:admin"],
         "POST": ["org:read", "org:write", "org:admin"],
         "PUT": ["org:read", "org:write", "org:admin"],
         "DELETE": ["org:write", "org:admin"],
+    }
+
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        if request.auth is not None:
+            if not self._is_oauth_application_token(request):
+                return False
+            if not request.auth.has_scope("org:tokens"):
+                setattr(request, INSUFFICIENT_SCOPE_ATTR, {"org:tokens"})
+                return False
+        return super().has_permission(request, view)
+
+    @staticmethod
+    def _is_oauth_application_token(request: Request) -> bool:
+        return (
+            isinstance(request.successful_authenticator, UserAuthTokenAuthentication)
+            and is_api_token_auth(request.auth)
+            and request.auth.application_id is not None
+            and not getattr(request.user, "is_sentry_app", False)
+        )
+
+
+def get_issuing_token_audit_log_data(request: Request) -> dict[str, int]:
+    """
+    Record which OAuth application and token managed an org auth token, so tokens minted by
+    a compromised OAuth grant can be traced back to it.
+    """
+    if not is_api_token_auth(request.auth) or request.auth.application_id is None:
+        return {}
+    issuing_token = AuthenticatedToken.from_token(request.auth)
+    assert issuing_token is not None and issuing_token.entity_id is not None
+    return {
+        "application_id": request.auth.application_id,
+        "api_token_id": issuing_token.entity_id,
     }
 
 
@@ -287,13 +388,6 @@ class ControlSiloOrganizationEndpoint(Endpoint):
     """
 
     permission_classes: tuple[type[BasePermission], ...] = (OrganizationPermission,)
-
-    # Control silo endpoints fetch the organization over RPC from the cell silo.
-    # Including projects/teams serializes every row into the response body, which is
-    # expensive for large organizations. Set these to False when the endpoint does not
-    # need them.
-    include_organization_projects: bool = True
-    include_organization_teams: bool = True
 
     def convert_args(
         self,
@@ -321,21 +415,15 @@ class ControlSiloOrganizationEndpoint(Endpoint):
                 raise ResourceDoesNotExist
 
         if str(organization_id_or_slug).isdecimal():
-            # It is ok that `get_organization_by_id` doesn't check for visibility as we
-            # don't check the visibility in `get_organization_by_slug` either (only_active=False).
-            organization_context = organization_service.get_organization_by_id(
-                id=int(organization_id_or_slug),
-                user_id=request.user.id,
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+            organization_context = access.get_organization_access_context(
+                request, organization_id=int(organization_id_or_slug)
             )
         else:
-            organization_context = organization_service.get_organization_by_slug(
+            organization_context = organization_service.get_access_context_by_slug(
                 slug=str(organization_id_or_slug),
                 only_visible=False,
-                user_id=request.user.id,
-                include_projects=self.include_organization_projects,
-                include_teams=self.include_organization_teams,
+                user_id=acting_user_id(request.user),
+                include_resource_ids=access.should_prefetch_organization_resources(request),
             )
         if organization_context is None:
             raise ResourceDoesNotExist
@@ -830,10 +918,15 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
         has_valid_agent_auth = (
             agent_auth is not None and agent_auth.organization_id == organization.id
         )
+        has_valid_service_account_auth = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == organization.id
+        )
 
         if not (
             has_valid_api_key
             or has_valid_agent_auth
+            or has_valid_service_account_auth
             or (getattr(request, "user", None) and request.user.is_authenticated)
         ):
             return []
@@ -869,13 +962,16 @@ class OrganizationReleasesBaseEndpoint(OrganizationEndpoint):
 
         Results are cached for 60s per actor/org/release/effective-project-scope/mode.
         Agent requests bypass the cache so every call rechecks live project membership.
+        Service accounts bypass it too. With no user, they'd fall into the
+        `apikey:<entity_id>` key below, where a service account ID can match an
+        API key ID.
         """
         actor_id = None
         has_perms = None
         key = None
-        if not is_agent_auth(request.auth):
+        if not is_agent_auth(request.auth) and not is_service_account_auth(request.auth):
             if request.user.is_authenticated:
-                actor_id = "user:%s" % request.user.id
+                actor_id = "user:%s" % require_user(request).id
             elif request.auth is not None:
                 actor_id = "apikey:%s" % request.auth.entity_id
         if actor_id is not None:

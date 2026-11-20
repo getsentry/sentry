@@ -21,13 +21,12 @@ class TestFeatureAdoptionRedisCache(TestCase):
     def test_bulk_set_cache_sets_ttl(self) -> None:
         self.cache.bulk_set_cache(self.org_id, 90)
         org_key = self.cache.key_tpl.format(self.org_id)
-        assert self.cache.get_client(org_key).ttl(org_key) > 0
+        assert self.cache.cluster.ttl(org_key) > 0
 
 
 class TestFeatureAdoptionRedisClusterCache(TestFeatureAdoptionRedisCache):
     def setUp(self) -> None:
-        # TODO: Once we have properly redis-cluster setup in tests and CI use that For now  that's
-        # the simplest way to test non redis-blaster compatibility.
+        # Uses the str client that a Redis Cluster config gets. The parent uses the bytes client.
         self.cache = FeatureAdoptionRedisBackend()
-        self.cache.is_redis_cluster, self.cache.cluster = True, redis_clusters.get("default")
+        self.cache.cluster = redis_clusters.get("default")
         self.org_id = 1234

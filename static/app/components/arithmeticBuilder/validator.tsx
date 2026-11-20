@@ -1,4 +1,6 @@
-import type {Token} from 'sentry/components/arithmeticBuilder/token';
+import {defined} from 'sentry/utils/defined';
+
+import type {Token} from './token';
 import {
   isTokenFreeText,
   isTokenFunction,
@@ -8,8 +10,7 @@ import {
   isTokenReference,
   Parenthesis,
   TokenKind,
-} from 'sentry/components/arithmeticBuilder/token';
-import {defined} from 'sentry/utils/defined';
+} from './token';
 
 export function validateTokens(tokens: Token[]): boolean {
   const validator = new ExpressionValidator();

@@ -1,6 +1,7 @@
 import {useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {useRenderToString} from '@sentry/scraps/renderToString';
 import {Separator} from '@sentry/scraps/separator';
@@ -10,8 +11,8 @@ import {markLine as createMarkLine} from 'sentry/components/charts/components/ma
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
-import {useIssueDetailsEventView} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
+
+import {useIssueDetailsEventView} from './issueDetailsEventsQuery';
 
 function SeriesRow({
   color,
@@ -72,6 +73,7 @@ export function useCurrentEventMarklineSeries({
   seriesType,
 }: UseEventMarklineSeriesProps) {
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const eventView = useIssueDetailsEventView({group});
   const renderToString = useRenderToString();
 
@@ -100,16 +102,8 @@ export function useCurrentEventMarklineSeries({
     // Labels and colors based on series type, matching eventGraph.tsx bar chart series
     const isUserSeries = seriesType === 'user';
     const labels = isUserSeries
-      ? {
-          total: t('Total users'),
-          matching: t('Matching users'),
-          default: t('Users'),
-        }
-      : {
-          total: t('Total events'),
-          matching: t('Matching events'),
-          default: t('Events'),
-        };
+      ? {total: t('Total users'), matching: t('Matching users'), default: t('Users')}
+      : {total: t('Total events'), matching: t('Matching events'), default: t('Events')};
 
     // Colors match eventGraph.tsx series colors
     const colors = isUserSeries
@@ -126,35 +120,19 @@ export function useCurrentEventMarklineSeries({
 
     const markLine = createMarkLine({
       animation: false,
-      lineStyle: {
-        color: theme.tokens.graphics.promotion.vibrant,
-        type: 'solid',
-      },
-      label: {
-        show: false,
-      },
-      emphasis: {
-        label: {
-          show: false,
-        },
-      },
-      data: [
-        {
-          xAxis: closestEventSeries.name,
-          name: event.id,
-        },
-      ],
+      lineStyle: {color: theme.tokens.graphics.promotion.vibrant, type: 'solid'},
+      label: {show: false},
+      emphasis: {label: {show: false}},
+      data: [{xAxis: closestEventSeries.name, name: event.id}],
       tooltip: {
         trigger: 'item',
         formatter: () => {
           // Do not use date from xAxis here since we've placed it on the nearest bar
-          const time = getFormattedDate(
-            event.dateCreated,
-            getFormat({timeZone: true, year: true}),
-            {
-              local: !eventView.utc,
-            }
-          );
+          const time = formatDateTime(event.dateCreated ?? event.dateReceived ?? NaN, {
+            year: 'always',
+            showTimezone: true,
+            timezone: eventView.utc ? 'UTC' : undefined,
+          });
 
           const matchingCount = closestEventSeries.value.toLocaleString();
           const totalCount = unfilteredEventSeries
@@ -212,12 +190,7 @@ export function useCurrentEventMarklineSeries({
       },
     });
 
-    return {
-      seriesName: 'Current Event',
-      data: [],
-      markLine,
-      type: 'line',
-    };
+    return {seriesName: 'Current Event', data: [], markLine, type: 'line'};
   }, [
     event,
     theme,
@@ -227,5 +200,6 @@ export function useCurrentEventMarklineSeries({
     unfilteredEventSeries,
     seriesType,
     renderToString,
+    formatDateTime,
   ]);
 }

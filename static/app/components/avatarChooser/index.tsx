@@ -13,8 +13,8 @@ import type {AvatarProps} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RadioOption} from 'sentry/components/forms/controls/radioGroup';
 import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
 import {Hovercard} from 'sentry/components/hovercard';
@@ -51,10 +51,7 @@ type AvatarModel =
   | DocIntegration
   | SimpleAvatar;
 
-type DefaultChoice = {
-  description?: React.ReactNode;
-  label?: string;
-};
+type DefaultChoice = {description?: React.ReactNode; label?: string};
 
 interface AvatarChooserBaseProps {
   endpoint: string;
@@ -67,21 +64,9 @@ interface AvatarChooserBaseProps {
 
 type AvatarChooserProps = AvatarChooserBaseProps &
   (
-    | {
-        model: AvatarUser;
-        type: 'user';
-        onSave?: (model: AvatarUser) => void;
-      }
-    | {
-        model: Team;
-        type: 'team';
-        onSave?: (model: Team) => void;
-      }
-    | {
-        model: Organization;
-        type: 'organization';
-        onSave?: (model: Organization) => void;
-      }
+    | {model: AvatarUser; type: 'user'; onSave?: (model: AvatarUser) => void}
+    | {model: Team; type: 'team'; onSave?: (model: Team) => void}
+    | {model: Organization; type: 'organization'; onSave?: (model: Organization) => void}
     | {
         model: SentryApp;
         type: 'sentryAppColor' | 'sentryAppSimple';
@@ -203,21 +188,18 @@ export function AvatarChooser({
     }
 
     try {
-      const resp = await api.requestPromise(endpoint, {
-        method: 'PUT',
-        data,
-      });
+      const resp = await api.requestPromise(endpoint, {method: 'PUT', data});
       setModel(resp);
       onSave?.(resp);
-      addSuccessMessage(t('Successfully saved avatar preferences'));
+      toast.success(t('Successfully saved avatar preferences'));
     } catch (error) {
       const requestError = error as RequestError;
       const avatarPhotoErrors = (requestError?.responseJSON?.avatar_photo ||
         []) as string[];
       if (avatarPhotoErrors.length) {
-        avatarPhotoErrors.forEach(msg => addErrorMessage(msg));
+        avatarPhotoErrors.forEach(msg => toast.error(msg));
       } else {
-        addErrorMessage(t('There was an error saving your preferences.'));
+        toast.error(t('There was an error saving your preferences.'));
       }
     }
   };
@@ -259,9 +241,7 @@ export function AvatarChooser({
     </Container>
   );
 
-  const sharedAvatarProps: Partial<Omit<AvatarProps, 'ref'>> = {
-    size: 90,
-  };
+  const sharedAvatarProps: Partial<Omit<AvatarProps, 'ref'>> = {size: 90};
 
   const avatarPreview =
     type === 'user' ? (

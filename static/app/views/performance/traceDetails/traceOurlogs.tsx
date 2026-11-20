@@ -23,12 +23,11 @@ import {
   createErrorLogRow,
   getLogsUrl,
 } from 'sentry/views/explore/logs/utils';
-import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
-import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 
-type PageDataProviderProps = {
-  children: React.ReactNode;
-};
+import type {TraceTree} from './traceModels/traceTree';
+import {useTraceQueryParams} from './useTraceQueryParams';
+
+type PageDataProviderProps = {children: React.ReactNode};
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,

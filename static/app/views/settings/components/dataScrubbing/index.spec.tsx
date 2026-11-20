@@ -17,7 +17,8 @@ import {GlobalModal} from '@sentry/scraps/modal';
 
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DataScrubbing} from 'sentry/views/settings/components/dataScrubbing';
-import {MethodType, RuleType} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {MethodType, RuleType} from './types';
 
 const relayPiiConfig = JSON.stringify(DataScrubbingRelayPiiConfigFixture());
 const relayPiiConfigWithConstructorSource = JSON.stringify({
@@ -48,9 +49,7 @@ describe('Data Scrubbing', () => {
           organization={organization}
           onSubmitSuccess={jest.fn()}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Header
@@ -91,9 +90,7 @@ describe('Data Scrubbing', () => {
           organization={organization}
           onSubmitSuccess={jest.fn()}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(screen.getByText('You have no data scrubbing rules')).toBeInTheDocument();
@@ -109,9 +106,7 @@ describe('Data Scrubbing', () => {
           onSubmitSuccess={jest.fn()}
           disabled
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Read Docs is the only enabled action
@@ -143,9 +138,7 @@ describe('Data Scrubbing', () => {
           onSubmitSuccess={jest.fn()}
           project={project}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Header
@@ -155,9 +148,7 @@ describe('Data Scrubbing', () => {
     });
 
     it('OrganizationRules has content', async () => {
-      const organization = OrganizationFixture({
-        relayPiiConfig,
-      });
+      const organization = OrganizationFixture({relayPiiConfig});
       const project = ProjectFixture();
 
       render(
@@ -168,9 +159,7 @@ describe('Data Scrubbing', () => {
           onSubmitSuccess={jest.fn()}
           project={project}
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Organization Rules
@@ -193,9 +182,7 @@ describe('Data Scrubbing', () => {
             onSubmitSuccess={jest.fn()}
           />
         </Fragment>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getAllByLabelText('Delete Rule')[0]!);
@@ -227,9 +214,7 @@ describe('Data Scrubbing', () => {
             onSubmitSuccess={jest.fn()}
           />
         </Fragment>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       const deleteButtons = await screen.findAllByLabelText('Delete Rule');
@@ -245,9 +230,7 @@ describe('Data Scrubbing', () => {
       const submittedRelayPiiConfig = JSON.parse(requestPayload.relayPiiConfig);
 
       expect(submittedRelayPiiConfig).toEqual({
-        rules: {
-          0: {type: RuleType.EMAIL, redaction: {method: MethodType.MASK}},
-        },
+        rules: {0: {type: RuleType.EMAIL, redaction: {method: MethodType.MASK}}},
         applications: {constructor: ['0']},
       });
     });
@@ -268,9 +251,7 @@ describe('Data Scrubbing', () => {
             onSubmitSuccess={jest.fn()}
           />
         </Fragment>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));
@@ -319,9 +300,7 @@ describe('Data Scrubbing', () => {
   });
 
   describe('with ourlogs-enabled', () => {
-    const organization = OrganizationFixture({
-      features: ['ourlogs-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();
@@ -349,9 +328,7 @@ describe('Data Scrubbing', () => {
             />
           </Fragment>
         </OrganizationContext.Provider>,
-        {
-          organization,
-        }
+        {organization}
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Add Rule'}));

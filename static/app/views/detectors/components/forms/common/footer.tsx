@@ -7,12 +7,13 @@ import {FormContext} from 'sentry/components/forms/formContext';
 import {EditLayout} from 'sentry/components/workflowEngine/layout/edit';
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getSubmitButtonTitle} from 'sentry/views/detectors/components/forms/common/getSubmitButtonTitle';
 import {useDetectorFormContext} from 'sentry/views/detectors/components/forms/context';
 import {
   makeMonitorCreatePathname,
   makeMonitorDetailsPathname,
 } from 'sentry/views/detectors/pathnames';
+
+import {getSubmitButtonTitle} from './getSubmitButtonTitle';
 
 interface NewDetectorFooterProps {
   disabledCreate?: string;
@@ -32,10 +33,7 @@ export function NewDetectorFooter({
         label: t('Cancel'),
         to: makeMonitorDetailsPathname(organization.slug, duplicateDetector.id),
       }
-    : {
-        label: t('Back'),
-        to: makeMonitorCreatePathname(organization.slug),
-      };
+    : {label: t('Back'), to: makeMonitorCreatePathname(organization.slug)};
 
   return (
     <FormContext.Consumer>

@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 import responses
 
@@ -179,7 +181,7 @@ class FetchAIModelMetadataTest(TestCase):
         # Clear cache before each test
         cache.delete(AI_MODEL_METADATA_CACHE_KEY)
 
-    def _mock_openrouter_api_response(self, mock_response: dict):
+    def _mock_openrouter_api_response(self, mock_response: dict[str, Any]) -> None:
         responses.add(
             responses.GET,
             OPENROUTER_MODELS_API_URL,
@@ -187,7 +189,7 @@ class FetchAIModelMetadataTest(TestCase):
             status=200,
         )
 
-    def _mock_models_dev_api_response(self, mock_response: dict):
+    def _mock_models_dev_api_response(self, mock_response: dict[str, Any]) -> None:
         responses.add(
             responses.GET,
             MODELS_DEV_API_URL,

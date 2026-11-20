@@ -53,7 +53,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -101,7 +101,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -148,7 +148,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         response = self.get_success_response(self.existing_org.slug)
@@ -188,7 +188,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         response = self.get_success_response(self.existing_org.slug)
@@ -224,7 +224,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -272,7 +272,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -320,7 +320,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -341,7 +341,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -364,7 +364,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
 
         self.existing_org.status = OrganizationStatus.DELETION_IN_PROGRESS
@@ -400,7 +400,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -423,7 +423,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -450,8 +450,8 @@ class OrganizationForkTest(APITestCase):
             self,
             uploading_start_mock: Mock,
             analytics_record_mock: Mock,
-            stat=stat,
-        ):
+            stat: Relocation.Status = stat,
+        ) -> None:
             self.login_as(user=self.superuser, superuser=True)
             Relocation.objects.create(
                 creator_id=self.superuser.id,
@@ -507,8 +507,8 @@ class OrganizationForkTest(APITestCase):
             self,
             uploading_start_mock: Mock,
             analytics_record_mock: Mock,
-            stat=stat,
-        ):
+            stat: Relocation.Status = stat,
+        ) -> None:
             self.login_as(user=self.superuser, superuser=True)
             existing_relocation = Relocation.objects.create(
                 creator_id=self.superuser.id,
@@ -536,7 +536,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.staff_user, staff=True)
         Relocation.objects.create(
             creator_id=self.superuser.id,
@@ -587,7 +587,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=True)
         Relocation.objects.create(
             creator_id=self.superuser.id,
@@ -637,7 +637,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.existing_org_owner, superuser=False, staff=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -654,7 +654,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         self.login_as(user=self.superuser, superuser=False)
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -672,7 +672,7 @@ class OrganizationForkTest(APITestCase):
         self,
         uploading_start_mock: Mock,
         analytics_record_mock: Mock,
-    ):
+    ) -> None:
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
 

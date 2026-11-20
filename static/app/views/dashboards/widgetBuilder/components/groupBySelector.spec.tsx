@@ -5,12 +5,11 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {TagStore} from 'sentry/stores/tagStore';
 import {decodeList} from 'sentry/utils/queryString';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
-import {WidgetBuilderGroupBySelector} from 'sentry/views/dashboards/widgetBuilder/components/groupBySelector';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 
-const organization = OrganizationFixture({
-  features: [],
-});
+import {WidgetBuilderGroupBySelector} from './groupBySelector';
+
+const organization = OrganizationFixture({features: []});
 const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
@@ -27,9 +26,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -42,9 +39,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -73,9 +68,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       <WidgetBuilderProvider>
         <WidgetBuilderGroupBySelector />
       </WidgetBuilderProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('Group by')).toBeInTheDocument();
@@ -223,10 +216,7 @@ describe('WidgetBuilderGroupBySelector', () => {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
         organization: organizationWithFeature,
@@ -240,9 +230,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   });
 
   it('enables group by selector when transaction widget type but no discover-saved-queries-deprecation feature flag', async () => {
-    const organizationWithoutFeature = OrganizationFixture({
-      features: [],
-    });
+    const organizationWithoutFeature = OrganizationFixture({features: []});
 
     render(
       <WidgetBuilderProvider>
@@ -253,10 +241,7 @@ describe('WidgetBuilderGroupBySelector', () => {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRANSACTIONS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRANSACTIONS, displayType: DisplayType.LINE},
           },
         },
         organization: organizationWithoutFeature,
@@ -283,10 +268,7 @@ describe('WidgetBuilderGroupBySelector', () => {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.ERRORS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.ERRORS, displayType: DisplayType.LINE},
           },
         },
         organization: organizationWithFeature,
@@ -302,12 +284,7 @@ describe('WidgetBuilderGroupBySelector', () => {
   it('hides group by fields that are hidden in the trace metrics dataset', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
-      body: [
-        {
-          key: 'metric.name',
-          name: 'metric.name',
-        },
-      ],
+      body: [{key: 'metric.name', name: 'metric.name'}],
     });
 
     render(
@@ -319,10 +296,7 @@ describe('WidgetBuilderGroupBySelector', () => {
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/dashboard/1/',
-            query: {
-              dataset: WidgetType.TRACEMETRICS,
-              displayType: DisplayType.LINE,
-            },
+            query: {dataset: WidgetType.TRACEMETRICS, displayType: DisplayType.LINE},
           },
         },
       }
@@ -359,9 +333,7 @@ describe('WidgetBuilderGroupBySelector', () => {
       }
     );
 
-    const removeButtons = await screen.findAllByRole('button', {
-      name: 'Remove group',
-    });
+    const removeButtons = await screen.findAllByRole('button', {name: 'Remove group'});
     await userEvent.click(removeButtons[0]!);
 
     await waitFor(() => {

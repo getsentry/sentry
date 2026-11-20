@@ -1,37 +1,13 @@
-import {
-  getErrorMessage,
-  type ErrorMessage,
-} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
-import {
-  shouldErrorBeShown,
-  useFetchProguardMappingFiles,
-} from 'sentry/components/events/interfaces/crashContent/exception/actionableItemsUtils';
+import {skipToken, useQuery} from '@tanstack/react-query';
+
 import type {Event} from 'sentry/types/event';
 import type {Project} from 'sentry/types/project';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
+import {getErrorMessage, type ErrorMessage} from './actionableItems';
+import {shouldErrorBeShown, useFetchProguardMappingFiles} from './actionableItemsUtils';
 import type {ActionableItemErrors} from './actionableItemsUtils';
-
-const actionableItemsQuery = ({
-  orgSlug,
-  projectSlug,
-  eventId,
-}: UseActionableItemsProps): ApiQueryKey => [
-  getApiUrl(
-    '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/actionable-items/',
-    {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-        eventId,
-      },
-    }
-  ),
-];
 
 interface ActionableItemsResponse {
   errors: ActionableItemErrors[];
@@ -44,16 +20,24 @@ interface UseActionableItemsProps {
 }
 
 function useActionableItems(props?: UseActionableItemsProps) {
-  return useApiQuery<ActionableItemsResponse>(
-    props ? actionableItemsQuery(props) : ([''] as unknown as ApiQueryKey),
-    {
-      staleTime: Infinity,
-      retry: false,
-      refetchOnWindowFocus: false,
-      notifyOnChangeProps: ['data'],
-      enabled: defined(props),
-    }
-  );
+  return useQuery({
+    ...apiOptions.as<ActionableItemsResponse>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/actionable-items/',
+      {
+        path: props
+          ? {
+              organizationIdOrSlug: props.orgSlug,
+              projectIdOrSlug: props.projectSlug,
+              eventId: props.eventId,
+            }
+          : skipToken,
+        staleTime: Infinity,
+      }
+    ),
+    retry: false,
+    refetchOnWindowFocus: false,
+    notifyOnChangeProps: ['data'],
+  });
 }
 
 export function useActionableItemsWithProguardErrors({

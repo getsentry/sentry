@@ -15,22 +15,21 @@ import {DetectorDetailsAutomations} from 'sentry/views/detectors/components/deta
 import {DisabledAlert} from 'sentry/views/detectors/components/details/common/disabledAlert';
 import {DetectorDetailsHeader} from 'sentry/views/detectors/components/details/common/header';
 import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
-import {MetricDetectorDetailsChart} from 'sentry/views/detectors/components/details/metric/chart';
-import {MetricDetectorRecentIssues} from 'sentry/views/detectors/components/details/metric/recentIssues';
-import {MetricDetectorDetailsSidebar} from 'sentry/views/detectors/components/details/metric/sidebar';
-import {MetricTimePeriodSelect} from 'sentry/views/detectors/components/details/metric/timePeriodSelect';
-import {
-  MigratedAlertWarning,
-  TransactionsDatasetWarning,
-} from 'sentry/views/detectors/components/details/metric/transactionsDatasetWarning';
-import {useIsMigratedExtrapolation} from 'sentry/views/detectors/components/details/metric/utils/useIsMigratedExtrapolation';
 import {getDetectorDataset} from 'sentry/views/detectors/datasetConfig/getDetectorDataset';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
 import {useDetectorStatsPeriods} from 'sentry/views/detectors/hooks/useDetectorStatsPeriods';
 
-type MetricDetectorDetailsProps = {
-  detector: MetricDetector;
-};
+import {useIsMigratedExtrapolation} from './utils/useIsMigratedExtrapolation';
+import {MetricDetectorDetailsChart} from './chart';
+import {MetricDetectorRecentIssues} from './recentIssues';
+import {MetricDetectorDetailsSidebar} from './sidebar';
+import {MetricTimePeriodSelect} from './timePeriodSelect';
+import {
+  MigratedAlertWarning,
+  TransactionsDatasetWarning,
+} from './transactionsDatasetWarning';
+
+type MetricDetectorDetailsProps = {detector: MetricDetector};
 
 export function MetricDetectorDetails({detector}: MetricDetectorDetailsProps) {
   const organization = useOrganization();

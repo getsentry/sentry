@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from unittest import mock
+from unittest.mock import MagicMock
 
 import pytest
 from google.protobuf.wrappers_pb2 import Int32Value, StringValue
@@ -60,7 +61,9 @@ class TestBillingService:
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
     @mock.patch("sentry.billing.platform.core.service._should_log_trace", return_value=True)
-    def test_service_method_observability(self, mock_should_log, mock_logger, mock_metrics):
+    def test_service_method_observability(
+        self, mock_should_log: MagicMock, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         """Service methods emit metrics and logs."""
 
         class TestService(BillingService):
@@ -89,7 +92,9 @@ class TestBillingService:
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
     @mock.patch("sentry.billing.platform.core.service.logger")
-    def test_service_method_skips_success_log_when_not_sampled(self, mock_logger, mock_metrics):
+    def test_service_method_skips_success_log_when_not_sampled(
+        self, mock_logger: MagicMock, mock_metrics: MagicMock
+    ) -> None:
         """Success logs are skipped when trace is not sampled."""
 
         class TestService(BillingService):
@@ -111,7 +116,7 @@ class TestBillingService:
         mock_logger.info.assert_not_called()
 
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_service_method_error_handling(self, mock_metrics):
+    def test_service_method_error_handling(self, mock_metrics: MagicMock) -> None:
         """Service methods propagate exceptions and emit error metrics."""
 
         class TestService(BillingService):
@@ -157,17 +162,17 @@ class TestShouldLogTrace:
     """Tests for the _should_log_trace sampling logic."""
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=None)
-    def test_returns_false_when_no_trace_id(self, mock_hash):
+    def test_returns_false_when_no_trace_id(self, mock_hash: MagicMock) -> None:
         with _propagate_sample_rate(1.0):
             assert _should_log_trace() is False
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=50)
-    def test_logs_when_hash_below_threshold(self, mock_hash):
+    def test_logs_when_hash_below_threshold(self, mock_hash: MagicMock) -> None:
         with _propagate_sample_rate(0.01):  # threshold = 100
             assert _should_log_trace() is True
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=500)
-    def test_skips_when_hash_above_threshold(self, mock_hash):
+    def test_skips_when_hash_above_threshold(self, mock_hash: MagicMock) -> None:
         with _propagate_sample_rate(0.01):  # threshold = 100
             assert _should_log_trace() is False
 
@@ -177,7 +182,9 @@ class TestEffectiveSampleRatePropagation:
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=9999)
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_parent_rate_propagates_to_child(self, mock_metrics, mock_hash):
+    def test_parent_rate_propagates_to_child(
+        self, mock_metrics: MagicMock, mock_hash: MagicMock
+    ) -> None:
         """A child method inherits the parent's higher effective sample rate."""
         captured_rates: list[float] = []
 
@@ -200,7 +207,9 @@ class TestEffectiveSampleRatePropagation:
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=9999)
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_child_higher_rate_takes_precedence(self, mock_metrics, mock_hash):
+    def test_child_higher_rate_takes_precedence(
+        self, mock_metrics: MagicMock, mock_hash: MagicMock
+    ) -> None:
         """A child with a higher rate than the parent uses its own rate."""
         captured_rates: list[float] = []
 
@@ -223,7 +232,9 @@ class TestEffectiveSampleRatePropagation:
 
     @mock.patch("sentry.billing.platform.core.service._get_trace_hash", return_value=9999)
     @mock.patch("sentry.billing.platform.core.service.metrics")
-    def test_effective_rate_resets_after_method_returns(self, mock_metrics, mock_hash):
+    def test_effective_rate_resets_after_method_returns(
+        self, mock_metrics: MagicMock, mock_hash: MagicMock
+    ) -> None:
         """The effective rate is restored after a method returns, so siblings
         don't inherit each other's rates."""
         captured_rates: list[float] = []

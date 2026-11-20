@@ -1,6 +1,11 @@
 import pytest
 
-from sentry.sdk_updates import SdkIndexState, SdkSetupState, get_suggested_updates
+from sentry.sdk_updates import (
+    SdkIndexState,
+    SdkSetupState,
+    SdkUpdateSuggestionResponse,
+    get_suggested_updates,
+)
 
 PYTHON_INDEX_STATE = SdkIndexState(sdk_versions={"sentry.python": "0.9.1"})
 
@@ -18,7 +23,7 @@ def test_too_old_sdk() -> None:
     setup = SdkSetupState(
         sdk_name="sentry.python", sdk_version="0.1.0", integrations=[], modules={"django": "1.8"}
     )
-    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
+    expected: list[SdkUpdateSuggestionResponse] = [
         {
             "enables": [
                 {
@@ -34,6 +39,7 @@ def test_too_old_sdk() -> None:
             "type": "updateSdk",
         }
     ]
+    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == expected
 
 
 def test_ignore_patch_version() -> None:
@@ -56,7 +62,7 @@ def test_enable_django_integration() -> None:
     setup = SdkSetupState(
         sdk_name="sentry.python", sdk_version="0.9.1", integrations=[], modules={"django": "1.8"}
     )
-    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
+    expected: list[SdkUpdateSuggestionResponse] = [
         {
             "type": "enableIntegration",
             "enables": [],
@@ -64,13 +70,14 @@ def test_enable_django_integration() -> None:
             "integrationUrl": "https://docs.sentry.io/platforms/python/django/",
         }
     ]
+    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == expected
 
 
 def test_update_sdk() -> None:
     setup = SdkSetupState(
         sdk_name="sentry.python", sdk_version="0.1.0", integrations=[], modules={}
     )
-    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
+    expected: list[SdkUpdateSuggestionResponse] = [
         {
             "enables": [],
             "newSdkVersion": "0.9.1",
@@ -79,6 +86,7 @@ def test_update_sdk() -> None:
             "type": "updateSdk",
         }
     ]
+    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == expected
 
 
 def test_enable_two_integrations() -> None:
@@ -89,7 +97,7 @@ def test_enable_two_integrations() -> None:
         modules={"django": "1.8.0", "flask": "1.0.0"},
     )
 
-    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == [
+    expected: list[SdkUpdateSuggestionResponse] = [
         {
             "enables": [
                 {
@@ -111,6 +119,7 @@ def test_enable_two_integrations() -> None:
             "type": "updateSdk",
         }
     ]
+    assert list(get_suggested_updates(setup, PYTHON_INDEX_STATE)) == expected
 
 
 @pytest.fixture(
@@ -121,11 +130,11 @@ def test_enable_two_integrations() -> None:
         "sentry.dotnet",
     ]
 )
-def some_dotnet_sdk(request):
+def some_dotnet_sdk(request: pytest.FixtureRequest) -> str:
     return request.param
 
 
-def test_add_aspnetcore_sdk(some_dotnet_sdk) -> None:
+def test_add_aspnetcore_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -152,7 +161,7 @@ def test_add_aspnetcore_sdk(some_dotnet_sdk) -> None:
         ]
 
 
-def test_add_serilog_sdk(some_dotnet_sdk) -> None:
+def test_add_serilog_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -174,7 +183,7 @@ def test_add_serilog_sdk(some_dotnet_sdk) -> None:
         ]
 
 
-def test_add_no_dotnet_sdk(some_dotnet_sdk) -> None:
+def test_add_no_dotnet_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",
@@ -191,7 +200,7 @@ def test_add_no_dotnet_sdk(some_dotnet_sdk) -> None:
     assert suggestions == []
 
 
-def test_more_specific_dotnet_sdk(some_dotnet_sdk) -> None:
+def test_more_specific_dotnet_sdk(some_dotnet_sdk: str) -> None:
     setup = SdkSetupState(
         sdk_name=some_dotnet_sdk,
         sdk_version="1.2.0",

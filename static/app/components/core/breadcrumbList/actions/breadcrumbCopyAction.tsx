@@ -1,4 +1,4 @@
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 
 export interface BreadcrumbCopyActionProps {
   /** Accessible name for the copy button. */

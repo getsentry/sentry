@@ -2,14 +2,13 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Sequence
-from typing import cast
+from typing import Any
 
 import sentry_sdk
 
 from sentry.integrations.opsgenie.client import (
     OPSGENIE_DEFAULT_PRIORITY,
     OpsgenieClient,
-    OpsgeniePriority,
 )
 from sentry.integrations.opsgenie.utils import get_team
 from sentry.integrations.services.integration import integration_service
@@ -32,7 +31,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
     provider = IntegrationProviderSlug.OPSGENIE.value
     integration_key = "account"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.form_fields = {
             "account": {
@@ -61,9 +60,7 @@ class OpsgenieNotifyTeamAction(IntegrationEventAction):
 
         team = get_team(self.get_option("team"), org_integration)
 
-        priority = cast(
-            OpsgeniePriority, self.get_option("priority", default=OPSGENIE_DEFAULT_PRIORITY)
-        )
+        priority = self.get_option("priority", default=OPSGENIE_DEFAULT_PRIORITY)
 
         if not team:
             logger.warning(

@@ -17,7 +17,7 @@ import {
   ModalFooter,
 } from '@sentry/scraps/modal';
 
-import {ConnectRepositoryModal} from 'sentry/components/connectRepository/connectRepositoryModal';
+import {ConnectRepositoryModal} from './connectRepositoryModal';
 
 describe('ConnectRepositoryModal', () => {
   const organization = OrganizationFixture();
@@ -155,6 +155,39 @@ describe('ConnectRepositoryModal', () => {
     expect(
       screen.queryByRole('textbox', {name: /stack trace prefix/i})
     ).not.toBeInTheDocument();
+  });
+
+  it('filters repositories by display name, not by owner', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/integrations/${integration.id}/repos/`,
+      method: 'GET',
+      body: {
+        repos: [
+          {
+            name: 'sentry',
+            identifier: 'getsentry/sentry',
+            externalId: '1',
+            isInstalled: true,
+          },
+          {
+            name: 'relay',
+            identifier: 'getsentry/relay',
+            externalId: '2',
+            isInstalled: true,
+          },
+        ],
+      },
+    });
+    renderModal();
+
+    await openRepoMenu();
+    expect(await screen.findByText('sentry')).toBeInTheDocument();
+    expect(screen.getByText('relay')).toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox', {name: 'Repository'}), 'sen');
+
+    expect(screen.getByText('sentry')).toBeInTheDocument();
+    expect(screen.queryByText('relay')).not.toBeInTheDocument();
   });
 
   it('allows selecting a repository', async () => {
@@ -308,10 +341,7 @@ describe('ConnectRepositoryModal', () => {
     await waitFor(() => {
       expect(postRepo).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/repo/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {repositoryId: '10'},
-        })
+        expect.objectContaining({method: 'POST', data: {repositoryId: '10'}})
       );
     });
     expect(postMapping).toHaveBeenCalledWith(

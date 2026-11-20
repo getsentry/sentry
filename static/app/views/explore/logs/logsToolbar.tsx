@@ -9,7 +9,6 @@ import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
 import {AggregationKey} from 'sentry/utils/fields';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -25,7 +24,6 @@ import {
   ToolbarVisualizeDropdown,
   ToolbarVisualizeHeader,
 } from 'sentry/views/explore/components/toolbar/toolbarVisualize';
-import {VisualizeTransformations} from 'sentry/views/explore/components/toolbar/toolbarVisualize/visualizeTransformations';
 import {DragNDropContext} from 'sentry/views/explore/contexts/dragNDropContext';
 import {
   useDatasetFormulas,
@@ -35,11 +33,6 @@ import {useGroupByFields} from 'sentry/views/explore/hooks/useGroupByFields';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedGroupBys} from 'sentry/views/explore/hooks/useValidatedGroupBys';
 import {useVisualizeFields} from 'sentry/views/explore/hooks/useVisualizeFields';
-import {
-  OurLogKnownFieldKey,
-  type OurLogsAggregate,
-} from 'sentry/views/explore/logs/types';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {
   useQueryParamsGroupBys,
   useQueryParamsVisualizes,
@@ -53,6 +46,7 @@ import {
   VisualizeFunction,
   type Visualize,
 } from 'sentry/views/explore/queryParams/visualize';
+import {ToolbarQuerySpeed} from 'sentry/views/explore/toolbar/toolbarQuerySpeed';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
   applyConditionalFilter,
@@ -71,52 +65,21 @@ import {
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 import {HiddenLogSearchFields} from './constants';
+import {OurLogKnownFieldKey, type OurLogsAggregate} from './types';
+import {useValidateLogsTab} from './useValidateLogsTab';
 
 export const LOG_AGGREGATES: Array<SelectOption<OurLogsAggregate>> = [
-  {
-    label: t('count'),
-    value: AggregationKey.COUNT,
-  },
-  {
-    label: t('count unique'),
-    value: AggregationKey.COUNT_UNIQUE,
-  },
-  {
-    label: t('sum'),
-    value: AggregationKey.SUM,
-  },
-  {
-    label: t('avg'),
-    value: AggregationKey.AVG,
-  },
-  {
-    label: t('p50'),
-    value: AggregationKey.P50,
-  },
-  {
-    label: t('p75'),
-    value: AggregationKey.P75,
-  },
-  {
-    label: t('p90'),
-    value: AggregationKey.P90,
-  },
-  {
-    label: t('p95'),
-    value: AggregationKey.P95,
-  },
-  {
-    label: t('p99'),
-    value: AggregationKey.P99,
-  },
-  {
-    label: t('max'),
-    value: AggregationKey.MAX,
-  },
-  {
-    label: t('min'),
-    value: AggregationKey.MIN,
-  },
+  {label: t('count'), value: AggregationKey.COUNT},
+  {label: t('count unique'), value: AggregationKey.COUNT_UNIQUE},
+  {label: t('sum'), value: AggregationKey.SUM},
+  {label: t('avg'), value: AggregationKey.AVG},
+  {label: t('p50'), value: AggregationKey.P50},
+  {label: t('p75'), value: AggregationKey.P75},
+  {label: t('p90'), value: AggregationKey.P90},
+  {label: t('p95'), value: AggregationKey.P95},
+  {label: t('p99'), value: AggregationKey.P99},
+  {label: t('max'), value: AggregationKey.MAX},
+  {label: t('min'), value: AggregationKey.MIN},
 ];
 
 export function LogsToolbar() {
@@ -124,6 +87,7 @@ export function LogsToolbar() {
     <Container data-test-id="logs-toolbar">
       <ToolbarVisualize />
       <ToolbarGroupBy />
+      <ToolbarQuerySpeed />
     </Container>
   );
 }
@@ -244,7 +208,6 @@ function VisualizeDropdown({
   numberTags,
   stringTags,
 }: VisualizeDropdownProps) {
-  const organization = useOrganization();
   const firstNumberKey = useMemo(
     () => Object.keys(numberTags).sort()[0] ?? null,
     [numberTags]
@@ -367,15 +330,6 @@ function VisualizeDropdown({
       onSearch={onSearch}
       loading={loading}
       fieldDefinitionType="log"
-      transformationControls={
-        organization.features.includes('explore-interpolation-and-smoothing') ? (
-          <VisualizeTransformations
-            traceItemDataset={TraceItemDataset.LOGS}
-            transformations={visualize.transformations}
-            onChange={transformations => onReplace(visualize.replace({transformations}))}
-          />
-        ) : undefined
-      }
       filterSearchBar={
         showFilterSearchBar ? (
           <ConditionalAggregateFilterBar

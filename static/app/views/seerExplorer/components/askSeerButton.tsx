@@ -30,7 +30,7 @@ export function AskSeerButton() {
         title: (
           <Flex align="center" gap="sm">
             {t('Ask Seer')}
-            <Hotkey value="command+/" />
+            <Hotkey value="Mod+/" />
           </Flex>
         ),
       }}
@@ -98,7 +98,7 @@ const SeerLoader = styled(Flex)`
 `;
 
 const SeerButton = styled(Button)`
-  > span:last-child {
+  && > [data-button-label] {
     overflow: visible;
   }
 `;

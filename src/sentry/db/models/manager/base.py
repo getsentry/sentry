@@ -15,7 +15,6 @@ from django.db.models.fields import Field
 from django.db.models.manager import Manager as DjangoBaseManager
 from django.db.models.signals import class_prepared, post_delete, post_init, post_save
 
-from sentry import options
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.db.models.manager.types import M
 from sentry.db.postgres.transactions import django_test_transaction_water_mark
@@ -76,7 +75,7 @@ class BaseManager(_base_manager_base[M]):
     lookup_handlers = {"iexact": lambda x: x.upper()}
     use_for_related_fields = True
 
-    _queryset_class = BaseQuerySet
+    _queryset_class: type[BaseQuerySet[M, Any]] = BaseQuerySet
 
     def __init__(
         self,
@@ -252,9 +251,6 @@ class BaseManager(_base_manager_base[M]):
         Entries are invalidated on transaction commit, or immediately outside
         of a transaction, to prevent simultaneous reads from reading stale data
         """
-        if not options.get("groups.post-update-invalidates-cache"):
-            return
-
         pk_name = self.model._meta.pk.name
 
         cache_keys = [self.__get_lookup_cache_key(**{pk_name: model_id}) for model_id in model_ids]
@@ -620,7 +616,7 @@ def create_silo_limited_copy(self: BaseManager[M], limit: SiloLimit) -> BaseMana
 
     # Dynamically extend and replace the queryset class. This will affect all
     # queryset objects later returned from the new manager.
-    qs_cls = manager_instance._queryset_class
+    qs_cls: type[object] = manager_instance._queryset_class
     assert issubclass(qs_cls, BaseQuerySet) or issubclass(qs_cls, models.QuerySet)
     queryset_overrides = {
         "bulk_create": limit.create_override(qs_cls.bulk_create),

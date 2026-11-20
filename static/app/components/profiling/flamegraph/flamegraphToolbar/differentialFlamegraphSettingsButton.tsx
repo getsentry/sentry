@@ -5,11 +5,11 @@ import {IconSettings} from '@sentry/icons/settings';
 
 import {Button} from '@sentry/scraps/button';
 import {flipOverlay, shiftOverlay} from '@sentry/scraps/overlayPositioning';
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
 import {DifferentialFlamegraphMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
 import {t} from 'sentry/locale';
 import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 
 const MENU_MIDDLEWARE = [
   offset({crossAxis: -162, mainAxis: 4}),

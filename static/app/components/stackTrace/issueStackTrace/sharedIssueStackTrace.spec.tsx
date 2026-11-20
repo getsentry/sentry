@@ -3,7 +3,7 @@ import {EventEntryStacktraceFixture} from 'sentry-fixture/eventEntryStacktrace';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {SharedIssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace/sharedIssueStackTrace';
+import {SharedIssueStackTrace} from './sharedIssueStackTrace';
 
 describe('SharedIssueStackTrace', () => {
   const entry = EventEntryStacktraceFixture();

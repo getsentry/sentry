@@ -1,4 +1,4 @@
-import {createContext, useContext, useState} from 'react';
+import {createContext, useCallback, useContext, useRef} from 'react';
 
 import type {Detector, DetectorType} from 'sentry/types/workflowEngine/detectors';
 
@@ -8,7 +8,7 @@ type DetectorFormContextType = {
    * Tracks whether the user has manually set the detector name.
    * Used by useSetAutomaticName to disable automatic name generation.
    */
-  hasSetDetectorName: boolean;
+  getHasSetDetectorName: () => boolean;
   setHasSetDetectorName: (value: boolean) => void;
   detector?: Detector;
   duplicateDetector?: Detector;
@@ -20,23 +20,28 @@ export function DetectorFormProvider({
   detectorType,
   detector,
   duplicateDetector,
+  initialHasSetDetectorName = false,
   children,
 }: {
   children: React.ReactNode;
   detectorType: DetectorType;
   detector?: Detector;
   duplicateDetector?: Detector;
+  initialHasSetDetectorName?: boolean;
 }) {
-  const [hasSetDetectorName, setHasSetDetectorName] = useState(
-    Boolean(duplicateDetector)
+  const hasSetDetectorNameRef = useRef(
+    Boolean(duplicateDetector) || initialHasSetDetectorName
   );
+  const getHasSetDetectorName = useCallback(() => hasSetDetectorNameRef.current, []);
 
   return (
     <DetectorFormContext.Provider
       value={{
         detectorType,
-        hasSetDetectorName,
-        setHasSetDetectorName,
+        getHasSetDetectorName,
+        setHasSetDetectorName: value => {
+          hasSetDetectorNameRef.current = value;
+        },
         detector,
         duplicateDetector,
       }}

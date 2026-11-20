@@ -45,14 +45,14 @@ class TeamDetailsTestBase(APITestCase):
             assert audit_log_event
             assert scheduled_deletion_exists
 
-    def assert_team_deleted(self, team_id):
+    def assert_team_deleted(self, team_id: int) -> None:
         """
         Checks team status, membership in DeletedTeams table, org
         audit log, and to see that delete function has been called.
         """
         self.assert_team_status(team_id, TeamStatus.PENDING_DELETION)
 
-    def assert_team_not_deleted(self, team_id):
+    def assert_team_not_deleted(self, team_id: int) -> None:
         """
         Checks team status, membership in DeletedTeams table, org
         audit log, and to see that delete function has not been called.

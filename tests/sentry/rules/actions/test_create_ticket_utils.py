@@ -1,28 +1,14 @@
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.integrations.mixins.issues import IssueBasicIntegration
 from sentry.notifications.types import NotificationActionContext, NotificationOrigin, RuleFuture
-from sentry.rules.actions.integrations.create_ticket.utils import build_description, create_issue
+from sentry.rules.actions.integrations.create_ticket.utils import create_issue
 from sentry.testutils.cases import TestCase
 
 
 def generate_footer(url: str) -> str:
     return f"\n\nThis issue was created by a workflow: {url}"
-
-
-class CreateTicketUtilsTest(TestCase):
-    def test_build_description(self) -> None:
-        installation = MagicMock()
-        installation.get_group_description.return_value = "Test description"
-        workflow_id = 123
-
-        description = build_description(self.event, workflow_id, installation, generate_footer)
-
-        expected_url = f"/organizations/{self.organization.slug}/monitors/alerts/{workflow_id}/"
-        assert (
-            description
-            == f"Test description\n\nThis issue was created by a workflow: {expected_url}"
-        )
 
 
 class CreateIssueDescriptionTest(TestCase):
@@ -35,8 +21,8 @@ class CreateIssueDescriptionTest(TestCase):
         self.installation.get_group_title.return_value = "Test title"
         self.installation.get_group_description.return_value = "Test description"
 
-    def _create_issue(self, origin: NotificationOrigin) -> dict:
-        data: dict = {}
+    def _create_issue(self, origin: NotificationOrigin) -> dict[str, Any]:
+        data: dict[str, Any] = {}
         future = RuleFuture(
             context=NotificationActionContext(origin=origin, action_id=1, project=self.project),
             kwargs={
@@ -51,8 +37,9 @@ class CreateIssueDescriptionTest(TestCase):
                 "sentry.integrations.services.integration.model.RpcIntegration.get_installation",
                 return_value=self.installation,
             ),
-            patch("sentry.rules.actions.integrations.create_ticket.utils.create_link"),
+            patch("sentry.rules.actions.integrations.create_ticket.utils.create_ticket"),
         ):
+            assert self.event.group is not None
             create_issue(self.event.for_group(self.event.group), [future])
         return data
 
@@ -80,6 +67,7 @@ class CreateIssueDescriptionTest(TestCase):
             data = self._create_issue(origin)
 
         assert data["description"] == "Test description"
+        assert self.event.group is not None
         mock_logger.warning.assert_called_once_with(
             "%s.rule_trigger.missing_workflow_id",
             "github",

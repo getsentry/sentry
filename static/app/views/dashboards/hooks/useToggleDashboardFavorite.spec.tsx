@@ -5,8 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import {useToggleDashboardFavorite} from 'sentry/views/dashboards/hooks/useToggleDashboardFavorite';
+
+import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
+import {useToggleDashboardFavorite} from './useToggleDashboardFavorite';
 
 const organization = OrganizationFixture({
   slug: 'org-slug',
@@ -20,10 +21,7 @@ const tableQueryKey = dashboardsApiOptions(organization, {
 
 function renderToggleHook(org = organization) {
   return renderHookWithProviders(
-    () => ({
-      queryClient: useQueryClient(),
-      toggleFavorite: useToggleDashboardFavorite(),
-    }),
+    () => ({queryClient: useQueryClient(), toggleFavorite: useToggleDashboardFavorite()}),
     {organization: org}
   );
 }

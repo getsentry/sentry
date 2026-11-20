@@ -1,0 +1,97 @@
+---
+title: Product Empty State
+description: A product-agnostic empty state with an intro section and an agent/manual setup card.
+category: components
+source: sentry/components/productEmptyState/productEmptyState
+---
+
+import {Image} from '@sentry/scraps/image';
+import {Container} from '@sentry/scraps/layout';
+import {Text} from '@sentry/scraps/text';
+
+import * as Storybook from 'sentry/stories';
+import {ProductEmptyState} from './productEmptyState';
+
+export const project = {
+  id: 'proj-story',
+  slug: 'my-project',
+  platform: 'javascript-nextjs',
+};
+
+## Default (agent tab)
+
+Shows the intro benefits section and the setup card with the "Use my coding agent" tab selected.
+
+<Storybook.Demo>
+  <Container maxWidth="960px">
+    <ProductEmptyState
+      title="Search and visualize logs at scale"
+      benefits={[
+        'View logs in context with errors and traces',
+        'Query and filter by any attribute',
+        'Set alerts on log patterns',
+      ]}
+      media={
+        <Image
+          src="/images/spot/logs-empty-state.svg"
+          alt="Logs empty state illustration"
+        />
+      }
+      agentSteps={[
+        'Install the Sentry CLI (if not already installed)',
+        'Configure log instrumentation in your project',
+        'Verify logs arrive in Sentry',
+      ]}
+      product="tracing"
+      productName="Logs"
+      project={project}
+      feedbackSource="product-empty-state-story"
+      manualSetup={
+        <Container padding="xl">
+          <Text variant="muted">
+            Manual setup steps would render here via ManualSetupSteps.
+          </Text>
+        </Container>
+      }
+    />
+  </Container>
+</Storybook.Demo>
+
+## With manual setup content
+
+Clicking "Set up manually" reveals the `manualSetup` slot instead of the agent prompt.
+
+<Storybook.Demo>
+  <Container maxWidth="960px">
+    <ProductEmptyState
+      title="Instrument distributed tracing"
+      benefits={[
+        'Visualize request flows across services',
+        'Find slow spans with flame charts',
+        'Correlate traces with errors',
+      ]}
+      media={
+        <Image
+          src="/images/spot/traces-empty-state.svg"
+          alt="Traces empty state illustration"
+        />
+      }
+      agentSteps={[
+        'Install the Sentry SDK with tracing support',
+        'Configure the tracing sample rate',
+        'Send a test request and verify traces appear',
+      ]}
+      product="tracing"
+      productName="Tracing"
+      project={project}
+      feedbackSource="product-empty-state-story-manual"
+      manualSetup={
+        <Container padding="xl">
+          <Text variant="muted">
+            Manual setup steps would render here via ManualSetupSteps.
+          </Text>
+        </Container>
+      }
+    />
+  </Container>
+</Storybook.Demo>

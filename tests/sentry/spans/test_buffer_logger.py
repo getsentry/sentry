@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from typing import TypedDict, cast
 from unittest import mock
-from unittest.mock import call
+from unittest.mock import MagicMock, call
 
 from sentry.spans.buffer_logger import (
     BufferLogger,
@@ -15,6 +16,7 @@ from sentry.spans.buffer_logger import (
     emit_observability_metrics,
 )
 from sentry.spans.buffer_types import (
+    EvalshaData,
     EvalshaResult,
     FlushCandidate,
     InsertedSubsegment,
@@ -28,6 +30,12 @@ from sentry.testutils.helpers.options import override_options
 
 def _segment_id(project_id: int, trace_id: str, span_id: str) -> SegmentKey:
     return f"span-buf:s:{{{project_id}:{trace_id}}}:{span_id}".encode("ascii")
+
+
+class MetricsData(TypedDict):
+    latency_metrics: list[EvalshaData]
+    gauge_metrics: list[EvalshaData]
+    longest_evalsha_data: tuple[float, EvalshaData, EvalshaData]
 
 
 def test_subsegment_debug_log_emits_debug_log() -> None:
@@ -227,7 +235,7 @@ def test_flush_segment_log_emits_debug_log() -> None:
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
+def test_accumulates_batches_and_tracks_cumulative_latency(mock_time: MagicMock) -> None:
     """
     Test that batches are accumulated with cumulative latency tracking,
     and that trimming occurs when exceeding MAX_ENTRIES (1000).
@@ -286,7 +294,9 @@ def test_accumulates_batches_and_tracks_cumulative_latency(mock_time):
 
 @mock.patch("sentry.spans.buffer_logger.logger")
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
+def test_logs_only_top_50_when_more_than_1000_traces(
+    mock_time: MagicMock, mock_logger: MagicMock
+) -> None:
     """
     Test periodic logging (every 1 minute) of top 50 entries by cumulative latency,
     and verify dictionary is cleared after logging.
@@ -328,7 +338,7 @@ def test_logs_only_top_50_when_more_than_1000_traces(mock_time, mock_logger):
 
 
 @mock.patch("sentry.spans.buffer_logger.logger")
-def test_no_logging_when_no_data(mock_logger):
+def test_no_logging_when_no_data(mock_logger: MagicMock) -> None:
     """Test that nothing is logged when tracked metrics are empty."""
     buffer_logger = BufferLogger()
 
@@ -343,7 +353,7 @@ def test_no_logging_when_no_data(mock_logger):
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_flusher_logger_accumulates_segments_and_spans(mock_time):
+def test_flusher_logger_accumulates_segments_and_spans(mock_time: MagicMock) -> None:
     """
     Test that FlusherLogger accumulates segment count, span count, and bytes
     across multiple calls for the same trace, and tracks cumulative flush latency.
@@ -393,7 +403,7 @@ def test_flusher_logger_accumulates_segments_and_spans(mock_time):
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_flusher_logger_records_loaded_segments(mock_time):
+def test_flusher_logger_records_loaded_segments(mock_time: MagicMock) -> None:
     with override_options({"spans.buffer.flusher-cumulative-logger-enabled": True}):
         mock_time.time.return_value = 1000.0
         flusher_logger = FlusherLogger()
@@ -435,7 +445,7 @@ def test_flusher_logger_records_loaded_segments(mock_time):
 
 
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
+def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time: MagicMock) -> None:
     """
     Test that FlusherLogger prunes to top 50 entries by cumulative bytes
     when exceeding MAX_ENTRIES.
@@ -459,7 +469,9 @@ def test_flusher_logger_prunes_to_top_50_by_bytes(mock_time):
 
 @mock.patch("sentry.spans.buffer_logger.logger")
 @mock.patch("sentry.spans.buffer_logger.time")
-def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
+def test_flusher_logger_logs_and_resets_after_interval(
+    mock_time: MagicMock, mock_logger: MagicMock
+) -> None:
     """
     Test that FlusherLogger logs entries after the 60s interval and resets state,
     including cumulative flush latency as a top-level field.
@@ -513,66 +525,71 @@ def test_flusher_logger_logs_and_resets_after_interval(mock_time, mock_logger):
 
 
 class TestEmitObservabilityMetrics:
-    def data(self):
-        return {
-            "latency_metrics": [
-                [
-                    [b"redirect_step_latency_ms", 1],
-                    [b"sunionstore_args_step_latency_ms", 1],
-                    [b"sunionstore_step_latency_ms", 2],
-                    [b"arg_cleanup_step_latency_ms", 3],
-                    [b"spop_step_latency_ms", 5],
-                    [b"ingested_count_step_latency_ms", 8],
-                    [b"total_step_latency_ms", 13],
+    def data(self) -> MetricsData:
+        return cast(
+            MetricsData,
+            {
+                "latency_metrics": [
+                    [
+                        [b"redirect_step_latency_ms", 1],
+                        [b"sunionstore_args_step_latency_ms", 1],
+                        [b"sunionstore_step_latency_ms", 2],
+                        [b"arg_cleanup_step_latency_ms", 3],
+                        [b"spop_step_latency_ms", 5],
+                        [b"ingested_count_step_latency_ms", 8],
+                        [b"total_step_latency_ms", 13],
+                    ],
+                    [
+                        [b"redirect_step_latency_ms", 1],
+                        [b"sunionstore_args_step_latency_ms", 1],
+                        [b"ingested_count_step_latency_ms", 2],
+                        [b"total_step_latency_ms", 3],
+                    ],
                 ],
-                [
-                    [b"redirect_step_latency_ms", 1],
-                    [b"sunionstore_args_step_latency_ms", 1],
-                    [b"ingested_count_step_latency_ms", 2],
-                    [b"total_step_latency_ms", 3],
+                "gauge_metrics": [
+                    [
+                        [b"redirect_table_size", 1123],
+                        [b"redirect_depth", 5],
+                        [b"parent_span_set_before_size", 813],
+                        [b"parent_span_set_after_size", 2134],
+                        [b"spopcalls", 55],
+                    ],
+                    [
+                        [b"redirect_table_size", 1123],
+                        [b"redirect_depth", 5],
+                        [b"parent_span_set_before_size", 813],
+                        [b"parent_span_set_after_size", 2134],
+                        [b"spopcalls", 55],
+                    ],
                 ],
-            ],
-            "gauge_metrics": [
-                [
-                    [b"redirect_table_size", 1123],
-                    [b"redirect_depth", 5],
-                    [b"parent_span_set_before_size", 813],
-                    [b"parent_span_set_after_size", 2134],
-                    [b"spopcalls", 55],
-                ],
-                [
-                    [b"redirect_table_size", 1123],
-                    [b"redirect_depth", 5],
-                    [b"parent_span_set_before_size", 813],
-                    [b"parent_span_set_after_size", 2134],
-                    [b"spopcalls", 55],
-                ],
-            ],
-            "longest_evalsha_data": (
-                13,
-                [
-                    [b"redirect_step_latency_ms", 1],
-                    [b"sunionstore_args_step_latency_ms", 1],
-                    [b"sunionstore_step_latency_ms", 2],
-                    [b"arg_cleanup_step_latency_ms", 3],
-                    [b"spop_step_latency_ms", 5],
-                    [b"ingested_count_step_latency_ms", 8],
-                    [b"total_step_latency_ms", 13],
-                ],
-                [
-                    [b"redirect_table_size", 1123],
-                    [b"redirect_depth", 5],
-                    [b"parent_span_set_before_size", 813],
-                    [b"parent_span_set_after_size", 2134],
-                    [b"spopcalls", 55],
-                ],
-            ),
-        }
+                "longest_evalsha_data": (
+                    13,
+                    [
+                        [b"redirect_step_latency_ms", 1],
+                        [b"sunionstore_args_step_latency_ms", 1],
+                        [b"sunionstore_step_latency_ms", 2],
+                        [b"arg_cleanup_step_latency_ms", 3],
+                        [b"spop_step_latency_ms", 5],
+                        [b"ingested_count_step_latency_ms", 8],
+                        [b"total_step_latency_ms", 13],
+                    ],
+                    [
+                        [b"redirect_table_size", 1123],
+                        [b"redirect_depth", 5],
+                        [b"parent_span_set_before_size", 813],
+                        [b"parent_span_set_after_size", 2134],
+                        [b"spopcalls", 55],
+                    ],
+                ),
+            },
+        )
 
     @mock.patch("sentry.spans.buffer_logger.metrics.timing")
     @mock.patch("sentry.spans.buffer_logger.metrics.gauge")
     @mock.patch("sentry.spans.buffer_logger.metrics.incr")
-    def test_emit_observability_metrics(self, mock_incr, mock_gauge, mock_timing):
+    def test_emit_observability_metrics(
+        self, mock_incr: MagicMock, mock_gauge: MagicMock, mock_timing: MagicMock
+    ) -> None:
         emit_observability_metrics(
             latency_metrics=self.data()["latency_metrics"],
             gauge_metrics=self.data()["gauge_metrics"],
@@ -581,7 +598,7 @@ class TestEmitObservabilityMetrics:
 
         LE = "spans.buffer.process_spans.longest_evalsha.step_latency_ms"
 
-        def t(stage):
+        def t(stage: str) -> dict[str, str]:
             return {"stage": stage}
 
         mock_timing.assert_has_calls(
@@ -742,7 +759,7 @@ class TestEmitObservabilityMetrics:
         )
 
     @mock.patch("sentry.spans.buffer_logger.metrics.incr")
-    def test_emit_observability_metrics_oversized_count_metric(self, mock_incr):
+    def test_emit_observability_metrics_oversized_count_metric(self, mock_incr: MagicMock) -> None:
         emit_observability_metrics(
             latency_metrics=[[]],
             gauge_metrics=[

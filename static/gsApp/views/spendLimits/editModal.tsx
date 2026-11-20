@@ -5,10 +5,10 @@ import {useMutation} from '@tanstack/react-query';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import type {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -32,10 +32,7 @@ import {
 function getBudgetSaveError(plan: Plan) {
   return t(
     'Unable to save your %s',
-    displayBudgetName(plan, {
-      pluralOndemand: true,
-      withBudget: true,
-    })
+    displayBudgetName(plan, {pluralOndemand: true, withBudget: true})
   );
 }
 
@@ -48,10 +45,7 @@ function getBudgetExceededInvoicedLimitError(plan: Plan) {
 
 type UpdateError = undefined | Error | string | Record<string, string[]>;
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-} & ModalRenderProps;
+type Props = {organization: Organization; subscription: Subscription} & ModalRenderProps;
 
 function BudgetUpdateError({error, plan}: {error: UpdateError; plan: Plan}) {
   if (!error) {
@@ -124,9 +118,9 @@ export function SpendLimitsEditModal({
       );
 
       if (getTotalBudget(newOnDemandBudget) > 0) {
-        addSuccessMessage(t('Budget updated'));
+        toast.success(t('Budget updated'));
       } else {
-        addSuccessMessage(t('Budget turned off'));
+        toast.success(t('Budget turned off'));
       }
 
       closeModal();
@@ -138,7 +132,7 @@ export function SpendLimitsEditModal({
           ? (error.responseJSON as Record<string, string[]>)
           : saveError
       );
-      addErrorMessage(saveError);
+      toast.error(saveError);
     },
   });
 
@@ -148,7 +142,7 @@ export function SpendLimitsEditModal({
     if (exceedsInvoicedBudgetLimit(subscription, newOnDemandBudget)) {
       const message = getBudgetExceededInvoicedLimitError(subscription.planDetails);
       setUpdateError(message);
-      addErrorMessage(message);
+      toast.error(message);
       return;
     }
 

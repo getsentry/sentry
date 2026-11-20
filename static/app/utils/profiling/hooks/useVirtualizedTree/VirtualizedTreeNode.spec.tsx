@@ -1,4 +1,4 @@
-import {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
+import {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 describe('VirtualizedTreeNode', () => {
   describe('getVisibleChildrenCount', () => {

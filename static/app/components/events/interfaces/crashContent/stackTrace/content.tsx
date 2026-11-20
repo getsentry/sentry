@@ -6,7 +6,6 @@ import {
   type DeprecatedLineProps,
 } from 'sentry/components/events/interfaces/frame/deprecatedLine';
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
 import {
   getHiddenFrameIndices,
   getLastFrameIndex,
@@ -19,10 +18,7 @@ import type {StacktraceType} from 'sentry/types/stacktrace';
 
 import {OmittedFrames} from './omittedFrames';
 
-type DefaultProps = {
-  expandFirstFrame: boolean;
-  includeSystemFrames: boolean;
-};
+type DefaultProps = {expandFirstFrame: boolean; includeSystemFrames: boolean};
 
 type Props = {
   data: StacktraceType;
@@ -51,7 +47,6 @@ export function Content({
   frameSourceMapDebuggerData,
   hideSourceMapDebugger = false,
 }: Props) {
-  const {collapseAll} = useStacktraceContext();
   const [toggleFrameMap, setToggleFrameMap] = useState(setInitialFrameMap());
 
   const {frames = [], registers} = data;
@@ -110,11 +105,7 @@ export function Content({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices = getHiddenFrameIndices({
-    data,
-    toggleFrameMap,
-    frameCountMap,
-  });
+  const hiddenFrameIndices = getHiddenFrameIndices({data, toggleFrameMap, frameCountMap});
 
   const mechanism =
     platform === 'java' && event.tags?.find(({key}) => key === 'mechanism')?.value;
@@ -129,7 +120,7 @@ export function Content({
       const isLastFrame = frameIndex === frames.length - 1;
 
       if (repeatedFrame) {
-        // oxlint-disable-next-line react/todo
+        // oxlint-disable-next-line react/immutability
         nRepeats++;
       }
 
@@ -140,7 +131,7 @@ export function Content({
         const frameProps: DeprecatedLineProps = {
           event,
           data: frame,
-          isExpanded: !collapseAll && expandFirstFrame && lastFrameIndex === frameIndex,
+          isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
           emptySourceNotation: lastFrameIndex === frameIndex && frameIndex === 0,
           nextFrame,
           platform,

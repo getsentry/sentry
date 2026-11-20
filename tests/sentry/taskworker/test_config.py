@@ -41,7 +41,7 @@ def test_taskworker_schedule_unique() -> None:
 
 
 @pytest.mark.parametrize("name,config", list(settings.TASKWORKER_SCHEDULES.items()))
-def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks) -> None:
+def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks: object) -> None:
     assert config["task"], f"schedule {name} is missing a task name"
     (namespace, taskname) = config["task"].split(":")
     assert app.taskregistry.get_task(namespace, taskname), f"task for {name} is not registered"
@@ -53,7 +53,7 @@ def test_taskworker_schedule_type(name: str, config: dict[str, Any], load_tasks)
     )
 
 
-def test_taskworker_schedule_parameters(load_tasks) -> None:
+def test_taskworker_schedule_parameters(load_tasks: object) -> None:
     for config in settings.TASKWORKER_SCHEDULES.values():
         (namespace, taskname) = config["task"].split(":")
         task = app.taskregistry.get_task(namespace, taskname)

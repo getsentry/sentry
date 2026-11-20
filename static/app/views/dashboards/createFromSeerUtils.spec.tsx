@@ -1,12 +1,13 @@
+import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+
 import {
   applySeerWidgetDefaults,
   extractDashboardFromSession,
   splitDashboardPrompt,
   statusIsTerminal,
-} from 'sentry/views/dashboards/createFromSeerUtils';
-import type {Widget} from 'sentry/views/dashboards/types';
-import {DisplayType} from 'sentry/views/dashboards/types';
-import type {SeerExplorerResponse} from 'sentry/views/seerExplorer/types';
+} from './createFromSeerUtils';
+import type {Widget} from './types';
+import {DisplayType} from './types';
 
 function makeWidget(overrides: Partial<Widget> = {}): Widget {
   return {
@@ -49,9 +50,7 @@ describe('applySeerWidgetDefaults', () => {
 
     it('fills in minH when it is missing from an existing layout', () => {
       const widgets = [
-        makeWidget({
-          layout: {x: 1, y: 2, w: 3, h: 4} as Widget['layout'],
-        }),
+        makeWidget({layout: {x: 1, y: 2, w: 3, h: 4} as Widget['layout']}),
       ];
       const [result] = applySeerWidgetDefaults(widgets);
 
@@ -65,6 +64,32 @@ describe('applySeerWidgetDefaults', () => {
       const [result] = applySeerWidgetDefaults(widgets);
 
       expect(result!.limit).toBe(5);
+    });
+  });
+
+  describe('query defaults', () => {
+    it('fills in missing query arrays and strings', () => {
+      const widgets = [makeWidget({queries: [{} as Widget['queries'][number]]})];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries).toEqual([
+        {aggregates: [], columns: [], fields: [], conditions: '', name: '', orderby: ''},
+      ]);
+    });
+
+    it('preserves existing query values', () => {
+      const widgets = [makeWidget()];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries[0]!.aggregates).toEqual(['count()']);
+      expect(result!.queries[0]!.fields).toEqual(['count()']);
+    });
+
+    it('defaults queries to an empty array when missing', () => {
+      const widgets = [makeWidget({queries: undefined as unknown as Widget['queries']})];
+      const [result] = applySeerWidgetDefaults(widgets);
+
+      expect(result!.queries).toEqual([]);
     });
   });
 });

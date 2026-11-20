@@ -24,9 +24,7 @@ describe('ProjectDetail', () => {
   const project = projects[0]!;
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/projects/${project.slug}/`},
     route: '/organizations/:orgId/projects/:projectId/',
   };
 
@@ -76,10 +74,6 @@ describe('ProjectDetail', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.init();
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('Render an error if project not found', async () => {
@@ -159,6 +153,24 @@ describe('ProjectDetail', () => {
     expect(screen.getByRole('menuitemradio', {name: 'Project Settings'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/${project.slug}/`
+    );
+  });
+
+  it('Links Create Monitor to the project by id', async () => {
+    ProjectsStore.loadInitialData([project]);
+    setupMockResponses();
+
+    renderProjectDetail();
+
+    await userEvent.click(
+      await within(screen.getByRole('banner')).findByRole('button', {
+        name: 'Project Actions',
+      })
+    );
+
+    expect(screen.getByRole('menuitemradio', {name: 'Create Monitor'})).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/monitors/new/?project=${project.id}`
     );
   });
 

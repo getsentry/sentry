@@ -3,9 +3,9 @@ from __future__ import annotations
 import ipaddress
 import logging
 import socket
-from collections.abc import Mapping
+from collections.abc import Callable, Mapping
 from hashlib import sha256
-from typing import Any
+from typing import Any, cast
 
 import sentry_sdk
 import urllib3
@@ -182,7 +182,8 @@ class CellSiloClient(BaseApiClient):
         if prefix_hash is not None:
             hash = sha256(f"{prefix_hash}{self.cell.name}{method}{path}".encode()).hexdigest()
             self.check_request_attempts(hash=hash, method=method, path=path)
-        return self._request(
+        request = cast("Callable[..., Any]", self._request)
+        return request(
             method=method,
             path=path,
             headers=clean_proxy_headers(headers),

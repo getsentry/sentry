@@ -26,17 +26,24 @@ def main(argv: Sequence[str] | None = None) -> int:
         with open(filename, "rb") as f:
             overrides = tomllib.load(f)["tool"]["mypy"]["overrides"]
 
-        (allowlist,) = (cfg for cfg in overrides if "disable_error_code" in cfg)
-        (weaklist,) = (cfg for cfg in overrides if "disallow_untyped_defs" in cfg)
+        allowlist = next((cfg for cfg in overrides if "disable_error_code" in cfg), None)
+        weaklist = next((cfg for cfg in overrides if "disallow_untyped_defs" in cfg), None)
 
-        weaklist_re = re.compile("|".join(_glob_to_re(g) for g in weaklist["module"]))
-
-        for mod in allowlist["module"]:
-            if not weaklist_re.fullmatch(mod):
-                print(
-                    f"{filename}: {mod} is in the typing errors allowlist but not in the weaklist"
-                )
+        if weaklist is None:
+            if allowlist is not None:
+                print(f"{filename}: typing errors allowlist exists without a weaklist")
                 retv = 1
+            continue
+
+        if allowlist is not None:
+            weaklist_re = re.compile("|".join(_glob_to_re(g) for g in weaklist["module"]))
+
+            for mod in allowlist["module"]:
+                if not weaklist_re.fullmatch(mod):
+                    print(
+                        f"{filename}: {mod} is in the typing errors allowlist but not in the weaklist"
+                    )
+                    retv = 1
 
         prev = ""
         for pat in weaklist["module"]:

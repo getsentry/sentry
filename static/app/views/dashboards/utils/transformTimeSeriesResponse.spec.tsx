@@ -87,92 +87,66 @@ describe('transformTimeSeriesResponse', () => {
   });
 
   describe('seriesName', () => {
-    it.each([
-      {
-        name: 'single y-axis',
-        queries: [WidgetQueryFixture({name: '', columns: []})],
-        timeSeries: [makeTimeSeries('count()')],
-        expected: ['count()'],
-      },
-      {
-        name: 'multiple y-axes with an alias',
-        queries: [WidgetQueryFixture({name: 'Alias', columns: []})],
-        timeSeries: [makeTimeSeries('count()'), makeTimeSeries('p50(span.duration)')],
-        expected: ['Alias : count()', 'Alias : p50(span.duration)'],
-      },
-      {
-        name: 'groups with a single y-axis',
-        queries: [WidgetQueryFixture({name: '', columns: ['browser']})],
-        timeSeries: [
-          makeTimeSeries('count()', {isOther: true, order: 2}),
-          makeTimeSeries('count()', {
-            groupBy: [
-              {key: 'error.type', value: ['TypeError', null]},
-              {key: 'os', value: null},
-            ],
-            order: 1,
-          }),
-          makeTimeSeries('count()', {groupBy: chrome, order: 0}),
-        ],
-        expected: ['Chrome', '[TypeError,(no value)],None', 'Other'],
-      },
-      {
-        name: 'a group by value that collides with the Other bucket',
-        queries: [WidgetQueryFixture({name: '', columns: ['browser']})],
-        timeSeries: [
-          makeTimeSeries('count()', {
-            groupBy: [{key: 'browser', value: 'Other'}],
-            order: 0,
-          }),
-          makeTimeSeries('count()', {isOther: true, order: 1}),
-        ],
-        expected: ['Other (browser)', 'Other'],
-      },
-      {
-        name: 'groups with multiple y-axes and an alias',
-        queries: [WidgetQueryFixture({name: 'Alias', columns: ['browser']})],
-        timeSeries: [
-          makeTimeSeries('count()', {groupBy: chrome}),
-          makeTimeSeries('p50(span.duration)', {groupBy: chrome}),
-        ],
-        expected: ['Alias > Chrome : count()', 'Alias > Chrome : p50(span.duration)'],
-      },
-      {
-        name: 'a grouped query with no groups and a single y-axis',
-        queries: [WidgetQueryFixture({name: 'Alias', columns: ['browser']})],
-        timeSeries: [makeTimeSeries('count()', {groupBy: null})],
-        expected: ['Alias : count()'],
-      },
-      {
-        name: 'a grouped query with no groups and multiple y-axes',
-        queries: [WidgetQueryFixture({name: 'Alias', columns: ['browser']})],
-        timeSeries: [
-          makeTimeSeries('count()', {groupBy: null}),
-          makeTimeSeries('p50(span.duration)', {groupBy: null}),
-        ],
-        expected: ['Alias >  : count()', 'Alias >  : p50(span.duration)'],
-      },
-      {
-        name: 'multiple queries without aliases',
-        queries: [
-          WidgetQueryFixture({name: '', columns: [], conditions: 'browser:Chrome'}),
-          WidgetQueryFixture({name: '', columns: [], conditions: 'browser:Firefox'}),
-        ],
-        timeSeries: [makeTimeSeries('count()')],
-        expected: ['browser:Chrome > count()'],
-      },
-    ])(
-      'matches events-stats series names for $name',
-      ({queries, timeSeries, expected}) => {
-        const result = transformTimeSeriesResponse(
-          {timeSeries},
-          WidgetFixture({queries}),
-          0
-        );
+    it('keys a series by its y-axis and group by values', () => {
+      const result = transformTimeSeriesResponse(
+        {
+          timeSeries: [
+            makeTimeSeries('count()', {groupBy: chrome, order: 0}),
+            makeTimeSeries('count()', {
+              groupBy: [{key: 'browser', value: 'Firefox'}],
+              order: 1,
+            }),
+            makeTimeSeries('p50(span.duration)', {groupBy: chrome, order: 2}),
+            makeTimeSeries('count()', {groupBy: null, isOther: true, order: 3}),
+          ],
+        },
+        WidgetFixture({queries: [WidgetQueryFixture({columns: ['browser']})]}),
+        0
+      );
 
-        expect(result.map(({seriesName}) => seriesName)).toEqual(expected);
-      }
-    );
+      expect(result.map(({seriesName}) => seriesName)).toEqual([
+        'count() : browser : Chrome',
+        'count() : browser : Firefox',
+        'p50(span.duration) : browser : Chrome',
+        'count()',
+      ]);
+    });
+
+    it('prefixes the query index when the widget has multiple queries', () => {
+      const widget = WidgetFixture({
+        queries: [
+          WidgetQueryFixture({conditions: 'browser:Chrome'}),
+          WidgetQueryFixture({conditions: 'browser:Firefox'}),
+        ],
+      });
+      const timeSeries = [makeTimeSeries('count()')];
+
+      expect(
+        transformTimeSeriesResponse({timeSeries}, widget, 0).map(
+          ({seriesName}) => seriesName
+        )
+      ).toEqual(['0 : count()']);
+      expect(
+        transformTimeSeriesResponse({timeSeries}, widget, 1).map(
+          ({seriesName}) => seriesName
+        )
+      ).toEqual(['1 : count()']);
+    });
+
+    it('prefixes custom series names too', () => {
+      const widget = WidgetFixture({
+        queries: [WidgetQueryFixture(), WidgetQueryFixture()],
+      });
+
+      const [result] = transformTimeSeriesResponse(
+        {timeSeries: [makeTimeSeries('count()')]},
+        widget,
+        1,
+        {getSeriesName: () => 'custom'}
+      );
+
+      expect(result!.seriesName).toBe('1 : custom');
+    });
   });
 });
 

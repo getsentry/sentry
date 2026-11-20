@@ -2,6 +2,8 @@ import {useCallback, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 
+import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
+
 import {SearchBar as BaseSearchBar} from 'sentry/components/searchBar';
 import {SearchDropdown} from 'sentry/components/searchBar/searchDropdown';
 import type {SearchGroup} from 'sentry/components/searchBar/types';
@@ -17,7 +19,6 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useApi} from 'sentry/utils/useApi';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOnClickOutside} from 'sentry/utils/useOnClickOutside';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 const TRANSACTION_SEARCH_PERIOD = '14d';
@@ -202,9 +203,7 @@ export function SearchBar(props: SearchBarProps) {
                 ? TRANSACTION_SEARCH_PERIOD
                 : eventView.statsPeriod;
 
-            const [results] = await doDiscoverQuery<{
-              data: DataItem[];
-            }>(api, url, {
+            const [results] = await doDiscoverQuery<{data: DataItem[]}>(api, url, {
               field: ['transaction', 'project_id', 'count()'],
               project: (eventView.project as Array<Readonly<number>>)?.map(String),
               sort: '-count()',
@@ -223,12 +222,7 @@ export function SearchBar(props: SearchBarProps) {
                 });
                 return searchGroup;
               },
-              {
-                title: 'All Transactions',
-                children: [],
-                icon: null,
-                type: 'header',
-              }
+              {title: 'All Transactions', children: [], icon: null, type: 'header'}
             );
 
             setHighlightedItemIndex(-1);

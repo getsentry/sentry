@@ -6,9 +6,9 @@ from sentry.scm.types import SubscriptionEvent
 
 
 def test_produce_to_scm_stream() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
     event: SubscriptionEvent = {
@@ -29,9 +29,9 @@ def test_produce_to_scm_stream() -> None:
 
 
 def test_produce_to_scm_stream_unsupported_provider() -> None:
-    metrics = []
+    metrics: list[tuple[str, int, dict[str, str]]] = []
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
     event: SubscriptionEvent = {
@@ -58,13 +58,13 @@ def test_produce_to_scm_stream_unsupported_provider() -> None:
 
 
 def test_produce_to_scm_stream_invalid_payload() -> None:
-    metrics = []
-    reported_exception = None
+    metrics: list[tuple[str, int, dict[str, str]]] = []
+    reported_exception: Exception | None = None
 
-    def record_count(k, a, t):
+    def record_count(k: str, a: int, t: dict[str, str]) -> None:
         metrics.append((k, a, t))
 
-    def report_error(e):
+    def report_error(e: Exception) -> None:
         nonlocal reported_exception
         reported_exception = e
 

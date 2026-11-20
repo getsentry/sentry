@@ -7,7 +7,7 @@ from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 @mock.patch("datadog.threadstats.base.ThreadStats.timing")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.distribution")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_distribution(distribution, timing):
+def test_dualwrite_distribution(distribution: mock.MagicMock, timing: mock.MagicMock) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.datadog.DatadogMetricsBackend",
         secondary_backend="sentry.metrics.precise_dogstatsd.PreciseDogStatsdMetricsBackend",
@@ -38,7 +38,9 @@ def test_dualwrite_distribution(distribution, timing):
 @mock.patch("sentry_sdk.metrics.count")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
+def test_dualwrite_experimental_backend(
+    dogstatsd_incr: mock.MagicMock, sentry_sdk_incr: mock.MagicMock
+) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
@@ -53,7 +55,9 @@ def test_dualwrite_experimental_backend(dogstatsd_incr, sentry_sdk_incr):
 @mock.patch("sentry_sdk.metrics.count")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.increment")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_experimental_backend_allow_list(dogstatsd_incr, sentry_sdk_incr):
+def test_dualwrite_experimental_backend_allow_list(
+    dogstatsd_incr: mock.MagicMock, sentry_sdk_incr: mock.MagicMock
+) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
@@ -72,7 +76,9 @@ def test_dualwrite_experimental_backend_allow_list(dogstatsd_incr, sentry_sdk_in
 @mock.patch("sentry_sdk.metrics.gauge")
 @mock.patch("datadog.dogstatsd.base.DogStatsd.gauge")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry_sdk_gauge):
+def test_dualwrite_experimental_backend_rollout_disabled(
+    dogstatsd_gauge: mock.MagicMock, sentry_sdk_gauge: mock.MagicMock
+) -> None:
     backend = DualWriteMetricsBackend(
         primary_backend="sentry.metrics.dogstatsd.DogStatsdMetricsBackend",
         experimental_backend="sentry.metrics.sentry_sdk.SentrySDKMetricsBackend",
@@ -87,7 +93,7 @@ def test_dualwrite_experimental_backend_rollout_disabled(dogstatsd_gauge, sentry
 @mock.patch("datadog.dogstatsd.base.DogStatsd.set")
 @mock.patch("datadog.dogstatsd.base.statsd.set")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_set(primary_set, secondary_set):
+def test_dualwrite_set(primary_set: mock.MagicMock, secondary_set: mock.MagicMock) -> None:
     # Primary DogStatsdMetricsBackend uses the module-level statsd client;
     # PreciseDogStatsdMetricsBackend uses its own DogStatsd instance. Patch them
     # separately so routing to primary vs secondary is actually observable.
@@ -112,7 +118,9 @@ def test_dualwrite_set(primary_set, secondary_set):
 @mock.patch("sentry.metrics.sentry_sdk.SentrySDKMetricsBackend.set")
 @mock.patch("datadog.dogstatsd.base.statsd.set")
 @thread_leak_allowlist(reason="datadog dualwrite metrics", issue=98803)
-def test_dualwrite_set_experimental_backend(primary_set, experimental_set):
+def test_dualwrite_set_experimental_backend(
+    primary_set: mock.MagicMock, experimental_set: mock.MagicMock
+) -> None:
     # The experimental backend's set is patched directly (SentrySDK's set is a
     # no-op otherwise) so forwarding to the experimental backend is observable.
     backend = DualWriteMetricsBackend(

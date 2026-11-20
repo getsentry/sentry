@@ -33,7 +33,9 @@ class SentryAppComponentsTest(APITestCase):
             schema={"elements": [self.create_issue_link_schema()]},
         )
 
-        self.component = self.sentry_app.components.first()
+        component = self.sentry_app.components.first()
+        assert component is not None
+        self.component = component
 
         self.login_as(user=self.user)
 
@@ -89,9 +91,15 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             status=SentryAppInstallationStatus.PENDING,
         )
 
-        self.component1 = self.sentry_app1.components.order_by("pk").first()
-        self.component2 = self.sentry_app2.components.order_by("pk").first()
-        self.component3 = self.sentry_app3.components.order_by("pk").first()
+        component1 = self.sentry_app1.components.order_by("pk").first()
+        component2 = self.sentry_app2.components.order_by("pk").first()
+        component3 = self.sentry_app3.components.order_by("pk").first()
+        assert component1 is not None
+        assert component2 is not None
+        assert component3 is not None
+        self.component1 = component1
+        self.component2 = component2
+        self.component3 = component3
 
         self.login_as(user=self.user)
 
@@ -139,6 +147,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
         install = self.create_sentry_app_installation(slug=sentry_app.slug, organization=self.org)
 
         component = sentry_app.components.first()
+        assert component is not None
 
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id, "filter": "alert-rule"}

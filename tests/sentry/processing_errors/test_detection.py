@@ -1,16 +1,20 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, cast
 from unittest.mock import patch
 
 from django.core.cache import cache
 
+from sentry.models.project import Project
 from sentry.processing_errors.detection import (
     DETECTOR_CONFIGS,
+    DetectorConfig,
     _cache_key_triggered,
     detect_processing_issues,
 )
 from sentry.processing_errors.grouptype import SourcemapConfigurationType
+from sentry.services.eventstore.models import GroupEvent
+from sentry.tasks.post_process import PostProcessJob
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.models import DetectorState
 
@@ -18,7 +22,12 @@ from sentry.workflow_engine.models import DetectorState
 class _FakeEvent:
     """Minimal event-like object for testing the detection function."""
 
-    def __init__(self, project, errors=None, platform="javascript"):
+    def __init__(
+        self,
+        project: Project,
+        errors: list[dict[str, Any] | None] | None = None,
+        platform: str = "javascript",
+    ) -> None:
         self.project = project
         self.event_id = "fake-event-id"
         self.data: dict[str, Any] = {
@@ -29,14 +38,14 @@ class _FakeEvent:
             self.data["errors"] = errors
 
 
-def _make_job(event, is_reprocessed=False):
+def _make_job(event: _FakeEvent, is_reprocessed: bool = False) -> PostProcessJob:
     return {
-        "event": event,
+        "event": cast(GroupEvent, event),
         "is_reprocessed": is_reprocessed,
     }
 
 
-def _sourcemap_config():
+def _sourcemap_config() -> DetectorConfig:
     return DETECTOR_CONFIGS[0]
 
 

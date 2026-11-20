@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 
@@ -16,8 +16,9 @@ import type {SpanFrame} from 'sentry/utils/replays/types';
 import {useDismissAlert} from 'sentry/utils/useDismissAlert';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {Output} from 'sentry/views/explore/replays/detail/network/details/output';
-import type {TabKey} from 'sentry/views/explore/replays/detail/network/details/tabs';
+
+import {Output} from './output';
+import type {TabKey} from './tabs';
 
 export const useDismissReqRespBodiesAlert = () => {
   const organization = useOrganization();
@@ -254,9 +255,7 @@ function MobileSetupInstructions({
       <p>
         {tct(
           'To protect user privacy, Session Replay defaults to not capturing the request or response headers. However, we provide the option to do so, if it’s critical to your debugging process. [link].',
-          {
-            link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>,
-          }
+          {link: <ExternalLink href={docsUrl}>{t('Learn More')}</ExternalLink>}
         )}
       </p>
       {(showSnippet === Output.SETUP || showSnippet === Output.URL_SKIPPED) &&
@@ -383,11 +382,7 @@ function SetupInstructions({
       <h2>{t('Prerequisites')}</h2>
       <ol>
         {sdkNeedsUpdate ? (
-          <li>
-            {tct('Update your SDK version to >= [minVersion]', {
-              minVersion,
-            })}
-          </li>
+          <li>{tct('Update your SDK version to >= [minVersion]', {minVersion})}</li>
         ) : null}
         <li>{t('Edit the Replay integration configuration to allow this URL.')}</li>
         <li>{t('That’s it!')}</li>

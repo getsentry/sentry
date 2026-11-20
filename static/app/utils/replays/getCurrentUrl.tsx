@@ -1,12 +1,9 @@
-import type {
-  BreadcrumbFrame,
-  NavigationFrame,
-  SpanFrame,
-} from 'sentry/utils/replays/types';
-import {isSpanFrame} from 'sentry/utils/replays/types';
 import {safeURL} from 'sentry/utils/url/safeURL';
 import {stripURLOrigin} from 'sentry/utils/url/stripURLOrigin';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import type {BreadcrumbFrame, NavigationFrame, SpanFrame} from './types';
+import {isSpanFrame} from './types';
 
 export function getCurrentUrl(
   replayRecord: undefined | ReplayRecord,
@@ -38,9 +35,13 @@ export function getCurrentUrl(
       'navigation.push',
     ].includes(mostRecentFrame.op)
   ) {
+    const {description} = mostRecentFrame as NavigationFrame;
+    if (description === undefined) {
+      return origin;
+    }
     // navigation.push will have the pathname while the other `navigate.*`
     // operations will have a full url.
-    return origin + stripURLOrigin((mostRecentFrame as NavigationFrame).description);
+    return origin + stripURLOrigin(description);
   }
 
   throw new Error('Unknown frame type in getCurrentUrl');

@@ -65,9 +65,6 @@ import {useSyncedLocalStorageState} from 'sentry/utils/useSyncedLocalStorageStat
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 import {useUser} from 'sentry/utils/useUser';
 import {IssueListContainer} from 'sentry/views/issueList';
-import {InboxLayout} from 'sentry/views/issueList/pages/inbox/inboxLayout';
-import {IssuePreview} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreview';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 import {InboxEmptyState} from 'sentry/views/issueList/pages/inboxEmptyState';
 import {
   assignmentFilterParser,
@@ -77,6 +74,10 @@ import {useInboxPreviewPrefetch} from 'sentry/views/issueList/pages/useInboxPrev
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 import {getProgressIcon} from 'sentry/views/issueList/utils/progress';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {IssuePreview} from './issuePreview/issuePreview';
+import {InboxLayout} from './inboxLayout';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 const TITLE = t('Inbox');
 const ISSUE_LIMIT = 10;
@@ -239,10 +240,7 @@ function useAssignmentCounts(): AssignmentCounts | null {
     return null;
   }
 
-  return {
-    my_teams: data[myTeamsQuery] ?? 0,
-    all: data[allQuery] ?? 0,
-  };
+  return {my_teams: data[myTeamsQuery] ?? 0, all: data[allQuery] ?? 0};
 }
 
 function getAlternateInbox(
@@ -272,9 +270,7 @@ function AssignmentTabs({
           count_my_teams: assignmentCounts.my_teams,
           count_all: assignmentCounts.all,
         }
-      : {
-          assignment_filter: assignmentFilter,
-        }
+      : {assignment_filter: assignmentFilter}
   );
 
   return (
@@ -311,10 +307,7 @@ function InboxContent() {
   const organization = useOrganization();
   const [{assignment: assignmentFilter, preview: selectedIssueId}, setInboxQueryState] =
     useQueryStates(
-      {
-        assignment: assignmentFilterParser,
-        [SELECTED_ISSUE_QUERY_PARAM]: parseAsString,
-      },
+      {assignment: assignmentFilterParser, [SELECTED_ISSUE_QUERY_PARAM]: parseAsString},
       {history: 'replace'}
     );
   const issueIdToRestoreScroll = useRef(selectedIssueId);
@@ -639,11 +632,7 @@ function useIssueSuggestedAssignees(group: Group): Actor[] {
         email: owner.email,
         type: 'user',
       })),
-      ...ownerTeams.map<Actor>(team => ({
-        id: team.id,
-        name: team.name,
-        type: 'team',
-      })),
+      ...ownerTeams.map<Actor>(team => ({id: team.id, name: team.name, type: 'team'})),
     ],
     [
       // If the current user is in the list, sort it to the top

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import abc
 import logging
+from collections.abc import Mapping
 from typing import TYPE_CHECKING, Any
 
 from sentry.identity.services.identity.model import RpcIdentity
@@ -20,7 +21,7 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
     auto_create_provider_model = False
     create_organization_identity = False
 
-    def __init__(self, **config):
+    def __init__(self, **config: object) -> None:
         super().__init__()
         self.config = config
         self.logger = logging.getLogger(f"sentry.identity.{self.key}")
@@ -33,7 +34,7 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         """
         return {}
 
-    def build_identity(self, state):
+    def build_identity(self, state: Mapping[str, object]) -> Mapping[str, object]:
         """
         Return a mapping containing the identity information.
 
@@ -58,7 +59,9 @@ class Provider(PipelineProvider["IdentityPipeline"], abc.ABC):
         """
         raise NotImplementedError
 
-    def update_identity(self, new_data, current_data):
+    def update_identity(
+        self, new_data: Mapping[str, object], current_data: Mapping[str, object]
+    ) -> Mapping[str, object]:
         """
         When re-authenticating with a provider, the identity data may need to
         be mutated based on the previous state. An example of this is Google,

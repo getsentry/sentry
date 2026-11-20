@@ -14,7 +14,8 @@ const styles = (theme: Theme) => css`
     }
   }
 
-  .loading .loading-indicator {
+  .loading .loading-indicator,
+  .scraps-spinner .scraps-spinner-ring {
     border-color: ${theme.tokens.border.transparent.neutral.muted};
     border-left-color: ${theme.tokens.graphics.accent.vibrant};
   }

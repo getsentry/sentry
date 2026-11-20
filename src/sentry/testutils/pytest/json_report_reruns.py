@@ -22,7 +22,6 @@ from typing import Any
 
 import pytest
 import pytest_jsonreport.plugin
-from _pytest._io.saferepr import saferepr
 
 JSONTestItem = dict[str, Any]
 JSONTestItems = dict[str, JSONTestItem]
@@ -71,11 +70,24 @@ class PytestRerunJSONReporter:
                 **stage,
                 "context": {
                     "msg": context.msg,
-                    "kwargs": {str(k): saferepr(v) for k, v in context.kwargs.items()},
+                    # pytest has already saferepr'd the values.
+                    "kwargs": dict(context.kwargs),
                 },
             }
         )
         return result
+
+    @pytest.hookimpl(wrapper=True)
+    def pytest_report_from_serializable(
+        self, data: dict[str, Any]
+    ) -> Generator[None, object, object]:
+        report = yield
+        if isinstance(report, pytest.SubtestReport):
+            # On an xdist controller, pytest saferepr's the already saferepr'd
+            # kwargs again when it rebuilds the context, so restore the
+            # worker's values.
+            object.__setattr__(report.context, "kwargs", dict(data["_subtest.context"]["kwargs"]))
+        return report
 
     def pytest_json_runtest_stage(self, report: pytest.TestReport) -> None:
         if isinstance(report, pytest.SubtestReport):

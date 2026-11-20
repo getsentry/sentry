@@ -2,15 +2,13 @@ import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
 
-import {
-  getMappedThreadState,
-  ThreadStates,
-} from 'sentry/components/events/interfaces/threads/threadSelector/threadStates';
-import {getCurrentThread} from 'sentry/components/events/interfaces/utils';
 import {t, tct} from 'sentry/locale';
 import type {EntryException, Event, Frame, Lock, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
+
+import {getMappedThreadState, ThreadStates} from './threads/threadSelector/threadStates';
+import {getCurrentThread} from './utils';
 
 type SuspectFrame = {
   module: string | RegExp;
@@ -198,10 +196,9 @@ function satisfiesOffendingThreadCondition(
   return offendingThreadStates.includes(mappedState);
 }
 
-export function analyzeFramesForRootCause(event: Event): {
-  culprit: string | Lock;
-  resources: React.ReactNode;
-} | null {
+export function analyzeFramesForRootCause(
+  event: Event
+): {culprit: string | Lock; resources: React.ReactNode} | null {
   const exception = event.entries.find(entry => entry.type === EntryType.EXCEPTION) as
     | EntryException
     | undefined;
@@ -253,10 +250,7 @@ export function analyzeFrameForRootCause(
   frame: Frame,
   currentThread?: Thread,
   lockAddress?: string
-): {
-  culprit: string | Lock;
-  resources: React.ReactNode;
-} | null {
+): {culprit: string | Lock; resources: React.ReactNode} | null {
   if (defined(lockAddress) && frame.lock?.address === lockAddress) {
     // if we are provided with a lockAddress, we just have to analyze if the frame's lock
     // address is equal to the one provided to mark the frame as suspect

@@ -1,7 +1,7 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SavedQueriesLandingContent} from 'sentry/views/explore/savedQueries/savedQueriesLandingContent';
+import {SavedQueriesLandingContent} from './savedQueriesLandingContent';
 
 describe('SavedQueriesTable', () => {
   const {organization} = initializeOrg();
@@ -63,19 +63,13 @@ describe('SavedQueriesTable', () => {
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'Query Name',
-          exclude: 'shared',
-        }),
+        query: expect.objectContaining({query: 'Query Name', exclude: 'shared'}),
       })
     );
     expect(getSavedQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/all-queries/`,
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'Query Name',
-          exclude: 'owned',
-        }),
+        query: expect.objectContaining({query: 'Query Name', exclude: 'owned'}),
       })
     );
   });

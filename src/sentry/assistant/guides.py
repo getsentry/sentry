@@ -31,4 +31,5 @@ GUIDES = {
     "tour.issue_details": 40,
     "tour.stacked_navigation": 41,
     "tour.explore.spans": 42,
+    "tour.settings_navigation": 43,
 }

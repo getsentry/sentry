@@ -4,7 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {BaseChartActionDropdown} from 'sentry/views/insights/common/components/chartActionDropdown';
+
+import {BaseChartActionDropdown} from './chartActionDropdown';
 
 beforeEach(() => {
   PageFiltersStore.onInitializeUrlState(PageFiltersFixture());

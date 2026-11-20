@@ -163,10 +163,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: () => {
                   trackAnalytics(
                     'profiling_views.flamegraph.click.highlight_all_occurrences',
-                    {
-                      organization,
-                      profile_type: props.profileType,
-                    }
+                    {organization, profile_type: props.profileType}
                   );
                   props.onHighlightAllOccurrencesClick();
                 },
@@ -198,10 +195,7 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
                 onClick: () => {
                   trackAnalytics(
                     'profiling_views.flamegraph.click.copy_function_source',
-                    {
-                      organization,
-                      profile_type: props.profileType,
-                    }
+                    {organization, profile_type: props.profileType}
                   );
                   props.onCopyFunctionSource();
                   // This is a button, so close the context menu.
@@ -216,20 +210,18 @@ export function FlamegraphContextMenu(props: FlamegraphContextMenuProps) {
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
                 isSupportedPlatformForGitHubLink(props.profileGroup?.metadata?.platform)
-                  ? sourceCodeLink.isPending
+                  ? sourceCodeLink.isLoading
                     ? 'Resolving link'
-                    : sourceCodeLink.isSuccess &&
-                        (!sourceCodeLink.data.sourceUrl ||
-                          sourceCodeLink.data.config?.provider?.key !== 'github')
+                    : !sourceCodeLink.isSuccess ||
+                        !sourceCodeLink.data.sourceUrl ||
+                        sourceCodeLink.data.config?.provider?.key !== 'github'
                       ? t('Could not find source code location in GitHub')
                       : undefined
                   : t('Open in GitHub is not supported for this platform')
               }
-              {...props.contextMenu.getMenuItemProps({
-                onClick: onOpenInGithubClick,
-              })}
+              {...props.contextMenu.getMenuItemProps({onClick: onOpenInGithubClick})}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -474,19 +466,17 @@ export function ContinuousFlamegraphContextMenu(props: FlamegraphContextMenuProp
             <ProfilingContextMenuItemButton
               disabled={!sourceCodeLink.isSuccess || !sourceCodeLink.data?.sourceUrl}
               tooltip={
-                sourceCodeLink.isPending
+                sourceCodeLink.isLoading
                   ? 'Resolving link'
-                  : sourceCodeLink.isSuccess &&
-                      (!sourceCodeLink.data.sourceUrl ||
-                        sourceCodeLink.data.config?.provider?.key !== 'github')
+                  : !sourceCodeLink.isSuccess ||
+                      !sourceCodeLink.data.sourceUrl ||
+                      sourceCodeLink.data.config?.provider?.key !== 'github'
                     ? t('Could not find source code location in GitHub')
                     : undefined
               }
-              {...props.contextMenu.getMenuItemProps({
-                onClick: onOpenInGithubClick,
-              })}
+              {...props.contextMenu.getMenuItemProps({onClick: onOpenInGithubClick})}
               icon={
-                sourceCodeLink.isPending ? (
+                sourceCodeLink.isLoading ? (
                   <StyledLoadingIndicator size={10} />
                 ) : (
                   <IconGithub size="xs" />
@@ -562,7 +552,7 @@ const StyledLoadingIndicator = styled(LoadingIndicator)`
   margin: 0;
   transform: translateX(-2px);
 
-  .loading-indicator {
+  .scraps-spinner-ring {
     border: 2px solid ${p => p.theme.colors.gray100} !important;
     border-left-color: ${p => p.theme.colors.gray200} !important;
   }

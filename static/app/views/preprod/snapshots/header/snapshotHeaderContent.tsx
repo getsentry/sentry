@@ -3,17 +3,17 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import type {BreadcrumbTitleItem} from '@sentry/scraps/breadcrumbList';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
-import type {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
-import {SnapshotApproveButton} from 'sentry/views/preprod/snapshots/header/snapshotApproveButton';
-import {useSnapshotActions} from 'sentry/views/preprod/snapshots/header/useSnapshotActions';
 import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapshotTypes';
+
+import {SnapshotApproveButton} from './snapshotApproveButton';
+import {useSnapshotActions} from './useSnapshotActions';
 
 type PageTitleItem = Extract<BreadcrumbTitleItem, {type: 'page-title'}>;
 
@@ -48,12 +48,8 @@ function SnapshotBreadcrumbs({
         type: 'page-title',
         label: snapshotId,
         leadingGraphic: project ? (
-          <ProjectBadge
-            disableLink
-            hideName
-            project={project}
-            avatarSize={16}
-            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
           />
         ) : (
           <Placeholder width="16px" height="16px" />
@@ -65,19 +61,17 @@ function SnapshotBreadcrumbs({
 }
 
 interface SnapshotHeaderContentProps {
-  apiUrl: ReturnType<typeof getApiUrl>;
   organizationSlug: string;
   snapshotId: string;
   data?: SnapshotDetailsApiResponse;
 }
 
 function SnapshotBreadcrumbsWithActions({
-  apiUrl,
   data,
   organizationSlug,
   snapshotId,
 }: SnapshotHeaderContentProps & {data: SnapshotDetailsApiResponse}) {
-  const actions = useSnapshotActions({apiUrl, data, organizationSlug});
+  const actions = useSnapshotActions({data, organizationSlug});
 
   return (
     <ConfirmDelete {...actions.confirmDeleteProps}>

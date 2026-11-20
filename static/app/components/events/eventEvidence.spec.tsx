@@ -4,7 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {EventEvidence} from 'sentry/components/events/eventEvidence';
+import {EventEvidence} from './eventEvidence';
 
 describe('EventEvidence', () => {
   const event = EventFixture({

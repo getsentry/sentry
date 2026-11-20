@@ -4,25 +4,18 @@ import {UserFixture} from 'sentry-fixture/user';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TeamParticipant, UserParticipant} from 'sentry/types/group';
-import {PeopleSection} from 'sentry/views/issueDetails/sidebar/peopleSection';
+
+import {PeopleSection} from './peopleSection';
 
 describe('PeopleSection', () => {
   const teams: TeamParticipant[] = [{...TeamFixture(), type: 'team'}];
   const users: UserParticipant[] = [
     {
-      ...UserFixture({
-        id: '2',
-        name: 'John Smith',
-        email: 'johnsmith@example.com',
-      }),
+      ...UserFixture({id: '2', name: 'John Smith', email: 'johnsmith@example.com'}),
       type: 'user',
     },
     {
-      ...UserFixture({
-        id: '3',
-        name: 'Sohn Jmith',
-        email: 'sohnjmith@example.com',
-      }),
+      ...UserFixture({id: '3', name: 'Sohn Jmith', email: 'sohnjmith@example.com'}),
       type: 'user',
     },
   ];

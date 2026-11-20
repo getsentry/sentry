@@ -5,13 +5,8 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {CircleIndicator} from 'sentry/components/circleIndicator';
 import type {IntegrationInstallationStatus} from 'sentry/types/integrations';
-import {
-  DISABLED,
-  INSTALLED,
-  NOT_INSTALLED,
-  PENDING,
-  PENDING_DELETION,
-} from 'sentry/views/settings/organizationIntegrations/constants';
+
+import {DISABLED, INSTALLED, NOT_INSTALLED, PENDING, PENDING_DELETION} from './constants';
 
 const LEARN_MORE = 'Learn More';
 const COLORS = {
@@ -23,9 +18,7 @@ const COLORS = {
   [LEARN_MORE]: 'primary',
 } as const satisfies Record<string, keyof Theme['tokens']['content']>;
 
-type StatusProps = {
-  status: IntegrationInstallationStatus;
-};
+type StatusProps = {status: IntegrationInstallationStatus};
 
 export const IntegrationStatus = styled(({status, ...p}: StatusProps) => {
   const theme = useTheme();

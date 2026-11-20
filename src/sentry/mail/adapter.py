@@ -77,7 +77,8 @@ class MailAdapter:
         if digests.backend.enabled(project) and not skip_digests:
 
             def get_digest_option(key: str) -> int | None:
-                return ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
+                value = ProjectOption.objects.get_value(project, get_digest_option_key("mail", key))
+                return value
 
             digest_key = unsplit_key(project, target_type, target_identifier, fallthrough_choice)
             extra["digest_key"] = digest_key

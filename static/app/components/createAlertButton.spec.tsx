@@ -3,13 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {
-  CreateAlertButton,
-  CreateAlertFromViewButton,
-} from 'sentry/components/createAlertButton';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DEFAULT_EVENT_VIEW} from 'sentry/views/discover/results/data';
+
+import {CreateAlertFromViewButton} from './createAlertButton';
 
 const onClickMock = jest.fn();
 
@@ -43,19 +41,9 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('disables the button for org-member', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const noAccessOrg = {
-      ...organization,
-      access: [],
-    };
-    const projects = [
-      {
-        ...ProjectFixture(),
-        access: [],
-      },
-    ];
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const noAccessOrg = {...organization, access: []};
+    const projects = [{...ProjectFixture(), access: []}];
     ProjectsStore.loadInitialData(projects);
 
     render(
@@ -65,9 +53,7 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization: noAccessOrg,
-      }
+      {organization: noAccessOrg}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toHaveAttribute(
@@ -77,15 +63,8 @@ describe('CreateAlertFromViewButton', () => {
   });
 
   it('enables the button for org-owner/manager', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const projects = [
-      {
-        ...ProjectFixture(),
-        access: [],
-      },
-    ];
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const projects = [{...ProjectFixture(), access: []}];
     ProjectsStore.loadInitialData(projects);
 
     render(
@@ -95,22 +74,15 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
   });
 
   it('enables the button for team-admin', () => {
-    const eventView = EventView.fromSavedQuery({
-      ...DEFAULT_EVENT_VIEW,
-    });
-    const noAccessOrg = {
-      ...organization,
-      access: [],
-    };
+    const eventView = EventView.fromSavedQuery({...DEFAULT_EVENT_VIEW});
+    const noAccessOrg = {...organization, access: []};
     const projects = [
       {
         ...ProjectFixture(),
@@ -134,52 +106,10 @@ describe('CreateAlertFromViewButton', () => {
         projects={projects}
         onClick={onClickMock}
       />,
-      {
-        organization: noAccessOrg,
-      }
+      {organization: noAccessOrg}
     );
 
     expect(screen.getByRole('button', {name: 'Create Monitor'})).toBeEnabled();
-  });
-
-  it('redirects to monitor creation with no project', async () => {
-    const {router} = render(
-      <CreateAlertButton aria-label="Create Monitor" organization={organization} />,
-      {
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/issues/alerts/wizard/',
-          },
-          route: '/organizations/:orgId/issues/alerts/wizard/',
-        },
-      }
-    );
-    await userEvent.click(screen.getByRole('button'));
-    expect(router.location).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/monitors/new/',
-        query: {},
-      })
-    );
-  });
-
-  it('redirects to monitor creation with a project', () => {
-    render(
-      <CreateAlertButton
-        aria-label="Create Monitor"
-        organization={organization}
-        projectSlug="proj-slug"
-      />,
-      {
-        organization,
-      }
-    );
-
-    expect(screen.getByRole('button')).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/monitors/new/?project=proj-slug'
-    );
   });
 
   it('removes a duplicate project filter', async () => {

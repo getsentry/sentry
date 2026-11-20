@@ -33,6 +33,7 @@ describe('getModelPlatform Function', () => {
     expect(getModelPlatform('@cf/cloudflare/clef')).toBe('cloudflare');
     expect(getModelPlatform('clef-flash')).toBe('cloudflare');
     expect(getModelPlatform('clef-omni')).toBe('cloudflare');
+    expect(getModelPlatform('clairic')).toBe('cloudflare');
   });
 
   it('returns null for unknown modelId', () => {

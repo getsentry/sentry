@@ -3,12 +3,9 @@ import {RepositoryFixture} from 'sentry-fixture/repository';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {
-  OnboardingContextProvider,
-  useOnboardingContext,
-} from 'sentry/components/onboarding/onboardingContext';
-import type {ScmMessagingSetup} from 'sentry/components/onboarding/scm/scmMessagingSetup';
+import {ProductSolution} from './gettingStartedDoc/types';
+import type {ScmMessagingSetup} from './scm/scmMessagingSetup';
+import {OnboardingContextProvider, useOnboardingContext} from './onboardingContext';
 
 const platform = {
   key: 'javascript-nextjs' as const,

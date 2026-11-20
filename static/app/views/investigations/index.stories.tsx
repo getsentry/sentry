@@ -2,12 +2,12 @@ import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import InvestigationsView, {InvestigationsPage} from 'sentry/views/investigations';
-import {InvestigationListItemFixture} from 'sentry/views/investigations/fixtures';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 import {RouteError} from 'sentry/views/routeError';
 
 import {CrashReportPreviewButton} from './__stories__/crashReportPreviewButton';
 import {InvestigationFixtureApi} from './__stories__/investigationFixtureApi';
+import {InvestigationListItemFixture} from './fixtures';
 
 const realisticInvestigations = [
   InvestigationListItemFixture({

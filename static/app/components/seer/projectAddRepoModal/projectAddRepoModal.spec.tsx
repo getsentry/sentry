@@ -10,10 +10,13 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ProjectAddRepoModal} from 'sentry/components/seer/projectAddRepoModal/projectAddRepoModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
+
+import {ProjectAddRepoModal} from './projectAddRepoModal';
 
 describe('ProjectAddRepoModal', () => {
   const organization = OrganizationFixture();
@@ -48,9 +51,7 @@ describe('ProjectAddRepoModal', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
   }
 
@@ -61,7 +62,6 @@ describe('ProjectAddRepoModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   function openAddRepoModal(org = organization) {
@@ -164,10 +164,71 @@ describe('ProjectAddRepoModal', () => {
       `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       expect.objectContaining({data: expect.objectContaining({agent: 'seer'})})
     );
+    // Auto-Iterate is only shown as off: the saved value is the user's choice.
+    expect(settingsPut).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: expect.objectContaining({prIteration: true})})
+    );
     // The reset must not carry the coding-agent integration id either.
     expect(settingsPut).not.toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({data: expect.objectContaining({integrationId: '123'})})
     );
+  });
+
+  it('tells token-billed orgs that Seer uses linked repositories', async () => {
+    openAddRepoModal(OrganizationFixture({features: ['token-billed-seer-enabled']}));
+
+    expect(
+      await screen.findByText(/Seer uses the repositories linked to your project/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Autofix requires you to attach/)).not.toBeInTheDocument();
+  });
+
+  it('starts with Auto-Iterate on PRs off for token-billed orgs', async () => {
+    openAddRepoModal(OrganizationFixture({features: ['token-billed-seer-enabled']}));
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).not.toBeChecked();
+  });
+
+  it('starts with Auto-Iterate on PRs on for other orgs', async () => {
+    openAddRepoModal();
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeChecked();
+  });
+
+  it('tells other orgs to attach repositories for Autofix', async () => {
+    openAddRepoModal();
+
+    expect(await screen.findByText(/Autofix requires you to attach/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Seer uses the repositories linked to your project/)
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows Auto-Iterate on PRs off and disabled until a github.com repo is added', async () => {
+    openAddRepoModal();
+
+    const getToggle = () => screen.getByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeChecked();
+
+    await addRepository(/gitlab-repo/);
+
+    await waitFor(() => expect(getToggle()).toBeDisabled());
+    expect(getToggle()).not.toBeChecked();
+    await userEvent.hover(await screen.findByRole('img', {name: 'Disabled'}));
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+
+    // The user's choice comes back once a github.com repo is added.
+    await addRepository(/getsentry\/sentry/);
+    await waitFor(() => expect(getToggle()).toBeEnabled());
+    expect(getToggle()).toBeChecked();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
 });

@@ -27,7 +27,6 @@ from sentry.uptime.autodetect.ranking import (
 )
 from sentry.uptime.autodetect.tasks import (
     LAST_PROCESSED_KEY,
-    ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
     check_url_robots_txt,
     get_robots_txt_parser,
@@ -274,9 +273,7 @@ class ProcessCandidateUrlTest(UptimeTestCase):
     def test_succeeds_existing_subscription_other_project(self) -> None:
         other_project = self.create_project()
         url = make_unique_test_url()
-        uptime_subscription = self.create_uptime_subscription(
-            url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
-        )
+        uptime_subscription = self.create_uptime_subscription(url=url, interval_seconds=3600)
         self.create_uptime_detector(project=other_project, uptime_subscription=uptime_subscription)
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)

@@ -9,6 +9,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, cell_silo_endpoint
 from sentry.api.permissions import SentryIsAuthenticated
 from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.auth.principal import acting_user_id
 from sentry.backup.crypto import GCPKMSEncryptor, get_default_crypto_key_version
 from sentry.relocation.api.endpoints import ERR_FEATURE_DISABLED
 from sentry.utils.env import log_gcp_credentials_details
@@ -35,7 +36,9 @@ class RelocationPublicKeyEndpoint(Endpoint):
         :auth: required
         """
 
-        logger.info("publickeys.relocations.get.start", extra={"caller": request.user.id})
+        logger.info(
+            "publickeys.relocations.get.start", extra={"caller": acting_user_id(request.user)}
+        )
 
         # We only honor the `relocation.enabled` flag for non-superusers/staff.
         elevated_user = has_elevated_mode(request)

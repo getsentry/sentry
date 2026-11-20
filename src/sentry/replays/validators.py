@@ -2,6 +2,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 
 from sentry.api.helpers.projects import ProjectIdOrSlugField
+from sentry.apidocs.omissions import sentry_schema_serializer
 from sentry.replays.post_process import ReplayDetailsResponse
 
 VALID_FIELD_SET = tuple(sorted(ReplayDetailsResponse.__annotations__))
@@ -14,6 +15,14 @@ def validate_fields(fields: list[str]) -> list[str]:
     return fields
 
 
+# ReplayDetailsResponse omits these from the public response, so the public
+# `field` enum must not offer them either. They are still accepted at runtime.
+@sentry_schema_serializer(
+    omit_from_public_schema={
+        "field.info_ids": "Internal breadcrumb index used by the replay UI.",
+        "field.warning_ids": "Internal breadcrumb index used by the replay UI.",
+    }
+)
 class ReplayValidator(serializers.Serializer):
     statsPeriod = serializers.CharField(
         help_text="""

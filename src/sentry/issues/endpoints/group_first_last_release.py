@@ -3,7 +3,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.helpers.group_index import get_first_last_release
 from sentry.issues.endpoints.bases.group import GroupEndpoint
@@ -14,6 +14,8 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
 @cell_silo_endpoint
 class GroupFirstLastReleaseEndpoint(GroupEndpoint):
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
+
     owner = ApiOwner.COMMUNITY
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

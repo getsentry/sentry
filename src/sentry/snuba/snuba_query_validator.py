@@ -10,6 +10,7 @@ from rest_framework import serializers
 from snuba_sdk import Column, Condition, Entity, Limit, Op
 
 from sentry import features
+from sentry.discover.arithmetic import is_equation
 from sentry.exceptions import (
     IncompatibleMetricsQuery,
     InvalidSearchQuery,
@@ -26,6 +27,7 @@ from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.search.eap.constants import VALID_GRANULARITIES
+from sentry.search.eap.spans.validator import validate_spans_equation_aggregate
 from sentry.search.eap.trace_metrics.validator import validate_trace_metrics_aggregate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.entity_subscription import (
@@ -49,6 +51,10 @@ logger = logging.getLogger(__name__)
 
 # TODO(davidenwang): eventually we should pass some form of these to the event_search parser to raise an error
 UNSUPPORTED_QUERIES = {"release:latest"}
+
+# Bounds (in seconds) Snuba enforces on subscription time windows for all datasets
+MIN_ALERT_TIME_WINDOW_SECONDS = 60
+MAX_ALERT_TIME_WINDOW_SECONDS = 86400
 
 # Allowed time windows (in seconds) for crash rate alerts
 CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS = [1800, 3600, 7200, 14400, 43200, 86400]
@@ -268,8 +274,26 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             and SnubaQueryEventType.EventType.TRACE_ITEM_METRIC in event_types
         )
 
+        is_spans = (
+            dataset == Dataset.EventsAnalyticsPlatform
+            and event_types
+            and SnubaQueryEventType.EventType.TRACE_ITEM_SPAN in event_types
+        )
+
         if is_trace_metrics:
             validate_trace_metrics_aggregate(aggregate)
+        elif is_spans and is_equation(aggregate):
+            if not features.has(
+                "organizations:spans-monitor-equations",
+                self.context["organization"],
+                actor=self.context.get("user", None),
+            ):
+                raise serializers.ValidationError(
+                    {"aggregate": _("Invalid Metric: Span monitors do not support equations.")}
+                )
+            validate_spans_equation_aggregate(
+                aggregate, self.context["organization"], [self.context["project"]]
+            )
         else:
             try:
                 if not check_aggregate_column_support(
@@ -280,11 +304,11 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                     raise serializers.ValidationError(
                         {"aggregate": _("Invalid Metric: We do not currently support this field.")}
                     )
+                data["aggregate"] = translate_aggregate_field(
+                    aggregate, allow_mri=allow_mri, allow_eap=allow_eap
+                )
             except InvalidSearchQuery as e:
                 raise serializers.ValidationError({"aggregate": _(f"Invalid Metric: {e}")})
-            data["aggregate"] = translate_aggregate_field(
-                aggregate, allow_mri=allow_mri, allow_eap=allow_eap
-            )
 
     def _validate_query(self, data: dict[str, Any]) -> None:
         dataset = data.setdefault("dataset", Dataset.Events)
@@ -335,6 +359,8 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 % sorted(dataset.name.lower() for dataset in valid_datasets)
             )
 
+        self._validate_time_window(data["time_window"], dataset)
+
         projects = data.get("projects")
         if not projects:
             # We just need a valid project id from the org so that we can verify
@@ -360,8 +386,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
         # TODO(edward): Bypass snql query validation for EAP queries. Do we need validation for rpc requests?
         if dataset != Dataset.EventsAnalyticsPlatform:
             self._validate_snql_query(data, entity_subscription, projects)
-        else:
-            self._validate_time_window(data["time_window"], dataset)
 
     def _validate_snql_query(
         self,
@@ -391,9 +415,6 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
                 "Invalid Metric: Please pass a valid function for aggregation"
             )
 
-        dataset = Dataset(data["dataset"].value)
-        self._validate_time_window(data["time_window"], dataset)
-
         entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
@@ -414,6 +435,10 @@ class SnubaQueryValidator(BaseDataSourceValidator[QuerySubscription]):
             )
 
     def _validate_time_window(self, value: int, dataset: Dataset) -> int:
+        if not MIN_ALERT_TIME_WINDOW_SECONDS <= value <= MAX_ALERT_TIME_WINDOW_SECONDS:
+            raise serializers.ValidationError(
+                "Invalid Time Window: must be between 1 minute and 24 hours"
+            )
         if dataset == Dataset.Metrics:
             if value not in CRASH_RATE_ALERTS_ALLOWED_TIME_WINDOWS:
                 raise serializers.ValidationError(

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from sentry.silo.base import SiloMode
 from sentry.tasks.organization_contributors import (
@@ -24,7 +24,7 @@ class ResetNumActionsForOrganizationContributorsTest(TestCase):
             )
 
     @patch("sentry.tasks.organization_contributors.logger")
-    def test_resets_num_actions_for_all_contributors(self, mock_logger):
+    def test_resets_num_actions_for_all_contributors(self, mock_logger: MagicMock) -> None:
         contributor1 = self.create_organization_contributor(
             organization=self.organization,
             integration=self.integration,
@@ -132,7 +132,9 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
-    def test_seat_assigned_successfully(self, mock_assign_seat, mock_logger):
+    def test_seat_assigned_successfully(
+        self, mock_assign_seat: MagicMock, mock_logger: MagicMock
+    ) -> None:
         contributor = self.create_organization_contributor(
             organization=self.organization,
             integration=self.integration,
@@ -150,7 +152,9 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
-    def test_seat_assignment_fails_logs_warning(self, mock_assign_seat, mock_logger):
+    def test_seat_assignment_fails_logs_warning(
+        self, mock_assign_seat: MagicMock, mock_logger: MagicMock
+    ) -> None:
         contributor = self.create_organization_contributor(
             organization=self.organization,
             integration=self.integration,
@@ -178,7 +182,9 @@ class AssignSeatToOrganizationContributorTest(TestCase):
 
     @patch("sentry.tasks.organization_contributors.logger")
     @patch("sentry.tasks.organization_contributors.quotas.backend.assign_seat")
-    def test_contributor_not_found_logs_warning(self, mock_assign_seat, mock_logger):
+    def test_contributor_not_found_logs_warning(
+        self, mock_assign_seat: MagicMock, mock_logger: MagicMock
+    ) -> None:
         assign_seat_to_organization_contributor(999999)
 
         mock_assign_seat.assert_not_called()

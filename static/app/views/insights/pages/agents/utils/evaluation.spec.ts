@@ -1,12 +1,13 @@
 import {
   evaluatedStateToText,
   getAnswerLabel,
+  getEvaluationResults,
   getNodeEvaluation,
   parseEvaluationInput,
   parseEvaluationOutput,
   type ScoreAnswer,
-} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
+} from './evaluation';
+import type {AITraceSpanNode} from './types';
 
 function makeNode(attributes: Record<string, string>): AITraceSpanNode {
   return {errors: new Set(), attributes} as unknown as AITraceSpanNode;
@@ -16,17 +17,12 @@ const RAW_INPUT = JSON.stringify([
   {
     type: 'evaluation',
     state: 'I cannot log in.',
-    questions: {
-      urgency: {type: 'score', criteria: ['low', 'medium', 'high']},
-    },
+    questions: {urgency: {type: 'score', criteria: ['low', 'medium', 'high']}},
   },
 ]);
 
 const RAW_OUTPUT = JSON.stringify([
-  {
-    type: 'evaluation',
-    answers: {urgency: {type: 'score', score: 1.6}},
-  },
+  {type: 'evaluation', answers: {urgency: {type: 'score', score: 1.6}}},
 ]);
 
 describe('parseEvaluationInput', () => {
@@ -321,10 +317,7 @@ describe('getNodeEvaluation', () => {
   it('returns null for other spans, even with an evaluation message', () => {
     expect(
       getNodeEvaluation(
-        makeNode({
-          'gen_ai.operation.name': 'chat',
-          'gen_ai.input.messages': RAW_INPUT,
-        })
+        makeNode({'gen_ai.operation.name': 'chat', 'gen_ai.input.messages': RAW_INPUT})
       )
     ).toBeNull();
   });
@@ -418,5 +411,22 @@ describe('getAnswerLabel', () => {
 
   it('labels a refusal', () => {
     expect(getAnswerLabel({kind: 'refusal', key: 'urgency'})).toBe('Refused');
+  });
+});
+
+describe('getEvaluationResults', () => {
+  it('pairs answers with questions by key, in question order', () => {
+    const urgency = {key: 'urgency', kind: 'question' as const, type: 'score'};
+    const authIssue = {key: 'authIssue', kind: 'question' as const, type: 'boolean'};
+    const authAnswer = {kind: 'boolean' as const, key: 'authIssue', probability: 0.9};
+    const extraAnswer = {kind: 'choice' as const, key: 'department', choice: 'billing'};
+
+    expect(getEvaluationResults([urgency, authIssue], [extraAnswer, authAnswer])).toEqual(
+      [
+        {key: 'urgency', question: urgency, answer: undefined},
+        {key: 'authIssue', question: authIssue, answer: authAnswer},
+        {key: 'department', answer: extraAnswer},
+      ]
+    );
   });
 });

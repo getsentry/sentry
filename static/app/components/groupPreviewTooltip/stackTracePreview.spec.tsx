@@ -27,17 +27,16 @@ function makeNativePreview() {
     registers: null,
   };
 
-  return {
-    event: EventFixture({platform: 'cocoa'}),
-    stacktrace,
-  };
+  return {event: EventFixture({platform: 'cocoa'}), stacktrace};
 }
 
 beforeEach(() => {
   MockApiClient.clearMockResponses();
   MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues/123/',
+    url: '/organizations/org-slug/sentry-app-components/',
+    body: [],
   });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/123/'});
 });
 
 describe('StackTracePreview', () => {
@@ -111,12 +110,7 @@ describe('StackTracePreview', () => {
 
     const errorEvent = {
       id: '456',
-      entries: [
-        {
-          type: EntryType.EXCEPTION,
-          data: exceptionValue,
-        },
-      ],
+      entries: [{type: EntryType.EXCEPTION, data: exceptionValue}],
     } as EventError;
 
     MockApiClient.addMockResponse({
@@ -148,9 +142,7 @@ describe('StackTracePreview', () => {
     const {event, stacktrace} = makeNativePreview();
 
     render(<StackTracePreviewContent event={event} stacktrace={stacktrace} />, {
-      organization: OrganizationFixture({
-        features: ['issue-details-native-stack-trace'],
-      }),
+      organization: OrganizationFixture({features: ['issue-details-native-stack-trace']}),
     });
 
     expect(screen.getByTestId('native-stack-trace-frame-title')).toBeInTheDocument();

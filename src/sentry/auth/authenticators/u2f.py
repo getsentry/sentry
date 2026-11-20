@@ -9,6 +9,7 @@ from urllib.parse import urlparse
 
 import orjson
 from cryptography.exceptions import InvalidKey, InvalidSignature
+from django.conf import settings
 from django.http.request import HttpRequest
 from django.urls import reverse
 from django.utils.functional import classproperty
@@ -47,7 +48,8 @@ def create_credential_object(registeredKey: dict[str, str]) -> base.AttestedCred
 
 
 def _get_url_prefix() -> str:
-    return options.get("system.url-prefix")
+    url_prefix = options.get("system.url-prefix")
+    return url_prefix
 
 
 class U2fInterface(AuthenticatorInterface):
@@ -92,7 +94,7 @@ class U2fInterface(AuthenticatorInterface):
 
     @classproperty
     def u2f_facets(cls) -> list[str]:
-        facets = options.get("u2f.facets")
+        facets = settings.SENTRY_U2F_FACETS
         if not facets:
             return [_get_url_prefix()]
         return [x.rstrip("/") for x in facets]
@@ -169,9 +171,11 @@ class U2fInterface(AuthenticatorInterface):
         for device in self.config.get("devices", ()):
             if isinstance(device["binding"], AuthenticatorData):
                 if decode_credential_id(device) == key:
-                    return device["name"]
+                    name = device["name"]
+                    return name
             elif device["binding"]["keyHandle"] == key:
-                return device["name"]
+                name = device["name"]
+                return name
         return None
 
     def get_registered_devices(self) -> list[dict[str, Any]]:

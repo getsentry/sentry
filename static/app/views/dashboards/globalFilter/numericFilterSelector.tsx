@@ -20,28 +20,27 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {getDatasetLabel} from 'sentry/views/dashboards/globalFilter/datasetLabels';
-import {MenuTitleWrapper} from 'sentry/views/dashboards/globalFilter/filterSelector';
-import {FilterSelectorTriggerButton} from 'sentry/views/dashboards/globalFilter/filterSelectorTrigger';
-import type {GenericFilterSelectorProps} from 'sentry/views/dashboards/globalFilter/genericFilterSelector';
+import type {GlobalFilter} from 'sentry/views/dashboards/types';
+
+import {getDatasetLabel} from './datasetLabels';
+import {MenuTitleWrapper} from './filterSelector';
+import {
+  FilterSelectorTriggerButton,
+  type FilterSelectorDescription,
+} from './filterSelectorTrigger';
+import type {GenericFilterSelectorProps} from './genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
   NumericFilterSelectorTrigger,
-} from 'sentry/views/dashboards/globalFilter/numericFilterSelectorTrigger';
-import {
-  CustomOperator,
-  type Operator,
-  getOperatorLabel,
-} from 'sentry/views/dashboards/globalFilter/operatorLabels';
+} from './numericFilterSelectorTrigger';
+import {CustomOperator, type Operator, getOperatorLabel} from './operatorLabels';
+import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
 import {
   getFieldDefinitionForDataset,
   isValidNumericFilterValue,
   newNumericFilterQuery,
   parseFilterValue,
-} from 'sentry/views/dashboards/globalFilter/utils';
-import type {GlobalFilter} from 'sentry/views/dashboards/types';
-
-import {FILTER_SELECTOR_TRIGGER_MAX_WIDTH} from './settings';
+} from './utils';
 
 const FILTER_QUERY_SEPARATOR = ' ';
 
@@ -53,6 +52,10 @@ interface NumericFilterState {
   renderInputField: () => React.ReactNode;
   renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
+  /**
+   * Untruncated version of the selector trigger, for its tooltip.
+   */
+  selectorDescription: FilterSelectorDescription;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
   stagedOperator: Operator;
@@ -141,6 +144,10 @@ function useNativeOperatorFilter(
     hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: {
+      operator: getOperatorLabel(stagedFilterOperator),
+      values: [stagedFilterValue],
+    },
     isValidValue,
     buildFilterQuery,
   };
@@ -190,6 +197,10 @@ function useBetweenOperatorFilter(
     hasStagedChanges: lowerBound.hasStagedChanges || upperBound.hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: {
+      operator: getOperatorLabel(CustomOperator.BETWEEN),
+      values: [t('%s and %s', lowerBound.stagedValue, upperBound.stagedValue)],
+    },
     isValidValue,
     buildFilterQuery: () =>
       lowerBound.buildFilterQuery() +
@@ -255,9 +266,7 @@ export function NumericFilterSelector({
 
   const operatorOptions = [
     ...nativeFilter.operatorOptions,
-    {
-      value: CustomOperator.BETWEEN,
-    },
+    {value: CustomOperator.BETWEEN},
   ];
 
   const operatorItems = operatorOptions.map(option => ({
@@ -326,6 +335,7 @@ export function NumericFilterSelector({
           <FilterSelectorTriggerButton
             {...triggerProps}
             globalFilter={globalFilter}
+            description={filter.selectorDescription}
             showDatasetLabel={showDatasetLabel}
           >
             {filter.renderSelectorTrigger()}
@@ -340,10 +350,7 @@ export function NumericFilterSelector({
                 <MenuComponents.ApplyButton
                   disabled={!filter.isValidValue}
                   onClick={() => {
-                    onUpdateFilter({
-                      ...globalFilter,
-                      value: filter.buildFilterQuery(),
-                    });
+                    onUpdateFilter({...globalFilter, value: filter.buildFilterQuery()});
                   }}
                 />
               </Flex>

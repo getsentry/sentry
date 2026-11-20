@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
 
@@ -13,6 +15,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -74,12 +77,15 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
 
     def test_simple_performance(self) -> None:
         event = self.create_performance_issue(
-            tags=[["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]],
+            tags=cast(
+                "dict[str, Any]", [["foo", "bar"], ["biz", "baz"], ["sentry:release", "releaseme"]]
+            ),
             fingerprint="group5",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
+        assert event.group is not None
         self.create_performance_issue(
-            tags=[["foo", "quux"], ["sentry:release", "releaseme"]],
+            tags=cast("dict[str, Any]", [["foo", "quux"], ["sentry:release", "releaseme"]]),
             fingerprint="group5",
             contexts={"trace": {"trace_id": "b" * 32, "span_id": "c" * 16, "op": ""}},
         )
@@ -135,6 +141,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
 
         self.store_event(
             data={
@@ -206,7 +213,9 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         self.login_as(user=self.user)
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/"
@@ -243,6 +252,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event2.group is not None
 
         self.login_as(user=self.user)
         url = f"/api/0/organizations/{self.organization.slug}/issues/{event2.group.id}/tags/"
@@ -261,6 +271,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -323,6 +334,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -374,6 +386,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event.group is not None
 
         self.login_as(user=self.user)
 
@@ -401,6 +414,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+        assert event.group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-empty-all"],
@@ -431,6 +445,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             project_id=self.project.id,
             assert_no_errors=False,
         )
+        assert event.group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-empty-all-tags"],
@@ -470,6 +485,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -563,6 +579,8 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
                 },
                 project_id=self.project.id,
             )
+        group = event.group
+        assert group is not None
         self.store_event(
             data={
                 "fingerprint": ["group-1"],
@@ -608,7 +626,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             )
 
         self.login_as(user=self.user)
-        url = f"/api/0/organizations/{self.organization.slug}/issues/{event.group.id}/tags/?useFlagsBackend=1&limit=3"
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/?useFlagsBackend=1&limit=3"
         response = self.client.get(url, format="json")
         assert response.status_code == 200, response.content
         assert len(response.data) == 1
@@ -635,6 +653,7 @@ class GroupTagsTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase):
             },
             project_id=self.project.id,
         )
+        assert event1.group is not None
 
         self.login_as(user=self.user)
 

@@ -10,8 +10,9 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screens/settings';
-import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {ModuleName} from 'sentry/views/insights/types';
+
+import {MobileHeader} from './mobilePageHeader';
 
 function MobileVitalsHeader() {
   const {isProjectCrossPlatform} = useCrossPlatformProject();

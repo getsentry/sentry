@@ -1,22 +1,37 @@
 from collections.abc import Mapping
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from sentry.ai_monitoring.utils import timestamp_to_float
+from sentry.apidocs.descriptions import ApiDescription
 
 
 class AIConversationAggregates(TypedDict):
-    endTimestamp: int
-    errors: int
-    generationDuration: float
-    inputTokens: int
-    llmCalls: int
-    outputTokens: int
-    startTimestamp: int
-    toolCalls: int
-    toolErrors: int
-    toolNames: list[str]
-    totalCost: float
-    totalTokens: int
+    endTimestamp: Annotated[
+        int,
+        ApiDescription(
+            "When the conversation's last AI span happened, as a Unix timestamp in milliseconds"
+        ),
+    ]
+    errors: Annotated[
+        int, ApiDescription("Number of spans whose status isn't ok, cancelled or unknown")
+    ]
+    generationDuration: Annotated[
+        float, ApiDescription("Total duration of the conversation's LLM calls in milliseconds")
+    ]
+    inputTokens: Annotated[int, ApiDescription("Number of input tokens used by LLM calls")]
+    llmCalls: Annotated[int, ApiDescription("Number of LLM calls")]
+    outputTokens: Annotated[int, ApiDescription("Number of output tokens used by LLM calls")]
+    startTimestamp: Annotated[
+        int,
+        ApiDescription(
+            "When the conversation's first AI span happened, as a Unix timestamp in milliseconds"
+        ),
+    ]
+    toolCalls: Annotated[int, ApiDescription("Number of tool calls")]
+    toolErrors: Annotated[int, ApiDescription("Number of failed tool calls")]
+    toolNames: Annotated[list[str], ApiDescription("Names of the tools called, sorted")]
+    totalCost: Annotated[float, ApiDescription("Total cost of LLM calls")]
+    totalTokens: Annotated[int, ApiDescription("Total number of tokens used by LLM calls")]
 
 
 CONVERSATION_AGGREGATE_DEFINITIONS = {

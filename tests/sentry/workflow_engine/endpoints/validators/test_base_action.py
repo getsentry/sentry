@@ -1,11 +1,18 @@
 from unittest import mock
 
+import pytest
+from rest_framework.exceptions import ValidationError
 from rest_framework.serializers import ErrorDetail
 
 from sentry.testutils.cases import TestCase
 from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import MockActionHandler, MockActionValidatorTranslator
+
+
+def test_investigation_settings_require_the_seer_configuration_api() -> None:
+    with pytest.raises(ValidationError, match="Seer automation settings"):
+        BaseActionValidator().validate_type(Action.Type.SEER_INVESTIGATION)
 
 
 @mock.patch(
@@ -192,3 +199,29 @@ class TestBaseActionValidator(TestCase):
                 )
             ]
         }
+
+
+class TestUnregisteredActionType(TestCase):
+    def assert_validation_error(self, action_type: str) -> None:
+        validator = BaseActionValidator(
+            data={
+                "type": action_type,
+                "config": {},
+                "data": {},
+            },
+            context={"organization": self.organization},
+        )
+
+        assert validator.is_valid() is False
+        assert validator.errors["data"] == [
+            ErrorDetail(string=f"Invalid action type: {action_type}", code="invalid")
+        ]
+        assert validator.errors["config"] == [
+            ErrorDetail(string=f"Invalid action type: {action_type}", code="invalid")
+        ]
+
+    def test_notify_email_returns_validation_error(self) -> None:
+        self.assert_validation_error("notify_email")
+
+    def test_assign_returns_validation_error(self) -> None:
+        self.assert_validation_error("assign")

@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
-import {TransactionNameSearchBar} from 'sentry/views/insights/pages/transactionNameSearchBar';
+
+import {TransactionNameSearchBar} from './transactionNameSearchBar';
 
 jest.unmock('@tanstack/react-pacer');
 
@@ -15,11 +16,7 @@ describe('TransactionNameSearchBar', () => {
     query,
     value = 'example-transaction',
     asyncDelay,
-  }: {
-    asyncDelay?: Promise<void>;
-    query?: string;
-    value?: string;
-  } = {}) {
+  }: {asyncDelay?: Promise<void>; query?: string; value?: string} = {}) {
     return MockApiClient.addMockResponse({
       url,
       body: [{value, name: value, key: 'transaction', count: 1}],

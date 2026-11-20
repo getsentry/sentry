@@ -1,3 +1,5 @@
+from typing import TypedDict, cast
+
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,8 +18,12 @@ from sentry.api.serializers.models.project import (
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.parameters import GlobalParams
-from sentry.apidocs.response_types import ValidationErrorResponse
+from sentry.models.project import Project
 from sentry.models.team import Team
+
+
+class _DetailListResponse(TypedDict):
+    detail: list[str]
 
 
 class ProjectTeamsPermission(ProjectPermission):
@@ -36,6 +42,7 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         "DELETE": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     owner = ApiOwner.FOUNDATIONS
     permission_classes = (ProjectTeamsPermission,)
 
@@ -45,14 +52,14 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         organization_id_or_slug: int | str,
         project_id_or_slug: int | str,
         team_id_or_slug: int | str,
-        *args,
-        **kwargs,
-    ):
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         (args, kwargs) = super().convert_args(
             request, organization_id_or_slug, project_id_or_slug, *args, **kwargs
         )
 
-        project = kwargs["project"]
+        project = cast("Project", kwargs["project"])
 
         try:
             team = Team.objects.get(
@@ -81,7 +88,9 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         },
         examples=ProjectExamples.ADD_TEAM_TO_PROJECT,
     )
-    def post(self, request: Request, project, team: Team) -> Response[ProjectWithTeamResponseDict]:
+    def post(
+        self, request: Request, project: Project, team: Team
+    ) -> Response[ProjectWithTeamResponseDict]:
         """
         Give a team access to a project.
         """
@@ -116,8 +125,8 @@ class ProjectTeamDetailsEndpoint(ProjectEndpoint):
         examples=ProjectExamples.DELETE_TEAM_FROM_PROJECT,
     )
     def delete(
-        self, request: Request, project, team: Team
-    ) -> Response[ProjectWithTeamResponseDict] | Response[ValidationErrorResponse]:
+        self, request: Request, project: Project, team: Team
+    ) -> Response[ProjectWithTeamResponseDict] | Response[_DetailListResponse]:
         """
         Revoke a team's access to a project.
 

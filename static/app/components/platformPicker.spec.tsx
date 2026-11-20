@@ -1,17 +1,14 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {PlatformPicker} from 'sentry/components/platformPicker';
 import {gaming} from 'sentry/data/platformCategories';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {PlatformPicker} from './platformPicker';
 
 jest.mock('sentry/utils/analytics');
 
 describe('PlatformPicker', () => {
-  const baseProps = {
-    platform: '',
-    setPlatform: () => {},
-    location: {query: {}},
-  };
+  const baseProps = {platform: '', setPlatform: () => {}, location: {query: {}}};
 
   it('should only render Mobile platforms under Mobile tab', () => {
     render(<PlatformPicker {...baseProps} defaultCategory="mobile" />);
@@ -19,6 +16,7 @@ describe('PlatformPicker', () => {
     expect(screen.queryByTestId('platform-java')).not.toBeInTheDocument();
     expect(screen.getByTestId('platform-apple-ios')).toBeInTheDocument();
     expect(screen.getByTestId('platform-react-native')).toBeInTheDocument();
+    expect(screen.getByTestId('platform-expo')).toBeInTheDocument();
   });
 
   it('should render renderPlatformList with Python when filtered with py', () => {
@@ -50,9 +48,7 @@ describe('PlatformPicker', () => {
     await userEvent.click(screen.getByText('All'));
     expect(trackAnalytics).toHaveBeenCalledWith(
       'growth.platformpicker_category',
-      expect.objectContaining({
-        category: 'all',
-      })
+      expect.objectContaining({category: 'all'})
     );
   });
 
@@ -63,19 +59,12 @@ describe('PlatformPicker', () => {
 
     expect(trackAnalytics).toHaveBeenCalledWith(
       'growth.select_platform',
-      expect.objectContaining({
-        platform_id: 'python',
-        selection_source: 'manual',
-      })
+      expect.objectContaining({platform_id: 'python', selection_source: 'manual'})
     );
   });
 
   it('should clear the platform when clear is clicked', async () => {
-    const props = {
-      ...baseProps,
-      platform: 'javascript-react',
-      setPlatform: jest.fn(),
-    };
+    const props = {...baseProps, platform: 'javascript-react', setPlatform: jest.fn()};
 
     render(<PlatformPicker noAutoFilter {...props} />);
 

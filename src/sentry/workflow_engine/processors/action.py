@@ -129,8 +129,8 @@ def _bulk_insert_workflow_action_group_statuses(
     exists_checks=True after an IntegrityError.
     """
     # XXX: the query does not currently include batch size limit like bulk_create does
-    values_placeholders = []
-    values_data = []
+    values_placeholders: list[str] = []
+    values_data: list[int | datetime] = []
     for s in missing_statuses:
         values_placeholders.append("(%s, %s, %s, %s, %s)")
         values_data.extend([s.workflow_id, s.action_id, s.group_id, now, now])
@@ -258,7 +258,7 @@ def fire_actions(
     workflow_uuid_map: dict[WorkflowId, str],
     action_to_workflow_id: dict[ActionId, WorkflowId],
 ) -> None:
-    deduped_actions = get_unique_active_actions(actions, event_data.group)
+    deduped_actions = get_unique_active_actions(actions, event_data.require_group())
 
     for action in deduped_actions:
         workflow_id = action_to_workflow_id[action.id]
@@ -295,7 +295,7 @@ def filter_recently_fired_workflow_actions(
 
     action_to_statuses = get_workflow_action_group_statuses(
         action_to_workflows_ids=action_to_workflows_ids,
-        group=event_data.group,
+        group=event_data.require_group(),
         workflow_ids=workflow_ids,
     )
     now = timezone.now()
@@ -304,7 +304,7 @@ def filter_recently_fired_workflow_actions(
             action_to_workflows_ids=action_to_workflows_ids,
             action_to_statuses=action_to_statuses,
             workflows=workflows,
-            group=event_data.group,
+            group=event_data.require_group(),
             now=now,
         )
     )
@@ -398,12 +398,15 @@ def is_action_permitted(action_type: Action.Type, organization: Organization) ->
     """
     Check if an action type is permitted for an organization.
     """
-    if not action_type.is_integration():
-        return True
-    integration_features = _get_integration_features(action_type)
-    required_org_features = integration_features.intersection(_ACTION_RELEVANT_INTEGRATION_FEATURES)
-    feature_names = [
-        f"organizations:integrations-{integration_feature}"
-        for integration_feature in required_org_features
-    ]
+    handler = action_handler_registry.get(action_type)
+    feature_names = [gate.name for gate in handler.required_features]
+    if action_type.is_integration():
+        integration_features = _get_integration_features(action_type)
+        required_org_features = integration_features.intersection(
+            _ACTION_RELEVANT_INTEGRATION_FEATURES
+        )
+        feature_names.extend(
+            f"organizations:integrations-{integration_feature}"
+            for integration_feature in required_org_features
+        )
     return all(features.has(feature_name, organization) for feature_name in feature_names)

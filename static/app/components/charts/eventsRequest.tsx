@@ -2,15 +2,10 @@ import {PureComponent} from 'react';
 import isEqual from 'lodash/isEqual';
 import omitBy from 'lodash/omitBy';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {doEventsRequest} from 'sentry/actionCreators/events';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
-import {LoadingPanel} from 'sentry/components/charts/loadingPanel';
-import {
-  canIncludePreviousPeriod,
-  getPreviousSeriesName,
-  isMultiSeriesStats,
-} from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
 import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
@@ -26,6 +21,13 @@ import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fiel
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldUnits';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {SamplingMode} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {LoadingPanel} from './loadingPanel';
+import {
+  canIncludePreviousPeriod,
+  getPreviousSeriesName,
+  isMultiSeriesStats,
+} from './utils';
 
 type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
@@ -321,32 +323,26 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         '%s has an invalid date range. Please try a more recent date range.',
         name
       );
-      addErrorMessage(errorMessage, {append: true});
+      toast.error(errorMessage);
 
-      this.setState({
-        errored: true,
-        errorMessage,
-      });
+      this.setState({errored: true, errorMessage});
     } else {
       try {
         api.clear();
         timeseriesData = await doEventsRequest<false>(api, props);
       } catch (resp: any) {
-        if (resp?.responseJSON?.detail) {
+        if (typeof resp?.responseJSON?.detail === 'string') {
           errorMessage = resp.responseJSON.detail;
         } else {
           errorMessage = t('Error loading chart data');
         }
         if (!hideError) {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         }
         if (onError) {
           onError(errorMessage);
         }
-        this.setState({
-          errored: true,
-          errorMessage,
-        });
+        this.setState({errored: true, errorMessage});
       }
     }
 
@@ -431,10 +427,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
    * Aggregate all counts for each time stamp
    */
   transformAggregatedTimeseries(data: EventsStatsData, seriesName = ''): Series {
-    return {
-      seriesName,
-      data: this.calculateTotalsPerTimestamp(data),
-    };
+    return {seriesName, data: this.calculateTotalsPerTimestamp(data)};
   }
 
   processData(response: EventsStats, seriesIndex = 0, seriesName?: string) {
@@ -478,10 +471,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
               start: (response.start + response.end) * 500,
               end: response.end * 1000,
             }
-          : {
-              start: response.start * 1000,
-              end: response.end * 1000,
-            }
+          : {start: response.start * 1000, end: response.end * 1000}
         : undefined;
 
     const processedData = {
@@ -649,13 +639,7 @@ export class EventsRequest extends PureComponent<EventsRequestProps, EventsReque
         ...props,
       });
     }
-    return children({
-      loading,
-      reloading,
-      errored,
-      errorMessage,
-      ...props,
-    });
+    return children({loading, reloading, errored, errorMessage, ...props});
   }
 }
 

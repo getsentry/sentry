@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 
 const CURSOR_GITHUB_APP_URL = 'https://github.com/apps/cursor';
@@ -25,9 +25,7 @@ export function AutofixCursorGithubAccessModal({
         <Text as="p">
           {tct(
             'Cursor does not have access to this repository. To use Cursor as a coding agent, you need to install the [link:Cursor GitHub App] and grant it access to your repository.',
-            {
-              link: <ExternalLink href={CURSOR_GITHUB_APP_URL} />,
-            }
+            {link: <ExternalLink href={CURSOR_GITHUB_APP_URL} />}
           )}
         </Text>
       </Body>

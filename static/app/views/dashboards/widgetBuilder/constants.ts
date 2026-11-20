@@ -13,9 +13,7 @@ export const WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP: Record<
   },
 };
 
-export type WidgetBuilderStateLocalParams = {
-  textContent?: string;
-};
+export type WidgetBuilderStateLocalParams = {textContent?: string};
 
 export const BuilderStateAction = {
   SET_TITLE: 'SET_TITLE',
@@ -24,6 +22,8 @@ export const BuilderStateAction = {
   SET_DATASET: 'SET_DATASET',
   SET_FIELDS: 'SET_FIELDS',
   SET_Y_AXIS: 'SET_Y_AXIS',
+  SET_TRANSFORMATIONS: 'SET_TRANSFORMATIONS',
+  SET_AGGREGATE_TRANSFORMATIONS: 'SET_AGGREGATE_TRANSFORMATIONS',
   SET_QUERY: 'SET_QUERY',
   SET_SORT: 'SET_SORT',
   SET_LINKED_DASHBOARDS: 'SET_LINKED_DASHBOARDS',

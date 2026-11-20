@@ -1,7 +1,6 @@
 import {lazy} from 'react';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {ReplayClipSection} from 'sentry/components/events/eventReplay/replayClipSection';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -9,6 +8,8 @@ import {useEventCanShowReplayUpsell} from 'sentry/utils/event/useEventCanShowRep
 import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useHaveSelectedProjectsSentAnyReplayEvents} from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useIsSampleEvent} from 'sentry/views/issueDetails/utils';
+
+import {ReplayClipSection} from './replayClipSection';
 
 interface Props {
   event: Event;

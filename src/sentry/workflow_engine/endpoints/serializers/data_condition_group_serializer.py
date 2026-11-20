@@ -23,7 +23,11 @@ class DataConditionGroupSerializer(Serializer[dict[str, Any]]):
         for condition, serialized in zip(condition_list, serialize(condition_list, user=user)):
             conditions[condition.condition_group_id].append(serialized)
 
-        dcga_list = list(DataConditionGroupAction.objects.filter(condition_group__in=item_list))
+        dcga_list = list(
+            DataConditionGroupAction.objects.filter(condition_group__in=item_list).select_related(
+                "action"
+            )
+        )
         actions = {dcga.action for dcga in dcga_list}
 
         serialized_actions = {

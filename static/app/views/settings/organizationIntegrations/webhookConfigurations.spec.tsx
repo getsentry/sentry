@@ -2,8 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
-import WebhookDetailedView from 'sentry/views/settings/organizationIntegrations/webhookDetailedView';
+import {toast} from '@sentry/scraps/toast';
+
+import WebhookDetailedView from './webhookDetailedView';
 
 describe('WebhookConfigurations', () => {
   const organization = OrganizationFixture();
@@ -95,7 +96,7 @@ describe('WebhookConfigurations', () => {
   });
 
   it('toggles webhook enabled state', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/legacy-webhooks/`,
@@ -126,9 +127,7 @@ describe('WebhookConfigurations', () => {
     await userEvent.click(await screen.findByRole('checkbox'));
 
     await waitFor(() => expect(toggleMock).toHaveBeenCalled());
-    expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
-      'Configuration was disabled.'
-    );
+    expect(toast.success).toHaveBeenCalledWith('Configuration was disabled.');
   });
 
   it('configure button links to project webhook page', async () => {

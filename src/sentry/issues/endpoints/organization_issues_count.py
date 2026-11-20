@@ -1,3 +1,6 @@
+from collections.abc import Sequence
+from typing import Any, cast
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 from sentry_sdk import traces
@@ -5,13 +8,15 @@ from sentry_sdk import traces
 from sentry import search
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.helpers.group_index import validate_search_filter_permissions
 from sentry.api.helpers.group_index.validators import ValidationError
 from sentry.api.utils import get_date_range_from_params
 from sentry.issues.issue_search import convert_query_values, parse_search_query
+from sentry.models.environment import Environment
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.snuba import discover
@@ -30,6 +35,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     enforce_rate_limit = True
     rate_limits = RateLimitConfig(
         limit_overrides={
@@ -42,10 +48,16 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
     )
 
     def _count(
-        self, request: Request, query, organization, projects, environments, extra_query_kwargs=None
-    ):
+        self,
+        request: Request,
+        query: str,
+        organization: Organization | RpcOrganization,
+        projects: Sequence[Project],
+        environments: Sequence[Environment] | None,
+        extra_query_kwargs: dict[str, Any] | None = None,
+    ) -> int:
         with traces.start_span(name="_count", attributes={"sentry.op": "_count"}):
-            query_kwargs = {
+            query_kwargs: dict[str, Any] = {
                 "projects": projects,
                 "referrer": Referrer.API_ORGANIZATION_ISSUES_COUNT,
             }
@@ -55,7 +67,9 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
                 search_filters = convert_query_values(
                     parse_search_query(query), projects, request.user, environments
                 )
-                validate_search_filter_permissions(organization, search_filters, request.user)
+                validate_search_filter_permissions(
+                    cast("Organization", organization), search_filters, request.user
+                )
                 query_kwargs["search_filters"] = search_filters
 
             if extra_query_kwargs is not None:
@@ -75,7 +89,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             },
         ):
             result = search.backend.query(**query_kwargs)
-            return result.hits
+            return cast("int", result.hits)
 
     def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
         stats_period = request.GET.get("groupStatsPeriod")
@@ -91,7 +105,7 @@ class OrganizationIssuesCountEndpoint(OrganizationEndpoint):
             return Response([])
 
         queries = request.GET.getlist("query")
-        response = {}
+        response: dict[str, int] = {}
         for query in queries:
             try:
                 count = self._count(

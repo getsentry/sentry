@@ -1,20 +1,21 @@
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {DroppedDataOutcomeList} from 'sentry/components/droppedData/drawer/droppedDataOutcomeList';
-import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/drawer/outcomeSections';
-import type {ReasonRow} from 'sentry/components/droppedData/drawer/outcomeSections';
-import type {DroppedEventsBucket} from 'sentry/components/droppedData/types';
+import {droppedEventsToOutcomeSections} from 'sentry/components/droppedData/outcomeSections';
+import type {AskSeerHandler} from 'sentry/components/droppedData/outcomeSections';
+import type {OutcomeRow} from 'sentry/components/droppedData/types';
+
+import {DroppedDataOutcomeList} from './droppedDataOutcomeList';
 
 function OutcomeList({
   droppedEvents,
   acceptedEvents,
   onAskSeer,
 }: {
-  acceptedEvents: DroppedEventsBucket[];
-  droppedEvents: DroppedEventsBucket[];
-  onAskSeer?: (row: ReasonRow) => void;
+  acceptedEvents: OutcomeRow[];
+  droppedEvents: OutcomeRow[];
+  onAskSeer?: AskSeerHandler;
 }) {
   return (
     <DroppedDataOutcomeList
@@ -29,7 +30,7 @@ describe('DroppedDataOutcomeList', () => {
     render(
       <OutcomeList
         droppedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             start: 0,
@@ -38,7 +39,7 @@ describe('DroppedDataOutcomeList', () => {
           }),
         ]}
         acceptedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'accepted',
             reason: 'accepted',
             start: 0,
@@ -57,14 +58,14 @@ describe('DroppedDataOutcomeList', () => {
     render(
       <OutcomeList
         droppedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'client_discard',
             reason: 'sample_rate',
             start: 0,
             end: 60_000,
             count: 3000,
           }),
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'client_discard',
             reason: 'before_send',
             start: 60_000,
@@ -73,7 +74,7 @@ describe('DroppedDataOutcomeList', () => {
           }),
         ]}
         acceptedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'accepted',
             reason: 'accepted',
             start: 0,
@@ -98,7 +99,7 @@ describe('DroppedDataOutcomeList', () => {
     render(
       <OutcomeList
         droppedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'rate_limited',
             reason: 'smart_rate_limit',
             start: 0,
@@ -125,7 +126,7 @@ describe('DroppedDataOutcomeList', () => {
     render(
       <OutcomeList
         droppedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'rate_limited',
             reason: 'smart_rate_limit',
             start: 0,
@@ -144,14 +145,14 @@ describe('DroppedDataOutcomeList', () => {
     render(
       <OutcomeList
         droppedEvents={[
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'rate_limited',
             reason: 'smart_rate_limit',
             start: 0,
             end: 60_000,
             count: 10,
           }),
-          DroppedEventFixture({
+          OutcomeRowFixture({
             outcome: 'rate_limited',
             reason: 'some_new_reason',
             start: 0,

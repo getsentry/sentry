@@ -12,7 +12,6 @@ describe('SeerAutomation', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       },
     });
@@ -34,9 +33,7 @@ describe('SeerAutomation', () => {
   });
 
   it('does not show legacy banner for orgs without legacy or beta Seer features', () => {
-    const organization = OrganizationFixture({
-      features: [],
-    });
+    const organization = OrganizationFixture({features: []});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
@@ -44,7 +41,6 @@ describe('SeerAutomation', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });

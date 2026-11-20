@@ -1,10 +1,11 @@
 import type {Theme} from '@emotion/react';
 import type {CustomSeriesOption} from 'echarts';
 
+import {formatDateTime} from '@sentry/scraps/dateTime';
+
 import {markLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import type {Release} from 'sentry/views/dashboards/widgets/common/types';
 
@@ -28,9 +29,7 @@ export function createReleaseSeriesOptions(
         opacity: 0.3,
         type: 'solid',
       },
-      label: {
-        show: false,
-      },
+      label: {show: false},
       data: releases.map(release => ({
         xAxis: new Date(release.timestamp).getTime(),
         name: formatVersion(release.version, true),
@@ -38,20 +37,16 @@ export function createReleaseSeriesOptions(
         onClick: () => {
           onClick(release);
         },
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
+        label: {formatter: () => formatVersion(release.version, true)},
       })),
       tooltip: {
         trigger: 'item',
         formatter: function (params: any) {
-          const time = getFormattedDate(
-            params.value,
-            getFormat({timeZone: true, year: true}),
-            {
-              local: utc,
-            }
-          );
+          const time = formatDateTime(params.value, {
+            year: 'always',
+            showTimezone: true,
+            timezone: utc ? undefined : 'UTC',
+          });
 
           const version = escape(formatVersion(params.name, true));
 

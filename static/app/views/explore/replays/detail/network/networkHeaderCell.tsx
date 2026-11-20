@@ -6,7 +6,8 @@ import type {Tooltip} from '@sentry/scraps/tooltip';
 import {HeaderCell} from 'sentry/components/replays/virtualizedGrid/headerCell';
 import type {ColumnAlign} from 'sentry/components/tables/sortableHeaderCell';
 import {t, tct} from 'sentry/locale';
-import type {useSortNetwork} from 'sentry/views/explore/replays/detail/network/useSortNetwork';
+
+import type {useSortNetwork} from './useSortNetwork';
 
 type SortConfig = ReturnType<typeof useSortNetwork>['sortConfig'];
 type Props = {
@@ -42,11 +43,7 @@ const COLUMNS: Array<{
     ),
   },
   {field: 'description', label: t('Path'), width: 'minmax(160px, 1fr)'},
-  {
-    field: 'op',
-    label: t('Type'),
-    width: '72px',
-  },
+  {field: 'op', label: t('Type'), width: '72px'},
   {
     field: 'size',
     label: t('Size'),

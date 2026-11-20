@@ -1,14 +1,12 @@
 import {IconIssues} from '@sentry/icons/issues';
-import queryString from 'query-string';
 
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 export function getIssuesQueryHref(
   {
@@ -22,7 +20,7 @@ export function getIssuesQueryHref(
   }: EmbedOutput<'issuesQuery'>,
   organizationSlug: string
 ) {
-  return queryString.stringifyUrl({
+  return qs.stringifyUrl({
     url: normalizeUrl(`/organizations/${organizationSlug}/issues/`),
     query: {
       query,

@@ -5,8 +5,9 @@ import {
   SavedQueryType,
   type CombinedSavedQuery,
 } from 'sentry/views/explore/hooks/useGetSavedQueries';
-import {ExploreSavedQueryNavigationItems} from 'sentry/views/navigation/secondary/sections/explore/exploreSavedQueryNavigationItems';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {ExploreSavedQueryNavigationItems} from './exploreSavedQueryNavigationItems';
 
 describe('ExploreSavedQueryNavigationItems', () => {
   const queries = [
@@ -14,14 +15,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
       id: 1,
       queryType: SavedQueryType.EXPLORE,
       name: 'My Saved Query',
-      query: [
-        {
-          query: '',
-          fields: [],
-          groupby: [],
-          visualize: [],
-        },
-      ],
+      query: [{query: '', fields: [], groupby: [], visualize: []}],
       starred: true,
       position: 1,
       projects: [],
@@ -30,14 +24,7 @@ describe('ExploreSavedQueryNavigationItems', () => {
       id: 2,
       queryType: SavedQueryType.EXPLORE,
       name: 'Another Saved Query',
-      query: [
-        {
-          query: '',
-          fields: [],
-          groupby: [],
-          visualize: [],
-        },
-      ],
+      query: [{query: '', fields: [], groupby: [], visualize: []}],
       starred: true,
       position: 2,
       projects: [],

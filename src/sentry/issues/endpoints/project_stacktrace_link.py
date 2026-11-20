@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Collection
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 from django.http import QueryDict
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -22,6 +22,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import DetailResponse
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -56,15 +57,33 @@ class StacktraceLinkContext(TypedDict):
 
 
 class StacktraceLinkResponseOptional(TypedDict, total=False):
-    sourcePath: str | None
-    attemptedUrl: str | None
+    sourcePath: Annotated[
+        str | None,
+        ApiDescription("Path of the file in the repository after the code mapping is applied"),
+    ]
+    attemptedUrl: Annotated[
+        str | None, ApiDescription("URL Sentry tried when it couldn't find the file")
+    ]
 
 
 class StacktraceLinkResponse(StacktraceLinkResponseOptional):
-    error: str | None
-    config: RepositoryProjectPathConfigSerializerResponse | None
-    sourceUrl: str | None
-    integrations: list[IntegrationSerializerResponse]
+    error: Annotated[
+        str | None,
+        ApiDescription(
+            "Why no link was found, such as no_code_mappings_for_project, stack_root_mismatch or file_not_found. Null when a link was found"
+        ),
+    ]
+    config: Annotated[
+        RepositoryProjectPathConfigSerializerResponse | None,
+        ApiDescription("Code mapping used for the link. Null when no code mapping matches"),
+    ]
+    sourceUrl: Annotated[
+        str | None, ApiDescription("URL of the file in the repository. Null when no link was found")
+    ]
+    integrations: Annotated[
+        list[IntegrationSerializerResponse],
+        ApiDescription("Source code integrations of the organization"),
+    ]
 
 
 def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
@@ -72,7 +91,8 @@ def generate_context(parameters: QueryDict) -> StacktraceLinkContext:
         "file": parameters.get("file", ""),
         # XXX: Temp change to support try_path_munging until refactored
         "filename": parameters.get("file", ""),
-        "commit_id": parameters.get("commitId"),
+        # A frame's source server revision pins its file more precisely than the release commit.
+        "commit_id": parameters.get("fileRevision") or parameters.get("commitId"),
         "platform": parameters.get("platform"),
         "sdk_name": parameters.get("sdkName"),
         "abs_path": parameters.get("absPath"),
@@ -175,6 +195,8 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     `file`: The file path from the stack trace
     `commitId` (optional): The commit_id for the last commit of the
                            release associated to the stack trace's event
+    `fileRevision` (optional): The source server revision of the frame's file.
+                               Takes precedence over `commitId`.
     `sdkName` (optional): The sdk.name associated with the event
     `absPath` (optional): The abs_path field value of the relevant stack frame
     `module`   (optional): The module field value of the relevant stack frame
@@ -183,6 +205,7 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
     """
 
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
 
     @extend_schema(
         operation_id="getProjectStacktraceLink",
@@ -208,6 +231,14 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
             ),
             OpenApiParameter(
                 "commitId", type=str, description="The commit ID associated with the event."
+            ),
+            OpenApiParameter(
+                "fileRevision",
+                type=str,
+                description=(
+                    "The source server revision of the frame's file, if known. "
+                    "Takes precedence over `commitId`."
+                ),
             ),
             OpenApiParameter(
                 "sdkName", type=str, description="The SDK name associated with the event."

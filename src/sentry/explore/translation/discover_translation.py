@@ -1,4 +1,5 @@
 import re
+from collections.abc import Sequence
 from typing import Any
 
 from sentry.discover.arithmetic import is_equation
@@ -29,7 +30,7 @@ CHART_TYPES = {
 }
 
 
-def strip_negative_from_orderby(orderby):
+def strip_negative_from_orderby(orderby: str) -> tuple[str, bool]:
     """
     This function is used to strip the negative from an orderby item.
     """
@@ -38,7 +39,7 @@ def strip_negative_from_orderby(orderby):
     return orderby, False
 
 
-def _get_translated_orderby_item(orderby, columns, is_negated):
+def _get_translated_orderby_item(orderby: str, columns: Sequence[str], is_negated: bool) -> str:
     """
     This function is used to translate the function underscore notation for orderby items
     to regular function notation. We do this by stripping both the orderby item and the given columns
@@ -73,7 +74,9 @@ def _get_translated_orderby_item(orderby, columns, is_negated):
     return converted_orderby
 
 
-def _format_orderby_for_translation(orderby, columns):
+def _format_orderby_for_translation(
+    orderby: str | list[str], columns: Sequence[str]
+) -> list[str] | None:
     orderby_converted_list = []
     if type(orderby) is str:
         orderby = [orderby]

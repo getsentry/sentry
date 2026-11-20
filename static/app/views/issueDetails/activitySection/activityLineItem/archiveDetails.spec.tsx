@@ -4,7 +4,8 @@ import {render} from 'sentry-test/reactTestingLibrary';
 
 import type {GroupActivitySetIgnored} from 'sentry/types/group';
 import {IssueCategory} from 'sentry/types/group';
-import {getArchiveDetails} from 'sentry/views/issueDetails/activitySection/activityLineItem/archiveDetails';
+
+import {getArchiveDetails} from './archiveDetails';
 
 type ArchiveData = GroupActivitySetIgnored['data'];
 

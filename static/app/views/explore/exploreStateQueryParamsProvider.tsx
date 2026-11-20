@@ -3,15 +3,16 @@ import {useCallback, useMemo, useState} from 'react';
 
 import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {AggregateField} from 'sentry/views/explore/queryParams/aggregateField';
-import {QueryParamsContextProvider} from 'sentry/views/explore/queryParams/context';
-import {defaultCursor} from 'sentry/views/explore/queryParams/cursor';
-import {defaultMode} from 'sentry/views/explore/queryParams/mode';
+
+import type {AggregateField} from './queryParams/aggregateField';
+import {QueryParamsContextProvider} from './queryParams/context';
+import {defaultCursor} from './queryParams/cursor';
+import {defaultMode} from './queryParams/mode';
 import {
   ReadableQueryParams,
   type ReadableQueryParamsOptions,
-} from 'sentry/views/explore/queryParams/readableQueryParams';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+} from './queryParams/readableQueryParams';
+import type {WritableQueryParams} from './queryParams/writableQueryParams';
 
 interface ExploreStateQueryParamsProviderProps {
   children: ReactNode;

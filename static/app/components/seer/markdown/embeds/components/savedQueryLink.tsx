@@ -1,20 +1,18 @@
 import {IconStar} from '@sentry/icons/star';
-import queryString from 'query-string';
 
-import {
-  ResourceLink,
-  type ResourceLinkFormatProps,
-} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {EXPLORE_AGENTS_SUB_PATH} from 'sentry/views/explore/conversations/settings';
 import {makeLogsPathname} from 'sentry/views/explore/logs/utils';
 import {makeMetricsPathname} from 'sentry/views/explore/metrics/utils';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {makeTracesPathname} from 'sentry/views/traces/pathnames';
+
+import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 
 export type SavedQueryData = EmbedOutput<'savedQuery'>;
 
@@ -56,7 +54,7 @@ export function SavedQueryLink({
   format,
 }: {data: SavedQueryData} & ResourceLinkFormatProps) {
   const organization = useOrganization();
-  const href = queryString.stringifyUrl({
+  const href = qs.stringifyUrl({
     url: datasetPathname(data.dataset, organization),
     query: {id: data.id},
   });

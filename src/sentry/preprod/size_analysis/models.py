@@ -3,7 +3,7 @@ from __future__ import annotations
 from enum import Enum
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 
 from sentry.preprod.models import PreprodArtifactSizeMetrics
 from sentry.preprod.size_analysis.insight_models import (
@@ -64,7 +64,8 @@ class AppleInsightResults(BaseModel):
 class TreemapElementMisc(BaseModel):
     """Miscellaneous metadata for treemap elements."""
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     scale: int | None = None
 
@@ -72,14 +73,16 @@ class TreemapElementMisc(BaseModel):
 class FlaggedInsight(BaseModel):
     """An insight flagged on a treemap node with its per-file savings."""
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     key: str
     savings: int = 0
 
 
 class TreemapElement(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     name: str
     size: int
@@ -95,7 +98,8 @@ class TreemapElement(BaseModel):
 class TreemapResults(BaseModel):
     """Complete treemap analysis results."""
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     root: TreemapElement
     file_count: int
@@ -110,7 +114,8 @@ class FileInfo(BaseModel):
     Other fields (size, file_type, etc.) are available in the treemap.
     """
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     path: str
     hash: str
@@ -120,7 +125,8 @@ class FileInfo(BaseModel):
 class FileAnalysis(BaseModel):
     """Analysis results for files and directories in the app bundle."""
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     items: list[FileInfo]
 
@@ -128,7 +134,8 @@ class FileAnalysis(BaseModel):
 class AppComponent(BaseModel):
     """Information about a modular app component (watch app, app extension, dynamic feature, etc.)."""
 
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     component_type: PreprodArtifactSizeMetrics.MetricsArtifactType
     name: str
@@ -140,7 +147,8 @@ class AppComponent(BaseModel):
 
 # Keep in sync with public API response types in sentry.preprod.api.models.public.size_analysis
 class SizeAnalysisResults(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    class Config:
+        frozen = True
 
     analysis_duration: float
     download_size: int

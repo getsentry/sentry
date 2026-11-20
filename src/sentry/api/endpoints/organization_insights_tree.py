@@ -60,9 +60,6 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
     }
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not self.has_feature(organization, request):
-            return Response(status=404)
-
         if not request.GET.get("noPagination", False):
             return Response(status=404)
 
@@ -78,7 +75,7 @@ class OrganizationInsightsTreeEndpoint(OrganizationEventsEndpoint):
         parts = path.strip("/").split("/")
         return parts if parts != [""] else []
 
-    def _separate_span_description_info(self, response):
+    def _separate_span_description_info(self, response: Response) -> Response:
         for line in response.data["data"]:
             component_type = None
             path_components: list[str] = []

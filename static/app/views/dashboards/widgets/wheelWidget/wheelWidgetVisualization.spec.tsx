@@ -1,7 +1,15 @@
+import {WidgetFixture} from 'sentry-fixture/widget';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
-import {WheelWidgetVisualization} from 'sentry/views/dashboards/widgets/wheelWidget/wheelWidgetVisualization';
+import {WidgetType} from 'sentry/views/dashboards/types';
+import {
+  webVitalScoreCountField,
+  webVitalScoreField,
+} from 'sentry/views/dashboards/utils/webVitalTraceMetricFields';
+
+import {WheelWidgetVisualization} from './wheelWidgetVisualization';
 
 describe('WheelWidgetVisualization', () => {
   const mockTableResults: TableDataWithTitle[] = [
@@ -33,6 +41,38 @@ describe('WheelWidgetVisualization', () => {
     );
 
     expect(screen.getByText('80')).toBeInTheDocument();
+    // eslint-disable-next-line testing-library/no-container
+    expect(container.querySelectorAll('circle')).toHaveLength(10); // 2 per vital
+  });
+
+  it('computes the scores from trace metric fields', () => {
+    const widget = WidgetFixture({widgetType: WidgetType.TRACEMETRICS});
+    const tableResults: TableDataWithTitle[] = [
+      {
+        title: 'Web Vitals',
+        data: [
+          {
+            [webVitalScoreField('lcp')]: 0.5,
+            [webVitalScoreField('fcp')]: 1,
+            [webVitalScoreField('cls')]: 1,
+            [webVitalScoreField('ttfb')]: 1,
+            [webVitalScoreField('inp')]: 0,
+            [webVitalScoreCountField('lcp')]: 10,
+            [webVitalScoreCountField('fcp')]: 10,
+            [webVitalScoreCountField('cls')]: 10,
+            [webVitalScoreCountField('ttfb')]: 10,
+            [webVitalScoreCountField('inp')]: 0,
+            id: '1',
+          },
+        ],
+      },
+    ];
+
+    const {container} = render(
+      <WheelWidgetVisualization tableResults={tableResults} widget={widget} />
+    );
+
+    expect(screen.getByText('79')).toBeInTheDocument();
     // eslint-disable-next-line testing-library/no-container
     expect(container.querySelectorAll('circle')).toHaveLength(10); // 2 per vital
   });

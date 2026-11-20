@@ -1,6 +1,7 @@
 import {useCallback} from 'react';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {OnSubmitCallback} from 'sentry/components/forms/types';
 import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowEngine/getWorkflowEngineResponseErrorMessage';
 import {t} from 'sentry/locale';
@@ -51,10 +52,7 @@ export function useEditDetectorFormSubmit<
           formModel.getTransformedData() as TFormData
         );
 
-        const updatedData = {
-          detectorId: detector.id,
-          ...payload,
-        };
+        const updatedData = {detectorId: detector.id, ...payload};
 
         const resultDetector = await updateDetector(updatedData);
 
@@ -63,13 +61,13 @@ export function useEditDetectorFormSubmit<
           ...getDetectorAnalyticsPayload(resultDetector),
         });
 
-        addSuccessMessage(t('Monitor updated'));
+        toast.success(t('Monitor updated'));
 
         navigate(makeMonitorDetailsPathname(organization.slug, resultDetector.id));
 
         onSubmitSuccess?.(resultDetector);
       } catch (error) {
-        addErrorMessage(
+        toast.error(
           (error instanceof RequestError
             ? getWorkflowEngineResponseErrorMessage(error.responseJSON)
             : null) ?? t('Unable to update monitor')

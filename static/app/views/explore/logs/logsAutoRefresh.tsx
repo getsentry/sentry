@@ -18,10 +18,6 @@ import {
   type AutoRefreshState,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {useLogsPageData} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {useLogsAnalyticsPageSource} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {AutoRefreshLabel} from 'sentry/views/explore/logs/styles';
-import {useLogsAutoRefreshInterval} from 'sentry/views/explore/logs/useLogsAutoRefreshInterval';
-import {checkSortIsTimeBasedDescending} from 'sentry/views/explore/logs/utils';
 import {
   useQueryParamsMode,
   useQueryParamsSortBys,
@@ -30,7 +26,11 @@ import {
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {Visualize} from 'sentry/views/explore/queryParams/visualize';
 
+import {useLogsAnalyticsPageSource} from './logsQueryParamsProvider';
+import {AutoRefreshLabel} from './styles';
 import {OurLogKnownFieldKey} from './types';
+import {useLogsAutoRefreshInterval} from './useLogsAutoRefreshInterval';
+import {checkSortIsTimeBasedDescending} from './utils';
 
 const MAX_LOGS_PER_SECOND = 100; // Rate limit for initial check
 

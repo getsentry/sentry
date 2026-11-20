@@ -1,5 +1,5 @@
 import logging
-from typing import TypeVar
+from typing import TYPE_CHECKING, TypeVar
 
 from rest_framework.response import Response
 
@@ -21,9 +21,14 @@ logger = logging.getLogger("sentry.integrations.bitbucket")
 
 T = TypeVar("T", bound=SourceCodeIssueIntegration)
 
+if TYPE_CHECKING:
+    _SearchEndpointBase = SourceCodeSearchEndpoint[BitbucketIntegration]
+else:
+    _SearchEndpointBase = SourceCodeSearchEndpoint
+
 
 @control_silo_endpoint
-class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
+class BitbucketSearchEndpoint(_SearchEndpointBase):
     owner = ApiOwner.CODING_WORKFLOWS
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
@@ -34,11 +39,11 @@ class BitbucketSearchEndpoint(SourceCodeSearchEndpoint):
         return "repo"
 
     @property
-    def integration_provider(self):
+    def integration_provider(self) -> str:
         return IntegrationProviderSlug.BITBUCKET.value
 
     @property
-    def installation_class(self):
+    def installation_class(self) -> type[BitbucketIntegration]:
         return BitbucketIntegration
 
     def handle_search_issues(self, installation: T, query: str, repo: str | None) -> Response:

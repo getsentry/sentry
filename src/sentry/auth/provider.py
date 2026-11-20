@@ -6,6 +6,8 @@ from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any
 
+from django.contrib.auth.base_user import AbstractBaseUser
+from django.contrib.auth.models import AnonymousUser
 from django.http.request import HttpRequest
 from django.utils.encoding import force_str
 
@@ -14,7 +16,6 @@ from sentry.auth.view import AuthView
 from sentry.models.authidentity import AuthIdentity
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline.provider import PipelineProvider
-from sentry.users.models.user import User
 
 if TYPE_CHECKING:
     from sentry.auth.helper import AuthHelper  # noqa: F401
@@ -145,7 +146,7 @@ class Provider(PipelineProvider["AuthHelper"], abc.ABC):
         """
         raise NotImplementedError
 
-    def can_use_scim(self, organization_id: int, user: User) -> bool:
+    def can_use_scim(self, organization_id: int, user: AbstractBaseUser | AnonymousUser) -> bool:
         """
         Controls whether or not a provider can have SCIM enabled to manage users.
         By default we have this on for all providers.

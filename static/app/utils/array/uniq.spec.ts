@@ -1,4 +1,4 @@
-import {uniq} from 'sentry/utils/array/uniq';
+import {uniq} from './uniq';
 
 describe('uniq', () => {
   it('should return unique elements', () => {

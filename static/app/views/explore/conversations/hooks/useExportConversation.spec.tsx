@@ -7,7 +7,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useExportConversation} from './useExportConversation';
 
 const CONVERSATION_ID = 'conv-1';
-const URL = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
+const EXPORT_URL = `/organizations/org-slug/agents/conversations/${CONVERSATION_ID}/`;
 
 function spanFixture(answer: string, overrides: Record<string, unknown>) {
   return {
@@ -36,8 +36,10 @@ describe('useExportConversation', () => {
 
   it('paginates every page when the conversation is not fully loaded', async () => {
     MockApiClient.addMockResponse({
-      url: URL,
-      headers: {Link: `<${URL}?cursor=c1>; rel="next"; results="true"; cursor="c1"`},
+      url: EXPORT_URL,
+      headers: {
+        Link: `<${EXPORT_URL}?cursor=c1>; rel="next"; results="true"; cursor="c1"`,
+      },
       body: {
         conversationId: CONVERSATION_ID,
         title: 'My Run',
@@ -54,7 +56,7 @@ describe('useExportConversation', () => {
       match: [(_url, options) => !options.query?.cursor],
     });
     MockApiClient.addMockResponse({
-      url: URL,
+      url: EXPORT_URL,
       body: {
         conversationId: CONVERSATION_ID,
         title: 'My Run',

@@ -3,13 +3,13 @@ import {useCallback, useMemo, useState} from 'react';
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
-import {DEFAULT_STACK_TRACE_ROW_POLICY} from 'sentry/components/stackTrace/rowPolicy';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {useProjects} from 'sentry/utils/useProjects';
 
 import {createInitialHiddenFrameToggleMap, getFrameCountMap, getRows} from './getRows';
+import {DEFAULT_STACK_TRACE_ROW_POLICY} from './rowPolicy';
 import {StackTraceContext, useStackTraceViewState} from './stackTraceContext';
 import type {StackTraceContextValue} from './stackTraceContext';
 import type {StackTraceProviderProps} from './types';

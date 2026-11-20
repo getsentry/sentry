@@ -1,0 +1,3 @@
+from typing import Any
+
+def url(*args: Any, **kwargs: Any) -> str: ...

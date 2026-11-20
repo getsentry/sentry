@@ -6,7 +6,7 @@ import io
 # we still use the one from `sentry.utils`, imported as `sentry_json` below.
 import json as builtin_json  # noqa: S003
 from abc import ABC, abstractmethod
-from typing import IO
+from typing import IO, Any
 
 import orjson
 
@@ -114,10 +114,10 @@ def _export(
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
-    filter_by: Filter | None = None,
+    filter_by: Filter[Any] | None = None,
     printer: Printer,
     checkpointer: ExportCheckpointer | None = None,
-):
+) -> None:
     """
     Exports core data for the Sentry installation.
 
@@ -236,7 +236,7 @@ def export_in_user_scope(
     indent: int = 2,
     printer: Printer,
     checkpointer: ExportCheckpointer | None = None,
-):
+) -> None:
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
     be exported from the provided `dest` file.
@@ -264,7 +264,7 @@ def export_in_organization_scope(
     indent: int = 2,
     printer: Printer,
     checkpointer: ExportCheckpointer | None = None,
-):
+) -> None:
     """
     Perform an export in the `Organization` scope, meaning that only models with
     `RelocationScope.User` or `RelocationScope.Organization` will be exported from the provided
@@ -292,7 +292,7 @@ def export_in_config_scope(
     indent: int = 2,
     printer: Printer,
     checkpointer: ExportCheckpointer | None = None,
-):
+) -> None:
     """
     Perform an export in the `Config` scope, meaning that only models directly related to the global
     configuration and administration of an entire Sentry instance will be exported.
@@ -319,7 +319,7 @@ def export_in_global_scope(
     indent: int = 2,
     printer: Printer,
     checkpointer: ExportCheckpointer | None = None,
-):
+) -> None:
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the
     provided source file.

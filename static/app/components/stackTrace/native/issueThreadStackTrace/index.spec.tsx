@@ -164,13 +164,13 @@ function makeMixedThreadExceptionEvent(platform: PlatformKey) {
 
 function renderThreadStackTrace(
   event: Event,
-  {collapseAll}: {collapseAll?: boolean} = {}
+  {initialCollapse}: {initialCollapse?: boolean} = {}
 ) {
   const threadsEntry = event.entries.find(entry => entry.type === EntryType.THREADS)!;
 
   return render(
     <IssueThreadStackTrace
-      collapseAll={collapseAll}
+      initialCollapse={initialCollapse}
       data={threadsEntry.data}
       event={event}
       projectSlug={project.slug}
@@ -187,6 +187,10 @@ describe('IssueThreadStackTrace', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/sentry-app-components/`,
+      body: [],
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
@@ -334,11 +338,7 @@ describe('IssueThreadStackTrace', () => {
   it('changes the active thread without prop plumbing', async () => {
     const event = makeEvent([
       makeThread({crashed: true, id: 7}),
-      makeThread({
-        id: 8,
-        name: 'worker',
-        stacktrace: makeStacktrace('Worker.run'),
-      }),
+      makeThread({id: 8, name: 'worker', stacktrace: makeStacktrace('Worker.run')}),
     ]);
 
     renderThreadStackTrace(event);
@@ -437,33 +437,23 @@ describe('IssueThreadStackTrace', () => {
     }
   );
 
-  it.each([true, false])(
-    'keeps frames collapsed with collapseAll (exception-backed: %s)',
-    async hasException => {
-      const stacktrace = makeStacktrace('ViewController.causeCrash');
-      stacktrace.frames![1] = EventStacktraceFrameFixture({
-        ...stacktrace.frames![1],
-        context: [[42, 'crashing source']],
-        lineNo: 42,
-      });
-      const event = makeEvent([makeThread({crashed: true, id: 7, stacktrace})]);
-      if (!hasException) {
-        event.entries = event.entries.filter(entry => entry.type !== EntryType.EXCEPTION);
-      }
+  it('starts the section collapsed with initialCollapse and allows expanding it', async () => {
+    const event = makeEvent([
+      makeThread({
+        crashed: true,
+        id: 7,
+        stacktrace: makeStacktrace('ViewController.causeCrash'),
+      }),
+    ]);
 
-      renderThreadStackTrace(event, {collapseAll: true});
+    renderThreadStackTrace(event, {initialCollapse: true});
 
-      const header = (
-        await screen.findByText('ViewController.causeCrash')
-      ).closest<HTMLElement>('[data-test-id="native-stack-trace-frame-title"]')!;
-      expect(
-        within(header).getByRole('button', {name: 'Expand frame details'})
-      ).toHaveAttribute('aria-expanded', 'false');
-      expect(
-        screen.queryByTestId('core-stacktrace-frame-context')
-      ).not.toBeInTheDocument();
-    }
-  );
+    expect(screen.queryByText('ViewController.causeCrash')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'View Stack Trace Section'}));
+
+    expect(await screen.findByText('ViewController.causeCrash')).toBeVisible();
+  });
 
   it('renders non-native active threads with the generic stack trace rows', async () => {
     const event = makeEvent([
@@ -716,11 +706,7 @@ describe('IssueThreadStackTrace', () => {
 
   it('copies the active exception stack trace for exception-backed native threads', async () => {
     const event = makeEvent([
-      makeThread({
-        crashed: true,
-        id: 7,
-        stacktrace: makeStacktrace('Thread.onlyFrame'),
-      }),
+      makeThread({crashed: true, id: 7, stacktrace: makeStacktrace('Thread.onlyFrame')}),
     ]);
     getExceptionValues(event)[0]!.stacktrace = makeStacktrace('Exception.visibleFrame');
 
@@ -838,7 +824,7 @@ EOF`,
     expect(screen.getByTestId('raw-stack-trace').tagName).toBe('PRE');
     expect(await screen.findByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
-      '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=7&download=1'
+      '/api/0/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=7&download=1'
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
@@ -849,7 +835,7 @@ EOF`,
     expect(screen.queryByText(/Thread 8/)).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
       'href',
-      '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=8&download=1'
+      '/api/0/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=false&thread_id=8&download=1'
     );
   });
 

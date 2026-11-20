@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import functools
 import itertools
 import logging
@@ -6,30 +8,38 @@ import random
 import time
 from abc import ABC, abstractmethod
 from collections.abc import Callable
-from typing import TypeVar
+from typing import TYPE_CHECKING, Any, ParamSpec, Protocol, TypeVar
 
-from django.utils.encoding import force_bytes
+if TYPE_CHECKING:
+    from sentry.metrics.base import Tags
 
 logger = logging.getLogger(__name__)
 
 
 class RetryException(Exception):
-    def __init__(self, message, exception):
+    def __init__(self, message: str, exception: BaseException) -> None:
         super().__init__(message)
         self.message = message
         self.exception = exception
 
-    def __reduce__(self):
+    def __reduce__(self) -> tuple[type[RetryException], tuple[str, BaseException]]:
         return RetryException, (self.message, self.exception)
 
     def __str__(self) -> str:
-        return force_bytes(self.message, errors="replace")
+        return self.message
 
     def __repr__(self) -> str:
         return f"<{type(self).__name__}: {self.message!r}>"
 
 
 T = TypeVar("T")
+P = ParamSpec("P")
+
+
+class _Clock(Protocol):
+    def time(self) -> float: ...
+
+    def sleep(self, secs: float, /) -> None: ...
 
 
 class RetryPolicy(ABC):
@@ -38,16 +48,16 @@ class RetryPolicy(ABC):
         raise NotImplementedError
 
     @classmethod
-    def wrap(cls, *args, **kwargs):
+    def wrap(cls, *args: Any, **kwargs: Any) -> Callable[[Callable[P, T]], Callable[P, T]]:
         """
         A decorator that may be used to wrap a function to be retried using
         this policy.
         """
         retrier = cls(*args, **kwargs)
 
-        def decorator(fn):
+        def decorator(fn: Callable[P, T]) -> Callable[P, T]:
             @functools.wraps(fn)
-            def execute_with_retry(*args, **kwargs):
+            def execute_with_retry(*args: P.args, **kwargs: P.kwargs) -> T:
                 return retrier(functools.partial(fn, *args, **kwargs))
 
             return execute_with_retry
@@ -159,6 +169,11 @@ class ConditionalRetryPolicy(RetryPolicy):
         assert False, "retry loop exited without returning"
 
 
+def _jittered_delay(attempt: int) -> float:
+    # 100ms +/- 50ms of randomized jitter
+    return 0.1 + ((random.random() - 0.5) / 10)
+
+
 class TimedRetryPolicy(RetryPolicy):
     """
     A time-based policy that can be used to retry a callable in the case of
@@ -170,27 +185,22 @@ class TimedRetryPolicy(RetryPolicy):
 
     def __init__(
         self,
-        timeout,
-        delay=None,
-        exceptions=(Exception,),
-        metric_instance=None,
-        metric_tags=None,
-        log_original_error=False,
-    ):
-        if delay is None:
-            # 100ms +/- 50ms of randomized jitter
-            def delay(i):
-                return 0.1 + ((random.random() - 0.5) / 10)
-
+        timeout: float,
+        delay: Callable[[int], float] | None = None,
+        exceptions: type[Exception] | tuple[type[Exception], ...] = (Exception,),
+        metric_instance: str | None = None,
+        metric_tags: Tags | None = None,
+        log_original_error: bool = False,
+    ) -> None:
         self.timeout = timeout
-        self.delay = delay
+        self.delay = delay if delay is not None else _jittered_delay
         self.exceptions = exceptions
-        self.clock = time
+        self.clock: _Clock = time
         self.metric_instance = metric_instance
-        self.metric_tags = metric_tags or {}
+        self.metric_tags: Tags = metric_tags or {}
         self.log_original_error = log_original_error
 
-    def __call__(self, function):
+    def __call__(self, function: Callable[[], T]) -> T:
         start = self.clock.time()
         try:
             for i in itertools.count(1):
@@ -216,6 +226,8 @@ class TimedRetryPolicy(RetryPolicy):
                             delay,
                         )
                         self.clock.sleep(delay)
+
+            assert False, "retry loop exited without returning"
         finally:
             if self.metric_instance:
                 from sentry.utils import metrics

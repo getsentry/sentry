@@ -146,13 +146,11 @@ export interface UseOverlayProps
 }
 
 interface UseOverlayResult {
-  arrowProps: {
-    placement: Placement;
-    style: React.CSSProperties | undefined;
-  };
+  arrowProps: {placement: Placement; style: React.CSSProperties | undefined};
   isOpen: boolean;
   overlayProps: ReturnType<typeof useOverlayTriggerAria>['overlayProps'] &
     ReturnType<typeof useOverlayAria>['overlayProps'] & {
+      'data-overlay-root': '';
       ref: React.Dispatch<React.SetStateAction<HTMLDivElement | null>>;
       style: React.CSSProperties | undefined;
     };
@@ -357,19 +355,14 @@ export function useOverlay({
     state: openState,
     update,
     triggerRef,
-    triggerProps: {
-      ref: setTriggerElement,
-      ...triggerAriaProps,
-    },
+    triggerProps: {ref: setTriggerElement, ...triggerAriaProps},
     overlayRef,
     overlayProps: {
       ref: setOverlayElement,
       style: overlayStyle,
+      'data-overlay-root': '',
       ...mergeProps(overlayTriggerAriaProps, overlayAriaProps),
     },
-    arrowProps: {
-      style: arrowStyle,
-      placement,
-    },
+    arrowProps: {style: arrowStyle, placement},
   };
 }

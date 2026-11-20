@@ -57,7 +57,9 @@ def test_compression_raw_values(
     store.set(key, value)
     assert store.get(key) == value
 
-    columns = store._get_table().read_row(key).cells[store.column_family]
+    row = store._get_table().read_row(key)
+    assert row is not None
+    columns = row.cells[store.column_family]
 
     # Check that the data is what we would expect to see after compression.
     assert columns[store.data_column][0].value.startswith(expected_prefix)

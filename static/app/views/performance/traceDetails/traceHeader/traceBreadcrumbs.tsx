@@ -2,7 +2,7 @@ import {IconCopyId} from '@sentry/icons/copyId';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconOpen} from '@sentry/icons/open';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -15,11 +15,12 @@ import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import type {TraceRootEventQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceRootEvent';
 import {isTraceItemDetailsResponse} from 'sentry/views/performance/traceDetails/traceApi/utils';
-import {getTraceViewParentCrumbs} from 'sentry/views/performance/traceDetails/traceHeader/breadcrumbs';
 import {useAdjacentTraceNavigation} from 'sentry/views/performance/traceDetails/traceLinksNavigation/useAdjacentTraceNavigation';
 import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceEventView';
 import {useTraceExploreTarget} from 'sentry/views/performance/traceDetails/useTraceExploreTarget';
 import {useTraceQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
+
+import {getTraceViewParentCrumbs} from './breadcrumbs';
 
 const COPY_ID_LABEL = t('Copy trace ID to clipboard');
 
@@ -109,12 +110,8 @@ export function TraceBreadcrumbs({
         type: 'page-title',
         label: formatVersion(traceSlug),
         leadingGraphic: project ? (
-          <ProjectBadge
-            hideName
-            disableLink
-            project={project}
-            avatarSize={16}
-            avatarProps={{hasTooltip: true, tooltip: project.slug}}
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
           />
         ) : (
           <Placeholder width="16px" height="16px" />

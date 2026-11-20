@@ -13,7 +13,7 @@ from sentry.utils.safe import get_path, set_path
 from sentry.utils.sdk_crashes.event_stripper import strip_event_data
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SDKCrashDetectionConfig
 from sentry.utils.sdk_crashes.sdk_crash_detector import SDKCrashDetector
-from sentry.viewer_context import ActorType, ViewerContext, viewer_context_scope
+from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
 
 
 def get_hybrid_sdk(
@@ -52,9 +52,9 @@ class SDKCrashReporter:
         project = resolve_project(event_project_id)
         with viewer_context_scope(
             ViewerContext(
+                actor=Actor(type=ActorType.SYSTEM),
                 organization_id=project.organization_id,
                 project_id=project.id,
-                actor_type=ActorType.SYSTEM,
             )
         ):
             manager = EventManager(dict(event_data))

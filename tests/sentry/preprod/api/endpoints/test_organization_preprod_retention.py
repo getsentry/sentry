@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.urls import reverse
 from rest_framework.test import APIClient
@@ -27,7 +27,7 @@ class OrganizationPreprodRetentionEndpointTest(APITestCase):
         assert response.data["buildDistribution"] == 90
 
     @patch("sentry.quotas.backend.get_event_retention")
-    def test_get_custom_retention(self, mock_get_retention) -> None:
+    def test_get_custom_retention(self, mock_get_retention: MagicMock) -> None:
         mock_get_retention.side_effect = lambda organization, category: {
             DataCategory.SIZE_ANALYSIS: 30,
             DataCategory.INSTALLABLE_BUILD: 60,

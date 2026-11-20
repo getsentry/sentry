@@ -5,7 +5,7 @@ from collections.abc import Mapping
 from typing import Any, TypedDict
 
 import orjson
-from django.db.models import QuerySet
+from django.db.models import Q, QuerySet
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
 from rest_framework.request import Request
@@ -29,6 +29,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.constants import SEMVER_FAKE_PACKAGE
+from sentry.ingest import legacy_filter_lists
 from sentry.ingest.inbound_filters import (
     get_supported_condition_types,
     get_supported_operators,
@@ -43,6 +44,9 @@ from sentry.models.custominboundfilter import (
 )
 from sentry.models.project import Project
 from sentry.tasks.relay import schedule_invalidate_project_config
+from sentry.timeseries_annotations.producers.inbound_filters import (
+    record_custom_filter_change_as_annotation,
+)
 
 MAX_CONDITIONS_PER_FILTER = 10
 # Relay matches every condition value as a glob against each item, so the size of a
@@ -55,6 +59,17 @@ MAX_CONDITION_VALUE_CHARS_PER_FILTER = 4000
 _REQUIRED_FEATURE_BY_DATA_TYPE: Mapping[DataType, str] = {
     DataType.LOG: "organizations:ourlogs-ingestion",
     DataType.METRIC: "organizations:tracemetrics-ingestion",
+}
+
+# Feature an organization needs before a filter can use a condition type, and the name the
+# error message gives the condition.
+_REQUIRED_FEATURE_BY_CONDITION_TYPE: Mapping[ConditionType, tuple[str, str]] = {
+    ConditionType.ENVIRONMENT: (
+        "organizations:inbound-filters-environment-condition",
+        "environment",
+    ),
+    ConditionType.BROWSER_NAME: ("organizations:inbound-filters-browser-condition", "browser"),
+    ConditionType.BROWSER_VERSION: ("organizations:inbound-filters-browser-condition", "browser"),
 }
 
 
@@ -72,6 +87,7 @@ class CustomInboundFilterResponse(TypedDict):
     conditions: list[CustomInboundFilterCondition]
     dateCreated: str
     dateUpdated: str
+    legacyFilter: str | None
 
 
 def _condition_value_chars(conditions: list[CustomInboundFilterCondition]) -> int:
@@ -125,12 +141,42 @@ def _is_release_version(release: str) -> bool:
     return parsed.get("version_parsed") is not None
 
 
+_OPERATOR_HELP_TEXT = (
+    "How the field compares to `value`. `glob` matches the field against each value "
+    "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
+    "field against each value case-insensitively, with every character read "
+    "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
+    "match when the field is set and no value does. `cidr` matches `ip_address` against each value as an "
+    "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
+    "`lt` and `lte` compare one value as a version and only apply to `release` and "
+    "`browser_version`."
+)
+_NAME_HELP_TEXT = "A human-readable label for the filter."
+_ACTIVE_HELP_TEXT = (
+    "Whether the filter drops matching data. An inactive filter is kept but ignored."
+)
+_CONDITIONS_HELP_TEXT = (
+    "Conditions are combined with AND: an event must match every condition to be "
+    "filtered out. There is no OR between conditions, so e.g. two release conditions "
+    "can express a range (`gte 2.0` and `lt 4.0`). To broaden matching, widen a "
+    "condition's values or add separate filters."
+)
+
+
+def _is_browser_version(version: str) -> bool:
+    """
+    Whether Relay can compare the browser version, such as `120` or `120.0.6099.130`.
+    A browser version never names a package, so a value with one would match nothing.
+    """
+    return "@" not in version and _is_release_version(version)
+
+
 class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboundFilterCondition]):
     type = serializers.ChoiceField(
         choices=[condition_type.value for condition_type in ConditionType],
         help_text=(
-            "The field the condition matches against. Every `dataType` accepts `release` and "
-            "`ip_address`. In addition, `error` accepts `error_type`, `error_message` and "
+            "The field the condition matches against. Every `dataType` accepts `release`, "
+            "`environment`, `ip_address`, `browser_name` and `browser_version`. In addition, `error` accepts `error_type`, `error_message` and "
             "`geo_country_code`, `log` accepts `log_message`, and `metric` accepts "
             "`metric_name`. `span` and `all` accept no other types."
         ),
@@ -141,25 +187,19 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
     operator = serializers.ChoiceField(
         choices=[operator.value for operator in ConditionOperator],
         required=False,
-        help_text=(
-            "How the field compares to `value`. `glob` matches the field against each value "
-            "as a glob pattern. `equals`, `starts_with`, `contains` and `ends_with` match the "
-            "field against each value case-insensitively, with every character read "
-            "literally; `does_not_start_with`, `does_not_contain` and `does_not_end_with` "
-            "match when no value does. `cidr` matches `ip_address` against each value as an "
-            "address or a CIDR range, and `not_cidr` matches when no value does. `gt`, `gte`, "
-            "`lt` and `lte` compare one value as a version and only apply to `release`."
-        ),
+        help_text=_OPERATOR_HELP_TEXT,
     )
     value = serializers.ListField(
         child=serializers.CharField(allow_blank=False, trim_whitespace=True),
         allow_empty=False,
+        min_length=1,
         help_text=(
             "The values the field is compared to. The condition matches when any value "
             "matches, so multiple values act as OR; a negated operator matches when none "
             "does. A version comparison takes one release "
             "with a version such as `1.2.0` or `myapp@1.2.0`. A comparison with a package "
-            "only applies to releases of that package."
+            "only applies to releases of that package. A `browser_version` comparison "
+            "takes a version without a package, such as `120` or `120.0.6099`."
         ),
     )
 
@@ -196,9 +236,15 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             raise serializers.ValidationError(
                 {"value": f"The {attrs['operator']} operator takes exactly one value."}
             )
+        condition_type = ConditionType(attrs["type"])
+        if condition_type is ConditionType.BROWSER_VERSION:
+            if not _is_browser_version(attrs["value"][0]):
+                raise serializers.ValidationError(
+                    {"value": f"{attrs['value'][0]} is not a version such as 120 or 120.0.6099."}
+                )
         # Relay never matches a comparison against a release without a version, so the
         # condition would silently match nothing.
-        if not _is_release_version(attrs["value"][0]):
+        elif condition_type is ConditionType.RELEASE and not _is_release_version(attrs["value"][0]):
             raise serializers.ValidationError(
                 {
                     "value": (
@@ -209,20 +255,24 @@ class CustomInboundFilterConditionSerializer(serializers.Serializer[CustomInboun
             )
 
 
+class CustomInboundFilterConditionRequestSerializer(CustomInboundFilterConditionSerializer):
+    """A condition as a request sends it, where the operator is required."""
+
+    operator = serializers.ChoiceField(
+        choices=[operator.value for operator in ConditionOperator],
+        help_text=_OPERATOR_HELP_TEXT,
+    )
+
+
 class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFilter]):
+    """
+    A filter as the API returns it. Requests go through
+    `CustomInboundFilterRequestSerializer`, which takes only the fields a caller can set.
+    """
+
     id = serializers.CharField(read_only=True, help_text="The ID of the filter.")
-    name = serializers.CharField(
-        max_length=256,
-        allow_blank=True,
-        allow_null=True,
-        required=False,
-        trim_whitespace=True,
-        help_text="A human-readable label for the filter.",
-    )
-    active = serializers.BooleanField(
-        required=False,
-        help_text="Whether the filter drops matching data. An inactive filter is kept but ignored.",
-    )
+    name = serializers.CharField(max_length=256, allow_null=True, help_text=_NAME_HELP_TEXT)
+    active = serializers.BooleanField(help_text=_ACTIVE_HELP_TEXT)
     dataType = serializers.ChoiceField(
         source="data_type",
         choices=[data_type.value for data_type in DataType],
@@ -236,12 +286,7 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         many=True,
         allow_empty=False,
         max_length=MAX_CONDITIONS_PER_FILTER,  # type: ignore[call-arg]  # many=True -> ListSerializer
-        help_text=(
-            "Conditions are combined with AND: an event must match every condition to be "
-            "filtered out. There is no OR between conditions, so e.g. two release conditions "
-            "can express a range (`gte 2.0` and `lt 4.0`). To broaden matching, widen a "
-            "condition's values or add separate filters."
-        ),
+        help_text=_CONDITIONS_HELP_TEXT,
     )
     dateCreated = serializers.DateTimeField(
         source="date_added", read_only=True, help_text="When the filter was created."
@@ -249,10 +294,30 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
     dateUpdated = serializers.DateTimeField(
         source="date_updated", read_only=True, help_text="When the filter was last changed."
     )
+    legacyFilter = serializers.CharField(
+        source="legacy_filter",
+        read_only=True,
+        allow_null=True,
+        help_text=(
+            "Set on a filter that holds one of the filter lists of the project settings, to "
+            "the id its outcomes are reported under. Such a filter keeps its data type and "
+            "its one condition: only the name, the active flag and the condition values "
+            "can change, and deleting it empties the list."
+        ),
+    )
 
     class Meta:
         model = CustomInboundFilter
-        fields = ["id", "name", "active", "dataType", "conditions", "dateCreated", "dateUpdated"]
+        fields = [
+            "id",
+            "name",
+            "active",
+            "dataType",
+            "conditions",
+            "dateCreated",
+            "dateUpdated",
+            "legacyFilter",
+        ]
 
     def create(self, validated_data: dict[str, Any]) -> CustomInboundFilter:
         return CustomInboundFilter.objects.create(**validated_data)
@@ -285,6 +350,16 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         if "conditions" in attrs:
             _validate_size(conditions, stored)
 
+        if stored is not None and stored.legacy_filter:
+            _validate_legacy_row_change(stored, data_type, conditions)
+
+        if "conditions" in attrs:
+            _validate_feature_conditions_of_organization_for_inbound_filter(
+                conditions=conditions,
+                organization=self.context["project"].organization,
+                request=self.context["request"],
+            )
+
         supported = get_supported_condition_types(data_type)
         unsupported = sorted({condition["type"] for condition in conditions} - set(supported))
         if unsupported:
@@ -301,6 +376,93 @@ class CustomInboundFilterSerializer(serializers.ModelSerializer[CustomInboundFil
         return attrs
 
 
+class CustomInboundFilterRequestSerializer(CustomInboundFilterSerializer):
+    """
+    The body of a create or update request: the fields a caller can set. The server sets
+    the id, the dates and the legacy filter, so they are not part of it.
+    """
+
+    name = serializers.CharField(
+        max_length=256,
+        allow_blank=True,
+        allow_null=True,
+        required=False,
+        trim_whitespace=True,
+        help_text=_NAME_HELP_TEXT,
+    )
+    active = serializers.BooleanField(required=False, help_text=_ACTIVE_HELP_TEXT)
+    conditions = CustomInboundFilterConditionRequestSerializer(
+        many=True,
+        allow_empty=False,
+        max_length=MAX_CONDITIONS_PER_FILTER,  # type: ignore[call-arg]  # many=True -> ListSerializer
+        help_text=_CONDITIONS_HELP_TEXT,
+    )
+
+    class Meta(CustomInboundFilterSerializer.Meta):
+        fields = ["name", "active", "dataType", "conditions"]
+
+
+class CustomInboundFilterUpdateRequestSerializer(CustomInboundFilterRequestSerializer):
+    """The body of an update request. An update changes only the fields it sends."""
+
+    def get_fields(self) -> dict[str, serializers.Field[Any, Any, Any, Any]]:
+        fields = super().get_fields()
+        for field in fields.values():
+            field.required = False
+        return fields
+
+
+def _validate_legacy_row_change(
+    stored: CustomInboundFilter,
+    data_type: DataType,
+    conditions: list[CustomInboundFilterCondition],
+) -> None:
+    """
+    The project details API maps a legacy list onto the one condition of its row, so only
+    the condition values may change.
+    """
+    assert stored.legacy_filter is not None
+    list_name = legacy_filter_lists.list_name(stored.legacy_filter)
+    if data_type.value != stored.data_type:
+        raise serializers.ValidationError(
+            {"dataType": f"The data type cannot be changed on the {list_name} filter."}
+        )
+    condition = stored.conditions[0]
+    # A stored condition without an operator is a glob condition.
+    stored_operator = condition.get("operator", ConditionOperator.GLOB.value)
+    if (
+        len(conditions) != 1
+        or conditions[0]["type"] != condition["type"]
+        or conditions[0].get("operator", ConditionOperator.GLOB.value) != stored_operator
+    ):
+        raise serializers.ValidationError(
+            {
+                "conditions": (
+                    f"The condition cannot be changed on the {list_name} filter. "
+                    f"Only its values can."
+                )
+            }
+        )
+
+
+def _validate_feature_conditions_of_organization_for_inbound_filter(
+    conditions: list[CustomInboundFilterCondition], organization: Any, request: Request
+) -> None:
+    for condition_type in sorted({ConditionType(c["type"]) for c in conditions}):
+        required = _REQUIRED_FEATURE_BY_CONDITION_TYPE.get(condition_type)
+        if required is None:
+            continue
+        feature, name = required
+        if not features.has(
+            feature,
+            organization,
+            actor=request.user,
+        ):
+            raise serializers.ValidationError(
+                {"conditions": f"The {name} condition is not enabled for this organization."}
+            )
+
+
 def serialize_custom_inbound_filter(
     custom_filter: CustomInboundFilter,
 ) -> CustomInboundFilterResponse:
@@ -313,17 +475,25 @@ def serialize_custom_inbound_filter(
         "conditions": data["conditions"],
         "dateCreated": data["dateCreated"],
         "dateUpdated": data["dateUpdated"],
+        "legacyFilter": data["legacyFilter"],
     }
 
 
 def _user_filters(project: Project) -> QuerySet[CustomInboundFilter]:
     """
-    The filters a user made here. A row with legacy_filter set is the double write of a
-    legacy list that the project settings still own, so this API neither lists, edits nor
-    deletes it for now. The serializer has no legacy_filter field, so a request cannot
-    set it.
+    The filters a user made here, which the per-project cap counts. A row with
+    legacy_filter set holds a filter list of the project settings instead. The serializer
+    has no writable legacy_filter field, so a request cannot make one.
     """
     return CustomInboundFilter.objects.filter(project_id=project.id, legacy_filter__isnull=True)
+
+
+def _visible_filters(project: Project) -> QuerySet[CustomInboundFilter]:
+    return CustomInboundFilter.objects.filter(
+        Q(legacy_filter__isnull=True)
+        | Q(legacy_filter__in=legacy_filter_lists.served_legacy_filters(project.organization)),
+        project_id=project.id,
+    )
 
 
 class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
@@ -347,7 +517,7 @@ class ProjectCustomInboundFilterEndpoint(ProjectEndpoint):
 
     def get_custom_inbound_filter(self, project: Project, filter_id: str) -> CustomInboundFilter:
         try:
-            return _user_filters(project).get(id=filter_id)
+            return _visible_filters(project).get(id=filter_id)
         except (CustomInboundFilter.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
 
@@ -381,9 +551,11 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "POST": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="List a Project's Custom Inbound Filters",
+        operation_id="listProjectCustomInboundFilters",
+        summary="List a Project's Custom Inbound Filters",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -404,7 +576,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         """
         self.require_inbound_filters_v2(request, project)
 
-        filters = _user_filters(project)
+        filters = _visible_filters(project)
         return self.paginate(
             request=request,
             queryset=filters,
@@ -414,12 +586,13 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Custom Inbound Filter",
+        operation_id="createProjectCustomInboundFilter",
+        summary="Create a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
         ],
-        request=CustomInboundFilterSerializer,
+        request=CustomInboundFilterRequestSerializer,
         responses={
             201: CustomInboundFilterSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -452,7 +625,7 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
                 status=400,
             )
 
-        serializer = CustomInboundFilterSerializer(
+        serializer = CustomInboundFilterRequestSerializer(
             data=request.data,
             context={"project": project, "request": request},
         )
@@ -460,6 +633,15 @@ class CustomInboundFiltersEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response(as_validation_errors(serializer), status=400)
 
         custom_filter = serializer.save(project=project)
+
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "created",
+                request.user,
+            )
 
         self.create_audit_entry(
             request=request,
@@ -481,9 +663,11 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         "PUT": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
         "DELETE": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
+    idempotent_methods = frozenset({"PUT"})
 
     @extend_schema(
-        operation_id="Retrieve a Custom Inbound Filter",
+        operation_id="getProjectCustomInboundFilter",
+        summary="Retrieve a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -509,13 +693,14 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Update a Custom Inbound Filter",
+        operation_id="updateProjectCustomInboundFilter",
+        summary="Update a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             ProjectParams.CUSTOM_INBOUND_FILTER_ID,
         ],
-        request=CustomInboundFilterSerializer,
+        request=CustomInboundFilterUpdateRequestSerializer,
         responses={
             200: CustomInboundFilterSerializer,
             400: RESPONSE_BAD_REQUEST,
@@ -538,7 +723,7 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
             return Response({"detail": "You do not have that feature enabled"}, status=400)
 
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
-        serializer = CustomInboundFilterSerializer(
+        serializer = CustomInboundFilterUpdateRequestSerializer(
             custom_filter,
             data=request.data,
             partial=True,
@@ -547,6 +732,12 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
+        legacy_list = (
+            legacy_filter_lists.filter_type_of(custom_filter.legacy_filter)
+            if custom_filter.legacy_filter
+            else None
+        )
+
         changes: dict[str, Any] = {}
         for field in ("name", "active", "data_type", "conditions"):
             if field not in serializer.validated_data:
@@ -554,12 +745,29 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
 
             previous_value = getattr(custom_filter, field)
             new_value = serializer.validated_data[field]
+            if field == "conditions" and legacy_list:
+                # The values are the lines of the list, stored the way the project
+                # details API stores them.
+                condition = new_value[0]
+                new_value = [
+                    {
+                        **condition,
+                        "value": legacy_filter_lists.clean_lines(legacy_list, condition["value"]),
+                    }
+                ]
             if previous_value != new_value:
                 changes[field] = {"old": previous_value, "new": new_value}
                 setattr(custom_filter, field, new_value)
 
         if changes:
-            custom_filter.save(update_fields=[*changes.keys(), "date_updated"])
+            update_fields = [*changes.keys(), "date_updated"]
+            if legacy_list and "conditions" in changes:
+                # The lines of a legacy list change in the row and in its option together.
+                legacy_filter_lists.set_list(
+                    project, legacy_list, custom_filter.conditions[0]["value"]
+                )
+                update_fields.remove("conditions")
+            custom_filter.save(update_fields=update_fields)
             self.create_audit_entry(
                 request=request,
                 organization=project.organization,
@@ -571,11 +779,19 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="custom_inbound_filters"
                 )
+                record_custom_filter_change_as_annotation(
+                    project,
+                    custom_filter.id,
+                    DataType(custom_filter.data_type),
+                    "updated",
+                    request.user,
+                )
 
         return Response(serialize_custom_inbound_filter(custom_filter))
 
     @extend_schema(
-        operation_id="Delete a Custom Inbound Filter",
+        operation_id="deleteProjectCustomInboundFilter",
+        summary="Delete a Custom Inbound Filter",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
@@ -600,7 +816,24 @@ class CustomInboundFilterDetailsEndpoint(ProjectCustomInboundFilterEndpoint):
         custom_filter = self.get_custom_inbound_filter(project, filter_id)
         audit_log_data = self.get_audit_log_data(project, custom_filter, "remove")
         target_object = custom_filter.id
-        custom_filter.delete()
+
+        if custom_filter.active:
+            record_custom_filter_change_as_annotation(
+                project,
+                custom_filter.id,
+                DataType(custom_filter.data_type),
+                "deleted",
+                request.user,
+            )
+
+        if custom_filter.legacy_filter:
+            # The row holds a filter list of the project settings: deleting it empties the
+            # list, in its option too.
+            legacy_filter_lists.set_list(
+                project, legacy_filter_lists.filter_type_of(custom_filter.legacy_filter), []
+            )
+        else:
+            custom_filter.delete()
 
         self.create_audit_entry(
             request=request,

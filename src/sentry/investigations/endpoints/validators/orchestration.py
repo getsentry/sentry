@@ -8,8 +8,8 @@ from drf_spectacular.utils import PolymorphicProxySerializer, extend_schema_fiel
 from rest_framework import serializers
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.investigations.contracts import StrictContractSerializer
-from sentry.investigations.endpoints.validators.base import StrictCamelSnakeValidator
+from sentry.notebooks.contracts import StrictContractSerializer
+from sentry.notebooks.endpoints.validators.base import StrictCamelSnakeValidator
 from sentry.utils import json
 
 MAX_AGENTIC_SOURCE_BYTES = 200_000
@@ -28,6 +28,7 @@ ORCHESTRATION_EVENT_TYPES = (
     "metadata_completed",
     "action_requested",
     "action_withdrawn",
+    "rerun_updated",
     "workflow_failed",
 )
 

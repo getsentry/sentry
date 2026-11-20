@@ -8,7 +8,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import type {TagCollection} from 'sentry/types/group';
 import {parseFunction} from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
@@ -22,34 +23,15 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
-import {AggregateColumnEditorModal} from 'sentry/views/explore/tables/aggregateColumnEditorModal';
+
+import {AggregateColumnEditorModal} from './aggregateColumnEditorModal';
 
 const stringTags: TagCollection = {
-  id: {
-    key: 'id',
-    name: 'id',
-    kind: FieldKind.TAG,
-  },
-  project: {
-    key: 'project',
-    name: 'project',
-    kind: FieldKind.TAG,
-  },
-  'span.op': {
-    key: 'span.op',
-    name: 'span.op',
-    kind: FieldKind.TAG,
-  },
-  'geo.country': {
-    key: 'geo.country',
-    name: 'geo.country',
-    kind: FieldKind.TAG,
-  },
-  'geo.city': {
-    key: 'geo.city',
-    name: 'geo.city',
-    kind: FieldKind.TAG,
-  },
+  id: {key: 'id', name: 'id', kind: FieldKind.TAG},
+  project: {key: 'project', name: 'project', kind: FieldKind.TAG},
+  'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
+  'geo.country': {key: 'geo.country', name: 'geo.country', kind: FieldKind.TAG},
+  'geo.city': {key: 'geo.city', name: 'geo.city', kind: FieldKind.TAG},
 };
 
 const numberTags: TagCollection = {
@@ -63,11 +45,7 @@ const numberTags: TagCollection = {
     name: 'span.self_time',
     kind: FieldKind.MEASUREMENT,
   },
-  'tags[foo,number]': {
-    key: 'tags[foo,number]',
-    name: 'foo',
-    kind: FieldKind.MEASUREMENT,
-  },
+  'tags[foo,number]': {key: 'tags[foo,number]', name: 'foo', kind: FieldKind.MEASUREMENT},
 };
 
 const booleanTags: TagCollection = {
@@ -377,6 +355,45 @@ describe('AggregateColumnEditorModal', () => {
     ]);
   });
 
+  it('keeps the rest of a shared chart together when editing its middle aggregate', async () => {
+    const onColumnsChange = jest.fn();
+    const chartGroup = 'chart-group';
+
+    renderGlobalModal();
+
+    act(() => {
+      openModal(
+        modalProps => (
+          <AggregateColumnEditorModal
+            {...modalProps}
+            columns={[
+              {groupBy: 'span.op'},
+              new VisualizeFunction('p50(span.duration)', {chartGroup}),
+              new VisualizeFunction('p75(span.duration)', {chartGroup}),
+              new VisualizeFunction('p99(span.duration)', {chartGroup}),
+            ]}
+            onColumnsChange={onColumnsChange}
+            stringTags={stringTags}
+            numberTags={numberTags}
+            booleanTags={booleanTags}
+          />
+        ),
+        {onClose: jest.fn()}
+      );
+    });
+
+    const p75Argument = (await screen.findAllByTestId('editor-visualize-argument'))[1]!;
+    await userEvent.click(within(p75Argument).getByRole('button'));
+    await userEvent.click(await screen.findByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+    expect(onColumnsChange).toHaveBeenCalledWith([
+      {groupBy: 'span.op'},
+      {yAxes: ['p50(span.duration)', 'p99(span.duration)']},
+      {yAxes: ['p75(span.self_time)']},
+    ]);
+  });
+
   it('allows adding an equation', async () => {
     const {organization} = initializeOrg();
 
@@ -527,9 +544,7 @@ describe('AggregateColumnEditorModal', () => {
     });
 
     it('offers EAP _if aggregates in equations', async () => {
-      renderModal({
-        columns: [new VisualizeEquation('equation|')],
-      });
+      renderModal({columns: [new VisualizeEquation('equation|')]});
 
       const input = await screen.findByRole('combobox', {name: 'Add a term'});
       await userEvent.click(input);

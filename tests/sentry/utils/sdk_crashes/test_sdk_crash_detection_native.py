@@ -1,6 +1,7 @@
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from functools import wraps
-from unittest.mock import patch
+from typing import Any
+from unittest.mock import MagicMock, patch
 
 import pytest
 
@@ -15,13 +16,13 @@ from sentry.utils.sdk_crashes.sdk_crash_detection_config import (
 )
 
 
-def decorators(func):
+def decorators(func: Callable[..., Any]) -> Any:
     @wraps(func)
     @django_db_all
     @pytest.mark.snuba
     @patch("random.random", return_value=0.1)
     @patch("sentry.utils.sdk_crashes.sdk_crash_detection.sdk_crash_detection.sdk_crash_reporter")
-    def wrapper(*args, **kwargs):
+    def wrapper(*args: Any, **kwargs: Any) -> Any:
         return func(*args, **kwargs)
 
     return wrapper
@@ -121,14 +122,14 @@ def configs() -> Sequence[SDKCrashDetectionConfig]:
 )
 @decorators
 def test_sdk_crash_is_reported_with_native_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_function: str,
     system_frame_package: str,
     detected: bool,
-):
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_function=sdk_frame_function, system_frame_package=system_frame_package
@@ -196,14 +197,14 @@ def test_sdk_crash_is_reported_with_native_paths(
 )
 @decorators
 def test_sdk_crash_sentry_native_keeps_sentry_package_paths(
-    mock_sdk_crash_reporter,
-    mock_random,
-    store_event,
-    configs,
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
     sdk_frame_function: str,
     sdk_frame_package: str,
     expected_sdk_frame_package: str,
-):
+) -> None:
     event = store_event(
         data=get_crash_event(
             sdk_frame_function=sdk_frame_function, sdk_frame_package=sdk_frame_package
@@ -232,7 +233,10 @@ def test_sdk_crash_sentry_native_keeps_sentry_package_paths(
 
 @decorators
 def test_beta_sdk_version_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
 ) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.6.1-beta.0")
@@ -250,8 +254,11 @@ def test_beta_sdk_version_detected(
 
 @decorators
 def test_too_low_min_sdk_version_not_detected(
-    mock_sdk_crash_reporter, mock_random, store_event, configs
-):
+    mock_sdk_crash_reporter: MagicMock,
+    mock_random: MagicMock,
+    store_event: Any,
+    configs: Sequence[SDKCrashDetectionConfig],
+) -> None:
     event_data = get_crash_event()
     set_path(event_data, "sdk", "version", value="0.5.9")
     event = store_event(data=event_data)

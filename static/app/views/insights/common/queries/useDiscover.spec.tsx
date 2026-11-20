@@ -6,16 +6,12 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {useSpans} from 'sentry/views/insights/common/queries/useDiscover';
 import type {SpanProperty} from 'sentry/views/insights/types';
 import {SpanFields} from 'sentry/views/insights/types';
 
-const initialRouterConfig = {
-  location: {
-    pathname: '/',
-    query: {statsPeriod: '10d'},
-  },
-};
+import {useSpans} from './useDiscover';
+
+const initialRouterConfig = {location: {pathname: '/', query: {statsPeriod: '10d'}}};
 
 describe('useDiscover', () => {
   describe('useSpans', () => {
@@ -24,12 +20,7 @@ describe('useDiscover', () => {
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(
         PageFiltersFixture({
-          datetime: {
-            period: '10d',
-            start: null,
-            end: null,
-            utc: false,
-          },
+          datetime: {period: '10d', start: null, end: null, utc: false},
         })
       );
     });
@@ -44,10 +35,7 @@ describe('useDiscover', () => {
       const {result} = renderHookWithProviders(
         ({fields, enabled}) => useSpans({fields, enabled}, 'span-metrics-series'),
         {
-          initialProps: {
-            fields: ['epm()'] as SpanProperty[],
-            enabled: false,
-          },
+          initialProps: {fields: ['epm()'] as SpanProperty[], enabled: false},
           initialRouterConfig,
         }
       );
@@ -61,13 +49,7 @@ describe('useDiscover', () => {
         url: `/organizations/${organization.slug}/events/`,
         method: 'GET',
         body: {
-          data: [
-            {
-              'span.op': 'db',
-              'epm()': 1486.3201388888888,
-              'count()': 2140301,
-            },
-          ],
+          data: [{'span.op': 'db', 'epm()': 1486.3201388888888, 'count()': 2140301}],
         },
       });
 
@@ -124,11 +106,7 @@ describe('useDiscover', () => {
 
       await waitFor(() => expect(result.current.isPending).toBe(false));
       expect(result.current.data).toEqual([
-        {
-          'span.op': 'db',
-          'epm()': 1486.3201388888888,
-          'count()': 2140301,
-        },
+        {'span.op': 'db', 'epm()': 1486.3201388888888, 'count()': 2140301},
       ]);
     });
   });
@@ -140,12 +118,7 @@ describe('useDiscover', () => {
       jest.clearAllMocks();
       PageFiltersStore.onInitializeUrlState(
         PageFiltersFixture({
-          datetime: {
-            period: '10d',
-            start: null,
-            end: null,
-            utc: false,
-          },
+          datetime: {period: '10d', start: null, end: null, utc: false},
         })
       );
     });

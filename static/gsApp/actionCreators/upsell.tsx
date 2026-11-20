@@ -1,16 +1,14 @@
 import * as Sentry from '@sentry/react';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import type {EventType} from 'getsentry/components/addEventsCTA';
+import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
 
 export function sendUpgradeRequest({
   organization,
@@ -24,11 +22,7 @@ export function sendUpgradeRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/plan-upgrade-request/`;
   const data = {type};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 export function sendTrialRequest({
@@ -46,9 +40,28 @@ export function sendTrialRequest({
     data: {},
     handleSuccess: () => {
       // show confirmation through trialStartedSidebarItem
-      TrialRequestedActions.requested();
+      TrialRequestedStore.markRequested();
       handleSuccess?.();
     },
+    ...rest,
+  });
+}
+
+export function sendSeerTopUpRequest({
+  organization,
+  denialReason,
+  ...rest
+}: {
+  api: Client;
+  organization: Organization;
+  denialReason?: SeerCreditDenialReason | null;
+  handleSuccess?: () => void;
+}) {
+  const endpoint = `/organizations/${organization.slug}/seer-top-up-request/`;
+  return sendBasicRequest({
+    endpoint,
+    data: {denialReason},
+    successMessage: t('Admins emailed.'),
     ...rest,
   });
 }
@@ -66,11 +79,7 @@ export function sendAddEventsRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/event-limit-increase-request/`;
   const data = {types: eventTypes, notificationType};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 async function sendBasicRequest({
@@ -78,22 +87,21 @@ async function sendBasicRequest({
   endpoint,
   data,
   handleSuccess,
+  successMessage = t('Request Sent'),
 }: {
   api: Client;
   data: Record<string, any>;
   endpoint: string;
   handleSuccess?: () => void;
+  successMessage?: string;
 }) {
   try {
-    addLoadingMessage(t('Requesting\u2026'));
-    await api.requestPromise(endpoint, {
-      method: 'POST',
-      data,
-    });
-    addSuccessMessage(t('Request Sent'));
+    toast.loading(t('Requesting\u2026'));
+    await api.requestPromise(endpoint, {method: 'POST', data});
+    toast.success(successMessage);
     handleSuccess?.();
   } catch (err) {
-    addErrorMessage(t('Unable to send request'));
+    toast.error(t('Unable to send request'));
     Sentry.captureException(err);
   }
 }

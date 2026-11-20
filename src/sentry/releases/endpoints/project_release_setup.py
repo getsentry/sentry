@@ -1,4 +1,4 @@
-from typing import Literal, TypedDict
+from typing import Annotated, Literal, TypedDict
 
 from django.core.cache import cache
 from drf_spectacular.utils import extend_schema
@@ -10,10 +10,12 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectReleasePermission
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RESPONSE_UNAUTHORIZED
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.deploy import Deploy
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
@@ -21,8 +23,11 @@ from sentry.utils.hashlib import hash_values
 
 
 class ReleaseSetupStepResponse(TypedDict):
-    step: Literal["tag", "repo", "commit", "deploy"]
-    complete: bool
+    step: Annotated[
+        Literal["tag", "repo", "commit", "deploy"],
+        ApiDescription("Setup step: tag, repo, commit or deploy"),
+    ]
+    complete: Annotated[bool, ApiDescription("Whether the project completed the step")]
 
 
 @extend_schema(tags=["Releases"])
@@ -56,7 +61,7 @@ class ProjectReleaseSetupCompletionEndpoint(ProjectEndpoint):
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, project) -> Response[list[ReleaseSetupStepResponse]]:
+    def get(self, request: Request, project: Project) -> Response[list[ReleaseSetupStepResponse]]:
         """
         Return release-setup progress based on issues with a first release, organization
         repositories, commits associated with project releases, and deploys of project releases.

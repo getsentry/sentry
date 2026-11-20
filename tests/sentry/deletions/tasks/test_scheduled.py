@@ -6,8 +6,11 @@ from unittest.mock import Mock
 
 from django.db.models import QuerySet
 
+from sentry import deletions
 from sentry.constants import ObjectStatus
 from sentry.db.models import Model
+from sentry.deletions.base import ModelDeletionTask
+from sentry.deletions.defaults.inboxitem import InboxItemDeletionTask
 from sentry.deletions.models.scheduleddeletion import (
     BaseScheduledDeletion,
     CellScheduledDeletion,
@@ -22,11 +25,63 @@ from sentry.deletions.tasks.scheduled import (
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.repository import Repository
 from sentry.models.team import Team
+from sentry.notifications.models.inboxitem import InboxItem
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.signals import pending_delete
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from sentry.users.services.user.service import user_service
+
+
+class InboxItemDeletionTest(TestCase):
+    def test_events_are_bulk_deleted_before_items(self) -> None:
+        items = [self.create_inbox_item(subject_id=str(index)) for index in range(2)]
+        for item in items:
+            self.create_inbox_item_event(item)
+            self.create_inbox_item_event(item)
+        other = self.create_inbox_item(user=self.create_user())
+        other_event = self.create_inbox_item_event(other)
+
+        def delete_item(task: InboxItemDeletionTask, item: InboxItem) -> None:
+            assert not item.events.exists()
+            ModelDeletionTask.delete_instance(task, item)
+
+        with mock.patch.object(
+            InboxItemDeletionTask, "delete_instance", autospec=True, side_effect=delete_item
+        ):
+            deletions.exec_sync_many(items)
+
+        assert not InboxItem.objects.filter(id__in=[item.id for item in items]).exists()
+        assert not InboxItemEvent.objects.filter(
+            inbox_item_id__in=[item.id for item in items]
+        ).exists()
+        assert InboxItemEvent.objects.filter(id=other_event.id).exists()
+
+    def test_pending_and_in_progress_items_are_deleted(self) -> None:
+        for status in [ObjectStatus.PENDING_DELETION, ObjectStatus.DELETION_IN_PROGRESS]:
+            with self.subTest(status=status):
+                item = self.create_inbox_item(subject_id=str(status), status=status)
+                event = self.create_inbox_item_event(item)
+                scheduled = CellScheduledDeletion.schedule(item, days=0)
+                with self.tasks():
+                    run_scheduled_deletions()
+                assert not InboxItem.objects.filter(id=item.id).exists()
+                assert not InboxItemEvent.objects.filter(id=event.id).exists()
+                assert not CellScheduledDeletion.objects.filter(id=scheduled.id).exists()
+
+    def test_restored_item_cancels_scheduled_deletion(self) -> None:
+        item = self.create_inbox_item(status=ObjectStatus.PENDING_DELETION)
+        event = self.create_inbox_item_event(item)
+        scheduled = CellScheduledDeletion.schedule(item, days=0)
+        item.update(status=ObjectStatus.ACTIVE)
+
+        with self.tasks():
+            run_scheduled_deletions()
+
+        assert InboxItem.objects.filter(id=item.id, status=ObjectStatus.ACTIVE).exists()
+        assert InboxItemEvent.objects.filter(id=event.id).exists()
+        assert not CellScheduledDeletion.objects.filter(id=scheduled.id).exists()
 
 
 class CellRunScheduleDeletionTest(abc.ABC, TestCase):

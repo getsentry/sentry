@@ -2,11 +2,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
-import * as OrganizationsActionCreator from 'sentry/actionCreators/organizations';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
+
+import {fetchOrganizationDetails} from './organization';
+import * as OrganizationsActionCreator from './organizations';
 
 describe('OrganizationActionCreator', () => {
   const org = OrganizationFixture();

@@ -1,3 +1,5 @@
+from typing import IO, Any, cast
+
 from rest_framework import serializers
 from rest_framework.serializers import Serializer
 
@@ -10,7 +12,7 @@ class SentryAppAvatarParser(Serializer):
     avatar_type = serializers.ChoiceField(choices=(("default", "default"), ("upload", "upload")))
     color = serializers.BooleanField(required=True)
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
         attrs = super().validate(attrs)
 
         if attrs.get("avatar_type") == "upload" and not attrs.get("avatar_photo"):
@@ -19,7 +21,7 @@ class SentryAppAvatarParser(Serializer):
         if (
             not attrs.get("color")
             and attrs.get("avatar_type") == "upload"
-            and not is_black_alpha_only(attrs.get("avatar_photo"))
+            and not is_black_alpha_only(cast("IO[bytes]", attrs.get("avatar_photo")))
         ):
             raise serializers.ValidationError(
                 {

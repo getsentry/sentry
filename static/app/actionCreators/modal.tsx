@@ -1,4 +1,9 @@
-import type {ModalTypes} from '@sentry/scraps/modal';
+import {
+  openModal,
+  closeModal,
+  type ModalOptions,
+  type ModalRenderProps,
+} from '@sentry/scraps/modal';
 import type {Theme} from '@sentry/scraps/theme';
 
 import type {
@@ -16,7 +21,6 @@ import type {PrivateGamingSdkAccessModalProps} from 'sentry/components/modals/pr
 import type {ReprocessEventModalOptions} from 'sentry/components/modals/reprocessEventModal';
 import type {AddToDashboardModalProps} from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {ConsoleModalProps} from 'sentry/components/onboarding/consoleModal';
-import {ModalStore} from 'sentry/stores/modalStore';
 import type {
   CustomRepo,
   CustomRepoFormData,
@@ -30,31 +34,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/components/attributeBreakdowns/attributeBreakdownViewerModal';
 
-export type ModalOptions = ModalTypes['options'];
-export type ModalRenderProps = ModalTypes['renderProps'];
 type ModalRenderPropKeys = keyof ModalRenderProps;
 
-/**
- * Show a modal
- */
-export function openModal(
-  renderer: (renderProps: ModalRenderProps) => React.ReactNode,
-  options?: ModalOptions
-) {
-  ModalStore.openModal(renderer, options ?? {});
-}
-
-/**
- * Close modal
- */
-export function closeModal() {
-  ModalStore.closeModal();
-}
-
-type EmailVerificationModalOptions = {
-  actionMessage?: string;
-  onClose?: () => void;
-};
+type EmailVerificationModalOptions = {actionMessage?: string; onClose?: () => void};
 
 type InviteMembersModalOptions = {
   initialData?: Array<Partial<InviteRow>>;
@@ -171,16 +153,11 @@ export async function toggleCommandPalette(
     dispatch({type: 'toggle modal'});
     openModal(
       deps => <Modal {...deps} {...options} openSeerExplorer={openSeerExplorer} />,
-      {
-        modalCss,
-        onClose: closeCommandPaletteModal,
-      }
+      {modalCss, onClose: closeCommandPaletteModal}
     );
   }
 }
-type RecoveryModalOptions = {
-  authenticatorName: string;
-};
+type RecoveryModalOptions = {authenticatorName: string};
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const {default: Modal} = await import('sentry/components/modals/recoveryOptionsModal');
@@ -216,10 +193,7 @@ export async function openDebugFileSourceModal({
   const {default: Modal, modalCss} =
     await import('sentry/components/modals/debugFileCustomRepository');
 
-  openModal(deps => <Modal {...deps} {...restOptions} />, {
-    modalCss,
-    onClose,
-  });
+  openModal(deps => <Modal {...deps} {...restOptions} />, {modalCss, onClose});
 }
 
 export async function openInviteMembersModal({
@@ -287,9 +261,7 @@ export async function demoSignupModal() {
   openModal(deps => <Modal {...deps} />, {modalCss});
 }
 
-type DemoEndModalOptions = {
-  tour: string;
-};
+type DemoEndModalOptions = {tour: string};
 
 export async function demoEndModal(options: DemoEndModalOptions) {
   const {default: Modal, modalCss} =
@@ -351,9 +323,7 @@ export async function openCreateReleaseIntegration(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type NavigateToExternalLinkModalOptions = {
-  linkText: string;
-};
+type NavigateToExternalLinkModalOptions = {linkText: string};
 
 export async function openNavigateToExternalLinkModal(
   options: NavigateToExternalLinkModalOptions
@@ -367,9 +337,7 @@ export async function openNavigateToExternalLinkModal(
 export async function openConsoleModal(options: ConsoleModalProps) {
   const {ConsoleModal: Modal, modalCss} =
     await import('sentry/components/onboarding/consoleModal');
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
@@ -411,10 +379,7 @@ export async function openPrivateGamingSdkAccessModal(
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
 
-type InsightInfoModalOptions = {
-  children: React.ReactNode;
-  title: string;
-};
+type InsightInfoModalOptions = {children: React.ReactNode; title: string};
 
 export async function openInsightInfoModal(options: InsightInfoModalOptions) {
   const {InsightInfoModal} =

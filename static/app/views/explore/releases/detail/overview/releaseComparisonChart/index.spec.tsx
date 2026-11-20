@@ -12,7 +12,8 @@ import type {RouterConfig} from 'sentry-test/reactTestingLibrary';
 import {type ReleaseProject, ReleaseComparisonChartType} from 'sentry/types/release';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {ReleaseComparisonChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart';
-import {ReleaseEventsChart} from 'sentry/views/explore/releases/detail/overview/releaseComparisonChart/releaseEventsChart';
+
+import {ReleaseEventsChart} from './releaseEventsChart';
 
 describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const organization = OrganizationFixture();
@@ -29,6 +30,17 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
   const releaseSessions = SessionUserCountByStatusFixture();
   const allSessions = SessionUserCountByStatus2Fixture();
 
+  beforeEach(() => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues-count/`,
+      body: 0,
+    });
+  });
+
   const project: ReleaseProject = {
     ...rawProject,
     id: parseInt(rawProject.id, 10),
@@ -37,7 +49,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     platforms: ['java'],
   };
 
-  it('displays correct all/release/change data', () => {
+  it('displays correct all/release/change data', async () => {
     render(
       <ReleaseComparisonChart
         release={release}
@@ -50,10 +62,11 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
+    );
+
+    await waitFor(() =>
+      expect(screen.getByTestId('release-comparison-table')).toHaveTextContent('95.006%')
     );
 
     expect(screen.getByLabelText('Chart Title')).toHaveTextContent(
@@ -61,13 +74,13 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     );
     expect(screen.getByLabelText('Chart Value')).toHaveTextContent(/95\.006% 4\.51%/);
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
 
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      '"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Crash Free User Rate99.908%75%24.908% Show 2 Others"'
+      '"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate0 handled issues0 unhandled issues99.516%95.006%4.51% Crash Free User Rate99.908%75%24.908% Failure Rate———Show 4 Others"'
     );
   });
 
@@ -84,10 +97,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await userEvent.click(screen.getByLabelText(/crash free user rate/i));
@@ -115,10 +125,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     for (const toggle of screen.getAllByLabelText(/toggle chart/i)) {
@@ -127,12 +134,12 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
 
     await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio')).toHaveLength(14);
+    expect(screen.getAllByRole('radio')).toHaveLength(17);
     // lazy way to make sure that all percentages are calculated correctly
     expect(
       screen.getByTestId('release-comparison-table').textContent
     ).toMatchInlineSnapshot(
-      '"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate99.516%95.006%4.51% Healthy98.564%94.001%4.563% Abnormal0%0%0% Errored0.953%1.005%0.052% Unhandled0%0%0% Crashed Session Rate0.484%4.994%4.511% Crash Free User Rate99.908%75%24.908% Healthy98.994%72.022%26.972% Abnormal0%0%0% Errored0.914%2.493%1.579% Unhandled0%0%0% Crashed User Rate0.092%25.485%25.393% Session Count205K9.8K—User Count100K361—Hide 2 Others"'
+      '"DescriptionAll ReleasesThis ReleaseChangeCrash Free Session Rate0 handled issues0 unhandled issues99.516%95.006%4.51% Healthy98.564%94.001%4.563% Abnormal0%0%0% Errored0.953%1.005%0.052% Unhandled0%0%0% Crashed Session Rate0.484%4.994%4.511% Crash Free User Rate99.908%75%24.908% Healthy98.994%72.022%26.972% Abnormal0%0%0% Errored0.914%2.493%1.579% Unhandled0%0%0% Crashed User Rate0.092%25.485%25.393% Failure Rate———Session Count205K9.8K—User Count100K361—Error Count———Transaction Count———Hide 4 Others"'
     );
 
     // toggle back
@@ -141,7 +148,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
     }
     await userEvent.click(screen.getByLabelText(/toggle additional/i));
 
-    expect(screen.getAllByRole('radio')).toHaveLength(2);
+    expect(screen.getAllByRole('radio')).toHaveLength(3);
   });
 
   it('does not show expanders if there is no health data', async () => {
@@ -173,20 +180,17 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData={false}
       />,
-      {
-        organization: noHealthDataOrganization,
-        initialRouterConfig,
-      }
+      {organization: noHealthDataOrganization, initialRouterConfig}
     );
 
-    expect(await screen.findAllByRole('radio')).toHaveLength(1);
+    expect(await screen.findAllByRole('radio')).toHaveLength(3);
     expect(screen.queryByLabelText(/toggle chart/i)).not.toBeInTheDocument();
     expect(screen.queryByLabelText(/toggle additional/i)).not.toBeInTheDocument();
   });
 
   it('queries the spans dataset for transaction totals', async () => {
     const performanceOrganization = OrganizationFixture({
-      features: [...organization.features, 'performance-view'],
+      features: [...organization.features],
     });
 
     MockApiClient.addMockResponse({
@@ -217,10 +221,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         api={api}
         hasHealthData
       />,
-      {
-        organization: performanceOrganization,
-        initialRouterConfig,
-      }
+      {organization: performanceOrganization, initialRouterConfig}
     );
 
     await waitFor(() => {
@@ -254,10 +255,7 @@ describe('Releases > Detail > Overview > ReleaseComparison', () => {
         diff={null}
         period="14d"
       />,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await waitFor(() => {

@@ -3,6 +3,7 @@ from unittest import mock
 import orjson
 
 from sentry.models.activity import Activity
+from sentry.models.group import Group
 from sentry.notifications.notifications.activity.resolved_in_pull_request import (
     ResolvedInPullRequestActivityNotification,
 )
@@ -21,7 +22,7 @@ class SlackResolvedInPullRequestNotificationTest(
         super().setUp()
         self.pull_request_url = "https://github.com/example/pull/123"
 
-    def create_notification(self, group):
+    def create_notification(self, group: Group) -> ResolvedInPullRequestActivityNotification:
         return ResolvedInPullRequestActivityNotification(
             Activity(
                 project=self.project,

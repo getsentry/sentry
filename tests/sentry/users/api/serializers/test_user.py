@@ -113,14 +113,17 @@ class DetailedUserSerializerTest(TestCase):
         UserAvatar.objects.create(
             user_id=self.user.id,
             avatar_type=1,  # upload
-            ident="abc123",
+            ident="9fac2ceed9344f2bbfdd1fdacb0ed9b1",
             control_file_id=1,
         )
         result = serialize(self.user, self.user, DetailedUserSerializer())
         assert "avatar" in result
-        assert result["avatar"]["avatarUuid"] == "abc123"
+        assert result["avatar"]["avatarUuid"] == "9fac2ceed9344f2bbfdd1fdacb0ed9b1"
         assert result["avatar"]["avatarType"] == "upload"
-        assert result["avatar"]["avatarUrl"] == "http://testserver/avatar/abc123/"
+        assert (
+            result["avatar"]["avatarUrl"]
+            == "http://testserver/avatar/9fac2ceed9344f2bbfdd1fdacb0ed9b1/"
+        )
 
 
 @control_silo_test

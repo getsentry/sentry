@@ -1,5 +1,6 @@
 import {EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorSpansConfig} from 'sentry/views/detectors/datasetConfig/spans';
+
+import {DetectorSpansConfig} from './spans';
 
 describe('spans.separateEventTypesFromQuery', () => {
   it('returns transaction type and preserves query when is_transaction:true', () => {

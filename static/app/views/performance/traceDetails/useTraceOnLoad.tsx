@@ -1,8 +1,8 @@
 import {useLayoutEffect, useState} from 'react';
 
 import type {Event} from 'sentry/types/event';
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
 
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
 import {TraceTree} from './traceModels/traceTree';
 import type {useTraceScrollToPath} from './useTraceScrollToPath';
 

@@ -11,7 +11,7 @@ import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import TrialStarter from 'getsentry/components/trialStarter';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import type {Subscription} from 'getsentry/types';
 import {getTrialLength, hasJustStartedPlanTrial, isTrial} from 'getsentry/utils/billing';
 
@@ -157,11 +157,7 @@ function MemberInviteModalCustomization({
   const isOverMemberLimit = totalLicenses > 0 && usedSeats >= totalLicenses;
 
   const renderPassthrough = () =>
-    children({
-      sendInvites: onSendInvites,
-      canSend: true,
-      isOverMemberLimit,
-    });
+    children({sendInvites: onSendInvites, canSend: true, isOverMemberLimit});
 
   // We don't need to do anything if the modal isn't going to actually sent
   // member invites.

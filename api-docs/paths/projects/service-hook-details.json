@@ -2,7 +2,8 @@
   "get": {
     "tags": ["Projects"],
     "description": "Return a service hook bound to a project.",
-    "operationId": "Retrieve a Service Hook",
+    "operationId": "getProjectHook",
+    "summary": "Retrieve a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -67,7 +68,8 @@
   "put": {
     "tags": ["Projects"],
     "description": "Update a service hook.",
-    "operationId": "Update a Service Hook",
+    "operationId": "updateProjectHook",
+    "summary": "Update a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",
@@ -163,7 +165,8 @@
   "delete": {
     "tags": ["Projects"],
     "description": "Remove a service hook.",
-    "operationId": "Remove a Service Hook",
+    "operationId": "deleteProjectHook",
+    "summary": "Remove a Service Hook",
     "parameters": [
       {
         "name": "organization_id_or_slug",

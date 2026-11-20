@@ -4,9 +4,7 @@ import {ANNUAL, MONTHLY} from 'getsentry/constants';
 import {type Plan} from 'getsentry/types';
 
 // mm2 plans with data volume up to 500k
-const MM2_CATEGORY_DISPLAY_NAMES = {
-  errors: {singular: 'error', plural: 'errors'},
-};
+const MM2_CATEGORY_DISPLAY_NAMES = {errors: {singular: 'error', plural: 'errors'}};
 
 const MM2_CATEGORIES = [DataCategory.ERRORS];
 
@@ -32,14 +30,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 8900,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 8900, events: 100000}]},
     totalPrice: 8900,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -56,14 +47,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 8000,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 8000, events: 100000}]},
     totalPrice: 8000,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -80,14 +64,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 96000,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 96000, events: 100000}]},
     totalPrice: 96000,
     userSelectable: true,
     billingInterval: ANNUAL,
@@ -104,14 +81,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 28900,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 28900, events: 500000}]},
     totalPrice: 28900,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -128,14 +98,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 26000,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 26000, events: 500000}]},
     totalPrice: 26000,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -152,14 +115,7 @@ export const MM2_PLANS = {
     name: 'Business',
     trialPlan: null,
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 312000,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 312000, events: 500000}]},
     totalPrice: 312000,
     userSelectable: true,
     billingInterval: ANNUAL,
@@ -176,14 +132,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 2900,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 2900, events: 100000}]},
     totalPrice: 2900,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -200,14 +149,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 2600,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 2600, events: 100000}]},
     totalPrice: 2600,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -224,14 +166,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 31200,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 31200, events: 100000}]},
     totalPrice: 31200,
     userSelectable: true,
     billingInterval: ANNUAL,
@@ -248,14 +183,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 9900,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 9900, events: 500000}]},
     totalPrice: 9900,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -273,14 +201,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 8900,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 8900, events: 500000}]},
     totalPrice: 8900,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -297,14 +218,7 @@ export const MM2_PLANS = {
     name: 'Team',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 106800,
-          events: 500000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 106800, events: 500000}]},
     totalPrice: 106800,
     userSelectable: true,
     billingInterval: ANNUAL,
@@ -321,14 +235,7 @@ export const MM2_PLANS = {
     name: 'Developer',
     trialPlan: 'am1_t',
     maxMembers: 1,
-    planCategories: {
-      errors: [
-        {
-          price: 0,
-          events: 5000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 0, events: 5000}]},
     totalPrice: 0,
     userSelectable: true,
     billingInterval: MONTHLY,
@@ -350,14 +257,7 @@ export const MM2_PLANS = {
     userSelectable: false,
     billingInterval: MONTHLY,
     allowOnDemand: true,
-    planCategories: {
-      errors: [
-        {
-          events: 100000,
-          price: 0,
-        },
-      ],
-    },
+    planCategories: {errors: [{events: 100000, price: 0}]},
     dashboardLimit: 0,
     metricDetectorLimit: 0,
   },

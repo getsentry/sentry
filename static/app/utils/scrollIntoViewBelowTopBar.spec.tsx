@@ -1,4 +1,4 @@
-import {scrollIntoViewBelowTopBar} from 'sentry/utils/scrollIntoViewBelowTopBar';
+import {scrollIntoViewBelowTopBar} from './scrollIntoViewBelowTopBar';
 
 describe('scrollIntoViewBelowTopBar', () => {
   const scrollIntoView = jest.fn();

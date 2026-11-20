@@ -16,12 +16,15 @@ import {
 
 import {Container} from '@sentry/scraps/layout';
 
+import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueListCacheStore} from 'sentry/stores/IssueListCacheStore';
 import {TagStore} from 'sentry/stores/tagStore';
 import {PriorityLevel} from 'sentry/types/group';
-import IssueListOverview from 'sentry/views/issueList/overview';
 import {IssueViewQueryCount} from 'sentry/views/navigation/secondary/sections/issues/issueViews/issueViewQueryCount';
+
+import IssueListOverview from './overview';
+import {IssueSortOptions} from './utils';
 
 const DEFAULT_LINKS_HEADER =
   '<http://127.0.0.1:8000/api/0/organizations/org-slug/issues/?cursor=1443575731:0:1>; rel="previous"; results="false"; cursor="1443575731:0:1", ' +
@@ -45,17 +48,10 @@ describe('IssueListOverview (actions)', () => {
     GroupStore.reset();
     IssueListCacheStore.reset();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
       body: [groupStats],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/searches/',
-      body: [],
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -72,11 +68,6 @@ describe('IssueListOverview (actions)', () => {
       body: [{}],
     });
     MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/processingissues/',
-      method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/',
       method: 'GET',
       body: [],
@@ -90,12 +81,9 @@ describe('IssueListOverview (actions)', () => {
       url: '/organizations/org-slug/sent-first-event/',
       body: {sentFirstEvent: true},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
-    TagStore.init?.();
+    TagStore.reset();
   });
 
   afterEach(() => {
@@ -105,23 +93,17 @@ describe('IssueListOverview (actions)', () => {
   describe('status', () => {
     const group1 = GroupFixture({
       id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
+      metadata: {title: 'Group 1'},
       shortId: 'JAVASCRIPT-1',
     });
     const group2 = GroupFixture({
       id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
+      metadata: {title: 'Group 2'},
       shortId: 'JAVASCRIPT-2',
     });
     const group3 = GroupFixture({
       id: '3',
-      metadata: {
-        title: 'Group 3',
-      },
+      metadata: {title: 'Group 3'},
       shortId: 'JAVASCRIPT-3',
     });
 
@@ -233,6 +215,57 @@ describe('IssueListOverview (actions)', () => {
       expect(screen.queryByText('Group 2')).not.toBeInTheDocument();
     });
 
+    it('uses the list filters and default sort when resolving all matching issues', async () => {
+      PageFiltersStore.onInitializeUrlState({
+        projects: [1],
+        environments: ['production'],
+        datetime: {start: null, end: null, period: '24h', utc: true},
+      });
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        body: [group1, group2],
+        headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1500'},
+      });
+      const updateIssueMock = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/issues/',
+        method: 'PUT',
+      });
+
+      render(<OverviewInContainer />, {
+        organization,
+        initialRouterConfig: {
+          route: '/organizations/:orgId/issues/',
+          location: {pathname: '/organizations/org-slug/issues/', query: {query: ''}},
+        },
+      });
+      renderGlobalModal();
+
+      await screen.findByText('Group 1');
+      await userEvent.click(screen.getByRole('checkbox', {name: 'Select all'}));
+      await userEvent.click(
+        screen.getByText('Select the first 1,000 issues that match this search query.')
+      );
+      await userEvent.click(await screen.findByRole('button', {name: 'Resolve'}));
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Bulk resolve issues'})
+      );
+
+      expect(updateIssueMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/issues/',
+        expect.objectContaining({
+          query: {
+            query: '',
+            project: [1],
+            environment: ['production'],
+            statsPeriod: '24h',
+            utc: true,
+            sort: IssueSortOptions.RECOMMENDED,
+          },
+          data: {status: 'resolved', statusDetails: {}, substatus: null},
+        })
+      );
+    });
+
     it('updates saved view counts after resolving and undoing', async () => {
       const updateIssueMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
@@ -328,17 +361,13 @@ describe('IssueListOverview (actions)', () => {
   describe('mark reviewed', () => {
     const group1 = GroupFixture({
       id: '1',
-      metadata: {
-        title: 'Group 1',
-      },
+      metadata: {title: 'Group 1'},
       shortId: 'JAVASCRIPT-1',
       inbox: {},
     });
     const group2 = GroupFixture({
       id: '2',
-      metadata: {
-        title: 'Group 2',
-      },
+      metadata: {title: 'Group 2'},
       shortId: 'JAVASCRIPT-2',
       inbox: {},
     });
@@ -408,16 +437,12 @@ describe('IssueListOverview (actions)', () => {
     const medPriorityGroup = GroupFixture({
       id: '1',
       priority: PriorityLevel.MEDIUM,
-      metadata: {
-        title: 'Medium priority issue',
-      },
+      metadata: {title: 'Medium priority issue'},
     });
     const highPriorityGroup = GroupFixture({
       id: '2',
       priority: PriorityLevel.HIGH,
-      metadata: {
-        title: 'High priority issue',
-      },
+      metadata: {title: 'High priority issue'},
     });
 
     beforeEach(() => {
@@ -434,9 +459,7 @@ describe('IssueListOverview (actions)', () => {
         method: 'PUT',
       });
 
-      render(<OverviewInContainer />, {
-        organization,
-      });
+      render(<OverviewInContainer />, {organization});
 
       expect(await screen.findByText('Medium priority issue')).toBeInTheDocument();
       const groups = screen.getAllByTestId('group');
@@ -676,9 +699,7 @@ describe('IssueListOverview (actions)', () => {
 
       expect(updateIssueMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
-        expect.objectContaining({
-          query: expect.objectContaining({id: ['1']}),
-        })
+        expect.objectContaining({query: expect.objectContaining({id: ['1']})})
       );
 
       expect(screen.queryByText('Group 1')).not.toBeInTheDocument();

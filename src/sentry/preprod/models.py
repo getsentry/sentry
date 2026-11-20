@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from enum import IntEnum, StrEnum
-from typing import ClassVar, Self, TypedDict, assert_never, cast
+from typing import ClassVar, Self, TypedDict, assert_never
 
 from django.db import models
 from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
@@ -248,13 +248,14 @@ class PreprodArtifact(DefaultFieldsModel):
     def platform(self) -> Platform | None:
         if self.artifact_type is None:
             return None
-        match self.artifact_type:
+        artifact_type = self.ArtifactType(self.artifact_type)
+        match artifact_type:
             case self.ArtifactType.XCARCHIVE:
                 return Platform.APPLE
             case self.ArtifactType.AAB | self.ArtifactType.APK:
                 return Platform.ANDROID
             case _:
-                assert_never(self.artifact_type)
+                assert_never(artifact_type)
 
     def get_sibling_artifacts_for_commit(self) -> list[PreprodArtifact]:
         """
@@ -785,7 +786,7 @@ class PreprodArtifactMobileAppInfo(DefaultFieldsModel):
         parts: list[str] = []
         if self.build_version:
             parts.append(self.build_version)
-        extras = cast(PreprodArtifactMobileAppInfoExtras, self.extras) if self.extras else None
+        extras = self.extras if self.extras else None
         build_number_raw = extras.get("build_number_raw") if extras else None
         if build_number_raw:
             parts.append(f"({build_number_raw})")

@@ -292,6 +292,7 @@ def create_preprod_status_check_task(
         # not having their repos integrated into Sentry
         return
 
+    assert repository.integration_id is not None
     provider = get_status_check_provider(
         client,
         commit_comparison.provider,

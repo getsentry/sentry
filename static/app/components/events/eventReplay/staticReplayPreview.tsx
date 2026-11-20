@@ -5,7 +5,6 @@ import {IconPlay} from '@sentry/icons/play';
 
 import {LinkButton, type LinkButtonProps} from '@sentry/scraps/button';
 
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {SentryPlayerRoot as ReplayPlayer} from 'sentry/components/replays/replayPlayer';
 import {ReplayProcessingError} from 'sentry/components/replays/replayProcessingError';
@@ -16,6 +15,8 @@ import type {ReplayReader} from 'sentry/utils/replays/replayReader';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
+
+import {REPLAY_LOADING_HEIGHT} from './constants';
 
 type StaticReplayPreviewProps = {
   analyticsContext: string;
@@ -37,10 +38,7 @@ export function StaticReplayPreview({
   const organization = useOrganization();
   const matches = useMatches();
   const fullReplayUrl = {
-    pathname: makeReplaysPathname({
-      path: `/${replayId}/`,
-      organization,
-    }),
+    pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
     query: {
       referrer: getRouteStringFromRoutes({matches}),
       t_main: TabKey.ERRORS,
@@ -48,12 +46,7 @@ export function StaticReplayPreview({
     },
   };
 
-  const offset = useMemo(
-    () => ({
-      offsetMs: initialTimeOffsetMs,
-    }),
-    [initialTimeOffsetMs]
-  );
+  const offset = useMemo(() => ({offsetMs: initialTimeOffsetMs}), [initialTimeOffsetMs]);
 
   return (
     <ReplayContextProvider
@@ -64,7 +57,7 @@ export function StaticReplayPreview({
     >
       <PlayerContainer>
         {replay?.hasProcessingErrors() ? (
-          <ReplayProcessingError />
+          <ReplayProcessingError replay={replay} />
         ) : (
           <Fragment>
             <StaticPanel>

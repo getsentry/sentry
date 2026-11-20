@@ -1,8 +1,9 @@
 from enum import StrEnum
 from typing import Any, Literal, Protocol, TypedDict
 
-from sentry.investigations.models import Investigation, InvestigationOrchestrationRun
+from sentry.investigations.models import InvestigationOrchestrationRun
 from sentry.models.organization import Organization
+from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import CodingAgentProviderType
@@ -44,6 +45,15 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         Called when an autofix failed to start.
 
         Example Usage: Adding a :x: reaction, sending a failure message, etc.
+        """
+        ...
+
+    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+        """
+        Called when the organization doesn't have enough Seer credits for the requested step.
+        `started` is False when the run itself was refused, True when a later step of a run was.
+
+        Example Usage: Sending a message with a link to add credits, etc.
         """
         ...
 
@@ -142,9 +152,9 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         state: SeerRunState,
     ) -> None:
         """
-        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields, and when
-        a PR push the Agent queued finishes. Treat it as a refresh: make the external service
-        match ``state``, whichever of those caused the call.
+        Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
+        and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
+        service match ``state``, whichever of those caused the call.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 
@@ -172,7 +182,7 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
         """Called when the investigation failed to start."""
         ...
 
-    def on_trigger_investigation_success(self, *, investigation: Investigation) -> None:
+    def on_trigger_investigation_success(self, *, investigation: Notebook) -> None:
         """Called when a new investigation was created."""
         ...
 
@@ -182,7 +192,7 @@ class SeerInvestigationEntrypoint[CachePayloadT](Protocol):
 
     @staticmethod
     def on_investigation_update(
-        cache_payload: CachePayloadT, run: InvestigationOrchestrationRun
+        cache_payload: CachePayloadT | None, run: InvestigationOrchestrationRun
     ) -> None:
         """
         Called when the orchestration run of an investigation changes.

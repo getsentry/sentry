@@ -26,6 +26,17 @@ describe('crontabAsText', () => {
     );
   });
 
+  it('translates day of week ranges', () => {
+    expect(crontabAsText('0 9 * * 1-5')).toBe('At 09:00 AM, Monday through Friday');
+    expect(crontabAsText('0 9 * * 6-7')).toBe('At 09:00 AM, Saturday through Sunday');
+    expect(crontabAsText('0 9 * * 0-6')).toBe('At 09:00 AM, Sunday through Saturday');
+    expect(crontabAsText('0 9 * * 5-7/2')).toBe(
+      'At 09:00 AM, every 2 days of the week, Friday through Sunday'
+    );
+    expect(crontabAsText('0 9 * * sun')).toBe('At 09:00 AM, only on Sunday');
+    expect(crontabAsText('0 0 1 * *')).toBe('At 12:00 AM, on day 1 of the month');
+  });
+
   it('returns null for unsupported "no specific value" marker (?)', () => {
     expect(crontabAsText('0 0 ? * *')).toBeNull();
     expect(crontabAsText('0 0 * * ?')).toBeNull();

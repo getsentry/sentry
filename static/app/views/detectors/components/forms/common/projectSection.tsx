@@ -1,7 +1,8 @@
 import {Container} from 'sentry/components/workflowEngine/ui/container';
 import {FormSection} from 'sentry/components/workflowEngine/ui/formSection';
 import {t} from 'sentry/locale';
-import {ProjectField} from 'sentry/views/detectors/components/forms/common/projectField';
+
+import {ProjectField} from './projectField';
 
 export function ProjectSection({step}: {step?: number}) {
   return (

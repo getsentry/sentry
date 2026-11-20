@@ -13,7 +13,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
-from sentry.api.base import cell_silo_endpoint
+from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint
 from sentry.api.helpers.environments import get_environments
 from sentry.api.utils import get_date_range_from_params
@@ -143,10 +143,10 @@ def calculate_unresolved_counts(
     agg_project_precounts = {
         project.id: copy.deepcopy(date_series_dict) for project in project_list
     }
-    for r in deduped_historical_issue_status_changes:
-        bucket = agg_project_precounts[r["project"]][r["bucket"].isoformat()]
-        bucket["open"] += r.get("open", 0)
-        bucket["closed"] += r.get("closed", 0)
+    for deduped in deduped_historical_issue_status_changes:
+        bucket = agg_project_precounts[deduped["project"]][deduped["bucket"].isoformat()]
+        bucket["open"] += deduped.get("open", 0)
+        bucket["closed"] += deduped.get("closed", 0)
 
     agg_project_counts = {}
     for project, precounts in agg_project_precounts.items():
@@ -166,6 +166,7 @@ def calculate_unresolved_counts(
 @cell_silo_endpoint
 class TeamAllUnresolvedIssuesEndpoint(TeamEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = DEFAULT_DURATION_BUDGET
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }

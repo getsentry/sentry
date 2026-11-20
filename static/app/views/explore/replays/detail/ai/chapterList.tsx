@@ -21,9 +21,11 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {TimeRanges} from 'sentry/views/explore/replays/detail/ai/utils';
 import {BreadcrumbRow} from 'sentry/views/explore/replays/detail/breadcrumbs/breadcrumbRow';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import type {TimeRanges} from './utils';
+import {findChapterIndex} from './utils';
 
 interface Props {
   timeRanges: TimeRanges;
@@ -31,37 +33,38 @@ interface Props {
 
 export function ChapterList({timeRanges}: Props) {
   const replay = useReplayReader();
-  const {setCurrentTime} = useReplayContext();
+  const {currentTime, setCurrentTime} = useReplayContext();
   const onClickChapterTimestamp = (event: React.MouseEvent, start: number) => {
     event.stopPropagation();
     setCurrentTime(start - (replay?.getStartTimestampMs() ?? 0));
   };
 
-  // do not include chapters that are before the start of the replay;
+  // do not include chapters that end before the start of the replay;
   // we filter these crumbs on the frontend anyway
-  const chapterData = useMemo(
-    () =>
-      timeRanges
-        .filter(
-          ({period_start, period_end}) =>
-            period_start >= (replay?.getStartTimestampMs() ?? 0) &&
-            period_end >= (replay?.getStartTimestampMs() ?? 0)
-        )
-        .map(({period_title, period_start, period_end}) => ({
-          title: period_title,
-          start: period_start,
-          end: period_end,
-          breadcrumbs:
-            replay
-              ?.getSummaryChapterFrames()
-              .filter(
-                breadcrumb =>
-                  breadcrumb.timestampMs >= period_start &&
-                  breadcrumb.timestampMs <= period_end
-              ) ?? [],
-        }))
-        .sort((a, b) => a.start - b.start),
-    [timeRanges, replay]
+  const chapterData = useMemo(() => {
+    const replayStartMs = replay?.getStartTimestampMs() ?? 0;
+    const chapters = timeRanges
+      .filter(({period_end}) => period_end >= replayStartMs)
+      .map(({period_title, period_start, period_end}) => ({
+        title: period_title,
+        start: period_start,
+        end: period_end,
+        breadcrumbs: [] as ReplayFrame[],
+      }))
+      .sort((a, b) => a.start - b.start);
+
+    for (const frame of replay?.getSummaryChapterFrames() ?? []) {
+      if (frame.timestampMs < replayStartMs) {
+        continue;
+      }
+      chapters[findChapterIndex(chapters, frame.timestampMs)]?.breadcrumbs.push(frame);
+    }
+    return chapters;
+  }, [timeRanges, replay]);
+
+  const activeChapterIndex = findChapterIndex(
+    chapterData,
+    currentTime + (replay?.getStartTimestampMs() ?? 0)
   );
 
   if (!chapterData?.length) {
@@ -83,6 +86,7 @@ export function ChapterList({timeRanges}: Props) {
           start={start}
           end={end}
           breadcrumbs={breadcrumbs}
+          isActive={i === activeChapterIndex}
           onClickChapterTimestamp={onClickChapterTimestamp}
         />
       ))}
@@ -95,11 +99,13 @@ function ChapterRow({
   start,
   end,
   breadcrumbs,
+  isActive,
   onClickChapterTimestamp,
   className,
 }: {
   breadcrumbs: ReplayFrame[];
   end: number;
+  isActive: boolean;
   onClickChapterTimestamp: (event: React.MouseEvent, start: number) => void;
   start: number;
   title: string;
@@ -115,7 +121,6 @@ function ChapterRow({
   const [isOpen, setIsOpen] = useState(false);
 
   const startOffset = Math.max(start - (replay?.getStartTimestampMs() ?? 0), 0);
-  const endOffset = Math.max(end - (replay?.getStartTimestampMs() ?? 0), 0);
   const hasOccurred = currentTime >= startOffset;
   const isBeforeHover = currentHoverTime === undefined || currentHoverTime >= startOffset;
 
@@ -129,7 +134,7 @@ function ChapterRow({
       className={classNames(className, {
         beforeCurrentTime: hasOccurred,
         afterCurrentTime: !hasOccurred,
-        activeChapter: currentTime >= startOffset && currentTime <= endOffset,
+        activeChapter: isActive,
         beforeHoverTime: currentHoverTime === undefined ? undefined : isBeforeHover,
         afterHoverTime: currentHoverTime === undefined ? undefined : !isBeforeHover,
       })}
@@ -194,10 +199,7 @@ function ChapterRow({
                   <Link
                     to={{
                       pathname: location.pathname,
-                      query: {
-                        t_main: TabKey.CONSOLE,
-                        t: startOffset / 1000,
-                      },
+                      query: {t_main: TabKey.CONSOLE, t: startOffset / 1000},
                     }}
                     onClick={() => setCurrentTime(startOffset)}
                   />
@@ -206,10 +208,7 @@ function ChapterRow({
                   <Link
                     to={{
                       pathname: location.pathname,
-                      query: {
-                        t_main: TabKey.NETWORK,
-                        t: startOffset / 1000,
-                      },
+                      query: {t_main: TabKey.NETWORK, t: startOffset / 1000},
                     }}
                     onClick={() => setCurrentTime(startOffset)}
                   />

@@ -1,21 +1,8 @@
-import Papa from 'papaparse';
-
-import {createExportFilename} from 'sentry/components/exports/createExportFilename';
-import type {ExportableRow} from 'sentry/components/exports/downloadRows';
 import {downloadFromHref} from 'sentry/utils/downloadFromHref';
+import {unparseCsv} from 'sentry/utils/unparseCsv';
 
-function disableMacros(value: string | null | boolean | number | undefined) {
-  if (
-    typeof value === 'string' &&
-    (value.charAt(0) === '=' ||
-      value.charAt(0) === '+' ||
-      value.charAt(0) === '-' ||
-      value.charAt(0) === '@')
-  ) {
-    return `'${value}`;
-  }
-  return value ?? '';
-}
+import {createExportFilename} from './createExportFilename';
+import type {ExportableRow} from './downloadRows';
 
 export function downloadRowsAsCsv(
   rows: ExportableRow[],
@@ -25,11 +12,11 @@ export function downloadRowsAsCsv(
   const headings = fields.map(field => field);
   const keys = fields;
 
-  const csvContent = Papa.unparse({
+  const csvContent = unparseCsv({
     fields: headings,
     data: rows.map(row =>
       keys.map(key => {
-        return disableMacros((row as Record<string, string | number>)[key]);
+        return (row as Record<string, string | number>)[key];
       })
     ),
   });

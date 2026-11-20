@@ -8,7 +8,6 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {defined} from 'sentry/utils/defined';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
-import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {UNLIMITED_RESERVED} from 'getsentry/constants';
 import type {
@@ -169,9 +168,7 @@ function UsageBreakdownInfo({
               }
               help={tct(
                 "The amount of [budgetTerm] you've used so far on this product in the current month.",
-                {
-                  budgetTerm: displayBudgetName(plan),
-                }
+                {budgetTerm: displayBudgetName(plan)}
               )}
             />
           )}
@@ -197,7 +194,6 @@ function DataCategoryUsageBreakdownInfo({
   metricHistory,
   activeProductTrial,
 }: DataCategoryUsageBreakdownInfoProps) {
-  const organization = useOrganization();
   const {planDetails: plan} = subscription;
   const productCanUsePayg =
     plan.onDemandCategories.includes(category) &&
@@ -243,23 +239,14 @@ function DataCategoryUsageBreakdownInfo({
 
   const otherSpend = calculateSeerUserSpend(metricHistory);
 
-  const hasGitLabSupport = organization.features.includes('seer-gitlab-support');
   const formattedOtherSpend =
     otherSpend > 0 ? (
       <UsageBreakdownField
         field={t('Active contributors spend')}
-        value={displayPriceWithCents({
-          cents: otherSpend,
-        })}
-        help={
-          hasGitLabSupport
-            ? t(
-                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
-              )
-            : t(
-                'An active contributor is anyone who opens 2 or more PRs in a connected GitHub repository. Count resets each month.'
-              )
-        }
+        value={displayPriceWithCents({cents: otherSpend})}
+        help={t(
+          'An active contributor is anyone who opens 2 or more PRs in a connected GitHub or GitLab repository. Count resets each month.'
+        )}
       />
     ) : undefined;
 
@@ -298,9 +285,7 @@ function ReservedBudgetUsageBreakdownInfo({
   const platformReservedField = onTrialOrSponsored
     ? tct('[planName] plan', {planName: plan.name})
     : tct('[productName] monthly credits', {
-        productName: toTitleCase(reservedBudget.productName, {
-          allowInnerUpperCase: true,
-        }),
+        productName: toTitleCase(reservedBudget.productName, {allowInnerUpperCase: true}),
       });
   const formattedPlatformReserved = displayPriceWithCents({
     cents: reservedBudget.reservedBudget,

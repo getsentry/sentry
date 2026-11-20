@@ -1,4 +1,4 @@
-import {SEARCH_SENTRY__LINK__TYPE} from '@sentry/conventions/attributes/search';
+import {SEARCH_LINK__TYPE} from '@sentry/conventions/attributes/search';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
@@ -36,7 +36,7 @@ describe('TraceSpanLinks', () => {
       traceId: `0000${spanId}000000000000`,
       sampled,
       attributes: linkType
-        ? [{name: SEARCH_SENTRY__LINK__TYPE, type: 'str', value: linkType}]
+        ? [{name: SEARCH_LINK__TYPE, type: 'str', value: linkType}]
         : undefined,
     };
   }
@@ -83,6 +83,27 @@ describe('TraceSpanLinks', () => {
       'dddddddd',
     ]);
   });
+
+  // Ingest stores the deprecated `sentry.link.type`, newer SDKs send `link.type`.
+  it.each(['link.type', 'sentry.link.type'])(
+    'names the group after %s and does not repeat it as an attribute',
+    async key => {
+      await renderLinks([
+        {
+          itemId: 'aaaaaaaaaaaaaaaa',
+          traceId: '0000aaaaaaaaaaaaaaaa000000000000',
+          attributes: [
+            {name: key, type: 'str', value: 'previous_trace'},
+            {name: 'custom', type: 'str', value: 'kept'},
+          ],
+        },
+      ]);
+
+      expect(screen.getByText('previous_trace')).toBeInTheDocument();
+      expect(screen.getByText('kept')).toBeInTheDocument();
+      expect(screen.queryByText('type')).not.toBeInTheDocument();
+    }
+  );
 
   it('shows the sampled row when a link is not sampled', async () => {
     await renderLinks([makeLink('aaaaaaaaaaaaaaaa', {sampled: false})]);

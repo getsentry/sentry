@@ -1,8 +1,6 @@
 import type {Theme} from '@emotion/react';
 
 import {t} from 'sentry/locale';
-import {AutogroupNodeDetails} from 'sentry/views/performance/traceDetails/traceDrawer/details/autogroup';
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceAutogroupedRow} from 'sentry/views/performance/traceDetails/traceRow/traceAutogroupedRow';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
@@ -88,24 +86,12 @@ export class ParentAutogroupNode extends BaseNode<TraceTree.ChildrenAutogroup> {
     return <TraceAutogroupedRow {...props} node={this} />;
   }
 
-  renderDetails<NodeType extends BaseNode>(
-    props: TraceTreeNodeDetailsProps<NodeType>
-  ): React.ReactNode {
-    return <AutogroupNodeDetails {...props} node={this} />;
-  }
-
   matchWithFreeText(query: string): boolean {
     return this.op?.includes(query);
   }
 
-  get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  } {
-    return {
-      title: this.op || t('Trace'),
-      subtitle: this.description,
-    };
+  get traceHeaderTitle(): {title: string; subtitle?: string} {
+    return {title: this.op || t('Trace'), subtitle: this.description};
   }
 
   get directVisibleChildren(): BaseNode[] {

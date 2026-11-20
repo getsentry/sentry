@@ -4,7 +4,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
 import {t} from 'sentry/locale';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
-import {useMetricsQueryParamsHasTransformations} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {useSaveAsMetricItems} from 'sentry/views/explore/metrics/useSaveAsMetricItems';
 
 interface MetricSaveAsProps {
@@ -14,10 +13,6 @@ interface MetricSaveAsProps {
 export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
   const [interval] = useChartInterval();
   const items = useSaveAsMetricItems({interval});
-  const hasTransformations = useMetricsQueryParamsHasTransformations();
-  const tooltipProps = hasTransformations
-    ? {title: t('Queries with transformations cannot be saved yet.')}
-    : undefined;
 
   if (items.length === 0) {
     return null;
@@ -31,8 +26,7 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
         variant="primary"
         onClick={item.onAction}
         aria-label={item.textValue}
-        disabled={hasTransformations || ('disabled' in item && item.disabled)}
-        tooltipProps={tooltipProps}
+        disabled={'disabled' in item && item.disabled}
       >
         {t('Save as')}
       </Button>
@@ -49,8 +43,6 @@ export function MetricSaveAs({size = 'sm'}: MetricSaveAsProps) {
           size={size}
           variant="primary"
           aria-label={t('Save as')}
-          disabled={hasTransformations}
-          tooltipProps={tooltipProps}
         >
           {t('Save as')}
         </OverlayTrigger.Button>

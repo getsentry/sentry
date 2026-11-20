@@ -137,11 +137,9 @@ function renderFramesWithDebugMeta(stacktrace: StacktraceType, event: Event) {
         eventNavigationHeight: 0,
         isSidebarOpen: true,
         navScrollMargin: 0,
+        scrollContext: 'page',
         sectionData: {
-          [SectionKey.DEBUGMETA]: {
-            key: SectionKey.DEBUGMETA,
-            initialCollapse: true,
-          },
+          [SectionKey.DEBUGMETA]: {key: SectionKey.DEBUGMETA, initialCollapse: true},
         },
       }}
     >
@@ -263,10 +261,7 @@ describe('NativeFrameRow', () => {
 
   it('renders redaction metadata on native frame function names', () => {
     const stacktrace = makeStacktrace([
-      makeFrame({
-        function: 'secret_function',
-        instructionAddr: '0x100012abc',
-      }),
+      makeFrame({function: 'secret_function', instructionAddr: '0x100012abc'}),
     ]);
     renderFrames(stacktrace, makeEvent([makeImage()]), {
       meta: {
@@ -296,11 +291,7 @@ describe('NativeFrameRow', () => {
 
   it('renders grouping markers in default native frame actions', () => {
     const stacktrace = makeStacktrace([
-      makeFrame({
-        function: 'grouping_frame',
-        inApp: false,
-        minGroupingLevel: 0,
-      }),
+      makeFrame({function: 'grouping_frame', inApp: false, minGroupingLevel: 0}),
     ]);
     renderFrames(stacktrace, makeEvent(), {groupingCurrentLevel: 0});
 
@@ -321,15 +312,9 @@ describe('NativeFrameRow', () => {
         inApp: true,
         rawFunction: '_mangled_symbol',
       }),
-      makeFrame({
-        function: null,
-        inApp: true,
-        rawFunction: 'raw_only_symbol',
-      }),
+      makeFrame({function: null, inApp: true, rawFunction: 'raw_only_symbol'}),
     ]);
-    renderFrames(stacktrace, makeEvent(), {
-      storageKey,
-    });
+    renderFrames(stacktrace, makeEvent(), {storageKey});
 
     expect(screen.getByText('_mangled_symbol')).toBeInTheDocument();
     expect(screen.queryByText('demangled_symbol')).not.toBeInTheDocument();

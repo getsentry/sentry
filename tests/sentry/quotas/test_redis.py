@@ -23,7 +23,7 @@ from sentry.utils.redis import redis_clusters
 
 class RedisQuotaTest(TestCase):
     @cached_property
-    def quota(self):
+    def quota(self) -> RedisQuota:
         return RedisQuota()
 
     def test_redis_quota_serialize(self) -> None:
@@ -270,13 +270,13 @@ class RedisQuotaTest(TestCase):
 
         org_id = self.project.organization.pk
         self.quota.refund(self.project, timestamp=timestamp)
-        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
+        client = self.quota.cluster
 
         error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")
         assert len(error_keys) == 2
 
         for key in error_keys:
-            assert client.get(key) == b"1"
+            assert client.get(key) == "1"
 
         attachment_keys = client.keys(f"r:quota:a{{{org_id}}}*:*")
         assert len(attachment_keys) == 0
@@ -320,7 +320,7 @@ class RedisQuotaTest(TestCase):
         self.quota.refund(
             self.project, timestamp=timestamp, category=DataCategory.ATTACHMENT, quantity=100
         )
-        client = self.quota.cluster.get_local_client_for_key(str(self.project.organization.pk))
+        client = self.quota.cluster
 
         error_keys = client.keys(f"r:quota:p{{{org_id}}}*:*")
         assert len(error_keys) == 0
@@ -329,7 +329,7 @@ class RedisQuotaTest(TestCase):
         assert len(attachment_keys) == 1
 
         for key in attachment_keys:
-            assert client.get(key) == b"100"
+            assert client.get(key) == "100"
 
 
 @pytest.mark.usefixtures("_redis_cluster")

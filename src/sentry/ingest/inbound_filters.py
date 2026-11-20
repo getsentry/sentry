@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
@@ -6,6 +8,8 @@ from typing import Any, Literal, cast
 from django.conf import settings
 from rest_framework import serializers
 
+from sentry.ingest import legacy_filter_lists
+from sentry.ingest.legacy_filter_lists import FilterTypes as FilterTypes
 from sentry.models.custominboundfilter import (
     COMPARISON_OPERATORS,
     IP_OPERATORS,
@@ -62,18 +66,11 @@ FILTER_STAT_KEYS_TO_VALUES = {
 }
 
 
-class FilterTypes:
-    ERROR_MESSAGES = "error_messages"
-    RELEASES = "releases"
-    LOG_MESSAGES = "log_messages"
-    TRACE_METRIC_NAMES = "trace_metric_names"
-
-
-def get_filter_key(flt):
+def get_filter_key(flt: _FilterSpec) -> str:
     return to_camel_case_name(flt.config_name.replace("-", "_"))
 
 
-def get_all_filter_specs():
+def get_all_filter_specs() -> tuple[_FilterSpec, ...]:
     """
     Return metadata about the filters known by Sentry.
 
@@ -93,7 +90,11 @@ def get_all_filter_specs():
     return tuple(filters)  # returning tuple for backwards compatibility
 
 
-def set_filter_state(filter_id, project: Project, state):
+def set_filter_state(
+    filter_id: str,
+    project: Project,
+    state: Mapping[str, Any] | None,
+) -> bool | list[str]:
     flt = _filter_from_filter_id(filter_id)
     if flt is None:
         raise FilterNotRegistered(filter_id)
@@ -102,7 +103,7 @@ def set_filter_state(filter_id, project: Project, state):
         if state is None:
             state = {}
 
-        option_val: object = "0"
+        option_val: str | list[str] = "0"
         if "active" in state:
             if state["active"]:
                 option_val = "1"
@@ -113,7 +114,7 @@ def set_filter_state(filter_id, project: Project, state):
             project=project, key=f"filters:{filter_id}", value=option_val
         )
 
-        return option_val == "1" if option_val in ("0", "1") else option_val
+        return option_val == "1" if option_val in ("0", "1") else cast("list[str]", option_val)
 
     else:
         # all boolean filters
@@ -132,7 +133,7 @@ def set_filter_state(filter_id, project: Project, state):
         return state.get("active", False)
 
 
-def get_filter_state(filter_id, project):
+def get_filter_state(filter_id: str, project: Project) -> bool | list[str]:
     """
     Returns the filter state
 
@@ -170,7 +171,7 @@ class FilterNotRegistered(Exception):
     pass
 
 
-def _filter_from_filter_id(filter_id):
+def _filter_from_filter_id(filter_id: str) -> _FilterSpec | None:
     """
     Returns the corresponding filter for a filter id or None if no filter with the given id found
     """
@@ -199,14 +200,18 @@ class _FilterSpec:
     config_name: the name under which it will be serialized in the config (if None id will be used)
     """
 
-    def __init__(self, id, name, description, serializer_cls=None, config_name=None):
+    def __init__(
+        self,
+        id: str,
+        name: str,
+        description: str,
+        serializer_cls: type[serializers.Serializer] | None = None,
+        config_name: str | None = None,
+    ) -> None:
         self.id = id
         self.name = name
         self.description = description
-        if serializer_cls is None:
-            self.serializer_cls = _FilterSerializer
-        else:
-            self.serializer_cls = serializer_cls
+        self.serializer_cls: type[serializers.Serializer] = serializer_cls or _FilterSerializer
 
         if config_name is None:
             self.config_name = id
@@ -214,7 +219,7 @@ class _FilterSpec:
             self.config_name = config_name
 
 
-def _get_filter_settings(project_config, flt):
+def _get_filter_settings(project_config: Any, flt: _FilterSpec) -> Any:
     """
     Gets the filter options from the relay config or the default option if not specified in the relay config
 
@@ -457,7 +462,7 @@ def _generic_filter(filter_id: str, condition: RuleCondition) -> GenericFilter:
 
 
 def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.LOG_MESSAGES}")
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.LOG_MESSAGES)
     if not globs:
         return []
 
@@ -466,7 +471,7 @@ def _log_messages_generic_filters(project: Project) -> list[GenericFilter]:
 
 
 def _trace_metric_names_generic_filters(project: Project) -> list[GenericFilter]:
-    globs = project.get_option(f"sentry:{FilterTypes.TRACE_METRIC_NAMES}")
+    globs = legacy_filter_lists.get_applied_lines(project, FilterTypes.TRACE_METRIC_NAMES)
     if not globs:
         return []
 
@@ -678,6 +683,24 @@ _NEGATED_OPERATORS: Mapping[ConditionOperator, ConditionOperator] = {
 }
 
 
+def _negation(
+    matcher: _ConditionMatcher, negated: ConditionOperator, values: list[str]
+) -> RuleCondition:
+    """
+    Matches an item that carries the matcher's field and does not match it with `negated`.
+
+    Relay runs every filter against every item type and reads a field the item does not
+    carry as no match. A bare negation is true for such an item, so a span filter would
+    drop every error, log and session. An item of the filter's own data type that lacks
+    the field is kept too.
+    """
+    negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
+    if ConditionOperator.GLOB not in matcher.operators:
+        # The client IP belongs to the envelope, which every item type has.
+        return negation
+    return {"op": "and", "inner": [matcher.match(ConditionOperator.GLOB, ["*"]), negation]}
+
+
 _CONDITION_MATCHERS: Mapping[
     ConditionType,
     _ConditionMatcher | Mapping[DataType, _ConditionMatcher],
@@ -700,10 +723,32 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
     },
+    ConditionType.ENVIRONMENT: {
+        DataType.ERROR: _field_matcher("event.environment"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.environment.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.environment.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.environment.value"),
+    },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
     ConditionType.GEO_COUNTRY_CODE: {
         DataType.ERROR: _field_matcher("event.user.geo.country_code"),
+    },
+    # Relay fills the browser from the user agent before filtering, unless the SDK sent
+    # one. Errors carry it in the browser context, the other data types in the
+    # `browser.name` and `browser.version` convention attributes, which Relay also
+    # backfills from the deprecated `sentry.browser.*` ones.
+    ConditionType.BROWSER_NAME: {
+        DataType.ERROR: _field_matcher("event.contexts.browser.name"),
+        DataType.LOG: _field_matcher("log.attributes.browser.name.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.browser.name.value"),
+        DataType.SPAN: _field_matcher("span.attributes.browser.name.value"),
+    },
+    ConditionType.BROWSER_VERSION: {
+        DataType.ERROR: _release_matcher("event.contexts.browser.version"),
+        DataType.LOG: _release_matcher("log.attributes.browser.version.value"),
+        DataType.METRIC: _release_matcher("trace_metric.attributes.browser.version.value"),
+        DataType.SPAN: _release_matcher("span.attributes.browser.version.value"),
     },
 }
 
@@ -799,9 +844,7 @@ def _custom_filter_condition(
         if negated is None:
             rule_conditions.append(matcher.match(operator, values))
         else:
-            # A field the item does not carry matches no glob, so the negation drops the item.
-            negation: NotCondition = {"op": "not", "inner": matcher.match(negated, values)}
-            rule_conditions.append(negation)
+            rule_conditions.append(_negation(matcher, negated, values))
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]
@@ -811,8 +854,6 @@ def _custom_filter_condition(
 
 def get_custom_inbound_filter_generic_filters(project: Project) -> list[GenericFilter]:
     generic_filters: list[GenericFilter] = []
-    # A row with legacy_filter set is the double write of a legacy list that Relay still receives
-    # through the legacy path, so serving it here would filter the same data twice.
     custom_filters = CustomInboundFilter.objects.filter(
         project_id=project.id, active=True, legacy_filter__isnull=True
     ).order_by("id")[:MAX_FILTERS_PER_PROJECT]

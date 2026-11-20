@@ -5,7 +5,7 @@ import random
 from collections.abc import Mapping, Sequence
 from copy import copy, deepcopy
 from datetime import UTC, datetime, timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, cast, overload
 
 import sentry_sdk
 from django.utils import timezone
@@ -479,12 +479,12 @@ class SnubaEventStorage(EventStorage):
         event into a `GroupEvent`. Used as part of `post_process_group`.
         """
 
-        event_id = normalize_event_id(event_id)
+        normalized_event_id = normalize_event_id(event_id)
 
-        if not event_id:
+        if not normalized_event_id:
             return None
 
-        event = Event(project_id=project_id, event_id=event_id)
+        event = Event(project_id=project_id, event_id=normalized_event_id)
 
         # Return None if there was no data in nodestore
         if len(event.data) == 0:
@@ -512,12 +512,12 @@ class SnubaEventStorage(EventStorage):
 
         elif event.get_event_type() != "transaction" or group_id:
             # Load group_id from Snuba if not a transaction
-            raw_query_kwargs = {}
+            conditions: list[tuple[str, str, object] | list[object]] | None = None
             if event.datetime > timezone.now() - timedelta(hours=1):
                 # XXX: This is a hack to bust the snuba cache. We want to avoid the case where
                 # we cache an empty result, since this can result in us failing to fetch new events
                 # in some cases.
-                raw_query_kwargs["conditions"] = [
+                conditions = [
                     [
                         "timestamp",
                         ">",
@@ -531,7 +531,10 @@ class SnubaEventStorage(EventStorage):
             )
             try:
                 tenant_ids = tenant_ids or {"organization_id": event.project.organization_id}
-                filter_keys = {"project_id": [project_id], "event_id": [event_id]}
+                filter_keys: dict[str, Sequence[int]] = {
+                    "project_id": [project_id],
+                    "event_id": cast("Sequence[int]", [event_id]),
+                }
                 if group_id:
                     filter_keys["group_id"] = [group_id]
                 result = snuba.raw_query(
@@ -540,10 +543,10 @@ class SnubaEventStorage(EventStorage):
                     start=event.datetime,
                     end=event.datetime + timedelta(seconds=1),
                     filter_keys=filter_keys,
+                    conditions=conditions,
                     limit=1,
                     referrer=Referrer.EVENTSTORE_GET_EVENT_BY_ID_NODESTORE.value,
                     tenant_ids=tenant_ids,
-                    **raw_query_kwargs,
                 )
             except snuba.QueryOutsideRetentionError:
                 # this can happen due to races.  We silently want to hide
@@ -975,7 +978,7 @@ class SnubaEventStorage(EventStorage):
                             filter_keys=filter.filter_keys,
                             start=filter.start,
                             end=filter.end,
-                            orderby=filter.orderby,
+                            orderby=cast("list[str] | None", filter.orderby),
                             limit=1,
                             referrer="eventstore.get_next_or_prev_event_id",
                             dataset=dataset,

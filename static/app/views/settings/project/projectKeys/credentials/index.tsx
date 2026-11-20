@@ -5,16 +5,17 @@ import {z} from 'zod';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {InputCopyButton} from 'sentry/components/textCopyInput';
 import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectText} from 'sentry/utils/selectText';
 import {useLocation} from 'sentry/utils/useLocation';
-import {OtlpTab} from 'sentry/views/settings/project/projectKeys/credentials/otlp';
-import {VercelTab} from 'sentry/views/settings/project/projectKeys/credentials/vercel';
 import {FieldList} from 'sentry/views/settings/project/projectKeys/fieldList';
+
+import {OtlpTab} from './otlp';
+import {VercelTab} from './vercel';
 
 type Props = {
   data: ProjectKey;
@@ -39,9 +40,7 @@ interface SecurityTabProps {
   securityEndpoint: string;
 }
 
-const securitySchema = z.object({
-  securityEndpoint: z.string(),
-});
+const securitySchema = z.object({securityEndpoint: z.string()});
 
 function SecurityTab({securityEndpoint}: SecurityTabProps) {
   const form = useScrapsForm({
@@ -87,9 +86,7 @@ interface MinidumpTabProps {
   minidumpEndpoint: string;
 }
 
-const minidumpSchema = z.object({
-  minidumpEndpoint: z.string(),
-});
+const minidumpSchema = z.object({minidumpEndpoint: z.string()});
 
 function MinidumpTab({minidumpEndpoint}: MinidumpTabProps) {
   const form = useScrapsForm({
@@ -135,9 +132,7 @@ interface UnrealTabProps {
   unrealEndpoint: string;
 }
 
-const unrealSchema = z.object({
-  unrealEndpoint: z.string(),
-});
+const unrealSchema = z.object({unrealEndpoint: z.string()});
 
 function UnrealTab({unrealEndpoint}: UnrealTabProps) {
   const form = useScrapsForm({
@@ -271,31 +266,11 @@ export function ProjectKeyCredentials({
         label: t('Credentials'),
         visible: showPublicKey && showSecretKey && showProjectId,
       },
-      {
-        key: 'otlp',
-        label: t('OpenTelemetry (OTLP)'),
-        visible: true,
-      },
-      {
-        key: 'security',
-        label: t('Security Header'),
-        visible: showSecurityEndpoint,
-      },
-      {
-        key: 'minidump',
-        label: t('Minidump'),
-        visible: showMinidump,
-      },
-      {
-        key: 'unreal',
-        label: t('Unreal Engine'),
-        visible: showUnreal,
-      },
-      {
-        key: 'vercel',
-        label: t('Vercel Drains'),
-        visible: true,
-      },
+      {key: 'otlp', label: t('OpenTelemetry (OTLP)'), visible: true},
+      {key: 'security', label: t('Security Header'), visible: showSecurityEndpoint},
+      {key: 'minidump', label: t('Minidump'), visible: showMinidump},
+      {key: 'unreal', label: t('Unreal Engine'), visible: showUnreal},
+      {key: 'vercel', label: t('Vercel Drains'), visible: true},
     ];
     return tabs.filter(tab => tab.visible);
   }, [
@@ -459,11 +434,13 @@ export function ProjectKeyCredentials({
       {availableTabs.length > 0 && (
         <Fragment>
           <Tabs value={activeTab} onChange={setActiveTab}>
-            <TabList>
-              {availableTabs.map(tab => (
-                <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {availableTabs.map(tab => (
+                  <TabList.Item key={tab.key}>{tab.label}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
           {renderTabContent()}
         </Fragment>

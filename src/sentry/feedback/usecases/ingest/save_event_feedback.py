@@ -42,9 +42,8 @@ def save_event_feedback(event_data: Mapping[str, Any], project_id: int) -> None:
 
         if associated_event_id:
             project = Project.objects.get_from_cache(id=project_id)
-            environment = Environment.objects.get(
-                organization_id=project.organization_id,
-                name=fixed_event_data.get("environment", "production"),
+            environment = Environment.get_or_create(
+                project, fixed_event_data.get("environment", "production")
             )
             timestamp = fixed_event_data["timestamp"]
             start_time = (

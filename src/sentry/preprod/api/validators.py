@@ -2,25 +2,32 @@ from __future__ import annotations
 
 from typing import Any
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from sentry.preprod.build_distribution_utils import ParsedBuildNumber
 
 
+# Documented as integer or string: a plain build number is an integer, a dotted one is not.
+@extend_schema_field({"oneOf": [{"type": "integer"}, {"type": "string"}]})
+class BuildNumberField(serializers.CharField):
+    pass
+
+
 class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
     """Validator for the public latest installable build endpoint (camelCase params)."""
 
-    appId = serializers.CharField(required=True, help_text="App identifier")
+    appId = serializers.CharField(required=True, help_text="App identifier (exact match).")
     platform = serializers.ChoiceField(
         choices=[("apple", "Apple"), ("android", "Android")],
         required=True,
-        help_text='Platform: "apple" or "android"',
+        help_text='Platform: "apple" or "android".',
     )
     buildVersion = serializers.CharField(
         required=False,
         help_text="Current build version. When provided, enables check-for-updates mode.",
     )
-    buildNumber = serializers.CharField(
+    buildNumber = BuildNumberField(
         required=False,
         help_text=(
             "Current build number. Accepts a plain integer (e.g. 42) or a version "
@@ -34,9 +41,11 @@ class PreprodLatestInstallableBuildValidator(serializers.Serializer[Any]):
         help_text="UUID of the main binary (e.g. Mach-O UUID for Apple builds). Either this or buildNumber must be provided when buildVersion is set.",
     )
     buildConfiguration = serializers.CharField(
-        required=False, help_text="Filter by build configuration name"
+        required=False, help_text="Filter by build configuration name (exact match)."
     )
-    codesigningType = serializers.CharField(required=False, help_text="Filter by code signing type")
+    codesigningType = serializers.CharField(
+        required=False, help_text="Filter by code signing type."
+    )
 
     def validate_platform(self, value: str | None) -> str | None:
         if value:

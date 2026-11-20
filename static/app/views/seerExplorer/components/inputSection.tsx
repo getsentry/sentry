@@ -1,4 +1,4 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import styled from '@emotion/styled';
 import {IconArrow} from '@sentry/icons/arrow';
 import {IconPause} from '@sentry/icons/pause';
@@ -7,18 +7,14 @@ import {motion} from 'framer-motion';
 import {Button} from '@sentry/scraps/button';
 import {Composer, type ComposerValue} from '@sentry/scraps/composer';
 import {InputGroup} from '@sentry/scraps/input';
-import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {PRLinksBar} from 'sentry/views/seerExplorer/components/prLinksBar';
-import {PRWidget} from 'sentry/views/seerExplorer/components/prWidget';
-import type {
-  Block,
-  RepoPRState,
-  SeerExplorerRunId,
-} from 'sentry/views/seerExplorer/types';
+import type {RepoPRState, SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+
+import {PRLinksBar} from './prLinksBar';
 
 interface FileApprovalActions {
   currentIndex: number;
@@ -38,61 +34,60 @@ interface QuestionActions {
 }
 
 interface InputSectionProps {
-  blocks: Block[];
   composerRef: React.RefObject<HTMLDivElement | null>;
   enabled: boolean;
   inputValue: ComposerValue;
-  onCreatePR: (repoName?: string) => void;
   onInputChange: (value: ComposerValue) => void;
   onInputClick: () => void;
   onInterrupt: () => void;
   onKeyDown: (e: React.KeyboardEvent<HTMLDivElement>) => void;
-  onPRWidgetClick: () => void;
   onSend: () => void;
-  prWidgetButtonRef: React.RefObject<HTMLButtonElement | null>;
   repoPRStates: Record<string, RepoPRState>;
   canSendMessage?: boolean;
   /** Placeholder shown while `enabled` is false. Defaults to the read-only copy. */
   disabledPlaceholder?: string;
   fileApprovalActions?: FileApprovalActions;
   interruptState?: 'can-interrupt' | 'requested' | 'completed' | 'disabled';
+  isSingleRun?: boolean;
+  /** Shown right above the composer, for example to say why sending is blocked. */
+  notice?: React.ReactNode;
   questionActions?: QuestionActions;
   runId?: SeerExplorerRunId | null;
+  /**
+   * Shown in the toolbar under the editor, before the send or interrupt button.
+   * The chat puts the organization's credit usage here.
+   */
+  toolbarItems?: React.ReactNode;
 }
 
 export function InputSection({
-  blocks,
   enabled,
   inputValue,
   canSendMessage = true,
   disabledPlaceholder,
   interruptState = 'disabled',
-  onCreatePR,
   onInputChange,
   onInputClick,
   onInterrupt,
   onKeyDown,
-  onPRWidgetClick,
   onSend,
-  prWidgetButtonRef,
   repoPRStates,
   composerRef,
   fileApprovalActions,
+  notice,
   questionActions,
   runId,
+  isSingleRun,
+  toolbarItems,
 }: InputSectionProps) {
   const organization = useOrganization({allowNull: true});
-  // With ask-seer-create-pr the agent opens PRs, so show its PRs instead of the button.
-  const agentCreatesPRs = organization?.features.includes('ask-seer-create-pr');
+  // Autofix single runs and ask-seer-create-pr runs open PRs, so show links to them.
+  const agentCreatesPRs =
+    isSingleRun || organization?.features.includes('ask-seer-create-pr');
   // Keyed by run so collapse state resets when switching conversations.
   const prLinksBar = agentCreatesPRs ? (
     <PRLinksBar key={runId ?? undefined} repoPRStates={repoPRStates} />
   ) : null;
-
-  // Check if there are any file patches for showing the PR widget
-  const hasCodeChanges = useMemo(() => {
-    return blocks.some(b => b.merged_file_patches && b.merged_file_patches.length > 0);
-  }, [blocks]);
 
   // Handle keyboard shortcuts for file approval
   useEffect(() => {
@@ -278,67 +273,91 @@ export function InputSection({
   return (
     <Container background="primary" width="100%" position="sticky" bottom="0">
       {prLinksBar}
-      <Flex align="end" margin="lg xl" gap="sm">
-        <StyledComposer
-          isWarningPlaceholder={interruptState === 'completed'}
-          ref={composerRef}
-          aria-label={t('Ask Seer a question')}
-          plugins={[]}
-          value={inputValue}
-          onChange={onInputChange}
-          onKeyDown={onKeyDown}
-          onClick={onInputClick}
-          placeholder={
-            interruptState === 'completed'
-              ? t('Interrupted. What should Seer do instead?')
-              : t('Ask Seer a question, or press / for commands.')
-          }
-          minHeight={20}
-          size="md"
-          data-test-id="seer-explorer-input"
-        />
-        {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
-          <Button
-            icon={<IconPause />}
-            onClick={onInterrupt}
+      <Stack gap="lg" padding="lg xl">
+        {notice}
+        {/* The editor and its toolbar read as one field, so the focus ring wraps both. */}
+        <ComposerFrame border="primary" radius="lg">
+          <StyledComposer
+            isWarningPlaceholder={interruptState === 'completed'}
+            ref={composerRef}
+            aria-label={t('Ask Seer a question')}
+            plugins={[]}
+            value={inputValue}
+            onChange={onInputChange}
+            onKeyDown={onKeyDown}
+            onClick={onInputClick}
+            placeholder={
+              interruptState === 'completed'
+                ? t('Interrupted. What should Seer do instead?')
+                : t('Ask Seer a question, or press / for commands.')
+            }
+            minHeight={60}
             size="md"
-            variant="primary"
-            disabled={interruptState === 'requested'}
-            aria-label={t('Interrupt button')}
-            tooltipProps={{
-              title:
-                interruptState === 'requested' ? t('Winding down...') : t('Interrupt'),
-            }}
+            data-test-id="seer-explorer-input"
           />
-        ) : (
-          <Button
-            icon={<IconArrow direction="right" />}
-            onClick={onSend}
-            size="md"
-            variant="secondary"
-            disabled={!canSendMessage}
-            aria-label={t('Send message')}
-          />
-        )}
-        {!agentCreatesPRs && enabled && hasCodeChanges && (
-          <PRWidget
-            ref={prWidgetButtonRef}
-            blocks={blocks}
-            repoPRStates={repoPRStates}
-            onCreatePR={onCreatePR}
-            onToggleMenu={onPRWidgetClick}
-          />
-        )}
-      </Flex>
+          <Flex
+            justify="end"
+            align="center"
+            gap="md"
+            padding="xs"
+            borderTop="primary"
+            background="primary"
+            radius="0 0 lg lg"
+          >
+            {toolbarItems}
+            {interruptState === 'can-interrupt' || interruptState === 'requested' ? (
+              <Button
+                icon={<IconPause />}
+                onClick={onInterrupt}
+                size="zero"
+                variant="primary"
+                disabled={interruptState === 'requested'}
+                aria-label={t('Interrupt button')}
+                tooltipProps={{
+                  title:
+                    interruptState === 'requested'
+                      ? t('Winding down...')
+                      : t('Interrupt'),
+                }}
+              />
+            ) : (
+              <Button
+                icon={<IconArrow />}
+                onClick={onSend}
+                size="zero"
+                variant="secondary"
+                disabled={!canSendMessage}
+                aria-label={t('Send message')}
+              />
+            )}
+          </Flex>
+        </ComposerFrame>
+      </Stack>
     </Container>
   );
 }
 
+const ComposerFrame = styled(Stack)`
+  transition: box-shadow ${p => p.theme.motion.smooth.fast};
+
+  &:focus-within {
+    ${p => p.theme.focusRing()};
+  }
+`;
+
 const StyledComposer = styled(Composer, {
   shouldForwardProp: prop => prop !== 'isWarningPlaceholder',
 })<{isWarningPlaceholder: boolean}>`
-  flex: 1;
   max-height: 120px;
+  /* The frame draws the border and the focus ring around the editor and toolbar. */
+  border: none;
+  border-radius: ${p => p.theme.radius.lg} ${p => p.theme.radius.lg} 0 0;
+
+  &:focus,
+  &:focus-visible {
+    box-shadow: 0 1px 0 0 ${p => p.theme.tokens.interactive.chonky.debossed.neutral.chonk}
+      inset;
+  }
 
   &:empty::before {
     color: ${p =>

@@ -10,7 +10,7 @@ import type {OrganizationSummary} from 'sentry/types/organization';
 type OrganizationSelectHeaderProps = {
   handleOrgChange: (orgId: string) => void;
   organizationId: string | undefined;
-  organizations: OrganizationSummary[];
+  organizations: readonly OrganizationSummary[];
 };
 
 export function OrganizationSelectHeader({
@@ -37,13 +37,8 @@ export function OrganizationSelectHeader({
           };
         })}
         onChange={(option: any) => handleOrgChange(option.value)}
-        value={organizationId}
-        styles={{
-          container: (provided: Record<string, string>) => ({
-            ...provided,
-            minWidth: '200px',
-          }),
-        }}
+        value={organizationId ?? null}
+        styles={{container: provided => ({...provided, minWidth: '200px'})}}
       />
     </Flex>
   );
@@ -53,4 +48,4 @@ export function OrganizationSelectHeader({
 const StyledSelectControl = styled(Select)`
   text-transform: initial;
   font-weight: ${p => p.theme.font.weight.sans.regular};
-`;
+` as typeof Select;

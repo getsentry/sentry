@@ -33,6 +33,7 @@ from sentry.types.ratelimit import RateLimit, RateLimitCategory
 @cell_silo_endpoint
 class ProjectEventsEndpoint(ProjectEndpoint):
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
     publish_status = {
         "GET": ApiPublishStatus.PUBLIC,
     }
@@ -62,6 +63,8 @@ class ProjectEventsEndpoint(ProjectEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.PROJECT_ID_OR_SLUG,
             GlobalParams.STATS_PERIOD,
+            GlobalParams.STATS_PERIOD_START,
+            GlobalParams.STATS_PERIOD_END,
             GlobalParams.START,
             GlobalParams.END,
             CursorQueryParam,

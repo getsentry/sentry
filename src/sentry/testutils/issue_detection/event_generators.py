@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Sequence
 from copy import deepcopy
 from typing import Any
 
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.factories import get_fixture_path
 from sentry.utils import json
 
@@ -40,14 +42,14 @@ def get_event(event_name: str) -> dict[str, Any]:
 
 
 # Duration is in ms
-def modify_span_duration(obj, duration):
+def modify_span_duration(obj: Span, duration: float) -> Span:
     obj["start_timestamp"] = 0.0
     obj["timestamp"] = duration / 1000.0
     return obj
 
 
 # Start is in ms
-def modify_span_start(obj, start):
+def modify_span_start(obj: Span, start: float) -> Span:
     duration = obj["timestamp"] - obj["start_timestamp"]
     obj["start_timestamp"] = start / 1000.0
     obj["timestamp"] = obj["start_timestamp"] + duration
@@ -55,15 +57,19 @@ def modify_span_start(obj, start):
 
 
 def create_span(
-    op, duration=100.0, desc="SELECT count() FROM table WHERE id = %s", hash="", data=None
-):
+    op: str,
+    duration: float = 100.0,
+    desc: str | None = "SELECT count() FROM table WHERE id = %s",
+    hash: str = "",
+    data: dict[str, Any] | None = None,
+) -> Span:
     return modify_span_duration(
         SpanBuilder().with_op(op).with_description(desc).with_hash(hash).with_data(data).build(),
         duration,
     )
 
 
-def create_event(spans, event_id: str = "a" * 16) -> dict[str, Any]:
+def create_event(spans: Sequence[Span], event_id: str = "a" * 16) -> dict[str, Any]:
     return {
         "event_id": event_id,
         "project": PROJECT_ID,

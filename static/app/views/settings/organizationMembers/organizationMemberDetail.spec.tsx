@@ -31,29 +31,17 @@ describe('OrganizationMemberDetail', () => {
     slug: 'idp-member-team',
     name: 'Idp Member Team',
     isMember: true,
-    flags: {
-      'idp:provisioned': true,
-    },
+    flags: {'idp:provisioned': true},
   });
   const teams = [
     team,
-    TeamFixture({
-      id: '2',
-      slug: 'new-team',
-      name: 'New Team',
-      isMember: false,
-    }),
+    TeamFixture({id: '2', slug: 'new-team', name: 'New Team', isMember: false}),
     idpTeam,
   ];
 
   const teamAssignment = {
     teams: [team.slug],
-    teamRoles: [
-      {
-        teamSlug: team.slug,
-        role: null,
-      },
-    ],
+    teamRoles: [{teamSlug: team.slug, role: null}],
   };
 
   const member = MemberFixture({
@@ -66,7 +54,6 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
-    invite_link: 'http://example.com/i/abc123',
     pending: true,
   });
   const expiredMember = MemberFixture({
@@ -74,7 +61,6 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     ...teamAssignment,
-    invite_link: 'http://example.com/i/abc123',
     pending: true,
     expired: true,
   });
@@ -83,12 +69,7 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     teams: [idpTeam.slug],
-    teamRoles: [
-      {
-        teamSlug: idpTeam.slug,
-        role: null,
-      },
-    ],
+    teamRoles: [{teamSlug: idpTeam.slug, role: null}],
   });
   const managerMember = MemberFixture({
     id: '6',
@@ -141,9 +122,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -161,21 +140,58 @@ describe('OrganizationMemberDetail', () => {
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            orgRole: 'owner',
-          }),
-        })
+        expect.objectContaining({data: expect.objectContaining({orgRole: 'owner'})})
       );
+    });
+
+    it('renders the member teams in column order', async () => {
+      render(<OrganizationMemberDetail />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
+          route: '/settings/:orgId/members/:memberId/',
+        },
+      });
+
+      const table = await screen.findByRole('table', {name: 'Teams'});
+      const row = await within(table).findByTestId('team-row-for-member');
+
+      expect(
+        within(table)
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['Team', 'Team Roles', 'Add Team']);
+      expect(within(table).getAllByRole('row')).toHaveLength(2);
+      expect(within(row).getAllByRole('cell')).toHaveLength(3);
+      expect(within(row).getByRole('link')).toHaveAttribute(
+        'href',
+        `/settings/${organization.slug}/teams/${team.slug}/`
+      );
+      expect(within(row).getByRole('button', {name: 'Remove'})).toBeEnabled();
+    });
+
+    it('renders an empty message when the member has no teams', async () => {
+      render(<OrganizationMemberDetail />, {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/settings/${organization.slug}/members/${managerMember.id}/`,
+          },
+          route: '/settings/:orgId/members/:memberId/',
+        },
+      });
+
+      const table = await screen.findByRole('table', {name: 'Teams'});
+
+      expect(await within(table).findByText('No Teams assigned')).toBeInTheDocument();
+      expect(within(table).queryByTestId('team-row-for-member')).not.toBeInTheDocument();
     });
 
     it('leaves a team', async () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -188,11 +204,7 @@ describe('OrganizationMemberDetail', () => {
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            teamRoles: [],
-          }),
-        })
+        expect.objectContaining({data: expect.objectContaining({teamRoles: []})})
       );
     });
 
@@ -217,9 +229,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -235,7 +245,9 @@ describe('OrganizationMemberDetail', () => {
 
       // Assign as admin to new team
       const teamRoleSelect = screen.getAllByText('Contributor')[0]!;
-      await selectEvent.select(teamRoleSelect, ['Team Admin']);
+      await selectEvent.select(teamRoleSelect, ['Team Admin'], {
+        container: document.body,
+      });
 
       // Save Member
       await userEvent.click(screen.getByRole('button', {name: 'Save Member'}));
@@ -257,9 +269,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -305,9 +315,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -559,9 +567,7 @@ describe('OrganizationMemberDetail', () => {
     it('shows tooltip for joined member without permission to edit', async () => {
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${noAccess.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${noAccess.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -571,9 +577,7 @@ describe('OrganizationMemberDetail', () => {
     it('shows tooltip for member without 2fa', async () => {
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${no2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${no2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -590,9 +594,7 @@ describe('OrganizationMemberDetail', () => {
 
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${has2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -634,9 +636,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${has2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -696,9 +696,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -759,9 +757,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });

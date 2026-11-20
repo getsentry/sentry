@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useApi} from 'sentry/utils/useApi';
+import {useApi} from './useApi';
 
 describe('useApi', () => {
   it('provides an api client', () => {
@@ -19,9 +19,7 @@ describe('useApi', () => {
   });
 
   it('does not cancel inflights when persistInFlight is true', () => {
-    const {result, unmount} = renderHook(useApi, {
-      initialProps: {persistInFlight: true},
-    });
+    const {result, unmount} = renderHook(useApi, {initialProps: {persistInFlight: true}});
 
     jest.spyOn(result.current, 'clear');
     unmount();

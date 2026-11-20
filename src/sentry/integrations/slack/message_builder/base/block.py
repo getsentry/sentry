@@ -50,7 +50,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_tags_block(
-        tags: Sequence[Mapping[str, str | bool]], block_id: dict[str, Any] | None = None
+        tags: Sequence[Mapping[str, str | bool | None]], block_id: dict[str, Any] | None = None
     ) -> SlackBlock:
         text = ""
         for tag in tags:
@@ -77,16 +77,18 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
         return {"type": "divider"}
 
     @staticmethod
-    def get_external_select_action(action, initial_option):
-        action = {
+    def get_external_select_action(
+        action: MessageAction, initial_option: Mapping[str, object] | None
+    ) -> SlackBlock:
+        block: SlackBlock = {
             "type": "external_select",
             "placeholder": {"type": "plain_text", "text": action.label, "emoji": True},
             "action_id": action.action_id if action.action_id else action.name,
         }
         if initial_option:
-            action["initial_option"] = initial_option
+            block["initial_option"] = initial_option
 
-        return action
+        return block
 
     @staticmethod
     def get_button_action(action: MessageAction) -> SlackBlock:

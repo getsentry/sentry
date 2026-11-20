@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from unittest.mock import MagicMock, patch
 
 from sentry.dynamic_sampling import RESERVED_IDS, RuleType
@@ -6,7 +7,12 @@ from sentry.dynamic_sampling.rules.biases.boost_low_volume_transactions_bias imp
 )
 
 
-def _create_mocks():
+def _create_mocks() -> tuple[
+    MagicMock,
+    Callable[[int, int, float], tuple[dict[str, float], float]],
+    dict[str, float],
+    float,
+]:
     proj_id = 22
     org_id = 23
 
@@ -20,7 +26,9 @@ def _create_mocks():
     explicit_rates = {"t1": 0.1, "t2": 0.2}
     implicit_rate = 0.01
 
-    def get_transaction_sample_rates(org_id, project_id, default_rate):
+    def get_transaction_sample_rates(
+        org_id: int, project_id: int, default_rate: float
+    ) -> tuple[dict[str, float], float]:
         if org_id == org.id and project_id == proj.id:
             return explicit_rates, implicit_rate
         return {}, default_rate

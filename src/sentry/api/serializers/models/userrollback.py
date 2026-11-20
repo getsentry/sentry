@@ -1,6 +1,11 @@
-from typing import TypedDict
+from collections.abc import Mapping
+from typing import Any, TypedDict, cast
+
+from django.contrib.auth.models import AnonymousUser
 
 from sentry.api.serializers import Serializer
+from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 
 
 class RollbackOrganizationSerializerResponse(TypedDict):
@@ -17,11 +22,17 @@ class RollbackUserSerializerResponse(TypedDict):
 class RollbackSerializerResponse(TypedDict):
     organization: RollbackOrganizationSerializerResponse
     user: RollbackUserSerializerResponse
-    data: dict  # JSON Blob
+    data: dict[str, object]
 
 
 class UserRollbackSerializer(Serializer[RollbackSerializerResponse]):
-    def serialize(self, obj, attrs, user, **kwargs) -> RollbackSerializerResponse:
+    def serialize(
+        self,
+        obj: Any,
+        attrs: Mapping[Any, Any],
+        user: User | RpcUser | AnonymousUser,
+        **kwargs: Any,
+    ) -> RollbackSerializerResponse:
         rollback_org = kwargs.get("rollback_org")
 
         return {
@@ -32,7 +43,7 @@ class UserRollbackSerializer(Serializer[RollbackSerializerResponse]):
             },
             "user": {
                 "id": obj.user_id,
-                "name": user.name,
+                "name": cast("User | RpcUser", user).name,
             },
             "data": {
                 "user": obj.data,

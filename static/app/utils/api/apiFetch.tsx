@@ -3,8 +3,9 @@ import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+
+import {parseQueryKey, type ApiQueryKey, type InfiniteApiQueryKey} from './apiQueryKey';
 
 export const QUERY_API_CLIENT = new Client();
 
@@ -45,16 +46,16 @@ export async function apiFetch<TQueryFnData = unknown>({
 }: {
   queryKey: ApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = queryKey;
+  const {url, options} = parseQueryKey(queryKey);
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
-    query: options?.query,
-    headers: options?.headers,
+    allowAuthError: options.allowAuthError,
+    host: options.host,
+    method: options.method ?? 'GET',
+    data: options.data,
+    query: options.query,
+    headers: options.headers,
   });
 
   return {
@@ -71,19 +72,16 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
   pageParam: null | undefined | ParsedHeader;
   queryKey: InfiniteApiQueryKey;
 }): Promise<ApiResponse<TQueryFnData>> {
-  const [url, options] = queryKey;
+  const {url, options} = parseQueryKey(queryKey);
 
   const [json, , response] = await QUERY_API_CLIENT.requestPromise(url, {
     includeAllArgs: true,
-    allowAuthError: options?.allowAuthError,
-    host: options?.host,
-    method: options?.method ?? 'GET',
-    data: options?.data,
-    query: {
-      ...options?.query,
-      cursor: pageParam?.cursor ?? options?.query?.cursor,
-    },
-    headers: options?.headers,
+    allowAuthError: options.allowAuthError,
+    host: options.host,
+    method: options.method ?? 'GET',
+    data: options.data,
+    query: {...options.query, cursor: pageParam?.cursor ?? options.query?.cursor},
+    headers: options.headers,
   });
 
   return {

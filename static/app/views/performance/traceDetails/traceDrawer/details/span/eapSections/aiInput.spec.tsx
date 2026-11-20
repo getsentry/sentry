@@ -2,16 +2,14 @@ import type {ComponentProps} from 'react';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AIInputSection} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
+import {AIInputSection} from './aiInput';
 
 const originalResizeObserver = window.ResizeObserver;
 
 function makeAiNode(
   messages: Array<{content: unknown; role: string}> | Record<string, unknown>
 ): ComponentProps<typeof AIInputSection>['node'] {
-  return makeAiNodeWithAttributes({
-    'gen_ai.input.messages': JSON.stringify(messages),
-  });
+  return makeAiNodeWithAttributes({'gen_ai.input.messages': JSON.stringify(messages)});
 }
 
 function makeAiNodeWithAttributes(
@@ -19,10 +17,7 @@ function makeAiNodeWithAttributes(
 ): ComponentProps<typeof AIInputSection>['node'] {
   return {
     id: 'span-id',
-    attributes: {
-      'gen_ai.operation.type': 'chat',
-      ...attributes,
-    },
+    attributes: {'gen_ai.operation.type': 'chat', ...attributes},
     value: {project_id: 1},
   } as unknown as ComponentProps<typeof AIInputSection>['node'];
 }
@@ -77,10 +72,7 @@ describe('AIInputSection', () => {
     render(
       <AIInputSection
         node={makeAiNode([
-          {
-            role: 'system',
-            content: {instructions: ['Be concise'], priority: 'high'},
-          },
+          {role: 'system', content: {instructions: ['Be concise'], priority: 'high'}},
         ])}
       />
     );

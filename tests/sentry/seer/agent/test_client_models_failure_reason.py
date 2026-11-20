@@ -7,10 +7,12 @@ that fire on failure unable to tell why. It is additive/optional, so old seer re
 
 from __future__ import annotations
 
+from typing import Any
+
 from sentry.seer.agent.client_models import SeerRunState
 
 
-def _state(**kwargs) -> SeerRunState:
+def _state(**kwargs: Any) -> SeerRunState:
     return SeerRunState(
         run_id=1,
         blocks=[],
@@ -19,22 +21,22 @@ def _state(**kwargs) -> SeerRunState:
     )
 
 
-def test_failure_reason_is_parsed_from_seer():
+def test_failure_reason_is_parsed_from_seer() -> None:
     assert _state(status="error", failure_reason="timeout").failure_reason == "timeout"
 
 
-def test_failure_reason_defaults_to_none_for_old_seer():
+def test_failure_reason_defaults_to_none_for_old_seer() -> None:
     assert _state(status="error").failure_reason is None
 
 
-def test_unclassified_failures_are_still_failures():
+def test_unclassified_failures_are_still_failures() -> None:
     # Most failures leave failure_reason unset, so status is what says a run failed.
     state = _state(status="error")
     assert state.status == "error"
     assert state.failure_reason is None
 
 
-def test_unknown_failure_reason_still_parses():
+def test_unknown_failure_reason_still_parses() -> None:
     # A reason added on the seer side must not fail validation mid-deploy.
     assert _state(status="error", failure_reason="brand_new_reason").failure_reason == (
         "brand_new_reason"

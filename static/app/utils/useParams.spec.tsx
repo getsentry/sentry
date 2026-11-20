@@ -2,7 +2,7 @@ import {useParams as useReactRouterParams} from 'react-router';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {useParams} from 'sentry/utils/useParams';
+import {useParams} from './useParams';
 
 const mockUsingCustomerDomain = jest.fn();
 const mockCustomerDomain = jest.fn();
@@ -27,16 +27,12 @@ describe('useParams', () => {
     it('returns an empty object', () => {
       let params: any;
       function HomePage() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
 
       render(<HomePage />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(params).toEqual({});
@@ -47,7 +43,6 @@ describe('useParams', () => {
     it('returns an object of the URL params', () => {
       let params: any;
       function HomePage() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         params = useParams();
         return null;
       }
@@ -75,27 +70,20 @@ describe('useParams', () => {
       let paramsValue: any;
 
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouterParams();
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }
 
       render(<Component />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(
         screen.getByText('rendered component for org: albertos-apples')
       ).toBeInTheDocument();
       expect(originalParams).toEqual({});
-      expect(paramsValue).toEqual({
-        orgId: 'albertos-apples',
-      });
+      expect(paramsValue).toEqual({orgId: 'albertos-apples'});
     });
 
     it('does not populate orgId when customer domain is not being used', () => {
@@ -106,18 +94,13 @@ describe('useParams', () => {
       let paramsValue: any;
 
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         originalParams = useReactRouterParams();
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         paramsValue = useParams();
         return <div>rendered component for org: {paramsValue.orgId ?? 'no org id'}</div>;
       }
 
       render(<Component />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(

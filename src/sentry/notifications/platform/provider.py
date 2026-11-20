@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+from collections.abc import Set
 from dataclasses import dataclass
-from enum import Enum
+from enum import Enum, StrEnum
 from typing import Any, Protocol
 
 from sentry.notifications.platform.renderer import NotificationRenderer
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadContext
+from sentry.notifications.platform.tracking import NotificationTrackingContext
 from sentry.notifications.platform.types import (
     NotificationData,
     NotificationProviderKey,
@@ -51,6 +53,9 @@ class SendSuccessResult:
     is_threaded: bool = False
     """Whether the notification was sent with threading."""
 
+    thread_identifier: str | None = None
+    """The existing thread's root identifier when sent as a reply, None for a new message."""
+
 
 @dataclass(frozen=True)
 class SendFailure:
@@ -83,17 +88,17 @@ def integration_error_result(e: IntegrationError, *, is_threaded: bool = False) 
     )
 
 
-class IntegrationNotificationClient[RenderableT, ThreadingResponseT = dict[str, Any]](Protocol):
+class IntegrationNotificationClient[RenderableT, ResponseT = dict[str, Any]](Protocol):
     def send_notification(
         self, target: IntegrationNotificationTarget, payload: RenderableT
-    ) -> None: ...
+    ) -> ResponseT | None: ...
 
-    def send_notification_with_threading(
+    def send_notification_with_response(
         self,
         target: IntegrationNotificationTarget,
         payload: RenderableT,
         threading_context: ProviderThreadingContext,
-    ) -> ThreadingResponseT: ...
+    ) -> ResponseT: ...
 
 
 class NotificationProvider[RenderableT](Protocol):
@@ -157,6 +162,20 @@ class NotificationProvider[RenderableT](Protocol):
         - Any other provider specific checks related to the organization
         """
         ...
+
+    @classmethod
+    def track_actions(
+        cls, *, renderable: RenderableT, context: NotificationTrackingContext
+    ) -> Set[StrEnum]:
+        """
+        Marks the renderable's callback actions, such as buttons that call back into Sentry rather
+        than open a page, with the notification they're sent in, so the provider's callback can
+        attribute clicks on them. Returns the kinds of action marked, which become metric tags.
+
+        Modifies `renderable` in place, so call it once per renderable, after rendering and before
+        sending. Renderers don't mark their own actions.
+        """
+        return set()
 
     @classmethod
     def send(

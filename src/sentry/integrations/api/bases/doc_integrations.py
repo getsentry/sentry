@@ -78,8 +78,12 @@ class DocIntegrationBaseEndpoint(DocIntegrationsBaseEndpoint):
     """
 
     def convert_args(
-        self, request: Request, doc_integration_id_or_slug: int | str, *args, **kwargs
-    ):
+        self,
+        request: Request,
+        doc_integration_id_or_slug: int | str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         try:
             doc_integration = DocIntegration.objects.get(
                 slug__id_or_slug=doc_integration_id_or_slug

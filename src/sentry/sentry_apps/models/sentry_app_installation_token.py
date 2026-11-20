@@ -13,6 +13,7 @@ from sentry.models.apitoken import ApiToken
 
 if TYPE_CHECKING:
     from sentry.auth.services.auth import AuthenticatedToken
+    from sentry.models.project import Project
 
 
 class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):
@@ -41,7 +42,7 @@ class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"
             pass
         return None
 
-    def get_projects(self, token: ApiToken) -> QuerySet:
+    def get_projects(self, token: ApiToken) -> QuerySet[Project]:
         from sentry.models.project import Project
 
         install_token = self._get_token(token)

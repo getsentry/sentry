@@ -3,15 +3,27 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-import {VisualizeTransformations} from './visualizeTransformations';
+import {
+  AddTransformationButton,
+  VisualizeTransformationRows,
+} from './visualizeTransformations';
+
+jest.mock('sentry/utils/analytics');
 
 function Example({initial = []}: {initial?: string[]}) {
   const [transformations, setTransformations] = useState<readonly string[]>(initial);
   return (
     <div>
-      <VisualizeTransformations
+      <VisualizeTransformationRows
+        traceItemDataset={TraceItemDataset.SPANS}
+        transformations={transformations}
+        onChange={setTransformations}
+        layout="inline"
+      />
+      <AddTransformationButton
         traceItemDataset={TraceItemDataset.SPANS}
         transformations={transformations}
         onChange={setTransformations}
@@ -24,6 +36,18 @@ function Example({initial = []}: {initial?: string[]}) {
 describe('VisualizeTransformations', () => {
   const organization = OrganizationFixture({
     features: ['explore-interpolation-and-smoothing'],
+  });
+
+  it('reports Explore as the analytics source by default', async () => {
+    render(<Example />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Transformation'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Fill'}));
+
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'explore.visualize.transformation.added',
+      expect.objectContaining({source: 'explore', transformation_type: 'fill'})
+    );
   });
 
   it('swaps through either type select without changing settings', async () => {
@@ -129,16 +153,16 @@ describe('VisualizeTransformations', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(ema,1)"]'
     );
-    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Weight'}));
     await userEvent.click(screen.getByRole('option', {name: '75%'}));
     expect(screen.getByRole('status')).toHaveTextContent(
       '["fill(locf)","smooth(ema,1,0.75)"]'
     );
     expect(screen.getByRole('button', {name: 'Window Size'})).toBeDisabled();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Factor'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Smoothing Weight'}));
     await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
-    expect(screen.getByRole('button', {name: 'Smoothing Factor'})).toHaveTextContent(
+    expect(screen.getByRole('button', {name: 'Smoothing Weight'})).toHaveTextContent(
       'Auto'
     );
     expect(screen.getByRole('button', {name: 'Window Size'})).toBeEnabled();
@@ -158,7 +182,7 @@ describe('VisualizeTransformations', () => {
       'Auto'
     );
     expect(
-      screen.queryByRole('button', {name: 'Smoothing Factor'})
+      screen.queryByRole('button', {name: 'Smoothing Weight'})
     ).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Max Window Size'}));
     await userEvent.click(screen.getByRole('option', {name: '7'}));

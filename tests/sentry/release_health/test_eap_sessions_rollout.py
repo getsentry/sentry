@@ -143,6 +143,16 @@ class TestBuildEapRequest(TestCase):
         assert "status" not in group_by_names
 
 
+def _transform(response: TimeSeriesResponse, **kwargs: Any) -> dict[str, Any]:
+    return _transform_eap_response(response, **kwargs)
+
+
+def _series_result(metrics_query: MagicMock) -> dict[str, Any]:
+    result = get_series_eap(metrics_query, org_id=1)
+    assert result is not None
+    return result
+
+
 def _default_transform_kwargs(**overrides: object) -> dict[str, Any]:
     """Build default kwargs for _transform_eap_response."""
     defaults = {
@@ -167,7 +177,7 @@ class TestTransformResponse(TestCase):
             ]
         )
 
-        result = _transform_eap_response(response, **_default_transform_kwargs())
+        result = _transform(response, **_default_transform_kwargs())
         assert len(result["groups"]) == 1
         group = result["groups"][0]
         assert group["series"]["sum(session)"] == [100.0]
@@ -185,7 +195,7 @@ class TestTransformResponse(TestCase):
             ]
         )
 
-        result = _transform_eap_response(
+        result = _transform(
             response,
             **_default_transform_kwargs(
                 fields=[_CRASH_FREE_SESSION],
@@ -208,7 +218,7 @@ class TestTransformResponse(TestCase):
             ]
         )
 
-        result = _transform_eap_response(
+        result = _transform(
             response,
             **_default_transform_kwargs(raw_groupby=["session.status"]),
         )
@@ -222,7 +232,7 @@ class TestTransformResponse(TestCase):
 
     def test_empty_response(self) -> None:
         response = TimeSeriesResponse(result_timeseries=[])
-        result = _transform_eap_response(response, **_default_transform_kwargs())
+        result = _transform(response, **_default_transform_kwargs())
         assert result["groups"] == []
 
     def test_grouped_response(self) -> None:
@@ -264,7 +274,7 @@ class TestTransformResponse(TestCase):
                 )
             )
 
-        result = _transform_eap_response(
+        result = _transform(
             response,
             **_default_transform_kwargs(raw_groupby=["release"]),
         )
@@ -361,8 +371,7 @@ class TestGetSeriesEap(TestCase):
             )
         ]
 
-        result = get_series_eap(query, org_id=1)
-        assert result is not None
+        result = _series_result(query)
         assert len(result["groups"]) == 1
         group = result["groups"][0]
         assert "sum(session.all)" in group["series"]
@@ -388,8 +397,7 @@ class TestGetSeriesEap(TestCase):
             )
         ]
 
-        result = get_series_eap(query, org_id=1)
-        assert result is not None
+        result = _series_result(query)
         group = result["groups"][0]
         assert "project_id" in group["by"]
         assert "project" not in group["by"]
@@ -404,8 +412,7 @@ class TestGetSeriesEap(TestCase):
             TimeSeriesResponse(result_timeseries=[_make_timeseries("sum_session_init", [100.0])])
         ]
 
-        result = get_series_eap(query, org_id=1)
-        assert result is not None
+        result = _series_result(query)
         group = result["groups"][0]
         assert "totals" not in group
         assert "series" in group
@@ -420,8 +427,7 @@ class TestGetSeriesEap(TestCase):
             TimeSeriesResponse(result_timeseries=[_make_timeseries("sum_session_init", [5.0])])
         ]
 
-        result = get_series_eap(query, org_id=1)
-        assert result is not None
+        result = _series_result(query)
         group = result["groups"][0]
         assert group["series"]["sum(session.all)"] == [5.0]
         assert isinstance(group["series"]["sum(session.all)"][0], float)
@@ -506,7 +512,7 @@ class TestCompareGetSeriesResults(TestCase):
                 }
             ],
         }
-        experimental: dict[str, list[object]] = {"groups": []}
+        experimental: dict[str, object] = {"groups": []}
         compare_get_series_results(control, experimental)
         mock_metrics.incr.assert_called_once_with(
             "eap_sessions.get_series_compare",

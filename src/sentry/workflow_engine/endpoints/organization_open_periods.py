@@ -21,18 +21,19 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidParams
 from sentry.models.group import Group
 from sentry.models.groupopenperiod import (
     GroupOpenPeriod,
+    get_group_types_without_open_periods,
     get_open_periods_for_group,
     get_open_periods_for_groups,
-    should_create_open_periods,
 )
 from sentry.models.organization import Organization
 from sentry.workflow_engine.endpoints.serializers.group_open_period_serializer import (
-    GroupOpenPeriodSerializer,
+    GroupOpenPeriodResponse,
 )
 from sentry.workflow_engine.handlers.detector import StatefulDetectorHandler
 from sentry.workflow_engine.models import Detector
@@ -40,9 +41,9 @@ from sentry.workflow_engine.models.detector_group import DetectorGroup
 
 
 def detector_opens_new_issue_per_activation(detector: Detector) -> bool:
-    detector_settings = detector.group_type.detector_settings
+    detector_settings = detector.settings
 
-    if detector_settings is None or detector_settings.handler is None:
+    if detector_settings.handler is None:
         return False
 
     return (
@@ -52,10 +53,10 @@ def detector_opens_new_issue_per_activation(detector: Detector) -> bool:
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Workflows"])
+@extend_schema(tags=["Monitors"])
 class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.ISSUES
 
@@ -66,18 +67,13 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
     ) -> Detector:
         validated_detector_id = to_valid_int_id("detectorId", detector_id)
         try:
-            detector = (
+            return (
                 Detector.objects.with_type_filters()
                 .select_related("project")
-                .get(id=validated_detector_id)
+                .get(id=validated_detector_id, project__organization_id=organization.id)
             )
         except Detector.DoesNotExist:
             raise ValidationError({"detectorId": "Detector not found"})
-
-        if detector.linked_project.organization_id != organization.id:
-            raise ValidationError({"detectorId": "Detector not found"})
-
-        return detector
 
     def get_group_from_detector(self, detector: Detector) -> Group | None:
         detector_group = (
@@ -104,11 +100,10 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 query_end=query_end,
             )
 
-        if not should_create_open_periods(detector.group_type.type_id):
-            return GroupOpenPeriod.objects.none()
-
-        detector_group_ids = DetectorGroup.objects.filter(detector=detector).values_list(
-            "group_id", flat=True
+        detector_group_ids = (
+            DetectorGroup.objects.filter(detector=detector)
+            .exclude(group__type__in=get_group_types_without_open_periods())
+            .values_list("group_id", flat=True)
         )
 
         return get_open_periods_for_groups(
@@ -157,7 +152,8 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
         return GroupOpenPeriod.objects.none()
 
     @extend_schema(
-        operation_id="Fetch Group Open Periods",
+        operation_id="listOrganizationOpenPeriods",
+        summary="List an Organization's Open Periods",
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
             GlobalParams.START,
@@ -186,18 +182,30 @@ class OrganizationOpenPeriodsEndpoint(OrganizationEndpoint):
                 type=str,
                 description="ID of the event to filter open periods by.",
             ),
+            OpenApiParameter(
+                name="bucketSize",
+                location="query",
+                required=False,
+                type=int,
+                description="Seconds to subtract from each open period's start and end, such as the detector's time window, so they line up with the event bucket instead of the update. Defaults to 0.",
+            ),
         ],
         responses={
-            200: GroupOpenPeriodSerializer,
+            200: inline_sentry_response_serializer(
+                "OrganizationOpenPeriodsGetResponse", list[GroupOpenPeriodResponse]
+            ),
             400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
     )
-    def get(self, request: Request, organization: Organization) -> Response:
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[list[GroupOpenPeriodResponse]]:
         """
         Return a list of open periods, newest first, for either a detector or a group.
+        Pass exactly one of `detectorId` or `groupId`.
         """
         try:
             start, end = get_date_range_from_params(request.GET, optional=True)

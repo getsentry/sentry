@@ -1,7 +1,8 @@
 import type {RouteObject} from 'react-router';
 
-import {PRELOAD_HANDLE} from 'sentry/router/preload';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+
+import {PRELOAD_HANDLE} from './preload';
 
 /**
  * A single enumerated route in the application.

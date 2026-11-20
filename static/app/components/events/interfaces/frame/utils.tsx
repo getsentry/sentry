@@ -113,6 +113,28 @@ export function hasFileExtension(filepath: string) {
   return fileExtensionPattern.test(filepath);
 }
 
+const UNLINKABLE_FILENAME_PATTERNS = [
+  // Runtime placeholders like `<anonymous>`, `<string>`, and `[native code]`
+  /^<.*>$|^\[.*\]$/,
+  // Node built-ins like `node:internal/process/task_queues`
+  /^node:/,
+  // React Native bundles like `app:///main.jsbundle` and `index.android.bundle`
+  /\.(js)?bundle$/i,
+  // Unity il2cpp's header and the numbered C++ files it generates per assembly
+  /(^|[/\\])il2cpp-codegen\.h$|__\d+\.cpp$/,
+  // XAML code-behind that Visual Studio writes to obj/
+  /\.g\.i\.cs$/,
+  // Hilt components and injectors generated at build time
+  /_HiltComponents_\w+\.java$|_GeneratedInjector\.java$/,
+];
+
+/**
+ * Frame filenames that can never exist in a source repository.
+ */
+export function isUnlinkableFilename(filename: string) {
+  return UNLINKABLE_FILENAME_PATTERNS.some(pattern => pattern.test(filename));
+}
+
 /**
  * Extracts the origin URL from an event
  *

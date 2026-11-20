@@ -1,6 +1,6 @@
 import {useCallback, useEffect, useRef, type UIEventHandler} from 'react';
 
-import {defined} from 'sentry/utils/defined';
+import {defined} from './defined';
 
 // Tolerance for sub-pixel rounding when deciding whether we sit at the bottom.
 const BOTTOM_THRESHOLD_PX = 4;
@@ -22,10 +22,7 @@ export function useAutoScroll({key}: UseAutoScrollOptions) {
       return;
     }
 
-    container.scrollTo?.({
-      top: container.scrollHeight,
-      behavior: 'smooth',
-    });
+    container.scrollTo?.({top: container.scrollHeight, behavior: 'smooth'});
   }, []);
 
   useEffect(() => {
@@ -45,11 +42,7 @@ export function useAutoScroll({key}: UseAutoScrollOptions) {
     }
 
     const observer = new MutationObserver(() => scrollToBottom());
-    observer.observe(container, {
-      childList: true,
-      subtree: true,
-      characterData: true,
-    });
+    observer.observe(container, {childList: true, subtree: true, characterData: true});
 
     return () => observer.disconnect();
   }, [scrollToBottom]);
@@ -71,8 +64,5 @@ export function useAutoScroll({key}: UseAutoScrollOptions) {
     }
   }, []);
 
-  return {
-    containerRef,
-    onScrollHandler,
-  };
+  return {containerRef, onScrollHandler};
 }

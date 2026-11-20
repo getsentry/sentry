@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {UserPermissionsModal} from 'admin/components/users/userPermissionsModal';
 
@@ -102,10 +102,7 @@ describe('UserPermissionsModal', () => {
     );
     expect(updateUser).toHaveBeenCalledWith(
       `/users/${user.id}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {isSuperuser: false, isStaff: true},
-      })
+      expect.objectContaining({method: 'PUT', data: {isSuperuser: false, isStaff: true}})
     );
     expect(addPermission).toHaveBeenCalledTimes(1);
     expect(removePermission).toHaveBeenCalledTimes(1);

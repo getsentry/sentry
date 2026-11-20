@@ -41,9 +41,9 @@ def _option_lookup(project_id: int) -> tuple[bool, bool]:
     )
 
 
-def make_has_sent_replays_cache():
+def make_has_sent_replays_cache() -> AutoCache[int, bool]:
     return AutoCache(_has_replays_lookup, BoundedLRUCache(maxlen=10_000))
 
 
-def make_options_cache():
+def make_options_cache() -> AutoCache[int, tuple[bool, bool]]:
     return AutoCache(_option_lookup, BoundedLRUCache(maxlen=10_000))

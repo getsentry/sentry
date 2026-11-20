@@ -12,17 +12,14 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
-import {BuilderBreadCrumbs} from 'sentry/views/alerts/builder/builderBreadCrumbs';
-import {useAlertBuilderOutlet} from 'sentry/views/alerts/builder/projectProvider';
 import {UptimeRulesEdit} from 'sentry/views/detectors/components/uptime/edit';
 
+import {BuilderBreadCrumbs} from './builder/builderBreadCrumbs';
+import {useAlertBuilderOutlet} from './builder/projectProvider';
 import {CronRulesEdit} from './rules/crons/edit';
 import {CombinedAlertType} from './types';
 
-type RouteParams = {
-  projectId: string;
-  ruleId: string;
-};
+type RouteParams = {projectId: string; ruleId: string};
 
 export default function ProjectAlertsEditor() {
   const organization = useOrganization();
@@ -61,11 +58,7 @@ export default function ProjectAlertsEditor() {
   const alertType = alertTypeUrls.find(({url}) => location.pathname.includes(url))?.type;
 
   useRouteAnalyticsEventNames('edit_alert_rule.viewed', 'Edit Alert Rule: Viewed');
-  useRouteAnalyticsParams({
-    organization,
-    project_id: project.id,
-    alert_type: alertType,
-  });
+  useRouteAnalyticsParams({organization, project_id: project.id, alert_type: alertType});
 
   return (
     <Stack flex={1}>

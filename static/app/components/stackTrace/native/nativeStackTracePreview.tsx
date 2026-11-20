@@ -1,11 +1,12 @@
 import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
 import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {NativeIssueFrameActions} from 'sentry/components/stackTrace/native/frame/actions/nativeIssueActions';
-import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
+
+import {NativeIssueFrameActions} from './frame/actions/nativeIssueActions';
+import {NativeStackTraceFrames} from './nativeStackTraceFrames';
+import {NativeStackTraceProvider} from './nativeStackTraceProvider';
 
 interface NativeStackTracePreviewProps {
   event: Event;

@@ -3,7 +3,7 @@ from __future__ import annotations
 import concurrent.futures
 import logging
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, TypedDict
 
 from sentry_sdk import traces
 
@@ -21,6 +21,20 @@ from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 logger = logging.getLogger(__name__)
 
 
+class TagValueOverview(TypedDict):
+    value: str | None
+    count: int
+    percentage: str
+
+
+class TagOverview(TypedDict):
+    key: str
+    name: str
+    total_values: int | None
+    unique_values: int | None
+    top_values: list[TagValueOverview]
+
+
 def get_trace_tree_for_event(
     event: Event | GroupEvent, project: Project, timeout: int = 15
 ) -> dict[str, Any] | None:
@@ -32,7 +46,7 @@ def get_trace_tree_for_event(
     if not trace_id:
         return None
 
-    def _fetch_trace():
+    def _fetch_trace() -> dict[str, Any] | None:
         projects_qs = Project.objects.filter(
             organization=project.organization, status=ObjectStatus.ACTIVE
         )
@@ -129,7 +143,7 @@ def get_all_tags_overview(
         end=end,
     )
 
-    all_tags: list[dict] = []
+    all_tags: list[TagOverview] = []
 
     KEYS_TO_EXCLUDE = {
         "release",
@@ -147,7 +161,7 @@ def get_all_tags_overview(
             continue
 
         # Calculate percentages for each tag value
-        tag_data = {
+        tag_data: TagOverview = {
             "key": tag.key,
             "name": tagstore.backend.get_tag_key_label(tag.key),
             "total_values": tag.count,
@@ -156,17 +170,25 @@ def get_all_tags_overview(
         }
 
         if hasattr(tag, "top_values") and tag.top_values:
+            assert tag.count is not None
             # Calculate total from top values
-            top_values_total = sum(tag_value.times_seen for tag_value in tag.top_values)
+            top_values_total = 0
+            for tag_value in tag.top_values:
+                assert tag_value.times_seen is not None
+                top_values_total += tag_value.times_seen
 
             for tag_value in tag.top_values:
-                percentage = round((tag_value.times_seen / tag.count) * 100) if tag.count > 0 else 0
+                assert tag_value.times_seen is not None
+                percentage_num = (
+                    round((tag_value.times_seen / tag.count) * 100) if tag.count > 0 else 0
+                )
+                percentage: int | str = percentage_num
 
                 # Ensure no single value shows 100% when there are multiple values
                 has_multiple_values = len(tag.top_values) > 1 or top_values_total < tag.count
-                if has_multiple_values and percentage >= 100:
+                if has_multiple_values and percentage_num >= 100:
                     percentage = ">99"
-                elif percentage < 1:
+                elif percentage_num < 1:
                     percentage = "<1"
 
                 tag_data["top_values"].append(

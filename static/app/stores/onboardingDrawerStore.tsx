@@ -1,15 +1,5 @@
-import {createStore} from 'reflux';
-
-import type {StrictStoreDefinition} from './types';
-
-type ActivePanelType = Readonly<OnboardingDrawerKey | ''>;
-
-interface OnboardingDrawerStoreDefinition extends StrictStoreDefinition<ActivePanelType> {
-  close(): void;
-
-  open(panel: OnboardingDrawerKey): void;
-  toggle(panel: OnboardingDrawerKey): void;
-}
+import {useStore} from 'zustand';
+import {createStore} from 'zustand/vanilla';
 
 export enum OnboardingDrawerKey {
   BROADCASTS = 'broadcasts',
@@ -22,39 +12,33 @@ export enum OnboardingDrawerKey {
   FEATURE_FLAG_ONBOARDING = 'flag_onboarding',
 }
 
-const storeConfig: OnboardingDrawerStoreDefinition = {
-  state: '',
+interface OnboardingDrawerState {
+  /**
+   * The drawer panel that is open, or null when none is
+   */
+  readonly panel: OnboardingDrawerKey | null;
+}
 
-  init() {
-    // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
-    // listeners due to their leaky nature in tests.
+const store = createStore<OnboardingDrawerState>()(() => ({panel: null}));
+
+export const OnboardingDrawerStore = {
+  open(panel: OnboardingDrawerKey): void {
+    store.setState({panel});
   },
 
-  open(panel: OnboardingDrawerKey) {
-    this.state = panel;
-    this.trigger(this.state);
+  toggle(panel: OnboardingDrawerKey): void {
+    store.setState(state => ({panel: state.panel === panel ? null : panel}));
   },
 
-  toggle(panel: OnboardingDrawerKey) {
-    if (this.state === panel) {
-      this.close();
-    } else {
-      this.open(panel);
-    }
-  },
-
-  close() {
-    this.state = '';
-    this.trigger(this.state);
-  },
-
-  getState() {
-    return this.state;
+  close(): void {
+    store.setState({panel: null});
   },
 };
 
 /**
- * This store is used to hold local user preferences
- * Side-effects (like reading/writing to cookies) are done in associated actionCreators
+ * Whether the onboarding drawer is open on `panel`. Only re-renders when that
+ * panel opens or closes.
  */
-export const OnboardingDrawerStore = createStore(storeConfig);
+export function useIsOnboardingDrawerOpen(panel: OnboardingDrawerKey): boolean {
+  return useStore(store, state => state.panel === panel);
+}

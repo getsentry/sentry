@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.core.files.base import ContentFile
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.api.endpoints.debug_files import _clone_proguard_debug_file_for_reupload
 from sentry.models.apitoken import ApiToken
@@ -406,8 +407,8 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             chunks=chunks,
         )
 
-    def _clone_request(self, checksum: str, chunks: list[str]):
-        return self.client.post(
+    def _clone_request(self, checksum: str, chunks: list[str]) -> Response:
+        response: Response = self.client.post(
             self.url,
             data={
                 checksum: {
@@ -417,6 +418,7 @@ class DifAssembleProguardCloneBackendTransitionTest(APITestCase):
             },
             HTTP_AUTHORIZATION=f"Bearer {self.token.token}",
         )
+        return response
 
     def test_clone_file_backed_source_remains_file_backed(self) -> None:
         """A file-backed source produces a file-backed clone regardless of the active write flag."""

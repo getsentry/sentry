@@ -1,14 +1,10 @@
+import {useState} from 'react';
 import {useMutation, useQueryClient, useQuery} from '@tanstack/react-query';
 import cloneDeep from 'lodash/cloneDeep';
 import some from 'lodash/some';
 
-import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -17,12 +13,11 @@ import type {DataCategory} from 'sentry/types/core';
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -41,6 +36,7 @@ import {triggerChangePlanAction} from 'admin/components/changePlanAction';
 import {CloseAccountInfo} from 'admin/components/closeAccountInfo';
 import {CustomerAuditLog} from 'admin/components/customers/customerAuditLog';
 import {CustomerCharges} from 'admin/components/customers/customerCharges';
+import {CustomerContracts} from 'admin/components/customers/customerContracts';
 import {CustomerHistory} from 'admin/components/customers/customerHistory';
 import {CustomerIntegrationDebugDetails} from 'admin/components/customers/customerIntegrationDebugDetails';
 import {CustomerInvoices} from 'admin/components/customers/customerInvoices';
@@ -57,12 +53,15 @@ import {deleteBillingMetricHistory} from 'admin/components/deleteBillingMetricHi
 import type {ActionItem, BadgeItem} from 'admin/components/detailsPage';
 import {DetailsPage} from 'admin/components/detailsPage';
 import {ForkCustomerAction} from 'admin/components/forkCustomer';
-import MigrateLegacySeerAction from 'admin/components/migrateLegacySeerAction';
+import {triggerGrantLedgerCreditModal} from 'admin/components/grantLedgerCreditAction';
+import {MigrateLegacySeerAction} from 'admin/components/migrateLegacySeerAction';
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 import {triggerProvisionSubscription} from 'admin/components/provisionSubscriptionAction';
 import {refundVercelRequest} from 'admin/components/refundVercelRequestModal';
 import {SelectableContainer} from 'admin/components/selectableContainer';
-import SendWeeklyEmailAction from 'admin/components/sendWeeklyEmailAction';
+import {SendWeeklyEmailAction} from 'admin/components/sendWeeklyEmailAction';
+import {SetContractPackageAction} from 'admin/components/setContractPackageAction';
+import {triggerSimulateLlmUsageModal} from 'admin/components/simulateLlmUsageAction';
 import {SponsorshipAction} from 'admin/components/sponsorshipAction';
 import {SuspendAccountAction} from 'admin/components/suspendAccountAction';
 import {openToggleConsolePlatformsModal} from 'admin/components/toggleConsolePlatformsModal';
@@ -84,29 +83,12 @@ import {
 
 const DEFAULT_ERROR_MESSAGE = 'Unable to update the customer account';
 
-function makeSubscriptionQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/customers/$organizationIdOrSlug/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-  ];
-}
-
 function organizationApiOptions(orgId: string) {
   return apiOptions.as<Organization>()('/organizations/$organizationIdOrSlug/', {
     path: {organizationIdOrSlug: orgId},
     query: {detailed: 0, include_feature_flags: 1},
     staleTime: Infinity,
   });
-}
-
-function makeBillingConfigQueryKey(orgId: string): ApiQueryKey {
-  return [
-    getApiUrl('/customers/$organizationIdOrSlug/billing-config/', {
-      path: {organizationIdOrSlug: orgId},
-    }),
-    {query: {tier: 'all'}},
-  ];
 }
 
 export function CustomerDetails() {
@@ -116,40 +98,49 @@ export function CustomerDetails() {
 
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
-  const SUBSCRIPTION_QUERY_KEY = makeSubscriptionQueryKey(orgId);
-  const BILLING_CONFIG_QUERY_KEY = makeBillingConfigQueryKey(orgId);
+  const subscriptionQueryOptions = apiOptions.as<Subscription>()(
+    '/customers/$organizationIdOrSlug/',
+    {path: {organizationIdOrSlug: orgId}, staleTime: Infinity}
+  );
+
   const {
     data: subscription,
     refetch: refetchSubscription,
     isError: isErrorSubscription,
     isPending: isPendingSubscription,
-  } = useApiQuery<Subscription>(SUBSCRIPTION_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(subscriptionQueryOptions);
   const {
     data: organization,
     refetch: refetchOrganization,
     isError: isErrorOrganization,
     isPending: isPendingOrganization,
   } = useQuery(organizationApiOptions(orgId));
+  const billingConfigQueryOptions = apiOptions.as<BillingConfig>()(
+    '/customers/$organizationIdOrSlug/billing-config/',
+    {path: {organizationIdOrSlug: orgId}, query: {tier: 'all'}, staleTime: Infinity}
+  );
+
   const {
     data: billingConfig,
     refetch: refetchBillingConfig,
     isError: isErrorBillingConfig,
     isPending: isPendingBillingConfig,
-  } = useApiQuery<BillingConfig>(BILLING_CONFIG_QUERY_KEY, {staleTime: Infinity});
+  } = useQuery(billingConfigQueryOptions);
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) =>
-      api.requestPromise(`/customers/${orgId}/`, {
-        method: 'PUT',
-        data: params,
-      }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+      api.requestPromise(`/customers/${orgId}/`, {method: 'PUT', data: params}),
+    onMutate: () => toast.loading('Saving changes\u2026'),
     onSuccess: (data, variables, _) => {
-      addSuccessMessage(
+      toast.success(
         data.message ??
           `Customer account has been updated with ${JSON.stringify(variables)}.`
       );
-      setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, data);
+      queryClient.setQueryData(subscriptionQueryOptions.queryKey, previous =>
+        data === undefined
+          ? previous
+          : {...previous, headers: previous?.headers ?? {}, json: data}
+      );
     },
     onError: (error: RequestError) => {
       if (error.status === 400 || error.status === 402) {
@@ -163,9 +154,9 @@ export function CustomerDetails() {
               ? err[0]
               : DEFAULT_ERROR_MESSAGE;
 
-        addErrorMessage(message);
+        toast.error(message);
       } else {
-        addErrorMessage(DEFAULT_ERROR_MESSAGE);
+        toast.error(DEFAULT_ERROR_MESSAGE);
       }
     },
   });
@@ -180,10 +171,10 @@ export function CustomerDetails() {
         method: 'POST',
       }),
     onSuccess: () => {
-      addSuccessMessage('Queued spike projection generation task.');
+      toast.success('Queued spike projection generation task.');
     },
     onError: (error: RequestError) => {
-      addErrorMessage(error.message);
+      toast.error(error.message);
     },
   });
 
@@ -204,10 +195,29 @@ export function CustomerDetails() {
       }),
     onSuccess: async () => {
       await refetchSubscription();
-      addSuccessMessage('Test organization flag updated.');
+      toast.success('Test organization flag updated.');
     },
     onError: () => {
-      addErrorMessage('Could not update the test organization flag. Try again.');
+      toast.error('Could not update the test organization flag. Try again.');
+    },
+  });
+
+  const onEnableRestrictedMembersMutation = useMutation({
+    mutationFn: (params: {notes?: string; ticketURL?: string}) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/_admin/customers/$organizationIdOrSlug/members/enable-restricted/',
+          {path: {organizationIdOrSlug: orgId}}
+        ),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => toast.loading('Enabling restricted members\u2026'),
+    onSuccess: () => {
+      toast.success('Enabled all members restricted by the member limit.');
+    },
+    onError: () => {
+      toast.error('Could not enable restricted members. Try again.');
     },
   });
 
@@ -216,16 +226,14 @@ export function CustomerDetails() {
       fetchMutation({
         url: getApiUrl(
           '/_admin/customers/$organizationIdOrSlug/billing-platform-migration/',
-          {
-            path: {organizationIdOrSlug: orgId},
-          }
+          {path: {organizationIdOrSlug: orgId}}
         ),
         method: 'POST',
         data: params,
       }),
-    onMutate: () => addLoadingMessage('Saving changes\u2026'),
+    onMutate: () => toast.loading('Saving changes\u2026'),
     onSuccess: (_data, variables) => {
-      addSuccessMessage(
+      toast.success(
         variables.migrated
           ? 'Marked this org as migrated to the billing platform.'
           : 'Marked this org as not migrated to the billing platform.'
@@ -234,7 +242,35 @@ export function CustomerDetails() {
     },
     onError: (error: RequestError) => {
       const detail = error.responseJSON?.detail;
-      addErrorMessage(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
+    },
+  });
+
+  // CustomerContracts fetches through ResultGrid, outside react-query, so remount
+  // it to show the new package.
+  const [contractsKey, setContractsKey] = useState(0);
+
+  const onSetContractPackageMutation = useMutation({
+    mutationFn: (params: Record<string, any>) =>
+      fetchMutation({
+        url: getApiUrl('/_admin/customers/$organizationIdOrSlug/contract/package/', {
+          path: {organizationIdOrSlug: orgId},
+        }),
+        method: 'POST',
+        data: params,
+      }),
+    onMutate: () => toast.loading('Saving changes\u2026'),
+    onSuccess: (_data, variables) => {
+      toast.success(`Set the contract package to ${variables.packageUid}.`);
+      reloadData();
+      setContractsKey(key => key + 1);
+    },
+    onError: (error: RequestError) => {
+      const packageUidErrors = error.responseJSON?.packageUid;
+      const detail =
+        error.responseJSON?.detail ??
+        (Array.isArray(packageUidErrors) ? packageUidErrors[0] : undefined);
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     },
   });
 
@@ -314,27 +350,25 @@ export function CustomerDetails() {
   };
 
   const handleStatsTypeChange = (dataType: DataCategoryExact) => {
-    navigate({
-      pathname: location.pathname,
-      query: {...location.query, dataType},
-    });
+    navigate({pathname: location.pathname, query: {...location.query, dataType}});
   };
 
   const onForkCustomer = (params: Record<string, any>) => {
     if (params.error) {
-      addErrorMessage(params.error.responseJSON.detail);
+      const detail: unknown = params.error.responseJSON?.detail;
+      toast.error(typeof detail === 'string' ? detail : DEFAULT_ERROR_MESSAGE);
     } else {
-      addSuccessMessage('The relocation job has started!');
+      toast.success('The relocation job has started!');
     }
   };
 
   const onChangeGoogleDomain = (params: Record<string, any>) => {
     if (params.newDomain) {
       const msg = JSON.stringify(params.newDomain);
-      addSuccessMessage(`Customer account has been updated with new domain: ${msg}.`);
+      toast.success(`Customer account has been updated with new domain: ${msg}.`);
     } else {
       const msg = JSON.stringify(params.error.responseText);
-      addErrorMessage(`Failed to update new domain due to ${msg}.`);
+      toast.error(`Failed to update new domain due to ${msg}.`);
     }
   };
 
@@ -347,14 +381,18 @@ export function CustomerDetails() {
   }) => {
     if (error) {
       const msg = JSON.stringify(error.responseText);
-      addErrorMessage(`Failed to toggle spend allocations due to ${msg}`);
+      toast.error(`Failed to toggle spend allocations due to ${msg}`);
     } else {
       const clone = cloneDeep(subscription);
       if (clone) {
         clone.spendAllocationEnabled = spendAllocationEnabled;
-        setApiQueryData(queryClient, SUBSCRIPTION_QUERY_KEY, clone);
+        queryClient.setQueryData(subscriptionQueryOptions.queryKey, previous => ({
+          ...previous,
+          headers: previous?.headers ?? {},
+          json: clone,
+        }));
       }
-      addSuccessMessage(
+      toast.success(
         `Spend Allocations has been ${spendAllocationEnabled ? 'enabled' : 'disabled'} for organization.`
       );
     }
@@ -465,8 +503,12 @@ export function CustomerDetails() {
           },
           {
             key: 'convertToSponsored',
-            name: 'Convert to Sponsored',
-            help: 'Convert this account to a sponsored plan (e.g. education, open source).',
+            name: subscription.isSponsored
+              ? 'Change Sponsorship'
+              : 'Convert to Sponsored',
+            help: subscription.isSponsored
+              ? "Change or remove this account's sponsorship."
+              : 'Convert this account to a sponsored plan (e.g. education, open source).',
             disabled: subscription.isPartner,
             disabledReason: 'Partner accounts cannot be put on sponsored plans',
             confirmModalOpts: {
@@ -485,16 +527,21 @@ export function CustomerDetails() {
               onUpdateMutation.mutate({...params, clearPendingChanges: true}),
           },
           {
+            key: 'clearPendingPayg',
+            name: 'Clear Pending Pay-as-you-go',
+            help: 'Remove pending pay-as-you-go budget changes, keeping other pending changes.',
+            visible: !!subscription.pendingChanges,
+            onAction: params =>
+              onUpdateMutation.mutate({...params, clearPendingPayg: true}),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeBalance',
             name: 'Add or Remove Credit',
             help: 'Add or remove credit from this account.',
             skipConfirmModal: true, // ZD ticket fields added in component rendered by triggerChangeBalanceModal
             onAction: () =>
-              triggerChangeBalanceModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerChangeBalanceModal({orgId, subscription, onSuccess: reloadData}),
             ...actionRequiresBillingAdmin,
           },
           {
@@ -508,6 +555,14 @@ export function CustomerDetails() {
                 subscription,
                 onSuccess: reloadData,
               }),
+            ...actionRequiresBillingAdmin,
+          },
+          {
+            key: 'grantLedgerCredit',
+            name: 'Grant Ledger Credit',
+            help: 'Add free credit to a credit-only line item, such as Seer credits.',
+            skipConfirmModal: true,
+            onAction: () => triggerGrantLedgerCreditModal({orgId, onSuccess: reloadData}),
             ...actionRequiresBillingAdmin,
           },
           {
@@ -550,6 +605,18 @@ export function CustomerDetails() {
             },
             onAction: params =>
               onUpdateMutation.mutate({...params, recreateBillingPlatformModels: true}),
+          },
+          {
+            key: 'setContractPackage',
+            name: 'Set Contract Package',
+            help: 'Move the current billing platform contract to another package immediately.',
+            visible: subscription.hasMigratedToBillingPlatform,
+            confirmModalOpts: {
+              showTicketURL: false,
+              renderModalSpecificContent: deps => <SetContractPackageAction {...deps} />,
+            },
+            onAction: params => onSetContractPackageMutation.mutate(params),
+            ...actionRequiresBillingAdmin,
           },
           {
             key: 'convertToSelfServe',
@@ -647,6 +714,14 @@ export function CustomerDetails() {
             onAction: params => onUpdateMutation.mutate({...params}),
           },
           {
+            key: 'enableRestrictedMembers',
+            name: 'Enable Restricted Members',
+            help: 'Remove the member-limit restriction from every member of this organization.',
+            confirmModalOpts: {confirmText: 'Enable Members'},
+            onAction: params => onEnableRestrictedMembersMutation.mutate(params),
+            ...actionRequiresBillingAdmin,
+          },
+          {
             key: 'changeDates',
             name: 'Change Dates',
             // TODO(billing): Should we start calling On-Demand periods "Pay-as-you-go" periods?
@@ -654,11 +729,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
             onAction: () =>
-              triggerChangeDatesModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerChangeDatesModal({orgId, subscription, onSuccess: reloadData}),
           },
           {
             key: 'endPeriodEarly',
@@ -667,11 +738,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminTestFeatures,
             onAction: () =>
-              triggerEndPeriodEarlyModal({
-                orgId,
-                subscription,
-                onSuccess: reloadData,
-              }),
+              triggerEndPeriodEarlyModal({orgId, subscription, onSuccess: reloadData}),
           },
           {
             key: 'changePlan',
@@ -842,12 +909,15 @@ export function CustomerDetails() {
               some(subscription.reservedBudgets, budget => budget.reservedBudget > 0),
             skipConfirmModal: true,
             onAction: () => {
-              addGiftBudgetAction({
-                onSuccess: reloadData,
-                organization,
-                subscription,
-              });
+              addGiftBudgetAction({onSuccess: reloadData, organization, subscription});
             },
+          },
+          {
+            key: 'simulateLlmUsage',
+            name: 'Simulate LLM usage',
+            help: 'Record LLM usage without calling an LLM. test_paid usage is billed, so refund it afterwards.',
+            skipConfirmModal: true,
+            onAction: () => triggerSimulateLlmUsageModal({orgId, onSuccess: reloadData}),
           },
           {
             key: 'deleteBillingMetricHistory',
@@ -856,10 +926,7 @@ export function CustomerDetails() {
             skipConfirmModal: true,
             visible: hasAdminDeleteBillingMetricHistory,
             onAction: () =>
-              deleteBillingMetricHistory({
-                onSuccess: reloadData,
-                organization,
-              }),
+              deleteBillingMetricHistory({onSuccess: reloadData, organization}),
           },
           {
             key: 'refundVercel',
@@ -867,11 +934,7 @@ export function CustomerDetails() {
             help: 'Send request to Vercel to initiate a refund for a given invoice.',
             skipConfirmModal: true,
             visible: subscription.isSelfServePartner && hasActiveVCFeature(organization),
-            onAction: () =>
-              refundVercelRequest({
-                onSuccess: reloadData,
-                subscription,
-              }),
+            onAction: () => refundVercelRequest({onSuccess: reloadData, subscription}),
           },
           {
             key: 'toggleConsolePlatforms',
@@ -977,33 +1040,15 @@ export function CustomerDetails() {
               />
             ),
           },
+          {noPanel: true, content: <CustomerMembers orgId={orgId} />},
+          {noPanel: true, content: <CustomerProjects orgId={orgId} />},
+          {noPanel: true, content: <CustomerIntegrationDebugDetails orgId={orgId} />},
+          {noPanel: true, content: billingDetails},
+          {noPanel: true, content: <CustomerPolicies orgId={orgId} />},
           {
             noPanel: true,
-            content: <CustomerMembers orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: <CustomerProjects orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: <CustomerIntegrationDebugDetails orgId={orgId} />,
-          },
-          {
-            noPanel: true,
-            content: billingDetails,
-          },
-          {
-            noPanel: true,
-            content: <CustomerPolicies orgId={orgId} />,
-          },
-          {
-            name: 'Contract',
-            content: (
-              <Link to={`/_admin/customers/${orgId}/contract/`}>
-                View Contract Details
-              </Link>
-            ),
+            visible: subscription.hasMigratedToBillingPlatform,
+            content: <CustomerContracts key={contractsKey} orgId={orgId} />,
           },
           {
             name: 'Admin Audit Log',

@@ -1,4 +1,4 @@
-import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
+import {formatNumberWithDynamicDecimalPoints} from './formatNumberWithDynamicDecimalPoints';
 
 describe('formatNumberWithDynamicDecimals', () => {
   it('rounds to two decimal points without forcing them', () => {

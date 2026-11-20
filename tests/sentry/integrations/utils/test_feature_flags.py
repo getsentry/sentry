@@ -3,7 +3,7 @@ from unittest.mock import MagicMock
 from sentry.integrations.utils.feature_flags import EventFeatureFlag, get_event_feature_flags
 
 
-def _make_event(data):
+def _make_event(data: dict[str, object]) -> MagicMock:
     event = MagicMock()
     event.data = data
     return event

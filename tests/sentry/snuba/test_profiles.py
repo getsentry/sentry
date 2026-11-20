@@ -16,6 +16,7 @@ from sentry.search.events.builder.profiles import (
 )
 from sentry.search.events.datasets.profiles import COLUMNS as PROFILE_COLUMNS
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
+from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -26,7 +27,7 @@ today = now.replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 @pytest.fixture
-def params():
+def params() -> ParamsType:
     organization = Factories.create_organization()
     team = Factories.create_team(organization=organization)
     project1 = Factories.create_project(organization=organization, teams=[team])
@@ -41,7 +42,6 @@ def params():
         "project_id": [project1.id, project2.id],
         "project_objects": [project1, project2],
         "organization_id": organization.id,
-        "user_id": user.id,
         "team_id": [team.id],
     }
 
@@ -157,7 +157,7 @@ INVALID_FIELD_RESOLUTION_CASES = [
 
 # The cases below only build queries, so they share one `params` setup through subtests.
 @django_db_all
-def test_field_resolution(params, subtests: pytest.Subtests) -> None:
+def test_field_resolution(params: ParamsType, subtests: pytest.Subtests) -> None:
     for builder_name, query_builder_fn in QUERY_BUILDER_FNS:
         for field, resolved in FIELD_RESOLUTION_CASES:
             with subtests.test(msg=field, query_builder=builder_name):
@@ -173,7 +173,7 @@ def test_field_resolution(params, subtests: pytest.Subtests) -> None:
 
 
 @django_db_all
-def test_aggregate_resolution(params, subtests: pytest.Subtests) -> None:
+def test_aggregate_resolution(params: ParamsType, subtests: pytest.Subtests) -> None:
     for builder_name, query_builder_fn in QUERY_BUILDER_FNS:
         for field, resolved in AGGREGATE_RESOLUTION_CASES:
             with subtests.test(msg=field, query_builder=builder_name):
@@ -186,7 +186,7 @@ def test_aggregate_resolution(params, subtests: pytest.Subtests) -> None:
 
 
 @django_db_all
-def test_invalid_field_resolution(params, subtests: pytest.Subtests) -> None:
+def test_invalid_field_resolution(params: ParamsType, subtests: pytest.Subtests) -> None:
     for builder_name, query_builder_fn in QUERY_BUILDER_FNS:
         for field, message in INVALID_FIELD_RESOLUTION_CASES:
             with subtests.test(msg=field, query_builder=builder_name):
@@ -307,7 +307,7 @@ WHERE_RESOLUTION_CASES = [
 
 
 @django_db_all
-def test_where_resolution(params, subtests: pytest.Subtests) -> None:
+def test_where_resolution(params: ParamsType, subtests: pytest.Subtests) -> None:
     for query, conditions in WHERE_RESOLUTION_CASES:
         with subtests.test(msg=query):
             builder = ProfilesQueryBuilder(
@@ -323,7 +323,7 @@ def test_where_resolution(params, subtests: pytest.Subtests) -> None:
 
 @pytest.mark.xfail(reason="date filters cannot negated")
 @django_db_all
-def test_where_resolution_negated_timestamp(params) -> None:
+def test_where_resolution_negated_timestamp(params: ParamsType) -> None:
     ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
@@ -334,7 +334,7 @@ def test_where_resolution_negated_timestamp(params) -> None:
 
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
 @django_db_all
-def test_where_resolution_project_slug(params, field) -> None:
+def test_where_resolution_project_slug(params: ParamsType, field: str) -> None:
     project = params["project_objects"][0]
 
     builder = ProfilesQueryBuilder(
@@ -357,7 +357,7 @@ def test_where_resolution_project_slug(params, field) -> None:
 @pytest.mark.parametrize("field", [pytest.param("project"), pytest.param("project.name")])
 @pytest.mark.parametrize("direction", [pytest.param("", id="asc"), pytest.param("-", id="desc")])
 @django_db_all
-def test_order_by_resolution_project_slug(params, field, direction) -> None:
+def test_order_by_resolution_project_slug(params: ParamsType, field: str, direction: str) -> None:
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
@@ -395,7 +395,7 @@ def test_order_by_resolution_project_slug(params, field, direction) -> None:
     ],
 )
 @django_db_all
-def test_has_resolution(params, field, column) -> None:
+def test_has_resolution(params: ParamsType, field: str, column: str) -> None:
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,
@@ -421,7 +421,7 @@ def test_has_resolution(params, field, column) -> None:
     ],
 )
 @django_db_all
-def test_not_has_resolution(params, field, column) -> None:
+def test_not_has_resolution(params: ParamsType, field: str, column: str) -> None:
     builder = ProfilesQueryBuilder(
         dataset=Dataset.Profiles,
         params=params,

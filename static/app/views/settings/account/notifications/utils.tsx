@@ -1,6 +1,7 @@
 import {DataCategoryExact} from 'sentry/types/core';
 import type {Project} from 'sentry/types/project';
-import {NOTIFICATION_SETTINGS_PATHNAMES} from 'sentry/views/settings/account/notifications/constants';
+
+import {NOTIFICATION_SETTINGS_PATHNAMES} from './constants';
 
 /**
  * Which fine-tuning parts are grouped by project

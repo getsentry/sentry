@@ -13,11 +13,6 @@ import {Text} from '@sentry/scraps/text';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {EnabledStatusIndicator} from 'sentry/components/seer/markdown/embeds/components/enabledStatusIndicator';
-import {CronMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/cron';
-import {ErrorMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/error';
-import {MetricMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/metric';
-import {MobileBuildMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/mobileBuild';
-import {UptimeMonitor} from 'sentry/components/seer/markdown/embeds/components/monitor/monitorTypes/uptime';
 import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
@@ -27,6 +22,12 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
+
+import {CronMonitor} from './monitorTypes/cron';
+import {ErrorMonitor} from './monitorTypes/error';
+import {MetricMonitor} from './monitorTypes/metric';
+import {MobileBuildMonitor} from './monitorTypes/mobileBuild';
+import {UptimeMonitor} from './monitorTypes/uptime';
 
 const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> = {
   error: IconIssues,
@@ -40,10 +41,7 @@ const MONITOR_TYPE_ICONS: Record<Detector['type'], ComponentType<SVGIconProps>> 
 function monitorDetailsApiOptions(organizationSlug: string, detectorId: string) {
   return apiOptions.as<Detector>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, detectorId},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, detectorId}, staleTime: 30_000}
   );
 }
 
@@ -115,10 +113,7 @@ export default function MonitorBlock({id, name}: EmbedOutput<'monitor'>) {
     data: detector,
     isError,
     isPending,
-  } = useQuery({
-    ...monitorDetailsApiOptions(organization.slug, id),
-    retry: false,
-  });
+  } = useQuery({...monitorDetailsApiOptions(organization.slug, id), retry: false});
   const icon = detector ? (MONITOR_TYPE_ICONS[detector.type] ?? IconTimer) : IconTimer;
 
   return (

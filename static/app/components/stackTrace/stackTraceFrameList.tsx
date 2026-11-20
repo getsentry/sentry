@@ -1,14 +1,15 @@
 import {useMemo, type ComponentType} from 'react';
 
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {NativeStackTraceFrames} from 'sentry/components/stackTrace/native/nativeStackTraceFrames';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
-import {createStackTraceRowPolicy} from 'sentry/components/stackTrace/rowPolicy';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceProviderProps} from 'sentry/components/stackTrace/types';
 import {isNativePlatform} from 'sentry/utils/platform';
+
+import {FrameContent} from './frame/frameContent';
+import {NativeStackTraceFrames} from './native/nativeStackTraceFrames';
+import {NativeStackTraceProvider} from './native/nativeStackTraceProvider';
+import {createStackTraceRowPolicy} from './rowPolicy';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceProviderProps} from './types';
 
 export interface StackTraceFrameListProps extends Omit<
   StackTraceProviderProps,

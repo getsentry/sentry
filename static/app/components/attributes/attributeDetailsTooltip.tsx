@@ -1,6 +1,5 @@
 import {InfoText} from '@sentry/scraps/info';
 
-import {AttributeDetails} from 'sentry/components/attributes/attributeDetails';
 import {
   DEFAULT_TAG_DESCRIPTION,
   FieldValueType,
@@ -10,6 +9,8 @@ import {
 } from 'sentry/utils/fields';
 import {getAttributeVisibility} from 'sentry/utils/fields/getAttributeVisibility';
 import {useUser} from 'sentry/utils/useUser';
+
+import {AttributeDetails} from './attributeDetails';
 
 export interface AttributeDetailsTooltipProps {
   /**
@@ -65,6 +66,7 @@ export function AttributeDetailsTooltip({
 
   return (
     <InfoText
+      monospace
       variant="muted"
       title={
         <AttributeDetails

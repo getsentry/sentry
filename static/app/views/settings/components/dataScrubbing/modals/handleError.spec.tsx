@@ -1,4 +1,4 @@
-import {handleError} from 'sentry/views/settings/components/dataScrubbing/modals/handleError';
+import {handleError} from './handleError';
 
 describe('Data Scrubbing handleError', () => {
   it.each([
@@ -7,11 +7,7 @@ describe('Data Scrubbing handleError', () => {
       name: 'regex too long',
     },
   ])('recognizes errors "$name"', ({message}) => {
-    const rawError = {
-      responseJSON: {
-        relayPiiConfig: [message],
-      },
-    };
+    const rawError = {responseJSON: {relayPiiConfig: [message]}};
     const error = handleError(rawError);
     // check we don't get the default error message
     expect(error.message.toLowerCase().startsWith('an unknown error')).toBeFalsy();

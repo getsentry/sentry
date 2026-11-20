@@ -1,10 +1,8 @@
 import {isRepeatedFrame} from 'sentry/components/events/interfaces/utils';
-import {
-  DEFAULT_STACK_TRACE_ROW_POLICY,
-  type StackTraceRowPolicy,
-} from 'sentry/components/stackTrace/rowPolicy';
-import type {FrameRow, OmittedFramesRow, Row} from 'sentry/components/stackTrace/types';
 import type {Frame} from 'sentry/types/event';
+
+import {DEFAULT_STACK_TRACE_ROW_POLICY, type StackTraceRowPolicy} from './rowPolicy';
+import type {FrameRow, OmittedFramesRow, Row} from './types';
 
 function frameIsVisible(
   frame: Frame,
@@ -12,11 +10,7 @@ function frameIsVisible(
   includeSystemFrames: boolean,
   rowPolicy: StackTraceRowPolicy
 ) {
-  return rowPolicy.isFrameVisible({
-    frame,
-    includeSystemFrames,
-    nextFrame,
-  });
+  return rowPolicy.isFrameVisible({frame, includeSystemFrames, nextFrame});
 }
 
 export function createInitialHiddenFrameToggleMap(

@@ -1,9 +1,5 @@
 import {Fragment, useMemo} from 'react';
 
-import {EntryErrorBoundary} from 'sentry/components/events/entryErrorBoundary';
-import {Exception} from 'sentry/components/events/interfaces/exception';
-import {StackTrace} from 'sentry/components/events/interfaces/stackTrace';
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
 import {getOrderedExceptions} from 'sentry/components/stackTrace/issueStackTrace/utils';
 import {IssueThreadStackTrace} from 'sentry/components/stackTrace/native/issueThreadStackTrace';
@@ -21,11 +17,17 @@ import {
   MetricKitHangProfileSection,
 } from 'sentry/views/issueDetails/metricKitHangProfileSection';
 
+import {Exception} from './interfaces/exception';
+import {StackTrace} from './interfaces/stackTrace';
+import {Threads} from './interfaces/threads';
+import {EntryErrorBoundary} from './entryErrorBoundary';
+
 interface EventStackTraceProps {
   event: Event;
   group: Group;
   projectSlug: Project['slug'];
-  collapseAll?: boolean;
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
 }
 
 function getEventStackTraceData(event: Event, group: Group, organization: Organization) {
@@ -84,7 +86,7 @@ export function EventStackTrace({
   event,
   group,
   projectSlug,
-  collapseAll,
+  initialCollapse,
 }: EventStackTraceProps) {
   const organization = useOrganization();
   const {
@@ -101,7 +103,12 @@ export function EventStackTrace({
   const groupingCurrentLevel = group?.metadata?.current_level;
 
   if (hangProfileData) {
-    return <MetricKitHangProfileSection data={hangProfileData} />;
+    return (
+      <MetricKitHangProfileSection
+        data={hangProfileData}
+        initialCollapse={initialCollapse}
+      />
+    );
   }
 
   return (
@@ -110,7 +117,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.EXCEPTION}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               values={exception.data.values ?? []}
               projectSlug={projectSlug}
@@ -118,7 +125,7 @@ export function EventStackTrace({
             />
           ) : (
             <Exception
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={exception.data}
               projectSlug={projectSlug}
@@ -132,7 +139,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.STACKTRACE}>
           {shouldUseNewStackTrace ? (
             <IssueStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               stacktrace={stacktrace.data}
               projectSlug={projectSlug}
@@ -140,7 +147,7 @@ export function EventStackTrace({
             />
           ) : (
             <StackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={stacktrace.data}
               projectSlug={projectSlug}
@@ -153,7 +160,7 @@ export function EventStackTrace({
         <EntryErrorBoundary type={EntryType.THREADS}>
           {shouldUseNewNativeThreadStackTrace ? (
             <IssueThreadStackTrace
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={threads.data}
               projectSlug={projectSlug}
@@ -162,7 +169,7 @@ export function EventStackTrace({
             />
           ) : (
             <Threads
-              collapseAll={collapseAll}
+              initialCollapse={initialCollapse}
               event={event}
               data={threads.data}
               projectSlug={projectSlug}

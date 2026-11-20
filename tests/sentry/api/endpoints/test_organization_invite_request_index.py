@@ -3,15 +3,21 @@ from urllib.parse import parse_qs, urlparse
 
 import orjson
 from django.core import mail
+from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationInviteRequestListTest(APITestCase):
@@ -88,6 +94,30 @@ class OrganizationInviteRequestCreateTest(
             kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_request_invite(self) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["member:read", "member:invite"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.post(
+            self.url,
+            {"email": "eric@localhost", "role": "member"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
+        assert response.data["detail"]["code"] == "user-required"
+        assert not OrganizationMember.objects.filter(email="eric@localhost").exists()
+
     def test_simple(self) -> None:
         self.login_as(user=self.user)
 
@@ -115,6 +145,30 @@ class OrganizationInviteRequestCreateTest(
         assert teams[0].team_id == self.team.id
 
         self.assert_org_member_mapping(org_member=member)
+
+    def test_team_roles(self) -> None:
+        self.login_as(user=self.user)
+
+        with self.tasks(), outbox_runner():
+            response = self.client.post(
+                self.url,
+                {
+                    "email": "eric@localhost",
+                    "role": "member",
+                    "teamRoles": [{"teamSlug": self.team.slug, "role": "admin"}],
+                },
+                format="json",
+            )
+
+        assert response.status_code == 201
+
+        member = OrganizationMember.objects.get(
+            organization=self.organization, email=response.data["email"]
+        )
+        teams = OrganizationMemberTeam.objects.filter(organizationmember=member)
+
+        # Team-roles are not set on invite requests
+        assert [(omt.team_id, omt.role) for omt in teams] == [(self.team.id, None)]
 
     def test_cannot_request_higher_role(self) -> None:
         self.login_as(user=self.user)
@@ -206,13 +260,13 @@ class OrganizationInviteRequestCreateTest(
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Approve"},
-                "action_id": "approve_request",
+                "action_id": f"approve_request::{self.organization.id}",
                 "value": "approve_member",
             },
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Reject"},
-                "action_id": "reject_request",
+                "action_id": f"reject_request::{self.organization.id}",
                 "value": "reject_member",
             },
             {
@@ -265,8 +319,6 @@ class OrganizationInviteRequestCreateTest(
     def test_disallow_when_sso_required(self) -> None:
         from sentry.models.authidentity import AuthIdentity
         from sentry.models.authprovider import AuthProvider
-        from sentry.silo.base import SiloMode
-        from sentry.testutils.silo import assume_test_silo_mode
         from sentry.utils.auth import SsoSession
 
         self.member.flags["sso:linked"] = True
@@ -289,4 +341,30 @@ class OrganizationInviteRequestCreateTest(
         assert (
             resp.data["detail"]
             == "Your organization must use its single sign-on provider to register new members."
+        )
+
+
+class OrganizationInviteRequestListMembershipScopeTest(OrganizationInviteRequestListTest):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_list_invite_requests(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug)
+        assert {r["id"] for r in response.data} == {
+            str(self.invite_request.id),
+            str(self.request_to_join.id),
+        }
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_request_invites(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.org.slug, method="post", email="new@example.com", status_code=403
         )

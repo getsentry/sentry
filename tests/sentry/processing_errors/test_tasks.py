@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from datetime import timedelta
-from unittest.mock import patch
+from datetime import datetime, timedelta
+from unittest.mock import MagicMock, patch
 
 from django.core.cache import cache
 from django.utils import timezone
@@ -22,7 +22,9 @@ from sentry.workflow_engine.types import DetectorPriorityLevel
 
 
 class TestResolveStaleSourcemapDetectors(TestCase):
-    def _create_triggered_detector(self, date_updated=None):
+    def _create_triggered_detector(
+        self, date_updated: datetime | None = None
+    ) -> tuple[Detector, DetectorState]:
         """Create a detector with a triggered DetectorState."""
         condition_group = DataConditionGroup.objects.create(
             logic_type=DataConditionGroup.Type.ANY,
@@ -69,7 +71,7 @@ class TestResolveStaleSourcemapDetectors(TestCase):
         return detector, state
 
     @patch("sentry.processing_errors.tasks.produce_occurrence_to_kafka")
-    def test_resolves_stale_detector(self, mock_produce) -> None:
+    def test_resolves_stale_detector(self, mock_produce: MagicMock) -> None:
         stale_time = timezone.now() - timedelta(minutes=STALENESS_THRESHOLD_MINUTES + 5)
         detector, state = self._create_triggered_detector(date_updated=stale_time)
         resolve_stale_sourcemap_detectors()
@@ -89,7 +91,7 @@ class TestResolveStaleSourcemapDetectors(TestCase):
         ]
 
     @patch("sentry.processing_errors.tasks.produce_occurrence_to_kafka")
-    def test_skips_recently_updated(self, mock_produce) -> None:
+    def test_skips_recently_updated(self, mock_produce: MagicMock) -> None:
         _detector, state = self._create_triggered_detector()
         resolve_stale_sourcemap_detectors()
         state.refresh_from_db()
@@ -97,7 +99,7 @@ class TestResolveStaleSourcemapDetectors(TestCase):
         mock_produce.assert_not_called()
 
     @patch("sentry.processing_errors.tasks.produce_occurrence_to_kafka")
-    def test_skips_already_resolved(self, mock_produce) -> None:
+    def test_skips_already_resolved(self, mock_produce: MagicMock) -> None:
         stale_time = timezone.now() - timedelta(minutes=STALENESS_THRESHOLD_MINUTES + 5)
         _detector, state = self._create_triggered_detector(date_updated=stale_time)
 

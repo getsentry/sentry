@@ -1,4 +1,5 @@
 import type {
+  InvestigationActionRequest,
   InvestigationBlock,
   InvestigationComment,
   InvestigationDetail,
@@ -148,7 +149,6 @@ export function InvestigationDetailFixture(
     parameters: [],
     projectIds: [],
     source: {type: 'manual', ref: {}, revision: null},
-    template: null,
     // Manual by default: an agentic investigation carries a summary here, and
     // that is what gates the hypothesis row.
     orchestration: null,
@@ -213,10 +213,66 @@ export function InvestigationExecutionDetailFixture(
 export function InvestigationTitleGenerationFixture(
   overrides: Partial<InvestigationTitleGeneration> = {}
 ): InvestigationTitleGeneration {
+  return {status: 'completed', preview: null, ...overrides};
+}
+
+export function InvestigationActionRequestFixture(
+  overrides: Partial<InvestigationActionRequest> = {}
+): InvestigationActionRequest {
   return {
-    status: 'completed',
-    preview: null,
+    id: '312',
+    key: 'widen-time-window',
+    reportRevision: 2,
+    primary: true,
+    anchor: null,
+    reason: null,
+    title: 'Widen the interval',
+    rationale:
+      'The 5 minute window fires on single deploy spikes that recover within a minute.',
+    impact: 'Would have suppressed 4 of the last 5 alerts.',
+    state: 'suggested',
+    action: {
+      kind: 'update_detector',
+      detectorId: '789',
+      before: {timeWindowSeconds: 300},
+      changes: {timeWindowSeconds: 900},
+    },
+    appliedBy: null,
+    appliedDetails: null,
+    canApply: true,
+    cannotApplyReason: null,
+    dateApplied: null,
+    error: null,
+    followUp: null,
+    dateCreated: '2026-08-27T11:10:00Z',
     ...overrides,
+  };
+}
+
+export function InvestigationMetricSourceFixture(
+  monitor: Record<string, unknown> = {}
+): NonNullable<InvestigationDetail['source']> {
+  return {
+    type: 'metric_open_period',
+    ref: {groupId: '123', openPeriodId: '456'},
+    revision: null,
+    snapshot: {
+      monitor: {
+        id: '789',
+        name: 'Checkout error rate',
+        aggregate: 'count()',
+        query: '',
+        environment: null,
+        detectionType: 'static',
+        comparisonDeltaSeconds: null,
+        conditions: [
+          {type: 'gt', comparison: 100, result: 75},
+          {type: 'lte', comparison: 100, result: 0},
+        ],
+        ...monitor,
+      },
+      project: {id: '1', slug: 'checkout-api'},
+    },
   };
 }
 
@@ -229,13 +285,7 @@ export function InvestigationBreachedMetricDetailFixture(
     summary: 'Errors rose across releases',
     summaryDescription:
       'All active releases increased together.\nCheck shared infrastructure and dependencies.',
-    template: {key: 'breached_metric', version: 1},
-    source: {
-      type: 'metric_open_period',
-      ref: {groupId: '123', openPeriodId: '456'},
-      revision: null,
-      snapshot: {monitor: {id: '789', name: 'Checkout error rate'}},
-    },
+    source: InvestigationMetricSourceFixture(),
     blocks: [
       InvestigationBlockFixture({
         id: 'summary-block',
@@ -286,7 +336,6 @@ export function InvestigationBreachedMetricDetailFixture(
         }),
         outputStatus: 'completed',
         config: {autoRun: true},
-        dependencies: ['summary-block'],
       }),
       InvestigationBlockFixture({
         id: 'table-block',
@@ -299,7 +348,6 @@ export function InvestigationBreachedMetricDetailFixture(
         output: InvestigationQueryOutputFixture(),
         outputStatus: 'completed',
         config: {autoRun: true},
-        dependencies: ['chart-block'],
       }),
     ],
     ...overrides,
@@ -312,7 +360,6 @@ export function InvestigationRunningDetailFixture(
   return InvestigationDetailFixture({
     title: 'Untitled investigation',
     titleGeneration: {status: 'running'},
-    template: {key: 'breached_metric', version: 1},
     sourceType: 'metric_open_period',
     summary: null,
     summaryDescription: null,
@@ -352,7 +399,6 @@ export function InvestigationRunningDetailFixture(
           error: null,
         },
         config: {autoRun: true},
-        dependencies: ['block-1'],
       }),
       InvestigationBlockFixture({
         id: 'block-3',
@@ -365,7 +411,6 @@ export function InvestigationRunningDetailFixture(
         outputStatus: 'notRun',
         currentExecution: null,
         config: {autoRun: true},
-        dependencies: ['block-1', 'block-2'],
       }),
     ],
     ...overrides,
@@ -404,7 +449,6 @@ export function InvestigationFailedDetailFixture(
         outputStatus: 'notRun',
         currentExecution: null,
         config: {autoRun: true},
-        dependencies: ['block-1'],
       }),
     ],
     ...overrides,
@@ -419,10 +463,7 @@ export function InvestigationAwaitingInputExecutionFixture(
     status: 'awaiting_input',
     blocks: [
       InvestigationTranscriptBlockFixture({
-        message: {
-          role: 'assistant',
-          content: 'I need one more detail before finishing.',
-        },
+        message: {role: 'assistant', content: 'I need one more detail before finishing.'},
       }),
     ],
     pendingUserInput: {

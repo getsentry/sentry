@@ -1,5 +1,5 @@
 import {useEffect, useRef} from 'react';
-import * as qs from 'query-string';
+import {createSerializer, parseAsString} from 'nuqs';
 
 import {useNavigate} from 'sentry/utils/useNavigate';
 
@@ -39,14 +39,15 @@ export function useTraceQueryParamStateSync(
 
     previousQueryRef.current = query;
     syncStateTimeoutRef.current = window.setTimeout(() => {
+      const entries = Object.entries(previousQueryRef.current);
+      const serialize = createSerializer(
+        Object.fromEntries(entries.map(([key]) => [key, parseAsString]))
+      );
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            ...previousQueryRef.current,
-          },
-        },
+        serialize(
+          location.pathname + location.search,
+          Object.fromEntries(entries.map(([key, value]) => [key, value ?? null]))
+        ),
         {replace: true}
       );
     }, 1000);

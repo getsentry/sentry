@@ -64,7 +64,7 @@ class NotificationTrackingContext:
     """
     Identifies a single delivered notification for tracking.
 
-    `source`, `category`, `provider`, and `stage` become metric tags, so each must come from a
+    `source`, `category`, and `provider` become metric tags, so each must come from a
     small fixed set of values. IDs and URLs belong in `notification_uuid` and `organization_id`,
     which are only recorded on analytics events.
 
@@ -77,7 +77,6 @@ class NotificationTrackingContext:
     category: NotificationCategory | str
     notification_uuid: str | None
     organization_id: int
-    stage: str | None = None
 
 
 @dataclass(frozen=True)
@@ -93,61 +92,18 @@ _SOURCE_CATEGORIES: dict[str, NotificationCategory] = {
     source: category for category, sources in NOTIFICATION_SOURCE_MAP.items() for source in sources
 }
 
-# Legacy notifications built on `BaseNotification` give their links a referrer of
-# `<metrics_key>-<provider>`, sometimes followed by `-user` or `-team`, such as
-# `assigned_activity-email-user`. Maps each `metrics_key` to the notification platform source that
-# replaces it.
-_LEGACY_METRICS_KEY_SOURCES: dict[str, NotificationSource] = {
-    "issue_alert": NotificationSource.ISSUE,
-    "digest": NotificationSource.ISSUE,
-    "archived_activity": NotificationSource.ACTIVITY_SET_IGNORED,
-    "assigned_activity": NotificationSource.ACTIVITY_ASSIGNED,
-    "escalating_activity": NotificationSource.ACTIVITY_SET_ESCALATING,
-    "note_activity": NotificationSource.ACTIVITY_NOTE,
-    "regression_activity": NotificationSource.ACTIVITY_SET_REGRESSION,
-    "release_activity": NotificationSource.DEPLOY_RELEASE,
-    "resolved_activity": NotificationSource.ACTIVITY_SET_RESOLVED,
-    "resolved_in_commit_activity": NotificationSource.ACTIVITY_SET_RESOLVED_IN_COMMIT,
-    "resolved_in_release_activity": NotificationSource.ACTIVITY_SET_RESOLVED_IN_RELEASE,
-    "unassigned_activity": NotificationSource.ACTIVITY_UNASSIGNED,
-    "unresolved_activity": NotificationSource.ACTIVITY_SET_UNRESOLVED,
-}
-
-# Legacy alert referrers, which don't include a `metrics_key`, mapped to the notification platform
-# source that replaces them and their provider.
-_LEGACY_ALERT_REFERRERS: dict[str, tuple[NotificationSource, str]] = {
-    "slack": (NotificationSource.ISSUE, "slack"),
-    "msteams": (NotificationSource.ISSUE, "msteams"),
-    "discord": (NotificationSource.ISSUE, "discord"),
-    "alert_email": (NotificationSource.ISSUE, "email"),
-    "metric_alert_email": (NotificationSource.METRIC_ALERT, "email"),
-    "metric_alert_slack": (NotificationSource.METRIC_ALERT, "slack"),
-    "metric_alert_msteams": (NotificationSource.METRIC_ALERT, "msteams"),
-    "metric_alert_discord": (NotificationSource.METRIC_ALERT, "discord"),
-    "metric_alert_pagerduty": (NotificationSource.METRIC_ALERT, "pagerduty"),
-    "metric_alert_opsgenie": (NotificationSource.METRIC_ALERT, "opsgenie"),
-}
-
 
 def parse_referrer(referrer: str) -> NotificationReferrer | None:
     """
-    Identify a notification from a link's `referrer`: `<source>-<provider>` from the notification
-    platform, or one of the legacy referrers above. Referrers naming an unknown provider aren't
-    recognized.
+    Identify a notification from a link's `referrer` of `<source>-<provider>`, as set by
+    `NotificationLinkDecorator`. Referrers naming an unknown source or provider aren't recognized.
     """
-    prefix, _, provider = referrer.removesuffix("-user").removesuffix("-team").rpartition("-")
-    if prefix in _SOURCE_CATEGORIES:
-        source = NotificationSource(prefix)
-    elif prefix in _LEGACY_METRICS_KEY_SOURCES:
-        source = _LEGACY_METRICS_KEY_SOURCES[prefix]
-    elif referrer in _LEGACY_ALERT_REFERRERS:
-        source, provider = _LEGACY_ALERT_REFERRERS[referrer]
-    else:
+    source, _, provider = referrer.rpartition("-")
+    if source not in _SOURCE_CATEGORIES or provider not in ExternalProviderEnum:
         return None
-
-    if provider not in ExternalProviderEnum:
-        return None
-    return NotificationReferrer(source, _SOURCE_CATEGORIES[source], ExternalProviderEnum(provider))
+    return NotificationReferrer(
+        NotificationSource(source), _SOURCE_CATEGORIES[source], ExternalProviderEnum(provider)
+    )
 
 
 def is_tracking_enabled(
@@ -267,7 +223,7 @@ def classify_link(url: str) -> NotificationLink:
         return NotificationLink.REPOSITORIES
     if path.startswith("/explore/agents/conversations/"):
         return NotificationLink.SEER_AGENT_RUN
-    if path.startswith("/explore/investigations/"):
+    if path.startswith("/seer/investigations/"):
         return NotificationLink.INVESTIGATION
     logger.error("notifications.tracking.unclassified_link", extra={"path": path})
     return NotificationLink.OTHER
@@ -313,7 +269,6 @@ def record_sent(context: NotificationTrackingContext, *, links: Collection[str] 
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 links=links,
             )
         )
@@ -352,7 +307,6 @@ def record_engagement(
                 source=context.source,
                 category=context.category,
                 provider=context.provider,
-                stage=context.stage,
                 link=link,
                 mechanism=mechanism,
                 user_id=user_id,
@@ -369,18 +323,14 @@ class _NotificationTrackingTags(TypedDict):
     source: str
     provider: str
     category: str
-    stage: NotRequired[str]
     link: NotRequired[str]
     mechanism: NotRequired[NotificationEngagementMechanism]
 
 
 def _get_tags(context: NotificationTrackingContext) -> _NotificationTrackingTags:
-    tags = _NotificationTrackingTags(
+    return _NotificationTrackingTags(
         source=context.source, provider=context.provider, category=context.category
     )
-    if context.stage:
-        tags["stage"] = context.stage
-    return tags
 
 
 def _incr(key: str, tags: _NotificationTrackingTags) -> None:

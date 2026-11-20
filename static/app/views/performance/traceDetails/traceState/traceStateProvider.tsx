@@ -1,6 +1,6 @@
 import type React from 'react';
 import {createContext, useContext, useLayoutEffect, useState} from 'react';
-import * as qs from 'query-string';
+import {createLoader, parseAsString} from 'nuqs';
 
 import {
   useDispatchingReducer,
@@ -11,6 +11,8 @@ import {TraceReducer, type TraceReducerAction, type TraceReducerState} from './i
 import {storeTraceViewPreferences, type TracePreferencesState} from './tracePreferences';
 
 interface TraceStateContext {}
+
+const loadTraceSearchQueryParams = createLoader({search: parseAsString});
 
 const TraceStateContext = createContext<TraceReducerState | null>(null);
 const TraceStateDispatchContext =
@@ -67,22 +69,13 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
       return undefined;
     }
 
-    const query = qs.parse(location.search);
-
-    if (typeof query.search === 'string') {
-      return query.search;
-    }
-    return undefined;
+    return loadTraceSearchQueryParams(location.search).search ?? undefined;
   });
 
   const [traceState, traceDispatch, traceStateEmitter] = useDispatchingReducer(
     TraceReducer,
     {
-      rovingTabIndex: {
-        index: null,
-        items: null,
-        node: null,
-      },
+      rovingTabIndex: {index: null, items: null, node: null},
       search: {
         node: null,
         query: initialQuery,
@@ -93,11 +86,7 @@ export function TraceStateProvider(props: TraceStateProviderProps): React.ReactN
         resultsLookup: new Map(),
       },
       preferences: props.initialPreferences,
-      tabs: {
-        tabs: [],
-        current_tab: null,
-        last_clicked_tab: null,
-      },
+      tabs: {tabs: [], current_tab: null, last_clicked_tab: null},
     }
   );
 

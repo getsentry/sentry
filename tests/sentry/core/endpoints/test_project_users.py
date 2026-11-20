@@ -2,6 +2,7 @@ from datetime import timedelta
 from unittest import mock
 
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.analytics.events.eventuser_endpoint_request import EventUserEndpointRequest
 from sentry.testutils.cases import APITestCase, SnubaTestCase
@@ -49,7 +50,7 @@ class EventUserProjectUsersTest(APITestCase, SnubaTestCase):
         )
         self.euser2 = EventUser.from_event(self.event2)
 
-    def _assert_simple_response(self, response, mock_record):
+    def _assert_simple_response(self, response: Response, mock_record: mock.MagicMock) -> None:
         assert len(response.data) == 2
         if self.euser1.id is None and self.euser2.id is None:
             assert list(map(lambda x: x["id"], response.data)) == [None, None]

@@ -36,7 +36,7 @@ class RpcFilter(RpcModel):
     # TODO(getsentry/team-ospo#190): Unify with the base filter type.
     values: set[StrictStr | StrictInt]
 
-    def from_rpc(self) -> Filter:
+    def from_rpc(self) -> Filter[Any]:
         model = get_model(NormalizedModelName(self.on_model))
         if model is None:
             raise ValueError("model not found")
@@ -44,7 +44,7 @@ class RpcFilter(RpcModel):
         return Filter(model, self.field, self.values)
 
     @classmethod
-    def into_rpc(cls, base_filter: Filter) -> "RpcFilter":
+    def into_rpc(cls, base_filter: Filter[Any]) -> "RpcFilter":
         return cls(
             on_model=str(get_model_name(base_filter.model)),
             field=base_filter.field,

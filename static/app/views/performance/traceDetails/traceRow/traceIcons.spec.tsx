@@ -7,7 +7,8 @@ import {
   makeEAPSpan,
 } from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
-import {TraceIssueIcons} from 'sentry/views/performance/traceDetails/traceRow/traceIcons';
+
+import {TraceIssueIcons} from './traceIcons';
 
 const manager = {
   computeTraceIconPlacement: (
@@ -32,9 +33,7 @@ const manager = {
     timestamp: number,
     nodeSpace: [number, number]
   ) => (timestamp - nodeSpace[0]) / nodeSpace[1],
-  text_measurer: {
-    measure: jest.fn((text: string) => text.length * 7),
-  },
+  text_measurer: {measure: jest.fn((text: string) => text.length * 7)},
 } as unknown as VirtualizedViewManager;
 
 function renderIcons(node: BaseNode, nodeSpace: [number, number] = [0, 10_000]) {
@@ -183,9 +182,7 @@ describe('TraceIssueIcons', () => {
     const measuredManager = {
       ...manager,
       computeTraceIconPlacement,
-      text_measurer: {
-        measure: jest.fn(() => 32),
-      },
+      text_measurer: {measure: jest.fn(() => 32)},
     } as unknown as VirtualizedViewManager;
     const childErrorA = makeEAPError({
       event_id: 'child-error-a',

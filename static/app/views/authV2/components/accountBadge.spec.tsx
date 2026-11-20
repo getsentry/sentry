@@ -2,7 +2,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AccountBadge} from 'sentry/views/authV2/components/accountBadge';
+import {AccountBadge} from './accountBadge';
 
 describe('AccountBadge', () => {
   it('identifies the account and offers switching', async () => {

@@ -7,7 +7,7 @@ import {
   MODULE_PATH_KEY,
   toCustomerDomainForm,
   walkRouteTree,
-} from 'sentry/router/routeMapTestUtils';
+} from './routeMapTestUtils';
 
 describe('extractModulePath', () => {
   it('recovers the import target from a require()-compiled thunk', () => {
@@ -107,14 +107,8 @@ describe('walkRouteTree', () => {
         path: 'settings/',
         // layout node — no element, must not be emitted
         children: [
-          {
-            path: 'account/',
-            element: lazyElement('sentry/views/settings/account'),
-          },
-          {
-            path: 'old/',
-            element: redirectElement(),
-          },
+          {path: 'account/', element: lazyElement('sentry/views/settings/account')},
+          {path: 'old/', element: redirectElement()},
         ],
       },
     ];

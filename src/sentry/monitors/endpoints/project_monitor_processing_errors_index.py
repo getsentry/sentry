@@ -53,7 +53,7 @@ class ProjectMonitorProcessingErrorsIndexEndpoint(ProjectMonitorEndpoint):
         },
     )
     def get(
-        self, request: AuthenticatedHttpRequest, project, monitor
+        self, request: AuthenticatedHttpRequest, project: Project, monitor: Monitor
     ) -> Response[list[CheckinProcessingErrorData]]:
         """
         Retrieves checkin processing errors for a monitor

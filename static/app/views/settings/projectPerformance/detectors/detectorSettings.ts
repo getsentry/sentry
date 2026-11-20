@@ -1,6 +1,7 @@
 import {z} from 'zod';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
@@ -58,7 +59,7 @@ export const regressionAdminSchema = z.object({
 
 export function handleSuperUserError(error: Error): void {
   if (error instanceof RequestError && error.status === 403) {
-    addErrorMessage(
+    toast.error(
       t(
         'This action requires active super user access. Please re-authenticate to make changes.'
       )

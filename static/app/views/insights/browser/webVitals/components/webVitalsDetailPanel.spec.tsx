@@ -4,7 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {WebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/webVitalsDetailPanel';
+
+import {WebVitalsDetailPanel} from './webVitalsDetailPanel';
 
 describe('WebVitalsDetailPanel', () => {
   const organization = OrganizationFixture();
@@ -16,15 +17,11 @@ describe('WebVitalsDetailPanel', () => {
 
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
+      body: {data: []},
     });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
-      body: {
-        timeSeries: [],
-      },
+      body: {timeSeries: []},
     });
   });
 
@@ -33,9 +30,7 @@ describe('WebVitalsDetailPanel', () => {
   });
 
   it('renders correctly with empty results', async () => {
-    render(<WebVitalsDetailPanel webVital="lcp" />, {
-      organization,
-    });
+    render(<WebVitalsDetailPanel webVital="lcp" />, {organization});
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
     // Raw web vital metric tile queries
     expect(eventsMock).toHaveBeenNthCalledWith(

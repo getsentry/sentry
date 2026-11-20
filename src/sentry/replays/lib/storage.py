@@ -15,7 +15,6 @@ from django.conf import settings
 from django.db.utils import IntegrityError
 from google.api_core.exceptions import TooManyRequests
 
-from sentry import options
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_storage
 from sentry.objectstore.metrics import measure_storage_operation
@@ -108,7 +107,8 @@ class FilestoreBlob(Blob):
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.get")
     def get(self, segment: RecordingSegmentStorageMeta) -> bytes:
-        return self._segment_file(segment).getfile().read()
+        content = self._segment_file(segment).getfile().read()
+        return content
 
     @metrics.wraps("replays.lib.storage.FilestoreBlob.set")
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
@@ -172,8 +172,8 @@ class StorageBlob(Blob):
     def set(self, segment: RecordingSegmentStorageMeta, value: bytes) -> None:
         return storage_kv.set(self.make_key(segment), value)
 
-    def initialize_client(self):
-        return storage_kv.initialize_client()
+    def initialize_client(self) -> None:
+        storage_kv.initialize_client()
 
     def make_key(self, segment: RecordingSegmentStorageMeta) -> str:
         return _make_recording_filename(
@@ -217,7 +217,7 @@ class SimpleStorageBlob:
         with measure_storage_operation("delete", "replays"):
             storage.delete(key)
 
-    def initialize_client(self):
+    def initialize_client(self) -> None:
         storage = get_storage(self._make_storage_options())
         # acccess the storage client so it is initialized below.
         # this will prevent race condition parallel credential getting during segment download
@@ -226,10 +226,10 @@ class SimpleStorageBlob:
         if hasattr(storage, "client"):
             storage.client
 
-    def _make_storage_options(self) -> dict | None:
-        backend = options.get("replay.storage.backend")
+    def _make_storage_options(self) -> dict[str, object] | None:
+        backend = settings.SENTRY_REPLAY_STORAGE_BACKEND
         if backend:
-            return {"backend": backend, "options": options.get("replay.storage.options")}
+            return {"backend": backend, "options": settings.SENTRY_REPLAY_STORAGE_OPTIONS}
         else:
             return None
 

@@ -120,7 +120,7 @@ class Group(TypedDict):
     totals: dict[SessionsQueryFunction, SessionsQueryValue]
 
 
-def default_for(field: SessionsQueryFunction) -> SessionsQueryValue:
+def default_for(field: str) -> SessionsQueryValue:
     return 0 if field in ("sum(session)", "count_unique(user)") else None
 
 
@@ -372,7 +372,7 @@ class SimpleForwardingField(Field):
         return [self._metric_field]
 
 
-FIELD_MAP: Mapping[SessionsQueryFunction, type[Field]] = {
+FIELD_MAP: Mapping[str, type[Field]] = {
     "sum(session)": SumSessionField,
     "count_unique(user)": CountUniqueUser,
     "avg(session.duration)": DurationField,
@@ -483,13 +483,16 @@ def run_sessions_query(
         GroupKey.from_input_dict(group["by"]): group for group in metrics_results["groups"]
     }
 
-    default_group_gen_func: Callable[[], Group] = lambda: {
-        "totals": {field: default_for(field) for field in query.raw_fields},
-        "series": {
-            field: len(metrics_results["intervals"]) * [default_for(field)]
-            for field in query.raw_fields
+    default_group_gen_func: Callable[[], Group] = lambda: cast(
+        "Group",
+        {
+            "totals": {field: default_for(field) for field in query.raw_fields},
+            "series": {
+                field: len(metrics_results["intervals"]) * [default_for(field)]
+                for field in query.raw_fields
+            },
         },
-    }
+    )
 
     output_groups: MutableMapping[GroupKey, Group] = defaultdict(default_group_gen_func)
 
@@ -513,13 +516,16 @@ def run_sessions_query(
         for group_key, group in output_groups.items()
     ]
 
-    return {
-        "groups": result_groups,
-        "start": isoformat_z(metrics_results["start"]),
-        "end": isoformat_z(metrics_results["end"]),
-        "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
-        "query": query.query,
-    }
+    return cast(
+        "SessionsQueryResult",
+        {
+            "groups": result_groups,
+            "start": isoformat_z(metrics_results["start"]),
+            "end": isoformat_z(metrics_results["end"]),
+            "intervals": [isoformat_z(ts) for ts in metrics_results["intervals"]],
+            "query": query.query,
+        },
+    )
 
 
 def _empty_result(query: QueryDefinition) -> SessionsQueryResult:
@@ -597,7 +603,7 @@ def _parse_session_status(status: Any) -> frozenset[SessionStatus]:
 
 
 def _parse_orderby(
-    query: QueryDefinition, fields: Mapping[SessionsQueryFunction, Field]
+    query: QueryDefinition, fields: Mapping[str, Field]
 ) -> MetricOrderByField | None:
     orderbys = query.raw_orderby
     if orderbys == []:

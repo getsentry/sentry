@@ -29,9 +29,7 @@ import type {ScmAnalyticsFlow} from './scmAnalyticsFlow';
  * option lists) and the same provider sentence as the classic layout, so copy
  * and behavior stay in lockstep; only the presentation differs.
  */
-type Props = IssueAlertNotificationProps & {
-  analyticsFlow: ScmAnalyticsFlow;
-};
+type Props = IssueAlertNotificationProps & {analyticsFlow: ScmAnalyticsFlow};
 
 export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Props) {
   const {
@@ -74,7 +72,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
           <FullWidthSelect
             aria-label={t('integration')}
             disabled={integrationDisabled}
-            value={integration}
+            value={integration ?? null}
             options={integrationOptions}
             onChange={onIntegrationChange}
           />
@@ -109,7 +107,7 @@ export function ScmMessagingIntegrationAlertRule({analyticsFlow, ...props}: Prop
 
 const FullWidthSelect = styled(Select)`
   width: 100%;
-`;
+` as typeof Select;
 
 const FullWidthChannelSelect = styled(ChannelSelect)`
   width: 100%;

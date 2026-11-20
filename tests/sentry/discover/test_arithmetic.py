@@ -50,7 +50,7 @@ op_map = {
         (1.2345, "÷", 6.7890),
     ],
 )
-def test_simple_arithmetic(a, op, b) -> None:
+def test_simple_arithmetic(a: str | float, op: str, b: str | float) -> None:
     equation = f"{a}{op}{b}"
     result = parse_arithmetic_must_be_operation(equation)
     assert result.operator == op_map[op.strip()], equation
@@ -79,7 +79,7 @@ def test_parse_arithmetic_returns_column() -> None:
         ("2", 2),
     ],
 )
-def test_resolve_arithmetic(inp, output) -> None:
+def test_resolve_arithmetic(inp: str, output: float) -> None:
     parsed, _, _ = parse_arithmetic(inp)
     assert resolve_arithmetic(parsed) == output
 
@@ -101,7 +101,9 @@ def test_resolve_arithmetic(inp, output) -> None:
         ("12", "÷", "34", "÷", "56"),
     ],
 )
-def test_homogenous_arithmetic(a, op1, b, op2, c) -> None:
+def test_homogenous_arithmetic(
+    a: str | float, op1: str, b: str | float, op2: str, c: str | float
+) -> None:
     """Test that literal order of ops is respected assuming we don't have to worry about BEDMAS"""
     equation = f"{a}{op1}{b}{op2}{c}"
     result = parse_arithmetic_must_be_operation(equation)
@@ -198,7 +200,15 @@ def test_brackets_with_four_inner_terms() -> None:
         ("12", "÷", "34", "*", "56", "÷", "78"),
     ],
 )
-def test_homogenous_four_terms(a, op1, b, op2, c, op3, d) -> None:
+def test_homogenous_four_terms(
+    a: str | float,
+    op1: str,
+    b: str | float,
+    op2: str,
+    c: str | float,
+    op3: str,
+    d: str | float,
+) -> None:
     """This basically tests flatten in the ArithmeticVisitor
 
     flatten only kicks in when its a chain of the same operator type
@@ -232,7 +242,7 @@ def test_max_operators() -> None:
         (3.1415, "+", "spans.resource"),
     ],
 )
-def test_field_values(a, op, b) -> None:
+def test_field_values(a: str | float, op: str, b: str | float) -> None:
     for with_brackets in [False, True]:
         equation = f"{a}{op}{b}"
         if with_brackets:
@@ -287,7 +297,7 @@ def test_field_values(a, op, b) -> None:
         ('count_if(`test:"blah blah"`,test, test)', "+", "sum_if(`test:\"blah'blah'blah\"`)"),
     ],
 )
-def test_function_values(lhs, op, rhs) -> None:
+def test_function_values(lhs: str | int, op: str, rhs: str | int) -> None:
     for with_brackets in [False, True]:
         equation = f"{lhs}{op}{rhs}"
         if with_brackets:
@@ -322,7 +332,7 @@ def test_function_values(lhs, op, rhs) -> None:
         "+",
     ],
 )
-def test_unparseable_arithmetic(equation) -> None:
+def test_unparseable_arithmetic(equation: str) -> None:
     with pytest.raises(ArithmeticParseError):
         parse_arithmetic(equation)
 
@@ -345,7 +355,7 @@ def test_unparseable_arithmetic(equation) -> None:
         "(measurements.lcp)",
     ],
 )
-def test_invalid_arithmetic(equation) -> None:
+def test_invalid_arithmetic(equation: str) -> None:
     with pytest.raises(ArithmeticValidationError):
         parse_arithmetic(equation, validate_single_operator=True)
 
@@ -362,7 +372,7 @@ def test_invalid_arithmetic(equation) -> None:
         "trace_status_rate(ok) + 0",
     ],
 )
-def test_span_definition_allowlist_keeps_prebuilt_dashboard_formulas(equation) -> None:
+def test_span_definition_allowlist_keeps_prebuilt_dashboard_formulas(equation: str) -> None:
     result, _, functions = parse_arithmetic(equation, definitions=SPAN_DEFINITIONS)
     assert isinstance(result, Operation)
     assert len(functions) > 0

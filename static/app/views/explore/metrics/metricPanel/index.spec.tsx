@@ -1,6 +1,5 @@
 import type {ReactNode} from 'react';
-import qs from 'query-string';
-import {DroppedEventFixture} from 'sentry-fixture/droppedEvent';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {
   createTraceMetricFixtures,
@@ -15,6 +14,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import * as qs from 'sentry/utils/url/qs';
 import * as useMetricTraceDetailModule from 'sentry/views/explore/metrics/hooks/useMetricTraceDetail';
 import {MetricDetails} from 'sentry/views/explore/metrics/metricInfoTabs/metricDetails';
 import {MetricsSamplesTable} from 'sentry/views/explore/metrics/metricInfoTabs/metricsSamplesTable';
@@ -101,11 +101,7 @@ function setupMocks(orgSlug: string) {
     body: [],
   });
 
-  MockApiClient.addMockResponse({
-    url: `/customers/${orgSlug}/`,
-    method: 'GET',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: `/customers/${orgSlug}/`, method: 'GET', body: {}});
 
   MockApiClient.addMockResponse({
     url: `/organizations/${orgSlug}/trace-items/attributes/`,
@@ -135,9 +131,7 @@ describe('MetricPanel', () => {
   });
 
   const {organization, project, setupPageFilters, setupEventsMock, setupTraceItemsMock} =
-    initializeTraceMetricsTest({
-      orgFeatures: ['tracemetrics-enabled'],
-    });
+    initializeTraceMetricsTest({orgFeatures: ['tracemetrics-enabled']});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -170,36 +164,154 @@ describe('MetricPanel', () => {
     setupMocks(organization.slug);
   });
 
-  it('renders the metric panel', async () => {
+  it('renders the metric chart with its label and refreshed controls', async () => {
     render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
       organization,
       additionalWrapper: createWrapper({queryParams, traceMetric}),
     });
 
     expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-  });
-
-  it('renders the visualize label badge', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    // The visualize label badge "A" should be present
     expect(await screen.findByText('A')).toBeInTheDocument();
-  });
-
-  it('does not render orientation controls', async () => {
-    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
-      organization,
-      additionalWrapper: createWrapper({queryParams, traceMetric}),
-    });
-
-    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
-
-    // Orientation controls should NOT be present in the refreshed UI
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table bottom'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Table right'})).not.toBeInTheDocument();
+  });
+
+  it('does not filter raw counts by unit when the y-axis has a dash unit', async () => {
+    const noneUnitTraceMetric: TraceMetric = {
+      name: 'bar',
+      type: 'distribution',
+      unit: 'none',
+    };
+    const rawCountRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          referrer: 'api.explore.tracemetrics.raw-count.normal',
+          query: '( metric.name:bar metric.type:distribution )',
+        }),
+      ],
+    });
+
+    render(
+      <MetricPanel traceMetric={noneUnitTraceMetric} queryIndex={0} queryLabel="A" />,
+      {
+        organization,
+        additionalWrapper: createWrapper({
+          traceMetric: noneUnitTraceMetric,
+          queryParams: queryParams.replace({
+            aggregateFields: [new VisualizeFunction('p50(value,bar,distribution,-)')],
+          }),
+        }),
+      }
+    );
+
+    await waitFor(() => expect(rawCountRequest).toHaveBeenCalled());
+  });
+
+  it('counts each top-N group once across transformed series', async () => {
+    setupEventsMock(
+      createTraceMetricFixtures(organization, project, new Date()).detailedFixtures,
+      [MockApiClient.matchQuery({referrer: 'api.explore.metric-options'})]
+    );
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events-timeseries/`,
+      body: {
+        timeSeries: [
+          {group: 'api', sampleCounts: [5, 10]},
+          {group: 'worker', sampleCounts: [10, 20]},
+          {group: null, sampleCounts: [100, 100]},
+        ].flatMap(({group, sampleCounts}) =>
+          sampleCounts.map(sampleCount =>
+            TimeSeriesFixture({
+              yAxis: 'sum(value)',
+              groupBy: group ? [{key: 'service.name', value: group}] : null,
+              meta: {
+                valueType: 'integer',
+                valueUnit: null,
+                interval: 1000,
+                isOther: group === null,
+              },
+              values: [{timestamp: Date.now(), value: 5, sampleCount, sampleRate: 1}],
+            })
+          )
+        ),
+      },
+    });
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        traceMetric,
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('sum(value)'),
+            new VisualizeFunction('sum(value)', {transformations: ['smooth(sma,5)']}),
+            {groupBy: 'service.name'},
+          ],
+        }),
+      }),
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('metric-panel')).toHaveTextContent(
+        '30 data points for top 2 groups'
+      )
+    );
+  });
+
+  it('keeps the chart visible without transformation controls for heat maps', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeFunction('count(value,bar,distribution,none)', {
+              chartType: ChartType.HEATMAP,
+            }),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(await screen.findByTestId('metric-panel')).toBeInTheDocument();
+    expect(screen.getByTestId('metric-panel-chart-type-select')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Add Transformation'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows transformation controls for equations', async () => {
+    render(<MetricPanel traceMetric={traceMetric} queryIndex={0} queryLabel="A" />, {
+      organization: {
+        ...organization,
+        features: [...organization.features, 'explore-interpolation-and-smoothing'],
+      },
+      additionalWrapper: createWrapper({
+        queryParams: queryParams.replace({
+          aggregateFields: [
+            new VisualizeEquation('equation|1 + 2', {transformations: ['fill(zero)']}),
+          ],
+        }),
+        traceMetric,
+      }),
+    });
+
+    expect(
+      await screen.findByRole('button', {name: 'Add Transformation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Remove transformation'})
+    ).toBeInTheDocument();
   });
 
   describe('dropped data layer', () => {
@@ -212,7 +324,7 @@ describe('MetricPanel', () => {
         ],
         body: {
           meta: {dataset: 'tracemetrics', start: 0, end: 0, interval: 0},
-          droppedEvents: [DroppedEventFixture()],
+          droppedEvents: [OutcomeRowFixture()],
           acceptedEvents: [],
         },
       });
@@ -265,10 +377,7 @@ describe('MetricPanel', () => {
       aggregateSortBys: [{field: 'equation|sum(value) + avg(value)', kind: 'desc'}],
     });
 
-    const equationOrg = {
-      ...organization,
-      features: [...organization.features],
-    };
+    const equationOrg = {...organization, features: [...organization.features]};
 
     render(
       <MetricPanel
@@ -279,10 +388,7 @@ describe('MetricPanel', () => {
       />,
       {
         organization: equationOrg,
-        additionalWrapper: createWrapper({
-          queryParams: equationQueryParams,
-          traceMetric,
-        }),
+        additionalWrapper: createWrapper({queryParams: equationQueryParams, traceMetric}),
       }
     );
 
@@ -309,10 +415,7 @@ describe('MetricPanel', () => {
       aggregateSortBys: [{field: 'equation|sum(value) + avg(value)', kind: 'desc'}],
     });
 
-    const equationOrg = {
-      ...organization,
-      features: [...organization.features],
-    };
+    const equationOrg = {...organization, features: [...organization.features]};
 
     render(
       <MetricPanel
@@ -323,10 +426,7 @@ describe('MetricPanel', () => {
       />,
       {
         organization: equationOrg,
-        additionalWrapper: createWrapper({
-          queryParams: equationQueryParams,
-          traceMetric,
-        }),
+        additionalWrapper: createWrapper({queryParams: equationQueryParams, traceMetric}),
       }
     );
 
@@ -352,10 +452,7 @@ describe('MetricPanel', () => {
       aggregateSortBys: [{field: 'sum(value)', kind: 'desc'}],
     });
 
-    const heatMapOrg = {
-      ...organization,
-      features: [...organization.features],
-    };
+    const heatMapOrg = {...organization, features: [...organization.features]};
 
     render(
       <MetricPanel traceMetric={counterTraceMetric} queryIndex={0} queryLabel="A" />,
@@ -589,10 +686,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     await waitFor(() => expect(traceDetailsMock).toHaveBeenCalledTimes(1));
@@ -614,10 +708,7 @@ describe('MetricPanel', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-samples-table'})],
-        body: {
-          data: [row],
-          meta: {fields: {}, units: {}, routingHint: 'metric-hint'},
-        },
+        body: {data: [row], meta: {fields: {}, units: {}, routingHint: 'metric-hint'}},
       });
       const details = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/trace-items/${row.id}/`,
@@ -717,10 +808,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     await waitFor(() => expect(traceMetaMock).toHaveBeenCalledTimes(1));
@@ -749,10 +837,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     expect(screen.getByTestId('error-indicator')).toBeInTheDocument();
@@ -777,10 +862,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();
@@ -809,10 +891,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     expect(traceDetailSpy).toHaveBeenCalledWith(
@@ -830,10 +909,7 @@ describe('MetricPanel', () => {
     const traceDetailSpy = jest
       .spyOn(useMetricTraceDetailModule, 'useMetricTraceDetail')
       .mockReturnValue({
-        data: {
-          attributes: [],
-          meta: {},
-        },
+        data: {attributes: [], meta: {}},
         isError: false,
         isPending: false,
       } as unknown as ReturnType<typeof useMetricTraceDetailModule.useMetricTraceDetail>);
@@ -844,10 +920,7 @@ describe('MetricPanel', () => {
           <MetricDetails dataRow={row} ref={{current: null}} showTelemetry={false} />
         </tbody>
       </table>,
-      {
-        organization,
-        additionalWrapper: createWrapper({queryParams, traceMetric}),
-      }
+      {organization, additionalWrapper: createWrapper({queryParams, traceMetric})}
     );
 
     expect(screen.getByText('No attributes found for this sample')).toBeInTheDocument();

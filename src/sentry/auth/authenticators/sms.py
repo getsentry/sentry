@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from hashlib import md5
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 from django.http.request import HttpRequest
 from django.utils.functional import classproperty
@@ -55,7 +55,7 @@ class SmsInterface(OtpMixin):
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     @property
-    def phone_number(self) -> str:
+    def phone_number(self) -> str | None:
         return self.config["phone_number"]
 
     @phone_number.setter
@@ -109,7 +109,7 @@ class SmsInterface(OtpMixin):
         else:
             user_id = None
 
-        phone_number = phone_number_as_e164(self.phone_number)
+        phone_number = phone_number_as_e164(cast("str", self.phone_number))
 
         if ratelimiter.is_limited(
             f"sms:{md5(phone_number.encode('utf-8')).hexdigest()}",

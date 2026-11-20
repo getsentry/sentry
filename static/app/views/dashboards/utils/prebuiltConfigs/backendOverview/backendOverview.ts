@@ -8,10 +8,6 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  DASHBOARD_DESCRIPTION,
-  DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/backendOverview/settings';
 import {BASE_FILTER_STRING} from 'sentry/views/dashboards/utils/prebuiltConfigs/queries/settings';
 import {
   WIDGET_COLUMN_LABELS,
@@ -25,6 +21,8 @@ import {
 } from 'sentry/views/insights/pages/frontend/settings';
 import {OVERVIEW_PAGE_ALLOWED_OPS as MOBILE_OVERVIEW_PAGE_OPS} from 'sentry/views/insights/pages/mobile/settings';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {DASHBOARD_DESCRIPTION, DASHBOARD_TITLE} from './settings';
 
 const disallowedOps = [
   ...new Set([
@@ -267,13 +265,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
     },
   ],
   widgetType: WidgetType.SPANS,
-  layout: {
-    x: 0,
-    w: 6,
-    h: 6,
-    minH: TABLE_MIN_HEIGHT,
-    y: 7,
-  },
+  layout: {x: 0, w: 6, h: 6, minH: TABLE_MIN_HEIGHT, y: 7},
 };
 
 export const BACKEND_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {

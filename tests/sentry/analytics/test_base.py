@@ -1,3 +1,5 @@
+from typing import Any
+
 from sentry.analytics import Analytics
 from sentry.analytics.event import EventEnvelope
 from sentry.analytics.events.organization_created import OrganizationCreatedEvent
@@ -5,12 +7,12 @@ from sentry.testutils.cases import TestCase
 
 
 class DummyAnalytics(Analytics):
-    def __init__(self):
-        self.events = []
-        self.event_envelopes = []
+    def __init__(self) -> None:
+        self.events: list[Any] = []
+        self.event_envelopes: list[EventEnvelope] = []
         super().__init__()
 
-    def record_event_envelope(self, envelope: EventEnvelope):
+    def record_event_envelope(self, envelope: EventEnvelope) -> None:
         self.event_envelopes.append(envelope)
         self.events.append(envelope.event)
 

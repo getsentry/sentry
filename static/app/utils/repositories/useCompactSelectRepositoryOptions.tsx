@@ -7,11 +7,12 @@ import {RepositoryStatus, type Repository} from 'sentry/types/integrations';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
 import {getIntegrationIcon} from 'sentry/utils/integrationUtil';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
-} from 'sentry/utils/repositories/repoQueryOptions';
-import {useOrganization} from 'sentry/utils/useOrganization';
+} from './repoQueryOptions';
 
 function toRepoOption(repo: Repository): SelectOption<Repository['id']> {
   return {
@@ -44,11 +45,7 @@ function selectRepositoryOptions(
     return connected;
   }
   return [
-    {
-      key: 'connected',
-      label: t('Connected'),
-      options: connected,
-    },
+    {key: 'connected', label: t('Connected'), options: connected},
     {
       key: 'disconnected',
       label: t('Disconnected'),

@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useReorderStarredDashboards} from 'sentry/views/dashboards/hooks/useReorderStarredDashboards';
+import {useReorderStarredDashboards} from './useReorderStarredDashboards';
 
 describe('useReorderStarredDashboards', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});

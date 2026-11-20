@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 
-import type {RequestError} from 'sentry/utils/requestError/requestError';
+import type {RequestError} from './requestError/requestError';
 
 export function handleXhrErrorResponse(message: string, err: RequestError): void {
   // Sudo errors are handled separately elsewhere
@@ -15,18 +15,12 @@ export function handleXhrErrorResponse(message: string, err: RequestError): void
     // Turn `GET /dogs/are/great 500` into just `GET /dogs/are/great`
     const endpoint = causeMessage?.replace(new RegExp(` ${status}$`), '');
 
-    scope.setTags({
-      responseStatus: status,
-      endpoint,
-    });
+    scope.setTags({responseStatus: status, endpoint});
 
     // TODO: If we discover that undefind response bodies don't break anything,
     // we can revert to bailing when `responseJSON` is falsy and always calling `setExtras`
     if (err.name !== 'UndefinedResponseBodyError') {
-      scope.setExtras({
-        status,
-        responseJSON,
-      });
+      scope.setExtras({status, responseJSON});
     }
 
     Sentry.captureException(

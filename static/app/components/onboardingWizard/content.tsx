@@ -15,11 +15,8 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useMutateOnboardingTasks} from 'sentry/components/onboarding/useMutateOnboardingTasks';
-import {useOnboardingTasks} from 'sentry/components/onboardingWizard/useOnboardingTasks';
-import {findCompleteTasks, taskIsDone} from 'sentry/components/onboardingWizard/utils';
 import {ProgressRing} from 'sentry/components/progressRing';
 import {t, tct} from 'sentry/locale';
-import {DemoWalkthroughStore} from 'sentry/stores/demoWalkthroughStore';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
@@ -30,6 +27,9 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useNavigationTour} from 'sentry/views/navigation/navigationTour';
+
+import {useOnboardingTasks} from './useOnboardingTasks';
+import {findCompleteTasks, taskIsDone} from './utils';
 
 /**
  * How long (in ms) to delay before beginning to mark tasks complete
@@ -57,10 +57,7 @@ function groupTasksByCompletion(tasks: OnboardingTask[]) {
   const [completedTasks, incompletedTasks] = partition(tasks, task =>
     findCompleteTasks(task)
   );
-  return {
-    completedTasks,
-    incompletedTasks,
-  };
+  return {completedTasks, incompletedTasks};
 }
 
 interface TaskCardProps {
@@ -208,8 +205,6 @@ function Task({task, hidePanel}: TaskProps) {
           tours?.[DemoTour.RELEASES]?.startTour();
         } else if (task.task === OnboardingTaskKey.ISSUE_GUIDE) {
           tours?.[DemoTour.ISSUES]?.startTour();
-        } else {
-          DemoWalkthroughStore.activateGuideAnchor(task.task);
         }
       }
 
@@ -251,11 +246,7 @@ function Task({task, hidePanel}: TaskProps) {
     });
 
     mutateOnboardingTasks.mutate([
-      {
-        task: task.task,
-        status: 'skipped',
-        completionSeen: true,
-      },
+      {task: task.task, status: 'skipped', completionSeen: true},
     ]);
   };
 
@@ -435,10 +426,7 @@ function TaskGroup({
       return;
     }
 
-    trackAnalytics('quick_start.task_group_completed', {
-      organization,
-      group,
-    });
+    trackAnalytics('quick_start.task_group_completed', {organization, group});
 
     setTaskGroupComplete(true);
   }, [

@@ -1,12 +1,13 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-import {StackTraceViewStateContext} from 'sentry/components/stackTrace/stackTraceContext';
+import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+
+import {StackTraceViewStateContext} from './stackTraceContext';
 import type {
   StackTraceView,
   StackTraceViewState,
   StackTraceViewStateProviderProps,
-} from 'sentry/components/stackTrace/types';
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+} from './types';
 
 /** Values saved to localStorage, shared with the legacy stack trace. */
 export const DISPLAY_OPTION = {

@@ -1,6 +1,7 @@
 __all__ = ["DatadogMetricsBackend"]
 
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 
 from datadog import initialize
 from datadog.threadstats.base import ThreadStats
@@ -8,6 +9,9 @@ from datadog.util.hostname import get_hostname
 from django.utils.functional import cached_property
 
 from .base import MetricsBackend, Tags
+from .datadog_stats import DatadogStats
+
+_ThreadStats = cast("Callable[[], DatadogStats]", ThreadStats)
 
 
 class DatadogMetricsBackend(MetricsBackend):
@@ -29,8 +33,8 @@ class DatadogMetricsBackend(MetricsBackend):
             pass
 
     @cached_property
-    def stats(self) -> ThreadStats:
-        instance = ThreadStats()
+    def stats(self) -> DatadogStats:
+        instance = _ThreadStats()
         instance.start()
         return instance
 

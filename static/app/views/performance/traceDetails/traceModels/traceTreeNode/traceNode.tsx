@@ -1,4 +1,3 @@
-import type {TraceTreeNodeDetailsProps} from 'sentry/views/performance/traceDetails/traceDrawer/tabs/traceTreeNodeDetails';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import {TraceRootRow} from 'sentry/views/performance/traceDetails/traceRow/traceRootNode';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
@@ -53,12 +52,6 @@ export class TraceNode extends BaseNode<TraceTree.EAPTrace> {
     props: TraceRowProps<T>
   ): React.ReactNode {
     return <TraceRootRow {...props} node={this} />;
-  }
-
-  renderDetails<T extends BaseNode>(
-    _props: TraceTreeNodeDetailsProps<T>
-  ): React.ReactNode {
-    return null;
   }
 
   matchWithFreeText(_key: string): boolean {

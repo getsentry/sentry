@@ -3,8 +3,9 @@ import styled from '@emotion/styled';
 import {Grid} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {ContextIcon, NAMES} from 'sentry/components/events/contexts/contextIcon';
 import * as Storybook from 'sentry/stories';
+
+import {ContextIcon, NAMES} from './contextIcon';
 
 export default Storybook.story('ContextIcon', story => {
   story('All', () => (

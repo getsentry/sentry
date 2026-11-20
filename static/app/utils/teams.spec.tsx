@@ -3,7 +3,8 @@ import {TeamFixture} from 'sentry-fixture/team';
 import {act, render} from 'sentry-test/reactTestingLibrary';
 
 import {TeamStore} from 'sentry/stores/teamStore';
-import {Teams} from 'sentry/utils/teams';
+
+import {Teams} from './teams';
 
 describe('utils.teams', () => {
   const renderer = jest.fn(() => null);
@@ -29,14 +30,8 @@ describe('utils.teams', () => {
         hasMore: null,
         fetchError: null,
         teams: [
-          expect.objectContaining({
-            id: '1',
-            slug: 'bar',
-          }),
-          expect.objectContaining({
-            id: '2',
-            slug: 'foo',
-          }),
+          expect.objectContaining({id: '1', slug: 'bar'}),
+          expect.objectContaining({id: '2', slug: 'foo'}),
         ],
       })
     );

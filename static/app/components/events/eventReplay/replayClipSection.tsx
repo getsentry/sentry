@@ -5,7 +5,6 @@ import {LinkButton} from '@sentry/scraps/button';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ReplayAccess} from 'sentry/components/replays/replayAccess';
@@ -21,16 +20,15 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
 import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
+import {REPLAY_LOADING_HEIGHT} from './constants';
+
 interface Props {
   event: Event;
   group: Group | undefined;
   replayId: string;
 }
 
-const REPLAY_CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const REPLAY_CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 const ReplayClipPreview = lazy(() => import('./replayClipPreview'));
 
@@ -47,9 +45,7 @@ export function ReplayClipSection({event, group, replayId}: Props) {
   const allReplaysButton = (
     <LinkButton
       size="xs"
-      to={{
-        pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`,
-      }}
+      to={{pathname: `${baseUrl}${TabPaths[Tab.REPLAYS]}`}}
       analyticsEventKey="issue_details.replay_player.clicked_see_all_replays"
       analyticsEventName="Issue Details: Replay Player Clicked See All Replays"
     >

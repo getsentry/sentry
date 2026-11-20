@@ -1,5 +1,6 @@
 import logging
 from collections import defaultdict
+from typing import Annotated, TypedDict
 
 from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
@@ -25,8 +26,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import StatsArgsDict, StatsMixin, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
+from sentry.apidocs.parameters import (
+    GlobalParams,
+    OrganizationParams,
+    StatsRangeParams,
+    UptimeParams,
+)
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.search.eap.constants import MAX_ROLLUP_POINTS, VALID_GRANULARITIES
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_uptime_detector_subscription_ids,
@@ -37,17 +48,67 @@ from sentry.utils.snuba_rpc import timeseries_rpc
 logger = logging.getLogger(__name__)
 
 
+class UptimeCheckStatusCounts(TypedDict):
+    success: Annotated[int, ApiDescription("Checks that succeeded")]
+    failure: Annotated[int, ApiDescription("Checks that failed outside an open incident")]
+    failure_incident: Annotated[int, ApiDescription("Checks that failed during an open incident")]
+    missed_window: Annotated[int, ApiDescription("Checks that didn't run in their time window")]
+
+
+# Each bucket is a `[timestamp, counts]` pair.
+UptimeStatsBucket = tuple[int, UptimeCheckStatusCounts]
+OrganizationUptimeStatsResponse = dict[int, list[UptimeStatsBucket]]
+
+
 @cell_silo_endpoint
-@extend_schema(tags=["Uptime Monitors"])
+@extend_schema(tags=["Crons"])
 class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL,
     }
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationUptimeStats",
+        summary="Retrieve Check Stats for an Organization's Uptime Monitors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            UptimeParams.STATS_DETECTOR_ID,
+            StatsRangeParams.SINCE,
+            StatsRangeParams.UNTIL,
+            UptimeParams.STATS_RESOLUTION,
+            OrganizationParams.PROJECT,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationUptimeStatsResponse", OrganizationUptimeStatsResponse
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[OrganizationUptimeStatsResponse] | Response[str]:
+        """
+        Return uptime check counts by outcome for each requested uptime monitor, in time
+        buckets. The response maps each uptime monitor ID to a list of `[timestamp, counts]`
+        pairs, sorted by time, where `timestamp` is the bucket start as a Unix timestamp. An
+        uptime monitor with no checks in the range is left out.
+        """
         timerange_args = self._parse_args(request, restrict_rollups=False)
+        if "resolution" not in request.GET:
+            timerange_args["rollup"] = min(
+                (g for g in VALID_GRANULARITIES if g >= timerange_args["rollup"]),
+                default=max(VALID_GRANULARITIES),
+            )
+        rollup_error = self._validate_rollup(timerange_args)
+        if rollup_error:
+            return self.respond(rollup_error, status=400)
+
         projects = self.get_projects(request, organization, include_all_accessible=True)
 
         uptime_detector_ids = request.GET.getlist("uptimeDetectorId")
@@ -89,6 +150,19 @@ class OrganizationUptimeStatsEndpoint(OrganizationEndpoint, StatsMixin):
         )
 
         return self.respond(mapped_response)
+
+    def _validate_rollup(self, timerange_args: StatsArgsDict) -> str | None:
+        rollup = timerange_args["rollup"]
+        if rollup not in VALID_GRANULARITIES:
+            valid = ", ".join(f"{g}s" for g in sorted(VALID_GRANULARITIES))
+            return f"Invalid resolution. Must be one of: {valid}"
+
+        duration = (timerange_args["end"] - timerange_args["start"]).total_seconds()
+        if duration < rollup:
+            return "Time range must be at least as long as the resolution"
+        if duration / rollup > MAX_ROLLUP_POINTS:
+            return f"Too many buckets requested. Maximum is {MAX_ROLLUP_POINTS}"
+        return None
 
     def _make_eap_request(
         self,

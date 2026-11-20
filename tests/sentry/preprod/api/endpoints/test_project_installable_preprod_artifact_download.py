@@ -36,7 +36,12 @@ class ProjectInstallablePreprodArtifactDownloadEndpointTest(TestCase):
             download_count=0,
         )
 
-    def _get_url(self, organization_id_or_slug=None, project_id_or_slug=None, url_path=None):
+    def _get_url(
+        self,
+        organization_id_or_slug: str | None = None,
+        project_id_or_slug: str | None = None,
+        url_path: str | None = None,
+    ) -> str:
         org = organization_id_or_slug or self.organization.slug
         proj = project_id_or_slug or self.project.slug
         path = url_path or self.installable.url_path

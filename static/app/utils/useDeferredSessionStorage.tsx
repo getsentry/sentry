@@ -4,7 +4,7 @@ import {
   readStorageValue,
   writeStorageValue,
   removeStorageValue,
-} from 'sentry/utils/useSessionStorage';
+} from './useSessionStorage';
 
 /**
  * Persists a value to sessionStorage under `key`. Unlike `useSessionStorage`, writes are deferred —

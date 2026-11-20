@@ -1,4 +1,4 @@
-import {decodeWebhookBody} from 'sentry/views/settings/organizationDeveloperSettings/sentryApplicationDashboard/decodeWebhookBody';
+import {decodeWebhookBody} from './decodeWebhookBody';
 
 describe('decodeWebhookBody', () => {
   it('parses a plain JSON body', () => {
@@ -89,11 +89,7 @@ describe('decodeWebhookBody', () => {
   });
 
   it('handles an empty body', () => {
-    expect(decodeWebhookBody('')).toEqual({
-      parsed: null,
-      raw: '',
-      maybeTruncated: false,
-    });
+    expect(decodeWebhookBody('')).toEqual({parsed: null, raw: '', maybeTruncated: false});
   });
 
   it('measures the size cap against the stored body, not the decoded one', () => {

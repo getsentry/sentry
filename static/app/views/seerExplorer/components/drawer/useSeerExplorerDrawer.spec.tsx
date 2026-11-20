@@ -8,8 +8,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
-import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+
+import {useSeerExplorerDrawer} from './useSeerExplorerDrawer';
 
 jest.mock('sentry/views/seerExplorer/components/drawer/explorerDrawerContent', () => ({
   ExplorerDrawerContent: () => <div data-seer-explorer-root="" />,

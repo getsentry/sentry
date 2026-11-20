@@ -1,10 +1,10 @@
-/* eslint no-native-reassign:0 */
-
-declare var __webpack_public_path__: string; // eslint-disable-line no-var
+declare global {
+  var __zod_globalConfig: {jitless?: boolean} | undefined;
+}
 
 /**
- * Set the webpack public path at runtime. This is necessary so that imports
- * can be resolved properly
+ * Set the public path at runtime. This is necessary so that imports and asset
+ * URLs in injected CSS can be resolved properly
  *
  * NOTE: This MUST be loaded before any other app modules in the entrypoint.
  *
@@ -17,4 +17,17 @@ declare var __webpack_public_path__: string; // eslint-disable-line no-var
  * for now as a quick workaround for the index.html being aware of versioned
  * asset paths.
  */
-__webpack_public_path__ = window.__initialData?.distPrefix || '/_assets/';
+import.meta.rspackPublicPath = window.__initialData?.distPrefix || '/_assets/';
+
+// Zod probes `new Function` the first time it builds an object schema, and our
+// CSP reports that as a violation. Turning off its JIT before any schema exists
+// skips the probe. Zod reads this global when it loads.
+globalThis.__zod_globalConfig = {jitless: true};
+
+// Fonts only download once text using them is laid out, which for the app is
+// after React's first render. Start the Latin Rubik file now so it loads in
+// parallel with the app bundle. The @font-face rules in sentry.css own the
+// URL, so this never fetches a second copy.
+if (typeof document !== 'undefined' && 'fonts' in document) {
+  document.fonts.load('1em Rubik').catch(() => {});
+}

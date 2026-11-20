@@ -1,0 +1,102 @@
+import type {Avatar} from 'sentry/types/core';
+
+export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
+
+export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
+
+export interface InboxRouteHandle {
+  inboxSubjectType: InboxSubjectType;
+}
+
+export const INBOX_RECIPIENTS = ['team', 'user'] as const;
+
+export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];
+
+export const INBOX_EVENT_TYPES = [
+  'issue.user_assigned',
+  'issue.team_assigned',
+  'issue.user_mentioned',
+  'issue.team_mentioned',
+  'issue.pr_ready_for_review',
+  'notebook.completed',
+  'notebook.user_mentioned',
+  'notebook.team_mentioned',
+  'notebook.participant_added',
+] as const;
+
+export type InboxEventType = (typeof INBOX_EVENT_TYPES)[number];
+
+interface InboxIssueAssignedData {
+  assignmentSource:
+    | 'codeowners'
+    | 'projectOwnership'
+    | 'slack'
+    | 'msteams'
+    | 'discord'
+    | 'suspectCommitter'
+    | 'seerSuggested'
+    | null;
+}
+
+interface InboxEventDataByType {
+  'issue.pr_ready_for_review': {prUrl: string; seerRunId: string};
+  'issue.team_assigned': InboxIssueAssignedData;
+  'issue.team_mentioned': {commentId: string};
+  'issue.user_assigned': InboxIssueAssignedData;
+  'issue.user_mentioned': {commentId: string};
+  'notebook.completed': {seerRunId: string};
+  'notebook.participant_added': Record<string, never>;
+  'notebook.team_mentioned': {blockId: string | null; commentId: string};
+  'notebook.user_mentioned': {blockId: string | null; commentId: string};
+}
+
+type InboxSystemActor = {avatar: null; id: null; name: 'Sentry'; type: 'system'};
+
+type InboxUserActor = {avatar: Avatar | null; id: string; name: string; type: 'user'};
+
+type InboxActor = InboxSystemActor | InboxUserActor;
+
+interface BaseInboxItemEvent {
+  actor: InboxActor;
+  dateAdded: string;
+  id: string;
+  isUnread: boolean;
+  summary: string;
+}
+
+type InboxItemEvent = {
+  [T in InboxEventType]: BaseInboxItemEvent & {data: InboxEventDataByType[T]; type: T};
+}[InboxEventType];
+
+interface BaseInboxSubject {
+  id: string;
+  title: string;
+}
+
+type InboxSubject = BaseInboxSubject &
+  (
+    | {metadata: {project: {id: string; slug: string}; shortId: string}; type: 'issue'}
+    | {metadata: Record<string, never>; type: 'notebook'}
+  );
+
+export type InboxSubjectRef = Pick<InboxSubject, 'id' | 'type'>;
+
+export interface InboxItem {
+  eventCount: number;
+  eventTypes: InboxEventType[];
+  id: string;
+  isUnread: boolean;
+  lastActivityAt: string;
+  lastReadAt: string | null;
+  latestEvent: InboxItemEvent;
+  subject: InboxSubject;
+  subtitle: string;
+  unreadEventCount: number;
+  url: string;
+}
+
+export interface InboxFilters {
+  eventType: InboxEventType[];
+  recipient: InboxRecipient[];
+  subjectType: InboxSubjectType[];
+}

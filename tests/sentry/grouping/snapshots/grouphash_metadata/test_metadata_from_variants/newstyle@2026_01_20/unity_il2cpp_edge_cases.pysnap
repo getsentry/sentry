@@ -22,7 +22,7 @@ metrics with tags: {
 ---
 contributing variants:
   app*
-    hash: "539935023e2db3e104789c1c69ca2cf5"
+    hash: "7773ac6e847d4427f46d22c4ba6dcda3"
     contributing component: exception
     hint: None
     root_component:
@@ -39,11 +39,18 @@ contributing variants:
             frame* (marked in-app by the client)
               function*
                 "developer_own_libgame_binary_not_unity_gameactivity_glue"
-            frame* (marked in-app by built-in stacktrace rule (family:native package:**/Containers/Bundle/Application/** +app))
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
+              filename*
+                "enemyspawner.cs"
               function*
-                "legacy_ios_engine_binary_unity_6000_0_and_older"
+                "windows_il2cpp_project_source_with_backslash_paths"
+            frame* (marked in-app by built-in stacktrace rule (category:il2cpp path:**/Assets/** +app))
+              filename*
+                "enemyspawner.cs"
+              function*
+                "linux_il2cpp_project_source"
   system*
-    hash: "7429f5a97df8b817f3b36cab1970f9ea"
+    hash: "d36fe8387b0516dbdd89bd3b551cb075"
     contributing component: exception
     hint: None
     root_component:
@@ -83,6 +90,3 @@ contributing variants:
             frame*
               function*
                 "legacy_ios_engine_binary_unity_6000_0_and_older"
-            frame*
-              function*
-                "windows_sentry_native_sdk"

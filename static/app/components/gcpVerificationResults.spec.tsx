@@ -1,6 +1,6 @@
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {GcpVerificationResults} from 'sentry/components/gcpVerificationResults';
+import {GcpVerificationResults} from './gcpVerificationResults';
 
 describe('GcpVerificationResults', () => {
   it('shows one explanation and the affected services beside each project', async () => {
@@ -96,11 +96,7 @@ describe('GcpVerificationResults', () => {
         result={{
           connectionStatus: 'unverified',
           projects: [
-            {
-              gcpProjectId: 'project-a',
-              connectionStatus: 'unverified',
-              services: [],
-            },
+            {gcpProjectId: 'project-a', connectionStatus: 'unverified', services: []},
           ],
         }}
       />

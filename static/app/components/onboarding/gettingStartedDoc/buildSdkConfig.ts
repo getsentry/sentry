@@ -1,4 +1,4 @@
-import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from './types';
 
 /**
  * Build the Sdk configuration for the getting started docs.

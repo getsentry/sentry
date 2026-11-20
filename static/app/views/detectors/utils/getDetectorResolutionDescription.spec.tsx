@@ -1,5 +1,6 @@
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {getResolutionDescription} from 'sentry/views/detectors/utils/getDetectorResolutionDescription';
+
+import {getResolutionDescription} from './getDetectorResolutionDescription';
 
 describe('getDetectorResolutionDescription', () => {
   describe('dynamic detection type', () => {

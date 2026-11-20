@@ -5,11 +5,10 @@ from sentry.testutils.helpers.response import close_streaming_response
 class TestChartRenderer(AcceptanceTestCase):
     def test_debug_renders(self) -> None:
         options = {
-            "chart-rendering.enabled": True,
             "system.url-prefix": self.browser.live_server_url,
         }
 
-        with self.options(options):
+        with self.settings(SENTRY_CHART_RENDERING_ENABLED=True), self.options(options):
             self.browser.get("debug/charts/chart-renderer/")
 
         self.wait_for_loading()
@@ -19,6 +18,7 @@ class TestChartRenderer(AcceptanceTestCase):
 
         for image in images:
             src = image.get_attribute("src")
+            assert src is not None
             resp = self.client.get(src)
 
             # Ensure our chart images actually look like pngs

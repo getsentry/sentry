@@ -71,7 +71,7 @@ export function ScmProjectDetailsCore({
           <Stack gap="xs">
             <TeamSelector
               allowCreate
-              inputId={teamId}
+              id={teamId}
               name="team"
               clearable={false}
               placeholder={t('Select a Team')}

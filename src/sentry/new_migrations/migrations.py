@@ -1,4 +1,6 @@
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations import Migration, RunSQL, SeparateDatabaseAndState
+from django.db.migrations.operations.base import Operation
 from django.db.migrations.state import ProjectState
 from django_zero_downtime_migrations.backends.postgres.schema import UnsafeOperationException
 
@@ -20,9 +22,14 @@ class CheckedMigration(Migration):
     # the `owners-migrations` team.
     checked = True
 
-    def apply(self, project_state, schema_editor, collect_sql=False):
+    def apply(
+        self,
+        project_state: ProjectState,
+        schema_editor: BaseDatabaseSchemaEditor,
+        collect_sql: bool = False,
+    ) -> ProjectState:
         if self.checked:
-            schema_editor.safe = True
+            setattr(schema_editor, "safe", True)
         for op in self.operations:
             validate_operation(op)
 
@@ -41,7 +48,7 @@ class CheckedMigration(Migration):
         return new_state
 
 
-def validate_operation(op):
+def validate_operation(op: Operation) -> None:
     if isinstance(op, RunSQL) and not isinstance(op, SafeRunSQL):
         raise UnsafeOperationException(
             "Using `RunSQL` is unsafe because our migrations safety framework can't detect problems with the "

@@ -104,6 +104,7 @@ export type TimeSeries = {
    * If the `excludeOther` query param is `true`, an "other" time series will be part of the response. `TimeSeries.meta.isOther` specifies the "other" time series, and `groupBy` is `null` in that case
    */
   groupBy?: TimeSeriesGroupBy[] | null;
+  requestedTransformations?: readonly string[];
 };
 
 export type TabularValueType = AttributeValueType | null;
@@ -144,10 +145,7 @@ export interface StateProps {
 
 export type Thresholds = ThresholdsConfig;
 
-export type Release = {
-  timestamp: string;
-  version: string;
-};
+export type Release = {timestamp: string; version: string};
 
 export type LegendSelection = Record<string, boolean>;
 

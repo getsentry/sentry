@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from django.utils import timezone
 
+from sentry.models.commitcomparison import CommitComparison
 from sentry.preprod.api.models.project_preprod_build_details_models import (
     SizeInfoCompleted,
     SizeInfoFailed,
@@ -334,7 +335,9 @@ class TestToSnapshotComparisonInfoApprovalStatus(TestCase):
 @cell_silo_test
 class TestToSnapshotComparisonInfoNoBaseBuild(TestCase):
     def _create_artifact_with_snapshot_metrics(
-        self, commit_comparison=None, date_added=None
+        self,
+        commit_comparison: CommitComparison | None = None,
+        date_added: datetime | None = None,
     ) -> PreprodArtifact:
         artifact = self.create_preprod_artifact(
             project=self.project,

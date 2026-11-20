@@ -79,10 +79,23 @@ class GetAutofixIntegrationSetupProblemsTestCase(TestCase):
 
         assert result == "integration_missing"
 
-    def test_unsupported_gitlab_integration(self) -> None:
+    def test_supported_gitlab_integration(self) -> None:
         self.create_integration(
             organization=self.organization,
             provider=IntegrationProviderSlug.GITLAB.value,
+            external_id="1",
+        )
+
+        result = get_autofix_integration_setup_problems(
+            organization=self.organization, project=self.project
+        )
+
+        assert result is None
+
+    def test_unsupported_provider_integration(self) -> None:
+        self.create_integration(
+            organization=self.organization,
+            provider="unsupported-provider",
             external_id="1",
         )
 
@@ -271,6 +284,7 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         # Note: has_project_connected_repos is not called when integration check fails
 
         with assume_test_silo_mode(SiloMode.CONTROL):
+            assert self.organization_integration is not None
             self.organization_integration.delete()
 
         group = self.create_group()
@@ -316,6 +330,24 @@ class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization)
         self.create_seer_agent_run(run, source="autofix", group=group)
+
+        self.login_as(user=self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["billing"]["hasAutofixQuota"] is True
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
+        return_value=True,
+    )
+    def test_free_cohort_org_with_existing_single_run_has_autofix_quota(
+        self, mock_is_free_cohort: MagicMock
+    ) -> None:
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix_single_run", group=group)
 
         self.login_as(user=self.user)
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"

@@ -272,10 +272,7 @@ export default Storybook.story('Native StackTrace', story => {
 
   story('Found by Stack Scanning', () => {
     const {event, stacktrace} = makeBasicData();
-    stacktrace.frames[2] = makeFrame({
-      ...stacktrace.frames[2]!,
-      trust: 'scan',
-    });
+    stacktrace.frames[2] = makeFrame({...stacktrace.frames[2]!, trust: 'scan'});
     return (
       <StoryProvider event={event} stacktrace={stacktrace}>
         <NativeStackTraceFrames />

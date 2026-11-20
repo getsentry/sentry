@@ -1,4 +1,4 @@
-import {constructSelector} from 'sentry/views/explore/replays/selectors/constructSelector';
+import {constructSelector} from './constructSelector';
 
 describe('constructSelector', () => {
   it.each([
@@ -118,10 +118,7 @@ describe('constructSelector', () => {
   ])(
     'should construct the correct trimmed selector and full selector, for each element in the list "$selector"',
     ({element, fullSelector, selector}) => {
-      expect(constructSelector(element)).toStrictEqual({
-        fullSelector,
-        selector,
-      });
+      expect(constructSelector(element)).toStrictEqual({fullSelector, selector});
     }
   );
 });

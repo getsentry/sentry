@@ -1,9 +1,11 @@
+from pathlib import Path
+
 import pytest
 
 from tools import lint_requirements
 
 
-def test_ok(tmp_path) -> None:
+def test_ok(tmp_path: Path) -> None:
     f = tmp_path.joinpath("uv.lock")
     f.write_text(
         """
@@ -22,7 +24,7 @@ wheels = [
     assert lint_requirements.main((str(f),)) == 0
 
 
-def test_not_ok_git_url(tmp_path) -> None:
+def test_not_ok_git_url(tmp_path: Path) -> None:
     # note: uv adding
     # git+https://github.com/asottile/astpretty@3.0.0#egg=astpretty
     # vs astpretty @ git+https://github.com/asottile/astpretty@v3.0.0
@@ -51,7 +53,7 @@ See PEP440: https://www.python.org/dev/peps/pep-0440/#direct-references"""
     assert msg == expected.rstrip()
 
 
-def test_not_ok_public_pypi(tmp_path) -> None:
+def test_not_ok_public_pypi(tmp_path: Path) -> None:
     # note: uv adding
     # git+https://github.com/asottile/astpretty@3.0.0#egg=astpretty
     # vs astpretty @ git+https://github.com/asottile/astpretty@v3.0.0

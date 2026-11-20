@@ -10,7 +10,6 @@ class NotificationTrackingSentEvent(analytics.Event):
     source: str
     category: str
     provider: str
-    stage: str | None = None
     # The links and buttons present in the sent message
     links: list[str] = field(default_factory=list)
 
@@ -22,7 +21,6 @@ class NotificationTrackingEngagementEvent(analytics.Event):
     source: str
     category: str
     provider: str
-    stage: str | None = None
     link: str
     # How the engagement was observed: page_load, provider_callback, or redirect
     mechanism: str

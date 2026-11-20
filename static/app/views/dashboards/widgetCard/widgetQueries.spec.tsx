@@ -6,10 +6,12 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {PageFilters} from 'sentry/types/core';
+import {WidgetInViewportProvider} from 'sentry/views/dashboards/contexts/widgetViewportContext';
 import {DashboardFilterKeys, DisplayType} from 'sentry/views/dashboards/types';
 import {WidgetQueryQueueProvider} from 'sentry/views/dashboards/utils/widgetQueryQueue';
-import type {GenericWidgetQueriesResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
+
+import type {GenericWidgetQueriesResult} from './genericWidgetQueries';
+import {WidgetQueries} from './widgetQueries';
 
 describe('Dashboards > WidgetQueries', () => {
   const initialData = initializeOrg();
@@ -82,12 +84,7 @@ describe('Dashboards > WidgetQueries', () => {
   const selection: PageFilters = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   afterEach(() => {
@@ -116,6 +113,33 @@ describe('Dashboards > WidgetQueries', () => {
     await screen.findByTestId('child');
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(defaultMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits until the widget is in the viewport before fetching', async () => {
+    const mock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+    });
+    const renderTree = (isInViewport: boolean) => (
+      <WidgetQueryQueueProvider>
+        <WidgetInViewportProvider value={isInViewport}>
+          <WidgetQueries widget={singleQueryWidget}>
+            {() => <div data-test-id="child" />}
+          </WidgetQueries>
+        </WidgetInViewportProvider>
+      </WidgetQueryQueueProvider>
+    );
+
+    const {rerender} = render(renderTree(false), {
+      organization: initialData.organization,
+    });
+
+    await screen.findByTestId('child');
+    expect(mock).not.toHaveBeenCalled();
+
+    rerender(renderTree(true));
+
+    await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
   });
 
   it('appends dashboard filters to events series request', async () => {
@@ -206,12 +230,7 @@ describe('Dashboards > WidgetQueries', () => {
     const longSelection: PageFilters = {
       projects: [1],
       environments: ['prod', 'dev'],
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with the specific selection for this test
@@ -255,19 +274,14 @@ describe('Dashboards > WidgetQueries', () => {
     expect(errorMock).toHaveBeenCalledTimes(1);
     expect(errorMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({interval: '30m'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({interval: '30m'})})
     );
   });
 
   it('can send table result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -307,18 +321,12 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send multiple table queries', async () => {
     const firstQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
       match: [MockApiClient.matchQuery({query: 'event.type:error'})],
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -370,10 +378,7 @@ describe('Dashboards > WidgetQueries', () => {
   it('can send big number result queries', async () => {
     const tableMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {'sdk.name': 'string'},
-        data: [{'sdk.name': 'python'}],
-      },
+      body: {meta: {'sdk.name': 'string'}, data: [{'sdk.name': 'python'}]},
     });
 
     // Initialize PageFiltersStore with selection
@@ -436,10 +441,7 @@ describe('Dashboards > WidgetQueries', () => {
     });
     const secondQuery = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {title: 'string'},
-        data: [{title: 'ValueError'}],
-      },
+      body: {meta: {title: 'string'}, data: [{title: 'ValueError'}]},
       match: [MockApiClient.matchQuery({query: 'title:ValueError'})],
     });
 
@@ -557,13 +559,13 @@ describe('Dashboards > WidgetQueries', () => {
         expect.objectContaining({
           timeseriesResults: [
             expect.objectContaining({
-              seriesName: 'errors : count()',
+              seriesName: '0 : count()',
               timeSeries: expect.objectContaining({
                 values: [expect.objectContaining({timestamp: 1000000, value: 200})],
               }),
             }),
             expect.objectContaining({
-              seriesName: 'default : count()',
+              seriesName: '1 : count()',
               timeSeries: expect.objectContaining({
                 values: [expect.objectContaining({timestamp: 1000000, value: 100})],
               }),
@@ -587,12 +589,7 @@ describe('Dashboards > WidgetQueries', () => {
 
     const longSelection = {
       ...selection,
-      datetime: {
-        period: '90d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '90d', start: null, end: null, utc: false},
     };
 
     // Initialize PageFiltersStore with longSelection
@@ -614,7 +611,7 @@ describe('Dashboards > WidgetQueries', () => {
     );
   });
 
-  it('does not re-query events and sets name in widgets', async () => {
+  it('does not re-query events and updates the widget query in results', async () => {
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
@@ -666,17 +663,13 @@ describe('Dashboards > WidgetQueries', () => {
 
     // Did not re-query
     expect(eventsStatsMock).toHaveBeenCalledTimes(1);
-    expect(childProps.timeseriesResults![0]!.seriesName).toBe(
-      'this query alias changed : count()'
+    expect(childProps.timeseriesResults![0]!.widgetQuery.name).toBe(
+      'this query alias changed'
     );
   });
 
   it('does not inject equation aliases for top N requests', async () => {
-    const testData = initializeOrg({
-      organization: {
-        ...OrganizationFixture(),
-      },
-    });
+    const testData = initializeOrg({organization: {...OrganizationFixture()}});
     const eventsStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},

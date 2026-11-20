@@ -3,7 +3,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {BaseChart} from 'sentry/components/charts/baseChart';
 import {markLine} from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
-import {Chart, ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {Chart, ChartType} from './chart';
 
 jest.mock('sentry/components/charts/baseChart', () => ({
   BaseChart: jest.fn().mockImplementation(() => <div />),
@@ -32,14 +33,7 @@ describe('Chart', () => {
           {name: start - 30_000, value: 2},
           {name: start, value: 1},
         ],
-        markLine: markLine({
-          data: [
-            {
-              type: 'average',
-              yAxis: 3,
-            },
-          ],
-        }),
+        markLine: markLine({data: [{type: 'average', yAxis: 3}]}),
       },
     ];
     render(<Chart data={mockedSeries} loading={false} type={ChartType.LINE} />, {});

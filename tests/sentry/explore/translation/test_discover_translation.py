@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
@@ -10,7 +12,13 @@ from sentry.testutils.helpers.datetime import before_now
 
 
 class DiscoverToExploreTranslationTest(TestCase):
-    def create_discover_query(self, name: str, query: dict, explore_query=None, is_homepage=False):
+    def create_discover_query(
+        self,
+        name: str,
+        query: dict[str, Any],
+        explore_query: ExploreSavedQuery | None = None,
+        is_homepage: bool = False,
+    ) -> DiscoverSavedQuery:
         discover_saved_query = DiscoverSavedQuery.objects.create(
             organization=self.org,
             created_by_id=self.user.id,

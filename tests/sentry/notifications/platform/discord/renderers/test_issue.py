@@ -1,11 +1,14 @@
 from __future__ import annotations
 
 from typing import Any
+from unittest import mock
 
 import pytest
 
 from sentry.integrations.discord.message_builder import LEVEL_TO_COLOR
+from sentry.integrations.types import ExternalProviders
 from sentry.models.group import Group
+from sentry.notifications.additional_attachment_manager import discord_attachment_manager
 from sentry.notifications.platform.discord.provider import (
     DiscordNotificationProvider,
     DiscordRenderable,
@@ -46,6 +49,7 @@ class IssueDiscordRendererTest(TestCase):
         tags: list[str] | None = None,
         event_data: dict[str, Any] | None = None,
         rule: SerializableRuleProxy | None = None,
+        integration_id: int | None = None,
     ) -> tuple[IssueNotificationData, Event, Group]:
         event = self.store_event(
             data=event_data or {"message": "test event"},
@@ -61,6 +65,7 @@ class IssueDiscordRendererTest(TestCase):
             notification_uuid="test-uuid",
             tags=tags,
             rule=rule or SerializableRuleProxy(label="Test Detector", workflow_id=1),
+            integration_id=integration_id,
         )
 
         return data, event, group
@@ -140,6 +145,25 @@ class IssueDiscordRendererTest(TestCase):
             result["embeds"][0]["url"]
             == f"http://testserver/organizations/{self.organization.slug}/issues/{group.id}/?referrer=discord&notification_uuid=test-uuid"
         )
+
+    def test_render_appends_additional_attachment(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization, provider="discord", external_id="discord-guild"
+        )
+        data, _, _ = self._create_data(integration_id=integration.id)
+        attachment = {"title": "Extra", "description": "Additional content"}
+
+        with mock.patch.dict(
+            discord_attachment_manager.attachment_generators,
+            {ExternalProviders.DISCORD: lambda integration, organization: [attachment]},
+        ):
+            result = render_issue(
+                data=data,
+                rendered_template=NotificationRenderedTemplate(subject="Issue Alert", body=[]),
+            )
+
+        assert len(result["embeds"]) == 2
+        assert result["embeds"][-1] == attachment
 
     def test_source(self) -> None:
         data = IssueNotificationData(

@@ -5,14 +5,20 @@ import styled from '@emotion/styled';
 import {Stack} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import type {AvatarProject, Project} from 'sentry/types/project';
 import {useProjects} from 'sentry/utils/useProjects';
+
+import ProjectBadge from './idBadge/projectBadge';
 
 type ProjectListProps = {
   projectSlugs: string[];
   className?: string;
   collapsedProjectsTooltip?: (projects: Array<Project | {slug: string}>) => ReactNode;
+  /**
+   * Render project chips without project-details links, e.g. when the list sits
+   * inside another link.
+   */
+  disableLinks?: boolean;
   maxVisibleProjects?: number;
   /**
    * When set, project chips become clickable buttons instead of project-details
@@ -24,8 +30,10 @@ type ProjectListProps = {
 function CollapsedProjectsTooltip({
   projects,
   onProjectClick,
+  disableLinks,
 }: {
   projects: AvatarProject[];
+  disableLinks?: boolean;
   onProjectClick?: (project: AvatarProject) => void;
 }) {
   return (
@@ -40,7 +48,12 @@ function CollapsedProjectsTooltip({
             <ProjectBadge project={project} avatarSize={16} disableLink />
           </SlugButton>
         ) : (
-          <ProjectBadge key={project.slug} project={project} avatarSize={16} />
+          <ProjectBadge
+            key={project.slug}
+            project={project}
+            avatarSize={16}
+            disableLink={disableLinks}
+          />
         )
       )}
     </Stack>
@@ -53,6 +66,7 @@ export function ProjectList({
   collapsedProjectsTooltip,
   onProjectClick,
   className,
+  disableLinks,
 }: ProjectListProps) {
   const {projects} = useProjects({slugs: projectSlugs});
 
@@ -79,6 +93,7 @@ export function ProjectList({
               <CollapsedProjectsTooltip
                 projects={collapsedProjectAvatars}
                 onProjectClick={onProjectClick}
+                disableLinks={disableLinks}
               />
             )
           }
@@ -100,7 +115,7 @@ export function ProjectList({
           project={project}
           avatarSize={16}
           avatarProps={{hasTooltip: true, tooltip: project.slug}}
-          disableLink={Boolean(onProjectClick)}
+          disableLink={disableLinks || Boolean(onProjectClick)}
           onClick={onProjectClick ? () => onProjectClick(project) : undefined}
           $clickable={Boolean(onProjectClick)}
         />

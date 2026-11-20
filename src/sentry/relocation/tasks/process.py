@@ -407,7 +407,7 @@ def fulfill_cross_region_export_request(
 
     # Save a transfer record to move the export to control silo
     transfer = RegionRelocationTransfer.objects.create(
-        relocation_uuid=uuid_str,
+        relocation_uuid=UUID(uuid_str),
         requesting_cell=requesting_cell_name,
         exporting_cell=replying_cell_name,
         org_slug=org_slug,
@@ -760,7 +760,7 @@ def preprocessing_transfer(uuid: str) -> None:
             )
             .select_related("file")
             .prefetch_related("file__blobs")
-            .first()
+            .get_or_none()
         )
         if raw_relocation_file is None:
             raise FileNotFoundError("User-supplied relocation data not found.")

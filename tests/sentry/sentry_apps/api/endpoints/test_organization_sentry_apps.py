@@ -27,6 +27,11 @@ class OrganizationSentryAppsTest(APITestCase):
         )
         self.unpublished_app = self.create_sentry_app(name="Testin", organization=self.org)
         self.url = reverse("sentry-api-0-organization-sentry-apps", args=[self.org.slug])
+        application = self.unpublished_app.application
+        assert application is not None
+        assert application.client_secret is not None
+        self.unpublished_application = application
+        self.unpublished_client_secret = application.client_secret
 
 
 @control_silo_test
@@ -54,8 +59,8 @@ class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
                     "isAlertable": self.unpublished_app.is_alertable,
                     "isDisabled": self.unpublished_app.is_disabled,
                     "verifyInstall": self.unpublished_app.verify_install,
-                    "clientId": self.unpublished_app.application.client_id,
-                    "clientSecret": self.unpublished_app.application.client_secret,
+                    "clientId": self.unpublished_application.client_id,
+                    "clientSecret": self.unpublished_client_secret,
                     "overview": self.unpublished_app.overview,
                     "allowedOrigins": [],
                     "webhookHeaders": [],

@@ -1,9 +1,9 @@
 from collections.abc import Callable, Sequence
-from typing import Any
+from typing import cast
 
 from sentry.models.organization import Organization
 
-from ..constants import PLATFORMS_CONFIG
+from ..constants import PLATFORMS_CONFIG, PlatformConfigDict
 
 SourceRootsResolver = Callable[[str, Sequence[str] | None], tuple[str, str] | None]
 
@@ -33,9 +33,9 @@ def get_supported_extensions() -> list[str]:
     return list(extensions)
 
 
-def get_platform_config(platform: str) -> dict[str, Any]:
+def get_platform_config(platform: str) -> PlatformConfigDict:
     """Return the platform config for the given platform"""
-    return dict(PLATFORMS_CONFIG[platform])
+    return cast("PlatformConfigDict", dict(PLATFORMS_CONFIG[platform]))
 
 
 class PlatformConfig:

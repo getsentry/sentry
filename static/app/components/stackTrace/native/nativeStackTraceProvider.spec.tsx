@@ -5,11 +5,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
-import {NativeDisplayOptionsMenu} from 'sentry/components/stackTrace/native/nativeDisplayOptions';
-import {NativeStackTraceProvider} from 'sentry/components/stackTrace/native/nativeStackTraceProvider';
-import {RawDownloadAction} from 'sentry/components/stackTrace/native/rawDownloadAction';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
+
+import {NativeDisplayOptionsMenu} from './nativeDisplayOptions';
+import {NativeStackTraceProvider} from './nativeStackTraceProvider';
+import {RawDownloadAction} from './rawDownloadAction';
 
 describe('NativeStackTraceProvider', () => {
   const event = EventFixture({platform: 'cocoa'});
@@ -81,7 +82,7 @@ describe('NativeStackTraceProvider', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
         'href',
-        '/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
+        '/api/0/projects/org-slug/project-slug/events/event-id/apple-crash-report?minified=true&thread_id=123&download=1'
       );
     });
   });

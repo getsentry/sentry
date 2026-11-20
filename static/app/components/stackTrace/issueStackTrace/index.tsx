@@ -6,7 +6,6 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {StackTraceDisplayOptionsProvider} from 'sentry/components/stackTrace/displayOptionsContext';
-import {IssueExceptionStackTrace} from 'sentry/components/stackTrace/issueStackTrace/exceptionStackTrace';
 import {supportsAppleCrashReport} from 'sentry/components/stackTrace/native/appleCrashReport';
 import {NativeAppleCrashReportContent} from 'sentry/components/stackTrace/native/nativeAppleCrashReportContent';
 import {useStackTraceViewState} from 'sentry/components/stackTrace/stackTraceContext';
@@ -23,14 +22,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {IssueExceptionStackTrace} from './exceptionStackTrace';
 import {IssueStackTraceActions} from './issueStackTraceActions';
 import {formatExceptionsAsText, getOrderedExceptions} from './utils';
 
 interface IssueStackTraceBaseProps {
   event: Event;
-  collapseAll?: boolean;
   group?: Group;
   groupingCurrentLevel?: Group['metadata']['current_level'];
+  /** Use a local initial section state instead of saved collapse preferences. */
+  initialCollapse?: boolean;
   projectSlug?: Project['slug'];
 }
 
@@ -49,7 +50,7 @@ interface StandaloneStackTraceProps extends IssueStackTraceBaseProps {
 type IssueStackTraceProps = ExceptionStackTraceProps | StandaloneStackTraceProps;
 
 export function IssueStackTrace(props: IssueStackTraceProps) {
-  const {event, group, projectSlug, collapseAll} = props;
+  const {event, group, projectSlug, initialCollapse} = props;
   const groupingCurrentLevel =
     props.groupingCurrentLevel ?? group?.metadata.current_level;
   const organization = useOrganization();
@@ -111,7 +112,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
       }
     >
       <IssueStackTraceContent
-        collapseAll={collapseAll}
+        initialCollapse={initialCollapse}
         event={event}
         values={values}
         group={group}
@@ -125,7 +126,7 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
 }
 
 function IssueStackTraceContent({
-  collapseAll,
+  initialCollapse,
   event,
   values,
   group,
@@ -186,13 +187,14 @@ function IssueStackTraceContent({
           projectSlug={projectSlug}
         />
       }
+      initialCollapse={initialCollapse}
+      disableCollapsePersistence={initialCollapse !== undefined}
     >
       <Stack gap="lg">
         {showAppleCrashReport ? (
           <NativeAppleCrashReportContent eventId={event.id} projectSlug={projectSlug} />
         ) : (
           <IssueExceptionStackTrace
-            collapseAll={collapseAll}
             groupingCurrentLevel={groupingCurrentLevel}
             event={event}
             hasScmSourceContext={hasScmSourceContext}

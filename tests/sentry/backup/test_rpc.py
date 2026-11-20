@@ -4,7 +4,7 @@ from copy import deepcopy
 from functools import cached_property
 from typing import Any
 from unittest.mock import MagicMock, patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import orjson
 from django.db import models
@@ -224,7 +224,7 @@ class RpcImportRetryTests(TestCase):
             with assume_test_silo_mode(SiloMode.CONTROL):
                 import_chunk_count = ControlImportChunk.objects.count()
                 ControlImportChunk.objects.create(
-                    import_uuid=import_uuid,
+                    import_uuid=UUID(import_uuid),
                     model="sentry.controloption",
                     min_ordinal=1,
                     max_ordinal=1,

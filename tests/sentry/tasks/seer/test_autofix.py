@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import ANY, MagicMock, Mock, call, patch
 
 import orjson
@@ -7,6 +8,7 @@ from django.test import override_settings
 from django.utils import timezone
 from urllib3.response import HTTPResponse
 
+from sentry.models.organization import Organization
 from sentry.seer.autofix.constants import SeerAutomationSource
 from sentry.seer.autofix.exceptions import IssueSummaryUnavailable
 from sentry.seer.autofix.utils import get_seer_seat_based_tier_cache_key
@@ -38,6 +40,7 @@ from sentry.testutils.cases import TestCase as SentryTestCase
 from sentry.utils.cache import cache
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.viewer_context import (
+    Actor,
     ActorType,
     ViewerContext,
     decode_viewer_context,
@@ -256,7 +259,11 @@ class TestSummarizeIssue(SentryTestCase):
 
 
 class TestAutofixIssueDataJudge(SentryTestCase):
-    def _create_agentic_triage_run(self, organization, **kwargs):
+    def _create_agentic_triage_run(
+        self,
+        organization: Organization,
+        **kwargs: Any,
+    ) -> SeerWorkflowRun:
         config = SeerWorkflowConfig.get_or_create_for_strategy(
             organization.id, SeerWorkflowStrategy.AGENTIC_TRIAGE
         )
@@ -362,8 +369,7 @@ class TestAutofixIssueDataJudge(SentryTestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
-            organization_id=self.organization.id,
-            actor_type=ActorType.SYSTEM,
+            actor=Actor(type=ActorType.SYSTEM), organization_id=self.organization.id
         )
         assert get_viewer_context() is None
         request_body = orjson.loads(mock_urlopen.call_args.kwargs["body"])
@@ -583,3 +589,26 @@ class TestConfigureSeerForExistingOrg(SentryTestCase):
 
         # Cache should be set to True to prevent race conditions
         assert cache.get(cache_key) is True
+
+    def test_token_billed_org_keeps_repo_config(self) -> None:
+        repository = self.create_repo(project=self.project)
+        seer_repository = self.create_seer_project_repository(
+            project=self.project, repository=repository
+        )
+        self.organization.update_option("agentic-triage-free-cohort", True)
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert SeerProjectRepository.objects.filter(id=seer_repository.id).exists()
+        assert self.organization.get_option("agentic-triage-free-cohort", False) is True
+
+    def test_token_billed_does_not_set_seat_based_tier_cache(self) -> None:
+        self.create_project(organization=self.organization)
+        cache_key = get_seer_seat_based_tier_cache_key(self.organization.id)
+        cache.delete(cache_key)
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            configure_seer_for_existing_org(organization_id=self.organization.id)
+
+        assert cache.get(cache_key) is None

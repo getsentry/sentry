@@ -11,8 +11,6 @@ import {Text} from '@sentry/scraps/text';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t} from 'sentry/locale';
-import type {LogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import type {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {LOGS_GRID_BODY_ROW_HEIGHT} from 'sentry/views/explore/logs/styles';
 import {
   OurLogKnownFieldKey,
@@ -20,6 +18,9 @@ import {
 } from 'sentry/views/explore/logs/types';
 import {compareLogRowsBySortBys} from 'sentry/views/explore/logs/utils';
 import {useQueryParamsSortBys} from 'sentry/views/explore/queryParams/context';
+
+import type {LogsPinning} from './useLogsPinning';
+import type {usePinnedLogsQuery} from './usePinnedLogsQuery';
 
 interface Props {
   allRows: OurLogsResponseItem[];

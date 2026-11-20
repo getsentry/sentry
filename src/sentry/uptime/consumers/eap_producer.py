@@ -1,7 +1,7 @@
 import logging
 
 from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka import KafkaPayload
+from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
 from sentry_protos.snuba.v1.trace_item_pb2 import TraceItem
@@ -22,7 +22,9 @@ logger = logging.getLogger(__name__)
 EAP_ITEMS_CODEC: Codec[TraceItem] = get_topic_codec(Topic.SNUBA_ITEMS)
 
 
-def _get_eap_items_producer(name: str = "sentry.uptime.consumers.eap_producer"):
+def _get_eap_items_producer(
+    name: str = "sentry.uptime.consumers.eap_producer",
+) -> KafkaProducer:
     """Get a Kafka producer for EAP TraceItems."""
     return get_arroyo_producer(
         name,
@@ -50,7 +52,7 @@ def produce_eap_uptime_result(
     snuba-items topic for EAP ingestion.
     """
     try:
-        detector_state = detector.detectorstate_set.first()
+        detector_state = detector.detectorstate_set.first()  # noqa: S035
         if detector_state and detector_state.is_triggered:
             incident_status = IncidentStatus.IN_INCIDENT
         else:

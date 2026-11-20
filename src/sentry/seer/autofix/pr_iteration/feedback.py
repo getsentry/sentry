@@ -7,7 +7,8 @@ from typing import Annotated, Any
 from django.utils import timezone
 from pydantic import BaseModel, Field, ValidationError, root_validator
 
-from sentry import options
+from sentry import features, options
+from sentry.models.organization import Organization
 from sentry.seer.agent.client_models import MemoryBlock, SeerRunState
 from sentry.seer.autofix.pr_iteration.feedback_sources.base import Decision
 from sentry.seer.autofix.pr_iteration.feedback_sources.check_suite import CheckSuiteFeedbackSource
@@ -17,7 +18,7 @@ from sentry.seer.autofix.pr_iteration.feedback_sources.github_comment import (
     GithubPrReviewCommentFeedbackSource,
 )
 from sentry.seer.autofix.pr_iteration.feedback_sources.user_ui import UserUIFeedbackSource
-from sentry.seer.autofix.pr_iteration.iterations import get_iterations
+from sentry.seer.autofix.pr_iteration.iterations import Iteration, get_iterations
 from sentry.seer.autofix.pr_iteration.project_setting import pr_iteration_enabled_for_group
 from sentry.utils import json
 
@@ -90,6 +91,10 @@ def serialize_feedback(items: Sequence[Feedback]) -> str:
     return json.dumps([item.dict() for item in items])
 
 
+def feedback_text(items: Sequence[Feedback]) -> str:
+    return "\n\n".join(item.text for item in items)
+
+
 def blocks_feedback(blocks: Sequence[MemoryBlock]) -> list[Feedback]:
     return [
         feedback
@@ -135,9 +140,20 @@ def iteration_is_automated(iteration_blocks: Sequence[MemoryBlock]) -> bool:
 MAX_TOTAL_ITERATIONS = 25
 
 
+def _capped_iterations(run_state: SeerRunState) -> list[Iteration]:
+    """The run's iterations as the caps count them: a branch-moved retry runs another turn under
+    the same index, and it finishes that iteration rather than starting one, so each index counts
+    once."""
+    iterations: list[Iteration] = []
+    for iteration in get_iterations(run_state):
+        if not iterations or iterations[-1].index != iteration.index:
+            iterations.append(iteration)
+    return iterations
+
+
 def total_iteration_cap_reached(run_state: SeerRunState) -> bool:
     """Whether the run has hit ``MAX_TOTAL_ITERATIONS`` iterations."""
-    return len(get_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
+    return len(_capped_iterations(run_state)) >= MAX_TOTAL_ITERATIONS
 
 
 def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
@@ -150,7 +166,7 @@ def automated_streak_cap_reached(run_state: SeerRunState) -> bool:
     if cap <= 0:
         return False
 
-    last_iterations = get_iterations(run_state)[-cap:]
+    last_iterations = _capped_iterations(run_state)[-cap:]
     if len(last_iterations) < cap:
         return False
 
@@ -162,6 +178,45 @@ def iteration_cap_reached(run_state: SeerRunState) -> bool:
     return total_iteration_cap_reached(run_state) or automated_streak_cap_reached(run_state)
 
 
+# ``feedback_allowed_by_project``'s reason for feedback nobody asked for.
+NOT_REQUESTED = "not_requested"
+
+
+def feedback_allowed_by_project(
+    *, organization_id: int, group_id: int, feedback: Feedback
+) -> Decision:
+    """Whether the project's PR iteration setting lets Seer act on this feedback.
+
+    Under token-based billing PR iteration is opt-in: with the setting off,
+    Seer acts only on feedback a person explicitly asked for (see
+    ``FeedbackSourceBase.is_explicit_request``), so CI, bot reviews, and human
+    reviews that don't mention ``@sentry`` are skipped. Without the flag this
+    allows everything, and ``automated_iteration_allowed`` keeps applying the
+    setting to automated feedback as before.
+
+    A missing organization is not this gate's to report, so it reads as allowed
+    and the caller's own lookup surfaces it.
+    """
+    if feedback.source.is_explicit_request:
+        return Decision(ok=True, reason="explicit_request")
+
+    try:
+        organization = Organization.objects.get_from_cache(id=organization_id)
+    except Organization.DoesNotExist:
+        return Decision(ok=True, reason="organization_not_found")
+
+    if not features.has("organizations:token-billed-seer-enabled", organization):
+        return Decision(ok=True, reason="flag_disabled")
+
+    if pr_iteration_enabled_for_group(group_id):
+        return Decision(ok=True, reason="project_enabled")
+
+    return Decision(ok=False, reason=NOT_REQUESTED)
+
+
+# TODO: Review the iteration caps below (``automated_streak_cap_reached`` and
+# its callers): should they key off ``is_explicit_request`` instead of
+# ``is_automated``, now that the project gate does?
 def automated_iteration_allowed(run_state: SeerRunState) -> Decision:
     """Whether the run allows another automated iteration right now.
 

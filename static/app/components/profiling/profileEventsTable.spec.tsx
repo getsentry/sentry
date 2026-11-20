@@ -3,10 +3,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FieldValueType} from 'sentry/utils/fields';
 import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
+
+import {ProfileEventsTable} from './profileEventsTable';
 
 function customEncodeURIComponent(str: string) {
   return encodeURIComponent(str).replace(/[!'()*]/g, c => {
@@ -14,10 +15,7 @@ function customEncodeURIComponent(str: string) {
   });
 }
 
-const project = ProjectFixture({
-  id: '1',
-  slug: 'foo',
-});
+const project = ProjectFixture({id: '1', slug: 'foo'});
 
 describe('ProfileEventsTable', () => {
   beforeEach(() => {
@@ -28,10 +26,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -41,9 +36,7 @@ describe('ProfileEventsTable', () => {
         isLoading
         sort={sort}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -53,10 +46,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -66,9 +56,7 @@ describe('ProfileEventsTable', () => {
         isLoading={false}
         sort={sort}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByTestId('loading-error')).toBeInTheDocument();
@@ -78,10 +66,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'desc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'desc' as const};
 
     render(
       <ProfileEventsTable
@@ -92,9 +77,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -109,10 +92,7 @@ describe('ProfileEventsTable', () => {
     const {organization} = initializeOrg();
 
     const columns = ['count()' as const];
-    const sort = {
-      key: 'count()' as const,
-      order: 'asc' as const,
-    };
+    const sort = {key: 'count()' as const, order: 'asc' as const};
 
     render(
       <ProfileEventsTable
@@ -123,9 +103,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     const link = screen.getByRole('link', {name: 'Count()'});
@@ -183,10 +161,7 @@ describe('ProfileEventsTable', () => {
       },
     };
 
-    const sort = {
-      key: 'transaction' as const,
-      order: 'asc' as const,
-    };
+    const sort = {key: 'transaction' as const, order: 'asc' as const};
 
     render(
       <ProfileEventsTable
@@ -197,9 +172,7 @@ describe('ProfileEventsTable', () => {
         sort={sort}
         sortableColumns={new Set(columns)}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // id

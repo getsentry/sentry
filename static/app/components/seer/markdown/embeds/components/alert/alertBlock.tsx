@@ -1,6 +1,7 @@
-import {DetectorAlertBlock} from 'sentry/components/seer/markdown/embeds/components/alert/alertTypes/detector';
-import {IssueAlertBlock} from 'sentry/components/seer/markdown/embeds/components/alert/alertTypes/issue';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {DetectorAlertBlock} from './alertTypes/detector';
+import {IssueAlertBlock} from './alertTypes/issue';
 
 /**
  * Dispatches on the one axis that changes how an alert is fetched and

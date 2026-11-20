@@ -22,7 +22,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from sentry_sdk import traces
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
@@ -47,6 +47,7 @@ from sentry.integrations.services.integration.model import (
 )
 from sentry.integrations.services.integration.service import integration_service
 from sentry.integrations.services.repository.service import repository_service
+from sentry.integrations.source_code_management.repo_rename import get_repo_rename
 from sentry.integrations.source_code_management.webhook import SCMWebhook
 from sentry.integrations.types import (
     ExternalActorSource,
@@ -382,17 +383,10 @@ class GitHubWebhook(SCMWebhook, ABC):
         name_from_event = event["repository"]["full_name"]
         url_from_event = event["repository"]["html_url"]
 
-        if (
-            repo.name != name_from_event
-            or repo.config.get("name") != name_from_event
-            or repo.url != url_from_event
-        ):
+        rename = get_repo_rename(repo, name=name_from_event, url=url_from_event)
+        if rename is not None:
             try:
-                repo.update(
-                    name=name_from_event,
-                    url=url_from_event,
-                    config=dict(repo.config, name=name_from_event),
-                )
+                repo.update(**rename)
             except IntegrityError:
                 logger.warning(
                     "github.webhook.update_repo_data.integrity_error",
@@ -413,7 +407,7 @@ class GitHubWebhook(SCMWebhook, ABC):
         return f"github:{username}"
 
     def get_idp_external_id(self, integration: RpcIntegration, host: str | None = None) -> str:
-        return options.get("github-app.id")
+        return str(settings.SENTRY_GITHUB_APP_ID)
 
     def maybe_create_external_actor(
         self,
@@ -1436,7 +1430,8 @@ class GitHubIntegrationsWebhookEndpoint(Endpoint):
         }
 
     def get_secret(self) -> str | None:
-        return options.get("github-app.webhook-secret")
+        secret = settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET
+        return secret
 
     def post(self, request: HttpRequest) -> HttpResponse:
         with action_context_scope(ActionSource.GITHUB, resolve_action_actor(request)):

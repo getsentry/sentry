@@ -1,6 +1,6 @@
 import {useCallback, useEffect} from 'react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocalStorageState} from './useLocalStorageState';
 
 type SyncedLocalStorageEvent<S> = CustomEvent<{key: string; value: S}>;
 

@@ -10,10 +10,11 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {FeedbackActivitySection} from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
 import {FeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import {GroupActivityType, IssueCategory} from 'sentry/types/group';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
+
+import {FeedbackActivitySection} from './feedbackActivitySection';
 
 function getCommentEditor(name = 'Add a comment') {
   const editor = screen.getByRole('combobox', {name});
@@ -80,11 +81,7 @@ describe('FeedbackActivitySection', () => {
 
   it('posts comments through the feedback activity mutation', async () => {
     const comment = 'feedback follow up';
-    const feedbackItem = GroupFixture({
-      id: '1337',
-      activity: [],
-      project,
-    });
+    const feedbackItem = GroupFixture({id: '1337', activity: [], project});
     const postMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1337/comments/',
       method: 'POST',
@@ -111,13 +108,7 @@ describe('FeedbackActivitySection', () => {
 
     expect(postMock).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1337/comments/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          text: comment,
-          mentions: [],
-        },
-      })
+      expect.objectContaining({method: 'POST', data: {text: comment, mentions: []}})
     );
   });
 

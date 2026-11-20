@@ -1,4 +1,5 @@
 from datetime import timedelta
+from typing import Any
 from unittest.mock import patch
 
 import pytest
@@ -61,7 +62,9 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
         with self.feature(self.features):
             response = self.client.get(self.url, query, format="json")
 
-        expected = [
+        assert event_a.group is not None
+        assert event_b.group is not None
+        expected: list[dict[str, Any]] = [
             {
                 "error.type": [],
                 "id": event_id_a,
@@ -114,7 +117,7 @@ class OrganizationEventsMetaTest(APITestCase, SnubaTestCase, OccurrenceTestMixin
             response = self.client.get(self.url, query, format="json")
 
         assert group_info is not None
-        expected = [
+        expected: list[dict[str, Any]] = [
             {
                 "error.type": "",
                 "id": event_id_a,

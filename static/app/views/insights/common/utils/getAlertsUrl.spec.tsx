@@ -4,7 +4,8 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
-import {getAlertsUrl} from 'sentry/views/insights/common/utils/getAlertsUrl';
+
+import {getAlertsUrl} from './getAlertsUrl';
 
 describe('getAlertsUrl', () => {
   const {project} = initializeOrg();

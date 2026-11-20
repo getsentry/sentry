@@ -1,7 +1,8 @@
 import type {Event} from 'sentry/types/event';
-import type {ReplayReader} from 'sentry/utils/replays/replayReader';
-import type {HydrationErrorFrame} from 'sentry/utils/replays/types';
-import {isHydrationErrorFrame, isRRWebChangeFrame} from 'sentry/utils/replays/types';
+
+import type {ReplayReader} from './replayReader';
+import type {HydrationErrorFrame} from './types';
+import {isHydrationErrorFrame, isRRWebChangeFrame} from './types';
 
 type ReplayDiffOffsets = {
   frameOrEvent: HydrationErrorFrame | Event;
@@ -14,11 +15,7 @@ export function getReplayDiffOffsetsFromFrame(
   hydrationError: HydrationErrorFrame
 ): ReplayDiffOffsets {
   if (!replay) {
-    return {
-      frameOrEvent: hydrationError,
-      leftOffsetMs: 0,
-      rightOffsetMs: 0,
-    };
+    return {frameOrEvent: hydrationError, leftOffsetMs: 0, rightOffsetMs: 0};
   }
 
   const startTimestampMs = replay.getReplay().started_at.getTime() ?? 0;
@@ -35,11 +32,7 @@ export function getReplayDiffOffsetsFromFrame(
   const rightFrame = nextIncremental.at(1) ?? nextIncremental.at(0);
   const rightOffsetMs = Math.max(1, (rightFrame?.timestamp ?? 0) - startTimestampMs);
 
-  return {
-    frameOrEvent: hydrationError,
-    leftOffsetMs,
-    rightOffsetMs,
-  };
+  return {frameOrEvent: hydrationError, leftOffsetMs, rightOffsetMs};
 }
 
 export function getReplayDiffOffsetsFromEvent(
@@ -80,9 +73,5 @@ export function getReplayDiffOffsetsFromEvent(
       ?.timestamp ?? eventTimestampMs) - replayStartTimestamp
   );
 
-  return {
-    frameOrEvent: event,
-    leftOffsetMs,
-    rightOffsetMs,
-  };
+  return {frameOrEvent: event, leftOffsetMs, rightOffsetMs};
 }

@@ -1,4 +1,7 @@
+from collections.abc import Sequence
+
 from django.db import connections, router
+from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
@@ -14,7 +17,9 @@ class OrganizationUptimeAlertIndexBaseEndpointTest(UptimeAlertBaseEndpointTest):
 class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseEndpointTest):
     method = "get"
 
-    def check_valid_response(self, response, expected_detectors):
+    def check_valid_response(
+        self, response: Response, expected_detectors: Sequence[Detector]
+    ) -> None:
         assert [
             serialize(uptime_alert, serializer=UptimeDetectorSerializer())
             for uptime_alert in expected_detectors
@@ -111,6 +116,10 @@ class OrganizationUptimeAlertIndexEndpointTest(OrganizationUptimeAlertIndexBaseE
             owner=["user:12345"],
         )
         self.check_valid_response(response, [])
+
+        # Unknown owner
+        response = self.get_error_response(self.organization.slug, owner=["me"], status_code=400)
+        assert response.data["detail"] == "Invalid owner"
 
     def test_only_returns_active_detectors(self) -> None:
         active_detector = self.create_uptime_detector(name="active", status=ObjectStatus.ACTIVE)

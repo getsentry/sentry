@@ -1,4 +1,4 @@
-import {periodWindowLabel} from 'sentry/views/seerWorkflows/overview/periods';
+import {periodWindowLabel} from './periods';
 
 describe('periodWindowLabel', () => {
   it('labels a known period', () => {

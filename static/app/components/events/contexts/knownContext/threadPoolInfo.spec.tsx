@@ -3,7 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {getThreadPoolInfoContext} from 'sentry/components/events/contexts/knownContext/threadPoolInfo';
+
+import {getThreadPoolInfoContext} from './threadPoolInfo';
 
 const MOCK_THREAD_POOL_INFO_CONTEXT = {
   type: 'threadpool_info' as const,
@@ -19,12 +20,7 @@ const MOCK_THREAD_POOL_INFO_CONTEXT = {
 };
 
 const MOCK_REDACTION = {
-  max_worker_threads: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  max_worker_threads: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('ThreadPoolInfoContext', () => {
@@ -45,40 +41,20 @@ describe('ThreadPoolInfoContext', () => {
         subject: 'Max Completion Port Threads',
         value: 3000,
       },
-      {
-        key: 'max_worker_threads',
-        subject: 'Max Worker Threads',
-        value: 32767,
-      },
+      {key: 'max_worker_threads', subject: 'Max Worker Threads', value: 32767},
       {
         key: 'min_completion_port_threads',
         subject: 'Min Completion Port Threads',
         value: 1,
       },
-      {
-        key: 'min_worker_threads',
-        subject: 'Min Worker Threads',
-        value: 10,
-      },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'min_worker_threads', subject: 'Min Worker Threads', value: 10},
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {threadpool_info: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {threadpool_info: MOCK_REDACTION}}});
 
     render(
       <ContextCard

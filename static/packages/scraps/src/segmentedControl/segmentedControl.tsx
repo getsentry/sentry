@@ -11,7 +11,7 @@ import {useRadioGroupState} from '@react-stately/radio';
 import type {CollectionChildren, Node} from '@react-types/shared';
 import {LayoutGroup} from 'framer-motion';
 
-import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button';
+import {DO_NOT_USE_getButtonStyles} from '@sentry/scraps/button/styles';
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -219,11 +219,7 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = styled('div')<{
-  listSize: number;
-  priority: Priority;
-  size: FormSize;
-}>`
+const GroupWrap = styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
   position: relative;
   display: inline-grid;
   grid-auto-flow: column;

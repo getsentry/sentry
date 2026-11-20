@@ -4,13 +4,12 @@ import {IconJson} from '@sentry/icons/json';
 import {IconTag} from '@sentry/icons/tag';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
-import {getFormat, getFormattedDate, getUtcToSystem} from 'sentry/utils/dates';
-import {AppIcon} from 'sentry/views/preprod/components/appIcon';
 import type {BuildDetailsAppInfo} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {getBuildNumber} from 'sentry/views/preprod/types/buildDetailsTypes';
 import {
@@ -19,6 +18,8 @@ import {
   getReadableArtifactTypeTooltip,
   getReadablePlatformLabel,
 } from 'sentry/views/preprod/utils/labelUtils';
+
+import {AppIcon} from './appIcon';
 
 interface BuildEntityHeaderProps {
   projectSlug: string;
@@ -118,10 +119,8 @@ export function BuildEntityHeader({
             ? {
                 type: 'text',
                 label: appInfo?.date_built ? t('Built') : t('Uploaded'),
-                value: getFormattedDate(
-                  getUtcToSystem(dateBuiltOrAdded),
-                  getFormat({seconds: true, timeZone: true}),
-                  {local: true}
+                value: (
+                  <DateTime date={dateBuiltOrAdded} precision="second" showTimezone />
                 ),
                 leadingGraphic: <IconClock size="md" />,
               }

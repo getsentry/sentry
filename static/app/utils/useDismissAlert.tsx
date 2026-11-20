@@ -1,6 +1,6 @@
 import {useCallback} from 'react';
 
-import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import {useLocalStorageState} from './useLocalStorageState';
 
 type Opts = {
   /**
@@ -51,8 +51,5 @@ export function useDismissAlert({expirationDays = Number.MAX_SAFE_INTEGER, key}:
     setDismissedTimestamp(Date.now().toString());
   }, [setDismissedTimestamp]);
 
-  return {
-    isDismissed,
-    dismiss,
-  };
+  return {isDismissed, dismiss};
 }

@@ -16,18 +16,19 @@ import {
   useSetMetricVisualize,
   useSetTraceMetric,
 } from 'sentry/views/explore/metrics/metricsQueryParams';
-import {AggregateDropdown} from 'sentry/views/explore/metrics/metricToolbar/aggregateDropdown';
-import {DeleteMetricButton} from 'sentry/views/explore/metrics/metricToolbar/deleteMetricButton';
-import {Filter} from 'sentry/views/explore/metrics/metricToolbar/filter';
-import {GroupBySelector} from 'sentry/views/explore/metrics/metricToolbar/groupBySelector';
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
-import {VisualizeLabel} from 'sentry/views/explore/metrics/metricToolbar/visualizeLabel';
 import {useMultiMetricsQueryParams} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 import {
   isVisualizeEquation,
   isVisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {MetricSelector} from './metricSelector/metricSelector';
+import {AggregateDropdown} from './aggregateDropdown';
+import {DeleteMetricButton} from './deleteMetricButton';
+import {Filter} from './filter';
+import {GroupBySelector} from './groupBySelector';
+import {VisualizeLabel} from './visualizeLabel';
 
 interface MetricToolbarProps {
   queryLabel: string;

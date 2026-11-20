@@ -11,11 +11,12 @@ import {
   getContext,
   resizeCanvasToDisplaySize,
 } from 'sentry/utils/profiling/gl/utils';
-import {TextRenderer} from 'sentry/utils/profiling/renderers/textRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {findRangeBinarySearch} from 'sentry/utils/profiling/speedscope';
 import {trimTextCenter} from 'sentry/utils/string/trimTextCenter';
 import {ELLIPSIS} from 'sentry/utils/string/unicode';
+
+import {TextRenderer} from './textRenderer';
 
 class FlamegraphTextRenderer extends TextRenderer {
   flamegraph: Flamegraph;

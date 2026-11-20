@@ -17,7 +17,7 @@ from sentry.sentry_apps.api.bases.sentryapps import (
 )
 from sentry.sentry_apps.api.endpoints.sentry_app_details import PARTNERSHIP_RESTRICTED_ERROR_MESSAGE
 from sentry.sentry_apps.installations import SentryAppInstallationTokenCreator
-from sentry.sentry_apps.models.sentry_app import MASKED_VALUE
+from sentry.sentry_apps.models.sentry_app import MASKED_VALUE, SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -34,7 +34,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (SentryInternalAppTokenPermission, DisallowImpersonatedTokenCreation)
 
-    def get(self, request: Request, sentry_app) -> Response:
+    def get(self, request: Request, sentry_app: SentryApp) -> Response:
         if not sentry_app.is_internal:
             return Response([])
 
@@ -53,7 +53,7 @@ class SentryInternalAppTokensEndpoint(SentryAppBaseEndpoint):
 
         return Response(token_list)
 
-    def post(self, request: Request, sentry_app) -> Response:
+    def post(self, request: Request, sentry_app: SentryApp) -> Response:
         if not sentry_app.is_internal:
             return Response(
                 "This route is limited to internal integrations only",

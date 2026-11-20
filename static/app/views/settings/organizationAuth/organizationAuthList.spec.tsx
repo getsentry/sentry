@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OrganizationAuthList} from 'sentry/views/settings/organizationAuth/organizationAuthList';
+import {OrganizationAuthList} from './organizationAuthList';
 
 describe('OrganizationAuthList', () => {
   it('renders with no providers', () => {

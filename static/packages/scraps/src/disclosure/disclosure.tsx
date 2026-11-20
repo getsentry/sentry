@@ -209,7 +209,4 @@ const AlignedContainer = styled(Container)<{size: NonNullable<DisclosureProps['s
   padding-left: ${p => (p.size === 'xs' ? '22px' : p.size === 'sm' ? '26px' : '26px')};
 `;
 
-export const Disclosure = Object.assign(DisclosureComponent, {
-  Title,
-  Content,
-});
+export const Disclosure = Object.assign(DisclosureComponent, {Title, Content});

@@ -10,6 +10,7 @@ from arroyo.backends.local.backend import LocalBroker
 from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.commit import ONCE_PER_SECOND
 from arroyo.processing.processor import StreamProcessor
+from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.types import BrokerValue, Message, Partition, Topic
 from django.test.utils import override_settings
 from django.utils import timezone
@@ -41,7 +42,7 @@ class ExpectNoProcessingError:
 partition = Partition(Topic("test"), 0)
 
 
-def create_consumer():
+def create_consumer() -> ProcessingStrategy[KafkaPayload]:
     factory = StoreMonitorCheckInStrategyFactory()
     commit = mock.Mock()
     return factory.create_with_partitions(commit, {partition: 0})
@@ -100,7 +101,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
         expected_checkin: CheckIn,
         expected_error: ProcessingErrorsException | ExpectNoProcessingError | None,
         expected_monitor_slug: str | None,
-    ) -> Generator:
+    ) -> Generator[None]:
         if expected_error is None:
             yield None
             return
@@ -132,7 +133,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
             assert error.monitor == expected_error.monitor
             assert error.processing_errors == expected_error.processing_errors
 
-    def init(self, checkin_margin=1, max_runtime=1):
+    def init(self, checkin_margin: int = 1, max_runtime: int = 1) -> None:
         self.time = timezone.now().replace(second=0, microsecond=0)
         self.time_delta = timedelta(minutes=1)
         self.broker: LocalBroker[KafkaPayload] = LocalBroker(MemoryMessageStorage())
@@ -186,7 +187,7 @@ class MonitorsClockTickEndToEndTest(TestCase):
             commit_policy=ONCE_PER_SECOND,
         )
 
-    def tick_clock(self, delta: timedelta | None = None):
+    def tick_clock(self, delta: timedelta | None = None) -> None:
         if delta is None:
             delta = self.time_delta
         self.time = self.time + delta

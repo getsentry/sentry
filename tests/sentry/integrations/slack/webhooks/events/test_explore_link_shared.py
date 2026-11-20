@@ -1,5 +1,7 @@
 import re
-from unittest.mock import Mock, patch
+from collections.abc import Iterator
+from typing import Any
+from unittest.mock import MagicMock, Mock, patch
 
 import orjson
 import pytest
@@ -13,7 +15,7 @@ from . import LINK_SHARED_EVENT, BaseEventTest
 
 class ExploreLinkSharedEvent(BaseEventTest):
     @pytest.fixture(autouse=True)
-    def mock_chat_postEphemeral(self):
+    def mock_chat_postEphemeral(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_postEphemeral",
             return_value=SlackResponse(
@@ -29,7 +31,7 @@ class ExploreLinkSharedEvent(BaseEventTest):
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_unfurl(self):
+    def mock_chat_unfurl(self) -> Iterator[None]:
         with patch(
             "slack_sdk.web.client.WebClient.chat_unfurl",
             return_value=SlackResponse(
@@ -63,7 +65,9 @@ class ExploreLinkSharedEvent(BaseEventTest):
             )
         },
     )
-    def share_explore_links_sdk(self, mock_match_link, mock_):
+    def share_explore_links_sdk(
+        self, mock_match_link: MagicMock, mock_: MagicMock
+    ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         return self.mock_unfurl.call_args[1]
@@ -87,7 +91,9 @@ class ExploreLinkSharedEvent(BaseEventTest):
             )
         },
     )
-    def share_explore_links_ephemeral_sdk(self, mock_match_link, mock_):
+    def share_explore_links_ephemeral_sdk(
+        self, mock_match_link: MagicMock, mock_: MagicMock
+    ) -> dict[str, Any]:
         resp = self.post_webhook(event_data=LINK_SHARED_EVENT)
         assert resp.status_code == 200, resp.content
         return self.mock_post.call_args[1]

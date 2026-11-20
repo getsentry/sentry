@@ -14,8 +14,17 @@ jobs:
     name: lint PR
     # Branches in this repo only, so employees and internal bots but never forks. Every label
     # change re-runs the lint, because a skipped run would replace the last result.
-    if: github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-24.04
+    # Each changed file costs model calls, so mass rewrites such as codemods and formatter
+    # sweeps are skipped. Removed lines are not linted, so only additions count. Over 99.8% of
+    # merged PRs fall under both limits.
+    # Dependabot PRs only bump dependencies, so they are not linted. Their runs also read
+    # Dependabot secrets instead of Actions secrets, so the key may not be set.
+    if: >-
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      github.event.pull_request.user.login != 'dependabot[bot]' &&
+      github.event.pull_request.changed_files <= 200 &&
+      github.event.pull_request.additions <= 10000
+    runs-on: ubuntu-26.04-arm
     timeout-minutes: 15
     permissions:
       contents: read
@@ -27,7 +36,7 @@ jobs:
           fetch-depth: 2
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
 
       - name: lint
         env:
@@ -35,37 +44,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           PR: ${{ github.event.number }}
           LABEL: 'Trigger: Override Decision Model Lint'
+          # Rules diff each file against the PR's base, it must match --base below
+          DECISION_MODEL_LINT_BASE: HEAD^1
           OVERRIDDEN: "${{ contains(github.event.pull_request.labels.*.name, 'Trigger: Override Decision Model Lint') }}"
-        run: |
-          report="$RUNNER_TEMP/decision-model-lint.md"
-          status=0
-          pnpm exec decision-model-linter --config decisionModelLinter.config.ts \
-            --base HEAD^1 --format markdown > "$report" || status=$?
-
-          # Only 1 means findings; any other failure means the linter did not finish.
-          if [ "$status" -eq 1 ] && [ "$OVERRIDDEN" = true ]; then
-            printf '\nThe `%s` label keeps these errors from failing the check.\n' "$LABEL" >> "$report"
-          elif [ "$status" -eq 1 ]; then
-            printf '\nThese errors fail the check; fix the code to resolve them. If you and a reviewer are confident an error is wrong, a person can add the `%s` label to pass the check while the findings stay reported. Agents should never add this label.\n' "$LABEL" >> "$report"
-          elif [ "$status" -gt 1 ] && [ "$OVERRIDDEN" = true ]; then
-            printf 'The linter did not finish (exit %s), and the `%s` label passes the check anyway; see the job log.\n' "$status" "$LABEL" >> "$report"
-          fi
-
-          marker='<!-- decision-model-linter -->'
-          comment=$(gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" --paginate \
-            --jq ".[] | select(.user.login == \"github-actions[bot]\" and (.body | contains(\"$marker\"))) | .id" | head -n 1)
-          body=
-          if [ -s "$report" ] && { [ "$status" -le 1 ] || [ "$OVERRIDDEN" = true ]; }; then
-            body=$(printf '%s\n%s' "$marker" "$(cat "$report")")
-          elif [ "$status" -eq 0 ] && [ -n "$comment" ]; then
-            body=$(printf '%s\nNo findings on the latest commit.' "$marker")
-          fi
-          if [ -n "$body" ] && [ -n "$comment" ]; then
-            gh api -X PATCH "repos/$GITHUB_REPOSITORY/issues/comments/$comment" -f body="$body" > /dev/null
-          elif [ -n "$body" ]; then
-            gh api "repos/$GITHUB_REPOSITORY/issues/$PR/comments" -f body="$body" > /dev/null
-          fi
-          cat "$report" >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$status" -ne 0 ] && [ "$OVERRIDDEN" = true ]; then exit 0; fi
-          exit "$status"
+        run: .github/workflows/scripts/run-decision-model-lint.sh

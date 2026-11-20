@@ -1,4 +1,5 @@
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryState} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
@@ -11,33 +12,30 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
-import {useLocation} from 'sentry/utils/useLocation';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
-import {groupUserFeedbackApiOptions} from 'sentry/views/issueDetails/groupUserFeedbackApiOptions';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useGroupId} from './groupIdContext';
+import {groupUserFeedbackApiOptions} from './groupUserFeedbackApiOptions';
+import {useGroup} from './useGroup';
 
 function GroupUserFeedback() {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{groupId: string}>();
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const groupId = useGroupId();
 
   const {
     data: group,
     isPending: isPendingGroup,
     isError: isErrorGroup,
     refetch: refetchGroup,
-  } = useGroup({
-    groupId: params.groupId,
-  });
+  } = useGroup({groupId});
 
   const {data, isPending, isError, refetch} = useQuery({
     ...groupUserFeedbackApiOptions(organization, {
-      groupId: params.groupId,
-      query: {
-        cursor: location.query.cursor,
-      },
+      groupId,
+      query: {cursor: cursor ?? undefined},
     }),
     select: selectJsonWithHeaders,
   });
@@ -84,10 +82,10 @@ function GroupUserFeedback() {
               <EventUserFeedback
                 key={item.id}
                 report={item}
-                eventLink={`/organizations/${organization.slug}/issues/${params.groupId}/events/${item.eventID}/?referrer=user-feedback`}
+                eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Stack>
         )}
       </Layout.Main>

@@ -1,14 +1,15 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
-import {updateNullableLocation} from 'sentry/utils/url/updateNullableLocation';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useQueryParamsMode} from 'sentry/views/explore/queryParams/context';
+import {
+  applyQueryParamsUpdates,
+  parseAsScalar,
+} from 'sentry/views/explore/queryParams/parsers';
 import {getTargetWithReadableQueryParams} from 'sentry/views/explore/spans/spansQueryParams';
-
-const SPANS_TABLE_KEY = 'table';
 
 export enum Tab {
   SPAN = 'span',
@@ -16,12 +17,14 @@ export enum Tab {
   ATTRIBUTE_BREAKDOWNS = 'attribute_breakdowns',
 }
 
+const TAB_QUERY_PARSERS = {table: parseAsScalar};
+
 export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
   const location = useLocation();
   const navigate = useNavigate();
   const mode = useQueryParamsMode();
 
-  const table = decodeScalar(location.query[SPANS_TABLE_KEY]);
+  const table = decodeScalar(location.query.table);
 
   const tab: Mode | Tab = useMemo(() => {
     // HACK: This is pretty gross but to not break anything in the
@@ -48,17 +51,16 @@ export function useTab(): [Mode | Tab, (tab: Mode | Tab) => void] {
         mode: newTab === Mode.AGGREGATE ? Mode.AGGREGATE : Mode.SAMPLES,
       });
 
-      updateNullableLocation(
-        target,
-        SPANS_TABLE_KEY,
-        newTab === Tab.TRACE
-          ? 'trace'
-          : newTab === Tab.ATTRIBUTE_BREAKDOWNS
-            ? 'attribute_breakdowns'
-            : null
+      navigate(
+        applyQueryParamsUpdates(TAB_QUERY_PARSERS, target, {
+          table:
+            newTab === Tab.TRACE
+              ? 'trace'
+              : newTab === Tab.ATTRIBUTE_BREAKDOWNS
+                ? 'attribute_breakdowns'
+                : null,
+        })
       );
-
-      navigate(target);
     },
     [location, navigate]
   );

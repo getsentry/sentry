@@ -3,10 +3,10 @@ import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import type {Platform} from 'sentry/views/preprod/types/sharedTypes';
 
-const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
+export const ALL_METRIC_TYPES = ['install_size', 'download_size'] as const;
 export type MetricType = (typeof ALL_METRIC_TYPES)[number];
 
-const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
+export const ALL_MEASUREMENTS = ['absolute', 'absolute_diff', 'relative_diff'] as const;
 
 export type MeasurementType = (typeof ALL_MEASUREMENTS)[number];
 
@@ -51,10 +51,7 @@ const METRIC_LABELS: Record<MetricType, string> = {
 };
 
 export const METRIC_OPTIONS: Array<{label: string; value: MetricType}> =
-  ALL_METRIC_TYPES.map(value => ({
-    label: METRIC_LABELS[value],
-    value,
-  }));
+  ALL_METRIC_TYPES.map(value => ({label: METRIC_LABELS[value], value}));
 
 export const DEFAULT_MEASUREMENT_TYPE: MeasurementType = 'absolute';
 
@@ -95,10 +92,7 @@ const ARTIFACT_TYPE_LABELS: Record<ArtifactType, string> = {
 };
 
 export const ARTIFACT_TYPE_OPTIONS: Array<{label: string; value: ArtifactType}> =
-  ALL_ARTIFACT_TYPES.map(value => ({
-    label: ARTIFACT_TYPE_LABELS[value],
-    value,
-  }));
+  ALL_ARTIFACT_TYPES.map(value => ({label: ARTIFACT_TYPE_LABELS[value], value}));
 
 export const STATUS_CHECK_ALLOWED_FILTER_KEYS = [
   'app_id',

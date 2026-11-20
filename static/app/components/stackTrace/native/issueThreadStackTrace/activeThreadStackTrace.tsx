@@ -21,7 +21,7 @@ import {isNativePlatform} from 'sentry/utils/platform';
 
 import {useIssueThreadStackTraceContext} from './context';
 
-export function ActiveThreadStackTrace({collapseAll}: {collapseAll?: boolean}) {
+export function ActiveThreadStackTrace() {
   const {
     activeThreadModel,
     event,
@@ -51,7 +51,6 @@ export function ActiveThreadStackTrace({collapseAll}: {collapseAll?: boolean}) {
     return (
       <IssueExceptionStackTrace
         key={activeThread?.id}
-        collapseAll={collapseAll}
         // Raw text matches the copied text, which leaves out other threads' exceptions.
         values={
           view === 'raw' && textExceptionValues ? textExceptionValues : exception.values
@@ -89,7 +88,6 @@ export function ActiveThreadStackTrace({collapseAll}: {collapseAll?: boolean}) {
       ) : (
         <IssueStackTraceFrameList
           key={activeThread?.id}
-          collapseAll={collapseAll}
           event={event}
           stacktrace={stacktrace}
           minifiedStacktrace={minifiedStacktrace}

@@ -1,11 +1,6 @@
-import type {Organization} from 'sentry/types/organization';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/useMEPSettingContext';
-import {
-  canUseMetricsData,
-  MEPState,
-} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
@@ -39,11 +34,7 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   let queryParams: Record<string, string> = {};
   const base = mepQueryParamBase;
   if (mepContext.shouldQueryProvideMEPAutoParams) {
-    queryParams = {
-      ...queryParams,
-      ...base,
-      dataset: 'metricsEnhanced',
-    };
+    queryParams = {...queryParams, ...base, dataset: 'metricsEnhanced'};
   }
   if (mepContext.shouldQueryProvideMEPTransactionParams) {
     queryParams = {...queryParams, ...base, dataset: 'discover'};
@@ -56,10 +47,7 @@ export function getMEPQueryParams(mepContext: MetricsEnhancedSettingContext) {
   return isEmptyObject(queryParams) ? undefined : queryParams;
 }
 
-export const WIDGET_MAP_DENY_LIST = [
-  PerformanceWidgetSetting.MOST_RELATED_ERRORS,
-  PerformanceWidgetSetting.MOST_RELATED_ISSUES,
-];
+export const WIDGET_MAP_DENY_LIST = [PerformanceWidgetSetting.MOST_RELATED_ISSUES];
 
 /**
  * Some widgets, such as Related Issues, are inherently not possible w/ metrics at the moment since they use event.type:error under the hood.
@@ -119,25 +107,3 @@ export const _setChartSetting = (
 
   setWidgetStorageObject(localObject);
 };
-
-const DISALLOWED_CHARTS_METRICS = [
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
-  PerformanceWidgetSetting.FCP_HISTOGRAM,
-  PerformanceWidgetSetting.LCP_HISTOGRAM,
-  PerformanceWidgetSetting.FID_HISTOGRAM,
-];
-
-export function filterAllowedChartsMetrics(
-  organization: Organization,
-  allowedCharts: PerformanceWidgetSetting[],
-  mepSetting: MetricsEnhancedSettingContext
-) {
-  if (
-    !canUseMetricsData(organization) ||
-    mepSetting.metricSettingState === MEPState.TRANSACTIONS_ONLY
-  ) {
-    return allowedCharts;
-  }
-
-  return allowedCharts.filter(c => !DISALLOWED_CHARTS_METRICS.includes(c));
-}

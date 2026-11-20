@@ -2,8 +2,8 @@ import * as Sentry from '@sentry/react';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {Evaluation} from 'sentry/views/insights/pages/agents/utils/evaluation';
-import {useInvalidEvaluationDetection} from 'sentry/views/insights/pages/agents/utils/useInvalidEvaluationDetection';
+import type {Evaluation} from './evaluation';
+import {useInvalidEvaluationDetection} from './useInvalidEvaluationDetection';
 
 describe('useInvalidEvaluationDetection', () => {
   let captureSpy: jest.SpyInstance;

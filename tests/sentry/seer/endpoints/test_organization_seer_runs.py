@@ -1,6 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 import orjson
 from django.test import override_settings
@@ -11,7 +11,7 @@ from sentry.seer.run_questions import QUESTIONS, question_hash
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.features import with_feature
-from sentry.viewer_context import ActorType, ViewerContext, decode_viewer_context
+from sentry.viewer_context import Actor, ActorType, ViewerContext, decode_viewer_context
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
@@ -465,7 +465,9 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
     @override_settings(SEER_API_SHARED_SECRET="viewer-context-test-secret")
     @with_feature("organizations:seer-run-questions")
     @patch("sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen")
-    def test_user_question_propagates_request_context_to_seer(self, mock_urlopen) -> None:
+    def test_user_question_propagates_request_context_to_seer(
+        self, mock_urlopen: MagicMock
+    ) -> None:
         run = self.create_seer_run(
             organization=self.organization,
             user_id=self.user.id,
@@ -488,9 +490,8 @@ class OrganizationSeerRunsEndpointTest(APITestCase):
             key="viewer-context-test-secret",
         )
         assert viewer_context == ViewerContext(
+            actor=Actor(type=ActorType.USER, actor_id=self.user.id),
             organization_id=self.organization.id,
-            user_id=self.user.id,
-            actor_type=ActorType.USER,
         )
 
     @with_feature("organizations:seer-run-questions")

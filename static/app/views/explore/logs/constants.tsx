@@ -4,7 +4,8 @@ import {
   SENTRY_LOG_NUMBER_TAGS,
   SENTRY_LOG_STRING_TAGS,
 } from 'sentry/views/explore/constants';
-import {OurLogKnownFieldKey, type OurLogFieldKey} from 'sentry/views/explore/logs/types';
+
+import {OurLogKnownFieldKey, type OurLogFieldKey} from './types';
 
 export const LogAttributesHumanLabel: Partial<Record<OurLogFieldKey, string>> = {
   [OurLogKnownFieldKey.TIMESTAMP]: t('Timestamp'),
@@ -91,7 +92,7 @@ const LOGS_FILTERS: FilterKeySection = {
 };
 
 export const LOGS_INSTRUCTIONS_URL =
-  'https://docs.sentry.io/product/explore/logs/getting-started/';
+  'https://docs.sentry.io/product/logs/getting-started/';
 
 export const LOGS_FILTER_KEY_SECTIONS: FilterKeySection[] = [LOGS_FILTERS];
 

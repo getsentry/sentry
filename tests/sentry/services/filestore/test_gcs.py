@@ -3,6 +3,10 @@ from unittest import mock
 import pytest
 from google.api_core.exceptions import BadGateway, InternalServerError, ServiceUnavailable
 
+_ServiceUnavailable = ServiceUnavailable
+_InternalServerError = InternalServerError
+_BadGateway = BadGateway
+
 from sentry.services.filestore.gcs import (
     GCS_RETRIES,
     GCS_RETRY_MAX_DELAY,
@@ -22,7 +26,7 @@ def test_try_repeated_succeeds_without_sleeping() -> None:
 
 
 def test_try_repeated_sleeps_between_retries_then_succeeds() -> None:
-    func = mock.Mock(side_effect=[ServiceUnavailable("503"), "ok"])
+    func = mock.Mock(side_effect=[_ServiceUnavailable("503"), "ok"])
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
         assert try_repeated(func) == "ok"
@@ -34,7 +38,7 @@ def test_try_repeated_sleeps_between_retries_then_succeeds() -> None:
 
 
 def test_try_repeated_backs_off_on_every_retry_before_raising() -> None:
-    func = mock.Mock(side_effect=ServiceUnavailable("503"))
+    func = mock.Mock(side_effect=_ServiceUnavailable("503"))
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
         with pytest.raises(ServiceUnavailable):
@@ -49,7 +53,7 @@ def test_try_repeated_backs_off_on_every_retry_before_raising() -> None:
 
 
 def test_try_repeated_does_not_retry_bad_gateway() -> None:
-    func = mock.Mock(side_effect=BadGateway("502"))
+    func = mock.Mock(side_effect=_BadGateway("502"))
 
     with mock.patch("sentry.services.filestore.gcs.time.sleep") as sleep:
         with pytest.raises(BadGateway):
@@ -59,7 +63,7 @@ def test_try_repeated_does_not_retry_bad_gateway() -> None:
     assert sleep.call_count == 0
 
 
-@pytest.mark.parametrize("error", [InternalServerError("500"), BadGateway("502")])
+@pytest.mark.parametrize("error", [_InternalServerError("500"), _BadGateway("502")])
 def test_replay_upload_policy_retries_transient_server_errors(error: Exception) -> None:
     # The first upload attempt fails with a 500/502 and the second succeeds.
     func = mock.Mock(side_effect=[error, None])

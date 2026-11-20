@@ -146,7 +146,10 @@ class MsTeamsApiPipelineTest(APITestCase):
             integration=integration, organization_id=self.organization.id
         ).exists()
 
-        return responses.calls[1].request.body.decode("utf-8")
+        body = responses.calls[1].request.body
+        if not isinstance(body, bytes):
+            raise TypeError("Teams installation request has no body")
+        return body.decode("utf-8")
 
     @responses.activate
     def test_team_installation(self) -> None:

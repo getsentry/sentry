@@ -41,3 +41,15 @@ def test_merge_adds_up_shards() -> None:
         "seconds_per_test": 1.01,
         "files": {"tests/a.py": 2.0, "tests/b.py": 2.0},
     }
+
+
+def test_median_takes_each_files_middle_run() -> None:
+    runs = [
+        {"seconds_per_test": 0.3, "files": {"tests/a.py": 1.0, "tests/b.py": 9.0}},
+        {"seconds_per_test": 0.5, "files": {"tests/a.py": 3.0}},
+        {"seconds_per_test": 0.4, "files": {"tests/a.py": 2.0, "tests/b.py": 7.0}},
+    ]
+    assert _mod.median(runs) == {
+        "seconds_per_test": 0.4,
+        "files": {"tests/a.py": 2.0, "tests/b.py": 8.0},
+    }

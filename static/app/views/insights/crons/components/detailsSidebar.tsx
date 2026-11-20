@@ -7,6 +7,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {ActorAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {formatDateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -16,13 +17,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {TimeSince} from 'sentry/components/timeSince';
 import {t, tn} from 'sentry/locale';
-import {getFormattedDate} from 'sentry/utils/dates';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {DetailsTimelineLegend} from 'sentry/views/insights/crons/components/detailsTimelineLegend';
 import type {Monitor, MonitorEnvironment} from 'sentry/views/insights/crons/types';
 import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
+import {DetailsTimelineLegend} from './detailsTimelineLegend';
 import {MonitorQuickStartGuide} from './monitorQuickStartGuide';
 
 interface Props {
@@ -60,7 +60,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
         <div>
           {monitorEnv?.lastCheckIn ? (
             <TimeSince
-              unitStyle="regular"
+              unitStyle="long"
               liveUpdateInterval="second"
               date={monitorEnv.lastCheckIn}
             />
@@ -72,7 +72,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           {monitor.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
             moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
               <TimeSince
-                unitStyle="regular"
+                unitStyle="long"
                 liveUpdateInterval="second"
                 date={monitorEnv.nextCheckIn}
               />
@@ -88,7 +88,7 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
       <Flex wrap="wrap" marginBottom="xl" gap="md">
         <Text>
           {scheduleAsText(monitor.config)}{' '}
-          {schedule_type === ScheduleType.CRONTAB && `(${timezone})`}
+          {schedule_type === ScheduleType.CRONTAB && `(${timezone ?? 'UTC'})`}
         </Text>
         {schedule_type === ScheduleType.CRONTAB && (
           <CrontabText>({schedule})</CrontabText>
@@ -125,7 +125,12 @@ export function DetailsSidebar({monitorEnv, monitor, showUnknownLegend}: Props) 
           </DescriptionList.Details>
           <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
           <DescriptionList.Details>
-            {getFormattedDate(monitor.dateCreated, 'MMM D, YYYY')}
+            {formatDateTime(monitor.dateCreated, {
+              mode: 'date',
+              year: 'always',
+              showTimezone: false,
+              timezone: 'UTC',
+            })}
           </DescriptionList.Details>
         </DescriptionList>
       </Container>

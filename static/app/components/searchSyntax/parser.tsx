@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import {parse} from '@sentry/search-syntax/grammar';
 import moment from 'moment-timezone';
 import type {LocationRange} from 'peggy';
 
@@ -10,8 +11,9 @@ import {
   measurementType,
 } from 'sentry/utils/discover/fields';
 
-import {parse} from './grammar.pegjs';
 import {
+  BooleanOperator,
+  FilterType,
   regexOperators,
   TermOperator,
   Token,
@@ -20,7 +22,14 @@ import {
 } from './tokens';
 import {getKeyName} from './utils';
 
-export {regexOperators, TermOperator, Token, wildcardOperators};
+export {
+  BooleanOperator,
+  FilterType,
+  regexOperators,
+  TermOperator,
+  Token,
+  wildcardOperators,
+};
 export type {WildcardOperator};
 
 type TextFn = () => string;
@@ -39,40 +48,6 @@ const listJoiner = <K,>([s1, comma, s2, value]: ListItem<K>) => {
     value: value ? value[1] : null,
   };
 };
-
-/**
- * Logic operators
- */
-export enum BooleanOperator {
-  AND = 'AND',
-  OR = 'OR',
-}
-
-/**
- * The Token.Filter may be one of many types of filters. This enum declares the
- * each variant filter type.
- */
-export enum FilterType {
-  TEXT = 'text',
-  TEXT_IN = 'textIn',
-  DATE = 'date',
-  SPECIFIC_DATE = 'specificDate',
-  RELATIVE_DATE = 'relativeDate',
-  DURATION = 'duration',
-  SIZE = 'size',
-  NUMERIC = 'numeric',
-  NUMERIC_IN = 'numericIn',
-  BOOLEAN = 'boolean',
-  AGGREGATE_DURATION = 'aggregateDuration',
-  AGGREGATE_SIZE = 'aggregateSize',
-  AGGREGATE_PERCENTAGE = 'aggregatePercentage',
-  AGGREGATE_NUMERIC = 'aggregateNumeric',
-  AGGREGATE_DATE = 'aggregateDate',
-  AGGREGATE_RELATIVE_DATE = 'aggregateRelativeDate',
-  HAS = 'has',
-  IS = 'is',
-  ARRAY_INCLUDES = 'arrayIncludes',
-}
 
 /**
  * These are the wildcard operators that can be used in the search query. We use the
@@ -373,11 +348,7 @@ type AggregateFilterType =
  */
 type FilterResult = FilterMap[FilterType];
 
-type TokenConverterOpts = {
-  config: SearchConfig;
-  location: LocationFn;
-  text: TextFn;
-};
+type TokenConverterOpts = {config: SearchConfig; location: LocationFn; text: TextFn};
 
 /**
  * Used to construct token results via the token grammar
@@ -417,10 +388,7 @@ export class TokenConverter {
    * Creates shared `text` and `location` keys.
    */
   get defaultTokenFields() {
-    return {
-      text: this.text(),
-      location: this.location(),
-    };
+    return {text: this.text(), location: this.location()};
   }
 
   tokenSpaces = (value: string) => ({
@@ -453,10 +421,7 @@ export class TokenConverter {
       warning: this.checkFilterWarning(key),
     } as FilterResult;
 
-    return {
-      ...this.defaultTokenFields,
-      ...filterToken,
-    };
+    return {...this.defaultTokenFields, ...filterToken};
   };
 
   tokenRegexFilter = (
@@ -517,11 +482,7 @@ export class TokenConverter {
       | ReturnType<TokenConverter['tokenFilter']>
       | ReturnType<TokenConverter['tokenFreeText']>
     >
-  ) => ({
-    ...this.defaultTokenFields,
-    type: Token.LOGIC_GROUP as const,
-    inner,
-  });
+  ) => ({...this.defaultTokenFields, type: Token.LOGIC_GROUP as const, inner});
 
   tokenLogicBoolean = (bool: BooleanOperator) => ({
     ...this.defaultTokenFields,
@@ -570,12 +531,7 @@ export class TokenConverter {
   tokenKeyExplicitTag = (
     prefix: string,
     key: ReturnType<TokenConverter['tokenKeySimple']>
-  ) => ({
-    ...this.defaultTokenFields,
-    type: Token.KEY_EXPLICIT_TAG as const,
-    prefix,
-    key,
-  });
+  ) => ({...this.defaultTokenFields, type: Token.KEY_EXPLICIT_TAG as const, prefix, key});
 
   tokenKeyExplicitStringTag = (
     prefix: string,
@@ -783,12 +739,7 @@ export class TokenConverter {
   });
 
   tokenValueText = (value: string, quoted: boolean) => {
-    return {
-      ...this.defaultTokenFields,
-      type: Token.VALUE_TEXT as const,
-      value,
-      quoted,
-    };
+    return {...this.defaultTokenFields, type: Token.VALUE_TEXT as const, value, quoted};
   };
 
   /**
@@ -833,6 +784,9 @@ export class TokenConverter {
 
       case FilterType.AGGREGATE_DURATION:
         return checkAggregate(isDuration);
+
+      case FilterType.AGGREGATE_SIZE:
+        return checkAggregate(isSize);
 
       case FilterType.AGGREGATE_DATE:
         return checkAggregate(isDate);
@@ -1276,9 +1230,7 @@ function parseDuration(
       throw new Error('Invalid unit');
   }
 
-  return {
-    value: number,
-  };
+  return {value: number};
 }
 function parseNumber(
   input: string,
@@ -1604,9 +1556,9 @@ export const defaultConfig: SearchConfig = {
   },
 };
 
-function tryParseSearch(...args: Parameters<typeof parse>): ParseResult | null {
+function tryParseSearch(query: string, config: SearchConfig): ParseResult | null {
   try {
-    return parse(...args);
+    return parse(query, {config, TokenConverter, TermOperator, FilterType});
   } catch (e: any) {
     Sentry.logger.error('Search syntax parse error', {
       message: e.message?.slice(-100),
@@ -1629,12 +1581,7 @@ export function parseSearch(
     ? mergeSearchConfigWithDefaults(defaultConfig, additionalConfig)
     : defaultConfig;
 
-  return tryParseSearch(query, {
-    config,
-    TokenConverter,
-    TermOperator,
-    FilterType,
-  });
+  return tryParseSearch(query, config);
 }
 
 /**

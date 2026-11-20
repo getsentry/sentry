@@ -5,8 +5,16 @@ import pytest
 from sentry.grouping.component import StacktraceGroupingComponent
 from sentry.grouping.context import GroupingContext
 from sentry.grouping.strategies.base import create_strategy_configuration_class
+from sentry.grouping.variants import BaseVariant, ComponentVariant
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import TestCase
+
+
+def component_variant(variant: BaseVariant) -> ComponentVariant:
+    assert isinstance(variant, ComponentVariant)
+    return variant
+
+
 from sentry.testutils.helpers.eventprocessing import save_new_event
 
 
@@ -183,8 +191,8 @@ class StacktraceTest(TestCase):
         self.project.update_option("sentry:grouping_enhancements", "function:dog_walker +app")
 
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-        app_stacktrace_component = variants["app"].root_component.values[0]
-        system_stacktrace_component = variants["system"].root_component.values[0]
+        app_stacktrace_component = component_variant(variants["app"]).root_component.values[0]
+        system_stacktrace_component = component_variant(variants["system"]).root_component.values[0]
 
         assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
         assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
@@ -216,8 +224,8 @@ class StacktraceTest(TestCase):
         self.project.update_option("sentry:grouping_enhancements", "function:* -app")
 
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-        app_stacktrace_component = variants["app"].root_component.values[0]
-        system_stacktrace_component = variants["system"].root_component.values[0]
+        app_stacktrace_component = component_variant(variants["app"]).root_component.values[0]
+        system_stacktrace_component = component_variant(variants["system"]).root_component.values[0]
 
         assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
         assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
@@ -244,8 +252,8 @@ class StacktraceTest(TestCase):
         )
 
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-        app_stacktrace_component = variants["app"].root_component.values[0]
-        system_stacktrace_component = variants["system"].root_component.values[0]
+        app_stacktrace_component = component_variant(variants["app"]).root_component.values[0]
+        system_stacktrace_component = component_variant(variants["system"]).root_component.values[0]
 
         assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
         assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)
@@ -277,8 +285,8 @@ class StacktraceTest(TestCase):
         self.project.update_option("sentry:grouping_enhancements", "function:* +app -group")
 
         variants = self.event.get_grouping_variants(normalize_stacktraces=True)
-        app_stacktrace_component = variants["app"].root_component.values[0]
-        system_stacktrace_component = variants["system"].root_component.values[0]
+        app_stacktrace_component = component_variant(variants["app"]).root_component.values[0]
+        system_stacktrace_component = component_variant(variants["system"]).root_component.values[0]
 
         assert isinstance(app_stacktrace_component, StacktraceGroupingComponent)
         assert isinstance(system_stacktrace_component, StacktraceGroupingComponent)

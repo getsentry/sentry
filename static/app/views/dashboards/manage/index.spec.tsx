@@ -2,39 +2,22 @@ import {DashboardListItemFixture} from 'sentry-fixture/dashboard';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import ManageDashboards from 'sentry/views/dashboards/manage';
 import {getPaginationPageLink} from 'sentry/views/organizationStats/utils';
 
-const FEATURES = [
-  'dashboards-basic',
-  'dashboards-edit',
-  'discover-query',
-  'dashboards-prebuilt-insights-dashboards',
-];
+const FEATURES = ['discover-query', 'dashboards-prebuilt-insights-dashboards'];
 
 describe('Dashboards > Detail', () => {
-  const mockUnauthorizedOrg = OrganizationFixture({
-    features: ['dashboards-basic', 'discover-query'],
-  });
-
-  const mockAuthorizedOrg = OrganizationFixture({
-    features: FEATURES,
-  });
+  const mockAuthorizedOrg = OrganizationFixture({features: FEATURES});
   beforeEach(() => {
     act(() => ProjectsStore.loadInitialData([ProjectFixture()]));
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboards/?sort=name&per_page=9',
       body: [],
@@ -54,9 +37,7 @@ describe('Dashboards > Detail', () => {
       body: [DashboardListItemFixture({title: 'Test Dashboard'})],
     });
 
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(await screen.findByText('All Dashboards')).toBeInTheDocument();
 
@@ -70,29 +51,15 @@ describe('Dashboards > Detail', () => {
       url: '/organizations/org-slug/dashboards/',
       statusCode: 400,
     });
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(await screen.findByText('Oops! Something went wrong')).toBeInTheDocument();
-  });
-
-  it('denies access on missing feature', async () => {
-    render(<ManageDashboards />, {
-      organization: mockUnauthorizedOrg,
-    });
-
-    expect(
-      await screen.findByText("You don't have access to this feature")
-    ).toBeInTheDocument();
   });
 
   it('denies access on no projects', async () => {
     act(() => ProjectsStore.loadInitialData([]));
 
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(
       await screen.findByText('You need at least one project to use this view')
@@ -107,9 +74,7 @@ describe('Dashboards > Detail', () => {
       body: [],
     });
 
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(
       await screen.findByText('You need at least one project to use this view')
@@ -121,9 +86,7 @@ describe('Dashboards > Detail', () => {
   it('creates new dashboard', async () => {
     const org = OrganizationFixture({features: FEATURES, hideAiFeatures: true});
 
-    const {router} = render(<ManageDashboards />, {
-      organization: org,
-    });
+    const {router} = render(<ManageDashboards />, {organization: org});
 
     await userEvent.click(await screen.findByTestId('dashboard-create'));
 
@@ -132,16 +95,24 @@ describe('Dashboards > Detail', () => {
 
   it('can sort', async () => {
     const org = OrganizationFixture({features: FEATURES});
-
-    const {router} = render(<ManageDashboards />, {
-      organization: org,
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
     });
+
+    const {router} = render(<ManageDashboards />, {organization: org});
 
     await selectEvent.select(
       await screen.findByRole('button', {name: /sort by/i}),
       'Dashboard Name (A-Z)'
     );
 
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'title'})})
+      )
+    );
     expect(router.location.query).toEqual({sort: 'title'});
   });
 
@@ -155,16 +126,12 @@ describe('Dashboards > Detail', () => {
       body: [DashboardListItemFixture({title: 'Test Dashboard'})],
     });
 
-    render(<ManageDashboards />, {
-      organization: org,
-    });
+    render(<ManageDashboards />, {organization: org});
 
     expect(await screen.findByText('Test Dashboard')).toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
       '/organizations/org-slug/dashboards/',
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'recentlyViewed'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'recentlyViewed'})})
     );
   });
 
@@ -200,9 +167,7 @@ describe('Dashboards > Detail', () => {
     });
 
     render(<ManageDashboards />, {
-      organization: OrganizationFixture({
-        features: ['dashboards-basic', 'dashboards-edit', 'discover-query'],
-      }),
+      organization: OrganizationFixture({features: ['discover-query']}),
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/dashboards/',
@@ -222,16 +187,79 @@ describe('Dashboards > Detail', () => {
 
   it('can search', async () => {
     const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {organization: org});
+
+    await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
+    await userEvent.keyboard('dash');
+    await userEvent.keyboard('[Enter]');
+
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
+    expect(router.location.query).toEqual({query: 'dash'});
+  });
+
+  it('pushes history and clears the cursor when searching', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const onNuqsUrlUpdate = jest.fn();
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
 
     const {router} = render(<ManageDashboards />, {
       organization: org,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {cursor: '0:9:0', sort: 'title'}},
+      },
     });
 
     await userEvent.click(await screen.findByPlaceholderText('Search Dashboards'));
     await userEvent.keyboard('dash');
     await userEvent.keyboard('[Enter]');
 
-    expect(router.location.query).toEqual({query: 'dash'});
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({query: 'dash'})})
+      )
+    );
+    expect(router.location.query).toEqual({query: 'dash', sort: 'title'});
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('writes the default sort when the URL sort is invalid', async () => {
+    const org = OrganizationFixture({features: FEATURES});
+    const dashboardsRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
+
+    const {router} = render(<ManageDashboards />, {
+      organization: org,
+      initialRouterConfig: {
+        location: {pathname: '/mock-pathname/', query: {sort: 'not-a-sort'}},
+      },
+    });
+
+    await waitFor(() => expect(router.location.query).toEqual({sort: 'mydashboards'}));
+    await waitFor(() =>
+      expect(dashboardsRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({sort: 'mydashboards'})})
+      )
+    );
   });
 
   it('uses pagination correctly', async () => {
@@ -241,13 +269,21 @@ describe('Dashboards > Detail', () => {
       headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
 
-    const {router} = render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    const {router} = render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/',
+      body: [],
+    });
     await userEvent.click(await screen.findByLabelText('Next'));
 
+    await waitFor(() =>
+      expect(nextPageRequest).toHaveBeenLastCalledWith(
+        expect.anything(),
+        expect.objectContaining({query: expect.objectContaining({cursor: '0:9:0'})})
+      )
+    );
     expect(router.location.query).toEqual({cursor: '0:9:0'});
   });
 
@@ -258,9 +294,7 @@ describe('Dashboards > Detail', () => {
       headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
 
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(await screen.findByText('Test Dashboard 1')).toBeInTheDocument();
     expect(screen.getByLabelText('Previous')).toBeDisabled();
@@ -273,9 +307,7 @@ describe('Dashboards > Detail', () => {
       headers: {Link: getPaginationPageLink({numRows: 15, pageSize: 9, offset: 0})},
     });
 
-    render(<ManageDashboards />, {
-      organization: mockAuthorizedOrg,
-    });
+    render(<ManageDashboards />, {organization: mockAuthorizedOrg});
 
     expect(await screen.findByTestId('grid-editable')).toBeInTheDocument();
   });

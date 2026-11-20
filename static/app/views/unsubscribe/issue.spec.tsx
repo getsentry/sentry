@@ -1,6 +1,6 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import UnsubscribeIssue from 'sentry/views/unsubscribe/issue';
+import UnsubscribeIssue from './issue';
 
 describe('UnsubscribeIssue', () => {
   let mockUpdate: jest.Mock;
@@ -58,10 +58,7 @@ describe('UnsubscribeIssue', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       '/organizations/acme/unsubscribe/issue/9876/',
-      expect.objectContaining({
-        data: {cancel: 1},
-        query: {_: 'signature-value'},
-      })
+      expect.objectContaining({data: {cancel: 1}, query: {_: 'signature-value'}})
     );
   });
 });

@@ -52,14 +52,14 @@ class RepositoryProjectPathConfig(DefaultFieldsModelExisting):
         )
 
 
-def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs):
+def process_resource_change(instance: RepositoryProjectPathConfig, **kwargs: object) -> None:
     if instance._skip_post_save:
         return
 
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
-    def _spawn_update_schema_task():
+    def _spawn_update_schema_task() -> None:
         """
         We need to re-apply the updated code mapping against any CODEOWNERS file that uses this mapping.
         """

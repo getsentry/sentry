@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from datetime import timedelta
 from typing import Any
 
@@ -38,8 +38,12 @@ from sentry.utils import metrics
 from sentry.utils.locking import UnableToAcquireLock
 from sentry.utils.sdk import set_current_event_project
 
-DEBOUNCE_PR_COMMENT_CACHE_KEY = lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
-DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+DEBOUNCE_PR_COMMENT_CACHE_KEY: Callable[[int], str] = (
+    lambda pullrequest_id: f"pr-comment-{pullrequest_id}"
+)
+DEBOUNCE_PR_COMMENT_LOCK_KEY: Callable[[int], str] = (
+    lambda pullrequest_id: f"queue_comment_task:{pullrequest_id}"
+)
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 TASK_DURATION_S = 90
@@ -86,7 +90,7 @@ def process_commit_context(
             group = Group.objects.get_from_cache(id=group_id)
             set_tag("organization.slug", project.organization.slug)
             sentry_sdk.set_attribute("organization.slug", project.organization.slug)
-            basic_logging_details = {
+            basic_logging_details: dict[str, str | int] = {
                 "event": event_id,
                 "group": group_id,
                 "organization": project.organization_id,
@@ -106,8 +110,8 @@ def process_commit_context(
                     IntegrationsFailedToFetchCommitContextAllFrames(
                         organization_id=project.organization_id,
                         project_id=project_id,
-                        group_id=basic_logging_details["group"],
-                        event_id=basic_logging_details["event"],
+                        group_id=group_id,
+                        event_id=event_id,
                         num_frames=0,
                         num_successfully_mapped_frames=0,
                         reason="could_not_find_in_app_stacktrace_frame",

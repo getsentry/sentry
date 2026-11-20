@@ -10,11 +10,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
+import {annotate, hasAnnotations} from '@sentry/scraps/markdown/annotation';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {useConversation} from 'sentry/views/explore/conversations/hooks/useConversation';
-import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getIsAiAgentNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {AiSpanTimeline} from './aiSpanTimeline';
 function createMockNode(id: string, attributes: Record<string, string | number>) {
   return {
     id,
@@ -40,6 +43,20 @@ const EVALUATION_ATTRIBUTES = {
       answers: {
         authIssue: {type: 'boolean', probability: 0.97},
         department: {type: 'choice', choice: 'billing'},
+      },
+    },
+  ]),
+};
+
+const EXTRACTION_ATTRIBUTES = {
+  [SpanFields.GEN_AI_OPERATION_NAME]: 'extract',
+  [SpanFields.GEN_AI_REQUEST_MODEL]: '@cf/cloudflare/clairic',
+  [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+    {
+      answers: {
+        invoice_number: {type: 'text', value: 'INV-2291'},
+        contacts: {type: 'list', value: ['Dana Ruiz', 'Priya Shah']},
+        po_number: {type: 'text', value: null},
       },
     },
   ]),
@@ -171,6 +188,44 @@ describe('AiSpanTimeline', () => {
     await userEvent.click(screen.getByText('typesafe/jev-1.13'));
 
     expect(onSelectNode).toHaveBeenCalledWith(node);
+  });
+
+  it('marks scrubbed values in a tool input preview', () => {
+    const email = annotate(
+      '[email]',
+      JSON.stringify({ruleId: '@email:replace', remark: 's'})
+    );
+    const node = createMockNode('tool-1', {
+      [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
+      [SpanFields.GEN_AI_TOOL_NAME]: 'send_mail',
+      'gen_ai.tool.call.arguments': JSON.stringify({to: email}),
+    });
+    const {container} = render(
+      <AiSpanTimeline
+        nodes={[node] as any}
+        selectedNodeKey={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('send_mail')).toBeInTheDocument();
+    expect(screen.getByText('[email]')).toBeInTheDocument();
+    expect(hasAnnotations(container.textContent ?? '')).toBe(false);
+  });
+
+  it('renders an extraction with its extractor and the values found', () => {
+    render(
+      <AiSpanTimeline
+        nodes={[createMockNode('extract-1', EXTRACTION_ATTRIBUTES)] as any}
+        selectedNodeKey={null}
+        onSelectNode={jest.fn()}
+      />
+    );
+
+    expect(screen.getByText('@cf/cloudflare/clairic')).toBeInTheDocument();
+    expect(
+      screen.getByText('invoice_number: INV-2291, contacts: Dana Ruiz, Priya Shah')
+    ).toBeInTheDocument();
   });
 
   it('renders other LLM calls by their response model', () => {

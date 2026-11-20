@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
 from typing import Any
 
 from sentry.stacktraces.processing import StacktraceInfo
@@ -14,15 +15,15 @@ from sentry.utils.safe import get_path
 JAVA_PLATFORMS = ("java",)
 
 
-def is_valid_proguard_image(image):
-    return bool(image) and image.get("type") == "proguard" and image.get("uuid") is not None
+def is_valid_proguard_image(image: Mapping[str, object] | None) -> bool:
+    return image is not None and image.get("type") == "proguard" and image.get("uuid") is not None
 
 
-def is_valid_jvm_image(image):
-    return bool(image) and image.get("type") == "jvm" and image.get("debug_id") is not None
+def is_valid_jvm_image(image: Mapping[str, object] | None) -> bool:
+    return image is not None and image.get("type") == "jvm" and image.get("debug_id") is not None
 
 
-def has_proguard_file(data):
+def has_proguard_file(data: Mapping[str, object]) -> bool:
     """
     Checks whether an event contains a proguard file
     """

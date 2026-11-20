@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 
+from django.http import QueryDict
 from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from rest_framework.exceptions import ParseError
@@ -99,7 +100,7 @@ def get_snuba_query_string(
 
 def get_crash_free_historical_data(
     start: datetime, end: datetime, project: Project, organization: Organization, granularity: int
-):
+) -> SnubaTSResult:
     """
     Fetch the historical metrics data from Snuba for crash free user rate and crash free session rate metrics
     """
@@ -120,7 +121,7 @@ def get_crash_free_historical_data(
         }
     )
     query = QueryDefinition(
-        query=query_params,
+        query=cast("QueryDict", query_params),
         params=params,
         offset=None,
         limit=None,
@@ -174,7 +175,7 @@ def format_snuba_ts_data(
         extra_columns=None,
     )
 
-    for data in serialized_result.get("data"):
+    for data in serialized_result.get("data") or []:
         if len(data) > 1:
             count_data = data[1]
             count = 0
@@ -205,7 +206,7 @@ def format_historical_data(
 
 def get_dataset_from_label_and_event_types(
     dataset_label: str, event_types: list[SnubaQueryEventType.EventType] | None = None
-):
+) -> Any:
     dataset_label = get_dataset_name_from_label_and_event_types(dataset_label, event_types)
     dataset = get_dataset(dataset_label)
     if dataset is None:

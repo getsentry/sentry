@@ -100,7 +100,7 @@ class SweepStalePrIterationsTest(TestCase):
             iteration_id=iteration_id,
         )
 
-    def _open_rows(self) -> list:
+    def _open_rows(self) -> list[SeerRunPrIteration]:
         return open_iterations(self.seer_run)
 
     def _sweep(self) -> SweepResult:

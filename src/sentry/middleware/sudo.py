@@ -1,5 +1,6 @@
 from django.http.request import HttpRequest
 
+from sentry.auth.principal import has_user
 from sentry.seer.agent_token import is_agent_auth
 from sudo.middleware import SudoMiddleware as BaseSudoMiddleware
 
@@ -13,7 +14,7 @@ class SudoMiddleware(BaseSudoMiddleware):
         # so if a user doesn't have a password (for example, only has github auth)
         # then we shouldn't prompt them for the password they don't have.
         user = request.user
-        if user.is_authenticated and not user.has_usable_password():
+        if has_user(user) and not user.has_usable_password():
             return True
 
         return super().has_sudo_privileges(request)

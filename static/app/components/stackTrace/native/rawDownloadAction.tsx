@@ -5,8 +5,8 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformKey} from 'sentry/types/platform';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useApi} from 'sentry/utils/useApi';
 
 import {supportsAppleCrashReport} from './appleCrashReport';
 
@@ -30,7 +30,6 @@ export function RawDownloadAction({
   projectSlug,
   threadId,
 }: RawDownloadActionProps) {
-  const api = useApi();
   const {view, isMinified, platform: viewStatePlatform} = useStackTraceViewState();
   const platform = platformProp ?? viewStatePlatform;
 
@@ -39,7 +38,9 @@ export function RawDownloadAction({
   }
 
   const threadIdQuery = threadId === undefined ? '' : `&thread_id=${threadId}`;
-  const href = `${api.baseUrl}/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${isMinified}${threadIdQuery}&download=1`;
+  const href = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/apple-crash-report?minified=${isMinified}${threadIdQuery}&download=1`
+  );
 
   return (
     <LinkButton

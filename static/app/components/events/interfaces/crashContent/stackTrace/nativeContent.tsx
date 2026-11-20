@@ -126,11 +126,7 @@ export function NativeContent({
 
   const lastFrameIndex = getLastFrameIndex(frames);
   const frameCountMap = getInitialFrameCounts();
-  const hiddenFrameIndices = getHiddenFrameIndices({
-    data,
-    toggleFrameMap,
-    frameCountMap,
-  });
+  const hiddenFrameIndices = getHiddenFrameIndices({data, toggleFrameMap, frameCountMap});
 
   const maxLengthOfAllRelativeAddresses = frames.reduce(
     (maxLengthUntilThisPoint, frame) => {

@@ -5,7 +5,8 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {
   fetchProjectHasNonGithubRepo,
   getSeerProjectReposInfiniteQueryOptions,
-} from 'sentry/utils/seer/seerProjectRepos';
+  isGitHubDotComProvider,
+} from './seerProjectRepos';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};
@@ -84,5 +85,17 @@ describe('fetchProjectHasNonGithubRepo', () => {
     ).resolves.toBe(false);
     // The complete fresh cache is reused; no extra request is made.
     expect(reposMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('isGitHubDotComProvider', () => {
+  it.each([
+    ['github', true],
+    ['integrations:github', true],
+    ['github_enterprise', false],
+    ['integrations:github_enterprise', false],
+    ['integrations:gitlab', false],
+  ])('%s -> %s', (provider, expected) => {
+    expect(isGitHubDotComProvider(provider)).toBe(expected);
   });
 });

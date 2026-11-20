@@ -436,8 +436,12 @@ class PushEventWebhookTest(APITestCase):
     @patch("sentry.integrations.github.webhook.PushEventWebhook.__call__")
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_webhook_error_metric(
-        self, mock_record, mock_event, mock_get_installation_metadata, mock_get_jwt
-    ):
+        self,
+        mock_record: MagicMock,
+        mock_event: MagicMock,
+        mock_get_installation_metadata: MagicMock,
+        mock_get_jwt: MagicMock,
+    ) -> None:
         responses.add(
             responses.POST,
             "https://35.232.149.196/extensions/github-enterprise/webhook/",

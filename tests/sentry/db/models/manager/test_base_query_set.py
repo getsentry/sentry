@@ -1,4 +1,6 @@
+from collections.abc import Generator
 from contextlib import contextmanager
+from typing import Any
 from unittest import mock
 
 import pytest
@@ -6,11 +8,10 @@ import pytest
 from sentry.models.group import Group
 from sentry.signals import post_update
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import override_options
 
 
 @contextmanager
-def catch_signal(signal):
+def catch_signal(signal: Any) -> Generator[mock.Mock]:
     handler = mock.Mock()
     signal.connect(handler)
     yield handler
@@ -58,6 +59,16 @@ class TestUpdateWithReturning(TestCase):
         assert [] == Group.objects.filter(id__in=[]).update_with_returning(
             returned_fields=["id"], message="hi"
         )
+
+    def test_no_values_to_update(self) -> None:
+        queryset = Group.objects.filter(id=self.group.id).with_post_update_signal(True)
+
+        with catch_signal(post_update) as handler:
+            returned = queryset.update_with_returning(returned_fields=["id"])
+
+        assert returned == []
+
+        assert not handler.called
 
     def test_raises_when_no_fields_returned(self) -> None:
         original_message = self.group.message
@@ -125,35 +136,18 @@ class TestUpdateWithReturning(TestCase):
 
 class TestSendPostUpdateSignal(TestCase):
     def test_not_triggered(self) -> None:
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": True}),
-        ):
+        with catch_signal(post_update) as handler:
             self.group.message = "hi"
             self.group.save()
 
         assert not handler.called
 
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": True}),
-        ):
+        with catch_signal(post_update) as handler:
             self.group.update(message="hi")
 
         assert not handler.called
 
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": False}),
-        ):
-            assert Group.objects.filter(id=self.group.id).update(message="hi") == 1
-
-        assert not handler.called
-
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": True}),
-        ):
+        with catch_signal(post_update) as handler:
             assert (
                 Group.objects.filter(id=self.group.id)
                 .with_post_update_signal(False)
@@ -164,10 +158,7 @@ class TestSendPostUpdateSignal(TestCase):
         assert not handler.called
 
         # Test signal not fired when Django detects the query will return no results
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": True}),
-        ):
+        with catch_signal(post_update) as handler:
             assert (
                 Group.objects.filter(id__in=[]).with_post_update_signal(True).update(message="hi")
                 == 0
@@ -176,7 +167,7 @@ class TestSendPostUpdateSignal(TestCase):
         assert not handler.called
 
     def test_enable(self) -> None:
-        qs = Group.objects.all()
+        qs = Group.objects.all().with_post_update_signal(False)
         assert not qs._with_post_update_signal
         new_qs = qs.with_post_update_signal(True)
         # Make sure we don't modify the previous queryset
@@ -185,10 +176,7 @@ class TestSendPostUpdateSignal(TestCase):
 
     def test_triggered(self) -> None:
         message = "hi"
-        with (
-            catch_signal(post_update) as handler,
-            override_options({"groups.enable-post-update-signal": True}),
-        ):
+        with catch_signal(post_update) as handler:
             assert Group.objects.filter(id=self.group.id).update(message=message) == 1
 
         self.group.refresh_from_db()

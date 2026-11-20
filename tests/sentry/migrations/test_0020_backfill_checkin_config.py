@@ -1,5 +1,7 @@
+from typing import Any
 from uuid import uuid4
 
+from django.db.migrations.state import StateApps
 from sentry.testutils.cases import TestMigrations
 
 
@@ -9,7 +11,7 @@ class BackfillCheckinConfigTest(TestMigrations):
     migrate_to = "0020_backfill_checkin_config"
     connection = "secondary"
 
-    def setup_before_migration(self, apps):
+    def setup_before_migration(self, apps: StateApps) -> None:
         Monitor = apps.get_model("monitors", "Monitor")
         MonitorEnvironment = apps.get_model("monitors", "MonitorEnvironment")
         MonitorCheckIn = apps.get_model("monitors", "MonitorCheckIn")
@@ -25,7 +27,7 @@ class BackfillCheckinConfigTest(TestMigrations):
         )
         monitor_env = MonitorEnvironment.objects.create(monitor=monitor, environment_id=1)
 
-        def create_checkin(**kwargs):
+        def create_checkin(**kwargs: Any) -> Any:
             return MonitorCheckIn.objects.create(
                 guid=uuid4(),
                 monitor=monitor,
@@ -67,5 +69,7 @@ class BackfillCheckinConfigTest(TestMigrations):
         assert MonitorCheckInConfig.objects.get(id=b.checkin_config_id).config == self.config_b
 
         assert no_config.checkin_config_id is None
+        # tearDown migrates forward, and checkin_config is NOT NULL from 0027.
+        no_config.delete()
         assert already_set.checkin_config_id == self.existing_config.id
         assert MonitorCheckInConfig.objects.count() == 3

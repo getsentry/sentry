@@ -13,15 +13,15 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {
   getReplayDiffOffsetsFromEvent,
   getReplayDiffOffsetsFromFrame,
-} from 'sentry/utils/replays/getDiffTimestamps';
-import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import {ReplayReader} from 'sentry/utils/replays/replayReader';
+} from './getDiffTimestamps';
+import {hydrateBreadcrumbs} from './hydrateBreadcrumbs';
+import {ReplayReader} from './replayReader';
 import {
   IncrementalSource,
   isHydrationErrorFrame,
   type RawBreadcrumbFrame,
   type RawReplayError,
-} from 'sentry/utils/replays/types';
+} from './types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.000Z');
 const INIT_DATE = new Date('2022-06-15T00:40:00.100Z');
@@ -32,28 +32,17 @@ const INCR_DATE = new Date('2022-06-15T00:40:05.000Z');
 const CRUMB_2_DATE = new Date('2022-06-15T00:40:05.350Z');
 const END_DATE = new Date('2022-06-15T00:50:00.555Z');
 
-const replayRecord = ReplayRecordFixture({
-  started_at: START_DATE,
-  finished_at: END_DATE,
-});
+const replayRecord = ReplayRecordFixture({started_at: START_DATE, finished_at: END_DATE});
 
 const RRWEB_EVENTS = [
-  ...RRWebInitFrameEventsFixture({
-    timestamp: INIT_DATE,
-  }),
+  ...RRWebInitFrameEventsFixture({timestamp: INIT_DATE}),
   RRWebFullSnapshotFrameEventFixture({timestamp: FULL_DATE}),
   RRWebIncrementalSnapshotFrameEventFixture({
     timestamp: INCR_DATE,
     data: {
       source: IncrementalSource.Mutation,
       adds: [
-        {
-          node: RRWebDOMFrameFixture({
-            tagName: 'canvas',
-          }),
-          parentId: 0,
-          nextId: null,
-        },
+        {node: RRWebDOMFrameFixture({tagName: 'canvas'}), parentId: 0, nextId: null},
       ],
       removes: [],
       texts: [],
@@ -84,9 +73,7 @@ function getMockReplayWithCrumbFrame(
   attachments.push(
     ReplayBreadcrumbFrameEventFixture({
       timestamp: new Date(crumbFrame.timestamp),
-      data: {
-        payload: crumbFrame,
-      },
+      data: {payload: crumbFrame},
     })
   );
 

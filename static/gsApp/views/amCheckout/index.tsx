@@ -13,7 +13,6 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import type {Client} from 'sentry/api';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {LogoSentry} from 'sentry/components/logoSentry';
@@ -23,9 +22,9 @@ import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import {showIntercom} from 'sentry/utils/intercom';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import {useApi} from 'sentry/utils/useApi';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {withApi} from 'sentry/utils/withApi';
 
 import {withSubscription} from 'getsentry/components/withSubscription';
 import {
@@ -69,7 +68,6 @@ import {
 } from 'getsentry/views/spendLimits/utils';
 
 type Props = {
-  api: Client;
   location: Location;
   navigate: ReactRouter3Navigate;
   subscription: Subscription;
@@ -88,8 +86,9 @@ export type State = {
 };
 
 function AMCheckout(props: Props) {
+  const api = useApi();
   const organization = useOrganization();
-  const {api, location, navigate, subscription} = props;
+  const {location, navigate, subscription} = props;
 
   const hasFetchedBillingConfig = useRef(false);
   const [loading, setLoading] = useState(true);
@@ -285,7 +284,7 @@ function AMCheckout(props: Props) {
         newOnDemandMaxSpend = Math.max(newOnDemandMaxSpend, 0);
       }
 
-      let newOnDemandBudget: OnDemandBudgets | undefined = undefined;
+      let newOnDemandBudget: OnDemandBudgets | undefined;
 
       if (
         hasOnDemandBudgetsFeature(organization, subscription) ||
@@ -294,10 +293,7 @@ function AMCheckout(props: Props) {
         newOnDemandBudget =
           onDemandBudget && onDemandSupported
             ? onDemandBudget
-            : {
-                budgetMode: OnDemandBudgetMode.SHARED,
-                sharedMaxBudget: 0,
-              };
+            : {budgetMode: OnDemandBudgetMode.SHARED, sharedMaxBudget: 0};
 
         newOnDemandMaxSpend = getTotalBudget(newOnDemandBudget);
       }
@@ -369,10 +365,7 @@ function AMCheckout(props: Props) {
       );
 
       const data = {
-        reserved: {
-          ...config.defaultReserved,
-          ...reservedOverlapping,
-        },
+        reserved: {...config.defaultReserved, ...reservedOverlapping},
         ...(onDemandMaxSpend > 0 && {onDemandMaxSpend}),
         onDemandBudget: parseOnDemandBudgetsFromSubscription(subscription),
         addOns: Object.values(subscription.addOns ?? {})
@@ -405,11 +398,7 @@ function AMCheckout(props: Props) {
   );
 
   const getFormDataForPreview = useCallback((data: CheckoutFormData) => {
-    return {
-      ...data,
-      onDemandBudget: undefined,
-      onDemandMaxSpend: undefined,
-    };
+    return {...data, onDemandBudget: undefined, onDemandMaxSpend: undefined};
   }, []);
 
   const fetchBillingConfig = useCallback(async () => {
@@ -516,19 +505,13 @@ function AMCheckout(props: Props) {
   }, []);
 
   useEffect(() => {
-    trackGetsentryAnalytics('am_checkout.viewed', {
-      organization,
-      subscription,
-    });
+    trackGetsentryAnalytics('am_checkout.viewed', {organization, subscription});
 
     Sentry.getReplay()?.start();
   }, [organization, subscription]);
 
   useEffect(() => {
-    trackGetsentryAnalytics('intercom_link.viewed', {
-      organization,
-      source: 'checkout',
-    });
+    trackGetsentryAnalytics('intercom_link.viewed', {organization, source: 'checkout'});
   }, [organization]);
 
   useEffect(() => {
@@ -601,9 +584,7 @@ function AMCheckout(props: Props) {
             </Text>
             {tct(
               'Payments for this subscription are processed by [partnerName]. Please make sure your payment method is up to date on their platform to avoid service interruptions.',
-              {
-                partnerName: subscription.partner?.partnership.displayName,
-              }
+              {partnerName: subscription.partner?.partnership.displayName}
             )}
           </Stack>
         </Alert>
@@ -786,10 +767,7 @@ function AMCheckout(props: Props) {
             size="xs"
             variant="transparent"
             onClick={() => {
-              trackGetsentryAnalytics('checkout.exit', {
-                subscription,
-                organization,
-              });
+              trackGetsentryAnalytics('checkout.exit', {subscription, organization});
             }}
           >
             {t('Manage Subscription')}
@@ -849,4 +827,4 @@ const CheckoutStepsContainer = styled('div')`
   }
 `;
 
-export default withApi(withSubscription(AMCheckout));
+export default withSubscription(AMCheckout);

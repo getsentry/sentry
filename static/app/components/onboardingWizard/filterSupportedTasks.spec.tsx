@@ -1,9 +1,10 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {filterSupportedTasks} from 'sentry/components/onboardingWizard/filterSupportedTasks';
 import {OnboardingTaskKey, type OnboardingTask} from 'sentry/types/onboarding';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {Project} from 'sentry/types/project';
+
+import {filterSupportedTasks} from './filterSupportedTasks';
 
 describe('filterSupportedTasks', () => {
   const onboardingTasks: OnboardingTask[] = [
@@ -37,9 +38,9 @@ describe('filterSupportedTasks', () => {
   ];
 
   it('filters out nothing if any supported platform', () => {
-    const supportedProject = ProjectFixture({
-      platform: 'javascript-react',
-    }) as Project & {platform: PlatformKey};
+    const supportedProject = ProjectFixture({platform: 'javascript-react'}) as Project & {
+      platform: PlatformKey;
+    };
     const unsupportedProject = ProjectFixture({
       platform: 'nintendo-switch',
     }) as Project & {platform: PlatformKey};

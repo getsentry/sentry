@@ -155,6 +155,7 @@ def _sync_artifact_bundle(source_artifact_bundle: ArtifactBundle, target_org: Or
                 router.db_for_write(ReleaseArtifactBundle),
             )
         ):
+            assert source_artifact_bundle.file is not None
             blobs = source_artifact_bundle.file.blobs.all()
             for blob in blobs:
                 FileBlobOwner.objects.get_or_create(
@@ -185,7 +186,7 @@ def _sync_project_artifact_bundle(
     source_project_artifact_bundle = ProjectArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    ).first()
+    ).first()  # noqa: S035
 
     if not source_project_artifact_bundle:
         return
@@ -212,7 +213,7 @@ def _sync_release_artifact_bundle(
     source_release_artifact_bundle = ReleaseArtifactBundle.objects.filter(
         artifact_bundle_id=source_artifact_bundle.id,
         organization_id=source_artifact_bundle.organization_id,
-    ).first()
+    ).first()  # noqa: S035
 
     if not source_release_artifact_bundle:
         return
@@ -232,8 +233,11 @@ def _sync_project_debug_file(
     target_storage_path = None
     try:
         with atomic_transaction(using=(router.db_for_write(ProjectDebugFile))):
+            source_project_id = source_project_debug_file.project_id
+            if source_project_id is None:
+                return None
             target_project = _find_matching_project(
-                source_project_debug_file.project_id,
+                source_project_id,
                 target_org.id,
             )
 
@@ -292,7 +296,7 @@ def _sync_proguard_artifact_release(
             project_debug_file = ProjectDebugFile.objects.filter(
                 project_id=target_project.id,
                 debug_id=source_proguard_artifact_release.project_debug_file.debug_id,
-            ).first()
+            ).first()  # noqa: S035
 
             if not project_debug_file:
                 project_debug_file = _sync_project_debug_file(

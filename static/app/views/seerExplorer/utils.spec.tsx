@@ -9,14 +9,14 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import type {SeerExplorerRunId} from 'sentry/views/seerExplorer/types';
+import type {SeerExplorerRunId} from './types';
 import {
   parseRunIdParam,
   SeerExplorerDeepLinkParamProvider,
   TOOL_FORMATTERS,
   useSeerExplorerDeepLink,
   useSyncSeerExplorerRunIdToUrl,
-} from 'sentry/views/seerExplorer/utils';
+} from './utils';
 
 // URL construction moved to `links.tsx`; its specs (including the metrics query encoding these two
 // cases used to cover) live in `links.spec.tsx`.

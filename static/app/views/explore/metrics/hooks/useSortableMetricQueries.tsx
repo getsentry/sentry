@@ -1,7 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import type {DragEndEvent} from '@dnd-kit/core';
 import {KeyboardSensor, PointerSensor, useSensor, useSensors} from '@dnd-kit/core';
-import {arrayMove, sortableKeyboardCoordinates} from '@dnd-kit/sortable';
+import {sortableKeyboardCoordinates} from '@dnd-kit/sortable';
 
 import type {MetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {
@@ -24,21 +24,13 @@ export function useSortableMetricQueries({
     return metricQueries.flatMap((metricQuery, index) =>
       predicate?.(metricQuery) === false
         ? []
-        : [
-            {
-              id: metricQuery.label ?? String(index),
-              metricQuery,
-              index,
-            },
-          ]
+        : [{id: metricQuery.label ?? String(index), metricQuery, index}]
     );
   }, [metricQueries, predicate]);
 
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   const onDragStart = useCallback(() => {
@@ -57,14 +49,10 @@ export function useSortableMetricQueries({
           return;
         }
 
-        reorderMetricQueries(
-          arrayMove([...metricQueries], oldIndex, newIndex),
-          oldIndex,
-          newIndex
-        );
+        reorderMetricQueries(oldIndex, newIndex);
       }
     },
-    [sortableItems, metricQueries, reorderMetricQueries]
+    [sortableItems, reorderMetricQueries]
   );
 
   const onDragCancel = useCallback(() => {

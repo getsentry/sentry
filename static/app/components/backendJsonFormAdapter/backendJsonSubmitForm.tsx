@@ -13,8 +13,8 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -22,7 +22,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {unreachable} from 'sentry/utils/unreachable';
 
 import {ChoiceMapperDropdown, ChoiceMapperTable} from './choiceMapperAdapter';
-import {ProjectMapperAddRow, ProjectMapperTable} from './projectMapperAdapter';
 import {TableBody, TableHeaderRow} from './tableAdapter';
 import type {JsonFormAdapterChoiceValue, JsonFormAdapterFieldConfig} from './types';
 import {
@@ -178,11 +177,7 @@ function buildAsyncSelectQuery(
   query: string,
   dynamicFieldValues?: Record<string, unknown>
 ): Record<string, unknown> {
-  return {
-    ...dynamicFieldValues,
-    field: fieldName,
-    query,
-  };
+  return {...dynamicFieldValues, field: fieldName, query};
 }
 
 function hasFieldValue(value: unknown): boolean {
@@ -239,9 +234,7 @@ export function BackendJsonSubmitForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onSubmit: validationSchema,
-    },
+    validators: {onSubmit: validationSchema},
     onSubmit: async ({value}) => {
       try {
         await onSubmit(getSubmitValues(fields, value));
@@ -271,7 +264,7 @@ export function BackendJsonSubmitForm({
             nonFieldError ??
             (typeof detail === 'string' ? detail : detail?.message) ??
             getFirstError(fieldError);
-          addErrorMessage(message ?? t('An error occurred while submitting'));
+          toast.error(message ?? t('An error occurred while submitting'));
         }
       }
     },
@@ -292,9 +285,7 @@ export function BackendJsonSubmitForm({
         field,
         currentValue,
         defaultValues[field.name],
-        {
-          validateChoices: !hasAsyncChoices,
-        }
+        {validateChoices: !hasAsyncChoices}
       );
       if (!Object.is(reconciledValue, currentValue)) {
         form.setFieldValue(field.name, reconciledValue);
@@ -382,6 +373,13 @@ export function BackendJsonSubmitForm({
                       );
                     case 'select':
                     case 'choice': {
+                      const rawValue = fieldApi.state.value;
+                      const multipleValue = Array.isArray(rawValue)
+                        ? rawValue
+                        : rawValue === undefined || rawValue === null || rawValue === ''
+                          ? []
+                          : [rawValue as JsonFormAdapterChoiceValue];
+
                       if (field.url || customAsyncQueryOptions?.[field.name]) {
                         // Async select: fetch options from URL as user types.
                         // Show static choices as initial options before any search.
@@ -446,10 +444,7 @@ export function BackendJsonSubmitForm({
                             >
                               <fieldApi.SelectAsync
                                 multiple
-                                value={
-                                  (fieldApi.state
-                                    .value as JsonFormAdapterChoiceValue[]) ?? []
-                                }
+                                value={multipleValue}
                                 onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                   handleChange(value)
                                 }
@@ -503,10 +498,7 @@ export function BackendJsonSubmitForm({
                           >
                             <fieldApi.Select
                               multiple
-                              value={
-                                (fieldApi.state.value as JsonFormAdapterChoiceValue[]) ??
-                                []
-                              }
+                              value={multipleValue}
                               onChange={(value: JsonFormAdapterChoiceValue[]) =>
                                 handleChange(value)
                               }
@@ -613,25 +605,6 @@ export function BackendJsonSubmitForm({
                         </Stack>
                       );
                     }
-                    case 'project_mapper': {
-                      const mapperValue = fieldApi.state.value as Array<[number, string]>;
-                      return (
-                        <Stack flexGrow={1} gap="xl">
-                          <ProjectMapperTable
-                            config={field}
-                            value={mapperValue}
-                            onDelete={handleChange}
-                            disabled={!!disabledProp}
-                          />
-                          <ProjectMapperAddRow
-                            config={field}
-                            value={mapperValue}
-                            onAdd={handleChange}
-                            disabled={!!disabledProp}
-                          />
-                        </Stack>
-                      );
-                    }
                     case 'choice_mapper': {
                       const choiceValue = fieldApi.state.value as Record<
                         string,
@@ -647,10 +620,7 @@ export function BackendJsonSubmitForm({
                               onLabelAdd={(key, label) => {
                                 setChoiceMapperLabels(prev => ({
                                   ...prev,
-                                  [field.name]: {
-                                    ...prev[field.name],
-                                    [key]: label,
-                                  },
+                                  [field.name]: {...prev[field.name], [key]: label},
                                 }));
                               }}
                               onChange={handleChange}

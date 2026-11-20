@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import re
 from typing import Any
 
@@ -14,6 +13,7 @@ from ..detectors.utils import (
     get_browser_name,
     get_notification_attachment_body,
     get_numeric_value_from_span,
+    get_span_description,
     get_span_duration,
     get_span_evidence_value,
 )
@@ -46,7 +46,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
 
     def visit_span(self, span: Span) -> None:
         op = span.get("op", None)
-        description = span.get("description", "")
+        description = get_span_description(span)
         if not op:
             return
 
@@ -94,7 +94,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
             return
 
         # Ignore assets with certain file extensions
-        normalized_description = description.strip().upper()
+        normalized_description = description.upper()
         extension = EXTENSION_REGEX.search(normalized_description)
         if extension and extension.group(1) not in FILE_EXTENSION_ALLOWLIST:
             return
@@ -106,10 +106,7 @@ class UncompressedAssetSpanDetector(PerformanceDetector):
         fingerprint = self._fingerprint(span)
         span_id = span.get("span_id", None)
         if self.stored_problems.get(fingerprint):
-            logging.info(
-                "Multiple occurrences detected for fingerprint",
-                extra={"detector": self.settings_key},
-            )
+            self.duplicate_fingerprint_count += 1
             return
         if fingerprint and span_id:
             evidence_data = {

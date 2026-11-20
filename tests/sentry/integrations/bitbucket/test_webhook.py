@@ -4,6 +4,8 @@ from datetime import datetime, timezone
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from rest_framework.response import Response
+
 from fixtures.bitbucket import PUSH_EVENT_EXAMPLE
 from sentry.integrations.bitbucket.webhook import PROVIDER_NAME, is_valid_signature
 from sentry.models.commit import Commit
@@ -213,7 +215,7 @@ class WebhookSignatureTest(WebhookBaseTest):
 
         self.create_repository(integration_id=integration.id)
 
-    def send_signed_webhook(self):
+    def send_signed_webhook(self) -> Response:
         return self.get_response(
             self.organization_id,
             raw_data=PUSH_EVENT_EXAMPLE,

@@ -145,13 +145,13 @@ class ProjectCodeOwners(Model):
             return
 
 
-def modify_date_updated(instance, **kwargs):
+def modify_date_updated(instance: ProjectCodeOwners, **kwargs: object) -> None:
     if instance.id is None:
         return
     instance.date_updated = timezone.now()
 
 
-def process_resource_change(instance, change, **kwargs):
+def process_resource_change(instance: ProjectCodeOwners, change: str, **kwargs: object) -> None:
     from sentry.models.groupowner import GroupOwner
 
     cache.set(

@@ -5,14 +5,14 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ConfigStore} from 'sentry/stores/configStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
-import {WidgetContainer} from 'sentry/views/performance/landing/widgets/components/widgetContainer';
 import {QUERY_LIMIT_PARAM} from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
 import {ProjectPerformanceType} from 'sentry/views/performance/utils';
+
+import {WidgetContainer} from './widgetContainer';
 
 const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
   const data = _initializeData({
@@ -28,8 +28,7 @@ const initializeData = (query = {}, rest: InitializeDataSettings = {}) => {
 const DEFAULT_ALLOWED_CHARTS = [
   PerformanceWidgetSetting.TPM_AREA,
   PerformanceWidgetSetting.FAILURE_RATE_AREA,
-  PerformanceWidgetSetting.USER_MISERY_AREA,
-  PerformanceWidgetSetting.DURATION_HISTOGRAM,
+  PerformanceWidgetSetting.APDEX_AREA,
 ];
 
 function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
@@ -41,25 +40,18 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
 
   return (
     <OrganizationContext value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <MEPSettingProvider forceTransactions>
-          <PerformanceDisplayContext
-            value={{performanceType: ProjectPerformanceType.ANY}}
-          >
-            <WidgetContainer
-              chartHeight={100}
-              allowedCharts={allowedCharts}
-              rowChartSettings={[]}
-              withStaticFilters={withStaticFilters}
-              {...data}
-              {...rest}
-            />
-          </PerformanceDisplayContext>
-        </MEPSettingProvider>
-      </MetricsCardinalityProvider>
+      <MEPSettingProvider forceTransactions>
+        <PerformanceDisplayContext value={{performanceType: ProjectPerformanceType.ANY}}>
+          <WidgetContainer
+            chartHeight={100}
+            allowedCharts={allowedCharts}
+            rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
+            {...data}
+            {...rest}
+          />
+        </PerformanceDisplayContext>
+      </MEPSettingProvider>
     </OrganizationContext>
   );
 }
@@ -91,10 +83,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{}],
-        meta: {},
-      },
+      body: {data: [{}], meta: {}},
       match: [(...args) => !issuesPredicate(...args)],
     });
     issuesListMock = MockApiClient.addMockResponse({
@@ -113,18 +102,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         ],
       },
       match: [(...args) => issuesPredicate(...args)],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility-sums/',
-      body: [],
     });
   });
 
@@ -164,9 +141,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
 
     // Change eventView statsperiod
-    const modifiedData = initializeData({
-      statsPeriod: '14d',
-    });
+    const modifiedData = initializeData({statsPeriod: '14d'});
 
     wrapper.rerender(
       <WrappedComponent
@@ -201,17 +176,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
       method: 'GET',
       url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
 
     wrapper = render(
@@ -293,100 +264,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
     );
   });
 
-  it('User misery Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.USER_MISERY_AREA}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'User Misery'
-    );
-    expect(eventStatsMock).toHaveBeenCalledTimes(1);
-    expect(eventStatsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          interval: '1h',
-          partial: '1',
-          query: 'transaction.op:pageload',
-          statsPeriod: '14d',
-          yAxis: 'user_misery()',
-        }),
-      })
-    );
-  });
-
-  it('LCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.LCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'LCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
-  it('FCP Histogram Widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.FCP_HISTOGRAM}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'FCP Distribution'
-    );
-
-    // TODO(k-fish): Add histogram mock
-  });
-
-  it('Most errors widget', async () => {
-    const data = initializeData();
-
-    wrapper = render(
-      <WrappedComponent
-        data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
-      />
-    );
-
-    expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Related Errors'
-    );
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsMock).toHaveBeenNthCalledWith(
-      1,
-      expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          environment: ['prod'],
-          field: ['transaction', 'project.id', 'failure_count()'],
-          per_page: QUERY_LIMIT_PARAM,
-          project: ['-42'],
-          query: 'transaction.op:pageload failure_count():>0',
-          sort: '-failure_count()',
-          statsPeriod: '7d',
-        }),
-      })
-    );
-  });
-
   it('Most related issues widget', async () => {
     const data = initializeData();
 
@@ -418,7 +295,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     );
   });
 
-  it('Switching from issues to errors widget', async () => {
+  it('Switching from issues to slow HTTP ops widget', async () => {
     const data = initializeData();
 
     wrapper = render(
@@ -440,15 +317,15 @@ describe('Performance > Widgets > WidgetContainer', () => {
     wrapper.rerender(
       <WrappedComponent
         data={data}
-        defaultChartSetting={PerformanceWidgetSetting.MOST_RELATED_ERRORS}
+        defaultChartSetting={PerformanceWidgetSetting.SLOW_HTTP_OPS}
       />
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'Most Related Errors'
+      'Slow HTTP Ops'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
-    // Leftover issues list data must not trigger a chart request for errors
+    // Leftover issues list data must not trigger a chart request for slow HTTP ops
     expect(eventStatsMock).toHaveBeenCalledTimes(1);
   });
 
@@ -741,12 +618,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
   });
 
   it('Most slow frames widget - MEP', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['dynamic-sampling'],
-      }
-    );
+    const data = initializeData({}, {features: ['dynamic-sampling']});
 
     wrapper = render(
       <WrappedComponent
@@ -844,10 +716,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
 
     // Open the interactive title dropdown and select a different widget type
     await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
-    await userEvent.click(await screen.findByRole('option', {name: 'User Misery'}));
+    await userEvent.click(await screen.findByRole('option', {name: 'Apdex'}));
 
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
-      'User Misery'
+      'Apdex'
     );
     expect(eventStatsMock).toHaveBeenCalledTimes(2);
     expect(setRowChartSettings).toHaveBeenCalledTimes(1);
@@ -865,7 +737,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
         setRowChartSettings={setRowChartSettings}
         rowChartSettings={[
           PerformanceWidgetSetting.FAILURE_RATE_AREA,
-          PerformanceWidgetSetting.USER_MISERY_AREA,
+          PerformanceWidgetSetting.APDEX_AREA,
         ]}
       />
     );
@@ -877,10 +749,10 @@ describe('Performance > Widgets > WidgetContainer', () => {
     // Open the interactive title dropdown
     await userEvent.click(await screen.findByRole('button', {name: 'Failure Rate'}));
 
-    // Check that the "User Misery" option is disabled by clicking on it,
+    // Check that the "Apdex" option is disabled by clicking on it,
     // expecting that the selected option doesn't change
-    const userMiseryOption = await screen.findByRole('option', {name: 'User Misery'});
-    await userEvent.click(userMiseryOption);
+    const apdexOption = await screen.findByRole('option', {name: 'Apdex'});
+    await userEvent.click(apdexOption);
     expect(await screen.findByTestId('performance-widget-title')).toHaveTextContent(
       'Failure Rate'
     );

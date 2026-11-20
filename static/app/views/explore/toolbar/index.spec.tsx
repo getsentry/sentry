@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -31,6 +31,26 @@ import {
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
 import {ExploreToolbar} from 'sentry/views/explore/toolbar';
 
+import {ToolbarSaveAs} from './toolbarSaveAs';
+
+/**
+ * Returns the y axes of each chart written to the URL, one entry per chart.
+ */
+function chartYAxesFromRouter(router: {
+  location: {query: Record<string, unknown>};
+}): string[][] {
+  const aggregateField = router.location.query.aggregateField;
+  const fields = Array.isArray(aggregateField)
+    ? aggregateField
+    : aggregateField
+      ? [aggregateField]
+      : [];
+  return fields
+    .map(field => JSON.parse(String(field)))
+    .filter(field => Array.isArray(field.yAxes))
+    .map(field => field.yAxes);
+}
+
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
 }
@@ -38,16 +58,11 @@ function Wrapper({children}: {children: ReactNode}) {
 jest.mock('sentry/actionCreators/modal');
 
 describe('ExploreToolbar', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
+  let validateMock: jest.Mock;
 
   beforeEach(() => {
-    const project = ProjectFixture({
-      id: '1',
-      slug: 'proj-slug',
-      organization,
-    });
+    const project = ProjectFixture({id: '1', slug: 'proj-slug', organization});
 
     ProjectsStore.loadInitialData([project]);
 
@@ -87,26 +102,17 @@ describe('ExploreToolbar', () => {
         },
       ],
     });
-    MockApiClient.addMockResponse({
+    validateMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/validate/`,
       body: {
         dataset: [],
         environment: [],
         field: [
-          {
-            attrType: 'number',
-            error: null,
-            name: 'custom.measurement',
-            valid: true,
-          },
+          {attrType: 'number', error: null, name: 'custom.measurement', valid: true},
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: true,
       },
     });
@@ -123,87 +129,6 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('edits transformations in the URL for one span series and excludes equations', async () => {
-    const {router} = render(<ExploreToolbar />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: [...organization.features, 'explore-interpolation-and-smoothing'],
-      }),
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/',
-          query: {
-            aggregateField: [
-              {groupBy: 'span.op'},
-              {yAxes: ['count(span.duration)'], transformations: ['fill(locf)']},
-              {yAxes: ['avg(span.duration)']},
-              {yAxes: ['equation|$a + $b']},
-            ].map(field => JSON.stringify(field)),
-          },
-        },
-      },
-    });
-
-    const addButtons = screen.getAllByRole('button', {name: 'Add Transformation'});
-    expect(addButtons).toHaveLength(2);
-    await userEvent.click(addButtons[1]!);
-    await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
-    await waitFor(() =>
-      expect(router.location.query.aggregateField).toEqual([
-        JSON.stringify({groupBy: 'span.op'}),
-        JSON.stringify({
-          yAxes: ['count(span.duration)'],
-          transformations: ['fill(locf)'],
-        }),
-        JSON.stringify({
-          yAxes: ['avg(span.duration)'],
-          transformations: ['smooth(sma,3)'],
-        }),
-        JSON.stringify({yAxes: ['equation|$a + $b']}),
-      ])
-    );
-  });
-
-  it.each([false, true])(
-    'aligns an unfiltered visualize row with transformations enabled=%s',
-    async enabled => {
-      render(<ExploreToolbar />, {
-        organization: OrganizationFixture({
-          ...organization,
-          features: enabled
-            ? [...organization.features, 'explore-interpolation-and-smoothing']
-            : organization.features,
-        }),
-        additionalWrapper: Wrapper,
-        initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              aggregateField: [
-                JSON.stringify({groupBy: ''}),
-                JSON.stringify({yAxes: ['epm()']}),
-              ],
-            },
-          },
-        },
-      });
-
-      expect(await screen.findByRole('button', {name: 'epm'})).toBeInTheDocument();
-      const row = screen.getByRole('button', {name: 'Clear Visualize'}).parentElement;
-      expect(row?.style.alignItems).toBe(enabled ? 'flex-start' : '');
-      if (enabled) {
-        expect(
-          screen.getByRole('button', {name: 'Add Transformation'})
-        ).toBeInTheDocument();
-      } else {
-        expect(
-          screen.queryByRole('button', {name: 'Add Transformation'})
-        ).not.toBeInTheDocument();
-      }
-    }
-  );
-
   it('disables changing visualize fields for count', async () => {
     let visualizes: any;
     function Component() {
@@ -219,6 +144,7 @@ describe('ExploreToolbar', () => {
     // this is the default
     expect(visualizes).toEqual([new VisualizeFunction('count(span.duration)')]);
     expect(await within(section).findByRole('button', {name: 'spans'})).toBeDisabled();
+    expect(screen.queryByTestId('section-query-speed')).not.toBeInTheDocument();
   });
 
   it('changes to count(span.duration) when using count', async () => {
@@ -271,6 +197,19 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'count'}));
     await userEvent.click(within(section).getByRole('option', {name: 'epm'}));
 
+    // The field button is also disabled for count, so wait for the epm change and
+    // the validation request it triggers. On a slow runner both can land after the
+    // click, and an update after the test ends is not wrapped in act.
+    expect(await within(section).findByRole('button', {name: 'epm'})).toBeInTheDocument();
+    await waitFor(() =>
+      expect(validateMock).toHaveBeenCalledWith(
+        `/organizations/${organization.slug}/events/validate/`,
+        expect.objectContaining({
+          query: expect.objectContaining({field: expect.arrayContaining(['epm()'])}),
+        })
+      )
+    );
+    expect(visualizes).toEqual([new VisualizeFunction('epm()')]);
     expect(within(section).getByRole('button', {name: 'spans'})).toBeDisabled();
   });
 
@@ -347,6 +286,79 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('option', {name: 'count_unique'}));
 
     expect(visualizes).toEqual([new VisualizeFunction('count_unique(span.op)')]);
+  });
+
+  it('only offers heatmap with explore-dev-features', async () => {
+    render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    expect(
+      within(section).queryByRole('option', {name: 'heatmap'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps the duration field when switching to heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.self_time)')]);
+
+    await userEvent.click(within(section).getByRole('button', {name: 'span.self_time'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.duration'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('heatmap(span.duration)')]);
+  });
+
+  it('keeps the heatmap field when switching away from heatmap', async () => {
+    let visualizes: readonly Visualize[] = [];
+    function Component() {
+      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
+      visualizes = useQueryParamsVisualizes();
+      return <ExploreToolbar />;
+    }
+
+    render(<Component />, {
+      organization: OrganizationFixture({
+        ...organization,
+        features: [...organization.features, 'explore-dev-features'],
+      }),
+      additionalWrapper: Wrapper,
+    });
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+
+    await userEvent.click(within(section).getByRole('button', {name: 'heatmap'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p95'}));
+
+    expect(visualizes).toEqual([new VisualizeFunction('p95(span.self_time)')]);
   });
 
   it('allows changing visualizes', async () => {
@@ -492,6 +504,82 @@ describe('ExploreToolbar', () => {
     expect(visualizes).toEqual([new VisualizeFunction('avg(span.duration)')]);
   });
 
+  it('plots aggregates selected together on one chart', async () => {
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    // Percentiles and stats are separate groups, like the Metrics picker.
+    expect(within(section).getByText('Percentiles')).toBeInTheDocument();
+    expect(within(section).getByText('Stats')).toBeInTheDocument();
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
+
+    // Aggregates from one group over the same field share a chart, so they are
+    // written to the URL as a single entry.
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.duration)', 'p75(span.duration)', 'p99(span.duration)'],
+      ])
+    );
+    await userEvent.keyboard('{Escape}');
+    expect(within(section).getByRole('button', {name: 'p50 +2'})).toBeInTheDocument();
+
+    // The field applies to every aggregate on the chart.
+    await userEvent.click(within(section).getByRole('button', {name: 'span.duration'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'span.self_time'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.self_time)', 'p75(span.self_time)', 'p99(span.self_time)'],
+      ])
+    );
+
+    // Deselecting down to one aggregate leaves a single, ungrouped chart.
+    await userEvent.click(within(section).getByRole('button', {name: 'p50 +2'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p99'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['p50(span.self_time)']])
+    );
+
+    // Picking from another group replaces the selection instead of adding to it.
+    await userEvent.click(within(section).getByRole('option', {name: 'avg'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'max'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['avg(span.self_time)', 'max(span.self_time)'],
+      ])
+    );
+
+    // Aggregates outside the percentiles and stats are picked one at a time.
+    await userEvent.click(within(section).getByRole('option', {name: 'sum'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['sum(span.self_time)']])
+    );
+  });
+
+  it('resets the aggregates when the selection is cleared', async () => {
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
+
+    const section = screen.getByTestId('section-visualizes');
+
+    await userEvent.click(within(section).getByRole('button', {name: 'count'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p50'}));
+    await userEvent.click(within(section).getByRole('option', {name: 'p75'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([
+        ['p50(span.duration)', 'p75(span.duration)'],
+      ])
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Clear'}));
+    await waitFor(() =>
+      expect(chartYAxesFromRouter(router)).toEqual([['count(span.duration)']])
+    );
+  });
+
   it('does not show a clear button when the default chart is only hidden', async () => {
     render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
@@ -534,11 +622,7 @@ describe('ExploreToolbar', () => {
     expect(groupBys).toEqual(['project', '']);
 
     const projectColumn = screen.getAllByTestId('editor-column')[1]!;
-    await userEvent.click(
-      within(projectColumn).getByRole('button', {
-        name: '\u2014',
-      })
-    );
+    await userEvent.click(within(projectColumn).getByRole('button', {name: '\u2014'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
@@ -660,9 +744,7 @@ describe('ExploreToolbar', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/explore/traces/`,
-          query: {
-            groupBy: 'custom.measurement',
-          },
+          query: {groupBy: 'custom.measurement'},
         },
       },
     });
@@ -697,11 +779,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -753,11 +831,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -770,12 +844,7 @@ describe('ExploreToolbar', () => {
         dataset: [],
         environment: [],
         field: [
-          {
-            attrType: 'string',
-            error: null,
-            name: 'valid.first',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'valid.first', valid: true},
           {
             attrType: null,
             error: 'Invalid attribute',
@@ -785,11 +854,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -845,20 +910,11 @@ describe('ExploreToolbar', () => {
             name: 'invalid.attribute',
             valid: false,
           },
-          {
-            attrType: 'string',
-            error: null,
-            name: 'span.op',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'span.op', valid: true},
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -1015,6 +1071,203 @@ describe('ExploreToolbar', () => {
     ]);
   });
 
+  it('changes query speed under sort by', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+    });
+
+    const sortSection = screen.getByTestId('section-sort-by');
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      sortSection.compareDocumentPosition(speedSection) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(within(speedSection).getByText('Query Speed')).toBeInTheDocument();
+    expect(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    );
+    expect(
+      within(speedSection).getByText('Balances speed and accuracy')
+    ).toBeInTheDocument();
+    await userEvent.click(
+      within(speedSection).getByRole('option', {name: 'Fast Querying'})
+    );
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
+  });
+
+  it('uses a saved query priority when the url has none', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/1/',
+      body: {
+        id: 1,
+        name: 'Fast query',
+        dataset: 'spans',
+        dateAdded: '2025-05-06T00:00:00.000Z',
+        dateUpdated: '2025-05-06T00:00:00.000Z',
+        lastVisited: '2025-05-06T00:00:00.000Z',
+        interval: '5m',
+        position: null,
+        projects: [],
+        starred: false,
+        queryPriority: 'faster',
+        query: [{mode: 'samples', query: '', fields: ['timestamp'], orderby: ''}],
+      },
+    });
+
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/traces/', query: {id: '1'}},
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      await within(speedSection).findByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+
+    await userEvent.hover(within(speedSection).getByText('Query Speed'));
+    expect(await screen.findByText(/Does not apply to exports/)).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Balanced Querying'}));
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('normal');
+  });
+
+  it('falls back to balanced when the saved query fails to load', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/explore/saved/1/',
+      statusCode: 500,
+      body: {},
+    });
+
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/explore/traces/', query: {id: '1'}},
+      },
+    });
+
+    expect(
+      await screen.findByText(/Couldn't load the saved query speed/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Balanced Querying'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Balanced Querying'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+    expect(screen.getByRole('button', {name: 'Fast Querying'})).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
+  });
+
+  it('locks query speed to balanced when extrapolation is off', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {extrapolate: '0', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText(
+        'Disabling extrapolation cannot be combined with query speed.'
+      )
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the traces tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'trace', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to trace results.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
+  it('disables query speed on the attribute breakdowns tab', async () => {
+    const {router} = render(<ExploreToolbar />, {
+      additionalWrapper: Wrapper,
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/traces/',
+          query: {table: 'attribute_breakdowns', queryPriority: 'faster'},
+        },
+      },
+    });
+
+    const speedSection = screen.getByTestId('section-query-speed');
+    const speedButton = within(speedSection).getByRole('button', {
+      name: 'Balanced Querying',
+    });
+    expect(speedButton).toBeDisabled();
+    expect(
+      within(speedSection).queryByRole('button', {name: 'Fast Querying'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.hover(speedButton);
+    expect(
+      await screen.findByText('Query speed is not applicable to attribute breakdowns.')
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(router.location.query.queryPriority).toBeUndefined();
+    });
+  });
+
   it('allows changing sort by in samples mode', async () => {
     let sortBys: any;
     function Component() {
@@ -1096,9 +1349,7 @@ describe('ExploreToolbar', () => {
     );
 
     await userEvent.click(
-      within(visualizeSection).getByRole('button', {
-        name: 'Add Chart',
-      })
+      within(visualizeSection).getByRole('button', {name: 'Add Chart'})
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -1185,7 +1436,7 @@ describe('ExploreToolbar', () => {
 
   describe('conditional aggregates', () => {
     const organizationWithDashboardFeatures = OrganizationFixture({
-      features: ['dashboards-edit', 'incidents'],
+      features: ['incidents'],
     });
 
     const SERIES_FILTER_PLACEHOLDER = 'Filter spans for this series';
@@ -1387,57 +1638,6 @@ describe('ExploreToolbar', () => {
       });
     });
 
-    it('opens compare queries with series filters moved into the query filter', async () => {
-      const {router} = render(<ExploreToolbar />, {
-        additionalWrapper: Wrapper,
-        organization: organizationWithDashboardFeatures,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              query: 'span.status:ok',
-              aggregateField: [
-                JSON.stringify({groupBy: ''}),
-                JSON.stringify({
-                  yAxes: ['count_if(`span.op:db`,span.duration)'],
-                  chartType: 1,
-                }),
-                JSON.stringify({
-                  yAxes: ['avg_if(`span.op:http`,span.duration)'],
-                  chartType: 1,
-                }),
-              ],
-            },
-          },
-        },
-      });
-
-      const section = screen.getByTestId('section-save-as');
-      await userEvent.click(within(section).getByText(/Compare Queries/));
-
-      expect(router.location.pathname).toBe(
-        '/organizations/org-slug/explore/traces/compare/'
-      );
-      expect(router.location.query.queries).toEqual([
-        JSON.stringify({
-          chartType: 1,
-          fields: ['id', 'span.duration', 'timestamp'],
-          groupBys: [],
-          query: 'span.status:ok span.op:db',
-          sortBys: ['-timestamp'],
-          yAxes: ['count(span.duration)'],
-        }),
-        JSON.stringify({
-          chartType: 1,
-          fields: ['id', 'span.duration', 'timestamp'],
-          groupBys: [],
-          query: 'span.status:ok span.op:http',
-          sortBys: ['-timestamp'],
-          yAxes: ['avg(span.duration)'],
-        }),
-      ]);
-    });
-
     it('expands the equation editor on click', async () => {
       render(<ExploreToolbar extras={['equations']} />, {
         additionalWrapper: Wrapper,
@@ -1470,74 +1670,9 @@ describe('ExploreToolbar', () => {
     });
   });
 
-  it('disables compare queries when only one chart is available', async () => {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    act(() => {
-      render(<Component />, {
-        additionalWrapper: Wrapper,
-        organization,
-        initialRouterConfig: {
-          location: {
-            pathname: '/traces/',
-            query: {
-              visualize: encodeURIComponent(
-                '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-              ),
-            },
-          },
-        },
-      });
-    });
-
-    const section = screen.getByTestId('section-save-as');
-    await userEvent.hover(within(section).getByText(/Compare Queries/));
-
-    const compareButton = within(section).getByRole('button', {name: 'Compare'});
-    expect(compareButton).toHaveAttribute('aria-disabled', 'true');
-  });
-
-  it('opens compare queries when multiple charts are added and Compare Queries link is clicked', async () => {
-    function Component() {
-      return <ExploreToolbar />;
-    }
-    const {router} = render(<Component />, {
-      additionalWrapper: Wrapper,
-      organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/traces/',
-          query: {
-            visualize: encodeURIComponent(
-              '{"chartType":1,"yAxes":["p95(span.duration)"]}'
-            ),
-          },
-        },
-      },
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Add Chart'}));
-
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByText(/Compare Queries/));
-    expect(router.location.pathname).toBe(
-      '/organizations/org-slug/explore/traces/compare/'
-    );
-    expect(router.location.query).toEqual(
-      expect.objectContaining({
-        queries: [
-          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-          '{"chartType":0,"fields":["id","span.duration","timestamp"],"groupBys":[],"query":"","sortBys":["-timestamp"],"yAxes":["count(span.duration)"]}',
-        ],
-      })
-    );
-  });
-
   it('opens the right alert', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     const {router} = render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1554,14 +1689,10 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.hover(
-      within(section).getByRole('menuitemradio', {name: 'Monitor for'})
-    );
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'Monitor for'}));
     await userEvent.click(
-      await within(section).findByRole('menuitemradio', {name: 'count(spans)'})
+      await screen.findByRole('menuitemradio', {name: 'count(spans)'})
     );
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/monitors/new/settings'
@@ -1577,7 +1708,7 @@ describe('ExploreToolbar', () => {
 
   it('add to dashboard options correctly', async () => {
     function Component() {
-      return <ExploreToolbar />;
+      return <ToolbarSaveAs />;
     }
     render(<Component />, {
       additionalWrapper: Wrapper,
@@ -1594,10 +1725,8 @@ describe('ExploreToolbar', () => {
       },
     });
 
-    const section = screen.getByTestId('section-save-as');
-
-    await userEvent.click(within(section).getByRole('button', {name: /save as/i}));
-    await userEvent.click(within(section).getByText('Dashboard widget'));
+    await userEvent.click(screen.getByRole('button', {name: /save as/i}));
+    await userEvent.click(screen.getByText('Dashboard widget'));
     await waitFor(() =>
       expect(openAddToDashboardModal).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -1634,12 +1763,7 @@ describe('ExploreToolbar', () => {
             fields: ['count(span.duration)'],
             groupby: ['span.op'],
             orderby: '-count(span.duration)',
-            visualize: [
-              {
-                chartType: 1,
-                yAxes: ['count(span.duration)'],
-              },
-            ],
+            visualize: [{chartType: 1, yAxes: ['count(span.duration)']}],
             mode: 'aggregate',
           },
         ],
@@ -1651,7 +1775,12 @@ describe('ExploreToolbar', () => {
     });
 
     function Component() {
-      return <ExploreToolbar />;
+      return (
+        <Fragment>
+          <ExploreToolbar />
+          <ToolbarSaveAs />
+        </Fragment>
+      );
     }
 
     const {router} = render(<Component />, {
@@ -1677,57 +1806,25 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        aggregateSort: 'count(span.duration)',
-      })
+      expect.objectContaining({aggregateSort: 'count(span.duration)'})
     );
 
     // After navigation, the save action should switch to the update state.
     expect(await screen.findByText(/^save$/i)).toBeInTheDocument();
   });
 
-  it('allows save as when cross events are present', async () => {
-    render(<ExploreToolbar />, {
+  it('allows save as when cross events are present', () => {
+    render(<ToolbarSaveAs />, {
       organization,
       additionalWrapper: Wrapper,
       initialRouterConfig: {
         location: {
           pathname: '/traces/',
-          query: {
-            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-          },
+          query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
         },
       },
     });
 
-    const section = await screen.findByTestId('section-save-as');
-
-    expect(within(section).getByRole('button', {name: 'Save as'})).toBeEnabled();
-  });
-
-  it('disables compare when cross events are present', async () => {
-    render(<ExploreToolbar />, {
-      organization,
-      additionalWrapper: Wrapper,
-      initialRouterConfig: {
-        location: {
-          pathname: '/traces/',
-          query: {
-            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-            visualize: [
-              '{"chartType":1,"yAxes":["p95(span.duration)"]}',
-              '{"chartType":1,"yAxes":["count(span.duration)"]}',
-            ],
-          },
-        },
-      },
-    });
-
-    const section = await screen.findByTestId('section-save-as');
-
-    expect(within(section).getByRole('button', {name: 'Compare'})).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
+    expect(screen.getByRole('button', {name: 'Save as'})).toBeEnabled();
   });
 });

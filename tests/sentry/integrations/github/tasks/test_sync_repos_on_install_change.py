@@ -6,6 +6,7 @@ from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.github.tasks.sync_repos_on_install_change import (
     sync_repos_on_install_change,
 )
+from sentry.integrations.github.webhook_types import GitHubInstallationRepo
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
@@ -22,13 +23,13 @@ class SyncReposOnInstallChangeTestCase(IntegrationTestCase):
     base_url = "https://api.github.com"
     key = "github"
 
-    def _make_repos_added(self):
+    def _make_repos_added(self) -> list[GitHubInstallationRepo]:
         return [
             {"id": 1, "full_name": "getsentry/sentry", "private": False},
             {"id": 2, "full_name": "getsentry/snuba", "private": False},
         ]
 
-    def _make_repos_removed(self):
+    def _make_repos_removed(self) -> list[GitHubInstallationRepo]:
         return [
             {"id": 3, "full_name": "getsentry/old-repo", "private": False},
         ]

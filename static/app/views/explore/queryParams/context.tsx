@@ -14,28 +14,31 @@ import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {TOP_EVENTS_LIMIT} from 'sentry/views/explore/hooks/topEventsConstants';
-import type {
-  AggregateField,
-  WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
-import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {deriveUpdatedManagedFields} from 'sentry/views/explore/queryParams/managedFields';
-import type {Mode} from 'sentry/views/explore/queryParams/mode';
-import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {ID_KEY, TITLE_KEY} from 'sentry/views/explore/queryParams/savedQuery';
+import {
+  areConditionalAggregateFiltersInExpressionValid,
+  isConditionalAggregateYAxisValid,
+} from 'sentry/views/explore/utils/conditionalAggregate';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
+
+import {
+  serializeAggregateFields,
+  type AggregateField,
+  type WritableAggregateField,
+} from './aggregateField';
+import type {CrossEvent} from './crossEvent';
+import {isGroupBy} from './groupBy';
+import {deriveUpdatedManagedFields} from './managedFields';
+import type {Mode} from './mode';
+import {ReadableQueryParams} from './readableQueryParams';
+import {ID_KEY, TITLE_KEY} from './savedQuery';
 import {
   hasVisualizeTransformations,
   isVisualize,
   isVisualizeEquation,
   type BaseVisualize,
   type Visualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
-import {
-  areConditionalAggregateFiltersInExpressionValid,
-  isConditionalAggregateYAxisValid,
-} from 'sentry/views/explore/utils/conditionalAggregate';
+} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 interface QueryParamsContextValue {
   managedFields: Set<string>;
@@ -289,9 +292,12 @@ export function useQueryParamsAggregateFields(
             areConditionalAggregateFiltersInExpressionValid(aggregateField.yAxis)
           );
         }
-        // Drop series whose `_if` filter is invalid (e.g. aggregates as keys) so
-        // timeseries / table queries never send them to the backend.
-        return isConditionalAggregateYAxisValid(aggregateField.yAxis);
+        // Drop heatmaps and series whose `_if` filter is invalid (e.g. aggregates
+        // as keys) so timeseries / table queries never send them to the backend.
+        return (
+          !isHeatMapAggregate(aggregateField.yAxis) &&
+          isConditionalAggregateYAxisValid(aggregateField.yAxis)
+        );
       });
     }
     return queryParams.aggregateFields;
@@ -327,8 +333,11 @@ export function useQueryParamsVisualizes(
             areConditionalAggregateFiltersInExpressionValid(visualize.yAxis)
           );
         }
-        // Same as aggregateFields: skip series with an invalid `_if` filter.
-        return isConditionalAggregateYAxisValid(visualize.yAxis);
+        // Same as aggregateFields: skip heatmaps and invalid `_if` filters.
+        return (
+          !isHeatMapAggregate(visualize.yAxis) &&
+          isConditionalAggregateYAxisValid(visualize.yAxis)
+        );
       });
     }
     return queryParams.visualizes;
@@ -345,13 +354,26 @@ export function useSetQueryParamsVisualizes() {
 
       const iter = visualizes[Symbol.iterator]();
 
+      // Each entry replaces one chart, so the visualizes sharing a chart group
+      // take up a single slot. Otherwise the extra group members would pull
+      // later charts in front of the group bys between them.
+      let previousAggregateField: AggregateField | undefined;
       for (const aggregateField of queryParams.aggregateFields) {
         if (isVisualize(aggregateField)) {
+          const continuesChartGroup =
+            defined(aggregateField.chartGroup) &&
+            isVisualize(previousAggregateField) &&
+            previousAggregateField.chartGroup === aggregateField.chartGroup;
+          previousAggregateField = aggregateField;
+          if (continuesChartGroup) {
+            continue;
+          }
           const {value: visualize, done} = iter.next();
           if (!done) {
             aggregateFields.push(visualize);
           }
         } else if (isGroupBy(aggregateField)) {
+          previousAggregateField = aggregateField;
           aggregateFields.push(aggregateField);
         } else {
           throw new Error(`Unknown aggregate field: ${JSON.stringify(aggregateField)}`);
@@ -395,7 +417,7 @@ export function useSetQueryParamsGroupBys() {
         }
       }
 
-      const aggregateFields: WritableAggregateField[] = [];
+      const aggregateFields: AggregateField[] = [];
 
       const iter = groupBys[Symbol.iterator]();
 
@@ -408,7 +430,7 @@ export function useSetQueryParamsGroupBys() {
               aggregateFields.push({groupBy});
             }
           }
-          aggregateFields.push(aggregateField.serialize());
+          aggregateFields.push(aggregateField);
         } else if (isGroupBy(aggregateField)) {
           const {value: groupBy, done} = iter.next();
           if (!done) {
@@ -423,7 +445,7 @@ export function useSetQueryParamsGroupBys() {
         aggregateFields.push({groupBy});
       }
 
-      setQueryParams({aggregateFields, mode});
+      setQueryParams({aggregateFields: serializeAggregateFields(aggregateFields), mode});
     },
     [queryParams, setQueryParams]
   );

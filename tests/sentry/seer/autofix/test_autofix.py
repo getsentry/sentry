@@ -334,7 +334,9 @@ class TestGetAllTagsOverview(TestCase, SnubaTestCase):
             project_id=self.project.id,
         )
 
-        self.group = event2.group
+        group = event2.group
+        assert group is not None
+        self.group = group
 
     def test_get_all_tags_overview_basic(self) -> None:
         """Test basic functionality of getting all tags overview with real data."""

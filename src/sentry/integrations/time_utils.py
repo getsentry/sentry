@@ -10,7 +10,7 @@ from sentry.models.group import Group
 DAY_IN_SEC = 24 * 60 * 60
 
 
-def get_approx_start_time(group: Group):
+def get_approx_start_time(group: Group) -> int | None:
     event = group.get_recommended_event_for_environments()
     if event is None:
         return None
@@ -19,7 +19,7 @@ def get_approx_start_time(group: Group):
     if occurrence is None:
         return None
 
-    regression_time = occurrence.evidence_data.get("breakpoint", None)
+    regression_time: int | None = occurrence.evidence_data.get("breakpoint", None)
     return regression_time
 
 

@@ -1,3 +1,4 @@
+from collections.abc import Iterator
 from contextlib import contextmanager
 
 from drf_spectacular.utils import extend_schema
@@ -113,7 +114,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         organization: Organization,
         offset: int | None,
         limit: int | None,
-    ):
+    ) -> QueryDefinition:
         try:
             params = self.get_filter_params(request, organization, date_filter_optional=True)
         except NoProjects:
@@ -127,7 +128,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
         )
 
     @contextmanager
-    def handle_query_errors(self):
+    def handle_query_errors(self) -> Iterator[None]:
         try:
             with handle_query_errors():
                 yield
@@ -136,7 +137,7 @@ class OrganizationSessionsEndpoint(OrganizationEndpoint):
 
 
 class SessionsDataSeriesPaginator(GenericOffsetPaginator):
-    def get_result(self, limit, cursor=None):
+    def get_result(self, limit: int, cursor: Cursor | None = None) -> CursorResult[object]:
         assert limit > 0
         offset = cursor.offset if cursor is not None else 0
         data = self.data_fn(offset=offset, limit=limit + 1)

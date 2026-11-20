@@ -59,10 +59,17 @@ const getLinkStyles = ({
 }) => css`
   border-radius: 2px;
   pointer-events: ${disabled ? 'none' : undefined};
-  color: ${disabled ? theme.tokens.content.disabled : undefined};
+  color: ${
+    disabled ? theme.tokens.content.disabled : theme.tokens.interactive.link.accent.rest
+  };
 
-  &:hover {
-    color: ${disabled ? theme.tokens.content.disabled : undefined};
+  &:hover,
+  &:focus-visible {
+    color: ${
+      disabled
+        ? theme.tokens.content.disabled
+        : theme.tokens.interactive.link.accent.hover
+    };
   }
 
   &:focus-visible {
@@ -83,10 +90,7 @@ const Anchor = styled('a', {
   ${getLinkStyles}
 `;
 
-type LinkPropsWithButtonBehavior = LinkProps & {
-  busy?: boolean;
-  variant?: ButtonVariant;
-};
+type LinkPropsWithButtonBehavior = LinkProps & {busy?: boolean; variant?: ButtonVariant};
 
 function LinkBase(props: LinkPropsWithButtonBehavior) {
   const {Component, behavior} = useLinkBehavior(props);

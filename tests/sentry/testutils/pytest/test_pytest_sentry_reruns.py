@@ -79,7 +79,6 @@ def _run(tmp_path: Path, always_report: bool, *args: str) -> list[dict[str, Any]
         "xdist.plugin",
         "pytest_rerunfailures",
         "pytest_sentry",
-        "sentry.testutils.pytest.pytest_sentry_reruns",
     )
     proc = subprocess.run(
         [

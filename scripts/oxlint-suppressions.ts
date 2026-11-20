@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {execFileSync, spawn} from 'node:child_process';
+import {execFileSync, spawn, spawnSync} from 'node:child_process';
 import {randomUUID} from 'node:crypto';
 import {
   appendFileSync,
@@ -47,10 +47,16 @@ const root = realpathSync(process.cwd());
 const assetName = 'oxlint-suppressions.json';
 const asset = path.join(root, assetName);
 let projects: string[] = [];
+// Workspaces with their own oxlint.config.ts lint separately from the root.
+const isolated: string[] = [];
 const stateDirectory = path.join(root, '.artifacts/lint-incubator/transactions');
 const lock = path.join(stateDirectory, 'owner.json');
 const require = createRequire(path.join(root, 'package.json'));
 const nativeCLI = path.join(path.dirname(require.resolve('oxlint')), 'cli.js');
+const formatterCLI = path.join(path.dirname(require.resolve('oxfmt')), 'cli.js');
+const typeAwareBackend = fileURLToPath(
+  new URL('bin/tsrs-lint', import.meta.resolve('tsrs/package.json'))
+);
 
 function record(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -112,6 +118,17 @@ function serialize(value: Suppressions) {
   )}\n`;
 }
 
+// Budgets are committed, so we write them the way the format hook would, using the
+// same oxfmt config and ignore patterns.
+function formatAsset(name: string, bytes: string) {
+  return execFileSync(process.execPath, [formatterCLI, '--stdin-filepath', name], {
+    cwd: root,
+    encoding: 'utf8',
+    input: bytes,
+    maxBuffer: 64 * 1024 * 1024,
+  });
+}
+
 function atomicWrite(file: string, bytes: string | Uint8Array) {
   const temporary = `${file}.${randomUUID()}.tmp`;
   try {
@@ -130,6 +147,10 @@ function alive(pid: number) {
   } catch (error) {
     return (error as NodeJS.ErrnoException).code !== 'ESRCH';
   }
+}
+
+function assetFor(project: string) {
+  return project ? project + '/' + assetName : assetName;
 }
 
 function assetPath(file: string) {
@@ -208,15 +229,28 @@ function claim(file: string, lease: Lease) {
   }
 }
 
+// Leave matching files untouched so watchers and editors only see real budget changes.
 function restoreAssets(assets: Assets) {
   for (const [name, original] of Object.entries(assets)) {
     const target = assetPath(name);
+    const current = existsSync(target) ? readFileSync(target) : null;
     if (original === null) {
-      rmSync(target, {force: true});
+      if (current !== null) {
+        rmSync(target, {force: true});
+      }
     } else {
-      atomicWrite(target, Buffer.from(original, 'base64'));
+      const bytes = Buffer.from(original, 'base64');
+      if (current === null || !current.equals(bytes)) {
+        atomicWrite(target, bytes);
+      }
     }
   }
+}
+
+// Native oxlint only reads the suppression file in its working directory, so only the
+// root and isolated project assets can hide findings from a scan.
+function scannedAssets() {
+  return [assetName, ...isolated.map(assetFor)];
 }
 
 function flatten(assets: Assets, allowed?: Set<string>) {
@@ -239,35 +273,43 @@ function flatten(assets: Assets, allowed?: Set<string>) {
 
 function partition(counts: Suppressions): Assets {
   const result = Object.fromEntries(
-    projects.map(project => [
-      project ? project + '/' + assetName : assetName,
-      Object.create(null) as Suppressions,
-    ])
+    projects.map(project => [assetFor(project), Object.create(null) as Suppressions])
   );
   for (const [file, rules] of Object.entries(counts)) {
     const project = projects.find(
       prefix => prefix === '' || file.startsWith(prefix + '/')
     )!;
-    result[project ? project + '/' + assetName : assetName]![
-      project ? file.slice(project.length + 1) : file
-    ] = rules;
+    result[assetFor(project)]![project ? file.slice(project.length + 1) : file] = rules;
   }
+  const rootFiles = Object.keys(result[assetName]!);
+  assert(
+    rootFiles.length === 0 ||
+      spawnSync('git', ['-C', root, 'check-ignore', '-q', assetName]).status !== 0,
+    `${assetName} is gitignored, so files outside pnpm workspaces cannot have suppression budgets. Fix or disable these violations: ${rootFiles.join(', ')}`
+  );
   return Object.fromEntries(
     Object.entries(result).map(([name, budgets]) => [
       name,
       Object.keys(budgets).length > 0
-        ? Buffer.from(serialize(budgets)).toString('base64')
+        ? Buffer.from(formatAsset(name, serialize(budgets))).toString('base64')
         : null,
     ])
   );
 }
 
-function restore(original: string | null | undefined) {
-  if (original === null) {
-    rmSync(asset, {force: true});
-  } else if (original !== undefined) {
-    atomicWrite(asset, Buffer.from(original, 'base64'));
+function rollback(lease: Lease) {
+  if (lease.assets) {
+    restoreAssets(lease.assets);
+  } else if (lease.original !== undefined) {
+    // Leases written before workspace assets only journaled the root asset.
+    restoreAssets({[assetName]: lease.original});
   }
+  for (const policy of [lease.policy, ...(lease.policies ?? [])]) {
+    if (policy) {
+      rmSync(path.join(root, policy), {force: true});
+    }
+  }
+  rmSync(lock, {force: true});
 }
 
 async function acquire() {
@@ -289,18 +331,7 @@ async function acquire() {
             if (latest.token !== abandoned.token) {
               break;
             }
-            if (latest.assets) {
-              restoreAssets(latest.assets);
-            } else {
-              restore(latest.original);
-            }
-            for (const policy of latest.policies ?? []) {
-              rmSync(path.join(root, policy), {force: true});
-            }
-            if (latest.policy) {
-              rmSync(path.join(root, latest.policy), {force: true});
-            }
-            rmSync(lock);
+            rollback(latest);
             break;
           }
           previous = readLease(recovery);
@@ -331,7 +362,7 @@ async function transaction<T>(
   try {
     const originals = Object.fromEntries(
       projects.map(project => {
-        const name = project ? project + '/' + assetName : assetName;
+        const name = assetFor(project);
         const target = assetPath(name);
         return [
           name,
@@ -342,16 +373,7 @@ async function transaction<T>(
     updateLease({assets: originals});
     return await operation(originals, updateLease);
   } finally {
-    if (lease.assets) {
-      restoreAssets(lease.assets);
-    }
-    for (const policy of lease.policies ?? []) {
-      rmSync(path.join(root, policy), {force: true});
-    }
-    if (lease.policy) {
-      rmSync(path.join(root, lease.policy), {force: true});
-    }
-    rmSync(lock, {force: true});
+    rollback(lease);
   }
 }
 
@@ -388,7 +410,11 @@ async function nativeScan(directory: string, allowed: Set<string>, policy: strin
       ],
       {
         cwd: directory,
-        env: {...process.env, SENTRY_OXLINT_TYPEAWARE: 'true'},
+        env: {
+          ...process.env,
+          OXLINT_TSGOLINT_PATH: typeAwareBackend,
+          SENTRY_OXLINT_TYPEAWARE: 'true',
+        },
         stdio: ['ignore', 'pipe', 'pipe'],
       }
     );
@@ -452,21 +478,18 @@ async function nativeScan(directory: string, allowed: Set<string>, policy: strin
 }
 
 async function rawScan(directory: string, allowed: Set<string>, policy: string) {
-  const configured = projects.filter(
-    project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
-  );
   const scanned = await nativeScan(directory, allowed, policy);
   const counts: Suppressions = Object.create(null);
   const findings = scanned.findings.filter(
-    finding => !configured.some(project => finding.file.startsWith(project + '/'))
+    finding => !isolated.some(project => finding.file.startsWith(project + '/'))
   );
   for (const [file, rules] of Object.entries(scanned.counts)) {
-    if (!configured.some(project => file.startsWith(project + '/'))) {
+    if (!isolated.some(project => file.startsWith(project + '/'))) {
       counts[file] = rules;
     }
   }
   const template: OxlintConfig = JSON.parse(readFileSync(policy, 'utf8'));
-  for (const project of configured) {
+  for (const project of isolated) {
     const projectRoot = path.join(directory, project);
     if (!existsSync(projectRoot)) {
       continue;
@@ -515,7 +538,7 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
       for (const [file, rules] of Object.entries(current.counts)) {
         const full = project + '/' + file;
         if (
-          !configured.some(
+          !isolated.some(
             child => child.startsWith(project + '/') && full.startsWith(child + '/')
           )
         ) {
@@ -526,7 +549,7 @@ async function rawScan(directory: string, allowed: Set<string>, policy: string) 
         ...current.findings
           .filter(
             finding =>
-              !configured.some(
+              !isolated.some(
                 child =>
                   child.startsWith(project + '/') &&
                   (project + '/' + finding.file).startsWith(child + '/')
@@ -854,9 +877,12 @@ Native oxlint options:
       }),
     ]),
   ].sort((a, b) => b.length - a.length);
-  const knownAssets = new Set(
-    projects.map(project => (project ? project + '/' + assetName : assetName))
+  isolated.push(
+    ...projects.filter(
+      project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
+    )
   );
+  const knownAssets = new Set(projects.map(assetFor));
   for (const file of existsSync(path.join(root, '.git'))
     ? git(root, ['ls-files', '--cached', '--others', '--exclude-standard', '-z']).split(
         '\0'
@@ -903,9 +929,7 @@ Native oxlint options:
   if (!command) {
     await transaction(async (originals, updateLease) => {
       const committed = flatten(originals, allowed);
-      for (const name of Object.keys(originals)) {
-        rmSync(assetPath(name), {force: true});
-      }
+      // Ordinary lint runs from the root, so it never reads project assets.
       atomicWrite(asset, serialize(committed));
       // The pinned CLI uses this process, so a killed transaction has no orphan writer.
       process.argv = [
@@ -923,9 +947,6 @@ Native oxlint options:
       const candidate = parseSuppressions(readFileSync(asset, 'utf8'), allowed);
       fits(candidate, committed);
       // Root lint does not own project policies; maintenance prunes their budgets.
-      const isolated = projects.filter(
-        project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
-      );
       for (const [file, rules] of Object.entries(committed)) {
         if (isolated.some(project => file.startsWith(project + '/'))) {
           candidate[file] = rules;
@@ -960,17 +981,13 @@ Native oxlint options:
       originals,
       ['prune', 'enroll'].includes(command) ? undefined : allowed
     );
-    for (const name of Object.keys(originals)) {
+    for (const name of scannedAssets()) {
       rmSync(assetPath(name), {force: true});
     }
     const policy = path.join(root, `.oxlint-incubator-${randomUUID()}.json`);
     updateLease({
       policy: path.basename(policy),
-      policies: projects
-        .filter(
-          project => project && existsSync(path.join(root, project, 'oxlint.config.ts'))
-        )
-        .map(project => project + '/' + path.basename(policy)),
+      policies: isolated.map(project => project + '/' + path.basename(policy)),
     });
     const absolutePlugin = (specifier: string) => require.resolve(specifier);
     atomicWrite(

@@ -44,7 +44,13 @@ class ApiTokenDetailsEndpoint(Endpoint):
         DisallowImpersonatedTokenCreation,
     )
 
-    def convert_args(self, request: Request, token_id: str, *args, **kwargs):
+    def convert_args(
+        self,
+        request: Request,
+        token_id: str,
+        *args: object,
+        **kwargs: object,
+    ) -> tuple[tuple[object, ...], dict[str, object]]:
         validated_token_id = to_valid_int_id("token_id", token_id, raise_404=True)
         user_id = get_appropriate_user_id(request=request)
         try:

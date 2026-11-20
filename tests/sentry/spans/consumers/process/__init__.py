@@ -1,24 +1,36 @@
+from collections.abc import Mapping
+from typing import Any, cast
+
 from sentry_kafka_schemas.schema_types.ingest_spans_v1 import SpanEvent
 
 from sentry.spans.consumers.process_segments.types import Attributes
 
 
 def build_mock_span(
-    project_id, *, span_op=None, is_segment=False, attributes=None, description=None, **kwargs
-):
-    span_attributes: Attributes = {
-        "sentry.duration": {"value": 0.107, "type": "double"},
-        "sentry.environment": {"value": "development", "type": "string"},
-        "sentry.release": {
-            "value": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
-            "type": "string",
+    project_id: int,
+    *,
+    span_op: str | None = None,
+    is_segment: bool = False,
+    attributes: Mapping[str, object] | None = None,
+    description: str | None = None,
+    **kwargs: Any,
+) -> SpanEvent:
+    span_attributes: Attributes = cast(
+        Attributes,
+        {
+            "sentry.duration": {"value": 0.107, "type": "double"},
+            "sentry.environment": {"value": "development", "type": "string"},
+            "sentry.release": {
+                "value": "backend@24.2.0.dev0+699ce0cd1281cc3c7275d0a474a595375c769ae8",
+                "type": "string",
+            },
+            "sentry.platform": {"value": "python", "type": "string"},
+            "sentry.op": {"value": span_op or "base.dispatch.sleep", "type": "string"},
+            "sentry.segment.id": {"value": "a49b42af9fb69da0", "type": "string"},
+            "sentry.profile_id": {"type": "string", "value": "dbae2b82559649a1a34a2878134a007b"},
+            **dict(attributes or {}),
         },
-        "sentry.platform": {"value": "python", "type": "string"},
-        "sentry.op": {"value": span_op or "base.dispatch.sleep", "type": "string"},
-        "sentry.segment.id": {"value": "a49b42af9fb69da0", "type": "string"},
-        "sentry.profile_id": {"type": "string", "value": "dbae2b82559649a1a34a2878134a007b"},
-        **(attributes or {}),
-    }
+    )
 
     if description is not None:
         span_attributes["sentry.description"] = {"type": "string", "value": description}

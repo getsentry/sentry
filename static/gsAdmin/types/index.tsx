@@ -76,11 +76,7 @@ type RelocationStep = keyof typeof RelocationSteps;
 
 type RelocationProvenance = 'SELF_HOSTED' | 'SAAS_TO_SAAS';
 
-type RelocationAssociatedUser = {
-  email: string;
-  id: string;
-  username: string;
-};
+type RelocationAssociatedUser = {email: string; id: string; username: string};
 
 export type Relocation = {
   creator: RelocationAssociatedUser | null;
@@ -101,67 +97,4 @@ export type Relocation = {
   uuid: string;
   wantOrgSlugs: string[];
   wantUsernames: string[];
-};
-
-export type ContractDate = {
-  day?: number;
-  month?: number;
-  year?: number;
-};
-
-type ContractPricingTier = {
-  end?: string;
-  ratePerUnitCpe?: string;
-  start?: string;
-};
-
-type ContractTieredPricingRate = {
-  tiers?: ContractPricingTier[];
-};
-
-export type ContractSKUConfig = {
-  basePriceCents?: string;
-  paygBudgetCents?: string;
-  paygRate?: ContractTieredPricingRate;
-  reservedRate?: ContractTieredPricingRate;
-  reservedVolume?: string;
-  sku?: string;
-};
-
-export type ContractSharedSKUBudget = {
-  paygBudgetCents?: string;
-  reservedBudgetCents?: string;
-  skus?: string[];
-};
-
-type ContractMetadata = {
-  id?: string;
-  organizationId?: string;
-};
-
-type ContractAddress = {
-  countryCode?: string;
-};
-
-type ContractBillingConfig = {
-  address?: ContractAddress;
-  billingType?: string;
-  channel?: string;
-  contractEndDate?: ContractDate;
-  contractStartDate?: ContractDate;
-};
-
-type ContractPricingConfig = {
-  basePriceCents?: string;
-  billingPeriodEndDate?: ContractDate;
-  billingPeriodStartDate?: ContractDate;
-  maxSpendCents?: string;
-  sharedSkuBudgets?: ContractSharedSKUBudget[];
-  skuConfigs?: ContractSKUConfig[];
-};
-
-export type Contract = {
-  billingConfig?: ContractBillingConfig;
-  metadata?: ContractMetadata;
-  pricingConfig?: ContractPricingConfig;
 };

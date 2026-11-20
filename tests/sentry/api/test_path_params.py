@@ -1,5 +1,5 @@
 import re
-from collections.abc import Generator
+from collections.abc import Generator, Sequence
 from typing import Any
 
 from django.urls import URLPattern, URLResolver
@@ -13,7 +13,9 @@ def extract_slug_path_params(path: str) -> list[str]:
     return re.findall(r"<(\w+_slug)>", path)
 
 
-def extract_all_url_patterns(urlpatterns, base: str = "") -> Generator[Any | tuple[str, Any], Any]:
+def extract_all_url_patterns(
+    urlpatterns: Sequence[URLResolver | URLPattern], base: str = ""
+) -> Generator[Any | tuple[str, Any], Any]:
     for pattern in urlpatterns:
         if isinstance(pattern, URLResolver):
             yield from extract_all_url_patterns(pattern.url_patterns, base + str(pattern.pattern))

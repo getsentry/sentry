@@ -7,6 +7,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openAttributeBreakdownViewerModal} from 'sentry/actionCreators/modal';
+import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import {t, tct} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {TooltipActions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
@@ -37,6 +38,7 @@ export function Chart({
 }) {
   const chartRef = useRef<ReactEchartsRef>(null);
   const [chartWidth, setChartWidth] = useState(0);
+  const [caseInsensitive] = useCaseInsensitivity();
   const formatSingleModeTooltip = useFormatSingleModeTooltip();
 
   const color = theme.chart.getColorPalette(0)?.[0];
@@ -100,9 +102,7 @@ export function Chart({
               showUnderline
               title={tct(
                 '[percent] of spans in your query have this attribute populated',
-                {
-                  percent: percentageFormatter(populationPercentage),
-                }
+                {percent: percentageFormatter(populationPercentage)}
               )}
             >
               {percentageFormatter(populationPercentage)}
@@ -117,6 +117,7 @@ export function Chart({
               openAttributeBreakdownViewerModal({
                 mode: 'single',
                 attributeDistribution,
+                caseInsensitive,
                 cohortCount,
                 query,
               })
@@ -134,9 +135,7 @@ export function Chart({
           {
             type: 'bar',
             data: seriesData.map(value => value.value),
-            itemStyle: {
-              color,
-            },
+            itemStyle: {color},
             barMaxWidth: CHART_MAX_BAR_WIDTH,
             animation: false,
           },

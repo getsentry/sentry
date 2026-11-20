@@ -7,16 +7,13 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {FieldKind} from 'sentry/utils/fields';
-import {useGetTraceItemAttributeValues} from 'sentry/views/explore/hooks/useGetTraceItemAttributeValues';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useGetTraceItemAttributeValues} from './useGetTraceItemAttributeValues';
 
 describe('useGetTraceItemAttributeValues', () => {
   const attributeKey = 'test.attribute';
-  const tag = {
-    key: attributeKey,
-    name: attributeKey,
-    kind: FieldKind.TAG,
-  };
+  const tag = {key: attributeKey, name: attributeKey, kind: FieldKind.TAG};
 
   function makeWrapper(queryClient: QueryClient) {
     return function Wrapper({children}: {children?: ReactNode}) {
@@ -29,14 +26,7 @@ describe('useGetTraceItemAttributeValues', () => {
     key = attributeKey,
     count: number | null = null
   ) {
-    return {
-      key,
-      value,
-      name: value,
-      count,
-      firstSeen: null,
-      lastSeen: null,
-    };
+    return {key, value, name: value, count, firstSeen: null, lastSeen: null};
   }
 
   type ValueResult = Array<{value: string; count?: number}>;
@@ -91,12 +81,7 @@ describe('useGetTraceItemAttributeValues', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -279,31 +264,16 @@ describe('useGetTraceItemAttributeValues', () => {
       hookProps?: Partial<Parameters<typeof useGetTraceItemAttributeValues>[0]>;
       tagKey?: string;
     }> = [
-      {
-        name: 'attribute key',
-        tagKey: 'other.attribute',
-        expectedQuery: {},
-      },
+      {name: 'attribute key', tagKey: 'other.attribute', expectedQuery: {}},
       {
         name: 'item type',
         hookProps: {traceItemType: TraceItemDataset.SPANS},
         expectedQuery: {itemType: TraceItemDataset.SPANS},
       },
-      {
-        name: 'project',
-        hookProps: {projectIds: [2]},
-        expectedQuery: {project: ['2']},
-      },
+      {name: 'project', hookProps: {projectIds: [2]}, expectedQuery: {project: ['2']}},
       {
         name: 'datetime',
-        hookProps: {
-          datetime: {
-            end: null,
-            period: '7d',
-            start: null,
-            utc: false,
-          },
-        },
+        hookProps: {datetime: {end: null, period: '7d', start: null, utc: false}},
         expectedQuery: {statsPeriod: '7d'},
       },
       {
@@ -331,11 +301,7 @@ describe('useGetTraceItemAttributeValues', () => {
       let results: ValueResult = [];
       await act(async () => {
         results = await result.current({
-          tag: {
-            key,
-            name: key,
-            kind: FieldKind.TAG,
-          },
+          tag: {key, name: key, kind: FieldKind.TAG},
           searchQuery: 'foo',
         });
       });

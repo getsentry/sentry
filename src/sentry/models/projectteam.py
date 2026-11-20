@@ -42,11 +42,11 @@ class ProjectTeam(Model):
     __repr__ = sane_repr("project_id", "team_id")
 
 
-def process_resource_change(instance: ProjectTeam, **kwargs):
+def process_resource_change(instance: ProjectTeam, **kwargs: object) -> None:
     from sentry.models.project import Project
     from sentry.tasks.codeowners import update_code_owners_schema
 
-    def _spawn_task():
+    def _spawn_task() -> None:
         try:
             update_code_owners_schema.apply_async(
                 kwargs={

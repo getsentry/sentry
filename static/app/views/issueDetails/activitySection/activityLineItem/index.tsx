@@ -1,11 +1,11 @@
 import {useMemo} from 'react';
 
 import {TimeSince} from 'sentry/components/timeSince';
-import {GroupActivityType, type Group} from 'sentry/types/group';
+import type {Group} from 'sentry/types/group';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {Timeline} from 'sentry/views/issueDetails/activitySection/timeline';
 
-import type {ActivityFeedItem} from './activityFeedItem';
+import {getActorActivity, type ActivityFeedItem} from './activityFeedItem';
 import {getActivityItem} from './activityItem';
 import {ActivityLineHeadline} from './layout';
 import {ActivityLineMarker} from './marker';
@@ -27,28 +27,17 @@ export function ActivityLine({
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
-    () =>
-      getActivityItem({
-        item,
-        organization,
-        project,
-        issueCategory,
-      }),
+    () => getActivityItem({item, organization, project, issueCategory}),
     [item, issueCategory, organization, project]
   );
   const timestamp = (
     <TimeSince date={activity.dateCreated} unitStyle={timestampUnitStyle} />
   );
-  let actorActivity = activity;
-  if (item.type === GroupActivityType.SEER_ITERATION_COMPLETED) {
-    actorActivity = item.startedActivity;
-  } else if (item.type === 'activity' && item.actorActivity) {
-    actorActivity = item.actorActivity;
-  }
 
   return (
     <Timeline.Item
-      marker={<ActivityLineMarker item={actorActivity} />}
+      variant={item.variant}
+      marker={<ActivityLineMarker item={getActorActivity(item)} />}
       headline={
         <ActivityLineHeadline
           title={activityItem.title}

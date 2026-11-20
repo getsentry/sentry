@@ -13,7 +13,9 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         assert response.data["lastRelease"] is None
 
         event = self.store_event(data={"release": "1.0"}, project_id=self.project.id)
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/"
         response = self.client.get(url, format="json")
@@ -31,12 +33,15 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         prod_event = self.store_event(
             data={"release": "1.0.0", "environment": "production"}, project_id=self.project.id
         )
+        assert prod_event.group is not None
         staging_event = self.store_event(
             data={"release": "1.1.0", "environment": "staging"}, project_id=self.project.id
         )
+        assert staging_event.group is not None
 
         assert prod_event.group == staging_event.group
         group = prod_event.group
+        assert group is not None
 
         # Without the environment filter, we should return the first and last across all environments
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/"
@@ -74,6 +79,7 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         staging_event_2 = self.store_event(
             data={"release": "1.2.0", "environment": "staging"}, project_id=self.project.id
         )
+        assert staging_event_2.group is not None
         assert staging_event_2.group == group
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=staging"
         response = self.client.get(url)
@@ -87,7 +93,9 @@ class GroupFirstLastTest(APITestCase, SnubaTestCase):
         event = self.store_event(
             data={"release": "1.0.0", "environment": "production"}, project_id=self.project.id
         )
+        assert event.group is not None
         group = event.group
+        assert group is not None
 
         url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/first-last-release/?environment=nonexistent"
         response = self.client.get(url)

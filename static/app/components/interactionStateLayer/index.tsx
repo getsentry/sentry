@@ -1,1 +1,1 @@
-export {default} from '@sentry/scraps/interactionStateLayer';
+export {InteractionStateLayer as default} from './interactionStateLayer';

@@ -62,6 +62,7 @@ class Topic(Enum):
     GROUP_ATTRIBUTES = "group-attributes"
     SHARED_RESOURCES_USAGE = "shared-resources-usage"
     SNUBA_ITEMS = "snuba-items"
+    LLM_PROXY_COST = "snuba-llm-proxy-cost"
     EAP_ITEMS_SUBSCRIPTIONS_RESULTS = "subscription-results-eap-items"
     # Nothing produces to or consumes this topic anymore -- segments go straight
     # to process_segment_task. It stays registered because the schema still
@@ -113,7 +114,7 @@ def validate_consumer_definition(consumer_definition: ConsumerDefinition) -> Non
         )
 
 
-def get_topic_codec(topic: Topic) -> Codec:
+def get_topic_codec(topic: Topic) -> Codec[Any]:
     """
     Like sentry_kafka_schemas.get_codec, but only accepts a Topic enum
     """

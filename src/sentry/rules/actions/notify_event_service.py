@@ -32,7 +32,7 @@ def build_incident_attachment(
     incident_serialized_response: IncidentSerializerResponse,
     organization: Organization,
     notification_uuid: str | None = None,
-) -> dict[str, str]:
+) -> dict[str, object]:
     from sentry.api.serializers.rest_framework.base import (
         camel_to_snake_case,
         convert_dict_key_case,
@@ -65,7 +65,7 @@ def send_incident_alert_notification(
 ) -> None:
     """
     When a metric alert is triggered, send incident data to the SentryApp's webhook.
-    :param action: The triggered `AlertRuleTriggerAction`.
+    :param notification_context: The modern action notification context.
     :param incident: The `Incident` for which to build a payload.
     :param metric_value: The value of the metric that triggered this alert to fire.
     :param project_id: project id will be used for analytics after sending the webhook.

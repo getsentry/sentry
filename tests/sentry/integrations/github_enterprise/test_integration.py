@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Iterator
 from dataclasses import asdict
 from datetime import datetime, timezone
 from typing import Any
@@ -18,6 +19,7 @@ from sentry.integrations.github_enterprise.integration import (
     _api_base_url,
     get_user_info,
 )
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
@@ -26,6 +28,7 @@ from sentry.integrations.source_code_management.commit_context import (
     FileBlameInfo,
     SourceLineInfo,
 )
+from sentry.models.group import Group
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.silo.base import SiloMode
@@ -34,6 +37,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.model import RpcUser
 
 
 class ApiBaseUrlTest(TestCase):
@@ -78,19 +82,19 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
     provider = GitHubEnterpriseIntegrationProvider
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt(self):
+    def stub_get_jwt(self) -> Iterator[None]:
         from sentry.integrations import github
 
         with mock.patch.object(github.client, "get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_function(self):
+    def stub_get_jwt_function(self) -> Iterator[None]:
         with mock.patch("sentry.integrations.github.utils.get_jwt", return_value="jwt_token_1"):
             yield
 
     @pytest.fixture(autouse=True)
-    def stub_get_jwt_enterprise(self):
+    def stub_get_jwt_enterprise(self) -> Iterator[None]:
         with mock.patch(
             "sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1"
         ):
@@ -144,7 +148,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         external_id: str = "octocat",
         issue_key: str = "Test-Organization/foo#123",
         create_external_user: bool = True,
-    ) -> tuple:
+    ) -> tuple[RpcUser, GitHubEnterpriseIntegration, ExternalIssue, Integration, Group]:
         """
         Common setup for assignee sync tests.
 
@@ -154,7 +158,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.integrations.types import ExternalProviders
         from sentry.users.services.user.serial import serialize_rpc_user
 
-        user = serialize_rpc_user(self.create_user(email=user_email))
+        user = self.create_user(email=user_email)
 
         self.integration.metadata.update(
             {
@@ -187,7 +191,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
             key=issue_key,
         )
 
-        return user, installation, external_issue, self.integration, group
+        return serialize_rpc_user(user), installation, external_issue, self.integration, group
 
     @patch("sentry.integrations.github_enterprise.integration.get_jwt", return_value="jwt_token_1")
     @patch("sentry.integrations.github_enterprise.client.get_jwt", return_value="jwt_token_1")
@@ -757,6 +761,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test syncing resolved status to GitHub (close issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -800,6 +805,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test syncing unresolved status to GitHub (reopen issue)."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -843,6 +849,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test that no update is made when status is already in desired state."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
         external_issue = self.create_integration_external_issue(
             group=self.group,
             integration=self.integration,
@@ -879,6 +886,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         """Test that sync_status_outbound returns early if no external project mapping exists."""
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         # Create external issue without project mapping
         with assume_test_silo_mode(SiloMode.CELL):
@@ -902,6 +910,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -937,6 +946,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         from sentry.shared_integrations.exceptions import IntegrationError
 
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         external_issue = self.create_integration_external_issue(
             group=self.group,
@@ -977,6 +987,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
         self.user.name = "Sentry Admin"
         self.user.save()
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
@@ -990,6 +1001,7 @@ class GitHubEnterpriseIntegrationTest(IntegrationTestCase):
 
     def test_update_comment(self) -> None:
         installation = self.integration.get_installation(self.organization.id)
+        assert isinstance(installation, GitHubEnterpriseIntegration)
 
         group_note = mock.Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
@@ -1108,7 +1120,10 @@ class GitHubEnterpriseApiPipelineTest(APITestCase):
         return self._advance_step(data)
 
     def _get_pipeline_signature(self, resp: Any) -> str:
-        return resp.data["data"]["oauthUrl"].split("state=")[1].split("&")[0]
+        oauth_url = resp.data["data"]["oauthUrl"]
+        if not isinstance(oauth_url, str):
+            raise TypeError("GitHub Enterprise pipeline response carries no OAuth URL")
+        return oauth_url.split("state=")[1].split("&")[0]
 
     def _stub_ghe_oauth(self) -> None:
         responses.add(

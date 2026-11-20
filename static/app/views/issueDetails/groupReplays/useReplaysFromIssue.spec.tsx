@@ -5,7 +5,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types/group';
-import {useReplaysFromIssue} from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
+
+import {useReplaysFromIssue} from './useReplaysFromIssue';
 
 describe('useReplaysFromIssue', () => {
   beforeEach(() => {
@@ -14,16 +15,12 @@ describe('useReplaysFromIssue', () => {
 
   const initialRouterConfig = {
     route: '/organizations/:orgSlug/issues/:groupId/',
-    location: {
-      pathname: '/organizations/test-org/issues/1/',
-    },
+    location: {pathname: '/organizations/test-org/issues/1/'},
   };
 
   const location = LocationFixture();
 
-  const organization = OrganizationFixture({
-    features: ['session-replay'],
-  });
+  const organization = OrganizationFixture({features: ['session-replay']});
 
   it('keeps the newest environment results when an older request finishes last', async () => {
     const group = GroupFixture();
@@ -142,25 +139,17 @@ describe('useReplaysFromIssue', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {
-        [MOCK_GROUP.id]: ['replay42', 'replay256'],
-      },
+      body: {[MOCK_GROUP.id]: ['replay42', 'replay256']},
     });
 
     const {result} = renderHookWithProviders(useReplaysFromIssue, {
-      initialProps: {
-        group: MOCK_GROUP,
-        location,
-        organization,
-      },
+      initialProps: {group: MOCK_GROUP, location, organization},
       initialRouterConfig,
     });
 
     await waitFor(() =>
       expect(result.current).toEqual({
-        eventView: expect.objectContaining({
-          query: 'id:[replay42,replay256]',
-        }),
+        eventView: expect.objectContaining({query: 'id:[replay42,replay256]'}),
         fetchError: undefined,
         isFetching: false,
         pageLinks: null,
@@ -175,25 +164,17 @@ describe('useReplaysFromIssue', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {
-        [MOCK_GROUP.id]: ['replay42', 'replay256'],
-      },
+      body: {[MOCK_GROUP.id]: ['replay42', 'replay256']},
     });
 
     const {result} = renderHookWithProviders(useReplaysFromIssue, {
-      initialProps: {
-        group: MOCK_GROUP,
-        location,
-        organization,
-      },
+      initialProps: {group: MOCK_GROUP, location, organization},
       initialRouterConfig,
     });
 
     await waitFor(() =>
       expect(result.current).toEqual({
-        eventView: expect.objectContaining({
-          query: 'id:[replay42,replay256]',
-        }),
+        eventView: expect.objectContaining({query: 'id:[replay42,replay256]'}),
         fetchError: undefined,
         isFetching: false,
         pageLinks: null,
@@ -208,17 +189,11 @@ describe('useReplaysFromIssue', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {
-        [MOCK_GROUP.id]: [],
-      },
+      body: {[MOCK_GROUP.id]: []},
     });
 
     const {result} = renderHookWithProviders(useReplaysFromIssue, {
-      initialProps: {
-        group: MOCK_GROUP,
-        location,
-        organization,
-      },
+      initialProps: {group: MOCK_GROUP, location, organization},
       initialRouterConfig,
     });
 

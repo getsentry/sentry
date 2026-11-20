@@ -1,27 +1,31 @@
 import {useEffect} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils/defined';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useIssueDetails} from 'sentry/views/issueDetails/context';
-import {
-  useIssueDetailsDiscoverQuery,
-  useIssueDetailsEventView,
-} from 'sentry/views/issueDetails/hooks/useIssueDetailsDiscoverQuery';
 
-type EventCountResponse = {
-  data: Array<{'count()': number}>;
-};
+import {
+  issueDetailsEventsApiOptions,
+  useIssueDetailsEventView,
+} from './issueDetailsEventsQuery';
 
 function useIssueEventCount(group: Group): number | undefined {
+  const organization = useOrganization();
+  const location = useLocation();
   const eventView = useIssueDetailsEventView({group, queryProps: {fields: ['count()']}});
 
-  const {data: eventCountResponse} = useIssueDetailsDiscoverQuery<EventCountResponse>({
-    params: {
-      route: 'events',
+  const {data: eventCountResponse} = useQuery(
+    issueDetailsEventsApiOptions<{data: Array<{'count()': number}>}>({
       eventView,
+      group,
+      location,
+      organization,
       referrer: 'issue_details.streamline_graph',
-    },
-  });
+    })
+  );
 
   return eventCountResponse?.data[0]?.['count()'];
 }

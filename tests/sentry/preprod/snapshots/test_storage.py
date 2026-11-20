@@ -15,7 +15,7 @@ def sessions() -> tuple[MagicMock, MagicMock]:
 
 
 @patch("sentry.preprod.snapshots.storage.logger")
-def test_get_prefers_primary(mock_logger, sessions) -> None:
+def test_get_prefers_primary(mock_logger: MagicMock, sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     storage = SnapshotStorage(primary, fallback)
     assert storage.get("k") is primary.get.return_value
@@ -23,7 +23,7 @@ def test_get_prefers_primary(mock_logger, sessions) -> None:
     mock_logger.info.assert_not_called()
 
 
-def test_get_uses_fallback_when_primary_missing(sessions) -> None:
+def test_get_uses_fallback_when_primary_missing(sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     primary.get.return_value = None
     storage = SnapshotStorage(primary, fallback)
@@ -32,7 +32,9 @@ def test_get_uses_fallback_when_primary_missing(sessions) -> None:
 
 
 @patch("sentry.preprod.snapshots.storage.logger")
-def test_get_error_propagates_without_fallback(mock_logger, sessions) -> None:
+def test_get_error_propagates_without_fallback(
+    mock_logger: MagicMock, sessions: tuple[MagicMock, MagicMock]
+) -> None:
     primary, fallback = sessions
     primary.get.side_effect = RequestError("boom", 500, "")
     storage = SnapshotStorage(primary, fallback)
@@ -42,14 +44,14 @@ def test_get_error_propagates_without_fallback(mock_logger, sessions) -> None:
     mock_logger.info.assert_not_called()
 
 
-def test_head_uses_fallback_when_primary_missing(sessions) -> None:
+def test_head_uses_fallback_when_primary_missing(sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     primary.head.return_value = None
     storage = SnapshotStorage(primary, fallback)
     assert storage.head("k") is fallback.head.return_value
 
 
-def test_put_only_writes_primary(sessions) -> None:
+def test_put_only_writes_primary(sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     storage = SnapshotStorage(primary, fallback)
     storage.put(
@@ -61,7 +63,7 @@ def test_put_only_writes_primary(sessions) -> None:
     fallback.put.assert_not_called()
 
 
-def test_delete_removes_from_both(sessions) -> None:
+def test_delete_removes_from_both(sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     storage = SnapshotStorage(primary, fallback)
     storage.delete("k")
@@ -69,7 +71,7 @@ def test_delete_removes_from_both(sessions) -> None:
     fallback.delete.assert_called_once_with("k")
 
 
-def test_delete_ignores_missing(sessions) -> None:
+def test_delete_ignores_missing(sessions: tuple[MagicMock, MagicMock]) -> None:
     primary, fallback = sessions
     primary.delete.side_effect = RequestError("missing", 404, "")
     storage = SnapshotStorage(primary, fallback)
@@ -79,7 +81,7 @@ def test_delete_ignores_missing(sessions) -> None:
 
 @pytest.mark.parametrize("primary_error", [RequestError("primary", 500, ""), HTTPError("primary")])
 def test_delete_raises_first_non_404_after_trying_both(
-    sessions, primary_error: RequestError | HTTPError
+    sessions: tuple[MagicMock, MagicMock], primary_error: RequestError | HTTPError
 ) -> None:
     primary, fallback = sessions
     primary.delete.side_effect = primary_error
@@ -95,7 +97,11 @@ def test_delete_raises_first_non_404_after_trying_both(
 @patch("sentry.preprod.snapshots.storage.logger")
 @patch("sentry.preprod.snapshots.storage.metrics")
 def test_fallback_records_metric_and_log(
-    mock_metrics, mock_logger, sessions, operation: str, found: bool
+    mock_metrics: MagicMock,
+    mock_logger: MagicMock,
+    sessions: tuple[MagicMock, MagicMock],
+    operation: str,
+    found: bool,
 ) -> None:
     primary, fallback = sessions
     getattr(primary, operation).return_value = None
@@ -113,7 +119,9 @@ def test_fallback_records_metric_and_log(
 
 @django_db_all
 @patch("sentry.preprod.snapshots.storage.get_session")
-def test_factory_uses_snapshots_primary_with_preprod_fallback(mock_get_session) -> None:
+def test_factory_uses_snapshots_primary_with_preprod_fallback(
+    mock_get_session: MagicMock,
+) -> None:
     get_snapshot_storage(42, org=7)
     assert mock_get_session.call_args_list == [
         call(UsecaseId.PREPROD_SNAPSHOTS, 42, org=7),

@@ -5,6 +5,8 @@ from functools import partial
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import Func, JSONField, TextField, Value
+from django.db.models.functions import Cast, Coalesce, NullIf
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
@@ -18,6 +20,7 @@ from sentry.integrations.services.repository import RepositoryService, RpcReposi
 from sentry.integrations.services.repository.model import (
     RpcCreateRepository,
     RpcRepointIntegrationResult,
+    RpcRepositoryRename,
 )
 from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.integrations.source_code_management.auto_link_repos import auto_link_repos_by_name
@@ -51,7 +54,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         id: int,
         as_user: RpcUser | None = None,
     ) -> Any | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize(repository, user=as_user)
@@ -62,16 +65,22 @@ class DatabaseBackedRepositoryService(RepositoryService):
         organization_id: int,
         integration_id: int | None = None,
         external_id: str | None = None,
+        external_ids: list[str] | None = None,
         providers: list[str] | None = None,
         has_integration: bool | None = None,
         has_provider: bool | None = None,
         status: int | None = None,
     ) -> list[RpcRepository]:
+        if external_id is not None and external_ids is not None:
+            raise ValueError("external_id and external_ids cannot both be provided")
+
         query = Repository.objects.filter(organization_id=organization_id)
         if integration_id is not None:
             query = query.filter(integration_id=integration_id)
         if external_id is not None:
             query = query.filter(external_id=external_id)
+        if external_ids is not None:
+            query = query.filter(external_id__in=external_ids)
         if providers is not None:
             query = query.filter(provider__in=providers)
         if has_integration is not None:
@@ -83,7 +92,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
         return [serialize_repository(repo) for repo in query]
 
     def get_repository(self, *, organization_id: int, id: int) -> RpcRepository | None:
-        repository = Repository.objects.filter(organization_id=organization_id, id=id).first()
+        repository = Repository.objects.get_or_none(organization_id=organization_id, id=id)
         if repository is None:
             return None
         return serialize_repository(repository)
@@ -105,7 +114,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None:
                 return
@@ -132,7 +141,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status != ObjectStatus.ACTIVE:
                 return False
@@ -185,6 +194,88 @@ class DatabaseBackedRepositoryService(RepositoryService):
 
             Repository.objects.bulk_update(repositories, fields=list(fields_to_update))
 
+    def rename_repositories(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        renames: list[RpcRepositoryRename],
+    ) -> list[int]:
+        # config is stored as text. Merge into the current document in the UPDATE
+        # so a concurrent change to an unrelated key is preserved.
+        config = Cast(
+            Coalesce(NullIf("config", Value("")), Value("{}"), output_field=TextField()),
+            JSONField(),
+        )
+        using = router.db_for_write(Repository)
+        repositories = (
+            Repository.objects.using(using)
+            .filter(
+                organization_id=organization_id,
+                integration_id=integration_id,
+                provider=provider,
+                status__in=(ObjectStatus.ACTIVE, ObjectStatus.DISABLED),
+            )
+            .alias(
+                config_name=Func(
+                    config,
+                    Value("name"),
+                    function="jsonb_extract_path_text",
+                    output_field=TextField(),
+                )
+            )
+        )
+
+        renamed: set[int] = set()
+        with transaction.atomic(using=using):
+            # Acquire locks in a consistent order across overlapping batches.
+            for rename in sorted(renames, key=lambda r: r.id):
+                if rename.id in renamed or (
+                    rename.expected_name == rename.name
+                    and rename.expected_url == rename.url
+                    and rename.expected_config_name == rename.name
+                ):
+                    continue
+                matching = repositories.filter(
+                    id=rename.id,
+                    external_id=rename.external_id,
+                    name=rename.expected_name,
+                    url=rename.expected_url,
+                    config_name=rename.expected_config_name,
+                )
+                name_patch = Value({"name": rename.name}, output_field=JSONField())
+                if matching.update(
+                    name=rename.name,
+                    url=rename.url,
+                    config=Cast(Func(config, name_patch, function="jsonb_concat"), TextField()),
+                ):
+                    renamed.add(rename.id)
+        return sorted(renamed)
+
+    def enable_repositories_by_external_ids(
+        self,
+        *,
+        organization_id: int,
+        integration_id: int,
+        provider: str,
+        external_ids: list[str],
+    ) -> list[RpcRepository]:
+        using = router.db_for_write(Repository)
+        repositories = Repository.objects.using(using).filter(
+            organization_id=organization_id,
+            integration_id=integration_id,
+            provider=provider,
+            external_id__in=external_ids,
+        )
+        # The UPDATE locks only the disabled rows it changes, so a writer that holds
+        # a lock on an already-active repo doesn't block the restore.
+        repositories.filter(status=ObjectStatus.DISABLED).update(status=ObjectStatus.ACTIVE)
+        return [
+            serialize_repository(repository)
+            for repository in repositories.filter(status=ObjectStatus.ACTIVE).order_by("id")
+        ]
+
     def transfer_repository_to_integration(
         self,
         *,
@@ -197,7 +288,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             repository = (
                 Repository.objects.filter(organization_id=organization_id, id=update.id)
                 .select_for_update()
-                .first()
+                .get_or_none()
             )
             if repository is None or repository.status not in (
                 ObjectStatus.ACTIVE,

@@ -2,9 +2,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {EventsResults} from 'sentry/utils/profiling/hooks/types';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {formatSort} from 'sentry/utils/profiling/hooks/utils';
+import type {EventsResults} from './types';
+import {useProfileEvents} from './useProfileEvents';
+import {formatSort} from './utils';
 
 describe('useProfileEvents', () => {
   afterEach(() => {
@@ -76,10 +76,7 @@ describe('formatSort', () => {
       key: 'count()',
       order: 'desc' as const,
     });
-    expect(sort).toEqual({
-      key: 'count()',
-      order: 'desc',
-    });
+    expect(sort).toEqual({key: 'count()', order: 'desc'});
   });
 
   it('uses the asc fallback', () => {
@@ -87,10 +84,7 @@ describe('formatSort', () => {
       key: 'count()',
       order: 'asc' as const,
     });
-    expect(sort).toEqual({
-      key: 'count()',
-      order: 'asc',
-    });
+    expect(sort).toEqual({key: 'count()', order: 'asc'});
   });
 
   it('uses the desc value', () => {
@@ -98,10 +92,7 @@ describe('formatSort', () => {
       key: 'count()',
       order: 'asc' as const,
     });
-    expect(sort).toEqual({
-      key: 'p95()',
-      order: 'desc',
-    });
+    expect(sort).toEqual({key: 'p95()', order: 'desc'});
   });
 
   it('uses the asc value', () => {
@@ -109,9 +100,6 @@ describe('formatSort', () => {
       key: 'count()',
       order: 'desc' as const,
     });
-    expect(sort).toEqual({
-      key: 'p95()',
-      order: 'asc',
-    });
+    expect(sort).toEqual({key: 'p95()', order: 'asc'});
   });
 });

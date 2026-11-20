@@ -27,6 +27,8 @@ class ApiInviteHelperTest(TestCase):
             organization=self.org,
             teams=[self.team],
         )
+        assert self.member.token is not None
+        self.token = self.member.token
         self.request = HttpRequest()
         # Needed for audit logs
         self.request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -34,7 +36,7 @@ class ApiInviteHelperTest(TestCase):
 
     def test_from_session_with_deleted_member(self) -> None:
         self.request.session = SessionBase()
-        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        add_invite_details_to_session(self.request, self.member.id, self.token, self.org.id)
         self.member.delete()
         logger = Mock()
 
@@ -45,7 +47,7 @@ class ApiInviteHelperTest(TestCase):
 
     def test_from_session_with_rotated_token(self) -> None:
         self.request.session = SessionBase()
-        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        add_invite_details_to_session(self.request, self.member.id, self.token, self.org.id)
         self.member.update(token="rotatedtoken")
 
         helper = ApiInviteHelper.from_session(self.request)
@@ -58,7 +60,7 @@ class ApiInviteHelperTest(TestCase):
 
     def test_from_session_with_existing_member(self) -> None:
         self.request.session = SessionBase()
-        add_invite_details_to_session(self.request, self.member.id, self.member.token, self.org.id)
+        add_invite_details_to_session(self.request, self.member.id, self.token, self.org.id)
         existing_member = self.create_member(user=self.user, organization=self.org)
         logger = Mock()
 

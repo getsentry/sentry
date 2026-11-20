@@ -3,12 +3,13 @@ from unittest.mock import MagicMock, call, patch
 
 import pytest
 from django.http import Http404
-from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 from slack_sdk.webhook import WebhookResponse
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.messaging.linkage import UnlinkIdentityView
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.views.link_identity import (
     SUCCESS_LINKED_MESSAGE,
     build_linking_url,
@@ -107,6 +108,7 @@ class SlackIntegrationLinkIdentityTestBase(TestCase):
         self.response_url = "http://example.slack.com/response_url"
 
         self.integration = install_slack(self.organization)
+        self.rpc_integration = serialize_integration(self.integration)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
     @pytest.fixture(autouse=True)
@@ -144,7 +146,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     def test_basic_flow_with_webhook_client(self) -> None:
         """Do the auth flow and assert that the identity was created."""
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
 
         # Load page.
@@ -164,10 +166,10 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
     def test_basic_flow_with_webhook_client_error(self) -> None:
         """Do the auth flow and assert that the identity was created."""
-        self.mock_webhook.side_effect = SlackApiError("", response={"ok": False})
+        self.mock_webhook.side_effect = TypedSlackApiError("", response={"ok": False})
 
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
 
         # Load page.
@@ -184,7 +186,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
 
     def test_basic_flow_with_web_client(self) -> None:
         """No response URL is provided, so we use WebClient."""
-        linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
+        linking_url = build_linking_url(self.rpc_integration, self.external_id, self.channel_id, "")
 
         # Load page.
         response = self.client.get(linking_url)
@@ -204,9 +206,9 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @patch("sentry.integrations.slack.utils.notifications._logger")
     def test_basic_flow_with_web_client_error(self, mock_logger: MagicMock) -> None:
         """No response URL is provided, so we use WebClient."""
-        self.mock_post.side_effect = SlackApiError("", response={"ok": False})
+        self.mock_post.side_effect = TypedSlackApiError("", response={"ok": False})
 
-        linking_url = build_linking_url(self.integration, self.external_id, self.channel_id, "")
+        linking_url = build_linking_url(self.rpc_integration, self.external_id, self.channel_id, "")
 
         # Load page.
         response = self.client.get(linking_url)
@@ -244,7 +246,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -284,7 +286,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -293,7 +295,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
     @patch("sentry.integrations.slack.views.link_identity.route_slack_seer_event.apply_async")
     def test_no_replay_when_cache_empty(self, mock_apply_async: MagicMock) -> None:
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -303,7 +305,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         """When response_url comes from linking URL params (e.g. issue card flow),
         the webhook must NOT replace the original message."""
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -326,7 +328,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration, self.external_id, self.channel_id, self.response_url
+            self.rpc_integration, self.external_id, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 
@@ -349,7 +351,7 @@ class SlackIntegrationLinkIdentityTest(SlackIntegrationLinkIdentityTestBase):
         )
 
         linking_url = build_linking_url(
-            self.integration, external_id_2, self.channel_id, self.response_url
+            self.rpc_integration, external_id_2, self.channel_id, self.response_url
         )
         self.client.post(linking_url)
 

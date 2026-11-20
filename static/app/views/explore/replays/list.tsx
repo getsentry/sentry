@@ -38,11 +38,6 @@ import {
   useQueryParamsTitle,
   useQueryParamsSearch,
 } from 'sentry/views/explore/queryParams/context';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayIndexContainer} from 'sentry/views/explore/replays/list/replayIndexContainer';
-import {ReplayListControls} from 'sentry/views/explore/replays/list/replayListControls';
-import {ReplayOnboardingPanel} from 'sentry/views/explore/replays/list/replayOnboardingPanel';
-import {ReplayQueryParamsProvider} from 'sentry/views/explore/replays/list/replayQueryParamsProvider';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
@@ -50,6 +45,12 @@ import {
   toLLMContextProjectFields,
   useSelectedProjectsForLLMContext,
 } from 'sentry/views/seerExplorer/utils/selectedProjectsForLLMContext';
+
+import {useAllMobileProj} from './detail/useAllMobileProj';
+import {ReplayIndexContainer} from './list/replayIndexContainer';
+import {ReplayListControls} from './list/replayListControls';
+import {ReplayOnboardingPanel} from './list/replayOnboardingPanel';
+import {ReplayQueryParamsProvider} from './list/replayQueryParamsProvider';
 
 const ReplayListPageHeaderHook = OverrideOrDefault({
   overrideName: 'component:replay-list-page-header',

@@ -30,6 +30,8 @@ const tableComponentFiles = [
 // but suppress pre-existing violations on `master`
 export const incubator = defineConfig({
   rules: {
+    '@sentry/prefer-nuqs': 'error',
+    '@sentry/scraps/no-dom-coupling': 'error',
     '@sentry/scraps/no-manual-table': 'error',
     '@sentry/scraps/prefer-primitives': 'error',
     '@sentry/scraps/prefer-container-responsive-props': 'error',
@@ -37,7 +39,10 @@ export const incubator = defineConfig({
   overrides: [
     {
       files: coreComponentFiles,
-      rules: {'@sentry/scraps/prefer-primitives': 'off'},
+      rules: {
+        '@sentry/scraps/no-dom-coupling': 'off',
+        '@sentry/scraps/prefer-primitives': 'off',
+      },
     },
     {
       files: [
@@ -50,7 +55,7 @@ export const incubator = defineConfig({
     },
     {
       files: testFiles,
-      rules: fakeTimerRules,
+      rules: {...fakeTimerRules, '@sentry/scraps/prefer-primitives': 'off'},
     },
   ],
 });
@@ -68,40 +73,11 @@ const CHARTCUTERIE_MESSAGE =
   'Chartcuterie runs server-side in Node.js. This import is not available.';
 
 const storyFilesPolicy = {
-  from: [
-    {
-      element: {
-        type: 'story-book',
-      },
-    },
-    {
-      file: {
-        categories: 'story-files',
-      },
-    },
-  ],
+  from: [{element: {type: 'story-book'}}, {file: {categories: 'story-files'}}],
   allow: [
-    {
-      to: {
-        element: {
-          type: 'story-book',
-        },
-      },
-    },
-    {
-      to: {
-        file: {
-          categories: 'story-files',
-        },
-      },
-    },
-    {
-      to: {
-        file: {
-          categories: 'test-fixtures',
-        },
-      },
-    },
+    {to: {element: {type: 'story-book'}}},
+    {to: {file: {categories: 'story-files'}}},
+    {to: {file: {categories: 'test-fixtures'}}},
   ],
 };
 
@@ -119,22 +95,12 @@ const config = defineConfig({
     ...base.jsPlugins,
     {name: 'boundaries', specifier: '@boundaries/eslint-plugin'},
   ],
-  options: {
-    typeAware: true,
-    reportUnusedDisableDirectives: 'error',
-  },
-  globals: {
-    MockApiClient: 'writable',
-    tick: 'writable',
-  },
+  options: {typeAware: true, reportUnusedDisableDirectives: 'error'},
+  globals: {MockApiClient: 'writable', tick: 'writable'},
   settings: {
     ...base.settings,
-    'import/resolver': {
-      typescript: {project: './tsconfig.lint.json'},
-    },
-    'import-x/resolver': {
-      typescript: {project: './tsconfig.lint.json'},
-    },
+    'import/resolver': {typescript: {project: './tsconfig.lint.json'}},
+    'import-x/resolver': {typescript: {project: './tsconfig.lint.json'}},
     // Shared test helpers and assets use source aliases, not package dependencies.
     // Keep workspace package imports subject to dependency checks.
     'import-x/internal-regex':
@@ -144,32 +110,23 @@ const config = defineConfig({
     'boundaries/dependency-nodes': ['import', 'dynamic-import'],
     // Order matters because several element roots are nested inside static/app.
     'boundaries/elements': [
+      {type: 'icons', pattern: 'static/packages/icons/src', partialMatch: false},
       {
-        type: 'icons',
-        pattern: 'static/packages/icons/src',
+        type: 'search-syntax',
+        pattern: 'static/packages/search-syntax/src',
         partialMatch: false,
       },
       // Domain badges stay in the app after the generic badge primitives move.
-      {
-        type: 'sentry',
-        pattern: 'static/app/components/core/badge',
-        partialMatch: false,
-      },
+      {type: 'sentry', pattern: 'static/app/components/core/badge', partialMatch: false},
       // Keep core stories inside Scraps; story-files still classifies them as stories.
       {
         type: 'scraps',
         pattern: ['static/app/components/core', 'static/packages/scraps/src'],
         partialMatch: false,
       },
-      {
-        type: 'story-book',
-        pattern: ['static/app/stories', '**/__stories__'],
-      },
+      {type: 'story-book', pattern: ['static/app/stories', '**/__stories__']},
       // Debug tools such as the notification debugger.
-      {
-        type: 'debug-tools',
-        pattern: 'static/app/debug',
-      },
+      {type: 'debug-tools', pattern: 'static/app/debug'},
       {
         type: 'test',
         pattern: [
@@ -179,45 +136,18 @@ const config = defineConfig({
         ],
       },
       // Sentry application and assets.
-      {
-        type: 'sentry-images',
-        pattern: 'static/images',
-      },
-      {
-        type: 'sentry-logos',
-        pattern: 'src/sentry/static/sentry/images/logos',
-      },
-      {
-        type: 'sentry-fonts',
-        pattern: 'static/fonts',
-      },
-      {
-        type: 'sentry',
-        pattern: 'static/app',
-      },
+      {type: 'sentry-images', pattern: 'static/images'},
+      {type: 'sentry-logos', pattern: 'src/sentry/static/sentry/images/logos'},
+      {type: 'sentry-fonts', pattern: 'static/fonts'},
+      {type: 'sentry', pattern: 'static/app'},
       // GetSentry application.
-      {
-        type: 'getsentry',
-        pattern: 'static/gsApp',
-      },
+      {type: 'getsentry', pattern: 'static/gsApp'},
       // GetSentry admin application.
-      {
-        type: 'gsAdmin',
-        pattern: 'static/gsAdmin',
-      },
-      {
-        type: 'build-utils',
-        pattern: 'build-utils',
-      },
-      {
-        type: 'scripts',
-        pattern: 'scripts',
-      },
+      {type: 'gsAdmin', pattern: 'static/gsAdmin'},
+      {type: 'build-utils', pattern: 'build-utils'},
+      {type: 'scripts', pattern: 'scripts'},
       // Local lint plugins and compatibility wrappers.
-      {
-        type: 'oxlint',
-        pattern: 'static/oxlint',
-      },
+      {type: 'oxlint', pattern: 'static/oxlint'},
     ],
     // File descriptors match complete file paths, preserving classifications
     // that cut across the element roots above.
@@ -287,8 +217,10 @@ const config = defineConfig({
     'boundaries/legacy-warnings': false,
   },
   ignorePatterns: [
+    'static/packages/api/**/*',
     'static/packages/icons/**/*',
     'static/packages/scraps/**/*',
+    'static/packages/search-syntax/**/*',
     '.devenv/**/*',
     '.agents/**/*',
     '.github/**/*',
@@ -319,13 +251,12 @@ const config = defineConfig({
   ],
   rules: {
     ...base.rules,
+    '@sentry/no-relative-api-url': 'error',
     'no-restricted-imports': [
       'error',
-      {
-        patterns: restrictedImportPatterns,
-        paths: restrictedImportPaths,
-      },
+      {patterns: restrictedImportPatterns, paths: restrictedImportPaths},
     ],
+    '@sentry/prefer-relative-child-imports': 'error',
     '@sentry/no-relative-import-paths': [
       'error',
       {
@@ -351,7 +282,13 @@ const config = defineConfig({
                 to: {
                   element: {
                     types: {
-                      anyOf: ['sentry*', 'getsentry', 'gsAdmin', 'icons'],
+                      anyOf: [
+                        'sentry*',
+                        'getsentry',
+                        'gsAdmin',
+                        'icons',
+                        'search-syntax',
+                      ],
                     },
                   },
                 },
@@ -359,74 +296,21 @@ const config = defineConfig({
             ],
           },
           {
-            from: {
-              element: {
-                type: 'gsAdmin',
-              },
-            },
-            disallow: {
-              to: {
-                file: {
-                  categories: 'sentry-locale',
-                },
-              },
-            },
+            from: {element: {type: 'gsAdmin'}},
+            disallow: {to: {file: {categories: 'sentry-locale'}}},
           },
           {
-            from: {
-              element: {
-                type: 'debug-tools',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'debug-tools',
-                  },
-                },
-              },
-            ],
+            from: {element: {type: 'debug-tools'}},
+            allow: [{to: {element: {type: 'debug-tools'}}}],
           },
-          {
-            from: {
-              element: {
-                type: 'oxlint',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'oxlint',
-                  },
-                },
-              },
-            ],
-          },
+          {from: {element: {type: 'oxlint'}}, allow: [{to: {element: {type: 'oxlint'}}}]},
           // Storybook can load story files and shared test fixtures.
           storyFilesPolicy,
           {
-            from: {
-              file: {
-                categories: 'configs',
-              },
-            },
+            from: {file: {categories: 'configs'}},
             allow: [
-              {
-                to: {
-                  file: {
-                    categories: 'configs',
-                  },
-                },
-              },
-              {
-                to: {
-                  element: {
-                    type: 'build-utils',
-                  },
-                },
-              },
+              {to: {file: {categories: 'configs'}}},
+              {to: {element: {type: 'build-utils'}}},
             ],
           },
           // Test files and test support may use each other, but production files
@@ -435,59 +319,21 @@ const config = defineConfig({
             disallow: {
               from: {
                 file: [
-                  {
-                    isUnknown: true,
-                    isIgnored: false,
-                  },
-                  {
-                    categories: {
-                      noneOf: ['test', 'test-support'],
-                    },
-                    isIgnored: false,
-                  },
+                  {isUnknown: true, isIgnored: false},
+                  {categories: {noneOf: ['test', 'test-support']}, isIgnored: false},
                 ],
               },
-              to: {
-                file: {
-                  categories: {
-                    anyOf: ['test', 'test-support'],
-                  },
-                },
-              },
+              to: {file: {categories: {anyOf: ['test', 'test-support']}}},
             },
           },
           {
             from: [
-              {
-                element: {
-                  type: 'test',
-                },
-              },
-              {
-                file: {
-                  categories: {
-                    anyOf: ['test', 'test-support'],
-                  },
-                },
-              },
+              {element: {type: 'test'}},
+              {file: {categories: {anyOf: ['test', 'test-support']}}},
             ],
             allow: [
-              {
-                to: {
-                  element: {
-                    type: 'test',
-                  },
-                },
-              },
-              {
-                to: {
-                  file: {
-                    categories: {
-                      anyOf: ['test', 'test-support'],
-                    },
-                  },
-                },
-              },
+              {to: {element: {type: 'test'}}},
+              {to: {file: {categories: {anyOf: ['test', 'test-support']}}}},
             ],
           },
           // Deny every Scraps implementation file first. The public-interface
@@ -495,13 +341,7 @@ const config = defineConfig({
           {
             message:
               '{{from.element.type}} can import scraps only through public index files; "{{to.element.fileInternalPath}}" is an internal scraps implementation file',
-            disallow: {
-              to: {
-                element: {
-                  type: 'scraps',
-                },
-              },
-            },
+            disallow: {to: {element: {type: 'scraps'}}},
           },
           {
             allow: [
@@ -518,55 +358,20 @@ const config = defineConfig({
               },
             ],
           },
-          {
-            from: {
-              element: {
-                type: 'scraps',
-              },
-            },
-            allow: [
-              {
-                to: {
-                  element: {
-                    type: 'scraps',
-                  },
-                },
-              },
-            ],
-          },
+          {from: {element: {type: 'scraps'}}, allow: [{to: {element: {type: 'scraps'}}}]},
           // Scraps must not import the legacy locale module. Use useTranslation()
           // from the scraps translation context instead.
           {
-            from: {
-              element: {
-                type: 'scraps',
-              },
-            },
-            disallow: {
-              to: {
-                file: {
-                  categories: 'sentry-locale',
-                },
-              },
-            },
+            from: {element: {type: 'scraps'}},
+            disallow: {to: {file: {categories: 'sentry-locale'}}},
             message:
               'Scraps components must use useTranslation() instead of importing from sentry/locale',
           },
           // Track Scraps interactions through the injected tracking context
           // instead of coupling components to Sentry's analytics module.
           {
-            from: {
-              element: {
-                type: 'scraps',
-              },
-            },
-            disallow: {
-              to: {
-                file: {
-                  path: 'static/app/utils/analytics.tsx',
-                },
-              },
-            },
+            from: {element: {type: 'scraps'}},
+            disallow: {to: {file: {path: 'static/app/utils/analytics.tsx'}}},
             message:
               'Scraps components must use the tracking context instead of importing from sentry/utils/analytics',
           },
@@ -576,23 +381,11 @@ const config = defineConfig({
             disallow: {
               from: {
                 file: [
-                  {
-                    isUnknown: true,
-                    isIgnored: false,
-                  },
-                  {
-                    categories: {
-                      noneOf: ['story-files'],
-                    },
-                    isIgnored: false,
-                  },
+                  {isUnknown: true, isIgnored: false},
+                  {categories: {noneOf: ['story-files']}, isIgnored: false},
                 ],
               },
-              to: {
-                file: {
-                  categories: 'story-files',
-                },
-              },
+              to: {file: {categories: 'story-files'}},
             },
           },
           storyFilesPolicy,
@@ -625,9 +418,7 @@ const config = defineConfig({
         'tests/js/*-transform.*',
         'tests/js/test-*/*',
       ],
-      rules: {
-        '@sentry/no-default-exports': 'off',
-      },
+      rules: {'@sentry/no-default-exports': 'off'},
     },
     {
       files: ['static/app/serviceWorker/worker/**/*.ts'],
@@ -678,32 +469,24 @@ const config = defineConfig({
     configOverride,
     {
       files: ['tests/js/fixtures/*.{ts,js,tsx,jsx}'],
-      rules: {
-        '@sentry/no-calling-components-as-functions': 'off',
-      },
+      rules: {'@sentry/no-calling-components-as-functions': 'off'},
     },
     // The lint plugins are standalone packages loaded by oxlint itself, so none
     // of the `sentry/*` aliases resolve inside them.
     {
       files: ['static/oxlint/**/*.{js,mjs,ts,jsx,tsx}'],
-      rules: {
-        'import/no-relative-parent-imports': 'off',
-      },
+      rules: {'import/no-relative-parent-imports': 'off'},
     },
     // Legacy app core components still use parent-relative imports.
     {
       files: ['static/app/components/core/**/*.{js,mjs,ts,jsx,tsx}'],
-      rules: {
-        'import/no-relative-parent-imports': 'off',
-      },
+      rules: {'import/no-relative-parent-imports': 'off'},
     },
     // Build scripts run outside the app bundle and are kept as bare as
     // possible, so they reach for source with a plain relative path.
     {
       files: ['scripts/**/*.{js,mjs,ts,jsx,tsx}'],
-      rules: {
-        'import/no-relative-parent-imports': 'off',
-      },
+      rules: {'import/no-relative-parent-imports': 'off'},
     },
     {
       files: [
@@ -711,6 +494,14 @@ const config = defineConfig({
         'static/packages/icons/*.config.mjs',
       ],
       rules: {'boundaries/no-unknown-files': 'off'},
+    },
+    {
+      files: ['static/packages/*/jest.config.mjs'],
+      // Package test configs can import the shared root CI helper.
+      rules: {
+        'import/no-relative-parent-imports': 'off',
+        'import-js/no-relative-packages': 'off',
+      },
     },
     {
       files: ['static/packages/*/oxlint.config.ts'],
@@ -726,13 +517,8 @@ const config = defineConfig({
         'scripts/**/*.{js,ts}',
         'tests/js/test-balancer/*.ts',
       ],
-      rules: {
-        'no-console': 'off',
-        'import/no-nodejs-modules': 'off',
-      },
-      env: {
-        node: true,
-      },
+      rules: {'no-console': 'off', 'import/no-nodejs-modules': 'off'},
+      env: {node: true},
     },
     {
       files: [
@@ -747,12 +533,8 @@ const config = defineConfig({
         'tests/js/sentry-test/runner.ts',
         'tests/js/setup.ts',
       ],
-      rules: {
-        'import/no-nodejs-modules': 'off',
-      },
-      env: {
-        node: true,
-      },
+      rules: {'import/no-nodejs-modules': 'off'},
+      env: {node: true},
     },
     // These widgets are the intended public entry points for the restricted
     // insights widget implementations.
@@ -785,10 +567,7 @@ const config = defineConfig({
           {
             patterns: [
               ...restrictedImportPatterns,
-              {
-                group: ['csstype', 'csstype/*'],
-                message: CSS_TYPES_MESSAGE,
-              },
+              {group: ['csstype', 'csstype/*'], message: CSS_TYPES_MESSAGE},
             ],
             // The core component package owns this dependency.
             paths: restrictedImportPaths.filter(({name}) => name !== 'color'),
@@ -812,10 +591,16 @@ const config = defineConfig({
       },
     },
     {
+      // Build and dev server config proxies /api/0 rather than requesting it.
+      files: ['**/*.config.{js,mjs,ts}'],
+      rules: {'@sentry/no-relative-api-url': 'off'},
+    },
+    {
       files: testFiles,
       rules: {
         // Tests sometimes contain intentionally unusual hard-coded numbers.
         'no-loss-of-precision': 'off',
+        '@sentry/no-relative-api-url': 'off',
         '@sentry/prefer-react-component': 'off',
         'no-restricted-imports': [
           'error',
@@ -823,10 +608,7 @@ const config = defineConfig({
             patterns: restrictedImportPatterns,
             paths: [
               ...restrictedImportPaths,
-              {
-                name: 'sentry/locale',
-                message: 'Translations are not needed in tests.',
-              },
+              {name: 'sentry/locale', message: 'Translations are not needed in tests.'},
             ],
           },
         ],
@@ -861,12 +643,7 @@ const config = defineConfig({
     storyOverride,
     // Keep lint-disable comments out of this SDK source because users consume
     // the file directly.
-    {
-      files: ['**/js-sdk-loader.ts'],
-      rules: {
-        'no-console': 'off',
-      },
-    },
+    {files: ['**/js-sdk-loader.ts'], rules: {'no-console': 'off'}},
     {
       files: ['static/gsApp/**/*.{js,mjs,ts,jsx,tsx}'],
       rules: {
@@ -914,9 +691,7 @@ const config = defineConfig({
     // tests under static/gsApp.
     {
       files: ['tests/js/getsentry-test/**/*.{js,mjs,ts,jsx,tsx}'],
-      rules: {
-        'no-restricted-imports': 'off',
-      },
+      rules: {'no-restricted-imports': 'off'},
     },
     {
       files: coreComponentFiles,

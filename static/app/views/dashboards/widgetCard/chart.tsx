@@ -21,7 +21,7 @@ import {defined} from 'sentry/utils/defined';
 import {decodeColumnOrder} from 'sentry/utils/discover/decodeColumnOrder';
 import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, DataUnit, Sort} from 'sentry/utils/discover/fields';
+import type {DataUnit, Sort} from 'sentry/utils/discover/fields';
 import {
   isAggregateField,
   parseFunction,
@@ -35,6 +35,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
+import {useDashboardQueryPriority} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import {useTrackAnalyticsOnSpanMigrationError} from 'sentry/views/dashboards/hooks/useTrackAnalyticsOnSpanMigrationError';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
@@ -116,8 +117,6 @@ type WidgetCardChartProps = {
     shouldResize?: boolean;
     showConfidenceWarning?: boolean;
     showLoadingText?: boolean;
-    timeseriesResultsTypes?: Record<string, AggregationOutputType>;
-    timeseriesResultsUnits?: Record<string, DataUnit>;
     windowWidth?: number;
   };
 
@@ -241,6 +240,7 @@ function TableComponent({
   const navigate = useNavigate();
   const theme = useTheme();
   const {projects} = useProjects();
+  const {priority: dashboardQueryPriority} = useDashboardQueryPriority();
   if (loading || !tableResults?.[0]) {
     // Align height to other charts.
     return <LoadingPlaceholder />;
@@ -254,9 +254,7 @@ function TableComponent({
     const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.() ?? {};
     const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
     const columns = decodeColumnOrder(
-      fields.map(field => ({
-        field,
-      })),
+      fields.map(field => ({field})),
       tableResults[i]?.meta
     ).map((column, index) => {
       let sortable = false;
@@ -312,7 +310,8 @@ function TableComponent({
               meta as MetaType,
               widget,
               organization,
-              dashboardFilters
+              dashboardFilters,
+              dashboardQueryPriority
             )!;
 
             return customRenderer;
@@ -334,11 +333,14 @@ function TableComponent({
           allowedCellActions={cellActions}
           onTriggerCellAction={(action, _value, dataRow) => {
             if (action === Actions.OPEN_ROW_IN_EXPLORE) {
+              const selectedQueryIndex = 0;
               const getExploreUrl = getWidgetTableRowExploreUrlFunction(
                 selection,
                 widget,
                 organization,
-                dashboardFilters
+                dashboardFilters,
+                selectedQueryIndex,
+                dashboardQueryPriority
               );
               const exploreUrl = getExploreUrl(dataRow);
               if (exploreUrl) {
@@ -526,7 +528,9 @@ function ServerTreeComponent({
 }
 
 function WheelComponent(props: TableComponentProps): React.ReactNode {
-  return <WheelWidgetVisualization tableResults={props.tableResults} />;
+  return (
+    <WheelWidgetVisualization tableResults={props.tableResults} widget={props.widget} />
+  );
 }
 
 function TextComponent(props: TableComponentProps): React.ReactNode {
@@ -549,19 +553,10 @@ function shouldMemoizeWidgetCardChart(
   // Widget title changes should not update the WidgetCardChart component tree
   const currentProps = {
     ...omit(prevProps, ['windowWidth']),
-    widget: {
-      ...prevProps.widget,
-      title: '',
-    },
+    widget: {...prevProps.widget, title: ''},
   };
 
-  props = {
-    ...omit(props, ['windowWidth']),
-    widget: {
-      ...props.widget,
-      title: '',
-    },
-  };
+  props = {...omit(props, ['windowWidth']), widget: {...props.widget, title: ''}};
   return isEqual(currentProps, props);
 }
 

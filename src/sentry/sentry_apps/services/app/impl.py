@@ -23,6 +23,9 @@ from sentry.sentry_apps.models.sentry_app_installation import (
     SentryAppInstallation,
     prepare_sentry_app_components,
 )
+from sentry.sentry_apps.models.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
 from sentry.sentry_apps.models.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.app import (
     AppService,
@@ -170,7 +173,7 @@ class DatabaseBackedAppService(AppService):
     def get_custom_alert_rule_actions(
         self, *, event_data: RpcSentryAppEventData, organization_id: int, project_slug: str | None
     ) -> list[Mapping[str, Any]]:
-        action_list = []
+        action_list: list[Mapping[str, Any]] = []
         for install in SentryAppInstallation.objects.get_installed_for_organization(
             organization_id
         ):
@@ -330,6 +333,21 @@ class DatabaseBackedAppService(AppService):
 
     def get_installation_token(self, *, organization_id: int, provider: str) -> str | None:
         return SentryAppInstallationToken.objects.get_token(organization_id, provider)
+
+    def get_proxy_user_id_for_provider(self, *, organization_id: int, provider: str) -> int | None:
+        try:
+            install_for_provider = SentryAppInstallationForProvider.objects.select_related(
+                "sentry_app_installation__sentry_app"
+            ).get(organization_id=organization_id, provider=provider)
+        except SentryAppInstallationForProvider.DoesNotExist:
+            return None
+        installation = install_for_provider.sentry_app_installation
+        if (
+            installation.date_deleted is not None
+            or installation.sentry_app.date_deleted is not None
+        ):
+            return None
+        return installation.sentry_app.proxy_user_id
 
     def trigger_sentry_app_action_creators(
         self, *, fields: list[Mapping[str, Any]], install_uuid: str | None

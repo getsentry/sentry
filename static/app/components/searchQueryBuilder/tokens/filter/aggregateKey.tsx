@@ -10,19 +10,17 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {
-  AggregateKeyVisual,
-  Parameters,
-} from 'sentry/components/searchQueryBuilder/tokens/filter/aggregateKeyVisual';
-import {SearchQueryBuilderParametersCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/parametersCombobox';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import type {
   AggregateFilter,
   ParseResultToken,
 } from 'sentry/components/searchSyntax/parser';
 import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
+
+import {AggregateKeyVisual, Parameters} from './aggregateKeyVisual';
+import {SearchQueryBuilderParametersCombobox} from './parametersCombobox';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
 
 type AggregateKeyProps = {
   filterRef: React.RefObject<HTMLDivElement | null>;

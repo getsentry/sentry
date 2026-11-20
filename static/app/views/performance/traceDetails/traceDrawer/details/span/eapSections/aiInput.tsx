@@ -26,10 +26,11 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/codeMode';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
-import {tryParsePythonDict} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentDetection';
-import {AIContentRenderer} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiContentRenderer';
 import {TraceDrawerComponents} from 'sentry/views/performance/traceDetails/traceDrawer/details/styles';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {tryParsePythonDict} from './aiContentDetection';
+import {AIContentRenderer} from './aiContentRenderer';
 
 const ALLOWED_MESSAGE_ROLES = new Set(['system', 'user', 'assistant', 'tool']);
 
@@ -175,10 +176,7 @@ export function getAIInputMessages(
   if (systemInstructions) {
     return {
       messages: [
-        {
-          role: 'system',
-          content: unwrapStructuredContent(systemInstructions.toString()),
-        },
+        {role: 'system', content: unwrapStructuredContent(systemInstructions.toString())},
       ],
       fixedInvalidJson: false,
     };
@@ -257,10 +255,7 @@ function useInvalidRoleDetection(roles: string[]) {
   const captureMessage = useEffectEvent(() => {
     Sentry.captureMessage('Gen AI message with invalid role', {
       level: 'warning',
-      tags: {
-        feature: 'agent-monitoring',
-        invalid_role_count: invalidRoles.length,
-      },
+      tags: {feature: 'agent-monitoring', invalid_role_count: invalidRoles.length},
       extra: {
         invalid_roles: invalidRoles,
         allowed_roles: Array.from(ALLOWED_MESSAGE_ROLES),
@@ -389,9 +384,7 @@ function TruncationAlert({
               'Due to [link:size limitations], the oldest messages got dropped from the history.',
               {link}
             )
-          : tct('Due to [link:size limitations], the content was truncated.', {
-              link,
-            })}
+          : tct('Due to [link:size limitations], the content was truncated.', {link})}
         {fixedInvalidJson ? ` ${t('Truncated parts are marked with (~~).')}` : null}
       </Alert>
     </Container>

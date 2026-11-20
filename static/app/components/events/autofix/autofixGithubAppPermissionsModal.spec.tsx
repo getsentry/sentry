@@ -1,11 +1,12 @@
 import {act, renderGlobalModal, screen} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {
   CodingAgentHandoffPermissionsModal,
   IntegrationSettingsPermissionsModal,
   PrIterationPermissionsModal,
-} from 'sentry/components/events/autofix/autofixGithubAppPermissionsModal';
+} from './autofixGithubAppPermissionsModal';
 
 const DEFAULT_INSTALLATIONS_URL = 'https://github.com/settings/installations/';
 

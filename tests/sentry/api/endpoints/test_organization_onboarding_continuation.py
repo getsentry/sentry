@@ -1,6 +1,11 @@
 from unittest import mock
 
+from django.test import override_settings
+from django.urls import reverse
+
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 
 
 class OrganizationOnboardingContinuation(APITestCase):
@@ -49,4 +54,27 @@ class OrganizationOnboardingContinuation(APITestCase):
         # self.user is not a member of other_org
         data = {"platforms": ["javascript"]}
         self.get_error_response(other_org.slug, status_code=403, **data)
+        builder.assert_not_called()
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    @mock.patch("sentry.api.endpoints.organization_onboarding_continuation_email.MessageBuilder")
+    def test_service_account_is_user_required(self, builder: mock.MagicMock) -> None:
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+        url = reverse(self.endpoint, args=[self.organization.slug])
+
+        resp = self.client.post(
+            url, {"platforms": ["javascript"]}, format="json", HTTP_X_VIEWER_CONTEXT=viewer_context
+        )
+        assert resp.status_code == 403, resp.content
+        assert resp.data["detail"]["code"] == "user-required"
         builder.assert_not_called()

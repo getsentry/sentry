@@ -1,8 +1,11 @@
+import {ConfigStore} from 'sentry/stores/configStore';
+
 import {
+  getSnapshotImageBaseUrls,
   getSnapshotImageUrl,
   getSnapshotImageUrlForKey,
-} from 'sentry/views/preprod/types/snapshotTypes';
-import type {SnapshotImage} from 'sentry/views/preprod/types/snapshotTypes';
+} from './snapshotTypes';
+import type {SnapshotImage} from './snapshotTypes';
 
 function makeImage(overrides: Partial<SnapshotImage> = {}): SnapshotImage {
   return {
@@ -57,5 +60,33 @@ describe('getSnapshotImageUrlForKey', () => {
     expect(getSnapshotImageUrlForKey('/files/images/', '1/2/diff/mask.png')).toBe(
       '/files/images/1/2/diff/mask.png/?image_type=preprod_snapshots'
     );
+  });
+});
+
+describe('getSnapshotImageBaseUrls', () => {
+  let configState: ReturnType<typeof ConfigStore.getState>;
+
+  beforeEach(() => {
+    configState = ConfigStore.getState();
+    ConfigStore.loadInitialData({
+      ...configState,
+      features: new Set(['system:multi-region']),
+      links: {
+        organizationUrl: 'https://acme.sentry.io',
+        sentryUrl: 'https://sentry.io',
+        regionUrl: 'https://us.sentry.io',
+      },
+    });
+  });
+
+  afterEach(() => {
+    ConfigStore.loadInitialData(configState);
+  });
+
+  it('routes images to the cell host but keeps diff masks same-origin', () => {
+    expect(getSnapshotImageBaseUrls('acme', '42')).toEqual({
+      imageBaseUrl: 'https://us.sentry.io/api/0/projects/acme/42/files/images/',
+      diffImageBaseUrl: '/api/0/projects/acme/42/files/images/',
+    });
   });
 });

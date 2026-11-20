@@ -11,16 +11,19 @@ import {onboarding as eveFrameworkOnboarding} from 'sentry/gettingStartedDocs/no
 import {onboarding as flueFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-flue/onboarding';
 import {onboarding as mastraFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-mastra/onboarding';
 import {onboarding as piFrameworkOnboarding} from 'sentry/gettingStartedDocs/node-pi-durable/onboarding';
-import {getImport, getInstallCodeBlock} from 'sentry/gettingStartedDocs/node/utils';
 import {t, tct} from 'sentry/locale';
 import {SdkUpdateAlert} from 'sentry/views/insights/pages/agents/components/sdkUpdateAlert';
 import {ManualInstrumentationNote} from 'sentry/views/insights/pages/agents/llmOnboardingInstructions';
 import {
   AGENT_INTEGRATION_LABELS,
   AgentIntegration,
+  DEPLOYMENT_TARGET_PACKAGE_NAMES,
   DeploymentTarget,
+  getSdkImportSpecifier,
 } from 'sentry/views/insights/pages/agents/utils/agentIntegrations';
 import {AI_INSTRUMENTATION_DOCS_LINKS} from 'sentry/views/insights/pages/agents/utils/docsLinks';
+
+import {getImport, getInstallCodeBlock} from './utils';
 
 // Bumped to 10.67.0 so the install step also satisfies Workers AI, which
 // auto-instruments the `env.AI` binding only from that version.
@@ -55,6 +58,20 @@ export function getAgentIntegration(params: DocsParams): AgentIntegration {
 export function getDeploymentTarget(params: DocsParams): DeploymentTarget {
   return (params.platformOptions?.deploymentTarget ??
     DeploymentTarget.NODE) as DeploymentTarget;
+}
+
+/**
+ * The Sentry SDK package for the selected runtime. The Node runtime keeps the
+ * platform's own package.
+ */
+function getRuntimePackageName(
+  params: DocsParams,
+  packageName: `@sentry/${string}`
+): `@sentry/${string}` {
+  const deploymentTarget = getDeploymentTarget(params);
+  return deploymentTarget === DeploymentTarget.NODE
+    ? packageName
+    : DEPLOYMENT_TARGET_PACKAGE_NAMES[deploymentTarget];
 }
 
 /**
@@ -97,10 +114,7 @@ function getWorkersAiNote(): ContentBlock {
     type: 'text',
     text: tct(
       "Sentry automatically instruments the [link:Workers AI binding] ([code:env.AI]) once your Worker is wrapped - there's no extra setup.",
-      {
-        code: <code />,
-        link: <ExternalLink href={WORKERS_AI_DOCS} />,
-      }
+      {code: <code />, link: <ExternalLink href={WORKERS_AI_DOCS} />}
     ),
   };
 }
@@ -226,10 +240,7 @@ function getCloudflareWrapBlocks(integration: AgentIntegration): ContentBlock[] 
         }
       ),
     },
-    {
-      type: 'code',
-      tabs: [{label: 'JavaScript', language: 'javascript', code}],
-    },
+    {type: 'code', tabs: [{label: 'JavaScript', language: 'javascript', code}]},
   ];
 }
 
@@ -242,10 +253,7 @@ export const mastraOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install the Sentry Node SDK and [code:@mastra/observability]. If you previously used [legacy:@mastra/sentry], remove that exporter because it initializes Sentry itself and conflicts with the built-in integration.',
-            {
-              code: <code />,
-              legacy: <code />,
-            }
+            {code: <code />, legacy: <code />}
           ),
         },
         {
@@ -279,10 +287,7 @@ export const mastraOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Create [code:src/mastra/public/instrument.mjs]. Mastra copies files in [public:public/] next to the compiled server, allowing the Sentry SDK to load before Mastra and the AI SDK.',
-            {
-              code: <code />,
-              public: <code />,
-            }
+            {code: <code />, public: <code />}
           ),
         },
         {
@@ -386,21 +391,12 @@ export const flueOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Flue ships an official Sentry blueprint. Run it from your project root - it generates a [code:sentry.ts] module and installs the matching Sentry SDK along with [fluePackage].',
-            {
-              code: <code />,
-              fluePackage: <code>@flue/opentelemetry</code>,
-            }
+            {code: <code />, fluePackage: <code>@flue/opentelemetry</code>}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Blueprint',
-              language: 'bash',
-              code: 'flue add tooling sentry',
-            },
-          ],
+          tabs: [{label: 'Blueprint', language: 'bash', code: 'flue add tooling sentry'}],
         },
       ],
     },
@@ -528,10 +524,7 @@ export const eveOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Install the Sentry Node SDK in your Eve project:'),
-        },
+        {type: 'text', text: t('Install the Sentry Node SDK in your Eve project:')},
         {
           type: 'code',
           tabs: [
@@ -729,10 +722,7 @@ export function getInstallStep(
   {
     packageName = '@sentry/node',
     minVersion = MIN_REQUIRED_VERSION,
-  }: {
-    minVersion?: string;
-    packageName?: `@sentry/${string}`;
-  } = {}
+  }: {minVersion?: string; packageName?: `@sentry/${string}`} = {}
 ): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
@@ -752,10 +742,7 @@ export function getInstallStep(
     return piFrameworkOnboarding.install(params);
   }
 
-  const resolvedPackageName =
-    getDeploymentTarget(params) === DeploymentTarget.CLOUDFLARE
-      ? '@sentry/cloudflare'
-      : packageName;
+  const resolvedPackageName = getRuntimePackageName(params, packageName);
   const resolvedMinVersion = getMinRequiredVersion(params, minVersion);
 
   return [
@@ -766,14 +753,10 @@ export function getInstallStep(
           type: 'text',
           text: tct(
             'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
-            {
-              minVersion: <code>{resolvedMinVersion}</code>,
-            }
+            {minVersion: <code>{resolvedMinVersion}</code>}
           ),
         },
-        getInstallCodeBlock(params, {
-          packageName: resolvedPackageName,
-        }),
+        getInstallCodeBlock(params, {packageName: resolvedPackageName}),
       ],
     },
   ];
@@ -890,9 +873,7 @@ Sentry.init({
       )
     : tct(
         'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
-        {
-          integration: AGENT_INTEGRATION_LABELS[integration] ?? integration,
-        }
+        {integration: AGENT_INTEGRATION_LABELS[integration] ?? integration}
       );
 
   return [
@@ -902,10 +883,7 @@ Sentry.init({
         integration === AgentIntegration.MASTRA
           ? (mastraFrameworkOnboarding.configure(params)[0]?.content ?? [])
           : [
-              {
-                type: 'text',
-                text: introText,
-              },
+              {type: 'text', text: introText},
               {
                 type: 'code',
                 tabs: [
@@ -1016,12 +994,7 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
   ];
 
   if (isCloudflareWrap) {
-    return [
-      {
-        type: StepType.VERIFY,
-        content,
-      },
-    ];
+    return [{type: StepType.VERIFY, content}];
   }
 
   if (selected === AgentIntegration.ANTHROPIC) {
@@ -1156,12 +1129,7 @@ const text = lastMessage.content;`,
     });
   }
 
-  return [
-    {
-      type: StepType.VERIFY,
-      content,
-    },
-  ];
+  return [{type: StepType.VERIFY, content}];
 }
 
 function getAgentConfigureSteps(
@@ -1169,17 +1137,12 @@ function getAgentConfigureSteps(
   {
     packageName = '@sentry/node',
     configFileName,
-  }: {
-    configFileName?: string;
-    packageName?: `@sentry/${string}`;
-  } = {}
+  }: {configFileName?: string; packageName?: `@sentry/${string}`} = {}
 ): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MANUAL) {
-    return getManualConfigureStep(params, {
-      packageName,
-    });
+    return getManualConfigureStep(params, {packageName});
   }
 
   if (selected === AgentIntegration.FLUE) {
@@ -1194,13 +1157,17 @@ function getAgentConfigureSteps(
     return piFrameworkOnboarding.configure(params);
   }
 
-  return getConfigureStep({
-    params,
-    integration: selected,
-    packageName,
-    configFileName,
-  });
+  return getConfigureStep({params, integration: selected, packageName, configFileName});
 }
+
+/**
+ * Integrations whose setup comes from their framework onboarding.
+ */
+const FRAMEWORK_ONBOARDINGS: Partial<Record<AgentIntegration, OnboardingConfig>> = {
+  [AgentIntegration.EVE]: eveFrameworkOnboarding,
+  [AgentIntegration.MASTRA]: mastraFrameworkOnboarding,
+  [AgentIntegration.PI]: piFrameworkOnboarding,
+};
 
 export const agentMonitoring = ({
   packageName = '@sentry/node',
@@ -1209,18 +1176,21 @@ export const agentMonitoring = ({
   configFileName?: string;
   packageName?: `@sentry/${string}`;
 } = {}): OnboardingConfig => ({
+  sdkImportSpecifier: params =>
+    // Framework integrations install their own SDK package.
+    FRAMEWORK_ONBOARDINGS[getAgentIntegration(params)]?.sdkImportSpecifier?.(params) ??
+    getSdkImportSpecifier(getRuntimePackageName(params, packageName)),
   introduction: params => (
     <SdkUpdateAlert
       projectId={params.project.id}
       minVersion={getMinRequiredVersion(params, MIN_REQUIRED_VERSION)}
-      packageName={packageName}
+      // Projects can send events with their platform's SDK or, once they pick
+      // another runtime, with that runtime's SDK.
+      packageName={[packageName, getRuntimePackageName(params, packageName)]}
     />
   ),
   install: params =>
-    getInstallStep(params, {
-      packageName,
-      minVersion: MIN_REQUIRED_VERSION,
-    }),
+    getInstallStep(params, {packageName, minVersion: MIN_REQUIRED_VERSION}),
   configure: params => getAgentConfigureSteps(params, {packageName, configFileName}),
   verify: getVerifyStep,
 });

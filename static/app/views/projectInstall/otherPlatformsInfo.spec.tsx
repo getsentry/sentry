@@ -3,7 +3,7 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {OtherPlatformsInfo} from 'sentry/views/projectInstall/otherPlatformsInfo';
+import {OtherPlatformsInfo} from './otherPlatformsInfo';
 
 describe('OtherPlatformsInfo', () => {
   const organization = OrganizationFixture();

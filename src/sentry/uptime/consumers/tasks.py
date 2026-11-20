@@ -38,7 +38,7 @@ BACKOFF_SCHEDULE = [10, 20, 30, 30, 30, 30, 30, 30, 30, 30, 30]
     namespace=uptime_tasks,
     retry=Retry(times=3, delay=1, on=(Exception,)),
 )
-def process_uptime_backlog(subscription_id: str, attempt: int = 1):
+def process_uptime_backlog(subscription_id: str, attempt: int = 1) -> None:
     """
     Process buffered out-of-order results for a subscription.
 
@@ -69,7 +69,7 @@ def process_uptime_backlog(subscription_id: str, attempt: int = 1):
     subscription_interval_ms = subscription.interval_seconds * 1000
     expected_next_ms = last_update_ms + subscription_interval_ms
     processed_count = 0
-    queued_results_raw: list[tuple[bytes, float]] = cluster.zrange(
+    queued_results_raw: list[tuple[str, float]] = cluster.zrange(
         backlog_key, 0, -1, withscores=True
     )
     host_provider = get_host_provider_if_valid(subscription)

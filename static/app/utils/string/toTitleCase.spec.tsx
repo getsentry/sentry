@@ -1,4 +1,4 @@
-import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import {toTitleCase} from './toTitleCase';
 
 describe('toTitleCase', () => {
   it('capitalizes the first letter of each word', () => {

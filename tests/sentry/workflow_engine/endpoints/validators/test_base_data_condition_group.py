@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 from rest_framework import serializers
 
@@ -10,7 +12,7 @@ class TestBaseDataConditionGroupValidator(TestCase):
     def setUp(self) -> None:
         self.context = {"organization": self.organization, "request": self.make_request()}
 
-        self.valid_data = {
+        self.valid_data: dict[str, Any] = {
             "logicType": DataConditionGroup.Type.ANY,
             "organizationId": self.organization.id,
             "conditions": [],
@@ -463,7 +465,7 @@ class TestBaseDataConditionGroupValidatorUpdate(TestBaseDataConditionGroupValida
         assert "Organization context is required" in str(exc_info.value)
 
     def test_update_trigger__valid_logic_type(self) -> None:
-        valid_data = {
+        valid_data: dict[str, Any] = {
             "organizationId": self.organization.id,
             "logicType": DataConditionGroup.Type.ANY_SHORT_CIRCUIT.value,
             "conditions": [
