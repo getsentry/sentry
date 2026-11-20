@@ -118,7 +118,7 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
     },
     {
       text: t(
-        'Turn on the sourcesContent option of your bundler, so that the source map contains the original source.'
+        'Turn on the "sourcesContent" option of your bundler, so that the source map contains the original source.'
       ),
     },
     {text: t('Upload the new source maps.'), command: uploadSourceMaps},
@@ -142,7 +142,7 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
     },
     {
       text: t(
-        'If your server needs authentication, set a Security Token in the project settings.'
+        'If your server needs authentication, set the "Security Token" of this project. You find it under "Client Security" in the general settings of the project. Sentry sends it as a header with each request to your "Allowed Domains".'
       ),
     },
     {
@@ -199,7 +199,7 @@ function javascript(
   return {category: 'javascript', label, description, docsUrl: JS_DOCS, guide, fix};
 }
 
-function fetch(
+function fetchFailure(
   label: string,
   description: string,
   guide: GuideKey
@@ -333,47 +333,47 @@ const SYMBOLICATION_ERRORS: Record<string, SymbolicationErrorInfo> = {
     t('The fetched source used an encoding Sentry cannot read.'),
     'unmappable'
   ),
-  [JavascriptProcessingErrors.JS_GENERIC_FETCH_ERROR]: fetch(
+  [JavascriptProcessingErrors.JS_GENERIC_FETCH_ERROR]: fetchFailure(
     t('Could not fetch source'),
     t('Sentry could not download the source or source map from the web.'),
     'fetch-failed'
   ),
-  [JavascriptProcessingErrors.JS_INVALID_HTTP_CODE]: fetch(
+  [JavascriptProcessingErrors.JS_INVALID_HTTP_CODE]: fetchFailure(
     t('Source returned an error status'),
     t('The web server answered the source request with an error status.'),
     'fetch-failed'
   ),
-  [JavascriptProcessingErrors.JS_TOO_LARGE]: fetch(
+  [JavascriptProcessingErrors.JS_TOO_LARGE]: fetchFailure(
     t('Source too large'),
     t('The fetched source exceeded the size limit.'),
     'fetch-failed'
   ),
-  [JavascriptProcessingErrors.JS_FETCH_TIMEOUT]: fetch(
+  [JavascriptProcessingErrors.JS_FETCH_TIMEOUT]: fetchFailure(
     t('Source fetch timed out'),
     t('The web server did not answer the source request in time.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_GENERIC_ERROR]: fetch(
+  [HttpProcessingErrors.FETCH_GENERIC_ERROR]: fetchFailure(
     t('Could not fetch file'),
     t('Sentry could not download a source, source map or debug file.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_INVALID_HTTP_CODE]: fetch(
+  [HttpProcessingErrors.FETCH_INVALID_HTTP_CODE]: fetchFailure(
     t('File returned an error status'),
     t('The server answered the file request with an error status.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_INVALID_ENCODING]: fetch(
+  [HttpProcessingErrors.FETCH_INVALID_ENCODING]: fetchFailure(
     t('Invalid file encoding'),
     t('The fetched file used an encoding Sentry cannot read.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_TOO_LARGE]: fetch(
+  [HttpProcessingErrors.FETCH_TOO_LARGE]: fetchFailure(
     t('File too large'),
     t('The fetched file exceeded the size limit.'),
     'fetch-failed'
   ),
-  [HttpProcessingErrors.FETCH_TIMEOUT]: fetch(
+  [HttpProcessingErrors.FETCH_TIMEOUT]: fetchFailure(
     t('File fetch timed out'),
     t('The server did not answer the file request in time.'),
     'fetch-failed'

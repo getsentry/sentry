@@ -10,7 +10,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import {STATS_INTERVAL, STATS_PERIOD, SYMBOLICATION_ERROR_TYPES_QUERY} from './constants';
 
-const STALE_TIME = 60_000;
+const STALE_TIME_MS = 60_000;
 const REFERRER = 'api.project-settings.symbolication-errors';
 
 // One page holds as many rows as the stats endpoint returns top events, so one
@@ -62,7 +62,7 @@ export function symbolicationFailuresOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -96,7 +96,7 @@ export function issueVolumesOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -125,7 +125,7 @@ export function issueVolumeTrendsOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -163,7 +163,7 @@ export function failureTrendsOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -188,7 +188,7 @@ export function causeTimeseriesOptions({organization, project}: ProjectQueryPara
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -215,7 +215,7 @@ export function failedEventsTimeseriesOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -239,7 +239,7 @@ export function totalEventsTimeseriesOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -280,7 +280,7 @@ export function releaseFailuresOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
@@ -306,7 +306,7 @@ export function sampleEventOptions({
           project: project.id,
           referrer: REFERRER,
         },
-        staleTime: STALE_TIME,
+        staleTime: STALE_TIME_MS,
       }
     ),
     retry: false,
