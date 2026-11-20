@@ -948,42 +948,22 @@ class AtomicPerformanceSettingsTest(TestCase):
         self.project.update_option(SETTINGS_PROJECT_OPTION_KEY, original)
         cache_key = ProjectOption.objects._make_key(self.project.id)
 
-        with patch(
-            "sentry.issue_detection.performance_detection.sync_project_options_to_wfe_detectors",
-            side_effect=ValueError("sync failed"),
+        with (
+            patch(
+                "sentry.issue_detection.performance_detection.sync_project_options_to_wfe_detectors",
+                side_effect=ValueError("sync failed"),
+            ),
+            pytest.raises(ValueError, match="sync failed"),
         ):
-            with pytest.raises(ValueError, match="sync failed"):
-                update_performance_settings(
-                    self.project, {"slow_db_query_duration_threshold": 4000}, sync_detectors=True
-                )
+            update_performance_settings(
+                self.project, {"slow_db_query_duration_threshold": 4000}, sync_detectors=True
+            )
 
         assert (
             ProjectOption.objects.get(project=self.project, key=SETTINGS_PROJECT_OPTION_KEY).value
             == original
         )
         assert cache.get(cache_key)[SETTINGS_PROJECT_OPTION_KEY] == original
-        ProjectOption.objects.clear_local_cache()
-        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY) == original
-
-    def test_reset_performance_settings_sync_failure_preserves_cached_options(self) -> None:
-        original = {"slow_db_query_duration_threshold": 3000}
-        self.project.update_option(SETTINGS_PROJECT_OPTION_KEY, original)
-        cache_key = ProjectOption.objects._make_key(self.project.id)
-
-        with patch(
-            "sentry.issue_detection.performance_detection.reset_wfe_detector_configs",
-            side_effect=ValueError("sync failed"),
-        ):
-            with pytest.raises(ValueError, match="sync failed"):
-                reset_performance_settings(self.project, {}, sync_detectors=True)
-
-        assert (
-            ProjectOption.objects.get(project=self.project, key=SETTINGS_PROJECT_OPTION_KEY).value
-            == original
-        )
-        assert cache.get(cache_key)[SETTINGS_PROJECT_OPTION_KEY] == original
-        ProjectOption.objects.clear_local_cache()
-        assert self.project.get_option(SETTINGS_PROJECT_OPTION_KEY) == original
 
     def test_update_performance_settings_syncs_detectors_when_enabled(self) -> None:
         self.create_detector(

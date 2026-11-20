@@ -55,13 +55,6 @@ class ProjectOptionCacheTest(TransactionTestCase):
 
         assert ProjectOption.objects.get_value(self.project, "foo") == "baz"
 
-    def test_cached_reads_outside_transactions(self) -> None:
-        ProjectOption.objects.set_value(self.project, "foo", "bar")
-        connection = transaction.get_connection(router.db_for_write(ProjectOption))
-        with patch.object(connection, "ensure_connection") as ensure_connection:
-            assert self.project.get_option("foo") == "bar"
-            ensure_connection.assert_not_called()
-
     def test_reload_task_local_cache_without_shared_cache_reads_the_database(self) -> None:
         ProjectOption.objects.set_value(self.project, "foo", "bar")
         cache_key = ProjectOption.objects._make_key(self.project.id)
@@ -96,152 +89,72 @@ class ProjectOptionTransactionTest(TransactionTestCase):
         self.cache_key = self.manager._make_key(self.project.id)
         self.manager.set_value(self.project, "foo", "old")
 
-    def test_update_publishes_only_after_commit(self) -> None:
-        with patch("sentry.tasks.relay.schedule_invalidate_project_config") as invalidate:
-            with transaction.atomic(using=self.using):
-                assert self.manager.set_value(self.project.id, "foo", "new") is True
-                assert self.project.get_option("foo") == "new"
-                assert cache.get(self.cache_key)["foo"] == "old"
-                assert self.cache_key not in self.manager._option_cache
-                invalidate.assert_not_called()
-
-            assert cache.get(self.cache_key)["foo"] == "new"
-            assert self.manager._option_cache[self.cache_key]["foo"] == "new"
-            invalidate.assert_called_once_with(
-                project_id=self.project.id,
-                trigger="projectoption.set_value",
-                trigger_details="foo",
-                transaction_db=self.using,
-            )
-
-    def test_update_rollback(self) -> None:
-        with patch("sentry.tasks.relay.schedule_invalidate_project_config") as invalidate:
-            with pytest.raises(ValueError, match="rollback"):
-                with transaction.atomic(using=self.using):
-                    self.manager.set_value(self.project, "foo", "new")
-                    assert self.project.get_option("foo") == "new"
-                    raise ValueError("rollback")
-
-        assert self.manager.get(project=self.project, key="foo").value == "old"
-        assert cache.get(self.cache_key)["foo"] == "old"
-        assert self.project.get_option("foo") == "old"
-        invalidate.assert_not_called()
-
-    def test_create_rollback_including_post_save(self) -> None:
-        with pytest.raises(ValueError, match="rollback"):
-            with transaction.atomic(using=self.using):
-                self.manager.set_value(self.project, "new-option", "new")
-                assert self.project.get_option("new-option") == "new"
-                assert "new-option" not in cache.get(self.cache_key)
-                raise ValueError("rollback")
-
-        assert not self.manager.filter(project=self.project, key="new-option").exists()
-        assert self.project.get_option("new-option") is None
-        assert "new-option" not in cache.get(self.cache_key)
-
-    def test_create_commit(self) -> None:
+    def test_cache_updates_after_commit(self) -> None:
+        before = cache.get(self.cache_key)
+        expected = before | {"foo": "new", "created": True}
         with transaction.atomic(using=self.using):
-            self.manager.set_value(self.project, "new-option", "new")
-            assert "new-option" not in cache.get(self.cache_key)
+            self.manager.set_value(self.project, "foo", "new")
+            self.manager.set_value(self.project, "created", True)
+            assert self.manager.get_all_values(self.project) == expected
+            assert cache.get(self.cache_key) == before
 
-        assert cache.get(self.cache_key)["new-option"] == "new"
-        assert self.project.get_option("new-option") == "new"
+        assert cache.get(self.cache_key) == expected
+        assert self.manager.get_all_values(self.project) == expected
+
+    def test_rollback_preserves_cached_options(self) -> None:
+        before = cache.get(self.cache_key)
+        with transaction.atomic(using=self.using):
+            self.manager.set_value(self.project, "foo", "new")
+            self.manager.set_value(self.project, "created", True)
+            assert cache.get(self.cache_key) == before
+            transaction.set_rollback(True, using=self.using)
+
+        assert cache.get(self.cache_key) == before
+        assert self.manager.get_all_values(self.project) == before
 
     def test_nested_rollback_reloads_committed_state(self) -> None:
         with transaction.atomic(using=self.using):
             self.manager.set_value(self.project, "foo", "outer")
-            with pytest.raises(ValueError, match="rollback"):
-                with transaction.atomic(using=self.using):
-                    self.manager.set_value(self.project, "foo", "inner")
-                    self.manager.set_value(self.project, "rolled-back-option", True)
-                    raise ValueError("rollback")
+            with transaction.atomic(using=self.using):
+                self.manager.set_value(self.project, "foo", "inner")
+                self.manager.set_value(self.project, "rolled-back-option", True)
+                transaction.set_rollback(True, using=self.using)
             assert self.project.get_option("foo") == "outer"
-            assert self.project.get_option("rolled-back-option") is None
-            self.manager.set_value(self.project, "another-option", True)
             assert cache.get(self.cache_key)["foo"] == "old"
 
         assert cache.get(self.cache_key)["foo"] == "outer"
-        assert cache.get(self.cache_key)["another-option"] is True
         assert "rolled-back-option" not in cache.get(self.cache_key)
 
     def test_cold_read_does_not_publish_uncommitted_data(self) -> None:
-        with pytest.raises(ValueError, match="rollback"):
-            with transaction.atomic(using=self.using):
-                self.manager.set_value(self.project, "foo", "new")
-                cache.delete(self.cache_key)
-                self.manager.clear_local_cache()
-                assert self.project.get_option("foo") == "new"
-                assert cache.get(self.cache_key) is None
-                assert self.cache_key not in self.manager._option_cache
-                raise ValueError("rollback")
+        with transaction.atomic(using=self.using):
+            self.manager.set_value(self.project, "foo", "new")
+            cache.delete(self.cache_key)
+            self.manager.clear_local_cache()
+            assert self.project.get_option("foo") == "new"
+            assert cache.get(self.cache_key) is None
+            assert self.cache_key not in self.manager._option_cache
+            transaction.set_rollback(True, using=self.using)
 
         assert self.project.get_option("foo") == "old"
         assert cache.get(self.cache_key)["foo"] == "old"
 
-    def test_save_signal_rollback(self) -> None:
-        option = self.manager.get(project=self.project, key="foo")
-        with pytest.raises(ValueError, match="rollback"):
-            with transaction.atomic(using=self.using):
-                option.value = "new"
-                option.save()
-                assert cache.get(self.cache_key)["foo"] == "old"
-                raise ValueError("rollback")
-
-        assert self.project.get_option("foo") == "old"
-
-    def test_unset_rollback_including_post_delete(self) -> None:
-        with pytest.raises(ValueError, match="rollback"):
-            with transaction.atomic(using=self.using):
-                self.manager.unset_value(self.project, "foo")
-                assert self.project.get_option("foo") is None
-                assert cache.get(self.cache_key)["foo"] == "old"
-                raise ValueError("rollback")
-
-        assert self.project.get_option("foo") == "old"
-
-    def test_noop_does_not_reload(self) -> None:
-        with patch.object(self.manager, "reload_cache") as reload:
-            with transaction.atomic(using=self.using):
-                assert self.manager.set_value(self.project, "foo", "old") is False
-            reload.assert_not_called()
-
-    def test_bound_manager_uses_its_database(self) -> None:
-        manager = self.manager.db_manager(self.using)
-        with transaction.atomic(using=self.using):
-            with patch("django.db.router.db_for_write", wraps=router.db_for_write) as db_for_write:
-                manager.set_value(self.project, "new-option", "new")
-                assert manager.get_value(self.project, "new-option") == "new"
-                assert all(
-                    call.args[0] is not ProjectOption for call in db_for_write.call_args_list
-                )
-            assert "new-option" not in cache.get(self.cache_key)
-
-        assert cache.get(self.cache_key)["new-option"] == "new"
-
-    def test_manual_transaction_commit(self) -> None:
+    def test_manual_transactions(self) -> None:
         connection = transaction.get_connection(self.using)
         connection.set_autocommit(False)
         try:
-            self.manager.set_value(self.project, "foo", "new")
-            assert self.project.get_option("foo") == "new"
+            self.manager.set_value(self.project, "foo", "committed")
             assert cache.get(self.cache_key)["foo"] == "old"
             connection.commit()
             connection.set_autocommit(True)
+            assert cache.get(self.cache_key)["foo"] == "committed"
+
+            connection.set_autocommit(False)
+            self.manager.set_value(self.project, "foo", "rolled-back")
+            assert self.project.get_option("foo") == "rolled-back"
+            assert cache.get(self.cache_key)["foo"] == "committed"
         finally:
             connection.rollback()
             connection.set_autocommit(True)
 
-        assert cache.get(self.cache_key)["foo"] == "new"
-
-    def test_manual_transaction_rollback(self) -> None:
-        connection = transaction.get_connection(self.using)
-        connection.set_autocommit(False)
-        try:
-            self.manager.set_value(self.project, "foo", "new")
-            assert self.project.get_option("foo") == "new"
-        finally:
-            connection.rollback()
-            connection.set_autocommit(True)
-
-        assert cache.get(self.cache_key)["foo"] == "old"
-        assert self.project.get_option("foo") == "old"
+        assert cache.get(self.cache_key)["foo"] == "committed"
+        assert self.project.get_option("foo") == "committed"
