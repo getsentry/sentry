@@ -11,9 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {IntegrationButton} from 'sentry/views/settings/organizationIntegrations/integrationButton';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
 
-type Props = {
-  onClick: () => void;
-};
+type Props = {onClick: () => void};
 
 export function AddIntegrationRow({onClick}: Props) {
   const organization = useOrganization();

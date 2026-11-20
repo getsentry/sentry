@@ -27,9 +27,7 @@ const segmentSchema = baseDataForwarderSchema.extend({
   write_key: z.string().min(1, t('Write key is required')),
 });
 
-const segmentDefaults = {
-  write_key: '',
-};
+const segmentDefaults = {write_key: ''};
 
 function buildSegmentConfig(
   fields: Omit<
@@ -117,10 +115,7 @@ export function SegmentSetupForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />
@@ -179,10 +174,7 @@ export function SegmentEditForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />

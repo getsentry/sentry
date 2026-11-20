@@ -1,14 +1,10 @@
 import type {User} from 'sentry/types/user';
 
-export const CLASSIFIER_DATASETS = ['conversation', 'trace_spans'] as const;
+import type {CLASSIFIER_DATASETS} from './constants';
 
 export type ClassifierDataset = (typeof CLASSIFIER_DATASETS)[number];
 
 export type ClassifierOutputType = 'binary' | 'choice' | 'score';
-
-export const CLASSIFIER_RESULT_FILTERS = ['all', 'matches', 'non-matches'] as const;
-
-export type ClassifierResultFilter = (typeof CLASSIFIER_RESULT_FILTERS)[number];
 
 export interface TelemetryClassifier {
   binaryThreshold: number | null;

@@ -102,10 +102,7 @@ import {IconIssues} from '@sentry/icons/issues';
 import {CMDKAction} from 'sentry/components/commandPalette/ui/cmdk';
 
 <CMDKAction
-  display={{
-    label: t('Go to Issues'),
-    icon: <IconIssues />,
-  }}
+  display={{label: t('Go to Issues'), icon: <IconIssues />}}
   keywords={['bugs', 'errors', 'problems']}
   to={`/organizations/${org.slug}/issues/`}
 />;

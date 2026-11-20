@@ -5,9 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {BackendJsonAutoSaveForm} from './backendJsonAutoSaveForm';
 
 const org = OrganizationFixture();
-const mutationOptions = {
-  mutationFn: jest.fn().mockResolvedValue({}),
-};
+const mutationOptions = {mutationFn: jest.fn().mockResolvedValue({})};
 
 describe('BackendJsonAutoSaveForm', () => {
   it('renders boolean field as Switch', () => {

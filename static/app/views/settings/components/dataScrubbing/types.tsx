@@ -49,10 +49,7 @@ export type AttributeSuggestion = {
   value: string; // Hidden from the user.
 };
 
-type RuleBase = {
-  id: number;
-  source: string;
-};
+type RuleBase = {id: number; source: string};
 
 export type RuleDefault = RuleBase & {
   method: MethodType.MASK | MethodType.REMOVE | MethodType.HASH;
@@ -77,10 +74,10 @@ type RulePattern = RuleBase & {
   type: RuleType.PATTERN;
 } & Pick<RuleDefault, 'method'>;
 
-type RuleReplace = RuleBase & {
-  method: MethodType.REPLACE;
-  placeholder?: string;
-} & Pick<RuleDefault, 'type'>;
+type RuleReplace = RuleBase & {method: MethodType.REPLACE; placeholder?: string} & Pick<
+    RuleDefault,
+    'type'
+  >;
 
 type KeysOfUnion<T> = T extends any ? keyof T : never;
 
@@ -88,10 +85,7 @@ type RuleReplaceAndPattern = Omit<RulePattern, 'method'> & Omit<RuleReplace, 'ty
 
 export type Rule = RuleDefault | RuleReplace | RulePattern | RuleReplaceAndPattern;
 
-export type EventId = {
-  status: EventIdStatus;
-  value: string;
-};
+export type EventId = {status: EventIdStatus; value: string};
 
 export type EditableRule = Omit<
   {
@@ -101,25 +95,18 @@ export type EditableRule = Omit<
 >;
 
 type PiiConfigDefault = {
-  redaction: {
-    method: RuleDefault['method'];
-  };
+  redaction: {method: RuleDefault['method']};
   type: RuleDefault['type'];
 };
 
 type PiiConfigReplace = {
-  redaction: {
-    method: RuleReplace['method'];
-    text?: string;
-  };
+  redaction: {method: RuleReplace['method']; text?: string};
   type: RuleReplace['type'];
 };
 
 type PiiConfigPattern = {
   pattern: string;
-  redaction: {
-    method: RulePattern['method'];
-  };
+  redaction: {method: RulePattern['method']};
   type: RulePattern['type'];
   replaceGroups?: number[];
 };

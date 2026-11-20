@@ -1,8 +1,12 @@
 from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import TypedDict
 
-from sentry.inbox.event_data import InboxEventData
+from sentry.inbox.event_data import (
+    InboxEventData,
+    NotebookCompletedDataResponse,
+    NotebookMentionedDataResponse,
+    NotebookParticipantAddedDataResponse,
+)
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.types import InboxEventSummary, InboxEventType, InboxItemType
 from sentry.models.organization import Organization
@@ -46,11 +50,6 @@ class NotebookItemType(InboxItemType[Notebook]):
         ]
 
 
-class NotebookCompletedDataResponse(TypedDict):
-    seerRunId: str
-    generation: int
-
-
 @dataclass(frozen=True, kw_only=True)
 class NotebookCompletedData(InboxEventData):
     seer_run_id: int  # Seer DbRunState ID, matching issue inbox events.
@@ -58,11 +57,6 @@ class NotebookCompletedData(InboxEventData):
 
     def serialize(self) -> NotebookCompletedDataResponse:
         return {"seerRunId": str(self.seer_run_id), "generation": self.generation}
-
-
-class NotebookMentionedDataResponse(TypedDict):
-    commentId: str
-    blockId: str | None
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -79,7 +73,7 @@ class NotebookMentionedData(InboxEventData):
 
 @dataclass(frozen=True, kw_only=True)
 class NotebookParticipantAddedData(InboxEventData):
-    def serialize(self) -> dict[str, object]:
+    def serialize(self) -> NotebookParticipantAddedDataResponse:
         return {}
 
 

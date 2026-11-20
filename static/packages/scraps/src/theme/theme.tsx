@@ -57,21 +57,9 @@ const motionCurveWithDuration = (
 
 const motionTransitions: Record<'spring', Record<MotionDuration, Transition>> = {
   spring: {
-    fast: {
-      type: 'spring',
-      stiffness: 1400,
-      damping: 50,
-    },
-    moderate: {
-      type: 'spring',
-      stiffness: 1000,
-      damping: 50,
-    },
-    slow: {
-      type: 'spring',
-      stiffness: 600,
-      damping: 50,
-    },
+    fast: {type: 'spring', stiffness: 1400, damping: 50},
+    moderate: {type: 'spring', stiffness: 1000, damping: 50},
+    slow: {type: 'spring', stiffness: 600, damping: 50},
   },
 };
 
@@ -79,18 +67,9 @@ const motionTransitionWithDuration = (
   transitionDefinitions: Record<MotionDuration, Transition>
 ): [MotionDefinition, Record<MotionDuration, Transition>] => {
   const motion = {
-    fast: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.fast,
-    })}`,
-    moderate: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.moderate,
-    })}`,
-    slow: `${spring({
-      keyframes: [0, 1],
-      ...transitionDefinitions.slow,
-    })}`,
+    fast: `${spring({keyframes: [0, 1], ...transitionDefinitions.fast})}`,
+    moderate: `${spring({keyframes: [0, 1], ...transitionDefinitions.moderate})}`,
+    slow: `${spring({keyframes: [0, 1], ...transitionDefinitions.slow})}`,
   };
 
   return [motion, transitionDefinitions];
@@ -238,9 +217,7 @@ type ScrapsTheme = {
 
 export interface SentryTheme
   extends ScrapsTheme, Omit<typeof lightThemeDefinition, keyof ScrapsTheme | 'chart'> {
-  chart: {
-    getColorPalette: ReturnType<typeof makeChartColorPalette>;
-  };
+  chart: {getColorPalette: ReturnType<typeof makeChartColorPalette>};
   swatch: Swatch;
 }
 
@@ -785,13 +762,9 @@ const lightThemeDefinition = {
   /**
    * @deprecated do not use this.
    */
-  level: {
-    orange: ccl.orange,
-  },
+  level: {orange: ccl.orange},
 
-  chart: {
-    getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT),
-  },
+  chart: {getColorPalette: makeChartColorPalette(CHART_PALETTE_LIGHT)},
 
   swatch: makeSwatch(
     (({lime: _lime, ...rest}) => rest)(color.categorical.light),
@@ -826,13 +799,9 @@ export const darkTheme: SentryTheme = {
   /**
    * @deprecated do not use this.
    */
-  level: {
-    orange: ccd.orange,
-  },
+  level: {orange: ccd.orange},
 
-  chart: {
-    getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK),
-  },
+  chart: {getColorPalette: makeChartColorPalette(CHART_PALETTE_DARK)},
 
   swatch: makeSwatch(
     (({lime: _lime, ...rest}) => rest)(color.categorical.dark),

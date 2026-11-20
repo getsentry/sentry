@@ -7,9 +7,7 @@ import round from 'lodash/round';
 export function formatPercentage(
   value: number,
   places = 2,
-  options: {
-    minimumValue?: number;
-  } = {}
+  options: {minimumValue?: number} = {}
 ) {
   if (value === 0) {
     return '0%';

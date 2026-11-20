@@ -27,10 +27,8 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
-    DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -131,10 +129,16 @@ class SourceMapDebugIdProcessResult(TypedDict):
         ApiDescription("Debug ID of the frame's source file. Null when the frame has none"),
     ]
     uploaded_source_file_with_correct_debug_id: Annotated[
-        bool, ApiDescription("Whether a source file with the frame's debug ID was uploaded")
+        bool,
+        ApiDescription(
+            "Whether a source file with the frame's debug ID was found when the event was processed"
+        ),
     ]
     uploaded_source_map_with_correct_debug_id: Annotated[
-        bool, ApiDescription("Whether a source map with the frame's debug ID was uploaded")
+        bool,
+        ApiDescription(
+            "Whether a source map with the frame's debug ID was found when the event was processed"
+        ),
     ]
 
 
@@ -289,35 +293,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         debug_images = get_path(event_data, "debug_meta", "images")
         debug_images = debug_images if debug_images is not None else []
 
-        # get information about which debug ids on the event have uploaded artifacts
-        debug_ids = [
-            debug_image["debug_id"]
-            for debug_image in debug_images
-            if debug_image["type"] == "sourcemap"
-        ][0:100]
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-            debug_id__in=debug_ids,
-        )
-        debug_ids_with_uploaded_source_file = set()
-        debug_ids_with_uploaded_source_map = set()
-        for debug_id_artifact_bundle in debug_id_artifact_bundles:
-            if (
-                SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE
-                or SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.MINIFIED_SOURCE
-            ):
-                debug_ids_with_uploaded_source_file.add(str(debug_id_artifact_bundle.debug_id))
-            elif (
-                SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.SOURCE_MAP
-            ):
-                debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
-
-        has_uploaded_some_artifact_with_a_debug_id = bool(
-            debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
-        ) or project_has_some_artifact_with_a_debug_id(project)
-
         # Get all abs paths and query for their existence so that we can match release artifacts
         release_process_abs_path_data = {}
         if release is not None:
@@ -363,13 +338,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         )
                         processed_frames.append(
                             {
-                                "debug_id_process": {
-                                    "debug_id": debug_id,
-                                    "uploaded_source_file_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_file,
-                                    "uploaded_source_map_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_map,
-                                },
+                                "debug_id_process": get_debug_id_data_for_frame(
+                                    debug_id, frame_index, stacktrace_frames
+                                ),
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
                                     scraping_attempt_map, frame, frame_index, stacktrace_frames
@@ -377,6 +348,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
+
+        has_uploaded_some_artifact_with_a_debug_id = any(
+            frame["debug_id_process"]["uploaded_source_file_with_correct_debug_id"]
+            or frame["debug_id_process"]["uploaded_source_map_with_correct_debug_id"]
+            for exception in processed_exceptions
+            for frame in exception["frames"]
+        ) or project_has_some_artifact_with_a_debug_id(project)
 
         sdk_debug_id_support, min_debug_id_sdk_version = get_sdk_debug_id_support(event_data)
 
@@ -396,6 +374,24 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
+
+
+def get_debug_id_data_for_frame(
+    debug_id: str | None,
+    raw_frame_index: int,
+    stacktrace_frames: Sequence[Any] | None,
+) -> SourceMapDebugIdProcessResult:
+    frame_data = get_path(stacktrace_frames, raw_frame_index, "data", default={})
+
+    # Events processed by an older Symbolicator have no lookup results, so both stay False.
+    # This fallback can go once those events are past the 90 day retention.
+    return {
+        "debug_id": debug_id,
+        "uploaded_source_file_with_correct_debug_id": debug_id is not None
+        and frame_data.get("minified_source_found_by_debug_id") is True,
+        "uploaded_source_map_with_correct_debug_id": debug_id is not None
+        and frame_data.get("sourcemap_found_by_debug_id") is True,
+    }
 
 
 def get_scraping_data_for_frame(

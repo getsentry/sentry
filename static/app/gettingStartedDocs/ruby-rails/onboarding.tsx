@@ -75,16 +75,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'The Sentry SDK for Rails comes as two gems that should be added to your [gemfileCode:Gemfile]:',
-            {
-              gemfileCode: <code />,
-            }
+            {gemfileCode: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getInstallSnippet(params)},
         {
           type: 'conditional',
           condition: params.isProfilingSelected,
@@ -107,11 +101,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t('After adding the gems, run the following to install the SDK:'),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: 'bundle install',
-        },
+        {type: 'code', language: 'ruby', code: 'bundle install'},
       ],
     },
   ],
@@ -123,25 +113,15 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Run the following Rails generator to create the initializer file [code:config/initializers/sentry.rb].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: generatorSnippet,
-        },
+        {type: 'code', language: 'ruby', code: generatorSnippet},
         {
           type: 'text',
           text: t('You can then change the Sentry configuration as follows:'),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -157,13 +137,7 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'ruby',
-              language: 'ruby',
-              code: getVerifySnippet(),
-            },
-          ],
+          tabs: [{label: 'ruby', language: 'ruby', code: getVerifySnippet()}],
         },
       ],
     },

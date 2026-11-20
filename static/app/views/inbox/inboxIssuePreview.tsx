@@ -1,4 +1,5 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useParams} from 'react-router';
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
@@ -45,6 +46,11 @@ type InboxIssueTab = 'overview' | 'telemetry';
 
 interface InboxIssuePreviewProps {
   groupId: string;
+}
+
+export default function InboxIssuePreviewRoute() {
+  const {id} = useParams<'id'>();
+  return id ? <InboxIssuePreview groupId={id} /> : null;
 }
 
 export function InboxIssuePreview({groupId}: InboxIssuePreviewProps) {

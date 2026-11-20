@@ -24,17 +24,9 @@ export function getBrowserContextData({
   return getContextKeys({data, hiddenKeys: ['browser']}).map(ctxKey => {
     switch (ctxKey) {
       case BrowserContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Name'),
-          value: data.name,
-        };
+        return {key: ctxKey, subject: t('Name'), value: data.name};
       case BrowserContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: `${data.version}`,
-        };
+        return {key: ctxKey, subject: t('Version'), value: `${data.version}`};
       default:
         return {
           key: ctxKey,

@@ -573,9 +573,10 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             # on RPC don't use default interval on error
             if use_rpc:
                 raise
-            sentry_sdk.set_tag("user.invalid_interval", request.GET.get("interval"))
-            if request.GET.get("interval"):
-                sentry_sdk.set_attribute("user.invalid_interval", request.GET.get("interval"))
+            invalid_interval = request.GET.get("interval")
+            sentry_sdk.set_tag("user.invalid_interval", invalid_interval)
+            if invalid_interval:
+                sentry_sdk.set_attribute("user.invalid_interval", invalid_interval)
             date_range = snuba_params.date_range
             stats_period = parse_stats_period(get_interval_from_range(date_range, False))
             rollup = int(stats_period.total_seconds()) if stats_period is not None else 3600

@@ -16,16 +16,9 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 
 import type {SelectableContainerPanel} from 'admin/components/selectableContainer';
 
-type Props = {
-  Panel: SelectableContainerPanel;
-  user: User;
-};
+type Props = {Panel: SelectableContainerPanel; user: User};
 
-type EmailActivity = {
-  created: number;
-  email: string;
-  event: string;
-};
+type EmailActivity = {created: number; email: string; event: string};
 
 export function UserEmailLog({user, Panel}: Props) {
   const [activeEmail, setActiveEmail] = useState(user.email);
@@ -33,11 +26,7 @@ export function UserEmailLog({user, Panel}: Props) {
   const {data, isPending, isError} = useQuery(
     apiOptions.as<{activity: EmailActivity[]}>()(
       '/_admin/users/$userId/email-activity/',
-      {
-        path: {userId: user.id},
-        query: {email: activeEmail},
-        staleTime: 0,
-      }
+      {path: {userId: user.id}, query: {email: activeEmail}, staleTime: 0}
     )
   );
   const removeBounce = useMutation({
@@ -45,9 +34,7 @@ export function UserEmailLog({user, Panel}: Props) {
       fetchMutation({
         method: 'DELETE',
         options: {query: {email}},
-        url: getApiUrl('/_admin/users/$userId/email-bounces/', {
-          path: {userId: user.id},
-        }),
+        url: getApiUrl('/_admin/users/$userId/email-bounces/', {path: {userId: user.id}}),
       }),
     onSuccess: (_, email) => {
       setRemovedBounces(emails => [...emails, email]);

@@ -175,9 +175,7 @@ export function VolumeSliders({
                       {formatReservedWithUnits(
                         currentSliderValues[category] ?? null,
                         category,
-                        {
-                          isAbbreviated: !isByteCategory(category),
-                        }
+                        {isAbbreviated: !isByteCategory(category)}
                       )}
                     </Text>
                     <div>

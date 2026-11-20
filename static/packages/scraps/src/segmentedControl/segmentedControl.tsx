@@ -219,11 +219,7 @@ function Segment<Value extends string>({
   return content;
 }
 
-const GroupWrap = styled('div')<{
-  listSize: number;
-  priority: Priority;
-  size: FormSize;
-}>`
+const GroupWrap = styled('div')<{listSize: number; priority: Priority; size: FormSize}>`
   position: relative;
   display: inline-grid;
   grid-auto-flow: column;

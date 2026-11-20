@@ -5,10 +5,7 @@ import type {Series} from 'sentry/types/echarts';
 import {useDetectorChartAxisBounds} from './useDetectorChartAxisBounds';
 
 function makeSeries(values: number[]): Series {
-  return {
-    seriesName: 'test',
-    data: values.map((value, i) => ({name: i, value})),
-  };
+  return {seriesName: 'test', data: values.map((value, i) => ({name: i, value}))};
 }
 
 describe('useDetectorChartAxisBounds', () => {

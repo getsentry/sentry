@@ -56,11 +56,7 @@ interface UseTraceItemDetailsProps {
 
 export type TraceItemAttributeMeta = Pick<Meta, 'len' | 'rem'>;
 interface TraceItemDetailsMetaRecord {
-  meta: {
-    value: {
-      '': TraceItemAttributeMeta;
-    };
-  };
+  meta: {value: {'': TraceItemAttributeMeta}};
 }
 
 export type TraceItemDetailsMeta = Record<string, TraceItemDetailsMetaRecord>;

@@ -4,6 +4,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {
   buildConversationTurns,
+  callContainsNode,
   embeddingSpansToMessages,
   enrichAgentMessages,
   evaluationSpansToMessages,
@@ -11,13 +12,18 @@ import {
   extractMessagesFromNodes,
   getInputMessageStats,
   getNodeTimestamp,
+  hasCapturedMessageContent,
+  type ConversationMessage,
   memorySpansToMessages,
   mergeEmptyTurns,
   messagesToMarkdown,
   NOT_REPORTED,
   parseAssistantContent,
+  parseSystemPrompt,
   parseUserContent,
   partitionSpansByType,
+  someMessageDeep,
+  type SubAgentCall,
   turnsToMessages,
 } from './conversationMessages';
 
@@ -41,14 +47,8 @@ function createMockNode(overrides: {
     op: 'gen_ai.generate',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
-    attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      ...attributes,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
   };
 }
@@ -67,10 +67,7 @@ function createMockToolNode(overrides: {
     op: 'gen_ai.execute_tool',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
@@ -102,10 +99,7 @@ function createMockEmbeddingNode(overrides: {
     op: 'gen_ai.embeddings',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
       [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
@@ -215,10 +209,7 @@ type Turn = Parameters<typeof turnsToMessages>[0][number];
 
 function makeTurn(overrides: Partial<Turn> = {}): Turn {
   return {
-    generation: {
-      id: 'gen-1',
-      value: {start_timestamp: 1000, end_timestamp: 1100},
-    } as any,
+    generation: {id: 'gen-1', value: {start_timestamp: 1000, end_timestamp: 1100}} as any,
     userContent: null,
     assistantContent: null,
     toolCalls: [],
@@ -226,6 +217,44 @@ function makeTurn(overrides: Partial<Turn> = {}): Turn {
     userEmail: undefined,
     ...overrides,
   };
+}
+
+// A span with any operation type and an optional parent, for tests that
+// depend on the span hierarchy.
+function createSpan(overrides: {
+  id: string;
+  opType: string;
+  attributes?: Record<string, string | number>;
+  endTimestamp?: number;
+  name?: string;
+  parentId?: string;
+  startTimestamp?: number;
+}) {
+  const {
+    id,
+    opType,
+    attributes = {},
+    name = 'gen_ai.generate',
+    parentId,
+    startTimestamp = 1000,
+    endTimestamp,
+  } = overrides;
+  const end = endTimestamp ?? startTimestamp + 100;
+  return {
+    id,
+    type: 'span' as const,
+    op: name,
+    startTimestamp,
+    endTimestamp: end,
+    value: {
+      start_timestamp: startTimestamp,
+      end_timestamp: end,
+      parent_span_id: parentId,
+      name,
+    },
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: opType, ...attributes},
+    errors: new Set(),
+  } as any;
 }
 
 describe('conversationMessages utilities', () => {
@@ -250,9 +279,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'user', content: 'User input'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('User input');
     });
@@ -261,9 +288,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'user', content: 'Request message'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Request message');
     });
@@ -304,9 +329,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Last user');
     });
@@ -315,9 +338,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'system', content: 'System only'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBeNull();
     });
@@ -325,9 +346,7 @@ describe('conversationMessages utilities', () => {
     it('treats a plain string as the user message', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json',
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json'},
       });
       expect(parseUserContent(node as any)).toBe('not valid json');
     });
@@ -337,9 +356,7 @@ describe('conversationMessages utilities', () => {
         '[{"role":"assistant","content":[{"type":"tool_use","name":"search","input":"{}"}]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_123","content":"GoCD API 401 Unautho';
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson},
       });
       expect(parseUserContent(node as any)).toBeNull();
     });
@@ -352,9 +369,7 @@ describe('conversationMessages utilities', () => {
     it('returns [Filtered] when input messages are scrubbed', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]',
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]'},
       });
       expect(parseUserContent(node as any)).toBe('[Filtered]');
     });
@@ -362,9 +377,7 @@ describe('conversationMessages utilities', () => {
     it('keeps the marks of scrubbed input messages', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED},
       });
       expect(parseUserContent(node as any)).toBe(MARKED_FILTERED);
       expect(getInputMessageStats(node as any)).toEqual({
@@ -379,9 +392,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Parts question');
     });
@@ -392,9 +403,7 @@ describe('conversationMessages utilities', () => {
       });
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Wrapped question');
     });
@@ -451,9 +460,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'assistant', content: 'Output response'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Output response');
     });
@@ -461,9 +468,7 @@ describe('conversationMessages utilities', () => {
     it('falls back to gen_ai.response.text', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback',
-        },
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback'},
       });
       expect(parseAssistantContent(node as any).content).toBe('Response text fallback');
     });
@@ -471,9 +476,7 @@ describe('conversationMessages utilities', () => {
     it('falls back to gen_ai.response.object', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback',
-        },
+        attributes: {[SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback'},
       });
       expect(parseAssistantContent(node as any).content).toBe('Response object fallback');
     });
@@ -501,9 +504,7 @@ describe('conversationMessages utilities', () => {
       const outputObj = JSON.stringify({content: 'Object content response'});
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj},
       });
       expect(parseAssistantContent(node as any).content).toBe('Object content response');
     });
@@ -523,9 +524,7 @@ describe('conversationMessages utilities', () => {
     it('returns [Filtered] when output messages are scrubbed', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]',
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]'},
       });
       expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
     });
@@ -533,9 +532,7 @@ describe('conversationMessages utilities', () => {
     it('keeps the marks of scrubbed output messages', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED},
       });
       expect(parseAssistantContent(node as any)).toEqual({
         content: MARKED_FILTERED,
@@ -546,9 +543,7 @@ describe('conversationMessages utilities', () => {
     it('treats a plain string output.messages as the assistant response', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response',
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response'},
       });
       expect(parseAssistantContent(node as any).content).toBe('just a plain response');
     });
@@ -559,9 +554,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Parts response');
     });
@@ -608,9 +601,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Let me search for that');
     });
@@ -984,10 +975,7 @@ describe('conversationMessages utilities', () => {
       // assistant text. The tool calls must stay attached to their reasoning
       // turn, not pile onto the final turn.
       const turns = [
-        makeTurn({
-          generation: {id: 'gen-1'} as any,
-          reasoning: 'Thinking 1',
-        }),
+        makeTurn({generation: {id: 'gen-1'} as any, reasoning: 'Thinking 1'}),
         makeTurn({
           generation: {id: 'gen-2'} as any,
           reasoning: 'Thinking 2',
@@ -1046,10 +1034,7 @@ describe('conversationMessages utilities', () => {
         content: 'Hello',
         userEmail: 'user@example.com',
       });
-      expect(messages[1]).toMatchObject({
-        role: 'assistant',
-        content: 'Hi there',
-      });
+      expect(messages[1]).toMatchObject({role: 'assistant', content: 'Hi there'});
     });
 
     // Same user text in two turns: collapse only for a cumulative tool loop.
@@ -1364,12 +1349,7 @@ describe('conversationMessages utilities', () => {
     });
 
     it('creates an assistant message for reasoning-only turns without content or tool calls', () => {
-      const turns = [
-        makeTurn({
-          userContent: 'Question',
-          reasoning: 'Thinking only...',
-        }),
-      ];
+      const turns = [makeTurn({userContent: 'Question', reasoning: 'Thinking only...'})];
 
       const messages = turnsToMessages(turns);
       const assistant = messages.find(m => m.role === 'assistant');
@@ -1737,9 +1717,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBe('The answer is 42');
@@ -1752,9 +1730,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBe('Just text');
@@ -1767,20 +1743,13 @@ describe('conversationMessages utilities', () => {
           role: 'assistant',
           parts: [
             {type: 'reasoning', content: 'Thinking only...'},
-            {
-              type: 'tool_call',
-              toolCallId: 'tc-1',
-              toolName: 'search',
-              args: {},
-            },
+            {type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}},
           ],
         },
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBeNull();
@@ -1846,13 +1815,7 @@ describe('conversationMessages utilities', () => {
 
     it('formats user messages without email as User', () => {
       const result = messagesToMarkdown([
-        {
-          id: 'user-1',
-          role: 'user',
-          content: 'Hello',
-          timestamp: 1000,
-          nodeId: 'n1',
-        },
+        {id: 'user-1', role: 'user', content: 'Hello', timestamp: 1000, nodeId: 'n1'},
       ]);
       expect(result).toBe('### User\n\nHello');
     });
@@ -2042,45 +2005,6 @@ describe('conversationMessages utilities', () => {
       {role: 'assistant', parts: [{type: 'text', content: 'Sunny, 20°C'}]},
     ]);
 
-    function createSpan(overrides: {
-      id: string;
-      opType: string;
-      attributes?: Record<string, string | number>;
-      endTimestamp?: number;
-      name?: string;
-      parentId?: string;
-      startTimestamp?: number;
-    }) {
-      const {
-        id,
-        opType,
-        attributes = {},
-        name = 'gen_ai.generate',
-        parentId,
-        startTimestamp = 1000,
-        endTimestamp,
-      } = overrides;
-      const end = endTimestamp ?? startTimestamp + 100;
-      return {
-        id,
-        type: 'span' as const,
-        op: name,
-        startTimestamp,
-        endTimestamp: end,
-        value: {
-          start_timestamp: startTimestamp,
-          end_timestamp: end,
-          parent_span_id: parentId,
-          name,
-        },
-        attributes: {
-          [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-          ...attributes,
-        },
-        errors: new Set(),
-      } as any;
-    }
-
     function createAgentTurn(
       agentId: string,
       overrides: {input?: string; output?: string} = {}
@@ -2211,42 +2135,6 @@ describe('conversationMessages utilities', () => {
   });
 
   describe('extractMessagesFromNodes without captured content', () => {
-    function createSpan(overrides: {
-      id: string;
-      opType: string;
-      attributes?: Record<string, string | number>;
-      endTimestamp?: number;
-      parentId?: string;
-      startTimestamp?: number;
-    }) {
-      const {
-        id,
-        opType,
-        attributes = {},
-        parentId,
-        startTimestamp = 1000,
-        endTimestamp,
-      } = overrides;
-      const end = endTimestamp ?? startTimestamp + 100;
-      return {
-        id,
-        type: 'span' as const,
-        op: 'gen_ai.generate',
-        startTimestamp,
-        endTimestamp: end,
-        value: {
-          start_timestamp: startTimestamp,
-          end_timestamp: end,
-          parent_span_id: parentId,
-        },
-        attributes: {
-          [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-          ...attributes,
-        },
-        errors: new Set(),
-      } as any;
-    }
-
     const INPUT_TOKENS = {[SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10};
 
     it('renders each agent span as a not-reported exchange with its tool calls', () => {
@@ -2276,7 +2164,7 @@ describe('conversationMessages utilities', () => {
           endTimestamp: 1200,
           attributes: {[SpanFields.GEN_AI_TOOL_NAME]: 'search'},
         }),
-        // A sub-agent's generations form their own exchange within the outer one.
+        // A sub-agent's generations form their own exchange inside its row.
         createSpan({
           id: 'sub-agent',
           opType: 'agent',
@@ -2327,24 +2215,12 @@ describe('conversationMessages utilities', () => {
         }))
       ).toEqual([
         {id: 'user-gen-1', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
-        {
-          id: 'assistant-gen-1',
-          content: '',
-          reasoning: NOT_REPORTED,
-          tools: undefined,
-        },
-        {id: 'user-gen-2', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
-        {
-          id: 'assistant-gen-2',
-          content: NOT_REPORTED,
-          reasoning: undefined,
-          tools: ['search'],
-        },
+        {id: 'assistant-gen-1', content: '', reasoning: NOT_REPORTED, tools: undefined},
         {
           id: 'assistant-gen-3',
           content: NOT_REPORTED,
           reasoning: undefined,
-          tools: undefined,
+          tools: ['search', 'agent'],
         },
         {id: 'user-gen-4', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
         {
@@ -2353,6 +2229,13 @@ describe('conversationMessages utilities', () => {
           reasoning: undefined,
           tools: undefined,
         },
+      ]);
+      const subAgent = messages
+        .find(m => m.id === 'assistant-gen-3')
+        ?.toolCalls?.find(call => call.nodeId === 'sub-agent') as SubAgentCall;
+      expect(subAgent?.messages.map(m => [m.id, m.content])).toEqual([
+        ['user-gen-2', NOT_REPORTED],
+        ['assistant-gen-2', NOT_REPORTED],
       ]);
     });
 
@@ -2412,5 +2295,433 @@ describe('conversationMessages utilities', () => {
 
       expect(messages.map(m => [m.id, m.content])).toEqual([['assistant-gen-2', 'Done']]);
     });
+  });
+  describe('extractMessagesFromNodes with agent hierarchy', () => {
+    function agent(
+      id: string,
+      name: string,
+      start: number,
+      end: number,
+      parentId?: string
+    ) {
+      return createSpan({
+        id,
+        opType: 'agent',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {[SpanFields.GEN_AI_AGENT_NAME]: name},
+      });
+    }
+
+    function tool(
+      id: string,
+      name: string,
+      start: number,
+      end: number,
+      parentId: string,
+      result?: string
+    ) {
+      return createSpan({
+        id,
+        opType: 'tool',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {
+          [SpanFields.GEN_AI_TOOL_NAME]: name,
+          ...(result ? {'gen_ai.tool.call.result': result} : {}),
+        },
+      });
+    }
+
+    // `input` is a list of [role, content] pairs; a single user message by default.
+    function generation(
+      id: string,
+      start: number,
+      end: number,
+      parentId: string | undefined,
+      {input, output}: {input?: Array<[string, string]> | string; output?: string}
+    ) {
+      const messages =
+        typeof input === 'string' ? [['user', input] as [string, string]] : input;
+      return createSpan({
+        id,
+        opType: 'ai_client',
+        parentId,
+        startTimestamp: start,
+        endTimestamp: end,
+        attributes: {
+          ...(messages
+            ? {
+                [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify(
+                  messages.map(([role, content]) => ({role, content}))
+                ),
+              }
+            : {}),
+          ...(output ? {[SpanFields.GEN_AI_RESPONSE_TEXT]: output} : {}),
+        },
+      });
+    }
+
+    function onlyMessage(messages: ConversationMessage[], id: string) {
+      const message = messages.find(m => m.id === id);
+      expect(message).toBeDefined();
+      return message!;
+    }
+
+    // A parent agent that calls a sub-agent through a tool, like a dashboard
+    // agent running a query agent from its "Execute Sentry Data Query" tool.
+    function agentAsToolNodes() {
+      return [
+        agent('dash', 'dashboard_generation', 0, 60),
+        generation('g1', 0, 10, 'dash', {input: 'Build a dashboard'}),
+        tool('t1', 'Execute Sentry Data Query', 11, 40, 'dash', 'Finalized query'),
+        agent('query', 'assisted_query', 12, 39, 't1'),
+        generation('q1', 12, 20, 'query', {input: 'find c2pa', output: '.'}),
+        tool('qt1', 'query_api', 21, 25, 'query'),
+        generation('q2', 26, 38, 'query', {
+          input: [
+            ['user', 'find c2pa'],
+            ['assistant', '.'],
+          ],
+          output: 'Finalized',
+        }),
+        generation('g2', 41, 60, 'dash', {output: 'Here is your dashboard'}),
+      ];
+    }
+
+    it('renders a sub-agent called through a tool in place of that tool call', () => {
+      const messages = extractMessagesFromNodes(agentAsToolNodes());
+
+      expect(messages.map(m => [m.id, m.content])).toEqual([
+        ['user-g1', 'Build a dashboard'],
+        ['assistant-g2', 'Here is your dashboard'],
+      ]);
+      const call = onlyMessage(messages, 'assistant-g2').toolCalls?.[0] as SubAgentCall;
+      expect(call).toMatchObject({
+        kind: 'subagent',
+        nodeId: 'query',
+        name: 'assisted_query',
+        viaNodeId: 't1',
+        preview: 'find c2pa',
+        duration: 27,
+        llmCallCount: 2,
+      });
+      // The task is the sub-agent's user message, and the tool's result is
+      // what it returned to the parent.
+      expect(
+        call.messages.map(m => [m.id, m.role, m.content, m.toolCalls?.map(tc => tc.name)])
+      ).toEqual([
+        ['user-q1', 'user', 'find c2pa', undefined],
+        ['assistant-q1', 'assistant', '.', undefined],
+        ['assistant-q2', 'assistant', 'Finalized', ['query_api']],
+        ['result-t1', 'assistant', 'Finalized query', undefined],
+      ]);
+    });
+
+    it('keeps parallel sub-agents and their tool calls apart', () => {
+      const nodes = [
+        agent('dash', 'dashboard_generation', 0, 60),
+        generation('g1', 0, 10, 'dash', {input: 'Compare errors and traces'}),
+        tool('t1', 'Execute Sentry Data Query', 11, 40, 'dash'),
+        tool('t2', 'Execute Sentry Data Query', 11, 40, 'dash'),
+        agent('errors', 'assisted_query', 12, 39, 't1'),
+        agent('traces', 'assisted_query', 12.5, 39, 't2'),
+        generation('e1', 12, 20, 'errors', {input: 'errors', output: '.'}),
+        generation('t-1', 12.5, 18, 'traces', {input: 'traces', output: '.'}),
+        tool('trace-tool', 'query_api', 19, 24, 'traces'),
+        tool('error-tool', 'query_api', 21, 22, 'errors'),
+        generation('t-2', 25, 35, 'traces', {
+          input: [
+            ['user', 'traces'],
+            ['assistant', '.'],
+          ],
+          output: 'traces done',
+        }),
+        generation('e2', 23, 30, 'errors', {
+          input: [
+            ['user', 'errors'],
+            ['assistant', '.'],
+          ],
+          output: 'errors done',
+        }),
+        generation('g2', 41, 60, 'dash', {output: 'Compared'}),
+      ];
+
+      const calls = onlyMessage(extractMessagesFromNodes(nodes), 'assistant-g2')
+        .toolCalls as SubAgentCall[];
+
+      expect(calls.map(call => [call.nodeId, call.preview])).toEqual([
+        ['errors', 'errors'],
+        ['traces', 'traces'],
+      ]);
+      expect(
+        calls[0]!.messages.flatMap(m => m.toolCalls ?? []).map(c => c.nodeId)
+      ).toEqual(['error-tool']);
+      expect(
+        calls[1]!.messages.flatMap(m => m.toolCalls ?? []).map(c => c.nodeId)
+      ).toEqual(['trace-tool']);
+    });
+
+    it("orders a sub-agent without a tool among the next turn's tool calls", () => {
+      const nodes = [
+        agent('main', 'orchestrator', 0, 50),
+        generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
+        tool('search', 'search', 11, 12, 'main'),
+        agent('sub', 'researcher', 13, 30, 'main'),
+        generation('s1', 14, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
+        tool('book', 'book', 31, 32, 'main'),
+        generation('g2', 33, 40, 'main', {output: 'Booked'}),
+      ];
+
+      const messages = extractMessagesFromNodes(nodes);
+
+      expect(messages.map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+        'assistant-g2',
+      ]);
+      const calls = onlyMessage(messages, 'assistant-g2').toolCalls!;
+      expect(calls.map(call => [call.kind ?? 'tool', call.nodeId])).toEqual([
+        ['tool', 'search'],
+        ['subagent', 'sub'],
+        ['tool', 'book'],
+      ]);
+      const subAgent = calls[1] as SubAgentCall;
+      expect(subAgent).toMatchObject({name: 'researcher', preview: 'Find flights'});
+      expect(subAgent.viaNodeId).toBeUndefined();
+      expect(subAgent.messages.map(m => [m.id, m.content])).toEqual([
+        ['user-s1', 'Find flights'],
+        ['assistant-s1', 'Found 3'],
+      ]);
+    });
+
+    it('keeps a sub-agent that no turn follows as its own row', () => {
+      const nodes = [
+        agent('main', 'orchestrator', 0, 40),
+        generation('g1', 0, 10, 'main', {input: 'Plan a trip', output: 'Delegating'}),
+        agent('sub', 'researcher', 11, 30, 'main'),
+        generation('s1', 12, 29, 'sub', {input: 'Find flights', output: 'Found 3'}),
+      ];
+
+      expect(
+        extractMessagesFromNodes(nodes).map(m => [m.id, m.role, m.subAgent?.name])
+      ).toEqual([
+        ['user-g1', 'user', undefined],
+        ['assistant-g1', 'assistant', undefined],
+        ['subagent-sub', 'subagent', 'researcher'],
+      ]);
+    });
+
+    it('nests sub-agents of sub-agents', () => {
+      const nodes = [
+        ...agentAsToolNodes(),
+        tool('qt2', 'lookup', 27, 37, 'query'),
+        agent('deep', 'lookup_agent', 28, 36, 'qt2'),
+        generation('d1', 28, 35, 'deep', {input: 'look up c2pa', output: 'c2pa'}),
+      ];
+
+      const call = onlyMessage(extractMessagesFromNodes(nodes), 'assistant-g2')
+        .toolCalls?.[0] as SubAgentCall;
+      const nested = call.messages.flatMap(m => m.toolCalls ?? []);
+
+      expect(nested.map(c => [c.kind ?? 'tool', c.nodeId])).toEqual([
+        ['tool', 'qt1'],
+        ['subagent', 'deep'],
+      ]);
+    });
+
+    it('keeps generations outside an agent turn as regular turns', () => {
+      const nodes = [
+        generation('pre', 0, 5, undefined, {
+          input: 'Classify the query',
+          output: 'dashboard',
+        }),
+        agent('main', 'dashboard_generation', 6, 50),
+        generation('g1', 6, 10, 'main', {input: 'Build a dashboard'}),
+        tool('t1', 'Summarize Results', 11, 20, 'main'),
+        generation('summary', 12, 19, 't1', {input: 'Summarize', output: 'Summary'}),
+        generation('g2', 21, 30, 'main', {output: 'Done'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['user-pre', 'Classify the query'],
+        ['assistant-pre', 'dashboard'],
+        ['user-g1', 'Build a dashboard'],
+        ['user-summary', 'Summarize'],
+        ['assistant-summary', 'Summary'],
+        ['assistant-g2', 'Done'],
+      ]);
+    });
+
+    it('keeps generations under a non-tool span as turns of their agent', () => {
+      const nodes = [
+        agent('main', 'chat', 0, 20),
+        createSpan({
+          id: 'chain',
+          opType: 'chain',
+          parentId: 'main',
+          startTimestamp: 0,
+          endTimestamp: 20,
+        }),
+        generation('g1', 0, 10, 'chain', {input: 'Hi', output: 'Hello'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+      ]);
+    });
+
+    it('keeps handed-off peer agents in the main flow with shared dedup', () => {
+      const nodes = [
+        agent('triage', 'triage', 0, 20),
+        generation('a1', 0, 10, 'triage', {input: 'Refund me', output: 'Transferring'}),
+        agent('billing', 'billing', 21, 40),
+        generation('b1', 21, 30, 'billing', {
+          input: [
+            ['user', 'Refund me'],
+            ['assistant', 'Transferring'],
+          ],
+          output: 'Refund issued',
+        }),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => [m.id, m.content])).toEqual([
+        ['user-a1', 'Refund me'],
+        ['assistant-a1', 'Transferring'],
+        ['assistant-b1', 'Refund issued'],
+      ]);
+    });
+
+    it('treats agents with cyclic parent links as top-level', () => {
+      const nodes = [
+        agent('a', 'a', 0, 20, 'b'),
+        agent('b', 'b', 0, 20, 'a'),
+        generation('g1', 0, 10, 'a', {input: 'Hi', output: 'Hello'}),
+      ];
+
+      expect(extractMessagesFromNodes(nodes).map(m => m.id)).toEqual([
+        'user-g1',
+        'assistant-g1',
+      ]);
+    });
+
+    it('finds spans and placeholders inside sub-agents', () => {
+      const messages = extractMessagesFromNodes(agentAsToolNodes());
+      const call = onlyMessage(messages, 'assistant-g2').toolCalls![0]!;
+
+      expect(callContainsNode(call, 'query')).toBe(true);
+      // The tool call it replaced, and spans in its own transcript.
+      expect(callContainsNode(call, 't1')).toBe(true);
+      expect(callContainsNode(call, 'q2')).toBe(true);
+      expect(callContainsNode(call, 'qt1')).toBe(true);
+      expect(callContainsNode(call, 'g1')).toBe(false);
+      expect(someMessageDeep(messages, m => m.content === 'Finalized')).toBe(true);
+      expect(messages.some(m => m.content === 'Finalized')).toBe(false);
+    });
+
+    it('exports sub-agents as nested sections', () => {
+      const markdown = messagesToMarkdown(extractMessagesFromNodes(agentAsToolNodes()));
+
+      expect(markdown).toContain('> ### Sub-agent: assisted_query');
+      expect(markdown).toContain('> > ### User\n> > \n> > find c2pa');
+      expect(markdown).toContain('> > ### assisted_query\n> > \n> > Finalized query');
+      expect(markdown).not.toContain('`Execute Sentry Data Query`');
+    });
+  });
+});
+
+describe('parseSystemPrompt', () => {
+  it('reads the system message of the input', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'Sort emails.'},
+          {role: 'user', content: 'Hi'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBe('Sort emails.');
+  });
+
+  it('reads gen_ai.system_instructions', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([
+          {type: 'text', content: 'Be concise.'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBe('Be concise.');
+  });
+
+  it('returns null without a system prompt', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+      },
+    });
+    expect(parseSystemPrompt(node as any)).toBeNull();
+  });
+});
+
+describe('hasCapturedMessageContent', () => {
+  it('is true when an LLM call captured its messages', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hello',
+      },
+    });
+    expect(hasCapturedMessageContent(extractMessagesFromNodes([node] as any))).toBe(true);
+  });
+
+  it('is false for a transcript of placeholders', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {[SpanFields.GEN_AI_USAGE_INPUT_TOKENS]: 10},
+    });
+    const messages = extractMessagesFromNodes([node] as any);
+    expect(messages.some(message => message.content === NOT_REPORTED)).toBe(true);
+    expect(hasCapturedMessageContent(messages)).toBe(false);
+  });
+
+  it('is false without any messages', () => {
+    expect(hasCapturedMessageContent([])).toBe(false);
+  });
+
+  it('is false when only embeddings were captured', () => {
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+    ] as any);
+    expect(messages.some(message => message.role === 'embedding')).toBe(true);
+    expect(hasCapturedMessageContent(messages)).toBe(false);
+  });
+
+  it('is true when an LLM call captured its messages alongside embeddings', () => {
+    const llmCall = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hello',
+      },
+    });
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+      llmCall,
+    ] as any);
+    expect(hasCapturedMessageContent(messages)).toBe(true);
   });
 });

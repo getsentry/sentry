@@ -130,10 +130,7 @@ export function GroupBySelector({
         acc.columnsAsFieldOptions[optionInColumnsIndex] = {[key]: value};
         return acc;
       },
-      {
-        filteredFieldOptions: {},
-        columnsAsFieldOptions: [],
-      }
+      {filteredFieldOptions: {}, columnsAsFieldOptions: []}
     );
   }, [fieldOptions, columnFieldsAsString]);
 

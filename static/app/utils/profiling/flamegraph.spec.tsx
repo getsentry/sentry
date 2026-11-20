@@ -69,10 +69,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: true,
-        sort: 'left heavy',
-      }
+      {inverted: true, sort: 'left heavy'}
     );
     expect(flamegraph.formatter(1000)).toBe('1.00s');
     expect(flamegraph.formatter(500)).toBe('500.00ms');
@@ -100,10 +97,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: true,
-        sort: 'left heavy',
-      }
+      {inverted: true, sort: 'left heavy'}
     );
 
     expect(flamegraph.inverted).toBe(true);
@@ -134,10 +128,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'call order',
-      }
+      {inverted: false, sort: 'call order'}
     );
 
     const order = ['f0', 'f1', 'f2'].reverse();
@@ -169,10 +160,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'call order',
-      }
+      {inverted: false, sort: 'call order'}
     );
     expect(flamegraph.frames).toHaveLength(1);
     expect(flamegraph.frames.every(f => f.frame.name !== 'f1')).toBe(true);
@@ -202,10 +190,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'call order',
-      }
+      {inverted: false, sort: 'call order'}
     );
 
     expect(flamegraph.depth).toBe(2);
@@ -234,10 +219,7 @@ describe('flamegraph', () => {
             createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
             {type: 'flamechart'}
           ),
-          {
-            inverted: false,
-            sort: 'call order',
-          }
+          {inverted: false, sort: 'call order'}
         )
     ).toThrow('Unbalanced append order stack');
   });
@@ -264,10 +246,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'left heavy',
-      }
+      {inverted: false, sort: 'left heavy'}
     );
 
     expect(flamegraph.frames[1]!.frame.name).toBe('f0');
@@ -303,10 +282,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'left heavy',
-      }
+      {inverted: false, sort: 'left heavy'}
     );
 
     expect(flamegraph.frames[2]!.frame.name).toBe('f0');
@@ -336,10 +312,7 @@ describe('flamegraph', () => {
         createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
         {type: 'flamechart'}
       ),
-      {
-        inverted: false,
-        sort: 'left heavy',
-      }
+      {inverted: false, sort: 'left heavy'}
     );
 
     expect(
