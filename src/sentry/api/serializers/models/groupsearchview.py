@@ -12,7 +12,6 @@ from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.groupsearchviewlastvisited import GroupSearchViewLastVisited
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
 from sentry.models.organization import Organization
-from sentry.models.savedsearch import SORT_LITERALS
 from sentry.users.api.serializers.user import UserSerializerResponse
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
@@ -33,7 +32,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
     ]
     name: Annotated[str, ApiDescription("Name of the issue view")]
     query: Annotated[str, ApiDescription("Search query of the issue view")]
-    querySort: Annotated[SORT_LITERALS, ApiDescription("How issues in the view are sorted")]
+    querySort: Annotated[str, ApiDescription("How issues in the view are sorted")]
     projects: Annotated[
         list[int], ApiDescription("IDs of the projects in the view. [-1] means all projects")
     ]
@@ -120,9 +119,7 @@ class GroupSearchViewSerializer(Serializer[GroupSearchViewSerializerResponse]):
             "createdBy": cast(UserSerializerResponse | None, attrs.get("created_by")),
             "name": obj.name,
             "query": obj.query,
-            # Model choices constrain query_sort to SortOptions values, which
-            # exactly match SORT_LITERALS.
-            "querySort": cast(SORT_LITERALS, obj.query_sort),
+            "querySort": obj.query_sort,
             "projects": projects,
             "environments": obj.environments,
             "timeFilters": obj.time_filters,
