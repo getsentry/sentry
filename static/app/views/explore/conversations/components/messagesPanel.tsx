@@ -28,6 +28,7 @@ import {
   callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
+  getConversationSystemPrompt,
   NOT_REPORTED,
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -60,6 +61,11 @@ interface MessagesPanelProps {
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
+   * The transcript of `nodes`, for a caller that already built it. Built here
+   * when omitted.
+   */
+  messages?: ConversationMessage[];
+  /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
    */
@@ -75,8 +81,13 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: messagesProp,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => messagesProp ?? extractMessagesFromNodes(nodes),
+    [messagesProp, nodes]
+  );
+  const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -108,6 +119,11 @@ export function MessagesPanel({
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
+      {systemPrompt && (
+        <MessageRow from="assistant" density="line">
+          <SystemPromptSection systemPrompt={systemPrompt} />
+        </MessageRow>
+      )}
       <TranscriptMessages
         messages={messages}
         nodeMap={nodeMap}
@@ -675,6 +691,43 @@ function ReasoningSection({
     </CollapsibleChatRow>
   );
 }
+
+// Collapsed by default: system prompts are long. Memoized since its only prop
+// is a string, so selection changes never re-render the (possibly long) prompt.
+const SystemPromptSection = memo(function SystemPromptSectionImpl({
+  systemPrompt,
+}: {
+  systemPrompt: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('System prompt')}{' '}
+          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
+        </Text>
+      )}
+      onOpenChange={open =>
+        trackAnalytics('conversations.detail.expand-system-prompt', {
+          organization,
+          expanded: open,
+        })
+      }
+    >
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          {/* Rendered like the span's Input tab: a boxed block that keeps the
+           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
+           * expanding the row already asked to see the whole prompt. */}
+          <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
+        </Container>
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
+  );
+});
 
 /**
  * Links to the docs for the conversation's platform, since the transcript was
