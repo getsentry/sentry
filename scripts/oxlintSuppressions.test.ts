@@ -108,10 +108,12 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   write('.gitignore', 'node_modules/\n.artifacts/\n');
   write('oxlint-suppressions.json', '{}\n');
   mkdirSync(path.join(directory, 'node_modules'));
-  symlinkSync(
-    path.join(root, 'node_modules/oxlint'),
-    path.join(directory, 'node_modules/oxlint')
-  );
+  for (const dependency of ['oxlint', 'oxfmt']) {
+    symlinkSync(
+      path.join(root, 'node_modules', dependency),
+      path.join(directory, 'node_modules', dependency)
+    );
+  }
   const git = (...args: string[]) =>
     execFileSync('git', ['-C', directory, ...args], {encoding: 'utf8'}).trim();
   const env = {...process.env, GITHUB_OUTPUT: '', SENTRY_OXLINT_VERIFIED_BASE: ''};
@@ -645,6 +647,43 @@ test('CI and prune report violations exceeding committed budgets', t => {
     readFileSync(path.join(directory, 'oxlint-suppressions.json'), 'utf8'),
     '{}'
   );
+});
+
+test('prune writes budgets that the format hook leaves unchanged', t => {
+  const {directory, write, lint, commit} = fixture(t);
+  write('.oxfmtrc.json', readFileSync(path.join(root, '.oxfmtrc.json'), 'utf8'));
+  write('pnpm-workspace.yaml', 'packages: []');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-console': 'error', 'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  const long =
+    'src/a-deliberately-long-directory-name/with-a-file-name-past-the-print-width.js';
+  write('short.js', 'debugger;\n');
+  write(long, 'console.log(1);\ndebugger;\n');
+  const budgets = (count: number) =>
+    [
+      '{',
+      `  "short.js": {"no-debugger": {"count": ${count}}},`,
+      `  "${long}": {`,
+      '    "no-console": {"count": 1},',
+      '    "no-debugger": {"count": 1}',
+      '  }',
+      '}',
+      '',
+    ].join('\n');
+  write('oxlint-suppressions.json', budgets(2));
+  commit();
+  const prune = lint('--prune');
+  assert.equal(prune.status, 0, prune.stderr);
+  const asset = path.join(directory, 'oxlint-suppressions.json');
+  assert.equal(readFileSync(asset, 'utf8'), budgets(1));
+  const check = spawnSync(
+    process.execPath,
+    [path.join(root, 'node_modules/oxfmt/bin/oxfmt'), '--check', asset],
+    {cwd: directory, encoding: 'utf8'}
+  );
+  assert.equal(check.status, 0, check.stdout + check.stderr);
 });
 
 test('missing suppression files are empty budgets and maintenance leaves them absent', t => {
