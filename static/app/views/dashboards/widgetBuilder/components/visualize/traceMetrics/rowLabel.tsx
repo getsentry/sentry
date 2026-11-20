@@ -1,3 +1,4 @@
+import {css, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
@@ -6,6 +7,43 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
+
+/**
+ * Box and colors of the letter badge. The same look as Explore's
+ * `VisualizeLabelBadge`, kept in one place so both can share it later.
+ */
+function rowLabelBadgeCss(theme: Theme, muted?: boolean) {
+  return css`
+    flex-shrink: 0;
+    width: 24px;
+    height: 36px;
+    border-radius: ${theme.radius.md};
+    background-color: ${
+      muted
+        ? theme.tokens.background.secondary
+        : theme.tokens.background.transparent.accent.muted
+    };
+  `;
+}
+
+/**
+ * Static letter badge (A, B, ƒ1, ...). Has no behavior of its own.
+ */
+function RowLabelBadge({label, muted}: {label: string; muted?: boolean}) {
+  return (
+    <Badge justify="center" align="center" muted={muted} aria-label={t('Row %s', label)}>
+      <RowLabelText label={label} muted={muted} />
+    </Badge>
+  );
+}
+
+function RowLabelText({label, muted}: {label: string; muted?: boolean}) {
+  return (
+    <Text as="span" bold variant={muted ? 'muted' : 'accent'}>
+      {label}
+    </Text>
+  );
+}
 
 interface RowLabelProps {
   label: string;
@@ -22,42 +60,24 @@ interface RowLabelProps {
 }
 
 /**
- * Letter badge (A, B, ƒ1, ...) shown at the start of a trace metrics visualize
- * row so equations can refer to the row. For rows an equation uses, the badge
- * doubles as the hide / show toggle.
+ * Letter badge at the start of a trace metrics visualize row so equations can
+ * refer to the row. For rows an equation uses, the badge doubles as the hide /
+ * show toggle.
  */
 export function RowLabel({label, hidden, disabled, onToggle}: RowLabelProps) {
-  const text = (
-    <Text as="span" bold variant={hidden ? 'muted' : 'accent'}>
-      {label}
-    </Text>
-  );
-
   if (!onToggle) {
-    return (
-      <LabelBadge
-        justify="center"
-        align="center"
-        width="24px"
-        height="36px"
-        radius="md"
-        flexShrink={0}
-        aria-label={t('Row %s', label)}
-      >
-        {text}
-      </LabelBadge>
-    );
+    return <RowLabelBadge label={label} muted={hidden} />;
   }
 
   return (
     <Tooltip
       title={
         hidden
-          ? t('Only used in an equation. Click to also show it in the chart.')
-          : t('Click to hide this series from the chart. The equation keeps using it.')
+          ? t('Click to show this series in the chart.')
+          : t('Click to hide this series from the chart.')
       }
     >
-      <LabelButton
+      <BadgeButton
         variant="transparent"
         size="zero"
         muted={hidden}
@@ -66,25 +86,18 @@ export function RowLabel({label, hidden, disabled, onToggle}: RowLabelProps) {
         aria-pressed={hidden}
         aria-label={hidden ? t('Show series %s', label) : t('Hide series %s', label)}
       >
-        {text}
-      </LabelButton>
+        <RowLabelText label={label} muted={hidden} />
+      </BadgeButton>
     </Tooltip>
   );
 }
 
-const LabelBadge = styled(Flex)`
-  background-color: ${p => p.theme.tokens.background.transparent.accent.muted};
+const Badge = styled(Flex)<{muted?: boolean}>`
+  ${p => rowLabelBadgeCss(p.theme, p.muted)}
 `;
 
-const LabelButton = styled(Button)<{muted?: boolean}>`
-  flex-shrink: 0;
-  width: 24px;
-  height: 36px;
-  border-radius: ${p => p.theme.radius.md};
-  background-color: ${p =>
-    p.muted
-      ? p.theme.tokens.background.secondary
-      : p.theme.tokens.background.transparent.accent.muted};
+const BadgeButton = styled(Button)<{muted?: boolean}>`
+  ${p => rowLabelBadgeCss(p.theme, p.muted)}
 
   &:hover:not(:disabled) {
     background-color: ${p =>
