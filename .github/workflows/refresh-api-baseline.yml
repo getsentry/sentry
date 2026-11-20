@@ -26,7 +26,7 @@ jobs:
         with:
           persist-credentials: false
 
-      - uses: ./.github/actions/setup-sentry
+      - uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
 
