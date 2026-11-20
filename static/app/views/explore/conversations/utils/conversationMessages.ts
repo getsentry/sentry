@@ -1153,17 +1153,18 @@ export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | 
 
 /**
  * Whether the SDK captured any message content, as opposed to a transcript of
- * `NOT_REPORTED` placeholders or no transcript at all. Evaluations,
- * extractions and memory operations don't count: they render without content.
+ * `NOT_REPORTED` placeholders or no transcript at all. Only user and
+ * assistant turns count: a conversation of embeddings, evaluations,
+ * extractions or memory operations has no exchange to read, so the timeline
+ * shows it better.
  */
 export function hasCapturedMessageContent(messages: ConversationMessage[]): boolean {
   const isCaptured = (text: string | undefined) => Boolean(text) && text !== NOT_REPORTED;
   return someMessageDeep(
     messages,
     message =>
-      message.role === 'embedding' ||
-      ((message.role === 'user' || message.role === 'assistant') &&
-        (isCaptured(message.content) || isCaptured(message.reasoning)))
+      (message.role === 'user' || message.role === 'assistant') &&
+      (isCaptured(message.content) || isCaptured(message.reasoning))
   );
 }
 

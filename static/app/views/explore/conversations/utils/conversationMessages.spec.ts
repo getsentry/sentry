@@ -2699,4 +2699,29 @@ describe('hasCapturedMessageContent', () => {
   it('is false without any messages', () => {
     expect(hasCapturedMessageContent([])).toBe(false);
   });
+
+  it('is false when only embeddings were captured', () => {
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+    ] as any);
+    expect(messages.some(message => message.role === 'embedding')).toBe(true);
+    expect(hasCapturedMessageContent(messages)).toBe(false);
+  });
+
+  it('is true when an LLM call captured its messages alongside embeddings', () => {
+    const llmCall = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hi'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hello',
+      },
+    });
+    const messages = extractMessagesFromNodes([
+      createMockEmbeddingNode({id: 'embed-1'}),
+      llmCall,
+    ] as any);
+    expect(hasCapturedMessageContent(messages)).toBe(true);
+  });
 });
