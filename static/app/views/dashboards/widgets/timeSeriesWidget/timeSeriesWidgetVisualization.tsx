@@ -75,6 +75,10 @@ import {assignPlottablesToYAxes} from './assignPlottablesToYAxes';
 import {createReleaseSeriesOptions} from './createReleaseSeriesOptions';
 import {createTimeSeriesWidgetYAxisOptions} from './createTimeSeriesWidgetYAxisOptions';
 import {generateTimezoneAlignedTicks} from './generateTimezoneAlignedTicks';
+import {
+  createLowConfidenceBackgroundSeries,
+  getLowConfidenceRanges,
+} from './lowConfidenceBackground';
 import {FALLBACK_TYPE} from './settings';
 
 const {warn} = Sentry.logger;
@@ -738,10 +742,31 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     {}
   );
 
+  // Series hidden from the legend don't hatch the background
+  const lowConfidenceRanges =
+    segmentBy.includes('confidence') &&
+    defined(earliestTimeStamp) &&
+    defined(latestTimeStamp)
+      ? getLowConfidenceRanges(
+          props.plottables.filter(
+            plottable => normalizedLegendSelection[plottable.name] !== false
+          ),
+          {start: earliestTimeStamp, end: latestTimeStamp}
+        )
+      : [];
+
+  const lowConfidenceBackgroundSeries =
+    lowConfidenceRanges.length > 0
+      ? createLowConfidenceBackgroundSeries(lowConfidenceRanges, theme)
+      : null;
+
+  // Plottable series come first, so `seriesIndexToPlottableRangeMap` indexes
+  // still line up
   const allSeries = [
     ...seriesFromPlottables,
     releaseSeries,
     annotationMarkerSeries,
+    lowConfidenceBackgroundSeries,
   ].filter(defined);
 
   const runHandler = (

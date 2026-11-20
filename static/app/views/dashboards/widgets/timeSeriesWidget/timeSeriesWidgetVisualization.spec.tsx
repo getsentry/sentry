@@ -1,4 +1,5 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -13,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Line} from './plottables/line';
+import {LOW_CONFIDENCE_BACKGROUND_SERIES_ID} from './lowConfidenceBackground';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 jest.mock('sentry/components/charts/baseChart', () => {
@@ -145,5 +147,59 @@ describe('TimeSeriesWidgetVisualization', () => {
     expect(fromAnnotations).toBe(fromDroppedData);
     expect(fromAnnotations).toContain('Dropped Spans');
     expect(fromAnnotations).toContain('Releases');
+  });
+
+  describe('low confidence background', () => {
+    const lowConfidenceTimeSeries = {
+      ...sampleDurationTimeSeries,
+      values: sampleDurationTimeSeries.values.map((item, index) => ({
+        ...item,
+        confidence: index === 3 || index === 4 ? ('low' as const) : ('high' as const),
+      })),
+    };
+    const lowConfidencePlottables = [
+      new Line(lowConfidenceTimeSeries),
+      new Line(sampleThroughputTimeSeries),
+    ];
+    const confidenceOrganization = OrganizationFixture({
+      features: ['data-browsing-time-series-confidence'],
+    });
+
+    function getBackgroundSeries() {
+      const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
+      return series?.find(({id}) => id === LOW_CONFIDENCE_BACKGROUND_SERIES_ID);
+    }
+
+    it('hatches the merged low confidence buckets', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
+        organization: confidenceOrganization,
+      });
+
+      const {interval} = lowConfidenceTimeSeries.meta;
+      expect(getBackgroundSeries()?.data).toEqual([
+        [
+          lowConfidenceTimeSeries.values[3]!.timestamp - interval / 2,
+          lowConfidenceTimeSeries.values[4]!.timestamp + interval / 2,
+        ],
+      ]);
+    });
+
+    it('skips series hidden from the legend', () => {
+      render(
+        <TimeSeriesWidgetVisualization
+          plottables={lowConfidencePlottables}
+          legendSelection={{[lowConfidencePlottables[0]!.name]: false}}
+        />,
+        {organization: confidenceOrganization}
+      );
+
+      expect(getBackgroundSeries()).toBeUndefined();
+    });
+
+    it('needs the time series confidence feature', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
+
+      expect(getBackgroundSeries()).toBeUndefined();
+    });
   });
 });
