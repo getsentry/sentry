@@ -8,10 +8,6 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
-  CodingAgentProvider,
-  CodingAgentStatus,
-} from 'sentry/components/events/autofix/types';
-import {
   useExplorerAutofix,
   type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
@@ -559,7 +555,8 @@ describe('SeerDrawerContent', () => {
         expect(stoppedRunCheck).not.toHaveBeenCalled();
       });
 
-      it('shows the continue alert after a hand-off to a coding agent', async () => {
+      it('shows the continue alert for a new run after a PR opened from it', async () => {
+        // Only a new run is mocked, so checking PR feedback shows no alert.
         mockCreditCheck('autofix_root_cause');
 
         render(
@@ -569,15 +566,7 @@ describe('SeerDrawerContent', () => {
               runState: {
                 ...stoppedSingleRun,
                 blocks: [requestBlock, rootCauseBlock],
-                coding_agents: {
-                  'agent-1': {
-                    id: 'agent-1',
-                    name: 'Fix the division',
-                    provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-                    started_at: '2026-01-01T00:00:00Z',
-                    status: CodingAgentStatus.RUNNING,
-                  },
-                },
+                repo_pr_states: {'org/repository': AutofixRepoPRStateFixture()},
               },
             })}
             group={GroupFixture()}
