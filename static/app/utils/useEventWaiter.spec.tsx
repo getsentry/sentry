@@ -72,6 +72,40 @@ describe('useEventWaiter', () => {
     jest.useRealTimers();
   });
 
+  it('resolves the nearest issue when firstSeen does not match firstEvent exactly', async () => {
+    const org = OrganizationFixture();
+    const project = ProjectFixture({firstEvent: '2019-05-01T00:00:00.123456Z'});
+    const issues = [
+      {id: 1, firstSeen: '2019-05-01T01:00:00Z'},
+      {id: 2, firstSeen: '2019-05-01T00:00:00Z'},
+    ];
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/`,
+      method: 'GET',
+      body: project,
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${org.slug}/${project.slug}/issues/`,
+      method: 'GET',
+      body: issues,
+    });
+
+    const {result} = renderHookWithProviders(
+      () =>
+        useEventWaiter({
+          eventType: 'error',
+          organization: org,
+          project,
+        }),
+      {organization: org}
+    );
+
+    await waitFor(() => {
+      expect(result.current).toEqual(issues[1]);
+    });
+  });
+
   it('returns true when first event has expired (no matching issue)', async () => {
     const org = OrganizationFixture();
     const project = ProjectFixture({firstEvent: '2019-05-01T00:00:00.000Z'});
