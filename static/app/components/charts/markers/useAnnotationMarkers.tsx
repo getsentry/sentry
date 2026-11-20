@@ -3,6 +3,9 @@ import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
 import sortedLastIndex from 'lodash/sortedLastIndex';
 
+import {useTimezone} from '@sentry/scraps/dateTime';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
 import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {
@@ -11,16 +14,22 @@ import {
   type BandElement,
   type CartesianCoordSys,
 } from 'sentry/components/charts/bands/bandShapes';
+import {itemTooltipBelowAnchor} from 'sentry/components/charts/bands/bandTooltip';
 import {
   bucketAnnotations,
   type AnnotationBucket,
 } from 'sentry/components/charts/bands/bucketAnnotations';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+
+import {AnnotationMarkerTooltip} from './annotationMarkerTooltip';
 
 const ANNOTATION_MARKERS_SERIES_ID = '__annotation_markers__';
 
 const CIRCLE_RADIUS = 3;
+const HOVERED_CIRCLE_RADIUS = 5;
 const LINE_DASH = [2, 2];
+const LINE_HOVER_WIDTH = 9;
 const RANGE_LINE_WIDTH = 2;
 
 interface AnnotationMarkerItem extends AnnotationBucket {
@@ -98,16 +107,24 @@ function annotationMarkerRenderItem(
       const endX = Number.isFinite(bucket.rangeEnd)
         ? api.coord([bucket.rangeEnd, 0])[0]
         : undefined;
-      children.push({
-        type: 'line',
-        shape: {
-          x1: x,
-          y1: plot.y,
-          x2: Math.min(endX ?? plotRight, plotRight),
-          y2: plot.y,
+      const rangeRight = Math.min(endX ?? plotRight, plotRight);
+      children.push(
+        {
+          type: 'line',
+          shape: {x1: x, y1: plot.y, x2: rangeRight, y2: plot.y},
+          style: {stroke: color, lineWidth: RANGE_LINE_WIDTH},
         },
-        style: {stroke: color, lineWidth: RANGE_LINE_WIDTH},
-      });
+        {
+          type: 'rect',
+          shape: {
+            x,
+            y: plot.y - LINE_HOVER_WIDTH / 2,
+            width: rangeRight - x,
+            height: LINE_HOVER_WIDTH,
+          },
+          style: {fill: 'transparent'},
+        }
+      );
     }
 
     if (!bucket.startsBeforeWindow) {
@@ -116,11 +133,28 @@ function annotationMarkerRenderItem(
           type: 'line',
           shape: {x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height},
           style: {stroke: color, lineWidth: 1, lineDash: LINE_DASH},
+          emphasis: {style: {lineDash: 'solid'}},
         },
         {
           type: 'circle',
           shape: {cx: x, cy: plot.y, r: CIRCLE_RADIUS},
           style: {fill: color},
+          emphasis: {
+            style: {
+              stroke: color,
+              lineWidth: (HOVERED_CIRCLE_RADIUS - CIRCLE_RADIUS) * 2,
+            },
+          },
+        },
+        {
+          type: 'rect',
+          shape: {
+            x: x - LINE_HOVER_WIDTH / 2,
+            y: plot.y,
+            width: LINE_HOVER_WIDTH,
+            height: plot.height,
+          },
+          style: {fill: 'transparent'},
         }
       );
     }
@@ -131,7 +165,9 @@ function annotationMarkerRenderItem(
 
 interface UseAnnotationMarkersParams {
   buckets: BandBucket[];
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   items?: readonly AnnotationItem[];
+  utc?: boolean | null;
 }
 
 /**
@@ -139,13 +175,20 @@ interface UseAnnotationMarkersParams {
  * center of every chart bucket that has a severe annotation. When a severe
  * annotation covers a range that ends in a later bucket, a solid line runs
  * along the top of the plot to the center of that bucket. Ranges that started
- * before the first bucket only get that line, from the left edge.
+ * before the first bucket only get that line, from the left edge. Hovering a
+ * marker turns its dotted line solid, grows its circle, and opens a tooltip
+ * under the pointer.
  */
 export function useAnnotationMarkers({
   buckets,
+  chartRef,
   items,
+  utc,
 }: UseAnnotationMarkersParams): CustomSeriesOption | null {
   const theme = useTheme();
+  const renderToString = useRenderToString();
+  const userTimezone = useTimezone();
+  const timezone = utc ? 'UTC' : userTimezone;
 
   return useMemo(() => {
     const starts = buckets.map(bucket => bucket.start);
@@ -180,10 +223,20 @@ export function useAnnotationMarkers({
       color: theme.tokens.dataviz.semantic.bad,
       z: BAND_Z - 1,
       clip: false,
-      silent: true,
-      tooltip: {show: false},
+      tooltip: itemTooltipBelowAnchor(
+        chartRef,
+        point => ({x: point[0], bottom: point[1]}),
+        dataIndex => {
+          const marker = data[dataIndex];
+          return marker
+            ? renderToString(
+                <AnnotationMarkerTooltip items={marker.items} timezone={timezone} />
+              )
+            : '';
+        }
+      ),
       animation: false,
       legendHoverLink: false,
     };
-  }, [buckets, items, theme]);
+  }, [buckets, chartRef, items, renderToString, theme, timezone]);
 }

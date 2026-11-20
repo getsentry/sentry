@@ -115,6 +115,7 @@ describe('useChartLayers', () => {
       kind: 'flag',
       start: new Date('2026-11-03T13:00:00Z').getTime(),
       title: 'new-checkout',
+      action: 'updated',
     };
 
     let flagLogRequest: jest.Mock;

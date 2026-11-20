@@ -3,14 +3,18 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
 } from 'echarts';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 import {useAnnotationMarkers} from './useAnnotationMarkers';
 
 const MINUTE = 60_000;
+
+const chartRef = {current: null};
 
 const buckets = Array.from({length: 10}, (_, index) => ({
   start: index * MINUTE,
@@ -35,7 +39,9 @@ const params = {
 } as unknown as CustomSeriesRenderItemParams;
 
 function renderMarkers(items: AnnotationItem[]) {
-  const {result} = renderHookWithProviders(() => useAnnotationMarkers({buckets, items}));
+  const {result} = renderHookWithProviders(() =>
+    useAnnotationMarkers({buckets, chartRef, items})
+  );
   const series = result.current;
   if (!series || typeof series.renderItem !== 'function') {
     throw new Error('Expected the marker series to render items');
@@ -49,10 +55,14 @@ function renderMarkers(items: AnnotationItem[]) {
 }
 
 describe('useAnnotationMarkers', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
   it('returns no markers without severe annotations', () => {
     const {result} = renderHookWithProviders(() =>
       useAnnotationMarkers({
         buckets,
+        chartRef,
         items: [
           {id: '1.0.0', kind: 'release', start: MINUTE, title: '1.0.0'},
           change('medium', 2 * MINUTE, 'medium'),
@@ -77,10 +87,11 @@ describe('useAnnotationMarkers', () => {
       children: [
         {type: 'line', shape: {x1: 120, y1: 10, x2: 120, y2: 210}},
         {type: 'circle', shape: {cx: 120, cy: 10}},
+        {type: 'rect'},
       ],
     });
     expect(markers[1]).toMatchObject({
-      children: [{shape: {x1: 300}}, {shape: {cx: 300}}],
+      children: [{shape: {x1: 300}}, {shape: {cx: 300}}, {type: 'rect'}],
     });
   });
 
@@ -92,8 +103,10 @@ describe('useAnnotationMarkers', () => {
     expect(range).toMatchObject({
       children: [
         {type: 'line', shape: {x1: 120, y1: 10, x2: 300, y2: 10}},
+        {type: 'rect'},
         {type: 'line', shape: {x1: 120, x2: 120}},
         {type: 'circle'},
+        {type: 'rect'},
       ],
     });
   });
@@ -101,7 +114,9 @@ describe('useAnnotationMarkers', () => {
   it('runs ongoing ranges to the right edge of the plot', () => {
     const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, 'high', 'ongoing')]);
 
-    expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}]});
+    expect(ongoing).toMatchObject({
+      children: [{shape: {x1: 120, x2: 600}}, {}, {}, {}, {}],
+    });
   });
 
   it('draws only the line from the left edge for ranges that started before the chart', () => {
@@ -110,7 +125,10 @@ describe('useAnnotationMarkers', () => {
     ]);
 
     expect(earlier).toMatchObject({
-      children: [{type: 'line', shape: {x1: 0, y1: 10, x2: 180, y2: 10}}],
+      children: [
+        {type: 'line', shape: {x1: 0, y1: 10, x2: 180, y2: 10}},
+        {type: 'rect', shape: {x: 0, width: 180}},
+      ],
     });
   });
 
@@ -121,6 +139,40 @@ describe('useAnnotationMarkers', () => {
       change('point', 2 * MINUTE + 20_000, 'high'),
     ]);
 
-    expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}]});
+    expect(merged).toMatchObject({
+      children: [{shape: {x1: 120, x2: 360}}, {}, {}, {}, {}],
+    });
+  });
+
+  it('shows the annotations of the hovered marker in its tooltip', async () => {
+    const ele = document.createElement('div');
+    const querySelector = document.querySelector.bind(document);
+    jest
+      .spyOn(document, 'querySelector')
+      .mockImplementation(selector =>
+        selector === '.echarts-for-react:hover' ? ele : querySelector(selector)
+      );
+    const hoveredChartRef = {current: {ele} as unknown as ReactEchartsRef};
+
+    const {result} = renderHookWithProviders(() =>
+      useAnnotationMarkers({
+        buckets,
+        chartRef: hoveredChartRef,
+        items: [
+          change('outage', 2 * MINUTE, 'high'),
+          change('cluster', 5 * MINUTE, 'high'),
+        ],
+        utc: true,
+      })
+    );
+    const formatter = result.current?.tooltip?.formatter as (
+      params: CallbackDataParams
+    ) => string;
+
+    const tooltip = document.createElement('div');
+    tooltip.innerHTML = await act(() => formatter({dataIndex: 1} as CallbackDataParams));
+
+    expect(tooltip).toHaveTextContent('cluster');
+    expect(tooltip).not.toHaveTextContent('outage');
   });
 });
