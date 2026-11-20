@@ -39,7 +39,7 @@ const KIND_ICONS: Record<CitationKind, ComponentType<SVGIconProps>> = {
   external: IconLink,
 };
 
-function citationKindLabel(kind: CitationKind): string {
+export function citationKindLabel(kind: CitationKind): string {
   switch (kind) {
     case 'issue':
       return t('Issue');

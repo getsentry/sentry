@@ -22,7 +22,7 @@ const STORY_TAG_KEYS = ['browser', 'os', 'device', 'release', 'url', 'environmen
 /** How many keys the multi-tag variant asks for. */
 const STORY_TAG_KEY_COUNT = 3;
 
-function recentIssueApiOptions(organizationSlug: string) {
+export function recentIssueApiOptions(organizationSlug: string) {
   return apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
     path: {organizationIdOrSlug: organizationSlug},
     query: {

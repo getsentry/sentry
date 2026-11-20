@@ -22,27 +22,30 @@ function asNonEmptyString(value: unknown): string | undefined {
   return typeof value === 'string' && value ? value : undefined;
 }
 
+/** The most recent profiled transaction, for stories that need a real profile. */
+export function recentProfileApiOptions(organizationSlug: string) {
+  return apiOptions.as<EventsResults<ProfileField>>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
+      path: {organizationIdOrSlug: organizationSlug},
+      query: {
+        dataset: 'spans',
+        referrer: 'api.profiling.landing-table',
+        project: [-1],
+        statsPeriod: '14d',
+        field: ['profile.id', 'project.name', 'timestamp'],
+        query: PROFILE_QUERY,
+        sort: '-timestamp',
+        per_page: 1,
+      },
+      staleTime: 30_000,
+    }
+  );
+}
+
 export function ProfileEmbedStory() {
   const organization = useOrganization();
-  const {data, isError, isPending} = useQuery(
-    apiOptions.as<EventsResults<ProfileField>>()(
-      '/organizations/$organizationIdOrSlug/events/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {
-          dataset: 'spans',
-          referrer: 'api.profiling.landing-table',
-          project: [-1],
-          statsPeriod: '14d',
-          field: ['profile.id', 'project.name', 'timestamp'],
-          query: PROFILE_QUERY,
-          sort: '-timestamp',
-          per_page: 1,
-        },
-        staleTime: 30_000,
-      }
-    )
-  );
+  const {data, isError, isPending} = useQuery(recentProfileApiOptions(organization.slug));
 
   const row = data?.data?.[0];
   const profileId = asNonEmptyString(row?.['profile.id']);

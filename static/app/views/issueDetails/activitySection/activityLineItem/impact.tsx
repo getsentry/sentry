@@ -103,7 +103,7 @@ function ImpactActivityDetails({
   );
 }
 
-function ImpactClaims({
+export function ImpactClaims({
   claims,
   citationsById,
 }: {
