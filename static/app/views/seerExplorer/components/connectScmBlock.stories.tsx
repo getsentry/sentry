@@ -74,6 +74,7 @@ function Example({
   status,
   connectedAccounts = [],
   asMember = false,
+  repoName = 'acme-labs/app',
 }: {
   failureReason: string;
   /** Null to keep the check from ever answering. */
@@ -81,14 +82,16 @@ function Example({
   /** Show it to someone who can't install integrations. */
   asMember?: boolean;
   connectedAccounts?: string[];
+  /** Null for a list of repos that came back empty. */
+  repoName?: string | null;
 }) {
   const [queryClient] = useState(
     () => new RepoAccessQueryClient(status ? {status, connectedAccounts} : null)
   );
   const pendingInput: PendingUserInput = {
-    id: `story-${failureReason}-${status}`,
+    id: `story-${failureReason}-${status}-${repoName}`,
     input_type: 'connect_scm',
-    data: {repo_name: 'acme-labs/app', failure_reason: failureReason},
+    data: {repo_name: repoName, failure_reason: failureReason},
   };
 
   const organization = useOrganization();
@@ -166,5 +169,27 @@ export default Storybook.story('ConnectScmBlock', story => {
 
   story('Fixed, waiting for the user to try again', () => (
     <Example failureReason="repo_not_in_sentry" status="found" />
+  ));
+
+  // A list of repos came back empty because no source control is connected: there's no repo.
+  story('No repos, no source control connected', () => (
+    <Example
+      failureReason="no_scm_integration"
+      status="no_scm_integration"
+      repoName={null}
+    />
+  ));
+
+  story('No repos, a member', () => (
+    <Example
+      failureReason="no_scm_integration"
+      status="no_scm_integration"
+      repoName={null}
+      asMember
+    />
+  ));
+
+  story('No repos, source control now connected', () => (
+    <Example failureReason="no_scm_integration" status="found" repoName={null} />
   ));
 });

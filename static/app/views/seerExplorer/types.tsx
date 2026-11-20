@@ -253,7 +253,11 @@ export type PendingUserInput = {
 
 export interface ConnectScmData {
   failure_reason: string;
-  repo_name: string;
+  /**
+   * The repo a call couldn't open. Null when a list of repos came back empty because no source
+   * control is connected.
+   */
+  repo_name: string | null;
 }
 
 export interface ReauthMonitoringProviderData {
