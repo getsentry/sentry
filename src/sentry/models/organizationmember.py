@@ -24,7 +24,7 @@ from django.utils.translation import gettext_lazy as _
 from structlog import get_logger
 
 from bitfield.models import typed_dict_bitfield
-from sentry import features, roles
+from sentry import features, options, roles
 from sentry.backup.dependencies import NormalizedModelName, PrimaryKeyMap
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.scopes import ImportScope, RelocationScope
@@ -287,6 +287,34 @@ class OrganizationMember(ReplicatedCellModel):
                 using=using,
                 update_fields=update_fields,
             )
+
+    @property
+    def default_flush(self) -> bool | None:  # type: ignore[override]
+        # Only used when no caller passed a flag to an enclosing outbox_context.
+        return self._replication_flush()
+
+    def save_role(self, role: str) -> None:
+        """Saves a role change. Changes to or from owner replicate to control right away,
+        since control reads the owner role from the member mapping."""
+        top_dog = organization_roles.get_top_dog().id
+        owner_change = self.role != role and top_dog in (self.role, role)
+        self.role = role
+        with outbox_context(
+            transaction.atomic(router.db_for_write(OrganizationMember)),
+            flush=True if owner_change else None,
+        ):
+            self.save()
+
+    def _replication_flush(self) -> bool | None:
+        """Async unless control needs the new row right away. Callers that change user_id
+        or the owner role on an existing member pass flush=True themselves."""
+        if not options.get("hybridcloud.outbox.organization_member_async_replication.enabled"):
+            return None
+        if self._state.adding and (
+            self.user_id is not None or self.role == organization_roles.get_top_dog().id
+        ):
+            return None
+        return False
 
     def refresh_from_db(
         self,

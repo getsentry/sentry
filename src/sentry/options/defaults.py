@@ -3000,6 +3000,13 @@ register(
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Replicate OrganizationMember writes to control asynchronously, except where control
+# needs the change right away.
+register(
+    "hybridcloud.outbox.organization_member_async_replication.enabled",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 # Break glass controls
 register(
     "hybrid_cloud.rpc.disabled-service-methods",
