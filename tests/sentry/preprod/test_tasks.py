@@ -34,6 +34,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
 from tests.sentry.tasks.test_assemble import BaseAssembleTest
 
@@ -466,6 +467,25 @@ class CreatePreprodArtifactTest(TestCase):
 
         assert artifact is not None
         assert artifact.commit_comparison is None
+
+    @freeze_time("2026-01-01T00:00:00Z")
+    def test_create_preprod_artifact_stamps_expiry_from_current_retention(self) -> None:
+        retention = {DataCategory.SIZE_ANALYSIS: 30, DataCategory.INSTALLABLE_BUILD: 396}
+
+        with patch(
+            "sentry.quotas.backend.get_event_retention",
+            side_effect=lambda organization, category: retention[category],
+        ):
+            artifact = create_preprod_artifact(
+                org_id=self.organization.id,
+                project_id=self.project.id,
+                checksum=sha1(b"test expiry").hexdigest(),
+            )
+
+        assert artifact is not None
+        artifact.refresh_from_db()
+        assert artifact.date_expires == artifact.date_added + timedelta(days=396)
+        assert artifact.date_size_analysis_expires == artifact.date_added + timedelta(days=30)
 
     def test_create_preprod_artifact_succeeds_with_both_quotas_available(self) -> None:
         """Test that create_preprod_artifact succeeds when both quotas are available"""
