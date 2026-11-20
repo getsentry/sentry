@@ -413,12 +413,15 @@ def main(argv: list[str] | None = None, root: Path = _REPO_ROOT) -> int:
     # rescans nothing. The lines come from the current code, not from an older --compare file
     to_locate: list[Entry] = []
     if args.team:
-        to_locate += _owned_by(entries, args.team)
+        to_locate += entries
     if older is not None:
         added, _removed, changed = diff_entries(file_entries(older), entries)
         to_locate += added
         for _old, new in changed:
             to_locate.append(new)
+    # format_changes only prints the team's entries, so other teams' files don't need a rescan
+    if args.team:
+        to_locate = _owned_by(to_locate, args.team)
     lines = find_lines(to_locate, root)
 
     if args.team:
