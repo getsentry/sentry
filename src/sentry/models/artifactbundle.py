@@ -7,6 +7,7 @@ import tempfile
 import zipfile
 from collections.abc import Callable, Mapping
 from contextlib import ExitStack
+from datetime import timedelta
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
@@ -18,6 +19,7 @@ from objectstore_client import Session
 from symbolic.debuginfo import normalize_debug_id
 from symbolic.exceptions import SymbolicError
 
+from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -39,6 +41,10 @@ NULL_STRING = ""
 MAX_SOURCE_FILE_SIZE = 1024 * 1024 * 1024
 
 logger = logging.getLogger(__name__)
+
+
+def artifact_bundle_retention() -> timedelta:
+    return timedelta(days=90 + options.get("system.debug-files-renewal-age-threshold-days"))
 
 
 class SourceFileType(Enum):

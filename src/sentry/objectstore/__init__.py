@@ -53,10 +53,6 @@ def default_attachment_retention() -> int:
     return int(options.get("system.event-retention-days") or 0) or 30
 
 
-def artifact_bundle_retention() -> timedelta:
-    return timedelta(days=90 + options.get("system.debug-files-renewal-age-threshold-days"))
-
-
 class SentryMetricsBackend(MetricsBackend):
     def increment(
         self,
@@ -123,6 +119,8 @@ class UsecaseId(Enum):
                     expiration_policy=TimeToLive(timedelta(days=default_attachment_retention())),
                 )
             case UsecaseId.ARTIFACT_BUNDLES:
+                from sentry.models.artifactbundle import artifact_bundle_retention
+
                 return ObjectstoreClientUsecase(
                     self.value, expiration_policy=TimeToIdle(artifact_bundle_retention())
                 )
