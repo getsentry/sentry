@@ -29,7 +29,7 @@ describe('HomePage project search', () => {
     const {router} = renderHomePage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByRole('textbox', {name: 'Projects (by ID)'}), '123');
+    await user.type(screen.getByRole('combobox', {name: 'Projects (by ID)'}), '123');
 
     expect(await screen.findByText('my-org')).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledWith(
@@ -53,7 +53,7 @@ describe('HomePage project search', () => {
     renderHomePage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByRole('textbox', {name: 'Projects (by ID)'}), 'id:123');
+    await user.type(screen.getByRole('combobox', {name: 'Projects (by ID)'}), 'id:123');
 
     expect(await screen.findByText('my-org')).toBeInTheDocument();
     expect(projectsMock).toHaveBeenCalledWith(
@@ -71,7 +71,7 @@ describe('HomePage project search', () => {
     renderHomePage();
     const user = userEvent.setup();
 
-    await user.type(screen.getByRole('textbox', {name: 'Projects (by ID)'}), 'my-proj');
+    await user.type(screen.getByRole('combobox', {name: 'Projects (by ID)'}), 'my-proj');
 
     expect(await screen.findByText('No results found')).toBeInTheDocument();
     expect(projectsMock).not.toHaveBeenCalled();

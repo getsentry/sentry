@@ -97,7 +97,7 @@ describe('GcpCustomerConfigStep', () => {
       'gcp-sentry@my-project.iam.gserviceaccount.com'
     );
 
-    const projectIds = screen.getByRole('textbox', {name: 'GCP Project IDs'});
+    const projectIds = screen.getByRole('combobox', {name: 'GCP Project IDs'});
     await userEvent.type(projectIds, 'my-project-prod{Enter}');
     await userEvent.type(projectIds, 'my-project-staging{Enter}');
 
@@ -119,7 +119,7 @@ describe('GcpCustomerConfigStep', () => {
       'gcp-sentry@my-project.iam.gserviceaccount.com'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      screen.getByRole('combobox', {name: 'GCP Project IDs'}),
       'INVALID{Enter}'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
@@ -142,7 +142,7 @@ describe('GcpCustomerConfigStep', () => {
       'gcp-sentry@my-project.iam.gserviceaccount.com'
     );
     await userEvent.type(
-      screen.getByRole('textbox', {name: 'GCP Project IDs'}),
+      screen.getByRole('combobox', {name: 'GCP Project IDs'}),
       'my-project-prod {Enter}'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Continue'}));

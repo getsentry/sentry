@@ -44,7 +44,7 @@ describe('Event flamegraph', () => {
     expect(await screen.findByRole('region', {name: 'Flamegraph'})).toBeInTheDocument();
     expect(await screen.findByText('10 samples')).toBeInTheDocument();
     expect(screen.getByRole('img', {name: 'Flamegraph for Tree 1'})).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Call tree'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Call tree'}));
     await userEvent.click(screen.getByText('Tree 2 · Thread 7'));
     expect(await screen.findByText('3 samples')).toBeInTheDocument();
   });
@@ -137,7 +137,7 @@ describe('Event flamegraph', () => {
     });
     render(<EventFlamegraph event={event} project={project} />, {organization});
     expect(await screen.findByText('10 samples')).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('textbox', {name: 'Flamegraph attachment'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Flamegraph attachment'}));
     await userEvent.click(screen.getByText('second.json'));
     expect(await screen.findByText('2 samples')).toBeInTheDocument();
   });

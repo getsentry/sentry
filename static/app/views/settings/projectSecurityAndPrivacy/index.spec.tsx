@@ -18,7 +18,7 @@ describe('projectSecurityAndPrivacy', () => {
 
     // Store Minidumps As Attachments
     expect(
-      screen.getByRole('textbox', {name: 'Store Minidumps As Attachments'})
+      screen.getByRole('combobox', {name: 'Store Minidumps As Attachments'})
     ).not.toHaveValue();
     expect(screen.getByText(/Inherit organization settings/)).toBeInTheDocument();
 

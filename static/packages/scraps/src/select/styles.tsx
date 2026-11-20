@@ -50,12 +50,7 @@ export function getSelectStyles(
     focused,
     hasChips,
     searchable,
-  }: {
-    focused: boolean;
-    hasChips: boolean;
-    searchable: boolean;
-    disabled?: boolean;
-  }
+  }: {focused: boolean; hasChips: boolean; searchable: boolean; disabled?: boolean}
 ) {
   const border = theme.tokens.border.primary;
   const background = theme.tokens.interactive.chonky.debossed.neutral;

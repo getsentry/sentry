@@ -44,13 +44,13 @@ describe('SentryAppDetailsModal', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Select what category best describes your integration. Documentation for reference.',
       })
     ).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Select what category best describes your integration. Documentation for reference.',
       })
     );
@@ -115,7 +115,7 @@ describe('SentryAppDetailsModal', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Select what category best describes your integration. Documentation for reference.',
       })
     );
@@ -196,11 +196,11 @@ describe('SentryAppDetailsModal', () => {
     );
 
     expect(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: /Select what category best describes your integration/,
       })
     ).toBeInTheDocument();
-    const categorySelect = screen.getByRole('textbox', {
+    const categorySelect = screen.getByRole('combobox', {
       name: /Select what category best describes your integration/,
     });
     await userEvent.click(categorySelect);
@@ -247,7 +247,7 @@ describe('SentryAppDetailsModal', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Select what category best describes your integration. Documentation for reference.',
       })
     );
@@ -348,7 +348,7 @@ describe('SentryAppDetailsModal', () => {
     );
 
     await userEvent.click(
-      screen.getByRole('textbox', {
+      screen.getByRole('combobox', {
         name: 'Select what category best describes your integration. Documentation for reference.',
       })
     );

@@ -287,7 +287,7 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       await selectByLabel('apdex(\u2026)', {name: 'field', at: 0});
 
-      expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
+      expect(screen.getByRole('textbox')).toHaveValue('300');
       await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
 
       await waitFor(() => {
@@ -301,7 +301,7 @@ describe('Discover -> ColumnEditModal', () => {
       mountModal({columns: [columns[0]!], onApply, customMeasurements: {}}, initialData);
       await selectByLabel('apdex(…)', {name: 'field', at: 0});
 
-      expect(screen.getAllByRole('textbox')[1]).toHaveValue('300');
+      expect(screen.getByRole('textbox')).toHaveValue('300');
     });
 
     it('clears unused parameters', async () => {
@@ -416,7 +416,7 @@ describe('Discover -> ColumnEditModal', () => {
         initialData
       );
 
-      const input = screen.getAllByRole('textbox')[2]!; // The numeric input
+      const input = screen.getByRole('textbox');
       expect(input).toHaveValue(initialColumnVal);
       await userEvent.clear(input);
       await userEvent.click(document.body); // Unfocusing the input should revert it to the previous value

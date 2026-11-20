@@ -338,7 +338,7 @@ describe('ProjectSeer', () => {
     render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
     // Find the select menu
-    const select = await screen.findByRole('textbox', {name: /Auto-Trigger Fixes/i});
+    const select = await screen.findByRole('combobox', {name: /Auto-Trigger Fixes/i});
 
     act(() => {
       select.focus();
@@ -420,7 +420,7 @@ describe('ProjectSeer', () => {
     render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
     // Find the select menu for Where should Seer stop?
-    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
+    const select = await screen.findByRole('combobox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -604,7 +604,7 @@ describe('ProjectSeer', () => {
     });
 
     // Find the select menu for Where should Seer stop?
-    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
+    const select = await screen.findByRole('combobox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -694,7 +694,7 @@ describe('ProjectSeer', () => {
 
     render(<ProjectSeer />, {organization, outletContext: {project: initialProject}});
 
-    const select = await screen.findByRole('textbox', {name: /Where should Seer stop/i});
+    const select = await screen.findByRole('combobox', {name: /Where should Seer stop/i});
 
     act(() => {
       select.focus();
@@ -1081,7 +1081,7 @@ describe('ProjectSeer', () => {
         ],
       });
 
-      const select = await screen.findByRole('textbox', {
+      const select = await screen.findByRole('combobox', {
         name: /Where should Seer stop/i,
       });
       await userEvent.click(select);
@@ -1192,7 +1192,7 @@ describe('ProjectSeer', () => {
       });
 
       // The integration selector should be visible with multiple integrations
-      const integrationSelect = await screen.findByRole('textbox', {
+      const integrationSelect = await screen.findByRole('combobox', {
         name: /Select Configuration/i,
       });
       expect(integrationSelect).toBeInTheDocument();
@@ -1308,7 +1308,7 @@ describe('ProjectSeer', () => {
       });
 
       // Find and click the integration selector
-      const integrationSelect = await screen.findByRole('textbox', {
+      const integrationSelect = await screen.findByRole('combobox', {
         name: /Select Configuration/i,
       });
 
@@ -1424,7 +1424,7 @@ describe('ProjectSeer', () => {
       // With one cursor + one claude integration and cursor target active,
       // only the single cursor integration matches, so the selector should NOT appear
       expect(
-        screen.queryByRole('textbox', {name: /Select Configuration/i})
+        screen.queryByRole('combobox', {name: /Select Configuration/i})
       ).not.toBeInTheDocument();
     });
 
@@ -1518,7 +1518,7 @@ describe('ProjectSeer', () => {
 
       // The integration selector should NOT be visible with only one integration
       expect(
-        screen.queryByRole('textbox', {name: /Select Configuration/i})
+        screen.queryByRole('combobox', {name: /Select Configuration/i})
       ).not.toBeInTheDocument();
     });
   });

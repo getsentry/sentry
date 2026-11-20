@@ -172,7 +172,7 @@ describe('Organization Developer Settings', () => {
         {answer: 'example@example.com', question: 'Email address for user support.'},
       ];
       await userEvent.click(
-        screen.getByRole('textbox', {
+        screen.getByRole('combobox', {
           name: 'Select what category best describes your integration. Documentation for reference.',
         })
       );

@@ -16,9 +16,9 @@ describe('PermissionsObserver', () => {
         onEventsChange={noop}
       />
     );
-    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Issue & Event'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Member'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Team'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Issue & Event'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Member'})).toBeInTheDocument();
   });
 
   it('converts scopes into permissions and passes them through on change', () => {
@@ -38,9 +38,9 @@ describe('PermissionsObserver', () => {
         onEventsChange={noop}
       />
     );
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Release'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Organization'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Release'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Organization'})).toBeInTheDocument();
   });
 
   it('checks the CI checkbox when org:ci is in scopes', () => {
@@ -86,7 +86,7 @@ describe('PermissionsObserver', () => {
 
     expect(screen.getByText('Permissions')).toBeInTheDocument();
     expect(screen.getByText('Webhooks')).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Permissions'})).not.toBeInTheDocument();
     expect(screen.queryByRole('button', {name: 'Webhooks'})).not.toBeInTheDocument();
   });
@@ -111,12 +111,12 @@ describe('PermissionsObserver', () => {
       'aria-expanded',
       'false'
     );
-    expect(screen.queryByRole('textbox', {name: 'Project'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', {name: 'Project'})).not.toBeInTheDocument();
     expect(screen.queryByRole('checkbox', {name: 'issue'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Permissions'}));
 
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Webhooks'}));
 
