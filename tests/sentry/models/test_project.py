@@ -45,6 +45,7 @@ from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
 from sentry.users.models.user import User
 from sentry.users.models.user_option import UserOption
+from sentry.workflow_engine.caches.workflow import get_activity_workflows_by_organization
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
@@ -549,6 +550,19 @@ class TestProjectTransfer(TestCase):
         assert DetectorWorkflow.objects.filter(
             detector=self.detector, workflow=self.workflow
         ).exists()
+
+    def test_transfer_invalidates_activity_workflows_for_both_organizations(self) -> None:
+        self.workflow.update(type=Workflow.Type.INBOX)
+        assert get_activity_workflows_by_organization(self.from_org.id, None) == {self.workflow}
+        assert get_activity_workflows_by_organization(self.to_org.id, None) == set()
+
+        with self.capture_on_commit_callbacks(execute=True):
+            self.project.transfer_to(organization=self.to_org)
+
+        assert get_activity_workflows_by_organization(self.from_org.id, None) == set()
+        (workflow,) = get_activity_workflows_by_organization(self.to_org.id, None)
+        assert workflow.id == self.workflow.id
+        assert workflow.organization_id == self.to_org.id
 
     def test_transfer_to_organization_with_workflow_data_condition_groups(self) -> None:
         with assume_test_silo_mode(SiloMode.CONTROL):
