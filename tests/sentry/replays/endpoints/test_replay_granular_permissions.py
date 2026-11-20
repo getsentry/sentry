@@ -3,8 +3,10 @@ from rest_framework.response import Response
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.options.organization_option import OrganizationOption
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.models.team import TeamStatus
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
@@ -482,3 +484,70 @@ class TestReplayGranularPermissions(APITestCase):
 
             response = self._api_key_get_replays()
             assert response.status_code == 403
+
+    def _get_replays(self) -> Response:
+        return self.client.get(f"/api/0/organizations/{self.organization.slug}/replays/")
+
+    def test_team_member_has_access(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, member=self.member_with_access)
+        TeamReplayAccess.objects.create(team=team)
+
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            self.login_as(self.user_with_access)
+            assert self._get_replays().status_code == 200
+
+            self.login_as(self.user_without_access)
+            assert self._get_replays().status_code == 403
+
+    def test_removing_member_from_team_revokes_access(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, member=self.member_with_access)
+        TeamReplayAccess.objects.create(team=team)
+
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            self.login_as(self.user_with_access)
+            assert self._get_replays().status_code == 200
+
+            OrganizationMemberTeam.objects.filter(
+                team=team, organizationmember=self.member_with_access
+            ).delete()
+            assert self._get_replays().status_code == 403
+
+    def test_inactive_team_membership_has_no_access(self) -> None:
+        team = self.create_team(organization=self.organization)
+        omt = self.create_team_membership(team=team, member=self.member_with_access)
+        omt.update(is_active=False)
+        TeamReplayAccess.objects.create(team=team)
+
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            self.login_as(self.user_with_access)
+            assert self._get_replays().status_code == 403
+
+    def test_team_pending_deletion_has_no_access(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, member=self.member_with_access)
+        TeamReplayAccess.objects.create(team=team)
+        team.update(status=TeamStatus.PENDING_DELETION)
+
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            self.login_as(self.user_with_access)
+            assert self._get_replays().status_code == 403
+
+    def test_member_allowlist_and_team_grants_combine(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.create_team_membership(team=team, member=self.member_with_access)
+        TeamReplayAccess.objects.create(team=team)
+        OrganizationMemberReplayAccess.objects.create(organizationmember=self.member_without_access)
+
+        with self.feature("organizations:session-replay"):
+            self._enable_granular_permissions()
+            self.login_as(self.user_with_access)
+            assert self._get_replays().status_code == 200
+
+            self.login_as(self.user_without_access)
+            assert self._get_replays().status_code == 200

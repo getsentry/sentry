@@ -88,8 +88,7 @@ class OrganizationMemberReplayAccess(DefaultFieldsModel):
     """
     Tracks which organization members have permission to access replay data.
 
-    When no records exist for an organization, all members have access (default).
-    When records exist, only members with a record can access replays.
+    Only consulted when the organization has granular replay permissions enabled.
     """
 
     __relocation_scope__ = RelocationScope.Organization
@@ -106,3 +105,28 @@ class OrganizationMemberReplayAccess(DefaultFieldsModel):
         db_table = "sentry_organizationmemberreplayaccess"
 
     __repr__ = sane_repr("organizationmember_id")
+
+
+@cell_silo_model
+class TeamReplayAccess(DefaultFieldsModel):
+    """
+    Grants replay access to every active member of a team.
+
+    Membership is checked at request time so that access follows team membership,
+    including membership synced from an identity provider via SCIM.
+    """
+
+    __relocation_scope__ = RelocationScope.Organization
+
+    team = FlexibleForeignKey(
+        "sentry.Team",
+        on_delete=models.CASCADE,
+        related_name="replay_access",
+        unique=True,
+    )
+
+    class Meta:
+        app_label = "replays"
+        db_table = "sentry_teamreplayaccess"
+
+    __repr__ = sane_repr("team_id")

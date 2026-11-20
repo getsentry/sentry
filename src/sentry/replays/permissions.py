@@ -9,7 +9,8 @@ from sentry.auth.superuser import superuser_has_permission
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.replays.models import OrganizationMemberReplayAccess
+from sentry.models.team import TeamStatus
+from sentry.replays.models import OrganizationMemberReplayAccess, TeamReplayAccess
 from sentry.sentry_apps.services.app import app_service
 
 if TYPE_CHECKING:
@@ -25,8 +26,8 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     - Org auth tokens with event:read scope have access (replays are event data).
     - SentryApp proxy users with event:read scope have access (replays are event data).
     - If the 'sentry:granular-replay-permissions' org option is not set or falsy, all org members have access.
-    - If no allowlist records exist for the organization, no one has access.
-    - If allowlist records exist, only users explicitly present in the OrganizationMemberReplayAccess allowlist have access.
+    - Otherwise, only members on the OrganizationMemberReplayAccess allowlist, or active members
+      of a team in TeamReplayAccess, have access. If neither has records, no one has access.
     - Returns True if allowed, False otherwise.
     """
     if superuser_has_permission(request):
@@ -48,17 +49,15 @@ def has_replay_permission(request: HttpRequest, organization: Organization) -> b
     if not member:
         return False
 
-    # Decline access if feature is on, but allowlist is empty
-    allowlist_exists = OrganizationMemberReplayAccess.objects.filter(
-        organizationmember__organization=organization
+    if OrganizationMemberReplayAccess.objects.filter(organizationmember=member).exists():
+        return True
+
+    return TeamReplayAccess.objects.filter(
+        team__organization_id=organization.id,
+        team__status=TeamStatus.ACTIVE,
+        team__organizationmemberteam__organizationmember=member,
+        team__organizationmemberteam__is_active=True,
     ).exists()
-    if not allowlist_exists:
-        return False
-
-    # Allow access to user on allowlist
-    has_access = OrganizationMemberReplayAccess.objects.filter(organizationmember=member).exists()
-
-    return has_access
 
 
 def is_sentry_app_with_permission(user: Any, organization: Organization) -> bool:
