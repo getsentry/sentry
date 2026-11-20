@@ -331,7 +331,7 @@ def filter_recently_fired_workflow_actions(
 ) -> tuple[BaseQuerySet[Action], dict[ActionId, WorkflowId], set[WorkflowId]]:
     """Select actions and their eligible workflows before equivalent-action deduplication.
 
-    Inbox workflows bypass group-frequency state. Alert workflows retain their
+    Inbox workflows bypass group-frequency state. Non-Inbox workflows retain their
     existing per-group suppression. The complete eligible workflow set is returned
     for history, while each action is attributed to one workflow for task dispatch.
     """

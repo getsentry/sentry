@@ -380,8 +380,8 @@ before event-level deduplication and task execution. A tuple is suppressed when 
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
 
-Only alert workflows use group-frequency suppression; Inbox workflows bypass it,
-including when both match the same issue Activity.
+Inbox workflows bypass group-frequency suppression, including when they match
+the same issue Activity as other workflows. All non-Inbox workflows retain it.
 
 ### Event-level deduplication
 
