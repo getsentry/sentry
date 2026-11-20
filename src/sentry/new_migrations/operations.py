@@ -75,19 +75,22 @@ class CreatePartitionedModel(CreateModel):
         return f"Create partitioned model {self.name}"
 
 
-class EnsurePartitions(Operation):
+class EnsurePartitions(ModelOperation):
     """
     Create the current and upcoming partitions of a range partitioned table.
 
-    ``CreatePartitionedModel`` already creates them, and the partition maintenance task keeps
-    them created ahead of time. Use this when a migration writes rows right away. It
-    does nothing when the table isn't range partitioned in this environment.
+    ``CreatePartitionedModel`` already creates them, and the partition maintenance task
+    keeps them created ahead of time. Use this when a migration writes rows right away.
+    It does nothing when the table isn't range partitioned in this environment.
+
+    It's a model operation, so the database router places it by its model.
     """
 
     reduces_to_sql = False
     reversible = True
 
     def __init__(self, model_name: str) -> None:
+        super().__init__(model_name)
         self.model_name = model_name
 
     def deconstruct(self) -> tuple[str, list[Any], dict[str, Any]]:

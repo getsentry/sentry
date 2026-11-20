@@ -1,7 +1,8 @@
 from datetime import UTC, datetime, timedelta
 
 from django.db import connection, models
-from django.db.migrations import AddField, CreateModel
+from django.db.migrations import AddField, CreateModel, Migration
+from django.db.migrations.operations.base import Operation
 from django.db.migrations.optimizer import MigrationOptimizer
 from django.db.migrations.serializer import serializer_factory
 from django.db.migrations.state import ModelState
@@ -24,6 +25,7 @@ from sentry.db.partitions.catalog import (
     list_partitions,
     table_exists,
 )
+from sentry.new_migrations.monkey.executor import SentryMigrationExecutor
 from sentry.new_migrations.operations import CreatePartitionedModel, EnsurePartitions
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -109,6 +111,8 @@ class CreatePartitionedModelSerializationTest(TestCase):
             create,
             add_field,
         ]
+        ensure = EnsurePartitions("HashPartitionedFixture")
+        assert MigrationOptimizer().optimize([create, ensure], "fixtures") == [create, ensure]
         # A plain CreateModel would be merged.
         plain = CreateModel(create.name, create.fields, create.options)
         assert len(MigrationOptimizer().optimize([plain, add_field], "fixtures")) == 1
@@ -138,3 +142,16 @@ class EnsurePartitionsTest(TransactionTestCase):
             {"model_name": "RangePartitionedFixture"},
         )
         assert operation.describe() == "Ensure partitions exist for RangePartitionedFixture"
+
+
+def routing_check(operation: Operation) -> None:
+    class PartitionedMigration(Migration):
+        operations = [operation]
+
+    SentryMigrationExecutor._check_db_routing(PartitionedMigration("0001_partitioned", "sentry"))
+
+
+def test_operations_can_be_routed() -> None:
+    # Sentry migrations refuse operations the database router can't place.
+    routing_check(create_hash_fixture())
+    routing_check(EnsurePartitions("RangePartitionedFixture"))
