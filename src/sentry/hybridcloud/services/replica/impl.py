@@ -148,7 +148,7 @@ def handle_replication(
                 destination_model.objects.filter(
                     **{c: getattr(destination, c) for c in columns}
                 ).exclude(**dest_filter).delete()
-            existing = destination_model.objects.filter(**dest_filter).first()
+            existing = destination_model.objects.filter(**dest_filter).first()  # noqa: S035
             if existing:
                 update: Mapping[str, Any] = {
                     field.name: getattr(destination, field.name)

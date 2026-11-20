@@ -48,6 +48,15 @@ export function findImageForAddress({event, addrMode, address}: ImageForAddressP
   return image;
 }
 
+/**
+ * Binary name of a debug image, used for frames that have no `package`.
+ * MetricKit images can lack `code_file`, in which case Symbolicator fills in
+ * the dSYM name on `debug_file`.
+ */
+export function getImageName(image: Image | null | undefined): string | undefined {
+  return image?.code_file ?? image?.debug_file ?? undefined;
+}
+
 export function isRepeatedFrame(frame: Frame, nextFrame?: Frame) {
   if (!nextFrame) {
     return false;
@@ -343,7 +352,7 @@ export function getStacktracePlatform(
 
 export function inferPlatform(event: Event, thread?: Thread): PlatformKey {
   const exception = getThreadException(event, thread);
-  let exceptionFramePlatform: Frame | undefined = undefined;
+  let exceptionFramePlatform: Frame | undefined;
 
   for (const value of exception?.values ?? []) {
     exceptionFramePlatform = value.stacktrace?.frames?.find(frame => !!frame.platform);

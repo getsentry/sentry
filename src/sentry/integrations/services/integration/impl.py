@@ -261,7 +261,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if using_replica:
             queryset = OrganizationIntegration.objects.using_replica()
 
-        ois = queryset.filter(**oi_kwargs).select_related("integration")
+        ois = queryset.filter(**oi_kwargs)
         if limit is not None:
             ois = ois[:limit]
 
@@ -709,7 +709,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
             status=ObjectStatus.ACTIVE,
             organizationintegration__organization_id=organization_id,
             organizationintegration__status=ObjectStatus.ACTIVE,
-        ).first()
+        ).first()  # noqa: S035
         if integration is None:
             return None
 

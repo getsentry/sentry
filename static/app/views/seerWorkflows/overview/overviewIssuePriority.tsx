@@ -2,7 +2,7 @@ import {useCallback, useState} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
 import {PriorityLevel, type Group} from 'sentry/types/group';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 
@@ -17,10 +17,7 @@ export type OverviewIssuePriorityGroup = Pick<
   | 'level'
   | 'owners'
   | 'priorityLockedAt'
-> & {
-  priority: PriorityLevel | null;
-  project: Pick<Group['project'], 'id'>;
-};
+> & {priority: PriorityLevel | null; project: Pick<Group['project'], 'id'>};
 
 interface OverviewIssuePriorityProps {
   group: OverviewIssuePriorityGroup;
@@ -29,9 +26,6 @@ interface OverviewIssuePriorityProps {
 export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const issueIndexUrl = getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
-    path: {organizationIdOrSlug: organization.slug},
-  });
   const [priorityOverride, setPriorityOverride] = useState<{
     groupId: OverviewIssuePriorityGroup['id'];
     priority: PriorityLevel;
@@ -46,9 +40,13 @@ export function OverviewIssuePriority({group}: OverviewIssuePriorityProps) {
   const handleSuccess = useCallback(
     (nextPriority: PriorityLevel) => {
       setPriorityOverride({groupId: group.id, priority: nextPriority});
-      void queryClient.invalidateQueries({queryKey: [issueIndexUrl]});
+      void queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
     },
-    [group.id, issueIndexUrl, queryClient]
+    [group.id, organization.slug, queryClient]
   );
 
   return <GroupPriority group={currentGroup} onChange={handleSuccess} />;

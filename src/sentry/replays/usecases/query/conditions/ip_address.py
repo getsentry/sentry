@@ -29,6 +29,26 @@ _COLUMNS: list[tuple[type[IPv4Address] | type[IPv6Address], Column, type[IPScala
 ]
 
 
+# A row has at most one of the two columns set, so this is the row's address as text, or NULL when
+# the row has none.  It is the same expression Snuba uses for "user.ip" on errors.
+IP_ADDRESS_TEXT = Function(
+    "coalesce",
+    parameters=[
+        Function("IPv4NumToString", parameters=[Column("ip_address_v4")]),
+        Function("IPv6NumToString", parameters=[Column("ip_address_v6")]),
+    ],
+)
+
+
+def _matches_address_text(pattern: str) -> Condition:
+    """Return true if the row's address, as text, matches the wildcard regex.
+
+    The search parser anchors the regex, so `10.0.*` arrives as `^10\\.0\\..*$` and matches
+    10.0.0.1 but not 110.0.0.1.  "(?i)" lets uppercase IPv6 hex match ClickHouse's lowercase output.
+    """
+    return Condition(Function("match", parameters=[IP_ADDRESS_TEXT, f"(?i){pattern}"]), Op.EQ, 1)
+
+
 def _does_not_contain_address(condition: Condition) -> Condition:
     """Return true if no row of the replay matches the condition, treating NULL as no match.
 
@@ -108,6 +128,9 @@ class SumOfIPAddressScalar(ComputedBase):
     A list can mix versions, so "in" and "not_in" build one condition per column and combine them:
     a replay matches "in" when any column matches, and "not_in" only when no column matches.
     The empty value ("") means the replay has no address in either column.
+
+    Wildcards ("match" and "not_match") can't be routed by version, because a pattern like "*1"
+    could match either.  They match the address as text instead, from whichever column is set.
     """
 
     @staticmethod
@@ -137,3 +160,11 @@ class SumOfIPAddressScalar(ComputedBase):
         if None in value:
             conditions.append(_has_ip_address())
         return all_of(conditions)
+
+    @staticmethod
+    def visit_match(value: str) -> Condition:
+        return contains(_matches_address_text(value))
+
+    @staticmethod
+    def visit_not_match(value: str) -> Condition:
+        return _does_not_contain_address(_matches_address_text(value))

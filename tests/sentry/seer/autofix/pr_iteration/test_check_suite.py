@@ -58,12 +58,6 @@ NUDGE_PATH = "sentry.seer.autofix.pr_iteration.nudge"
 
 OWN_REPO_ID = 123
 
-# Both flags behind ``is_seer_token_based_billing_onboarding_enabled``.
-TOKEN_BILLING_FEATURES = {
-    "organizations:seer-token-based-billing-onboarding": True,
-    "organizations:token-billed-seer-enabled": True,
-}
-
 
 def own_repo_pr(pr_id: int) -> dict[str, Any]:
     """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
@@ -521,7 +515,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_not_called()
@@ -550,7 +544,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         raw = self._raw(pull_requests=[own_repo_pr(555)])
         raw["repository"]["full_name"] = "owner/repo"
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_not_called()
@@ -609,7 +603,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         raw = self._raw(pull_requests=[own_repo_pr(555)])
         raw["repository"]["full_name"] = "owner/repo"
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_called_once()
@@ -631,7 +625,7 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_get_state.return_value = self._agent_state()
         raw = self._raw(pull_requests=[own_repo_pr(555)])
 
-        with self.feature(TOKEN_BILLING_FEATURES):
+        with self.feature("organizations:token-billed-seer-enabled"):
             process_check_suite_event(self._event(raw))
 
         mock_enqueue.assert_called_once()

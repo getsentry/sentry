@@ -1,5 +1,5 @@
 import type {AutofixExplorerStep} from 'sentry/components/events/autofix/useExplorerAutofix';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -34,7 +34,7 @@ const OUT_OF_CREDITS_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
     "Seer couldn't start on the code changes because your organization is out of credits."
   ),
   pr_iteration: t(
-    "Seer couldn't update the pull request because your organization is out of credits."
+    "Seer couldn't start on this feedback because your organization is out of credits. Seer continues the next time it iterates on the pull request."
   ),
 };
 
@@ -49,7 +49,7 @@ const DAILY_LIMIT_START_STEP_MESSAGE: Record<AutofixExplorerStep, string> = {
     "Seer couldn't start on the code changes because your organization hit its daily usage limit."
   ),
   pr_iteration: t(
-    "Seer couldn't update the pull request because your organization hit its daily usage limit."
+    "Seer couldn't start on this feedback because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request."
   ),
 };
 
@@ -64,6 +64,55 @@ export function getRefusedStepMessage(
   return denialReason === 'daily_cap_exceeded'
     ? DAILY_LIMIT_START_STEP_MESSAGE[step]
     : OUT_OF_CREDITS_START_STEP_MESSAGE[step];
+}
+
+// TODO(CW-3102): Point at the Retry button instead of the next iteration.
+const OUT_OF_CREDITS_PR_ITERATION_MESSAGE = {
+  push: t(
+    "Seer couldn't push the latest changes because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+  ),
+  branch_moved_retry: t(
+    "Seer couldn't redo the latest changes on the pull request's newer commits because your organization is out of credits. Seer continues the next time it iterates on the pull request."
+  ),
+  queued: (count: number) =>
+    tn(
+      "Seer couldn't start on %s feedback item because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on %s feedback items because your organization is out of credits. Seer continues the next time it iterates on the pull request.",
+      count
+    ),
+};
+
+const DAILY_LIMIT_PR_ITERATION_MESSAGE = {
+  push: t(
+    "Seer couldn't push the latest changes because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request."
+  ),
+  branch_moved_retry: t(
+    "Seer couldn't redo the latest changes on the pull request's newer commits because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request."
+  ),
+  queued: (count: number) =>
+    tn(
+      "Seer couldn't start on %s feedback item because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+      "Seer couldn't start on %s feedback items because your organization hit its daily usage limit. Seer continues the next time it iterates on the pull request.",
+      count
+    ),
+};
+
+/**
+ * The Code Changes card's line for PR iteration work waiting for credits.
+ */
+export function getPrIterationOutOfCreditsMessage(
+  waitingAction: 'push' | 'branch_moved_retry' | null,
+  queuedCount: number,
+  denialReason: SeerCreditDenialReason | null
+): string | null {
+  const messages =
+    denialReason === 'daily_cap_exceeded'
+      ? DAILY_LIMIT_PR_ITERATION_MESSAGE
+      : OUT_OF_CREDITS_PR_ITERATION_MESSAGE;
+  if (waitingAction) {
+    return messages[waitingAction];
+  }
+  return queuedCount ? messages.queued(queuedCount) : null;
 }
 
 export const OUT_OF_CREDITS_CHAT_MESSAGE = t(

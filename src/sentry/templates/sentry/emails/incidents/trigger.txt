@@ -1,6 +1,6 @@
 {% spaceless %}
 {% autoescape off %}
-# Alert Rule Trigger on {{ incident_name }}.
+# {{ status }}: {{ incident_name }}
 
 {% if enhanced_privacy %}
 Details about this alert are not shown in this email since enhanced privacy

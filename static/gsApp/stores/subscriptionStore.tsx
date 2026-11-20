@@ -8,9 +8,7 @@ import type {Subscription} from 'getsentry/types';
 
 type GetCallback = (data: Subscription) => void;
 
-type LoadOptions = {
-  markStartedTrial?: boolean;
-};
+type LoadOptions = {markStartedTrial?: boolean};
 
 /**
  * Mapping of organization slug to subscription details

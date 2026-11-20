@@ -1,8 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import {getContextKeys} from 'sentry/components/events/contexts/dataUtils';
 import {t} from 'sentry/locale';
 import type {KeyValueListData} from 'sentry/types/group';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 enum ARTContextKeys {
   GC_BLOCKING_COUNT = 'gc.blocking_count',
@@ -28,7 +29,7 @@ export interface ARTContext {
 }
 
 function formatMilliseconds(ms: number): string {
-  return getDuration(ms / 1000, 2, true);
+  return getDuration(ms / 1000, {precision: 2, style: 'short'});
 }
 
 export function getARTContextData({

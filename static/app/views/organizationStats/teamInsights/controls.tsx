@@ -118,13 +118,7 @@ export function TeamStatsControls({
   }): LocationDescriptorObject {
     const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
-    const nextLocation = {
-      ...location,
-      query: {
-        ...query,
-        ...nextQueryParams,
-      },
-    };
+    const nextLocation = {...location, query: {...query, ...nextQueryParams}};
 
     navigate(nextLocation);
 
@@ -166,13 +160,7 @@ export function TeamStatsControls({
       />
       {showEnvironment && (
         <Select
-          options={[
-            {
-              value: '',
-              label: t('All'),
-            },
-            ...environmentOptions,
-          ]}
+          options={[{value: '', label: t('All')}, ...environmentOptions]}
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
           controlLeadingItems={
@@ -192,10 +180,7 @@ export function TeamStatsControls({
           utc={utc ?? null}
           onChange={handleUpdateDatetime}
           showAbsolute={false}
-          relativeOptions={props => ({
-            ...relativeOptions,
-            ...props.arbitraryOptions,
-          })}
+          relativeOptions={props => ({...relativeOptions, ...props.arbitraryOptions})}
           trigger={triggerProps => (
             <FullWidthTimeRangeSelectTrigger {...triggerProps} prefix={t('Date Range')}>
               {period

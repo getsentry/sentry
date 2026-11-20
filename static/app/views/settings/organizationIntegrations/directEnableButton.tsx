@@ -4,6 +4,7 @@ import {Button} from '@sentry/scraps/button';
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,20 +39,17 @@ export function DirectEnableButton({
         data: {},
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/integrations/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/config/integrations/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/integrations/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/config/integrations/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        )
+      );
     },
     onError: () => toast.error(t('Failed to enable integration.')),
   });

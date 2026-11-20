@@ -2,14 +2,13 @@ import {Fragment, useDeferredValue, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import noop from 'lodash/noop';
 import {parseAsInteger, parseAsString, parseAsStringEnum, useQueryStates} from 'nuqs';
 
 import {Button, ButtonBar} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex} from '@sentry/scraps/layout';
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -143,10 +142,7 @@ export default function ProjectEnvironments() {
   const environmentsQueryOptions = apiOptions.as<ProjectEnvironment[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/environments/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: params.projectId,
-      },
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: params.projectId},
       query: {visibility},
       staleTime: 0,
     }
@@ -185,10 +181,7 @@ export default function ProjectEnvironments() {
 
       queryClient.setQueryData(environmentsQueryOptions.queryKey, previous =>
         previous
-          ? {
-              ...previous,
-              json: previous.json.filter(env => env.id !== environment.id),
-            }
+          ? {...previous, json: previous.json.filter(env => env.id !== environment.id)}
           : previous
       );
 
@@ -277,7 +270,7 @@ export default function ProjectEnvironments() {
       <SentryDocumentTitle title={t('Environments')} projectSlug={params.projectId} />
       <SettingsPageHeader title={t('Manage Environments')} />
       <TabsContainer>
-        <Tabs onChange={noop} value={isHidden ? 'hidden' : 'environments'}>
+        <LinkTabs value={isHidden ? 'hidden' : 'environments'}>
           {({TabList}) => (
             <TabList>
               <TabList.Item
@@ -294,7 +287,7 @@ export default function ProjectEnvironments() {
               </TabList.Item>
             </TabList>
           )}
-        </Tabs>
+        </LinkTabs>
       </TabsContainer>
       <ProjectPermissionAlert project={project} />
       <Flex paddingBottom="xl">
@@ -355,10 +348,7 @@ export default function ProjectEnvironments() {
                   size="xs"
                   disabled={!hasWriteAccess}
                   onClick={() =>
-                    toggleEnvironment.mutate({
-                      environment: env,
-                      shouldHide: !isHidden,
-                    })
+                    toggleEnvironment.mutate({environment: env, shouldHide: !isHidden})
                   }
                 >
                   {isHidden ? t('Show') : t('Hide')}

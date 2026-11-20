@@ -155,7 +155,7 @@ def find_or_create_release(
             organization_id=project.organization_id,
             projects=project,
             version__regex=rf"^{re.escape(base_version)}(\+\d+)?$",
-        ).first()
+        ).first()  # noqa: S035
 
         if existing_release:
             logger.info(

@@ -19,15 +19,8 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Install our SDK using the cordova command:'),
-        },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'cordova plugin add sentry-cordova',
-        },
+        {type: 'text', text: t('Install our SDK using the cordova command:')},
+        {type: 'code', language: 'bash', code: 'cordova plugin add sentry-cordova'},
       ],
     },
   ],
@@ -47,11 +40,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getConfigureSnippet(params)},
       ],
     },
     getDataCollectionStep({
@@ -69,11 +58,7 @@ export const onboarding: OnboardingConfig = {
             'Test your Sentry configuration by intentionally triggering an error, such as calling an undefined function:'
           ),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: 'myUndefinedFunction();',
-        },
+        {type: 'code', language: 'javascript', code: 'myUndefinedFunction();'},
       ],
     },
   ],

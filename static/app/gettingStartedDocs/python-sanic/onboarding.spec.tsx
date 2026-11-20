@@ -16,9 +16,7 @@ describe('sanic onboarding docs', () => {
   });
 
   it('renders metrics configuration when metrics are selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.METRICS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.METRICS]});
 
     // Renders metrics verification steps
     expect(
@@ -29,9 +27,7 @@ describe('sanic onboarding docs', () => {
   });
 
   it('renders without metrics configuration when metrics are not selected', () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     // Does not render metrics verification steps
     expect(

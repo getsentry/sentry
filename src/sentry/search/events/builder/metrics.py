@@ -143,7 +143,8 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             raise InvalidSearchQuery("Organization id required to create a metrics query")
 
         sentry_sdk.set_tag("on_demand_metrics.type", config.on_demand_metrics_type)
-        sentry_sdk.set_attribute("on_demand_metrics.type", config.on_demand_metrics_type)
+        if config.on_demand_metrics_type is not None:
+            sentry_sdk.set_attribute("on_demand_metrics.type", config.on_demand_metrics_type)
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         sentry_sdk.set_attribute("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
 

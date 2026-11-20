@@ -2,13 +2,13 @@ import {useEffect} from 'react';
 import moment from 'moment-timezone';
 
 import {Alert} from '@sentry/scraps/alert';
+import {formatDateTime, type DateTimeOptions} from '@sentry/scraps/dateTime';
 import {Link} from '@sentry/scraps/link';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {tct} from 'sentry/locale';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -21,16 +21,21 @@ import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 // or absolute date range formatted like "Jan 1, 2022 - Jan 2, 2022"
 function getFormattedDateTime(dateTime: PageFilterDatetime): string | null {
   const {start, end, period} = dateTime;
-  const format = getFormat({dateOnly: true, year: true});
+  const format = {
+    mode: 'date',
+    year: 'always',
+    showTimezone: false,
+    timezone: 'UTC',
+  } satisfies DateTimeOptions;
 
   if (period) {
     const periodToHours = parsePeriodToHours(period);
     const periodStartDate = new Date(Date.now() - periodToHours * 60 * 60 * 1000);
-    return getFormattedDate(periodStartDate, format);
+    return formatDateTime(periodStartDate, format);
   }
 
   if (start && end) {
-    return `${getFormattedDate(new Date(start), format)} - ${getFormattedDate(new Date(end), format)}`;
+    return `${formatDateTime(new Date(start), format)} - ${formatDateTime(new Date(end), format)}`;
   }
 
   return null;
@@ -79,12 +84,7 @@ function useQuotaExceededAlertMessage(
   const formattedDateRange = getFormattedDateTime(selection.datetime);
   const billingPageLink = (
     <Link
-      to={{
-        pathname: `/checkout/?referrer=${referrer}`,
-        query: {
-          skipBundles: true,
-        },
-      }}
+      to={{pathname: `/checkout/?referrer=${referrer}`, query: {skipBundles: true}}}
     />
   );
 
@@ -107,11 +107,7 @@ function useQuotaExceededAlertMessage(
         )
       : tct(
           "You've exceeded your reserved volumes during this date range and results will be skewed. We can’t collect more [datasetType] until [periodRenewalDate]. If you need more, [billingPageLink:increase your reserved volumes].",
-          {
-            periodRenewalDate,
-            billingPageLink,
-            datasetType,
-          }
+          {periodRenewalDate, billingPageLink, datasetType}
         );
   }
 
@@ -150,17 +146,11 @@ function useQuotaExceededAlertMessage(
           rest: period
             ? tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range prior to [formattedDateRange].',
-                {
-                  billingPageLink,
-                  formattedDateRange,
-                }
+                {billingPageLink, formattedDateRange}
               )
             : tct(
                 'If you need more, [billingPageLink: increase your reserved volumes] or adjust your date range before or after [formattedDateRange].',
-                {
-                  billingPageLink,
-                  formattedDateRange,
-                }
+                {billingPageLink, formattedDateRange}
               ),
         }
       );

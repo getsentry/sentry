@@ -66,9 +66,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://cdn.example.org/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://cdn.example.org/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -77,9 +75,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://example.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://example.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -88,9 +84,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: '/path/to/script.js',
-    } as Frame;
+    const frame = {absPath: '/path/to/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -99,9 +93,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'something', value: 'else'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://cdn.example.org/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://cdn.example.org/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -110,9 +102,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://muy-diferente.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://muy-diferente.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -121,9 +111,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'http://example.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'http://example.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 
@@ -132,9 +120,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://example.com/page'}],
       platform: 'python',
     } as Event;
-    const frame = {
-      absPath: 'https://muy-diferente.com/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://muy-diferente.com/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -143,9 +129,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://192.168.1.1/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://192.168.1.1/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -154,9 +138,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'http://localhost:8000/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'http://localhost:8000/script.js',
-    } as Frame;
+    const frame = {absPath: 'http://localhost:8000/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(false);
   });
 
@@ -165,9 +147,7 @@ describe('isPotentiallyThirdPartyFrame', () => {
       tags: [{key: 'url', value: 'https://192.168.1.1/page'}],
       platform: 'javascript',
     } as Event;
-    const frame = {
-      absPath: 'https://192.168.1.2/script.js',
-    } as Frame;
+    const frame = {absPath: 'https://192.168.1.2/script.js'} as Frame;
     expect(isPotentiallyThirdPartyFrame(frame, event)).toBe(true);
   });
 });

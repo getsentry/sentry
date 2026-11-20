@@ -19,10 +19,7 @@ describe('OrgDashboards', () => {
   const dashboardPath = `/organizations/${organization.slug}/dashboard/1/`;
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: dashboardPath,
-      query: {},
-    },
+    location: {pathname: dashboardPath, query: {}},
     route: '/organizations/:orgId/dashboard/:dashboardId/',
   };
 
@@ -175,9 +172,7 @@ describe('OrgDashboards', () => {
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
-    expect(router.location.query).toEqual({
-      project: '1',
-    });
+    expect(router.location.query).toEqual({project: '1'});
   });
 
   it('does not add query params for page filters if none are saved', async () => {

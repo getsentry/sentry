@@ -536,7 +536,7 @@ class GithubProxyClient(IntegrationProxyClient):
                 organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            ).first()  # noqa: S035
 
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})

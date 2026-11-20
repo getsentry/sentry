@@ -52,20 +52,11 @@ export function ActionDropDown(props: Props) {
 
     const oldField = eventView?.fields.map(field => field.field);
     const newField = toArray(oldField).concat(queryKey);
-    navigate({
-      ...location,
-      query: {
-        ...location?.query,
-        field: newField,
-      },
-    });
+    navigate({...location, query: {...location?.query, field: newField}});
   };
 
   function handleQueryUpdate(actionType: QueryUpdateActions) {
-    trackAnalytics('discover_v2.quick_context_update_query', {
-      organization,
-      queryKey,
-    });
+    trackAnalytics('discover_v2.quick_context_update_query', {organization, queryKey});
 
     const oldFilters = eventView?.query || '';
     const newFilters = new MutableSearch(oldFilters);
@@ -89,10 +80,7 @@ export function ActionDropDown(props: Props) {
 
     navigate({
       ...location,
-      query: {
-        ...location?.query,
-        query: newFilters.formatString(),
-      },
+      query: {...location?.query, query: newFilters.formatString()},
     });
   }
 

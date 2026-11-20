@@ -30,11 +30,7 @@ describe('AdminRelays', () => {
   ];
 
   it('renders rows', async () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: rows,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: rows});
 
     render(<AdminRelays />);
 
@@ -45,11 +41,7 @@ describe('AdminRelays', () => {
   });
 
   it('deletes a relay via confirmation modal', async () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: rows,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: rows});
 
     const deleteMock = MockApiClient.addMockResponse({
       url: `${ENDPOINT}1/`,

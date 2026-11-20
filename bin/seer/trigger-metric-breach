@@ -29,7 +29,6 @@ from sentry.models.team import Team
 from sentry.search.events.types import SnubaParams
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
-    SeerWorkflowConfigExtras,
     SeerWorkflowRun,
     SeerWorkflowRunStatus,
     SeerWorkflowStrategy,
@@ -103,7 +102,7 @@ class MetricBreachTrigger:
         breach = self._seed()
         monitor = Detector.objects.filter(
             id=breach.detector_id, project__organization_id=self.organization.id
-        ).first()
+        ).get_or_none()
         if monitor is None:
             sys.exit(
                 f"> Seer seeded monitor {breach.detector_id}, but this script can't see it. "
@@ -135,7 +134,7 @@ class MetricBreachTrigger:
         self._report(workflow, monitor)
 
     def _seed(self) -> SeededBreach:
-        team = Team.objects.filter(organization=self.organization).first()
+        team = Team.objects.filter(organization=self.organization).order_by("date_added").first()
         if team is None:
             sys.exit("> The organization needs a team for the seeded project.")
         token = ApiToken.objects.create(user_id=self.user.id, scope_list=list(SEED_TOKEN_SCOPES))
@@ -203,11 +202,15 @@ class MetricBreachTrigger:
         return value
 
     def _automation(self) -> SeerWorkflow:
-        config = SeerWorkflowConfig.objects.filter(
-            organization_id=self.organization.id,
-            strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-            extras__name=AUTOMATION_NAME,
-        ).first()
+        config = (
+            SeerWorkflowConfig.objects.filter(
+                organization_id=self.organization.id,
+                strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
+                backing_workflow__name=AUTOMATION_NAME,
+            )
+            .order_by("-date_added")
+            .first()
+        )
         if config is not None:
             workflow = SeerWorkflow(config_id=config.id, organization_id=self.organization.id)
         else:
@@ -216,7 +219,8 @@ class MetricBreachTrigger:
                 strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
                 enabled=True,
                 scope=SelectedMonitors(()),
-                extras=SeerWorkflowConfigExtras(name=AUTOMATION_NAME, created_by=self.user.id),
+                name=AUTOMATION_NAME,
+                created_by_id=self.user.id,
                 service_account_grant=SeerServiceAccountGrant(
                     scopes=SERVICE_ACCOUNT_SCOPES, all_projects=True
                 ),
@@ -247,7 +251,7 @@ class MetricBreachTrigger:
         base = f"{options.get('system.url-prefix')}/organizations/{self.organization.slug}"
         self._write(f"> Automation: {base}/seer/automations/{workflow.config_id}/")
 
-        link = DetectorGroup.objects.filter(detector=monitor).first()
+        link = DetectorGroup.objects.filter(detector=monitor).order_by("-date_added").first()
         if link is None:
             self._write("> The monitor did not open an issue.")
             return
@@ -284,7 +288,7 @@ class MetricBreachTrigger:
                     trigger_key=f"issue_created:{group_id}",
                 )
                 .prefetch_related("executions__output_links")
-                .first()
+                .get_or_none()
             )
             dispatched = run is not None and (
                 run.status not in (SeerWorkflowRunStatus.QUEUED, SeerWorkflowRunStatus.RUNNING)
@@ -321,7 +325,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    superuser = User.objects.filter(is_superuser=True).first()
+    superuser = User.objects.filter(is_superuser=True).order_by("date_joined").first()
     if superuser is None:
         sys.exit("> No superuser exists (run `sentry createuser --superuser`).")
     MetricBreachTrigger(

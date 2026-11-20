@@ -17,9 +17,7 @@ export async function disconnectIdentity(
   try {
     await api.requestPromise(
       `/users/me/user-identities/${identity.category}/${identity.id}/`,
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     );
   } catch {
     toast.error('Error disconnecting identity');
@@ -49,10 +47,7 @@ export function updateUser(user: User | ChangeAvatarUser) {
   ConfigStore.set('user', {...previousUser, ...user, options});
 }
 
-type LogoutOptions = {
-  redirect?: boolean;
-  redirectUrl?: string;
-};
+type LogoutOptions = {redirect?: boolean; redirectUrl?: string};
 
 export async function logout(
   api: Client,

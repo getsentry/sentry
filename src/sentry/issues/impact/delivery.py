@@ -35,7 +35,7 @@ def deliver_impact_assessment(
             run__organization_id=organization_id, run__uuid=run_uuid, source=IMPACT_FEATURE_ID
         )
         .select_related("run")
-        .first()
+        .first()  # noqa: S035
     )
     if agent_run is None:
         logger.warning("impact.delivery.missing_run", extra=log_extra)

@@ -24,9 +24,7 @@ describe('ProjectDetail', () => {
   const project = projects[0]!;
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/projects/${project.slug}/`},
     route: '/organizations/:orgId/projects/:projectId/',
   };
 

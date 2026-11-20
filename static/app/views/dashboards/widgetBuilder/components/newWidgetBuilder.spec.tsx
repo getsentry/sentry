@@ -44,30 +44,18 @@ describe('NewWidgetBuilder', () => {
     OrganizationStore.onUpdate(organization, {replace: true});
     ProjectsStore.loadInitialData(projects);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
@@ -371,7 +359,6 @@ function makeContextCapture() {
   const ref: {current: (() => LLMContextSnapshot) | null} = {current: null};
   function ContextCapture() {
     const {getLLMContext} = useLLMContext();
-    // oxlint-disable-next-line react/immutability
     ref.current = getLLMContext;
     return null;
   }

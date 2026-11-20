@@ -4,10 +4,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DynamicSamplingPanel} from 'admin/views/dynamicSamplingPanel';
 
 const devEnvRule = {
-  samplingValue: {
-    type: 'sampleRate',
-    value: 1,
-  },
+  samplingValue: {type: 'sampleRate', value: 1},
   type: 'trace',
   condition: {
     op: 'or',
@@ -25,9 +22,7 @@ const devEnvRule = {
 function mockProjectConfigResponse(projectId: string, configs: Record<string, unknown>) {
   return MockApiClient.addMockResponse({
     url: `/internal/project-config/?projectId=${projectId}`,
-    body: {
-      configs,
-    },
+    body: {configs},
   });
 }
 
@@ -37,13 +32,7 @@ describe('Dynamic Sampling Panel', () => {
 
     mockProjectConfigResponse(project.id, {
       'proj key 1': null,
-      'proj key 2': {
-        config: {
-          sampling: {
-            rules: [devEnvRule],
-          },
-        },
-      },
+      'proj key 2': {config: {sampling: {rules: [devEnvRule]}}},
     });
     render(<DynamicSamplingPanel projectId={project.id} />);
 
@@ -62,22 +51,14 @@ describe('Dynamic Sampling Panel', () => {
 
     const mockGet = mockProjectConfigResponse(project.id, {
       'proj key 1': null,
-      'proj key 2': {
-        config: {
-          sampling: {
-            rules: [devEnvRule],
-          },
-        },
-      },
+      'proj key 2': {config: {sampling: {rules: [devEnvRule]}}},
     });
     render(<DynamicSamplingPanel projectId={project.id} organization={organization} />);
 
     expect(await screen.findByText('Dynamic Sampling Rules')).toBeInTheDocument();
     expect(mockGet).toHaveBeenCalledWith(
       `/internal/project-config/?projectId=${project.id}`,
-      expect.objectContaining({
-        host: 'https://us.sentry.io',
-      })
+      expect.objectContaining({host: 'https://us.sentry.io'})
     );
     expect(screen.getByText('Boost Environments')).toBeInTheDocument();
     expect(screen.getByText('Sample Rate')).toBeInTheDocument();
@@ -93,9 +74,7 @@ describe('Dynamic Sampling Panel', () => {
   it('renders empty table if there is no valid config', async () => {
     const {project} = initializeOrg();
 
-    mockProjectConfigResponse(project.id, {
-      'proj key 1': null,
-    });
+    mockProjectConfigResponse(project.id, {'proj key 1': null});
 
     render(<DynamicSamplingPanel projectId={project.id} />);
 
@@ -108,9 +87,7 @@ describe('Dynamic Sampling Panel', () => {
   it('renders empty table if config does not contain dynamic sampling', async () => {
     const {project} = initializeOrg();
 
-    mockProjectConfigResponse(project.id, {
-      'proj key 1': {config: {}},
-    });
+    mockProjectConfigResponse(project.id, {'proj key 1': {config: {}}});
 
     render(<DynamicSamplingPanel projectId={project.id} />);
 
@@ -124,13 +101,7 @@ describe('Dynamic Sampling Panel', () => {
     const {project} = initializeOrg();
 
     mockProjectConfigResponse(project.id, {
-      'proj key 1': {
-        config: {
-          sampling: {
-            rules: [],
-          },
-        },
-      },
+      'proj key 1': {config: {sampling: {rules: []}}},
     });
 
     render(<DynamicSamplingPanel projectId={project.id} />);
@@ -145,16 +116,10 @@ describe('Dynamic Sampling Panel', () => {
     const {project} = initializeOrg();
 
     const rule1 = {
-      samplingValue: {
-        type: 'minimumSampleRate',
-        value: 1,
-      },
+      samplingValue: {type: 'minimumSampleRate', value: 1},
       type: 'transaction',
       id: 3005,
-      condition: {
-        op: 'and',
-        inner: [],
-      },
+      condition: {op: 'and', inner: []},
       timeRange: {
         start: '2024-06-19T09:03:31.990170Z',
         end: '2024-06-21T09:03:31.990170Z',
@@ -162,17 +127,10 @@ describe('Dynamic Sampling Panel', () => {
     };
 
     const rule2 = {
-      samplingValue: {
-        type: 'minimumSampleRate',
-        value: 0.5,
-      },
+      samplingValue: {type: 'minimumSampleRate', value: 0.5},
       type: 'transaction',
       id: 3001,
-      condition: {
-        op: 'gt',
-        name: 'event.duration',
-        value: 1000,
-      },
+      condition: {op: 'gt', name: 'event.duration', value: 1000},
       timeRange: {
         start: '2024-06-20T13:25:35.098005Z',
         end: '2024-06-22T13:25:35.098005Z',
@@ -180,10 +138,7 @@ describe('Dynamic Sampling Panel', () => {
     };
 
     const rule3 = {
-      samplingValue: {
-        type: 'sampleRate',
-        value: 1,
-      },
+      samplingValue: {type: 'sampleRate', value: 1},
       type: 'trace',
       condition: {
         op: 'not',
@@ -191,19 +146,14 @@ describe('Dynamic Sampling Panel', () => {
           op: 'eq',
           name: 'trace.replay_id',
           value: null,
-          options: {
-            ignoreCase: true,
-          },
+          options: {ignoreCase: true},
         },
       },
       id: 1005,
     };
 
     const rule4 = {
-      samplingValue: {
-        type: 'sampleRate',
-        value: 1,
-      },
+      samplingValue: {type: 'sampleRate', value: 1},
       type: 'trace',
       condition: {
         op: 'or',
@@ -219,10 +169,7 @@ describe('Dynamic Sampling Panel', () => {
     };
 
     const rule5 = {
-      samplingValue: {
-        type: 'factor',
-        value: 1.4433320526131683,
-      },
+      samplingValue: {type: 'factor', value: 1.4433320526131683},
       type: 'trace',
       condition: {
         op: 'and',
@@ -232,32 +179,16 @@ describe('Dynamic Sampling Panel', () => {
             name: 'trace.release',
             value: ['frontend@db94621a53bf3e2f3924b2d26b31d5ef5b74d18f'],
           },
-          {
-            op: 'eq',
-            name: 'trace.environment',
-            value: 'prod',
-          },
+          {op: 'eq', name: 'trace.environment', value: 'prod'},
         ],
       },
       id: 1500,
-      timeRange: {
-        start: '2024-06-20T12:38:21Z',
-        end: '2024-06-20T15:42:16Z',
-      },
-      decayingFn: {
-        type: 'linear',
-        decayedValue: 1,
-      },
+      timeRange: {start: '2024-06-20T12:38:21Z', end: '2024-06-20T15:42:16Z'},
+      decayingFn: {type: 'linear', decayedValue: 1},
     };
 
     mockProjectConfigResponse(project.id, {
-      'proj key 1': {
-        config: {
-          sampling: {
-            rules: [rule1, rule2, rule3, rule4, rule5],
-          },
-        },
-      },
+      'proj key 1': {config: {sampling: {rules: [rule1, rule2, rule3, rule4, rule5]}}},
     });
 
     render(<DynamicSamplingPanel projectId={project.id} />);

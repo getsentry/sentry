@@ -6,10 +6,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDashboardRevisionsQueryKey} from './useDashboardRevisions';
 import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
-type RenameDashboardVariables = {
-  dashboardId: string;
-  title: string;
-};
+type RenameDashboardVariables = {dashboardId: string; title: string};
 
 function useRenameDashboardMutationOptions() {
   const organization = useOrganization();

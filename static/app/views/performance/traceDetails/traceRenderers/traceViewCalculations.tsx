@@ -135,10 +135,7 @@ export class NormalTraceViewCalculations implements TraceViewCalculations {
     const mat = context.view.getSpanToPxForSpace([x, width]);
     const offsetInConfigSpace = 74 * mat[0];
 
-    return {
-      x: x - offsetInConfigSpace,
-      width: width + offsetInConfigSpace * 2,
-    };
+    return {x: x - offsetInConfigSpace, width: width + offsetInConfigSpace * 2};
   }
 
   getConfigSpaceCursor(
@@ -290,10 +287,7 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
       compressedEnd + paddingCompressedMs
     );
 
-    return {
-      x: paddedStart - context.view.to_origin,
-      width: paddedEnd - paddedStart,
-    };
+    return {x: paddedStart - context.view.to_origin, width: paddedEnd - paddedStart};
   }
 
   getConfigSpaceCursor(

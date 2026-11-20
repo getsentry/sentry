@@ -291,7 +291,7 @@ def deliver_workflow_result(
     agent_run = (
         SeerAgentRun.objects.select_related("run__organization")
         .filter(run__organization_id=organization_id, source=feature_id, run__uuid=run_uuid)
-        .first()
+        .first()  # noqa: S035
     )
     if agent_run is None:
         logger.warning("seer.workflow.delivery.missing_run", extra=log_extra)

@@ -11,9 +11,7 @@ describe('DiffModal', () => {
     const project = ProjectFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/123/events/latest/',
-      body: {
-        eventID: '456',
-      },
+      body: {eventID: '456'},
     });
     MockApiClient.addMockResponse({
       url: '/projects/123/project-slug/events/456/',
@@ -21,9 +19,7 @@ describe('DiffModal', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/234/events/latest/',
-      body: {
-        eventID: '789',
-      },
+      body: {eventID: '789'},
     });
     MockApiClient.addMockResponse({
       url: '/projects/123/project-slug/events/789/',

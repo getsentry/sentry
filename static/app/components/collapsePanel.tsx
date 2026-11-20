@@ -10,10 +10,7 @@ import {tct} from 'sentry/locale';
 
 export const COLLAPSE_COUNT = 5;
 
-type ChildRenderProps = {
-  isExpanded: boolean;
-  showMoreButton: React.ReactNode;
-};
+type ChildRenderProps = {isExpanded: boolean; showMoreButton: React.ReactNode};
 
 type Props = {
   children: (props: ChildRenderProps) => React.JSX.Element;

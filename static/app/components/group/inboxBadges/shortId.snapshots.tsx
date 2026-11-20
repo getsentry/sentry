@@ -13,12 +13,7 @@ describe('ShortId', () => {
         shortId="JAVASCRIPT-ABC"
         avatar={
           <div
-            style={{
-              width: 12,
-              height: 12,
-              borderRadius: '50%',
-              background: '#6C5FC7',
-            }}
+            style={{width: 12, height: 12, borderRadius: '50%', background: '#6C5FC7'}}
           />
         }
       />
