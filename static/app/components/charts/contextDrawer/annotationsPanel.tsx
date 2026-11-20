@@ -19,12 +19,19 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
-import {AnnotationFlagsTable} from './annotationFlagsTable';
 import type {ChartContextSection} from './chartContextDrawer';
+
+export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
 
 const LazyReleasesDrawerTable = lazy(() =>
   import('sentry/views/explore/releases/drawer/releasesDrawerTable').then(module => ({
     default: module.ReleasesDrawerTable,
+  }))
+);
+
+const LazyAnnotationFlagsTable = lazy(() =>
+  import('./annotationFlagsTable').then(module => ({
+    default: module.AnnotationFlagsTable,
   }))
 );
 
@@ -86,7 +93,11 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
                   releaseDrawerSource="chart-context-drawer"
                 />
               ) : kind === 'flag' ? (
-                <AnnotationFlagsTable />
+                <LazyLoad
+                  LazyComponent={LazyAnnotationFlagsTable}
+                  loadingFallback={<LoadingIndicator mini />}
+                  cursorKeyName={ANNOTATION_FLAGS_CURSOR}
+                />
               ) : (
                 <Text variant="muted">{t('Table coming soon')}</Text>
               )}

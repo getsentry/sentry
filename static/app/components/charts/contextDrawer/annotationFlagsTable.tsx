@@ -15,18 +15,20 @@ import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
-
 const COLUMNS: Array<GridColumnOrder<ColumnKey>> = [
   {key: 'flag', name: t('Feature Flag')},
   {key: 'action', name: t('Action')},
   {key: 'createdAt', name: t('Date')},
 ];
 
-export function AnnotationFlagsTable() {
+interface AnnotationFlagsTableProps {
+  cursorKeyName: string;
+}
+
+export function AnnotationFlagsTable({cursorKeyName}: AnnotationFlagsTableProps) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
-  const [cursor] = useQueryState(ANNOTATION_FLAGS_CURSOR, parseAsString);
+  const [cursor] = useQueryState(cursorKeyName, parseAsString);
   const {data, isPending, error} = useQuery({
     ...organizationFlagLogOptions({
       organization,
@@ -48,7 +50,7 @@ export function AnnotationFlagsTable() {
       isPending={isPending}
       error={error}
       pageLinks={data?.headers.Link ?? null}
-      cursorKeyName={ANNOTATION_FLAGS_CURSOR}
+      cursorKeyName={cursorKeyName}
       emptyMessage={
         <EmptyState
           title={t('No flag changes')}
