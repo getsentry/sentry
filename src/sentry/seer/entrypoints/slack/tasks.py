@@ -18,7 +18,12 @@ from sentry.integrations.services.integration.service import integration_service
 from sentry.models.organization import Organization
 from sentry.notifications.platform.slack.provider import SlackRenderable
 from sentry.notifications.platform.templates.seer import SeerAgentOutOfCredits
-from sentry.seer.credits import SeerOperation, can_run_seer_operation
+from sentry.seer.credits import (
+    SeerCreditDenialReason,
+    SeerOperation,
+    check_seer_operation,
+    get_denial_reason,
+)
 from sentry.seer.entrypoints.metrics import (
     SlackEntrypointEventLifecycleMetric,
     SlackEntrypointInteractionType,
@@ -171,14 +176,16 @@ def process_mention_for_slack(
             return
 
         # Check credits up front so an org without them gets an answer right away.
-        if not can_run_seer_operation(
+        credits = check_seer_operation(
             organization, SEER_BILLING_FEATURE_SEER_AGENT_SLACK, SeerOperation.AGENT_CHAT_MESSAGE
-        ):
+        )
+        if not credits.has_enough_credits:
             lifecycle.record_halt(ProcessMentionHaltReason.OUT_OF_SEER_CREDITS)
             _send_out_of_credits_message(
                 entrypoint=entrypoint,
                 organization=organization,
                 thread_ts=thread_ts or ts,
+                denial_reason=get_denial_reason(credits),
             )
             # The webhook set "is thinking..." before queueing this task; clear it.
             entrypoint.install.set_thread_status(
@@ -427,13 +434,16 @@ def _send_out_of_credits_message(
     entrypoint: SlackAgentEntrypoint,
     organization: Organization,
     thread_ts: str,
+    denial_reason: SeerCreditDenialReason | None,
 ) -> None:
     """Reply in the thread, for everyone to see, that the org is out of Seer credits."""
     try:
         send_thread_update(
             install=entrypoint.install,
             thread=SlackThreadDetails(thread_ts=thread_ts, channel_id=entrypoint.channel_id),
-            data=SeerAgentOutOfCredits(organization_id=organization.id),
+            data=SeerAgentOutOfCredits(
+                organization_id=organization.id, denial_reason=denial_reason
+            ),
         )
     except Exception as e:
         _logger.warning("seer.slack.process_mention.send_out_of_credits_failed", exc_info=e)
