@@ -374,6 +374,179 @@ class TestWorkflowValidatorActivityTrigger(TestCase):
         validator = WorkflowValidator(data=data, context=context)
         assert validator.is_valid() is True
 
+    def _trigger(self, trigger_type: Condition, comparison: Any = True) -> dict[str, Any]:
+        return {"type": trigger_type, "comparison": comparison, "conditionResult": True}
+
+    def _action_filters_with(self, action_type: Action.Type) -> list[dict[str, Any]]:
+        return [
+            {
+                "logicType": "any",
+                "conditions": [],
+                "actions": [
+                    {
+                        "type": action_type,
+                        "config": {"foo": "bar"},
+                        "data": {"baz": "bar"},
+                        "integrationId": self.integration.id,
+                    }
+                ],
+            }
+        ]
+
+    def _create_workflow_with_action(
+        self, trigger_types: list[Condition], action_type: Action.Type
+    ) -> Workflow:
+        when_condition_group = self.create_data_condition_group(
+            organization=self.organization,
+            logic_type=DataConditionGroup.Type.ANY_SHORT_CIRCUIT,
+        )
+        for trigger_type in trigger_types:
+            self.create_data_condition(
+                condition_group=when_condition_group,
+                type=trigger_type,
+                comparison=True,
+                condition_result=True,
+            )
+        workflow = self.create_workflow(
+            organization=self.organization,
+            when_condition_group=when_condition_group,
+            config={"frequency": 30},
+        )
+        action_filter = self.create_data_condition_group(organization=self.organization)
+        self.create_workflow_data_condition_group(condition_group=action_filter, workflow=workflow)
+        self.create_data_condition_group_action(
+            condition_group=action_filter,
+            action=self.create_action(type=action_type, integration_id=self.integration.id),
+        )
+        return workflow
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_with_resolved_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any",
+            "conditions": [self._trigger(Condition.ISSUE_RESOLVED_TRIGGER)],
+        }
+        self.valid_data["actionFilters"] = self._action_filters_with(Action.Type.JIRA)
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is False
+        assert validator.errors["nonFieldErrors"] == [
+            ErrorDetail(
+                string="Action type 'jira' is not supported for activity triggers",
+                code="invalid",
+            )
+        ]
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_supported_action_type_with_resolved_trigger(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any",
+            "conditions": [self._trigger(Condition.ISSUE_RESOLVED_TRIGGER)],
+        }
+        self.valid_data["actionFilters"] = self._action_filters_with(Action.Type.SLACK)
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_with_resolved_and_event_triggers(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                self._trigger(Condition.FIRST_SEEN_EVENT),
+                self._trigger(Condition.ISSUE_RESOLVED_TRIGGER),
+            ],
+        }
+        self.valid_data["actionFilters"] = self._action_filters_with(Action.Type.JIRA)
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is True
+
+    @mock.patch(
+        "sentry.workflow_engine.registry.action_handler_registry.get",
+        return_value=MockActionHandler,
+    )
+    @mock.patch(
+        "sentry.notifications.notification_action.registry.action_validator_registry.get",
+        return_value=MockActionValidatorTranslator,
+    )
+    def test_unsupported_action_type_with_seer_and_event_triggers(
+        self, mock_action_validator: mock.MagicMock, mock_action_handler: mock.MagicMock
+    ) -> None:
+        self.valid_data["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                self._trigger(Condition.SEER_ACTIVITY_TRIGGER, ["rca_completed"]),
+                self._trigger(Condition.FIRST_SEEN_EVENT),
+            ],
+        }
+        self.valid_data["actionFilters"] = self._action_filters_with(Action.Type.PAGERDUTY)
+
+        validator = WorkflowValidator(data=self.valid_data, context=self.context)
+
+        assert validator.is_valid() is False
+
+    def test_unsupported_existing_action_when_triggers_change_to_resolved(self) -> None:
+        workflow = self._create_workflow_with_action([Condition.FIRST_SEEN_EVENT], Action.Type.JIRA)
+        data = {
+            "name": workflow.name,
+            "triggers": {
+                "logicType": "any-short",
+                "conditions": [
+                    {
+                        "type": Condition.ISSUE_RESOLVED_TRIGGER,
+                        "comparison": True,
+                        "conditionResult": True,
+                    }
+                ],
+            },
+        }
+
+        validator = WorkflowValidator(data=data, context={**self.context, "workflow": workflow})
+
+        assert validator.is_valid() is False
+
+    def test_update_without_triggers_or_actions_skips_activity_trigger_check(self) -> None:
+        workflow = self._create_workflow_with_action(
+            [Condition.ISSUE_RESOLVED_TRIGGER], Action.Type.JIRA
+        )
+
+        validator = WorkflowValidator(
+            data={"name": "renamed"}, context={**self.context, "workflow": workflow}
+        )
+
+        assert validator.is_valid() is True
+
 
 class TestWorkflowValidatorCreate(TestCase):
     def setUp(self) -> None:
