@@ -26,6 +26,7 @@ import {
   seerCreditCheckApiOptions,
   seerCreditChecksFilter,
   type SeerCreditDenialReason,
+  type SeerCreditOperation,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {
@@ -155,6 +156,14 @@ const MEMBER_MESSAGE: Record<SeerCreditDenialReason | 'unknown', string> = {
   ),
 };
 
+/**
+ * A link can come from any operation that Seer stopped, so the modal checks the
+ * one with the largest estimate in `SEER_OPERATION_ESTIMATES`
+ * (src/sentry/seer/credits.py). A cheaper one, such as a chat message, can pass
+ * on a balance that still blocks Autofix and tell members Seer is available.
+ */
+const SEER_MODAL_CREDIT_CHECK_OPERATION: SeerCreditOperation = 'autofix_pr_iteration';
+
 type SeerStatus = {
   denialReason: SeerCreditDenialReason | null;
   /**
@@ -190,7 +199,7 @@ function useSeerStatus(
   // Same gate as useSeerCreditCheck. Members can call the check.
   const isChecking = organization.features.includes('token-billed-seer-enabled');
   const {data, isFetchedAfterMount, refetch} = useQuery({
-    ...seerCreditCheckApiOptions(organization, 'agent_chat_message'),
+    ...seerCreditCheckApiOptions(organization, SEER_MODAL_CREDIT_CHECK_OPERATION),
     enabled: isChecking,
     retry: false,
   });

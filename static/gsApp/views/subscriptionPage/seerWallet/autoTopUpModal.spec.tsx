@@ -902,6 +902,9 @@ describe('openSeerAutoTopUpModal', () => {
         MockApiClient.addMockResponse({
           url: `/organizations/${checkedMember.slug}/seer/credit-check/`,
           body: creditCheck,
+          // Autofix's most expensive step, so a balance a chat message fits in
+          // can't hide Contact Admin while Autofix is blocked.
+          match: [MockApiClient.matchQuery({operation: 'autofix_pr_iteration'})],
         });
         const request = MockApiClient.addMockResponse({
           url: `/organizations/${checkedMember.slug}/seer-top-up-request/`,
