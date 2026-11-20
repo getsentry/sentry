@@ -1,4 +1,4 @@
-import type {Citation} from './schemas';
+import type {Citation} from 'sentry/components/seer/citations/schemas';
 
 /**
  * One valid citation of every kind. Used by the schema tests, the stories and

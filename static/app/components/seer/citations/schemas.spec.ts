@@ -1,4 +1,4 @@
-import {EXAMPLE_CITATIONS} from './examples';
+import {EXAMPLE_CITATIONS} from './__fixtures__/examples';
 import {CITATION_KINDS, citationsToJsonSchema, parseCitation} from './schemas';
 
 describe('citation schema', () => {
