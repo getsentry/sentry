@@ -289,6 +289,71 @@ class NotebookWriterTest(APITestCase):
         assert block.content == ""
         assert block.deleted_at is None
 
+    def test_project_limited_service_account_cannot_read_other_notebooks(self) -> None:
+        other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, other)
+        unscoped = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Unscoped"
+        )
+        mine = self.create_notebook(
+            organization=self.organization, created_by=self.user, title="Mine"
+        )
+        self.create_notebook_project(mine, self.project)
+        block = self.create_notebook_block(notebook=self.notebook, position=0, kind="query")
+        execution = self.create_notebook_block_execution(
+            block=block,
+            executor="code_mode",
+            block_version=1,
+            input_fingerprint="f" * 64,
+            transcript=[{"role": "assistant", "content": "secret"}],
+        )
+        client, _ = self.service_account_client(project_ids=[self.project.id])
+
+        listed = client.get(self.url("sentry-api-0-organization-notebooks"))
+        assert listed.status_code == 200
+        assert [item["id"] for item in listed.data] == [str(mine.id)]
+
+        responses = [
+            client.get(
+                self.url("sentry-api-0-organization-notebook-details", notebook_id=notebook.id)
+            )
+            for notebook in (self.notebook, unscoped)
+        ] + [
+            client.get(
+                self.url(
+                    "sentry-api-0-organization-notebook-block-execution-details",
+                    notebook_id=self.notebook.id,
+                    block_id=block.id,
+                    execution_id=execution.id,
+                )
+            ),
+            client.get(
+                self.url(
+                    "sentry-api-0-organization-notebook-comments", notebook_id=self.notebook.id
+                )
+            ),
+        ]
+        assert [response.status_code for response in responses] == [403] * 4
+        assert (
+            client.get(
+                self.url("sentry-api-0-organization-notebook-details", notebook_id=mine.id)
+            ).status_code
+            == 200
+        )
+
+    def test_all_projects_service_account_reads_every_notebook(self) -> None:
+        other = self.create_project(organization=self.organization)
+        self.create_notebook_project(self.notebook, other)
+        client, _ = self.service_account_client()
+
+        listed = client.get(self.url("sentry-api-0-organization-notebooks"))
+        details = client.get(
+            self.url("sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id)
+        )
+
+        assert [item["id"] for item in listed.data] == [str(self.notebook.id)]
+        assert details.status_code == 200
+
     def test_project_limited_service_account_creates_a_source_notebook(self) -> None:
         register_example_source_type(self)
         client, _ = self.service_account_client(project_ids=[self.project.id])

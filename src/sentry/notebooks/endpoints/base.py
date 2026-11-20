@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections.abc import Collection
 from typing import Any
 
+from django.db.models import Exists, OuterRef, QuerySet
 from rest_framework import status
 from rest_framework.exceptions import APIException, PermissionDenied
 from rest_framework.request import Request
@@ -20,7 +21,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.access import has_notebooks_access, service_account_reaches
 from sentry.notebooks.endpoints.schema import NotebookSchema
-from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment
+from sentry.notebooks.models import Notebook, NotebookBlock, NotebookComment, NotebookProject
 from sentry.notebooks.services import (
     NotebookConflictError,
     NotebookSourceNotFound,
@@ -81,6 +82,19 @@ def require_project_access(request: Request, project_ids: Collection[int]) -> No
         request.access, project_ids
     ):
         raise PermissionDenied
+
+
+def filter_to_service_account_projects(
+    request: Request, notebooks: QuerySet[Notebook]
+) -> QuerySet[Notebook]:
+    """Hide notebooks a project-limited service account can't reach, same rule as writes."""
+    access = request.access
+    if not isinstance(access, ServiceAccountAccess) or access.has_all_projects:
+        return notebooks
+    links = NotebookProject.objects.filter(notebook_id=OuterRef("id"))
+    return notebooks.filter(Exists(links)).exclude(
+        Exists(links.exclude(project_id__in=access.accessible_project_ids))
+    )
 
 
 def require_notebook_writer(request: Request, notebook: Notebook | None = None) -> int | None:
@@ -163,6 +177,7 @@ class OrganizationNotebookEndpoint(OrganizationNotebooksBaseEndpoint):
             )
         except (Notebook.DoesNotExist, ValueError):
             raise ResourceDoesNotExist
+        require_project_access(request, list(notebook.projects.values_list("id", flat=True)))
         kwargs["notebook"] = notebook
         return args, kwargs
 
