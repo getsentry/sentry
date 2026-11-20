@@ -81,6 +81,33 @@ describe('EnvironmentPageFilter', () => {
     );
   });
 
+  it('handles select all', async () => {
+    const {router} = render(<EnvironmentPageFilter />, {
+      organization,
+      initialRouterConfig: {
+        location: {pathname: '/organizations/org-slug/issues/', query: {}},
+      },
+    });
+
+    // Open menu
+    await userEvent.click(screen.getByRole('button', {name: 'All Envs'}));
+
+    // Select All stages every available environment
+    await userEvent.click(screen.getByRole('button', {name: 'Select All'}));
+
+    // Uncheck "stage" so it is excluded
+    fireEvent.click(screen.getByRole('checkbox', {name: 'Select stage'}));
+
+    // Click "Apply"
+    await userEvent.click(screen.getByRole('button', {name: 'Apply'}));
+
+    // Trigger button & router are updated with every environment except "stage"
+    expect(screen.getByRole('button', {name: 'prod, staging'})).toBeInTheDocument();
+    expect(router.location.query).toEqual(
+      expect.objectContaining({environment: ['prod', 'staging']})
+    );
+  });
+
   it('handles reset', async () => {
     const onReset = jest.fn();
     const {router} = render(<EnvironmentPageFilter onReset={onReset} />, {
