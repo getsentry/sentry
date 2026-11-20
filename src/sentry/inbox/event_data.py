@@ -21,7 +21,8 @@ class IssueMentionedDataResponse(TypedDict):
 
 
 class IssuePRReadyForReviewDataResponse(TypedDict):
-    prUrl: Annotated[str, ApiDescription("The pull request URL")]
+    activityId: Annotated[str, ApiDescription("The issue activity ID")]
+    prUrls: Annotated[list[str], ApiDescription("The pull request URLs")]
     seerRunId: Annotated[str, ApiDescription("The Seer run ID")]
 
 

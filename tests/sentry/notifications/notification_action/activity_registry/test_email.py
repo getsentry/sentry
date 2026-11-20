@@ -9,9 +9,15 @@ from sentry.notifications.platform.types import (
     NotificationTargetResourceType,
 )
 from sentry.notifications.types import NotificationSettingEnum
+from sentry.testutils.helpers.features import with_feature
 from sentry.types.activity import ActivityType
 from sentry.workflow_engine.models import Action
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+
+INBOX_FEATURES = [
+    "organizations:universal-inbox-recording",
+    "organizations:universal-inbox-notifications",
+]
 
 
 class TestEmailActivityHandlerRegistration:
@@ -173,6 +179,12 @@ class TestEmailActivityHandler(BaseWorkflowTest):
         )
         self.action.config = {"target_type": ActionTarget.ISSUE_OWNERS}
         self.action.save()
+
+        self._invoke_pr_ready()
+
+        mock_send.assert_not_called()
+
+    def _invoke_pr_ready(self) -> None:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_PR_READY_FOR_REVIEW.value,
@@ -184,7 +196,46 @@ class TestEmailActivityHandler(BaseWorkflowTest):
             detector=self.detector,
             workflow_id=self.workflow.id,
         )
-
         EmailActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_pr_ready_notifies_issue_owners_without_inbox_notifications(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.create_group_owner(group=self.group, user_id=self.user.id)
+        self.action.config = {"target_type": ActionTarget.ISSUE_OWNERS}
+        self.action.save()
+
+        self._invoke_pr_ready()
+
+        mock_send.assert_called_once()
+
+    @with_feature(INBOX_FEATURES)
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_pr_ready_skips_issue_owners_notified_through_inbox(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.create_group_owner(group=self.group, user_id=self.user.id)
+        self.action.config = {"target_type": ActionTarget.ISSUE_OWNERS}
+        self.action.save()
+
+        self._invoke_pr_ready()
+
         mock_send.assert_not_called()
+
+    @with_feature(INBOX_FEATURES)
+    @mock.patch(
+        "sentry.notifications.notification_action.activity_registry.email.send_activity_notification"
+    )
+    def test_pr_ready_still_notifies_targeted_user_with_inbox_notifications(
+        self, mock_send: mock.MagicMock
+    ) -> None:
+        self.create_group_owner(group=self.group, user_id=self.user.id)
+
+        self._invoke_pr_ready()
+
+        mock_send.assert_called_once()

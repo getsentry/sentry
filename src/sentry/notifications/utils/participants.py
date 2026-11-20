@@ -127,13 +127,21 @@ def get_providers_from_which_to_remove_user(
     return set()
 
 
-def get_participants_for_group(group: Group, user_id: int | None = None) -> ParticipantMap:
+def get_participants_for_group(
+    group: Group, user_id: int | None = None, exclude_user_ids: Iterable[int] = ()
+) -> ParticipantMap:
     participants_by_provider: ParticipantMap = GroupSubscription.objects.get_participants(group)
     if user_id:
         # Optionally remove the actor that created the activity from the recipients list.
         providers = get_providers_from_which_to_remove_user(user_id, participants_by_provider)
         for provider in providers:
             participants_by_provider.delete_participant_by_id(provider, ActorType.USER, user_id)
+
+    for excluded_user_id in exclude_user_ids:
+        for provider, _ in list(participants_by_provider.get_participant_sets()):
+            participants_by_provider.delete_participant_by_id(
+                provider, ActorType.USER, excluded_user_id
+            )
 
     return participants_by_provider
 

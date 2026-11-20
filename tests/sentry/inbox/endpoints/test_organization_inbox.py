@@ -181,7 +181,8 @@ class OrganizationInboxIndexTest(APITestCase):
             ISSUE_PR_READY_FOR_REVIEW.record(
                 subject=self.group,
                 data=IssuePRReadyForReviewData(
-                    pr_url="https://github.com/example/repo/pull/1",
+                    activity_id=456,
+                    pr_urls=["https://github.com/example/repo/pull/1"],
                     seer_run_id=123,
                 ),
                 recipient_user_ids=[self.user.id],
@@ -248,12 +249,12 @@ class OrganizationInboxIndexTest(APITestCase):
         self.create_inbox_item_event(
             inbox_item=unread,
             type="issue.pr_ready_for_review",
-            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 1},
+            data={"activity_id": 1, "pr_urls": ["https://example.com/pr/1"], "seer_run_id": 1},
         )
         self.create_inbox_item_event(
             inbox_item=unread,
             type="issue.pr_ready_for_review",
-            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 1},
+            data={"activity_id": 1, "pr_urls": ["https://example.com/pr/1"], "seer_run_id": 1},
         )
         read = self.create_inbox_item(
             subject_id=str(self.create_group().id), last_read_at=before_now(seconds=-10)
@@ -321,7 +322,9 @@ class OrganizationInboxIndexTest(APITestCase):
             (
                 "user",
                 "issue.pr_ready_for_review",
-                IssuePRReadyForReviewData(pr_url="https://example.com/pr/1", seer_run_id=1),
+                IssuePRReadyForReviewData(
+                    activity_id=1, pr_urls=["https://example.com/pr/1"], seer_run_id=1
+                ),
             ),
             ("user", "notebook.completed", NotebookCompletedData(seer_run_id=1, generation=1)),
             ("user", "notebook.user_mentioned", NotebookMentionedData(comment_id=1)),
