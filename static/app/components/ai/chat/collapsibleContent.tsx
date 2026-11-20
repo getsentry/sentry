@@ -88,6 +88,11 @@ export function CollapsibleContent({
       className={className}
       onToggle={e => {
         const open = e.currentTarget.open;
+        // The browser also fires this when a render changes `open`, e.g. on expand
+        // all. Only a click on the summary leaves it different from `isOpen`.
+        if (open === isOpen) {
+          return;
+        }
         setToggled({generation: expandAll?.generation, open});
         onToggle?.(open);
       }}

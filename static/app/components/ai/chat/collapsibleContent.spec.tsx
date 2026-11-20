@@ -1,4 +1,4 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CollapsibleContent, CollapsibleExpandAllContext} from './collapsibleContent';
 
@@ -61,9 +61,10 @@ describe('CollapsibleContent', () => {
   });
 
   it('follows expand and collapse all, keeping a hand toggle until the next one', async () => {
+    const onToggle = jest.fn();
     const {rerender} = render(
       <CollapsibleExpandAllContext value={{generation: 1, open: true}}>
-        <CollapsibleContent title="Thinking...">
+        <CollapsibleContent title="Thinking..." onToggle={onToggle}>
           <span>body</span>
         </CollapsibleContent>
       </CollapsibleExpandAllContext>
@@ -76,7 +77,7 @@ describe('CollapsibleContent', () => {
 
     rerender(
       <CollapsibleExpandAllContext value={{generation: 2, open: true}}>
-        <CollapsibleContent title="Thinking...">
+        <CollapsibleContent title="Thinking..." onToggle={onToggle}>
           <span>body</span>
         </CollapsibleContent>
       </CollapsibleExpandAllContext>
@@ -85,12 +86,15 @@ describe('CollapsibleContent', () => {
 
     rerender(
       <CollapsibleExpandAllContext value={{generation: 3, open: false}}>
-        <CollapsibleContent title="Thinking...">
+        <CollapsibleContent title="Thinking..." onToggle={onToggle}>
           <span>body</span>
         </CollapsibleContent>
       </CollapsibleExpandAllContext>
     );
     expect(details).not.toHaveAttribute('open');
+
+    await waitFor(() => expect(onToggle).toHaveBeenCalledTimes(1));
+    expect(onToggle).toHaveBeenCalledWith(false);
   });
 
   it('stops summary clicks from propagating to a wrapping handler', async () => {

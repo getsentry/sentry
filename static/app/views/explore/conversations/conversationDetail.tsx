@@ -58,6 +58,13 @@ function ConversationDetailPage() {
     autoFetchAll: false,
   });
   const [expandAll, setExpandAll] = useState<CollapsibleExpandAll | null>(null);
+  // The page stays mounted when moving to another conversation, so reset expand
+  // all during render, before it applies to the new transcript.
+  const [expandAllConversationId, setExpandAllConversationId] = useState(conversationId);
+  if (conversationId !== expandAllConversationId) {
+    setExpandAllConversationId(conversationId);
+    setExpandAll(null);
+  }
   const toggleExpandAll = () =>
     setExpandAll(previous => ({
       generation: (previous?.generation ?? 0) + 1,
