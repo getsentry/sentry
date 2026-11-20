@@ -20,6 +20,7 @@ from sentry.organizations.services.organization.service import organization_serv
 from sentry.seer.agent.client_models import RepoPRState
 from sentry.seer.autofix.issue_summary import STOPPING_POINT_HIERARCHY
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
+from sentry.seer.credits import SeerCreditDenialReason
 
 # Inverted hierarchy for looking up stopping point by rank
 _RANK_TO_STOPPING_POINT = {rank: point for point, rank in STOPPING_POINT_HIERARCHY.items()}
@@ -85,14 +86,24 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
 # NO_RELOADS is for when auto-reload is already on.
 AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+AUTOFIX_DAILY_LIMIT_MESSAGE = (
+    "Your organization hit its daily usage limit, so you cannot continue your Autofix run."
+)
 
 
 class SeerAutofixOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AUTOFIX_OUT_OF_CREDITS
     auto_reload_enabled: bool = False
+    denial_reason: SeerCreditDenialReason | None = None
+
+    @property
+    def is_daily_limit_reached(self) -> bool:
+        return self.denial_reason == "daily_cap_exceeded"
 
     @property
     def message(self) -> str:
+        if self.is_daily_limit_reached:
+            return AUTOFIX_DAILY_LIMIT_MESSAGE
         if self.auto_reload_enabled:
             return AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
         return AUTOFIX_OUT_OF_CREDITS_MESSAGE
@@ -253,14 +264,24 @@ class SeerAgentErrorTemplate(NotificationTemplate[SeerAgentError]):
 
 AGENT_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits left for you to message Seer. Adjust your spend and turn on auto-reload."
 AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits left for you to message Seer, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
+AGENT_DAILY_LIMIT_MESSAGE = (
+    "Your organization hit its daily usage limit, so you cannot continue messaging Seer."
+)
 
 
 class SeerAgentOutOfCredits(NotificationData):
     source: NotificationSource = NotificationSource.SEER_AGENT_OUT_OF_CREDITS
     auto_reload_enabled: bool = False
+    denial_reason: SeerCreditDenialReason | None = None
+
+    @property
+    def is_daily_limit_reached(self) -> bool:
+        return self.denial_reason == "daily_cap_exceeded"
 
     @property
     def message(self) -> str:
+        if self.is_daily_limit_reached:
+            return AGENT_DAILY_LIMIT_MESSAGE
         if self.auto_reload_enabled:
             return AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE
         return AGENT_OUT_OF_CREDITS_MESSAGE
