@@ -1,6 +1,7 @@
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
+import type {TimeSeriesItem} from 'sentry/views/dashboards/widgets/common/types';
 
 import {ContinuousTimeSeries} from './continuousTimeSeries';
 import type {Plottable} from './plottable';
@@ -198,6 +199,60 @@ describe('ContinuousTimeSeries', () => {
         ],
       });
       expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+  });
+
+  describe('lowConfidenceRanges', () => {
+    const interval = 1_000;
+
+    function timeSeriesWith(items: Array<Partial<TimeSeriesItem>>) {
+      return new Dots(
+        TimeSeriesFixture({
+          meta: {valueType: 'number', valueUnit: null, interval},
+          values: items.map((item, index) => ({
+            timestamp: index * interval,
+            value: 1,
+            ...item,
+          })),
+        })
+      );
+    }
+
+    it('covers half an interval either side of each low confidence bucket', () => {
+      const plottable = timeSeriesWith([
+        {},
+        {confidence: 'low'},
+        {},
+        {confidence: 'low'},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([
+        {start: 500, end: 1_500},
+        {start: 2_500, end: 3_500},
+      ]);
+    });
+
+    it('merges consecutive low confidence buckets', () => {
+      const plottable = timeSeriesWith([
+        {},
+        {confidence: 'low'},
+        {confidence: 'low'},
+        {confidence: 'low'},
+        {},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([{start: 500, end: 3_500}]);
+    });
+
+    it('ignores high, null, empty, and incomplete buckets', () => {
+      const plottable = timeSeriesWith([
+        {confidence: 'high'},
+        {confidence: null},
+        {confidence: 'low', value: null},
+        {confidence: 'low', incomplete: true},
+      ]);
+
+      expect(plottable.lowConfidenceRanges).toEqual([]);
     });
   });
 
