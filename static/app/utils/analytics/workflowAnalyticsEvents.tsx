@@ -1,6 +1,5 @@
 import type {GroupStatus} from 'sentry/types/group';
 import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
-import type {Tab} from 'sentry/views/issueDetails/types';
 
 import type {ProjectCreationVariant} from './projectCreationAnalyticsEvents';
 
@@ -68,8 +67,6 @@ type BaseTour = {
 type ReleasesTour = BaseTour & {project_id: string};
 
 export type TeamInsightsEventParameters = {
-  'alert_details.viewed': {alert_id: number};
-  'alert_stream.viewed': Record<string, unknown>;
   'edit_alert_rule.viewed': RuleViewed;
   'issue_details.action_clicked': IssueDetailsWithAlert & {
     action_type:
@@ -97,13 +94,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.issue_tab.screenshot_modal_deleted': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_download': Record<string, unknown>;
   'issue_details.issue_tab.screenshot_modal_opened': Record<string, unknown>;
-  'issue_details.issue_tab.trace_timeline_clicked': {
-    event_id: string;
-    group_id: string;
-  };
-  'issue_details.issue_tab.trace_timeline_more_events_clicked': {
-    num_hidden: number;
-  };
   'issue_details.merged_tab.unmerge_clicked': {
     /**
      * comma separated list of event ids that were unmerged
@@ -136,9 +126,6 @@ export type TeamInsightsEventParameters = {
   'issue_details.suspect_commits.pull_request_clicked': IssueDetailsWithAlert & {
     suspect_commit_calculation: string;
     suspect_commit_index: number;
-  };
-  'issue_details.tab_changed': IssueDetailsWithAlert & {
-    tab: Tab;
   };
   'issue_inbox.resolve_clicked': IssueDetailsWithAlert & {
     action_type: GroupStatus;
@@ -188,8 +175,6 @@ export type TeamInsightsEventParameters = {
 type TeamInsightsEventKey = keyof TeamInsightsEventParameters;
 
 export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
-  'alert_details.viewed': 'Alert Details: Viewed',
-  'alert_stream.viewed': 'Alert Stream: Viewed',
   'edit_alert_rule.viewed': 'Edit Alert Rule: Viewed',
   'issue_details.action_clicked': 'Issue Details: Action Clicked',
   'issue_inbox.resolve_clicked': 'Issue Inbox: Resolve Action Clicked',
@@ -210,10 +195,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Screenshot downloaded from modal',
   'issue_details.issue_tab.screenshot_modal_opened':
     'Issue Details: Screenshot modal opened',
-  'issue_details.issue_tab.trace_timeline_clicked':
-    'Issue Details: Trace Timeline Clicked',
-  'issue_details.issue_tab.trace_timeline_more_events_clicked':
-    'Issue Details: Trace Timeline More Events Clicked',
   'issue_details.resources_link_clicked': 'Issue Details: Resources Link Clicked',
   'issue_details.seer_opened': 'Issue Details: Seer Opened',
   'issue_details.suspect_commits.commit_clicked': 'Issue Details: Suspect Commit Clicked',
@@ -221,7 +202,6 @@ export const workflowEventMap: Record<TeamInsightsEventKey, string | null> = {
     'Issue Details: Suspect Pull Request Clicked',
   'issue_details.suspect_commits.missing_user':
     'Issue Details: Suspect Commits Missing User',
-  'issue_details.tab_changed': 'Issue Details: Tab Changed',
   'issue_details.merged_tab.unmerge_clicked': 'Issue Details: Unmerge Clicked',
   'issue_stream.updated_empty_state_viewed': 'Issue Stream: Updated Empty State Viewed',
   'project_creation_page.created': 'Project Create: Project Created',

@@ -1,4 +1,4 @@
-import {useState, type ReactNode} from 'react';
+import {useEffect, useState, type ReactNode} from 'react';
 
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {SegmentedControl} from '@sentry/scraps/segmentedControl';
@@ -10,6 +10,8 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {Benefit} from 'sentry/components/onboarding/benefit';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
 
 type SetupMode = 'agent' | 'manual';
 
@@ -35,7 +37,6 @@ interface ProductEmptyStateProps {
   project: Project;
   title: string;
   footer?: ReactNode;
-  onPromptCopied?: (handoffId: string) => void;
 }
 
 export function ProductEmptyState({
@@ -45,14 +46,44 @@ export function ProductEmptyState({
   footer,
   media,
   manualSetup,
-  onPromptCopied,
   product,
   productName,
   project,
   title,
 }: ProductEmptyStateProps) {
+  const organization = useOrganization();
   const [mode, setMode] = useState<SetupMode>('agent');
   const context = {product, projectId: project.id};
+  const platform = project.platform ?? 'unknown';
+
+  useEffect(() => {
+    trackAnalytics('product_empty_state.agent_setup_viewed', {
+      organization,
+      platform,
+      product,
+      project_id: project.id,
+    });
+  }, [organization, platform, product, project.id]);
+
+  function handleModeChange(newMode: SetupMode) {
+    setMode(newMode);
+    trackAnalytics('product_empty_state.agent_setup_mode_selected', {
+      organization,
+      mode: newMode,
+      product,
+      project_id: project.id,
+    });
+  }
+
+  function handleCopySuccess(handoffId: string) {
+    trackAnalytics('product_empty_state.agent_setup_command_copied', {
+      organization,
+      handoff_id: handoffId,
+      platform,
+      product,
+      project_id: project.id,
+    });
+  }
 
   return (
     <Stack gap="md" width="100%" maxWidth="960px" margin="0 auto">
@@ -89,7 +120,7 @@ export function ProductEmptyState({
             </Flex>
             <SegmentedControl<SetupMode>
               value={mode}
-              onChange={setMode}
+              onChange={handleModeChange}
               aria-label={t('Setup mode')}
             >
               <SegmentedControl.Item key="agent">
@@ -106,7 +137,7 @@ export function ProductEmptyState({
                 agentSteps={agentSteps}
                 context={context}
                 feedbackSource={feedbackSource}
-                onCopySuccess={onPromptCopied}
+                onCopySuccess={handleCopySuccess}
               />
             ) : (
               manualSetup

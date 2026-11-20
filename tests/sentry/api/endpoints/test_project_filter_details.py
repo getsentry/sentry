@@ -142,7 +142,8 @@ class ProjectFilterDetailsAnnotationTest(APITestCase):
 
         assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
 
-    def test_no_annotation_without_framework_feature(self) -> None:
+    def test_records_annotation_without_framework_feature(self) -> None:
+        # Production depends only on the use-case flag; the framework flag gates consumption.
         with self.feature("organizations:timeseries-annotations-usecase-filter-change"):
             self.get_success_response(
                 self.organization.slug,
@@ -152,7 +153,7 @@ class ProjectFilterDetailsAnnotationTest(APITestCase):
                 status_code=204,
             )
 
-        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
+        assert TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
 
     def test_no_annotation_without_usecase_feature(self) -> None:
         with self.feature("organizations:timeseries-annotations"):

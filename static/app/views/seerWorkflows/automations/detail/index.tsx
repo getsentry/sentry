@@ -44,6 +44,7 @@ import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automa
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
@@ -65,7 +66,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)

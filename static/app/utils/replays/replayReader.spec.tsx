@@ -13,7 +13,10 @@ import {
   ReplayOptionFrameFixture,
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
-import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
+import {
+  ReplayMemoryFrameFixture,
+  ReplayRequestFrameFixture,
+} from 'sentry-fixture/replay/replaySpanFrameData';
 import {
   RRWebDOMFrameFixture,
   RRWebFullSnapshotFrameEventFixture,
@@ -236,6 +239,44 @@ describe('ReplayReader', () => {
       const exec = replay?.[method];
       expect(exec?.()).toStrictEqual(expected);
     });
+  });
+
+  it('excludes memory frames without a usable heap size from getMemoryFrames', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+    const validMemory = ReplayMemoryEventFixture({
+      startTimestamp: timestamp,
+      endTimestamp: timestamp,
+    });
+    const memoryEventWithData = (data: unknown) =>
+      ReplaySpanFrameEventFixture({
+        timestamp,
+        data: {
+          payload: {
+            ...ReplayMemoryFrameFixture({
+              startTimestamp: timestamp,
+              endTimestamp: timestamp,
+            }),
+            // @ts-expect-error: Explicitly test data that doesn't match the SDK types
+            data,
+          },
+        },
+      });
+
+    const replay = ReplayReader.factory({
+      attachments: [
+        validMemory,
+        memoryEventWithData({}),
+        memoryEventWithData({memory: {}}),
+        memoryEventWithData({memory: {usedJSHeapSize: null}}),
+      ],
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+
+    const memoryFrames = replay?.getMemoryFrames();
+    expect(memoryFrames).toHaveLength(1);
+    expect(memoryFrames?.[0]?.data.memory.usedJSHeapSize).toBe(0);
   });
 
   it('excludes a slow click from the chapter frames when its node has no tagName', () => {

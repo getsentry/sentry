@@ -67,17 +67,7 @@ class AddFeatureFlow(Flow[AddFeatureContext]):
         )
         if project is None:
             raise InvalidHandoffContext("Project is unavailable")
-        return render_add_feature_runbook(product=parsed.product, project_slug=project.slug)
-
-    def preview(self) -> str:
-        return render_add_feature_runbook(
-            product=AddFeatureProduct.TRACING,
-            project_slug="example-project",
+        return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/add_feature.md").render(
+            product=parsed.product,
+            project_slug=escape_label(project.slug),
         )
-
-
-def render_add_feature_runbook(*, product: AddFeatureProduct, project_slug: str) -> str:
-    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/add_feature.md").render(
-        product=product,
-        project_slug=escape_label(project_slug),
-    )

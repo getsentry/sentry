@@ -229,6 +229,7 @@ describe('useDroppedDataLayer', () => {
       filterNote: undefined,
       isLoading: false,
       layerControl: undefined,
+      openContextDrawer: expect.any(Function),
     });
   });
 
@@ -250,6 +251,7 @@ describe('useDroppedDataLayer', () => {
       filterNote: undefined,
       isLoading: false,
       layerControl: undefined,
+      openContextDrawer: expect.any(Function),
     });
   });
 });

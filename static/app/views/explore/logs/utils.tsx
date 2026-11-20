@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {InfiniteData, InfiniteQueryObserverResult} from '@tanstack/react-query';
 import type {Location} from 'history';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Event} from 'sentry/types/event';
@@ -419,7 +420,7 @@ type BaseGetLogsUrlParams = {
   mode?: Mode;
   pinnedRowIds?: string[];
   query?: string;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   referrer?: string;
   rowId?: string;
   selection?: PageFilters;
