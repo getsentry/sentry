@@ -107,6 +107,24 @@ class ObjectstoreArtifactLookupTest(APITestCase):
         self.login_as(self.user)
         return bundle
 
+    def test_foreign_bundle_linked_to_project_returns_404(self) -> None:
+        foreign_bundle = self.create_artifact_bundle(
+            org=self.create_organization(), use_objectstore=True
+        )
+        ProjectArtifactBundle.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            artifact_bundle=foreign_bundle,
+        )
+        self.login_as(self.user)
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            download=f"artifact_bundle/{foreign_bundle.id}",
+        )
+        assert response.status_code == 404
+
     def test_internal_redirect(self) -> None:
         bundle = self.create_bundle()
         with (

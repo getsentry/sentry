@@ -90,20 +90,21 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
             )
             return HttpResponse({"Too many download requests"}, status=429)
 
-        file_m: ArtifactBundle | ReleaseFile | None = None
+        artifact: ArtifactBundle | ReleaseFile | None = None
         if ty == "artifact_bundle":
-            file_m = (
+            artifact = (
                 ArtifactBundle.objects.filter(
                     id=ty_id,
-                    organization_id=project.organization_id,
                     projectartifactbundle__project_id=project.id,
                 )
                 .select_related("file")
                 .first()  # noqa: S035
             )
             metrics.incr("sourcemaps.download.artifact_bundle")
+            if artifact is not None and artifact.organization_id != project.organization_id:
+                raise Http404
         elif ty == "release_file":
-            file_m = (
+            artifact = (
                 ReleaseFile.objects.filter(
                     id=ty_id,
                     organization_id=project.organization.id,
@@ -112,26 +113,26 @@ class ProjectArtifactLookupEndpoint(ProjectEndpoint):
                 .get_or_none()
             )
             if (
-                file_m is not None
+                artifact is not None
                 and not ReleaseProject.objects.filter(
-                    project=project, release_id=file_m.release_id
+                    project=project, release_id=artifact.release_id
                 ).exists()
             ):
-                file_m = None
+                artifact = None
             metrics.incr("sourcemaps.download.release_file")
 
-        if file_m is None:
+        if artifact is None:
             raise Http404
-        if isinstance(file_m, ArtifactBundle) and file_m.storage_path is not None:
+        if isinstance(artifact, ArtifactBundle) and artifact.storage_path is not None:
             return HttpResponseRedirect(
                 get_download_redirect_url(
                     request,
-                    file_m.get_objectstore_session(),
-                    file_m.organization_id,
-                    file_m.storage_path,
+                    artifact.get_objectstore_session(),
+                    artifact.organization_id,
+                    artifact.storage_path,
                 )
             )
-        file = file_m.file
+        file = artifact.file
         if file is None:
             raise Http404
 
