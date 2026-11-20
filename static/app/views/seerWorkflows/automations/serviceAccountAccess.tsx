@@ -21,15 +21,22 @@ import type {MetricDetector} from 'sentry/types/workflowEngine/detectors';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-export type ServiceAccountProjectAccess = {
+export type ProjectSelection = {
   allProjects: boolean;
-  /**
-   * Projects granted on top of the connected monitors' projects
-   */
   projectIds: string[];
 };
 
+/**
+ * Its projectIds are granted on top of the connected monitors' projects
+ */
+export type ServiceAccountProjectAccess = ProjectSelection;
+
 const PROJECT_COLUMNS: TableColumnConfig[] = [
+  {key: 'project', width: 'minmax(0, 1fr)'},
+  {key: 'action', width: 'auto'},
+];
+
+const PROJECT_COLUMNS_WITH_REASON: TableColumnConfig[] = [
   {key: 'project', width: 'minmax(0, 1fr)'},
   {key: 'reason', width: 'minmax(0, 1fr)'},
   {key: 'action', width: 'auto'},
@@ -45,7 +52,7 @@ const PERMISSION_COLUMNS: TableColumnConfig[] = [
  */
 export function getServiceAccountProjectIds(
   access: ServiceAccountProjectAccess,
-  monitors: MetricDetector[]
+  monitors: MetricDetector[] = []
 ): string[] {
   if (access.allProjects) {
     return [];
@@ -91,8 +98,11 @@ export function ServiceAccountSummary({
   scopes,
 }: {
   access: ServiceAccountProjectAccess;
-  monitors: MetricDetector[];
   scopes: string[];
+  /**
+   * Omit when the automation has no monitors
+   */
+  monitors?: MetricDetector[];
 }) {
   const projectCount = getServiceAccountProjectIds(access, monitors).length;
   const selected = new Set(scopes);
@@ -101,7 +111,7 @@ export function ServiceAccountSummary({
   if (access.allProjects) {
     projects = t('All projects');
   } else if (projectCount === 0) {
-    projects = t('Connected monitor projects');
+    projects = monitors ? t('Connected monitor projects') : t('No projects');
   }
   const permissions = tn(
     '%s permission',
@@ -123,15 +133,53 @@ export function ServiceAccountProjects({
   onChange: (value: ServiceAccountProjectAccess) => void;
   value: ServiceAccountProjectAccess;
 }) {
+  return (
+    <ProjectSelector
+      value={value}
+      monitors={monitors}
+      disabled={disabled}
+      onChange={onChange}
+      emptyMessage={t(
+        'Connect a monitor or add a project to give the service account access.'
+      )}
+    />
+  );
+}
+
+/**
+ * Whether the user's role reaches every project in the organization
+ */
+export function useHasAllProjectsAccess(): boolean {
   const organization = useOrganization();
+  return (
+    organization.orgRoleList?.find(role => role.id === organization.orgRole)?.isGlobal ??
+    false
+  );
+}
+
+/**
+ * Picks all projects or a list of them. Projects of the given monitors are
+ * always included and can't be removed; omit monitors for a plain project list.
+ */
+export function ProjectSelector({
+  value,
+  monitors,
+  disabled,
+  emptyMessage,
+  onChange,
+}: {
+  disabled: boolean;
+  emptyMessage: string;
+  onChange: (value: ProjectSelection) => void;
+  value: ProjectSelection;
+  monitors?: MetricDetector[];
+}) {
   const {projects} = useProjects();
   // Only global roles can grant all projects, or narrow an account that has them
-  const hasGlobalRole =
-    organization.orgRoleList?.find(role => role.id === organization.orgRole)?.isGlobal ??
-    false;
+  const canToggleAllProjects = useHasAllProjectsAccess();
 
   const monitorCounts = new Map<string, number>();
-  for (const monitor of monitors) {
+  for (const monitor of monitors ?? []) {
     monitorCounts.set(monitor.projectId, (monitorCounts.get(monitor.projectId) ?? 0) + 1);
   }
   const grantedIds = new Set(getServiceAccountProjectIds(value, monitors));
@@ -153,13 +201,13 @@ export function ServiceAccountProjects({
       >
         <Flex>
           <Tooltip
-            disabled={hasGlobalRole}
+            disabled={canToggleAllProjects}
             title={t('Only roles with access to all projects can change this.')}
           >
             <Switch
               aria-label={t('All projects')}
               checked={value.allProjects}
-              disabled={disabled || !hasGlobalRole}
+              disabled={disabled || !canToggleAllProjects}
               onChange={() => onChange({...value, allProjects: !value.allProjects})}
             />
           </Tooltip>
@@ -168,7 +216,9 @@ export function ServiceAccountProjects({
       {!value.allProjects && (
         <Flex align="center" justify="between" gap="md">
           <Text size="sm" variant="muted">
-            {`${tn('%s project', '%s projects', granted.length)} · ${t('%s from connected monitors', monitorCounts.size)}`}
+            {monitors
+              ? `${tn('%s project', '%s projects', granted.length)} · ${t('%s from connected monitors', monitorCounts.size)}`
+              : tn('%s project', '%s projects', granted.length)}
           </Text>
           <CompactSelect
             multiple
@@ -199,22 +249,18 @@ export function ServiceAccountProjects({
       )}
       {!value.allProjects && (
         <SimpleTable
-          columns={PROJECT_COLUMNS}
+          columns={monitors ? PROJECT_COLUMNS_WITH_REASON : PROJECT_COLUMNS}
           header={
             <SimpleTable.HeaderRow>
               <SimpleTable.HeaderCell>{t('Project')}</SimpleTable.HeaderCell>
-              <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
+              {monitors && (
+                <SimpleTable.HeaderCell>{t('Included because')}</SimpleTable.HeaderCell>
+              )}
               <SimpleTable.HeaderCell />
             </SimpleTable.HeaderRow>
           }
         >
-          {granted.length === 0 && (
-            <SimpleTable.Empty>
-              {t(
-                'Connect a monitor or add a project to give the service account access.'
-              )}
-            </SimpleTable.Empty>
-          )}
+          {granted.length === 0 && <SimpleTable.Empty>{emptyMessage}</SimpleTable.Empty>}
           {granted.map(project => {
             const monitorCount = monitorCounts.get(project.id);
             return (
@@ -222,13 +268,19 @@ export function ServiceAccountProjects({
                 <SimpleTable.RowCell>
                   <ProjectBadge project={project} avatarSize={16} disableLink />
                 </SimpleTable.RowCell>
-                <SimpleTable.RowCell>
-                  <Text size="sm" variant="muted">
-                    {monitorCount
-                      ? tn('%s connected monitor', '%s connected monitors', monitorCount)
-                      : t('Added manually')}
-                  </Text>
-                </SimpleTable.RowCell>
+                {monitors && (
+                  <SimpleTable.RowCell>
+                    <Text size="sm" variant="muted">
+                      {monitorCount
+                        ? tn(
+                            '%s connected monitor',
+                            '%s connected monitors',
+                            monitorCount
+                          )
+                        : t('Added manually')}
+                    </Text>
+                  </SimpleTable.RowCell>
+                )}
                 <SimpleTable.RowCell justify="end">
                   {monitorCount ? (
                     <Button

@@ -1,15 +1,11 @@
 import {useEffect, useImperativeHandle, type RefObject} from 'react';
-import {IconAdd} from '@sentry/icons/add';
-import {IconClose} from '@sentry/icons/close';
 import {IconFire} from '@sentry/icons/fire';
-import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
-import {Button, LinkButton} from '@sentry/scraps/button';
+import {LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
-import {useDrawer} from '@sentry/scraps/drawer';
 import {
   defaultFormOptions,
   DisplayField,
@@ -22,15 +18,13 @@ import {Switch} from '@sentry/scraps/switch';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
-import {t, tn} from 'sentry/locale';
-import type {Detector, MetricDetector} from 'sentry/types/workflowEngine/detectors';
-import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {t} from 'sentry/locale';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {useProjects} from 'sentry/utils/useProjects';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {
   SeerServiceAccountResponse,
@@ -42,29 +36,48 @@ import {
 } from 'sentry/views/seerWorkflows/utils';
 
 import {useCreateConfig, useUpdateConfig} from './hooks/configs';
-import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {FormSection, type MetricAutomationFormHandle} from './metricAutomationForm';
-import {MonitorTable} from './monitorTable';
 import {
   getServiceAccountProjectIds,
+  ProjectSelector,
   ServiceAccountPermissions,
-  ServiceAccountProjects,
   ServiceAccountSummary,
+  useHasAllProjectsAccess,
+  type ProjectSelection,
   type ServiceAccountProjectAccess,
 } from './serviceAccountAccess';
 
-const schema = z.object({
-  name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
-  enabled: z.boolean(),
-  monitorIds: z.array(z.string()),
-  serviceAccountProjects: z.object({
-    allProjects: z.boolean(),
-    projectIds: z.array(z.string()),
-  }),
-  scopes: z
-    .array(z.string())
-    .min(1, t('Give the service account at least one permission.')),
-});
+/**
+ * A scope with no projects is only valid for users who can't choose any
+ */
+function getSchema(allowNoProjects: boolean) {
+  return z.object({
+    name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
+    enabled: z.boolean(),
+    projects: z
+      .object({
+        allProjects: z.boolean(),
+        projectIds: z.array(z.string()),
+      })
+      .refine(
+        projects =>
+          allowNoProjects || projects.allProjects || projects.projectIds.length > 0,
+        {message: t('Choose at least one project.')}
+      ),
+    serviceAccountProjects: z.object({
+      allProjects: z.boolean(),
+      projectIds: z.array(z.string()),
+    }),
+    scopes: z
+      .array(z.string())
+      .min(1, t('Give the service account at least one permission.')),
+  });
+}
+
+/**
+ * Stands for every project in a config's project list
+ */
+const ALL_PROJECTS_ID = -1;
 
 const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
   'event:read',
@@ -100,10 +113,6 @@ type Props =
        * Reports whether any field differs from its saved value
        */
       setFormHasChanges: (hasChanges: boolean) => void;
-      /**
-       * Disables save while monitors are loading
-       */
-      setMonitorsPending: (pending: boolean) => void;
     };
 
 export function AgenticTriageForm(props: Props) {
@@ -112,21 +121,35 @@ export function AgenticTriageForm(props: Props) {
   const serviceAccount = props.mode === 'edit' ? props.config.serviceAccount : null;
   const grantableScopes = new Set<string>(organization.access);
   const readOnly = props.mode === 'edit' && props.readOnly;
+  const hasAllProjectsAccess = useHasAllProjectsAccess();
+  const {projects} = useProjects();
+  const firstProject = projects
+    .filter(project => project.hasAccess)
+    .sort((a, b) => a.slug.localeCompare(b.slug))[0];
+  const hasNoProjects = !hasAllProjectsAccess && !firstProject;
+  const schema = getSchema(hasNoProjects);
+  // All projects when the user can grant them, otherwise their first project
+  let defaultProjects: ProjectSelection = {
+    allProjects: hasAllProjectsAccess,
+    projectIds: !hasAllProjectsAccess && firstProject ? [firstProject.id] : [],
+  };
+  if (props.mode === 'edit') {
+    defaultProjects = getProjectSelection(props.config.projects);
+  }
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
     configId: props.mode === 'edit' ? props.config.id : '',
   });
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
-  const saveConfig = async (value: z.infer<typeof schema>) => {
+  const saveConfig = async (value: z.infer<ReturnType<typeof getSchema>>) => {
     const fields = {
-      monitorIds: value.monitorIds.map(Number),
+      projectIds: value.projects.allProjects
+        ? [ALL_PROJECTS_ID]
+        : value.projects.projectIds.map(Number),
       serviceAccount: {
         scopes: value.scopes,
-        projectIds: getServiceAccountProjectIds(
-          value.serviceAccountProjects,
-          monitors.filter(monitor => value.monitorIds.includes(monitor.id))
-        ).map(Number),
+        projectIds: getServiceAccountProjectIds(value.serviceAccountProjects).map(Number),
         allProjects: value.serviceAccountProjects.allProjects,
       },
     };
@@ -155,7 +178,7 @@ export function AgenticTriageForm(props: Props) {
         props.mode === 'create'
           ? t('Agentic Triage')
           : (props.config.name ?? STRATEGY_META.agentic_triage_v2.label),
-      monitorIds: props.mode === 'create' ? [] : props.config.monitorIds.map(String),
+      projects: defaultProjects,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
         serviceAccount?.scopes ??
@@ -169,7 +192,7 @@ export function AgenticTriageForm(props: Props) {
           formApi.reset({
             name: value.name,
             enabled: config.enabled,
-            monitorIds: config.monitorIds.map(String),
+            projects: getProjectSelection(config.projects),
             serviceAccountProjects: getServiceAccountProjectSelection(
               config.serviceAccount
             ),
@@ -190,46 +213,6 @@ export function AgenticTriageForm(props: Props) {
   const hasChanges = useStore(form.store, state => !state.isDefaultValue);
   const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
   useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
-  // Fetch connected monitors by ID so they resolve regardless of the picker's filters
-  const queryClient = useQueryClient();
-  const monitorIds = useStore(form.store, state => state.values.monitorIds);
-  const monitorsQueryOptions = detectorListApiOptions(organization, {
-    ids: monitorIds,
-    projects: [-1],
-    limit: 100,
-  });
-  const monitorsQuery = useQuery({
-    ...monitorsQueryOptions,
-    enabled: monitorIds.length > 0,
-    // Show monitors already fetched by the picker or an earlier lookup while
-    // the by-ID fetch runs, so a newly connected monitor appears right away
-    placeholderData: previous => {
-      const known = new Map<string, Detector>();
-      for (const [, data] of queryClient.getQueriesData<ApiResponse<Detector[]>>({
-        queryKey: [monitorsQueryOptions.queryKey[0]],
-      })) {
-        data?.json.forEach(monitor => known.set(monitor.id, monitor));
-      }
-      previous?.json.forEach(monitor => known.set(monitor.id, monitor));
-      const json = monitorIds.flatMap(id => known.get(id) ?? []);
-      return json.length > 0 ? {json, headers: {}} : undefined;
-    },
-  });
-  // The query is disabled with no monitors connected, so its state only matters otherwise
-  const hasMonitorsError = monitorIds.length > 0 && monitorsQuery.isError;
-  const isResolvingMonitors =
-    monitorIds.length > 0 && (monitorsQuery.isLoading || monitorsQuery.isPlaceholderData);
-  const setMonitorsPending = props.mode === 'edit' ? props.setMonitorsPending : undefined;
-  useEffect(
-    () => setMonitorsPending?.(isResolvingMonitors),
-    [setMonitorsPending, isResolvingMonitors]
-  );
-  // For typing
-  const monitors =
-    monitorIds.length > 0
-      ? (monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [])
-      : [];
-  const connectedMonitors = monitors.filter(monitor => monitorIds.includes(monitor.id));
   const serviceAccountProjects = useStore(
     form.store,
     state => state.values.serviceAccountProjects
@@ -286,44 +269,23 @@ export function AgenticTriageForm(props: Props) {
 
           <FormSection title={t('Scope')}>
             <form.FieldGroup>
-              <form.AppField name="monitorIds">
+              <form.AppField name="projects">
                 {field => (
                   <field.Layout.Stack
-                    label={t('Connected monitors')}
-                    hintText={t(
-                      'Seer investigates when any of these metric monitors breaches.'
-                    )}
+                    label={t('Projects')}
+                    hintText={t('Seer triages issues in these projects.')}
                   >
                     <field.Base>
                       {() => (
-                        <ConnectedMonitors
-                          monitorIds={field.state.value}
-                          monitors={monitors}
-                          isPending={monitorsQuery.isLoading}
-                          isError={hasMonitorsError}
+                        <ProjectSelector
+                          value={field.state.value}
                           disabled={readOnly}
-                          onChange={next => {
-                            const remaining = new Set(
-                              monitors
-                                .filter(monitor => next.includes(monitor.id))
-                                .map(monitor => monitor.projectId)
-                            );
-                            // A project leaves the grant with its last connected monitor
-                            const dropped = new Set(
-                              connectedMonitors
-                                .map(monitor => monitor.projectId)
-                                .filter(projectId => !remaining.has(projectId))
-                            );
-                            if (dropped.size > 0) {
-                              form.setFieldValue('serviceAccountProjects', {
-                                ...serviceAccountProjects,
-                                projectIds: serviceAccountProjects.projectIds.filter(
-                                  projectId => !dropped.has(projectId)
-                                ),
-                              });
-                            }
-                            field.handleChange(next);
-                          }}
+                          onChange={field.handleChange}
+                          emptyMessage={
+                            hasNoProjects
+                              ? t('No projects')
+                              : t('Add projects for this automation to triage.')
+                          }
                         />
                       )}
                     </field.Base>
@@ -363,7 +325,6 @@ export function AgenticTriageForm(props: Props) {
                   <Disclosure.Title>
                     <ServiceAccountSummary
                       access={serviceAccountProjects}
-                      monitors={connectedMonitors}
                       scopes={scopes}
                     />
                   </Disclosure.Title>
@@ -377,14 +338,16 @@ export function AgenticTriageForm(props: Props) {
                                 <Stack gap="lg" width="100%">
                                   <Text size="sm" variant="muted">
                                     {t(
-                                      'Projects with a connected monitor are always included. Add any others an investigation should look into, like upstream services.'
+                                      'Add the projects this automation should be able to look into.'
                                     )}
                                   </Text>
-                                  <ServiceAccountProjects
+                                  <ProjectSelector
                                     value={field.state.value}
-                                    monitors={connectedMonitors}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
+                                    emptyMessage={t(
+                                      'Add a project to give the service account access.'
+                                    )}
                                   />
                                 </Stack>
                               )}
@@ -432,10 +395,7 @@ export function AgenticTriageForm(props: Props) {
                 <LinkButton to={getAutomationsPath(organization.slug)}>
                   {t('Cancel')}
                 </LinkButton>
-                <form.SubmitButton
-                  variant="primary"
-                  disabled={isResolvingMonitors || hasMonitorsError}
-                >
+                <form.SubmitButton variant="primary">
                   {t('Create automation')}
                 </form.SubmitButton>
               </Flex>
@@ -447,76 +407,9 @@ export function AgenticTriageForm(props: Props) {
   );
 }
 
-function ConnectedMonitors({
-  monitorIds,
-  monitors,
-  isPending,
-  isError,
-  disabled,
-  onChange,
-}: {
-  disabled: boolean;
-  isError: boolean;
-  isPending: boolean;
-  monitorIds: string[];
-  monitors: MetricDetector[];
-  onChange: (monitorIds: string[]) => void;
-}) {
-  const {openDrawer} = useDrawer();
-  const selected = monitors.filter(monitor => monitorIds.includes(monitor.id));
-  const projectCount = new Set(selected.map(monitor => monitor.projectId)).size;
-
-  return (
-    <Stack gap="md" width="100%" minWidth={0} containerType="inline-size">
-      <Flex align="center" justify="between" gap="md">
-        <Text size="sm" variant="muted">
-          {monitorIds.length === 0
-            ? t('No monitors connected')
-            : `${tn('%s monitor connected', '%s monitors connected', monitorIds.length)} · ${tn('%s project', '%s projects', projectCount)}`}
-        </Text>
-        <Button
-          size="sm"
-          icon={<IconAdd />}
-          disabled={disabled}
-          onClick={() =>
-            openDrawer(
-              () => (
-                <ConnectMonitorsDrawer
-                  initialMonitorIds={monitorIds}
-                  onChange={onChange}
-                />
-              ),
-              {
-                ariaLabel: t('Connect monitors'),
-                drawerKey: 'seer-automation-connect-monitors',
-                drawerWidth: '70%',
-              }
-            )
-          }
-        >
-          {t('Connect monitors')}
-        </Button>
-      </Flex>
-      <MonitorTable
-        monitors={selected}
-        isError={isError}
-        pendingRows={isPending ? monitorIds.length : 0}
-        emptyMessage={t(
-          'Connect a metric monitor, or save now and choose monitors later.'
-        )}
-        renderAction={monitor => (
-          <Button
-            size="xs"
-            variant="transparent"
-            icon={<IconClose />}
-            aria-label={t('Disconnect %s', monitor.name)}
-            disabled={disabled}
-            onClick={() => onChange(monitorIds.filter(id => id !== monitor.id))}
-          />
-        )}
-      />
-    </Stack>
-  );
+function getProjectSelection(projectIds: number[]): ProjectSelection {
+  const allProjects = projectIds.includes(ALL_PROJECTS_ID);
+  return {allProjects, projectIds: allProjects ? [] : projectIds.map(String)};
 }
 
 function getServiceAccountProjectSelection(
