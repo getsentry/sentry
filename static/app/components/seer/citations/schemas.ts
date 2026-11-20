@@ -18,7 +18,7 @@ import {z} from 'zod';
  * before Sentry knows how to render that source richly.
  */
 
-export const CITATION_SCHEMA_VERSION = 1;
+const CITATION_SCHEMA_VERSION = 1;
 
 const isoTimestamp = z.iso.datetime({offset: true});
 const hexId32 = z.string().regex(/^[0-9a-f]{32}$/i);
@@ -167,7 +167,7 @@ function kind<K extends string, L extends z.ZodObject>(name: K, locator: L) {
   return z.object({kind: z.literal(name), ...envelope, locator});
 }
 
-export const CITATION_KIND_SCHEMAS = {
+const CITATION_KIND_SCHEMAS = {
   issue: kind('issue', issueLocator),
   event: kind('event', eventLocator),
   trace: kind('trace', traceLocator),
@@ -186,7 +186,7 @@ export type CitationKind = keyof typeof CITATION_KIND_SCHEMAS;
 
 export const CITATION_KINDS = Object.keys(CITATION_KIND_SCHEMAS) as CitationKind[];
 
-export const citationSchema = z.discriminatedUnion('kind', [
+const citationSchema = z.discriminatedUnion('kind', [
   CITATION_KIND_SCHEMAS.issue,
   CITATION_KIND_SCHEMAS.event,
   CITATION_KIND_SCHEMAS.trace,
@@ -202,9 +202,6 @@ export const citationSchema = z.discriminatedUnion('kind', [
 ]);
 
 export type Citation = z.output<typeof citationSchema>;
-export type CitationOfKind<K extends CitationKind> = z.output<
-  (typeof CITATION_KIND_SCHEMAS)[K]
->;
 
 /**
  * Parses a citation from the API. Returns null for anything Sentry can't
