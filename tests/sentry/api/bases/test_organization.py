@@ -660,6 +660,19 @@ def test_membership_read_only_replaces_member_read() -> None:
     assert broadened == set()
 
 
+def test_telemetry_read_only_replaces_org_read() -> None:
+    """org:read translates to telemetry:read, so telemetry:read must not open anything that
+    org:read doesn't already open."""
+    get_resolver().url_patterns  # Import every endpoint module so its permissions are defined.
+    broadened = {
+        (permission_cls.__qualname__, method)
+        for permission_cls in _permission_classes(SentryPermission)
+        for method, scopes in permission_cls.scope_map.items()
+        if "telemetry:read" in scopes and "org:read" not in scopes
+    }
+    assert broadened == set()
+
+
 class BaseOrganizationEndpointTest(TestCase):
     @cached_property
     def endpoint(self) -> OrganizationEndpoint:

@@ -12,9 +12,12 @@ from sentry.models.profilechunkattachment import ProfileChunkAttachment
 from sentry.models.project import Project
 from sentry.profiles.flamegraph import FlamegraphExecutor
 from sentry.profiles.utils import proxy_profiling_service
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ProfilesSnubaTestCase, SpanTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time
+from sentry.testutils.helpers.roles import granular_roles_granting
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.samples import load_data
 from sentry.utils.snuba import bulk_snuba_queries, raw_snql_query
 
@@ -757,6 +760,31 @@ class OrganizationProfilingChunksTest(APITestCase):
         assert response.data == {
             "profiler_id": [ErrorDetail(string="This field is required.", code="required")]
         }
+
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @granular_roles_granting("telemetry:read")
+    def test_telemetry_read_token_passes_permission(self) -> None:
+        self._use_token(["telemetry:read"])
+        features = {**self.features, "organizations:granular-permission-scopes": True}
+
+        with self.feature(features):
+            response = self.client.get(self.url, {"project": [self.project.id]})
+
+        # Past the permission check, so the request fails validation instead.
+        assert response.status_code == 400
+
+    def test_token_without_telemetry_scope_is_forbidden(self) -> None:
+        self._use_token(["project:read"])
+
+        with self.feature(self.features):
+            response = self.client.get(self.url, {"project": [self.project.id]})
+
+        assert response.status_code == 403
 
     @patch("sentry.api.endpoints.organization_profiling_profiles.get_chunk_ids")
     def test_rejects_invalid_profiler_id(self, mock_get_chunk_ids: MagicMock) -> None:
