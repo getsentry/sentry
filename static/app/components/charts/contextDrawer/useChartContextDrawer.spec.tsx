@@ -21,6 +21,7 @@ import type {AnnotationKind} from 'sentry/components/charts/annotations/types';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {useReleasesDrawer} from 'sentry/views/explore/releases/drawer/useReleasesDrawer';
 import {SeerExplorerSidebarLayout} from 'sentry/views/seerExplorer/components/sidebar/seerExplorerSidebarLayout';
 import {SeerExplorerChatStateProvider} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 import {SeerExplorerContextProvider} from 'sentry/views/seerExplorer/seerExplorerContextProvider';
@@ -96,6 +97,11 @@ function DroppedDataTrigger({
       </Button>
     </Fragment>
   );
+}
+
+function ReleasesDrawerOpener() {
+  useReleasesDrawer();
+  return null;
 }
 
 const ANNOTATION_KINDS: AnnotationKind[] = ['release', 'flag'];
@@ -787,6 +793,10 @@ describe('useChartContextDrawer', () => {
         url: `/organizations/${organization.slug}/annotations/`,
         body: [],
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/releases/`,
+        body: [],
+      });
     });
 
     it('shows a tab with a badge for dropped data and annotations', async () => {
@@ -970,7 +980,7 @@ describe('useChartContextDrawer', () => {
       );
     });
 
-    it('removes the tab, section, and flags cursor from the URL when closed', async () => {
+    it('removes the tab, section, and table cursors from the URL when closed', async () => {
       const {router} = render(
         <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
         {
@@ -982,6 +992,7 @@ describe('useChartContextDrawer', () => {
                 droppedData: 'spans',
                 contextTab: 'annotations',
                 contextSection: 'severe',
+                rdListCursor: '0:15:0',
                 contextFlagsCursor: '0:15:0',
               },
             },
@@ -996,7 +1007,49 @@ describe('useChartContextDrawer', () => {
       await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
       expect(router.location.query.contextTab).toBeUndefined();
       expect(router.location.query.contextSection).toBeUndefined();
+      expect(router.location.query.rdListCursor).toBeUndefined();
       expect(router.location.query.contextFlagsCursor).toBeUndefined();
+    });
+
+    it('comes back on its tab after the releases drawer it opened closes', async () => {
+      const {router} = render(
+        <Fragment>
+          <ReleasesDrawerOpener />
+          <DroppedDataTrigger
+            dataset={DiscoverDatasets.SPANS}
+            annotationKinds={ANNOTATION_KINDS}
+            showAnnotationTabs
+          />
+        </Fragment>,
+        {
+          organization,
+          initialRouterConfig: {
+            location: {
+              pathname: '/explore/traces/',
+              query: {droppedData: 'spans', contextTab: 'annotations'},
+            },
+          },
+        }
+      );
+
+      await screen.findByRole('complementary', {name: 'Chart Context'});
+      act(() =>
+        router.navigate(
+          '/explore/traces/?droppedData=spans&contextTab=annotations&rd=show'
+        )
+      );
+      await waitForDrawerToHide('Chart Context');
+      expect(
+        await screen.findByRole('complementary', {name: 'Releases drawer'})
+      ).toBeInTheDocument();
+
+      await userEvent.keyboard('{Escape}');
+
+      expect(await screen.findByRole('tab', {name: /Annotations/})).toHaveAttribute(
+        'aria-selected',
+        'true'
+      );
+      expect(router.location.query.rd).toBeUndefined();
     });
 
     it('opens on annotations when dropped data is not enabled', async () => {

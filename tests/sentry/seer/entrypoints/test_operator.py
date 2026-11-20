@@ -798,8 +798,8 @@ class SeerOperatorTest(TestCase):
         with patch.dict(
             "sentry.seer.entrypoints.operator.autofix_entrypoint_registry.registrations",
             {
-                cast(SeerEntrypointKey, "NO_ACCESS"): mock_no_access_cls,
-                cast(SeerEntrypointKey, "HAS_ACCESS"): mock_has_access_cls,
+                "NO_ACCESS": mock_no_access_cls,
+                "HAS_ACCESS": mock_has_access_cls,
             },
             clear=True,
         ):
@@ -1464,8 +1464,8 @@ class TestRefreshAgentRun(TestCase):
             patch.dict(
                 "sentry.seer.entrypoints.operator.agent_entrypoint_registry.registrations",
                 {
-                    cast(SeerEntrypointKey, "NO_ACCESS"): mock_no_access,
-                    cast(SeerEntrypointKey, "HAS_ACCESS"): mock_has_access,
+                    "NO_ACCESS": mock_no_access,
+                    "HAS_ACCESS": mock_has_access,
                 },
                 clear=True,
             ),

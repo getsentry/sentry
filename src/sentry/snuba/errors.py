@@ -2,7 +2,6 @@ import functools
 import logging
 from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import cast
 
 from sentry_sdk import traces
 from snuba_sdk import Column, Condition
@@ -357,7 +356,7 @@ def top_events_timeseries(
         issues: Mapping[int, str | None] = {}
         if "issue" in selected_columns:
             issues = Group.objects.get_issues_mapping(
-                {cast(int, event["issue.id"]) for event in top_events["data"]},
+                {event["issue.id"] for event in top_events["data"]},
                 snuba_params.project_ids,
                 organization,
             )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable, Mapping, MutableMapping
-from typing import TYPE_CHECKING, Any, TypeVar, cast
+from typing import TYPE_CHECKING, Any, TypeVar
 
 import orjson
 from django.conf import settings
@@ -48,12 +48,9 @@ def get_headers(notification: BaseNotification, context: Mapping[str, Any]) -> M
 
 
 def build_subject_prefix(project: Project) -> str:
-    return cast(
-        "str",
-        force_str(
-            ProjectOption.objects.get_value(project, "mail:subject_prefix")
-            or settings.EMAIL_SUBJECT_PREFIX
-        ),
+    return force_str(
+        ProjectOption.objects.get_value(project, "mail:subject_prefix")
+        or settings.EMAIL_SUBJECT_PREFIX
     )
 
 
