@@ -980,7 +980,7 @@ describe('useChartContextDrawer', () => {
       );
     });
 
-    it('removes the tab, section, and releases cursor from the URL when closed', async () => {
+    it('removes the tab, section, and table cursors from the URL when closed', async () => {
       const {router} = render(
         <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
         {
@@ -993,6 +993,7 @@ describe('useChartContextDrawer', () => {
                 contextTab: 'annotations',
                 contextSection: 'severe',
                 rdListCursor: '0:15:0',
+                contextFlagsCursor: '0:15:0',
               },
             },
           },
@@ -1007,6 +1008,7 @@ describe('useChartContextDrawer', () => {
       expect(router.location.query.contextTab).toBeUndefined();
       expect(router.location.query.contextSection).toBeUndefined();
       expect(router.location.query.rdListCursor).toBeUndefined();
+      expect(router.location.query.contextFlagsCursor).toBeUndefined();
     });
 
     it('comes back on its tab after the releases drawer it opened closes', async () => {

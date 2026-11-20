@@ -19,6 +19,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {ReleasesDrawerFields} from 'sentry/views/explore/releases/drawer/utils';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {ANNOTATION_FLAGS_CURSOR} from './annotationsPanel';
 import {
   CHART_CONTEXT_TAB_PARSERS,
   ChartContextDrawer,
@@ -29,6 +30,7 @@ const CHART_CONTEXT_DRAWER_PARSERS = {
   droppedData: parseAsString,
   ...CHART_CONTEXT_TAB_PARSERS,
   [ReleasesDrawerFields.LIST_CURSOR]: parseAsString,
+  [ANNOTATION_FLAGS_CURSOR]: parseAsString,
 };
 
 const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
@@ -122,6 +124,7 @@ export function useChartContextDrawer(
               contextTab: null,
               contextSection: null,
               [ReleasesDrawerFields.LIST_CURSOR]: null,
+              [ANNOTATION_FLAGS_CURSOR]: null,
             },
             {history: 'replace'}
           );
