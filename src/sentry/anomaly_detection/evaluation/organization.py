@@ -120,6 +120,14 @@ class Checkpoint:
     hourly: dict[SeriesKey, Series]
     state: EvaluatorState
 
+    def open_groups(self) -> dict[int, frozenset[AnomalyGroupKey]]:
+        """Groups published as open, keyed by the project they were published for."""
+        by_project: dict[int, set[AnomalyGroupKey]] = defaultdict(set)
+        for decision in self.state.published.values():
+            if not decision.is_resolved:
+                by_project[decision.project_id].add(decision.group_key)
+        return {project_id: frozenset(keys) for project_id, keys in by_project.items()}
+
 
 def evaluate_org(
     *,

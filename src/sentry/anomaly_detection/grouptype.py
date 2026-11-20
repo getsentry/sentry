@@ -14,6 +14,7 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.issues.status_change_message import StatusChangeMessage
 from sentry.models.group import GroupStatus
 from sentry.types.group import PriorityLevel
+from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import (
     BaseDetectorHandler,
     DetectorEvaluations,
@@ -26,7 +27,7 @@ from sentry.workflow_engine.handlers.detector_outcome import DetectorOutcome
 from sentry.workflow_engine.handlers.detector_outcome.seer_investigation import (
     SERVICE_ACCOUNT_CONFIG_KEY,
 )
-from sentry.workflow_engine.models import DataPacket, Detector
+from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
@@ -58,22 +59,25 @@ class AnomalyDetection(GroupType):
 class MinuteDecisions:
     """One project's anomaly decisions for one evaluated minute, keyed by group.
 
-    `resolved` closes open groups the evaluator no longer tracks (e.g. after a cold start).
+    `open_groups`, when set, is every group the evaluator holds open for the project as of
+    `minute`. The handler resolves triggered `DetectorState` groups outside it, so state the
+    evaluator lost (a cold start, a replay that saw different data) can't stay open.
     """
 
     minute: datetime  # Naive UTC, like the evaluator.
     decisions: Mapping[AnomalyGroupKey, AnomalyDecision]
-    resolved: frozenset[AnomalyGroupKey] = frozenset()
+    open_groups: frozenset[AnomalyGroupKey] | None = None
 
 
 class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, DetectorPriorityLevel]):
     """Turn the organization evaluator's decisions for one project into investigations.
 
     Detection and correlation happen across the organization before this handler runs, so
-    the evaluator's decision is the priority. This handler only turns decisions into
-    transitions: `DetectorState` tracks which groups are open and per-group dedupe skips
-    replayed minutes. Each open, including a reopen, starts one Seer investigation, created
-    by the service account in the detector's config.
+    the evaluator's decision is the priority. `DetectorState` is the authority on which
+    groups are open: this handler turns decisions into transitions against it, per-group
+    dedupe skips replayed minutes, and the evaluator's open set only ever closes groups.
+    Each open, including a reopen, starts one Seer investigation, created by the service
+    account in the detector's config.
     """
 
     on_complete = DetectorOutcome.SEER_INVESTIGATION.dispatch
@@ -87,13 +91,25 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
         self, data_packet: DataPacket[MinuteDecisions]
     ) -> DetectorGroupValues[DetectorPriorityLevel]:
         packet = data_packet.packet
-        values: dict[DetectorGroupKey, DetectorPriorityLevel] = dict.fromkeys(
-            packet.resolved, DetectorPriorityLevel.OK
-        )
+        values: dict[DetectorGroupKey, DetectorPriorityLevel] = {}
         for group_key, decision in packet.decisions.items():
             if decision.project_id == self.detector.project_id:
                 values[group_key] = DetectorPriorityLevel.OK if decision.is_resolved else TRIGGERED
+        if packet.open_groups is not None:
+            stranded = self._triggered_group_keys() - packet.open_groups - values.keys()
+            if stranded:
+                metrics.incr("anomaly_detection.stranded_groups_resolved", amount=len(stranded))
+                values.update(dict.fromkeys(stranded, DetectorPriorityLevel.OK))
         return DetectorGroupValues(values)
+
+    def _triggered_group_keys(self) -> set[str]:
+        return {
+            group_key
+            for group_key in DetectorState.objects.filter(
+                detector_id=self.detector.id, is_triggered=True
+            ).values_list("detector_group_key", flat=True)
+            if group_key is not None
+        }
 
     @override
     def evaluate(

@@ -2,6 +2,8 @@ import dataclasses
 from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 from sentry.anomaly_detection.contracts import AnomalyGroupKey, ChangeType, Urgency
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision, AnomalyEvidence
 from sentry.anomaly_detection.grouptype import (
@@ -19,11 +21,12 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import cell_silo_test
 from sentry.utils import metrics
 from sentry.viewer_context import ActorId, ActorType
-from sentry.workflow_engine.handlers.detector_outcome import seer_investigation
 from sentry.workflow_engine.models import DataPacket, Detector, DetectorState
 from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.detector import process_detectors
 from sentry.workflow_engine.registry import detector_settings_registry
+from sentry.workflow_engine.tasks import seer_investigation
+from sentry.workflow_engine.tasks.seer_investigation import create_detector_investigation
 from sentry.workflow_engine.types import DetectorAPIOperation, DetectorGroupKey, DetectorType
 from tests.sentry.anomaly_detection.test_helpers import anomaly_decision
 
@@ -32,6 +35,7 @@ PRODUCE = (
     "sentry.workflow_engine.handlers.detector_outcome.issue_platform.produce_occurrence_to_kafka"
 )
 DISPATCH = "sentry.tasks.seer.investigation.dispatch_investigation_orchestration_create.delay"
+CREATE = "sentry.investigations.services.create_agentic_manual_investigation"
 EVIDENCE: AnomalyEvidence = {
     "signal": "errors",
     "change_type": ChangeType.SPIKE,
@@ -94,7 +98,8 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
                 decisions={decision.group_key: decision for decision in decisions},
             ),
         )
-        return process_detectors(packet, [self.detector])
+        with self.tasks():
+            return process_detectors(packet, [self.detector])
 
     def open(self, decision: AnomalyDecision) -> IssueOccurrence:
         [(detector, evaluations)] = self.process(decision)
@@ -253,22 +258,49 @@ class TestAnomalyDetectionDetectorHandler(TestCase):
             )
         ) == {"a": True, "b": True}
 
-    def test_resolved_set_closes_group_without_a_decision(self) -> None:
-        opened = self.open(self.decision(MINUTE))
+    def test_open_groups_resolve_groups_the_evaluator_no_longer_holds(self) -> None:
+        held = self.open(self.decision(MINUTE, group_key="held"))
+        lost = self.open(self.decision(MINUTE, group_key="lost"))
         packet = DataPacket(
             source_id=str(self.detector.id),
             packet=MinuteDecisions(
                 minute=MINUTE + timedelta(minutes=1),
                 decisions={},
-                resolved=frozenset({AnomalyGroupKey("group")}),
+                open_groups=frozenset({AnomalyGroupKey("held")}),
             ),
         )
-        [(_, evaluations)] = process_detectors(packet, [self.detector])
+        with patch.object(metrics, "incr") as incr:
+            [(_, evaluations)] = process_detectors(packet, [self.detector])
 
-        result = evaluations["group"].result
+        assert evaluations.keys() == {"lost"}
+        result = evaluations["lost"].result
         assert isinstance(result, StatusChangeMessage)
-        assert result.fingerprint == opened.fingerprint
-        assert not DetectorState.objects.get(detector=self.detector).is_triggered
+        assert result.fingerprint == lost.fingerprint != held.fingerprint
+        assert dict(
+            DetectorState.objects.filter(detector=self.detector).values_list(
+                "detector_group_key", "is_triggered"
+            )
+        ) == {"held": True, "lost": False}
+        assert Notebook.objects.count() == 2
+        incr.assert_any_call("anomaly_detection.stranded_groups_resolved", amount=1)
+
+    def test_transient_failure_retries_instead_of_losing_the_investigation(self) -> None:
+        with patch.object(create_detector_investigation, "delay") as enqueue:
+            [(_, evaluations)] = self.process(self.decision(MINUTE))
+
+        # The open is committed before the investigation exists; the task must carry it.
+        assert isinstance(evaluations["group"].result, IssueOccurrence)
+        assert DetectorState.objects.get(detector=self.detector).is_triggered
+        [enqueued] = enqueue.call_args_list
+        with (
+            patch(CREATE, side_effect=RuntimeError("seer unavailable")),
+            pytest.raises(RuntimeError),
+        ):
+            create_detector_investigation(*enqueued.args, **enqueued.kwargs)
+        assert not Notebook.objects.exists()
+
+        create_detector_investigation(*enqueued.args, **enqueued.kwargs)
+        assert Notebook.objects.get().title == "Errors increased in production"
 
     def test_detector_without_service_account_skips_investigation(self) -> None:
         self.detector.update(config={})

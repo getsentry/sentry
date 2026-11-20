@@ -63,6 +63,11 @@ def checkpoint_at(next_minute: datetime) -> Checkpoint:
     return Checkpoint({}, {}, EvaluatorState(next_minute=next_minute))
 
 
+def checkpoint_holding(*decisions: AnomalyDecision) -> Checkpoint:
+    """A checkpoint whose evaluator holds `decisions` open."""
+    return Checkpoint({}, {}, EvaluatorState(published={d.group_key: d for d in decisions}))
+
+
 def organization_lease(organization_id: int) -> Lock:
     return locks.get(
         f"anomaly-detection:org:{get_local_cell().name}:{organization_id}",
@@ -383,6 +388,15 @@ class TestAnomalySchedule(TestCase):
         assert state.next_minute == END.replace(tzinfo=UTC)
         assert codec.decode(bytes(state.checkpoint)) == CHECKPOINT
 
+    def open_groups(self, detector: Detector, *decisions: AnomalyDecision) -> None:
+        """Open groups in Workflow Engine, as an earlier run would have."""
+        schedule._publish(
+            decisions,
+            {self.project.id: detector},
+            checkpoint_holding(*decisions).open_groups(),
+            max(decision.timestamp for decision in decisions),
+        )
+
     @freeze_time(NOW)
     def test_cold_start_resolves_groups_the_expired_checkpoint_left_open(self) -> None:
         detector = self.make_detector(self.project)
@@ -396,9 +410,8 @@ class TestAnomalySchedule(TestCase):
             patch.object(metrics, "incr") as incr,
             outcome() as handle,
         ):
-            schedule._publish(
-                [decision(self.project.id, timestamp=END - timedelta(minutes=70))],
-                {self.project.id: detector},
+            self.open_groups(
+                detector, decision(self.project.id, timestamp=END - timedelta(minutes=70))
             )
             [opened] = results(handle)
             handle.reset_mock()
@@ -419,24 +432,28 @@ class TestAnomalySchedule(TestCase):
         detector = self.make_detector(self.project)
         ongoing = decision(self.project.id, timestamp=END - timedelta(minutes=70))
         stale = dataclasses.replace(ongoing, group_key=AnomalyGroupKey("stale"))
+        restated = decision(self.project.id)
         with (
             self.feature(FEATURES),
             patch.object(schedule, "collect", return_value=[]),
             patch.object(schedule, "hourly_rows", return_value=[]),
             patch.object(schedule, "collect_new_failure_modes", return_value=[]),
             patch.object(
-                schedule, "advance_org", return_value=([decision(self.project.id)], CHECKPOINT)
+                schedule, "advance_org", return_value=([restated], checkpoint_holding(restated))
             ),
             outcome() as handle,
         ):
-            schedule._publish([stale], {self.project.id: detector})
-            [stale_opened] = results(handle)
-            schedule._publish([ongoing], {self.project.id: detector})
+            self.open_groups(detector, ongoing, stale)
+            stale_opened = next(
+                result
+                for result in results(handle)
+                if isinstance(result, IssueOccurrence)
+                and result.fingerprint == [f"detector:{detector.id}:stale"]
+            )
             handle.reset_mock()
             assert not schedule._run_organization(self.organization.id, END)
 
         [status_change] = results(handle)
-        assert isinstance(stale_opened, IssueOccurrence)
         assert isinstance(status_change, StatusChangeMessage)
         assert status_change.fingerprint == stale_opened.fingerprint
         assert dict(
@@ -444,6 +461,33 @@ class TestAnomalySchedule(TestCase):
                 "detector_group_key", "is_triggered"
             )
         ) == {"group": True, "stale": False}
+
+    @freeze_time(NOW)
+    def test_resumed_run_resolves_groups_the_evaluator_no_longer_holds(self) -> None:
+        detector = self.make_detector(self.project)
+        held = decision(self.project.id, timestamp=END - timedelta(minutes=10))
+        lost = dataclasses.replace(held, group_key=AnomalyGroupKey("lost"))
+        self.save_state(END - timedelta(minutes=3))
+        with (
+            self.feature(FEATURES),
+            patch.object(schedule, "collect", return_value=[]),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(schedule, "advance_org", return_value=([], checkpoint_holding(held))),
+            outcome() as handle,
+        ):
+            self.open_groups(detector, held, lost)
+            handle.reset_mock()
+            assert not schedule._run_organization(self.organization.id, END)
+
+        [status_change] = results(handle)
+        assert isinstance(status_change, StatusChangeMessage)
+        assert status_change.fingerprint == [f"detector:{detector.id}:lost"]
+        assert dict(
+            DetectorState.objects.filter(detector=detector).values_list(
+                "detector_group_key", "is_triggered"
+            )
+        ) == {"group": True, "lost": False}
 
     def test_unreadable_checkpoint_at_target_waits_for_an_unprocessed_minute(self) -> None:
         self.make_detector(self.project)

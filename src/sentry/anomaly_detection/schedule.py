@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from typing import Any
 
 from django.db import IntegrityError, router, transaction
+from django.db.models import F
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
@@ -139,15 +140,16 @@ def _evaluator_config() -> EvaluatorConfig:
 def _publish(
     decisions: Sequence[AnomalyDecision],
     detectors: Mapping[int, Detector],
-    resolved: Mapping[tuple[datetime, int], set[AnomalyGroupKey]] | None = None,
+    open_groups: Mapping[int, frozenset[AnomalyGroupKey]],
+    last_minute: datetime,
 ) -> None:
-    """Send decisions and resolutions through Workflow Engine in minute order.
+    """Send decisions through Workflow Engine in minute order, then the open groups.
 
-    `resolved` is keyed by (minute, project ID). The handler skips minutes a group
+    Every project's packet for `last_minute` carries the groups the evaluator holds open,
+    so its detector resolves any it no longer tracks. The handler skips minutes a group
     already processed, so republishing after a failed checkpoint commit doesn't
     duplicate investigations.
     """
-    resolved = resolved or {}
     decisions_by_minute: dict[tuple[datetime, int], dict[AnomalyGroupKey, AnomalyDecision]] = (
         defaultdict(dict)
     )
@@ -155,39 +157,22 @@ def _publish(
         if decision.project_id in detectors:
             minute_decisions = decisions_by_minute[decision.timestamp, decision.project_id]
             minute_decisions[decision.group_key] = decision
-    for minute, project_id in sorted(decisions_by_minute.keys() | resolved.keys()):
+    reconciled = {(last_minute, project_id) for project_id in detectors}
+    for minute, project_id in sorted(decisions_by_minute.keys() | reconciled):
         detector = detectors[project_id]
         packet = DataPacket(
             source_id=str(detector.id),
             packet=MinuteDecisions(
                 minute=minute,
                 decisions=decisions_by_minute.get((minute, project_id), {}),
-                resolved=frozenset(resolved.get((minute, project_id), ())),
+                open_groups=(
+                    open_groups.get(project_id, frozenset())
+                    if (minute, project_id) in reconciled
+                    else None
+                ),
             ),
         )
         process_detectors(packet, [detector])
-
-
-def _stranded_groups(
-    decisions: Sequence[AnomalyDecision], detectors: Mapping[int, Detector], minute: datetime
-) -> dict[tuple[datetime, int], set[AnomalyGroupKey]]:
-    """Open groups that a cold start no longer tracks, keyed for `_publish(resolved=...)`.
-
-    Group keys hash the episode start, so a group from a discarded checkpoint never
-    receives another decision and would stay open forever.
-    """
-    project_by_detector = {detector.id: project_id for project_id, detector in detectors.items()}
-    tracked = {decision.group_key for decision in decisions}
-    stranded: dict[tuple[datetime, int], set[AnomalyGroupKey]] = defaultdict(set)
-    for detector_id, group_key in DetectorState.objects.filter(
-        detector_id__in=project_by_detector.keys(), is_triggered=True
-    ).values_list("detector_id", "detector_group_key"):
-        if group_key is not None and group_key not in tracked:
-            stranded[minute, project_by_detector[detector_id]].add(AnomalyGroupKey(group_key))
-    if stranded:
-        count = sum(len(keys) for keys in stranded.values())
-        metrics.incr("anomaly_detection.stranded_groups_resolved", amount=count)
-    return stranded
 
 
 def _commit_checkpoint(
@@ -231,7 +216,9 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
         .filter(project__organization_id=organization_id)
         .order_by("project_id", "id")
         .distinct("project_id")
-        .select_related("project")[: max_projects + 1]
+        .select_related("project")
+        # process_detectors reads this to log evaluations, as the detector cache provides it.
+        .annotate(project_organization_id=F("project__organization_id"))[: max_projects + 1]
     )
     if not detector_rows:
         AnomalyDetectionState.objects.filter(organization_id=organization_id).delete()
@@ -293,10 +280,9 @@ def _run_organization(organization_id: int, target: datetime) -> bool:
     )
     blob = codec.encode(next_checkpoint)
     metrics.distribution("anomaly_detection.checkpoint_bytes", len(blob))
-    stranded = _stranded_groups(decisions, detectors, publish_from) if resume_minute is None else {}
     # Publish before committing: a crash in between replays the same minutes, which
     # the detectors' per-group dedupe ignores. Committing first could lose transitions.
-    _publish(decisions, detectors, resolved=stranded)
+    _publish(decisions, detectors, next_checkpoint.open_groups(), end - _MINUTE)
     committed = _commit_checkpoint(
         organization_id,
         stored_minute=stored_minute,
