@@ -5,7 +5,13 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-import type {ServiceAccount, ServiceAccountInput} from './types';
+import type {
+  NewServiceAccountToken,
+  ServiceAccount,
+  ServiceAccountInput,
+  ServiceAccountToken,
+  ServiceAccountTokenInput,
+} from './types';
 
 export function serviceAccountsApiOptions(
   organization: Organization,
@@ -89,6 +95,64 @@ export function useDeleteServiceAccount(
     onSuccess: () =>
       queryClient.invalidateQueries({
         queryKey: serviceAccountsApiOptions(organization).queryKey,
+      }),
+  });
+}
+
+export function serviceAccountTokensApiOptions(
+  organization: Organization,
+  serviceAccountId: string,
+  {cursor}: {cursor?: string} = {}
+) {
+  return apiOptions.as<ServiceAccountToken[]>()(
+    '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
+    {
+      path: {organizationIdOrSlug: organization.slug, serviceAccountId},
+      query: {cursor},
+      staleTime: 0,
+    }
+  );
+}
+
+export function useCreateServiceAccountToken(
+  organization: Organization,
+  serviceAccountId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: ServiceAccountTokenInput) =>
+      fetchMutation<NewServiceAccountToken>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/',
+          {path: {organizationIdOrSlug: organization.slug, serviceAccountId}}
+        ),
+        method: 'POST',
+        data: {...data},
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: serviceAccountTokensApiOptions(organization, serviceAccountId).queryKey,
+      }),
+  });
+}
+
+export function useRevokeServiceAccountToken(
+  organization: Organization,
+  serviceAccountId: string
+) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (tokenId: string) =>
+      fetchMutation({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/tokens/$tokenId/',
+          {path: {organizationIdOrSlug: organization.slug, serviceAccountId, tokenId}}
+        ),
+        method: 'DELETE',
+      }),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: serviceAccountTokensApiOptions(organization, serviceAccountId).queryKey,
       }),
   });
 }
