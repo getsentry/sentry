@@ -626,7 +626,7 @@ export function CustomFilters({project}: {project: Project}) {
                         <Fragment key={index}>
                           {index > 0 && (
                             <Text size="xs" variant="muted">
-                              {t('AND')}
+                              {t('and')}
                             </Text>
                           )}
                           <ConditionSummary condition={condition} />

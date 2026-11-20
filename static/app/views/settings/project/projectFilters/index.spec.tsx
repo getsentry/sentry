@@ -814,7 +814,7 @@ describe('ProjectFilters', () => {
     ]);
 
     expect(await screen.findByText('Three conditions')).toBeInTheDocument();
-    expect(screen.getAllByText('AND')).toHaveLength(2);
+    expect(screen.getAllByText('and')).toHaveLength(2);
   });
 
   it('edits the lines of a legacy list row as text', async () => {
@@ -1379,9 +1379,10 @@ describe('ProjectFilters', () => {
     ]);
 
     expect(await screen.findByText('Old or odd releases')).toBeInTheDocument();
-    // A negated list reads with "and": the release must match none of them.
+    // A negated list reads with "and": the release must match none of them. The
+    // other four join the five conditions.
     expect(screen.getByText('does not start with')).toBeInTheDocument();
-    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getAllByText('and')).toHaveLength(5);
     expect(screen.getByText('<')).toBeInTheDocument();
     expect(screen.getByText('contains')).toBeInTheDocument();
     expect(screen.getByText('is')).toBeInTheDocument();
