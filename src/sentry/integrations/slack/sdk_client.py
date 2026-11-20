@@ -92,7 +92,11 @@ class MetaClass(type):
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
-    def __init__(self, integration_id: int):
+    def __init__(self, integration_id: int, access_token: str | None = None):
+        """
+        access_token overrides the integration's bot token, for example with a user token
+        that is only available during installation.
+        """
         self.integration_id = integration_id
 
         integration: Integration | RpcIntegration | None
@@ -115,7 +119,7 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
         if integration is None:
             raise ValueError(f"Integration with id {integration_id} not found")
 
-        access_token = integration.metadata.get("access_token")
+        access_token = access_token or integration.metadata.get("access_token")
         if not access_token:
             raise ValueError(f"Missing token for integration with id {integration_id}")
 

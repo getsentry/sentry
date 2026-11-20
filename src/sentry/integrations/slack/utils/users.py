@@ -59,8 +59,9 @@ def get_slack_user_list(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization | None = None,
     kwargs: dict[str, Any] | None = None,
+    access_token: str | None = None,
 ) -> Generator[list[dict[str, Any]]]:
-    sdk_client = SlackSdkClient(integration_id=integration.id)
+    sdk_client = SlackSdkClient(integration_id=integration.id, access_token=access_token)
     try:
         users_list = (
             sdk_client.users_list(limit=SLACK_GET_USERS_PAGE_SIZE, **kwargs)
@@ -88,6 +89,7 @@ def get_slack_data_by_user(
     integration: Integration | RpcIntegration,
     organization: Organization | RpcOrganization,
     emails_by_user: Mapping[User, Iterable[str]],
+    access_token: str | None = None,
 ) -> Iterable[Mapping[User, SlackUserData]]:
-    all_users = get_slack_user_list(integration, organization)
+    all_users = get_slack_user_list(integration, organization, access_token=access_token)
     yield from (format_slack_data_by_user(emails_by_user, users) for users in all_users)
