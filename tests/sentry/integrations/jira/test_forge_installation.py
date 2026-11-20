@@ -8,12 +8,13 @@ import responses
 from cryptography.fernet import Fernet
 from django.urls import reverse
 
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.forge.client import CONNECT_CLIENT_KEY_PROPERTY
 from sentry.integrations.jira.forge.invocation_token import (
     ForgeInvocation,
     ForgeInvocationTokenError,
 )
-from sentry.integrations.jira.tasks import sync_forge_installation
+from sentry.integrations.jira.tasks import record_forge_uninstall, sync_forge_installation
 from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
@@ -104,6 +105,19 @@ class JiraForgeInstallationWebhookTest(APITestCase):
         assert payload["cloud_id"] == CLOUD_ID
         # Two hours from receipt, the token's guaranteed minimum lifetime.
         assert payload["system_token_expires_at"] == 1735689600 + 2 * 60 * 60
+
+    @patch("sentry.integrations.jira.webhooks.forge_installation.record_forge_uninstall")
+    def test_records_pre_uninstall(
+        self, mock_uninstall: MagicMock, mock_verify: MagicMock, mock_task: MagicMock
+    ) -> None:
+        mock_verify.return_value = _invocation(module_key="pre-uninstall")
+
+        # preUninstall calls carry no system token.
+        response = self.client.post(self.url, headers={"Authorization": "Bearer fit"})
+
+        assert response.status_code == 202
+        mock_uninstall.assert_called_once_with(cloud_id=CLOUD_ID, installation_id=INSTALLATION_ID)
+        assert not mock_task.delay.called
 
     def test_rejects_bad_requests(self, mock_verify: MagicMock, mock_task: MagicMock) -> None:
         mock_verify.side_effect = ForgeInvocationTokenError("bad")
@@ -222,6 +236,55 @@ class SyncForgeInstallationTest(TestCase):
 
         integration = Integration.objects.get(provider="jira", external_id=CLOUD_ID)
         assert integration.metadata["forge"] == self.forge_metadata()
+
+    @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
+    def test_uninstall_then_reinstall(self) -> None:
+        responses.get(
+            self.server_info_url,
+            json={"baseUrl": "https://example.atlassian.net", "serverTitle": "Example"},
+        )
+        self.sync()
+        integration = Integration.objects.get(provider="jira", external_id=CLOUD_ID)
+
+        # Another installation on the site can't uninstall it.
+        record_forge_uninstall(
+            cloud_id=CLOUD_ID, installation_id="ari:cloud:ecosystem::installation/other"
+        )
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+
+        record_forge_uninstall(cloud_id=CLOUD_ID, installation_id=INSTALLATION_ID)
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert "forge" not in integration.metadata
+
+        # A sync for the uninstalled installation that was already queued is ignored.
+        self.sync(system_token_expires_at=SYSTEM_TOKEN_EXPIRES_AT + 60)
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.DISABLED
+        assert "forge" not in integration.metadata
+
+        # A fresh install turns it back on.
+        self.sync(installation_id="ari:cloud:ecosystem::installation/reinstalled")
+        integration.refresh_from_db()
+        assert integration.status == ObjectStatus.ACTIVE
+        assert integration.metadata == {
+            "base_url": "https://example.atlassian.net",
+            "domain_name": "example.atlassian.net",
+            "forge": self.forge_metadata("ari:cloud:ecosystem::installation/reinstalled"),
+        }
+
+    @responses.activate
+    @override_options({"jira.forge.native-app-ids": [APP_ID]})
+    def test_uninstall_before_the_install_sync_runs(self) -> None:
+        # Uninstalled while the install's sync was still queued or retrying.
+        record_forge_uninstall(cloud_id=CLOUD_ID, installation_id=INSTALLATION_ID)
+
+        self.sync()
+
+        assert not Integration.objects.filter(provider="jira", external_id=CLOUD_ID).exists()
+        assert len(responses.calls) == 0
 
     @responses.activate
     def test_does_not_record_unless_the_site_matches(self) -> None:
