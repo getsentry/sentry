@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from django.db import router, transaction
 from django.db.models import Q
 from django.utils import timezone
 
@@ -17,6 +18,7 @@ from sentry.monitors.logic.incident_occurrence import (
 )
 from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorIncident, MonitorStatus
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
+from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)
 
@@ -91,10 +93,6 @@ def try_incident_threshold(
             ):
                 return False
 
-        # change monitor status + update fingerprint timestamp
-        monitor_env.status = MonitorStatus.ERROR
-        monitor_env.save(update_fields=("status",))
-
         starting_checkin = previous_checkins[0]
 
         def last_successful_timestamp() -> datetime | None:
@@ -111,28 +109,38 @@ def try_incident_threshold(
             )
 
         incident: MonitorIncident | None
-        # get_or_create only calls the callable default when it creates the incident.
-        incident, created = MonitorIncident.objects.get_or_create(
-            monitor_environment=monitor_env,
-            resolving_checkin=None,
-            defaults={
-                "monitor": monitor_env.monitor,
-                "starting_checkin_id": starting_checkin.id,
-                "starting_timestamp": starting_checkin.date_added,
-                "last_successful_timestamp": last_successful_timestamp,
-                "grouphash": monitor_env.build_occurrence_fingerprint(),
-            },
-        )
+        # Other processes must not see the failed status without its incident.
+        with transaction.atomic(router.db_for_write(MonitorIncident)):
+            monitor_env.status = MonitorStatus.ERROR
+            monitor_env.save(update_fields=("status",))
 
-        # An open incident here means the env went back to OK without resolving
-        # it, so OK check-ins since then never reached the incident.
-        if not created:
-            last_successful = last_successful_timestamp()
-            if last_successful is not None and (
-                incident.last_successful_timestamp is None
-                or last_successful > incident.last_successful_timestamp
-            ):
-                incident.update(last_successful_timestamp=last_successful)
+            # get_or_create only calls the callable default when it creates the incident.
+            incident, created = MonitorIncident.objects.get_or_create(
+                monitor_environment=monitor_env,
+                resolving_checkin=None,
+                defaults={
+                    "monitor": monitor_env.monitor,
+                    "starting_checkin_id": starting_checkin.id,
+                    "starting_timestamp": starting_checkin.date_added,
+                    "last_successful_timestamp": last_successful_timestamp,
+                    "grouphash": monitor_env.build_occurrence_fingerprint(),
+                },
+            )
+
+            # An open incident already existed: the env went back to OK without
+            # resolving it, or another process created it first.
+            if not created:
+                metrics.incr("monitors.incidents.reused_open_incident")
+                last_successful = last_successful_timestamp()
+                if last_successful is not None:
+                    # A concurrent OK check-in can have stored a newer time.
+                    updated = MonitorIncident.objects.filter(
+                        Q(last_successful_timestamp__isnull=True)
+                        | Q(last_successful_timestamp__lt=last_successful),
+                        id=incident.id,
+                    ).update(last_successful_timestamp=last_successful)
+                    if updated:
+                        incident.last_successful_timestamp = last_successful
 
     elif monitor_env.status == MonitorStatus.ERROR:
         # If the monitor was already in an incident there are no previous
