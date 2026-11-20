@@ -20,7 +20,9 @@ import {defined} from 'sentry/utils/defined';
 const ANNOTATION_MARKERS_SERIES_ID = '__annotation_markers__';
 
 const CIRCLE_RADIUS = 3;
+const HOVERED_CIRCLE_RADIUS = 5;
 const LINE_DASH = [2, 2];
+const LINE_HOVER_WIDTH = 9;
 const RANGE_LINE_WIDTH = 2;
 
 interface AnnotationMarkerItem extends AnnotationBucket {
@@ -116,11 +118,28 @@ function annotationMarkerRenderItem(
           type: 'line',
           shape: {x1: x, y1: plot.y, x2: x, y2: plot.y + plot.height},
           style: {stroke: color, lineWidth: 1, lineDash: LINE_DASH},
+          emphasis: {style: {lineDash: 'solid'}},
         },
         {
           type: 'circle',
           shape: {cx: x, cy: plot.y, r: CIRCLE_RADIUS},
           style: {fill: color},
+          emphasis: {
+            style: {
+              stroke: color,
+              lineWidth: (HOVERED_CIRCLE_RADIUS - CIRCLE_RADIUS) * 2,
+            },
+          },
+        },
+        {
+          type: 'rect',
+          shape: {
+            x: x - LINE_HOVER_WIDTH / 2,
+            y: plot.y,
+            width: LINE_HOVER_WIDTH,
+            height: plot.height,
+          },
+          style: {fill: 'transparent'},
         }
       );
     }
@@ -139,7 +158,8 @@ interface UseAnnotationMarkersParams {
  * center of every chart bucket that has a severe annotation. When a severe
  * annotation covers a range that ends in a later bucket, a solid line runs
  * along the top of the plot to the center of that bucket. Ranges that started
- * before the first bucket only get that line, from the left edge.
+ * before the first bucket only get that line, from the left edge. Hovering a
+ * marker turns its dotted line solid and grows its circle.
  */
 export function useAnnotationMarkers({
   buckets,
@@ -180,7 +200,6 @@ export function useAnnotationMarkers({
       color: theme.tokens.dataviz.semantic.bad,
       z: BAND_Z - 1,
       clip: false,
-      silent: true,
       tooltip: {show: false},
       animation: false,
       legendHoverLink: false,

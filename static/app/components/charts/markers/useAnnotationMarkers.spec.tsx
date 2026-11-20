@@ -77,10 +77,11 @@ describe('useAnnotationMarkers', () => {
       children: [
         {type: 'line', shape: {x1: 120, y1: 10, x2: 120, y2: 210}},
         {type: 'circle', shape: {cx: 120, cy: 10}},
+        {type: 'rect'},
       ],
     });
     expect(markers[1]).toMatchObject({
-      children: [{shape: {x1: 300}}, {shape: {cx: 300}}],
+      children: [{shape: {x1: 300}}, {shape: {cx: 300}}, {type: 'rect'}],
     });
   });
 
@@ -94,6 +95,7 @@ describe('useAnnotationMarkers', () => {
         {type: 'line', shape: {x1: 120, y1: 10, x2: 300, y2: 10}},
         {type: 'line', shape: {x1: 120, x2: 120}},
         {type: 'circle'},
+        {type: 'rect'},
       ],
     });
   });
@@ -101,7 +103,7 @@ describe('useAnnotationMarkers', () => {
   it('runs ongoing ranges to the right edge of the plot', () => {
     const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, 'high', 'ongoing')]);
 
-    expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}]});
+    expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}, {}]});
   });
 
   it('draws only the line from the left edge for ranges that started before the chart', () => {
@@ -121,6 +123,6 @@ describe('useAnnotationMarkers', () => {
       change('point', 2 * MINUTE + 20_000, 'high'),
     ]);
 
-    expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}]});
+    expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}, {}]});
   });
 });
