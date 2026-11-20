@@ -243,9 +243,8 @@ class PreprodArtifact(DefaultFieldsModel):
     # When the artifact expires: from then on it can no longer be read, and `cleanup`
     # deletes it together with everything stored for it. Set once, when the artifact is
     # created, from the organization's retention at that time (see
-    # `sentry.preprod.retention`), so a later plan change does not move it. Null on
-    # artifacts created before the column existed that are not backfilled yet, and where
-    # the retention is unlimited.
+    # `sentry.preprod.retention`), so a later plan change does not move it. Null only on
+    # artifacts created before the column existed that are not backfilled yet.
     date_expires = models.DateTimeField(null=True)
 
     # When the artifact's size analysis expires. Set like `date_expires`, from the Size
