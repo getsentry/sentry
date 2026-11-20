@@ -1,7 +1,6 @@
 import {t} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {orgHasNewSeerPlan} from './orgHasNewSeerPlan';
 import type {SeerAutofixStoppingPoint} from './types';
 
 export const OPEN_PRS_TOOLTIP = t(
@@ -10,10 +9,7 @@ export const OPEN_PRS_TOOLTIP = t(
 
 export function useShowOpenPrs() {
   const organization = useOrganization();
-  return (
-    organization.features.includes('autofix-single-run') &&
-    orgHasNewSeerPlan(organization)
-  );
+  return organization.features.includes('autofix-single-run');
 }
 
 export function openPrsStoppingPoint(on: boolean): SeerAutofixStoppingPoint {
