@@ -14,13 +14,15 @@ from sentry.integrations.jira.forge.invocation_token import (
     jira_cloud_id,
     verify_forge_request,
 )
-from sentry.integrations.jira.tasks import sync_forge_installation
+from sentry.integrations.jira.tasks import record_forge_uninstall, sync_forge_installation
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
 from .base import JiraWebhookBase
 
 # Atlassian guarantees a system token is valid for at least this long.
 FORGE_SYSTEM_TOKEN_MIN_TTL = 2 * 60 * 60
+# The manifest's `preUninstall` module, which Forge calls as the app is uninstalled.
+FORGE_PRE_UNINSTALL_MODULE_KEY = "pre-uninstall"
 
 
 @control_silo_endpoint
@@ -33,6 +35,8 @@ class JiraForgeInstallationWebhook(JiraWebhookBase):
     Called by Forge's install and upgrade lifecycle events, including when a Connect
     install upgrades to Forge, and by the hourly scheduled trigger. Every call carries
     a fresh system token, which is the only way a Forge remote receives one.
+
+    Also called by the `preUninstall` module as the app is uninstalled.
     """
 
     def post(self, request: Request, *args: object, **kwargs: object) -> Response:
@@ -46,6 +50,10 @@ class JiraForgeInstallationWebhook(JiraWebhookBase):
         cloud_id = jira_cloud_id(invocation)
         if cloud_id is None:
             return self.respond({"detail": "Invalid Forge installation context"}, status=400)
+
+        if invocation.module_key == FORGE_PRE_UNINSTALL_MODULE_KEY:
+            record_forge_uninstall(cloud_id=cloud_id, installation_id=invocation.installation_id)
+            return self.respond(status=202)
 
         system_token = request.headers.get("X-Forge-OAuth-System")
         if not system_token:
