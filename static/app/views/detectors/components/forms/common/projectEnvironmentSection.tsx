@@ -18,10 +18,7 @@ export function ProjectEnvironmentSection({
   environment,
   step,
 }: ProjectEnvironmentSectionProps) {
-  const environmentConfig = {
-    includeAllEnvironments: true,
-    ...environment,
-  };
+  const environmentConfig = {includeAllEnvironments: true, ...environment};
 
   return (
     <Container>

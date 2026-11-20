@@ -55,10 +55,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add the Sentry Node SDK as a dependency:'),
-        },
+        {type: 'text', text: t('Add the Sentry Node SDK as a dependency:')},
         getInstallCodeBlock(params),
       ],
     },
@@ -103,11 +100,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'node --import ./instrument.js index.js',
-        },
+        {type: 'code', language: 'bash', code: 'node --import ./instrument.js index.js'},
         {
           type: 'text',
           text: tct(
@@ -157,11 +150,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: getVerifySnippet(params),
-            },
+            {label: 'JavaScript', language: 'javascript', code: getVerifySnippet(params)},
           ],
         },
       ],

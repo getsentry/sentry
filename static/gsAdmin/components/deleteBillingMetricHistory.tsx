@@ -34,10 +34,7 @@ type BillingConfig = {
   reason_codes: Record<string, string>;
 };
 
-type Props = {
-  onSuccess: () => void;
-  organization: Organization;
-};
+type Props = {onSuccess: () => void; organization: Organization};
 
 type ModalProps = Props & ModalRenderProps;
 
@@ -48,9 +45,7 @@ const formSchema = z.object({
     .refine(value => value !== null, 'Please select a data category.'),
 });
 
-const defaultValues: z.input<typeof formSchema> = {
-  dataCategory: null,
-};
+const defaultValues: z.input<typeof formSchema> = {dataCategory: null};
 
 function DeleteBillingMetricHistoryModal({
   onSuccess,
@@ -63,9 +58,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} = useQuery(
-    apiOptions.as<BillingConfig>()('/billing-config/', {
-      staleTime: Infinity,
-    })
+    apiOptions.as<BillingConfig>()('/billing-config/', {staleTime: Infinity})
   );
 
   const mutation = useMutation({
@@ -73,9 +66,7 @@ function DeleteBillingMetricHistoryModal({
       fetchMutation({
         url: getApiUrl(
           `/customers/$organizationIdOrSlug/delete-billing-metric-history/`,
-          {
-            path: {organizationIdOrSlug: orgSlug},
-          }
+          {path: {organizationIdOrSlug: orgSlug}}
         ),
         method: 'POST',
         data: {data_category: dataCategory},
@@ -118,10 +109,7 @@ function DeleteBillingMetricHistoryModal({
   const dataCategoryOptions = Object.entries(billingConfig.category_info).map(
     ([key, value]) => {
       const billingMetric = Number(key);
-      return {
-        value: billingMetric,
-        label: `${value.display_name} (${billingMetric})`,
-      };
+      return {value: billingMetric, label: `${value.display_name} (${billingMetric})`};
     }
   );
 

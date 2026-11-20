@@ -7,9 +7,7 @@ import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/second
 
 describe('ExploreSecondaryNavigation', () => {
   const {organization} = initializeOrg({
-    organization: {
-      features: ['performance-view', 'visibility-explore-view'],
-    },
+    organization: {features: ['visibility-explore-view']},
   });
 
   beforeEach(() => {
@@ -17,25 +15,16 @@ describe('ExploreSecondaryNavigation', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/all-queries/',
       body: [],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   it('renders', () => {
@@ -49,9 +38,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
         },
       }
     );
@@ -63,7 +50,7 @@ describe('ExploreSecondaryNavigation', () => {
   function renderExploreNavigation(features: string[]) {
     const {organization: seerOrganization} = initializeOrg({
       organization: {
-        features: ['performance-view', 'visibility-explore-view', ...features],
+        features: ['visibility-explore-view', ...features],
         openMembership: true,
       },
     });
@@ -129,9 +116,7 @@ describe('ExploreSecondaryNavigation', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/preprod/snapshots/123/',
-          },
+          location: {pathname: '/organizations/org-slug/preprod/snapshots/123/'},
         },
       }
     );
@@ -145,12 +130,7 @@ describe('ExploreSecondaryNavigation', () => {
   it('links Errors to the errors page when discover-basic is enabled', () => {
     const {organization: orgWithQuery} = initializeOrg({
       organization: {
-        features: [
-          'performance-view',
-          'visibility-explore-view',
-          'discover-basic',
-          'discover-query',
-        ],
+        features: ['visibility-explore-view', 'discover-basic', 'discover-query'],
       },
     });
 

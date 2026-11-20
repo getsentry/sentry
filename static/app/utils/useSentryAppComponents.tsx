@@ -13,10 +13,7 @@ import {useOrganization} from './useOrganization';
 export function sentryAppComponentsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppComponent[]>()(
     '/organizations/$organizationIdOrSlug/sentry-app-components/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 }
 

@@ -33,10 +33,17 @@ class ResolveClassifierDefinitionTest(TestCase):
             key="conversation_user_frustration",
             dataset=Dataset.CONVERSATION,
             output_type=TelemetryClassifierOutputType.BINARY,
+            binary_threshold=0.8,
         )
 
     def test_rejects_custom_classifier(self) -> None:
-        classifier = self.create_telemetry_classifier(project=self.project)
+        classifier = self.create_telemetry_classifier(
+            project=self.project,
+            prebuilt_classifier_key=None,
+            natural_language_prompt="Is the user frustrated?",
+            compiled_prompt="Return yes when the user is frustrated.",
+            output_type=TelemetryClassifierOutputType.BINARY,
+        )
 
         with pytest.raises(InvalidClassifierDefinition, match="Custom classifiers"):
             resolve_classifier_definition(classifier)

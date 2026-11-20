@@ -1,6 +1,7 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -16,6 +17,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
+import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -35,22 +37,15 @@ jest.mock('sentry/views/dashboards/widgetCard/releaseWidgetQueries');
 
 describe('Dashboards > WidgetCard', () => {
   const {organization} = initializeOrg({
-    organization: OrganizationFixture({
-      features: ['discover-basic'],
-    }),
+    organization: OrganizationFixture({features: ['discover-basic']}),
   });
 
   const renderWithProviders = (component: React.ReactElement, features: string[] = []) =>
     render(component, {
-      organization: {
-        ...organization,
-        features: [...organization.features, ...features],
-      },
+      organization: {...organization, features: [...organization.features, ...features]},
       initialRouterConfig: {
         route: '/organizations/:orgId/dashboard/:dashboardId/',
-        location: {
-          pathname: '/organizations/org-slug/dashboard/42/',
-        },
+        location: {pathname: '/organizations/org-slug/dashboard/42/'},
       },
     });
 
@@ -112,12 +107,7 @@ describe('Dashboards > WidgetCard', () => {
   const selection = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   let eventsMock: jest.Mock;
@@ -146,10 +136,7 @@ describe('Dashboards > WidgetCard', () => {
     });
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {fields: {title: 'string'}},
-        data: [{title: 'title'}],
-      },
+      body: {meta: {fields: {title: 'string'}}, data: [{title: 'title'}]},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -178,10 +165,7 @@ describe('Dashboards > WidgetCard', () => {
 
     await userEvent.click(await screen.findByLabelText('Widget actions'));
     await userEvent.click(screen.getByRole('menuitemradio', {name: 'Open in Explore'}));
-    expect(spy).toHaveBeenCalledWith({
-      organization,
-      widget: multipleQueryWidget,
-    });
+    expect(spy).toHaveBeenCalledWith({organization, widget: multipleQueryWidget});
   });
 
   it('renders with Open in Explore button', async () => {
@@ -508,11 +492,7 @@ describe('Dashboards > WidgetCard', () => {
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 20,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 20})})
       );
     });
   });
@@ -539,11 +519,7 @@ describe('Dashboards > WidgetCard', () => {
     await waitFor(() => {
       expect(eventsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            per_page: 5,
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({per_page: 5})})
       );
     });
   });
@@ -949,6 +925,30 @@ describe('Dashboards > WidgetCard', () => {
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(screen.getByText('Open in Explore')).toBeInTheDocument();
     });
+
+    it('keeps the dashboard query speed on the Open in Explore link', async () => {
+      renderWithProviders(
+        <SavedDashboardQueryPriorityProvider priority="faster">
+          <WidgetCard
+            widget={spansWidget}
+            selection={selection}
+            onDelete={() => {}}
+            onEdit={() => {}}
+            onDuplicate={() => {}}
+            showContextMenu
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />
+        </SavedDashboardQueryPriorityProvider>,
+        ['visibility-explore-view', 'low-priority-queries']
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      const link = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+      const url = new URL(link.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/traces/');
+      expect(url.searchParams.get('queryPriority')).toBe('faster');
+    });
   });
 
   describe('conflicting filter warning', () => {
@@ -1083,6 +1083,71 @@ describe('Dashboards > WidgetCard', () => {
       );
 
       expect(await screen.findByText('Low confidence data')).toBeInTheDocument();
+    });
+  });
+
+  describe('chart layers', () => {
+    const spansWidget: Widget = {
+      title: 'Span Count',
+      interval: '5m',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          name: '',
+          orderby: '',
+        },
+      ],
+    };
+    it('offers only Releases in the Layers menu without the flag', async () => {
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
+        'Releases',
+      ]);
+    });
+
+    it('adds Dropped data to the Layers menu with the flag', async () => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-dropped/',
+        body: {
+          droppedEvents: [OutcomeRowFixture({count: 10})],
+          acceptedEvents: [OutcomeRowFixture({outcome: 'accepted', count: 90})],
+          meta: {dataset: 'spans', start: 0, end: 0, interval: 0},
+        },
+      });
+
+      renderWithProviders(
+        <WidgetCard
+          widget={spansWidget}
+          selection={selection}
+          widgetLimitReached={false}
+          widgetLegendState={widgetLegendState}
+          widgetInterval="5m"
+        />,
+        ['explore-data-fidelity-annotations', 'dashboards-data-fidelity-annotations']
+      );
+
+      await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+
+      expect(
+        await screen.findByRole('option', {name: 'Dropped Spans'})
+      ).toBeInTheDocument();
+      expect(screen.getByRole('option', {name: 'Releases'})).toBeInTheDocument();
     });
   });
 });

@@ -35,7 +35,12 @@ function getEscalation(
 
 const TOP_UP_REQUESTED_PROMPT = 'seer_top_up_requested';
 
-export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCtaProps) {
+export function SeerOutOfCreditsCta({
+  reason,
+  denialReason,
+  size,
+  variant,
+}: SeerOutOfCreditsCtaProps) {
   const api = useApi({persistInFlight: true});
   const organization = useOrganization();
   const subscription = useSubscription();
@@ -55,9 +60,8 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
     options: {enabled: escalation === 'request'},
   });
 
-  // The copy changes when auto-reload is already on: the org has used up the
-  // top-ups it allows. Only billing members see that copy, and only they can
-  // read the setting.
+  // With auto-reload on, running out means the org hit its daily usage limit,
+  // which gets its own copy. Only billing members can read the setting.
   const {data: autoTopUp, isPending: isAutoTopUpPending} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: escalation === 'configure',
@@ -70,6 +74,7 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
     await sendSeerTopUpRequest({
       api,
       organization,
+      denialReason,
       handleSuccess: () => snoozePrompt(TOP_UP_REQUESTED_PROMPT),
     });
     setIsRequestingCredits(false);
@@ -89,6 +94,7 @@ export function SeerOutOfCreditsCta({reason, size, variant}: SeerOutOfCreditsCta
   return (
     <SeerOutOfCreditsNotice
       reason={reason}
+      denialReason={denialReason}
       size={size}
       variant={variant}
       escalation={escalation}

@@ -37,9 +37,7 @@ import {
 } from 'getsentry/utils/dataCategory';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {
-  size: 'xs',
-};
+const COMMON_BUTTON_PROPS: Partial<ButtonProps> = {size: 'xs'};
 
 /**
  * Categories that are ineligible for PAYG (pay-as-you-go/on-demand) billing.
@@ -100,11 +98,11 @@ function QuotaRequestRecipients() {
       <Description>
         {isSuccess
           ? tct(
-              'Your org has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
+              'Your organization has no active Owners or Billing members, so nobody will get this request. Contact us at [mailto:support@sentry.io] for help.',
               {mailto: <a href="mailto:support@sentry.io" />}
             )
           : t(
-              "Your org's Owners and Billing members will get an email asking them to increase your quota."
+              "Your organization's Owners and Billing members will get an email asking them to increase your quota."
             )}
       </Description>
     );
@@ -116,7 +114,7 @@ function QuotaRequestRecipients() {
   return (
     <Description>
       {tct(
-        "Your org's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
+        "Your organization's Owners and Billing members ([recipients]) will get an email asking them to increase your quota.",
         {
           recipients: (
             <Fragment>
@@ -396,11 +394,7 @@ function QuotaExceededContent({
             <Button
               aria-label={t('Dismiss alert for the rest of the billing cycle')}
               onClick={() =>
-                onClick({
-                  eventTypes,
-                  categories: exceededCategories,
-                  isManual: true,
-                })
+                onClick({eventTypes, categories: exceededCategories, isManual: true})
               }
               {...COMMON_BUTTON_PROPS}
             >
@@ -480,9 +474,7 @@ export function PrimaryNavigationQuotaExceeded({
       -1 *
       getDaysSinceDate(subscription?.onDemandPeriodEnd ?? moment().utc().toISOString()),
     isDismissed: isSnoozedForCurrentPeriod,
-    options: {
-      enabled: promptsToCheck.length > 0,
-    },
+    options: {enabled: promptsToCheck.length > 0},
   });
 
   const {
@@ -581,10 +573,7 @@ export function PrimaryNavigationQuotaExceeded({
         analyticsKey="billingStatus"
         label={t('Billing Status')}
         indicator="warning"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconWarning />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconWarning />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

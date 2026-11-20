@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {DetailedProjectFixture} from 'sentry-fixture/project';
 
-import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {DetailedProject} from 'sentry/types/project';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
@@ -32,19 +32,19 @@ describe('AutofixAgent', () => {
     repos,
     agent = 'seer',
     integrationId = null,
+    prIteration = true,
     reposAsyncDelay,
   }: {
     repos: Array<ReturnType<typeof seerRepo>>;
     agent?: string;
     integrationId?: string | null;
+    prIteration?: boolean;
     reposAsyncDelay?: number;
   }) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
@@ -58,6 +58,7 @@ describe('AutofixAgent', () => {
         autoCreatePr: null,
         automationTuning: 'off',
         scannerAutomation: false,
+        prIteration,
         reposCount: repos.length,
       },
     });
@@ -210,5 +211,43 @@ describe('AutofixAgent', () => {
       expect(screen.getByRole('textbox', {name: 'Handoff to Agent'})).toBeDisabled()
     );
     expect(failingPut).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows the saved Auto-Iterate on PRs setting', async () => {
+    mockEndpoints({repos: [seerRepo({provider: 'github'})], prIteration: false});
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    expect(select).toBeEnabled();
+    expect(screen.getByText('Off')).toBeInTheDocument();
+  });
+
+  it('saves Auto-Iterate on PRs when changed', async () => {
+    const putMock = mockEndpoints({repos: [seerRepo({provider: 'github'})]});
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    await userEvent.click(
+      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+    );
+    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        expect.objectContaining({method: 'PUT', data: {prIteration: false}})
+      )
+    );
+  });
+
+  it('disables Auto-Iterate on PRs when the user cannot write', async () => {
+    mockEndpoints({repos: [seerRepo({provider: 'github'})]});
+
+    render(<AutofixAgent canWrite={false} project={project} />, {organization});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeDisabled();
   });
 });

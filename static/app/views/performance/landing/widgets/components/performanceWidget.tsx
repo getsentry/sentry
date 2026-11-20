@@ -182,12 +182,7 @@ function DefaultErrorComponent(props: {height: number}) {
   );
 }
 
-const defaultGrid = {
-  left: 0,
-  right: 0,
-  top: '16px',
-  bottom: '8px',
-};
+const defaultGrid = {left: 0, right: 0, top: '16px', bottom: '8px'};
 
 const ErrorPanelWithMinHeight = styled(ErrorPanel)<{minHeight: string}>`
   min-height: ${p => p.minHeight};

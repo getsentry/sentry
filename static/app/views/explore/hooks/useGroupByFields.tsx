@@ -56,13 +56,7 @@ export function useGroupByFields({
       // hard code in an empty option
       ...(hideEmptyOption
         ? []
-        : [
-            {
-              label: <Disabled>{t('—')}</Disabled>,
-              value: UNGROUPED,
-              textValue: t('—'),
-            },
-          ]),
+        : [{label: <Disabled>{t('—')}</Disabled>, value: UNGROUPED, textValue: t('—')}]),
       ...options,
     ];
   }, [booleanTags, groupBys, hideEmptyOption, numberTags, stringTags, traceItemType]);

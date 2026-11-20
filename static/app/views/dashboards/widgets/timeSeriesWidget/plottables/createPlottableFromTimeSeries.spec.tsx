@@ -14,11 +14,7 @@ describe('createPlottableFromTimeSeriesAndWidget', () => {
       {timestamp: 1729796400000, value: 100, incomplete: false},
       {timestamp: 1729800000000, value: 200, incomplete: false},
     ],
-    meta: {
-      valueType: 'number' as const,
-      valueUnit: null,
-      interval: 3600,
-    },
+    meta: {valueType: 'number' as const, valueUnit: null, interval: 3600},
   };
 
   it('creates Line instance for LINE display type', () => {

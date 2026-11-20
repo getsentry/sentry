@@ -40,10 +40,7 @@ export class Profile {
   weights: number[] = [];
   rawWeights: number[] = [];
 
-  stats: ProfileStats = {
-    discardedSamplesCount: 0,
-    negativeSamplesCount: 0,
-  };
+  stats: ProfileStats = {discardedSamplesCount: 0, negativeSamplesCount: 0};
 
   callTreeNodeProfileIdMap = new Map<
     CallTreeNode,

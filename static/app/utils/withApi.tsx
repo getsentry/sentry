@@ -3,9 +3,7 @@ import type {Client} from 'sentry/api';
 import {getDisplayName} from './getDisplayName';
 import {useApi} from './useApi';
 
-type InjectedApiProps = {
-  api: Client;
-};
+type InjectedApiProps = {api: Client};
 
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;
 

@@ -197,10 +197,7 @@ function InvestigationNotebookBlockInner({
           priority: 'danger',
           confirmText: t('Delete'),
           onConfirm: () =>
-            deleteMutation.mutate({
-              block,
-              investigationVersion: investigation.version,
-            }),
+            deleteMutation.mutate({block, notebookVersion: investigation.version}),
         }),
     },
   ];
@@ -313,9 +310,7 @@ function BlockActionButtons({
                 : t('Comment on %s', displayTitle)
             }
             data-block-comments-trigger
-            tooltipProps={{
-              title: hasComments ? t('View comments') : t('Add a comment'),
-            }}
+            tooltipProps={{title: hasComments ? t('View comments') : t('Add a comment')}}
             onClick={onComment}
           />
         </BlockActions>
@@ -686,9 +681,7 @@ function AgentActivityPanel({
   const stopMutation = useStopInvestigationExecutionMutation(
     organizationSlug,
     investigation.id,
-    {
-      onError: () => toast.error(t('Unable to stop this Seer run.')),
-    }
+    {onError: () => toast.error(t('Unable to stop this Seer run.'))}
   );
   const resumeMutation = useResumeInvestigationExecutionMutation(
     organizationSlug,
@@ -1220,10 +1213,7 @@ function getChartMetadata(chart: ReturnType<typeof getRenderableChart>) {
     return totalMetadata;
   }
 
-  const formatter = new Intl.DateTimeFormat(undefined, {
-    month: 'short',
-    day: 'numeric',
-  });
+  const formatter = new Intl.DateTimeFormat(undefined, {month: 'short', day: 'numeric'});
   const start = formatter.format(new Date(Math.min(...timestamps)));
   const end = formatter.format(new Date(Math.max(...timestamps)));
   const range = start === end ? start : `${start}–${end}`;

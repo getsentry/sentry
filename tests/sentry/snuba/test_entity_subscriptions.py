@@ -1,4 +1,5 @@
 import pytest
+from sentry_protos.snuba.v1.endpoint_time_series_pb2 import Expression
 from sentry_protos.snuba.v1.trace_item_attribute_pb2 import (
     ExtrapolationMode as ProtoExtrapolationMode,
 )
@@ -432,4 +433,36 @@ class EntitySubscriptionTestCase(TestCase):
         assert (
             rpc_timeseries_request.expressions[0].aggregation.extrapolation_mode
             == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SERVER_ONLY
+        )
+
+    def test_get_entity_subscription_for_eap_equation(self) -> None:
+        aggregate = "equation|sum(span.duration) / count(span.duration)"
+        entity_subscription = get_entity_subscription(
+            query_type=SnubaQuery.Type.PERFORMANCE,
+            dataset=Dataset.EventsAnalyticsPlatform,
+            aggregate=aggregate,
+            time_window=3600,
+            extra_fields={"org_id": self.organization.id},
+        )
+        assert isinstance(entity_subscription, PerformanceSpansEAPRpcEntitySubscription)
+
+        rpc_timeseries_request = entity_subscription.build_rpc_request(
+            "span.op:http.client", [self.project.id], None
+        )
+
+        # Snuba subscriptions require exactly one expression with an extrapolation mode on
+        # every aggregation, so the equation must arrive as a single formula.
+        assert len(rpc_timeseries_request.expressions) == 1
+        expression = rpc_timeseries_request.expressions[0]
+        assert expression.label == aggregate
+        assert expression.formula.op == Expression.BinaryFormula.OP_DIVIDE
+        assert expression.formula.left.aggregation.label == "sum(span.duration)"
+        assert expression.formula.right.aggregation.label == "count(span.duration)"
+        assert (
+            expression.formula.left.aggregation.extrapolation_mode
+            == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
+        )
+        assert (
+            expression.formula.right.aggregation.extrapolation_mode
+            == ProtoExtrapolationMode.EXTRAPOLATION_MODE_SAMPLE_WEIGHTED
         )

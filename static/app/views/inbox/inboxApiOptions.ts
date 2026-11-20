@@ -1,5 +1,6 @@
 import {
   mutationOptions,
+  skipToken,
   type InfiniteData,
   type QueryClient,
 } from '@tanstack/react-query';
@@ -35,6 +36,22 @@ type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
 
 type InboxListData = InfiniteData<ApiResponse<InboxItem[]>>;
 
+export function inboxUnreadCountApiOptions(organization: Organization | null) {
+  return {
+    ...apiOptions.as<{count: number}>()(
+      '/organizations/$organizationIdOrSlug/inbox/count/',
+      {
+        path: organization?.features.includes('universal-inbox')
+          ? {organizationIdOrSlug: organization.slug}
+          : skipToken,
+        query: {is_read: 'false'},
+        staleTime: 0,
+      }
+    ),
+    refetchOnWindowFocus: 'always' as const,
+  };
+}
+
 export function inboxItemsApiOptions(organization: Organization, filters: InboxFilters) {
   return {
     ...apiOptions.asInfinite<InboxItem[]>()(
@@ -45,6 +62,7 @@ export function inboxItemsApiOptions(organization: Organization, filters: InboxF
           per_page: INBOX_ITEMS_PER_PAGE,
           ...(filters.subjectType.length > 0 && {subject_type: filters.subjectType}),
           ...(filters.eventType.length > 0 && {event_type: filters.eventType}),
+          ...(filters.recipient.length > 0 && {recipient: filters.recipient}),
         },
         staleTime: 30_000,
       }
@@ -167,10 +185,7 @@ export function removeInboxItemsMutationOptions({
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey,
-        refetchType: 'active',
-      });
+      queryClient.invalidateQueries({queryKey, refetchType: 'active'});
       queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
     },
   });

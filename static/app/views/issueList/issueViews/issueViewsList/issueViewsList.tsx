@@ -167,13 +167,7 @@ function IssueViewSection({
     );
   };
 
-  useRouteAnalyticsParams(
-    isPending
-      ? {}
-      : {
-          [`num_results_${createdBy}`]: views.length,
-        }
-  );
+  useRouteAnalyticsParams(isPending ? {} : {[`num_results_${createdBy}`]: views.length});
 
   const pageLinks = data?.headers.Link;
 
@@ -288,30 +282,12 @@ function SortDropdown() {
         setSort(newSort.value);
       }}
       options={[
-        {
-          label: t('Most Starred'),
-          value: GroupSearchViewSort.POPULARITY,
-        },
-        {
-          label: t('Recently Viewed'),
-          value: GroupSearchViewSort.VIEWED,
-        },
-        {
-          label: t('Name (A-Z)'),
-          value: GroupSearchViewSort.NAME_ASC,
-        },
-        {
-          label: t('Name (Z-A)'),
-          value: GroupSearchViewSort.NAME_DESC,
-        },
-        {
-          label: t('Created (Newest)'),
-          value: GroupSearchViewSort.CREATED_DESC,
-        },
-        {
-          label: t('Created (Oldest)'),
-          value: GroupSearchViewSort.CREATED_ASC,
-        },
+        {label: t('Most Starred'), value: GroupSearchViewSort.POPULARITY},
+        {label: t('Recently Viewed'), value: GroupSearchViewSort.VIEWED},
+        {label: t('Name (A-Z)'), value: GroupSearchViewSort.NAME_ASC},
+        {label: t('Name (Z-A)'), value: GroupSearchViewSort.NAME_DESC},
+        {label: t('Created (Newest)'), value: GroupSearchViewSort.CREATED_DESC},
+        {label: t('Created (Oldest)'), value: GroupSearchViewSort.CREATED_ASC},
       ]}
     />
   );
@@ -320,10 +296,7 @@ function SortDropdown() {
 const issueViewsFeedbackOptions = {
   formTitle: t('Give Feedback'),
   messagePlaceholder: t('How can we make issue views better for you?'),
-  tags: {
-    'feedback.source': 'custom_views',
-    'feedback.owner': 'issues',
-  },
+  tags: {'feedback.source': 'custom_views', 'feedback.owner': 'issues'},
 };
 
 export default function IssueViewsList() {
@@ -350,10 +323,7 @@ export default function IssueViewsList() {
             pathname: normalizeUrl(
               `/organizations/${organization.slug}/issues/views/${data.id}/`
             ),
-            query: {
-              ...getIssueViewQueryParams({view: data}),
-              new: 'true',
-            },
+            query: {...getIssueViewQueryParams({view: data}), new: 'true'},
           });
         },
       }

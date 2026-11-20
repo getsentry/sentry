@@ -129,10 +129,7 @@ export function getMutateSeerProjectSettingsOptions({
         url,
         data: {
           ...rest,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         },
@@ -146,10 +143,7 @@ export function getMutateSeerProjectSettingsOptions({
       const [infiniteUrl] = infiniteQueryKey;
 
       await queryClient.cancelQueries({queryKey});
-      await queryClient.cancelQueries({
-        queryKey: [infiniteUrl],
-        exact: false,
-      });
+      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
 
       const previousData = queryClient.getQueryData(queryKey);
 
@@ -207,10 +201,7 @@ export function getMutateSeerProjectSettingsOptions({
     onError: (_error, _data, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
       if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({
-          queryKey: [context.infiniteUrl],
-          exact: false,
-        });
+        queryClient.invalidateQueries({queryKey: [context.infiniteUrl], exact: false});
       }
     },
     onSettled: () => {
@@ -283,10 +274,7 @@ export function getMutateSeerProjectsSettingsOptions({
         data: {
           ...rest,
           query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         } satisfies SeerBulkProjectSettingUpdatePayload,

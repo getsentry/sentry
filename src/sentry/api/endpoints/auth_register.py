@@ -25,6 +25,7 @@ from sentry.api.validators.auth import (
     RegistrationRequest,
     RegistrationValidator,
 )
+from sentry.apidocs.constants import RESPONSE_CONFLICT, RESPONSE_FORBIDDEN
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.signals import user_signup
@@ -141,7 +142,7 @@ class AuthRegisterEndpoint(Endpoint):
     @extend_schema(
         operation_id="Register a user account",
         request=RegistrationValidator,
-        responses={200: AuthSuccessSerializer},
+        responses={200: AuthSuccessSerializer, 403: RESPONSE_FORBIDDEN, 409: RESPONSE_CONFLICT},
     )
     def post(self, request: Request) -> Response:
         if request.user.is_authenticated:

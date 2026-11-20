@@ -14,11 +14,7 @@ import {FeedbackScreenshot} from './feedbackScreenshot';
 import {modalCss, ScreenshotsModal} from './screenshotsModal';
 import {useFeedbackScreenshot} from './useFeedbackHasScreenshot';
 
-type Props = {
-  event: Event;
-  organization: Organization;
-  projectSlug: string;
-};
+type Props = {event: Event; organization: Organization; projectSlug: string};
 
 export function ScreenshotSection({event, organization, projectSlug}: Props) {
   const {openModal} = useModal();

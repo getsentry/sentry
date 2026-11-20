@@ -17,6 +17,7 @@ from sentry.search.events.types import SnubaParams
 from sentry.telemetry_classifiers.datasets import compile_filter
 from sentry.telemetry_classifiers.definitions import (
     InvalidClassifierDefinition,
+    resolve_classifier_definition,
     resolve_prebuilt_definition,
 )
 from sentry.telemetry_classifiers.models import TelemetryClassifier
@@ -45,6 +46,7 @@ class TelemetryClassifierResponse(TypedDict):
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
     outputType: str | None
+    binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
@@ -82,6 +84,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> TelemetryClassifierResponse:
+        definition = resolve_classifier_definition(obj)
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -92,7 +95,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "status": obj.status,
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": obj.output_type,
+            "outputType": definition.output_type,
+            "binaryThreshold": definition.binary_threshold,
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -102,6 +106,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 class PrebuiltClassifierResponse(TypedDict):
     key: str
     dataset: str
+    outputType: str
+    binaryThreshold: float | None
     name: str
     description: str
     resultAttribute: str
@@ -118,6 +124,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
         return {
             "key": obj.key,
             "dataset": obj.dataset,
+            "outputType": obj.output_type,
+            "binaryThreshold": obj.binary_threshold,
             "name": obj.name,
             "description": obj.description,
             "resultAttribute": obj.result_attribute,
@@ -126,7 +134,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
-        scope="project:write",
+        # Any member who can read the project may create a classifier on it for now.
+        scope="project:read",
         id_allowed=True,
         help_text="The ID or slug of the project the classifier runs on.",
     )

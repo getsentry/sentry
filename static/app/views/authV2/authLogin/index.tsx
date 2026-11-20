@@ -1,5 +1,6 @@
 import {Fragment, useCallback, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -22,8 +23,8 @@ import {useAuthPageLoading} from 'sentry/views/authV2/useAuthPageLoading';
 import {AccountAuthentication} from './components/accountAuthentication';
 import {OrganizationSwitcher} from './components/organizationSwitcher';
 import {RequiredOrganizationSso} from './components/requiredOrganizationSso';
-import {useAuthConfig} from './hooks/useAuthConfig';
-import {useAuthOrganization} from './hooks/useAuthOrganization';
+import {authConfigQueryOptions} from './hooks/useAuthConfig';
+import {authOrganizationQueryOptions} from './hooks/useAuthOrganization';
 import {useDemoLogin} from './hooks/useDemoLogin';
 import type {EmailAuthResult} from './hooks/useEmailAuth';
 import {useSingleOrganizationLogin} from './hooks/useSingleOrganizationLogin';
@@ -43,14 +44,14 @@ export default function AuthLogin() {
     isFetching: isAuthConfigFetching,
     isPending: isAuthConfigPending,
     refetch: refetchAuthConfig,
-  } = useAuthConfig();
+  } = useQuery({...authConfigQueryOptions, refetchOnWindowFocus: true});
   const {
     data: authOrganization,
     error: authOrganizationError,
     isFetching: isAuthOrganizationFetching,
     isPending: isAuthOrganizationPending,
     refetch: refetchAuthOrganization,
-  } = useAuthOrganization(orgSlug);
+  } = useQuery({...authOrganizationQueryOptions(orgSlug), refetchOnWindowFocus: true});
 
   const nextUri = authConfig && 'nextUri' in authConfig ? authConfig.nextUri : undefined;
   const loginConfig = authConfig && !('nextUri' in authConfig) ? authConfig : undefined;
@@ -70,7 +71,7 @@ export default function AuthLogin() {
     !focusedOrgAuth || (isSingleOrganization && !authOrganization?.ssoRequired);
   const isAuthOrganizationNotFound = isNotFoundError(authOrganizationError);
   const hasAuthOrganizationError = Boolean(
-    authOrganizationError && !isAuthOrganizationNotFound
+    authOrganizationError && !authOrganization && !isAuthOrganizationNotFound
   );
   const hasInitialAuthConfigError = Boolean(authConfigError && !authConfig);
 
@@ -104,9 +105,7 @@ export default function AuthLogin() {
 
   const handleSelectOrganization = useCallback(
     (organizationSlug: string) => {
-      navigate({
-        pathname: `/auth/login/${encodeURIComponent(organizationSlug)}/`,
-      });
+      navigate({pathname: `/auth/login/${encodeURIComponent(organizationSlug)}/`});
     },
     [navigate]
   );

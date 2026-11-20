@@ -2,9 +2,10 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone} from '@sentry/scraps/dateTime';
 import {toast} from '@sentry/scraps/toast';
 
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
@@ -13,6 +14,7 @@ import {uniqueId} from 'sentry/utils/guid';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
+import type {SeerCreditDenialReason} from 'sentry/utils/seer/useSeerCreditCheck';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -24,12 +26,13 @@ import {
   useSeerExplorerChatDispatch,
   useSeerExplorerChatState,
 } from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
-import type {
-  Block,
-  RepoPRState,
-  RespondToUserInputOptions,
-  SeerExplorerResponse,
-  SeerExplorerRunId,
+import {
+  isOutOfCreditsPRState,
+  type Block,
+  type RepoPRState,
+  type RespondToUserInputOptions,
+  type SeerExplorerResponse,
+  type SeerExplorerRunId,
 } from 'sentry/views/seerExplorer/types';
 import {
   makeSeerExplorerQueryKey,
@@ -51,9 +54,7 @@ type SessionSnapshot = {
   previousData: SeerExplorerResponse | undefined;
 };
 
-type SeerExplorerUpdateResponse = {
-  run_id: number;
-};
+type SeerExplorerUpdateResponse = {run_id: number};
 
 /**
  * Build the explorer-update endpoint URL. `runId` can originate from an
@@ -159,6 +160,7 @@ export const useSeerExplorer = () => {
   const [requestError, setRequestError] = useState<{
     runId: SeerExplorerRunId | null;
     chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
     isOutOfCredits?: boolean;
     query?: string;
   } | null>(null);
@@ -324,11 +326,16 @@ export const useSeerExplorer = () => {
       // optimistic user/loading blocks. The UI surfaces the failure and restores the draft.
       restoreSessionData(params.orgSlug, params.runId, context);
       if (isCurrentRun(params.runId)) {
+        const denialReason = error.responseJSON?.denialReason;
         setRequestError({
           runId: params.runId,
           query: params.query,
           chatPrompt: params.pendingChatPrompt ?? undefined,
           isOutOfCredits: error.status === 402,
+          creditDenialReason:
+            denialReason === 'not_enough_credits' || denialReason === 'daily_cap_exceeded'
+              ? denialReason
+              : undefined,
         });
       }
     },
@@ -394,21 +401,14 @@ export const useSeerExplorer = () => {
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {
-      orgSlug: string;
-      runId: SeerExplorerRunId | null;
-    }
+    {orgSlug: string; runId: SeerExplorerRunId | null}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
-        data: {
-          payload: {
-            type: 'interrupt',
-          },
-        },
+        data: {payload: {type: 'interrupt'}},
       });
     },
     onError: () => {
@@ -426,6 +426,7 @@ export const useSeerExplorer = () => {
 
   const currentRequestError = useMemo<{
     chatPrompt?: ChatPrompt;
+    creditDenialReason?: SeerCreditDenialReason;
     isOutOfCredits?: boolean;
     query?: string;
   } | null>(
@@ -434,6 +435,7 @@ export const useSeerExplorer = () => {
         ? {
             query: requestError.query,
             chatPrompt: requestError.chatPrompt,
+            creditDenialReason: requestError.creditDenialReason,
             isOutOfCredits: requestError.isOutOfCredits,
           }
         : null,
@@ -640,7 +642,11 @@ export const useSeerExplorer = () => {
         currentState.pr_creation_status === 'error' &&
         currentState.pr_creation_error
       ) {
-        toast.error(currentState.pr_creation_error ?? 'Failed to create PR');
+        toast.error(
+          isOutOfCreditsPRState(currentState)
+            ? getOutOfCreditsPRMessage(currentState)
+            : (currentState.pr_creation_error ?? 'Failed to create PR')
+        );
       }
     }
 
@@ -745,10 +751,7 @@ export const useSeerExplorer = () => {
       updated_at: new Date().toISOString(),
     };
 
-    return {
-      ...baseSession,
-      blocks: visibleBlocks,
-    };
+    return {...baseSession, blocks: visibleBlocks};
   }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
   return {

@@ -91,10 +91,7 @@ export function useUpdateProjectMutationOptions(project: Project) {
         ...previousProject,
         ...data,
         options: data.options
-          ? {
-              ...previousProject.options,
-              ...data.options,
-            }
+          ? {...previousProject.options, ...data.options}
           : previousProject.options,
       };
 
@@ -105,10 +102,7 @@ export function useUpdateProjectMutationOptions(project: Project) {
           ...previousDetailedProject,
           ...data,
           options: data.options
-            ? {
-                ...previousDetailedProject.options,
-                ...data.options,
-              }
+            ? {...previousDetailedProject.options, ...data.options}
             : previousDetailedProject.options,
         };
 

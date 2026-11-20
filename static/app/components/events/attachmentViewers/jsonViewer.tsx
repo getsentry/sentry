@@ -49,21 +49,25 @@ export function JsonViewer(props: ViewerProps) {
     return null;
   }
 
-  let json: any;
-  try {
-    /**
-     * The api might return a string or an object depending on headers and filename.
-     */
-    json = typeof query.data === 'object' ? query.data : JSON.parse(query.data);
-  } catch (e) {
-    json = null;
-  }
-
   return (
     <PreviewPanelItem>
-      <StyledJsonData data={json} maxDefaultDepth={4} />
+      <StyledJsonData data={parseAttachmentJson(query.data)} maxDefaultDepth={4} />
     </PreviewPanelItem>
   );
+}
+
+/**
+ * The api might return a string or an object depending on headers and filename.
+ */
+function parseAttachmentJson(data: Record<PropertyKey, unknown> | string): unknown {
+  if (typeof data === 'object') {
+    return data;
+  }
+  try {
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
 }
 
 const StyledJsonData = styled(JsonEventData)`

@@ -33,10 +33,7 @@ export function useGroupFeatureFlags(
 ): UseQueryResult<GroupTag[]> {
   const organization = useOrganization();
   return useQuery({
-    ...groupFlagsOptions({
-      orgSlug: organization.slug,
-      ...parameters,
-    }),
+    ...groupFlagsOptions({orgSlug: organization.slug, ...parameters}),
     enabled: defined(parameters.groupId),
   });
 }

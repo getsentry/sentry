@@ -126,9 +126,7 @@ describe('ReleaseHeader', () => {
     });
 
     it('copies the release version from the menu rather than a standalone button', async () => {
-      Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue('')},
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
       const release = ReleaseFixture({version: '0c7d1730b1b1', projects: [project]});
       renderHeader({release});
 

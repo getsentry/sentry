@@ -7,12 +7,7 @@ import {
 describe('getConditionalFilterEditContext', () => {
   it('treats the full string as one clause when there are no boolean operators', () => {
     expect(getConditionalFilterEditContext('organization.slug:sentry', 10)).toMatchObject(
-      {
-        phase: 'key',
-        editText: 'organizati',
-        replaceStart: 0,
-        replaceEnd: 24,
-      }
+      {phase: 'key', editText: 'organizati', replaceStart: 0, replaceEnd: 24}
     );
   });
 
@@ -79,11 +74,7 @@ describe('getConditionalFilterEditContext', () => {
   it('uses value mode after the colon while typing an unquoted value', () => {
     expect(
       getConditionalFilterEditContext('organization.slug:sentry and span.op:db', 39)
-    ).toMatchObject({
-      phase: 'value',
-      filterKey: 'span.op',
-      valueQuery: 'db',
-    });
+    ).toMatchObject({phase: 'value', filterKey: 'span.op', valueQuery: 'db'});
   });
 
   it('uses key mode after a boolean operator', () => {
@@ -124,10 +115,7 @@ describe('getConditionalFilterEditContext', () => {
   it('reads the key query from the active clause', () => {
     expect(
       getConditionalFilterEditContext('organization.slug:sentry and span', 34)
-    ).toMatchObject({
-      phase: 'key',
-      editText: 'span',
-    });
+    ).toMatchObject({phase: 'key', editText: 'span'});
   });
 
   it('reads the key query after a completed value', () => {
@@ -268,10 +256,7 @@ describe('replaceConditionalFilterClause', () => {
     const value = '(span.op:db span)';
     expect(
       replaceConditionalFilterClause(value, value.length - 1, 'span.status:')
-    ).toEqual({
-      newCursorIndex: 24,
-      newValue: '(span.op:db span.status:)',
-    });
+    ).toEqual({newCursorIndex: 24, newValue: '(span.op:db span.status:)'});
   });
 
   it('does not rewrite a bracketed list when selecting a key suggestion mid-list', () => {
@@ -280,10 +265,7 @@ describe('replaceConditionalFilterClause', () => {
     // edit path would; selecting a key suggestion should not split on the space.
     expect(
       replaceConditionalFilterClause(value, value.length - 2, 'span.status:')
-    ).toEqual({
-      newCursorIndex: 12,
-      newValue: 'span.status:',
-    });
+    ).toEqual({newCursorIndex: 12, newValue: 'span.status:'});
   });
 });
 

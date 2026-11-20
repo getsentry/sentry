@@ -32,10 +32,7 @@ const renderConfig: RenderConfig<ChartType> = new Map();
 /**
  * Chartcuterie configuration object
  */
-const config: ChartcuterieConfig = {
-  version: process.env.COMMIT_SHA!,
-  renderConfig,
-};
+const config: ChartcuterieConfig = {version: process.env.COMMIT_SHA!, renderConfig};
 
 /**
  * Register a style descriptor

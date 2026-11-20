@@ -17,13 +17,6 @@ class CreateProjectFlow(Flow[ProjectSetupContext]):
         if issued is None:
             raise InvalidHandoffContext("Project setup run is unavailable")
 
-        return render_create_project_runbook(run_code=issued.code)
-
-    def preview(self) -> str:
-        return render_create_project_runbook(run_code="<project-setup-run-code>")
-
-
-def render_create_project_runbook(*, run_code: str) -> str:
-    return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/create_project.md").render(
-        run_code=run_code
-    )
+        return MARKDOWN_JINJA_ENV.get_template("sentry/agent_handoff/create_project.md").render(
+            run_code=issued.code
+        )

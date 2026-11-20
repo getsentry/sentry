@@ -29,11 +29,7 @@ function makeExplorerBlock({
 } = {}) {
   return {
     id,
-    message: {
-      role: 'assistant' as const,
-      content,
-      metadata: step ? {step} : null,
-    },
+    message: {role: 'assistant' as const, content, metadata: step ? {step} : null},
     timestamp: '2024-01-01T00:00:00Z',
     loading,
     artifacts: artifacts ?? [],
@@ -49,18 +45,11 @@ function makeExplorerAutofixData({
   run_id?: number;
   status?: 'processing' | 'completed' | 'error' | 'awaiting_user_input';
 } = {}) {
-  return {
-    run_id,
-    blocks,
-    status,
-    updated_at: '2024-01-01T00:00:00Z',
-  };
+  return {run_id, blocks, status, updated_at: '2024-01-01T00:00:00Z'};
 }
 
 describe('SeerDrawer', () => {
-  const organization = OrganizationFixture({
-    hideAiFeatures: false,
-  });
+  const organization = OrganizationFixture({hideAiFeatures: false});
 
   const mockGroup = GroupFixture();
   const mockProject = DetailedProjectFixture();
@@ -71,16 +60,11 @@ describe('SeerDrawer', () => {
 
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/setup/`,
-      body: AutofixSetupFixture({
-        integration: {ok: true, reason: null},
-      }),
+      body: AutofixSetupFixture({integration: {ok: true, reason: null}}),
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/preferences/`,
-      body: {
-        code_mapping_repos: [],
-        preference: null,
-      },
+      body: {code_mapping_repos: [], preference: null},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/group-search-views/starred/`,
@@ -92,9 +76,7 @@ describe('SeerDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/`,
-      body: {
-        autofixAutomationTuning: 'off',
-      },
+      body: {autofixAutomationTuning: 'off'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/seer/onboarding-check/`,
@@ -106,9 +88,7 @@ describe('SeerDrawer', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [],
-      },
+      body: {integrations: []},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${mockProject.organization.slug}/${mockProject.slug}/seer/repos/`,
@@ -122,9 +102,7 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     expect(screen.getByTestId('ai-setup-loading-indicator')).toBeInTheDocument();
 
@@ -139,9 +117,7 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -156,9 +132,7 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -177,17 +151,13 @@ describe('SeerDrawer', () => {
       body: {autofix: null},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    const copyButton = screen.getByRole('button', {
-      name: 'Copy analysis as Markdown',
-    });
+    const copyButton = screen.getByRole('button', {name: 'Copy analysis as Markdown'});
     expect(copyButton).toBeInTheDocument();
     expect(copyButton).toHaveAttribute('aria-disabled', 'true');
   });
@@ -195,22 +165,16 @@ describe('SeerDrawer', () => {
   it('shows copy button enabled when autofix run exists', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {
-        autofix: makeExplorerAutofixData(),
-      },
+      body: {autofix: makeExplorerAutofixData()},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
     );
 
-    const copyButton = screen.getByRole('button', {
-      name: 'Copy analysis as Markdown',
-    });
+    const copyButton = screen.getByRole('button', {name: 'Copy analysis as Markdown'});
     expect(copyButton).toBeInTheDocument();
     expect(copyButton).not.toHaveAttribute('aria-disabled', 'true');
   });
@@ -218,14 +182,10 @@ describe('SeerDrawer', () => {
   it('renders reset button enabled with autofix data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {
-        autofix: makeExplorerAutofixData(),
-      },
+      body: {autofix: makeExplorerAutofixData()},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -238,12 +198,59 @@ describe('SeerDrawer', () => {
     expect(resetButton).not.toHaveAttribute('aria-disabled', 'true');
   });
 
+  it('disables reset when out of Seer credits', async () => {
+    const creditOrganization = OrganizationFixture({
+      ...organization,
+      features: [...organization.features, 'token-billed-seer-enabled'],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${creditOrganization.slug}/seer/credit-check/`,
+      body: {hasEnoughCredits: false},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
+      organization: creditOrganization,
+    });
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    expect(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    ).toHaveAttribute('aria-disabled', 'true');
+  });
+
+  it('restarts a failed run without asking what to change', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: makeExplorerAutofixData({status: 'error'})},
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      method: 'POST',
+      body: {run_id: 2},
+    });
+
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
+    await waitForElementToBeRemoved(() =>
+      screen.queryByTestId('ai-setup-loading-indicator')
+    );
+
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Start a new analysis from scratch'})
+    );
+
+    await waitFor(() => expect(postMock).toHaveBeenCalled());
+  });
+
   it('clicking reset triggers a new root cause analysis', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-      body: {
-        autofix: makeExplorerAutofixData(),
-      },
+      body: {autofix: makeExplorerAutofixData()},
     });
 
     const postMock = MockApiClient.addMockResponse({
@@ -252,9 +259,7 @@ describe('SeerDrawer', () => {
       body: {run_id: 2},
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -302,9 +307,7 @@ describe('SeerDrawer', () => {
       },
     });
 
-    render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-      organization,
-    });
+    render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
     await waitForElementToBeRemoved(() =>
       screen.queryByTestId('ai-setup-loading-indicator')
@@ -336,14 +339,10 @@ describe('SeerDrawer', () => {
     it('scrolls the drawer body to the bottom on open for a completed run', async () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
-        body: {
-          autofix: makeExplorerAutofixData({}),
-        },
+        body: {autofix: makeExplorerAutofixData({})},
       });
 
-      render(<SeerDrawer group={mockGroup} project={mockProject} />, {
-        organization,
-      });
+      render(<SeerDrawer group={mockGroup} project={mockProject} />, {organization});
 
       await waitForElementToBeRemoved(() =>
         screen.queryByTestId('ai-setup-loading-indicator')
@@ -374,9 +373,7 @@ describe('SeerDrawer', () => {
         body: {
           autofix: {
             ...makeExplorerAutofixData({}),
-            repo_pr_states: {
-              'org/repo': {pr_creation_status: 'completed'},
-            },
+            repo_pr_states: {'org/repo': {pr_creation_status: 'completed'}},
           },
         },
       });

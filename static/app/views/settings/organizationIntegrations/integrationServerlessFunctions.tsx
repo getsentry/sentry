@@ -61,7 +61,7 @@ export function IntegrationServerlessFunctions({
       <Alert.Container>
         <Alert variant="info" showIcon={false}>
           {t(
-            'Manage your AWS Lambda functions below. Only Node and Python runtimes are currently supported.'
+            'Manage your AWS Lambda Event Functions below. Only Node and Python runtimes are currently supported.'
           )}
         </Alert>
       </Alert.Container>
@@ -100,10 +100,7 @@ export function IntegrationServerlessFunctions({
                     return previous;
                   }
                   const newServerlessFunctions = [...existingServerlessFunctions];
-                  const updatedFunction = {
-                    ...newServerlessFunctions[i]!,
-                    ...update,
-                  };
+                  const updatedFunction = {...newServerlessFunctions[i]!, ...update};
                   newServerlessFunctions[i] = updatedFunction;
                   return {
                     ...previous,

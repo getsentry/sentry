@@ -11,12 +11,7 @@ describe('useInitialMetricDetectorFormData', () => {
     const organization = OrganizationFixture();
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {}}},
     });
 
     expect(result.current).toEqual(
@@ -32,21 +27,14 @@ describe('useInitialMetricDetectorFormData', () => {
     const organization = OrganizationFixture();
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            query: '',
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {query: ''}}},
     });
 
     expect(result.current.query).toBe('');
   });
 
   it('parses dataset, aggregate, and query from URL', () => {
-    const organization = OrganizationFixture({features: ['performance-view']});
+    const organization = OrganizationFixture();
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization,
       initialRouterConfig: {
@@ -71,13 +59,7 @@ describe('useInitialMetricDetectorFormData', () => {
     const {result} = renderHookWithProviders(useInitialMetricDetectorFormData, {
       organization: OrganizationFixture(),
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            dataset: 'metrics',
-            aggregate,
-          },
-        },
+        location: {pathname: '/', query: {dataset: 'metrics', aggregate}},
       },
     });
 

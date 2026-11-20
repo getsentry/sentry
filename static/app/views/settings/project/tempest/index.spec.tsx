@@ -186,9 +186,7 @@ describe('TempestSettings', () => {
 
       await waitFor(() => expect(router.location.query.setupInstructions).toBe('false'));
       expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
-        expect.objectContaining({
-          options: expect.objectContaining({history: 'push'}),
-        })
+        expect.objectContaining({options: expect.objectContaining({history: 'push'})})
       );
     });
   });

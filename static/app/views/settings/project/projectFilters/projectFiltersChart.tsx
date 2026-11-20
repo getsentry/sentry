@@ -18,9 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
 import type {UsageSeries} from 'sentry/views/organizationStats/types';
 
-type Props = {
-  project: Project;
-};
+type Props = {project: Project};
 
 // The stats endpoint returns its groups in no fixed order, so the series are sorted
 // by total before the palette is applied. Colors are assigned by rank, so they stay

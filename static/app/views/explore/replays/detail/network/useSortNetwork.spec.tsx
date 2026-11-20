@@ -28,9 +28,7 @@ const [
     description: 'http://localhost:3000/',
     startTimestamp: new Date(1663131080.5554),
     endTimestamp: new Date(1663131080.6947),
-    data: {
-      size: 1334,
-    },
+    data: {size: 1334},
   }),
   ReplayResourceFrameFixture({
     op: 'resource.link',
@@ -49,10 +47,7 @@ const [
     description: 'https://pokeapi.co/api/v2/pokemon',
     startTimestamp: new Date(1663131080.641),
     endTimestamp: new Date(1663131080.65),
-    data: {
-      method: 'GET',
-      statusCode: 200,
-    },
+    data: {method: 'GET', statusCode: 200},
   }),
   ReplayResourceFrameFixture({
     op: 'resource.img',
@@ -78,20 +73,14 @@ const [
     description: 'https://pokeapi.co/api/v2/pokemon/pikachu',
     startTimestamp: new Date(1663131092.471),
     endTimestamp: new Date(1663131092.48),
-    data: {
-      method: 'GET',
-      statusCode: 200,
-    },
+    data: {method: 'GET', statusCode: 200},
   }),
   ReplayRequestFrameFixture({
     op: 'resource.fetch',
     description: 'https://pokeapi.co/api/v2/pokemon/mewtu',
     startTimestamp: new Date(1663131120.198),
     endTimestamp: new Date(1663131122.693),
-    data: {
-      method: 'POST',
-      statusCode: 404,
-    },
+    data: {method: 'POST', statusCode: 404},
   }),
 ]);
 
@@ -109,9 +98,7 @@ describe('useSortNetwork', () => {
   ];
 
   it('should the list by timestamp by default', () => {
-    const {result} = renderHookWithProviders(useSortNetwork, {
-      initialProps: {items},
-    });
+    const {result} = renderHookWithProviders(useSortNetwork, {initialProps: {items}});
 
     expect(result.current.sortConfig).toStrictEqual({
       by: 'startTimestamp',

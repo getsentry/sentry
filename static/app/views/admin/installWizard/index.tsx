@@ -16,17 +16,9 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {Field} from 'sentry/views/admin/options';
 import {getForm, getOptionDefault, getOptionField} from 'sentry/views/admin/options';
 
-type InstallWizardProps = {
-  onConfigured: () => void;
-};
+type InstallWizardProps = {onConfigured: () => void};
 
-export type InstallWizardOptions = Record<
-  string,
-  {
-    field: Field;
-    value?: unknown;
-  }
->;
+export type InstallWizardOptions = Record<string, {field: Field; value?: unknown}>;
 
 export default function InstallWizard({onConfigured}: InstallWizardProps) {
   const {

@@ -35,12 +35,7 @@ function readableQueryParamOptions(
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
     aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(span.duration)')],
-    aggregateSortBys: [
-      {
-        field: 'count(span.duration)',
-        kind: 'desc',
-      },
-    ],
+    aggregateSortBys: [{field: 'count(span.duration)', kind: 'desc'}],
     ...options,
   };
 }
@@ -264,9 +259,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        })
+        readableQueryParamOptions({sortBys: [{field: 'timestamp', kind: 'desc'}]})
       )
     );
   });
@@ -405,12 +398,8 @@ describe('getReadableQueryParamsFromLocation', () => {
           aggregateFields: [
             new VisualizeFunction('count(span.duration)', {chartType: ChartType.AREA}),
             {groupBy: 'span.op'},
-            new VisualizeFunction('p50(span.duration)', {
-              chartGroup: expect.any(String),
-            }),
-            new VisualizeFunction('p75(span.duration)', {
-              chartGroup: expect.any(String),
-            }),
+            new VisualizeFunction('p50(span.duration)', {chartGroup: expect.any(String)}),
+            new VisualizeFunction('p75(span.duration)', {chartGroup: expect.any(String)}),
           ],
         })
       )

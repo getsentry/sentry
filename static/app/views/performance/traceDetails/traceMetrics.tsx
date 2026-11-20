@@ -34,10 +34,7 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {EXCLUDE_SPAN_METRICS_QUERY} from './traceMetricsSearch';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
-type UseTraceViewMetricsDataProps = {
-  children: React.ReactNode;
-  traceSlug: string;
-};
+type UseTraceViewMetricsDataProps = {children: React.ReactNode; traceSlug: string};
 
 const TRACE_METRICS_QUERY_KEY = 'metricsQuery';
 
@@ -81,11 +78,7 @@ export function TraceViewMetricsProviderWrapper({
       const threeHoursMs = 3 * 60 * 60 * 1000;
       const start = new Date(timestampMs - threeHoursMs).toISOString();
       const end = new Date(timestampMs + threeHoursMs).toISOString();
-      return {
-        start,
-        end,
-        period: null,
-      };
+      return {start, end, period: null};
     }
 
     // Fallback to existing period logic if no timestamp
@@ -111,10 +104,7 @@ export function TraceViewMetricsProviderWrapper({
       traceMetric={{name: '', type: ''}}
       setTraceMetric={() => {}}
       removeMetric={() => {}}
-      freeze={{
-        traceIds: [traceSlug],
-        tracePeriod,
-      }}
+      freeze={{traceIds: [traceSlug], tracePeriod}}
     >
       {children}
     </MetricsQueryParamsProvider>

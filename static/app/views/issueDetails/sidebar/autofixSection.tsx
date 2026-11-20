@@ -50,7 +50,10 @@ import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {hasAutofixPage, makeSeerLocation} from 'sentry/views/issueDetails/autofix/utils';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {SidebarFoldSection} from 'sentry/views/issueDetails/foldSection';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
@@ -158,9 +161,7 @@ export function AutofixContent({aiConfig, group, project}: AutofixContentProps) 
       return null;
     }
 
-    const data: Record<string, string> = {
-      autofixStatus: autofix.runState.status,
-    };
+    const data: Record<string, string> = {autofixStatus: autofix.runState.status};
 
     const sections = getOrderedAutofixSections(autofix.runState);
 
@@ -264,10 +265,7 @@ interface AutofixEmptyStateProps {
 }
 
 function AutofixEmptyState({autofix, group, project}: AutofixEmptyStateProps) {
-  const {openSeerDrawer} = useOpenSeerDrawer({
-    group,
-    project,
-  });
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   const referrer = autofix.runState?.blocks?.[0]?.message?.metadata?.referrer;
 
@@ -297,8 +295,10 @@ function AutofixPreviews({
   referrer,
   singleRunId,
 }: AutofixPreviewsProps) {
+  const organization = useOrganization();
+  const location = useLocation();
+  const navigate = useNavigate();
   const openSingleRunChat = useOpenSingleRunChat();
-  const isSingleRunChatOpen = useIsSingleRunChatOpen(singleRunId);
   const hasRootCause =
     sections.findLast(isRootCauseSection)?.artifacts?.some(isRootCauseArtifact) ?? false;
 
@@ -322,10 +322,7 @@ function AutofixPreviews({
     autofix_referrer: referrer,
   });
 
-  const {openSeerDrawer} = useOpenSeerDrawer({
-    group,
-    project,
-  });
+  const {openSeerDrawer} = useOpenSeerDrawer({group, project});
 
   // On the autofix tab the full analysis is already open beside this sidebar,
   // so a button whose only job is to go there has nowhere to take you. The
@@ -366,10 +363,21 @@ function AutofixPreviews({
           aria-label={t('Open Autofix')}
           variant="primary"
           onClick={
-            defined(singleRunId) ? () => openSingleRunChat(singleRunId) : openSeerDrawer
+            defined(singleRunId)
+              ? () => {
+                  if (hasAutofixPage(organization)) {
+                    navigate(
+                      makeSeerLocation({
+                        organization,
+                        groupId: group.id,
+                        query: location.query,
+                      })
+                    );
+                  }
+                  openSingleRunChat(singleRunId);
+                }
+              : openSeerDrawer
           }
-          disabled={isSingleRunChatOpen}
-          tooltipProps={{title: isSingleRunChatOpen ? t('Chat is open') : undefined}}
           analyticsEventKey="issue_details.seer_opened"
           analyticsEventName="Issue Details: Seer Opened"
           analyticsParams={{

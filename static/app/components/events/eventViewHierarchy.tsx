@@ -1,9 +1,10 @@
-import {useMemo} from 'react';
+import {lazy, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {useFetchEventAttachments} from 'sentry/actionCreators/events';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -17,23 +18,19 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {getPlatform, getPlatformViewConfig} from './viewHierarchy/utils';
 import type {ViewHierarchyData} from './viewHierarchy';
-import {ViewHierarchy} from './viewHierarchy';
 
-type Props = {
-  event: Event;
-  project: Project;
-  disableCollapsePersistence?: boolean;
-};
+// The renderer only loads once there's an attachment to show
+const ViewHierarchy = lazy(() =>
+  import('./viewHierarchy').then(module => ({default: module.ViewHierarchy}))
+);
+
+type Props = {event: Event; project: Project; disableCollapsePersistence?: boolean};
 
 function EventViewHierarchyContent({event, project, disableCollapsePersistence}: Props) {
   const organization = useOrganization();
 
   const {data: attachments} = useFetchEventAttachments(
-    {
-      orgSlug: organization.slug,
-      projectSlug: project.slug,
-      eventId: event.id,
-    },
+    {orgSlug: organization.slug, projectSlug: project.slug, eventId: event.id},
     {notifyOnChangeProps: ['data']}
   );
   const hierarchyMeta = attachments?.find(
@@ -53,12 +50,8 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
               attachmentId: hierarchyMeta.id,
             }
           : skipToken,
-        headers: {
-          Accept: '*/*; charset=utf-8',
-        },
-        query: {
-          download: true,
-        },
+        headers: {Accept: '*/*; charset=utf-8'},
+        query: {download: true},
         staleTime: Infinity,
       }
     ),
@@ -109,7 +102,8 @@ function EventViewHierarchyContent({event, project, disableCollapsePersistence}:
         />
       ) : (
         <ErrorBoundary mini>
-          <ViewHierarchy
+          <LazyLoad
+            LazyComponent={ViewHierarchy}
             viewHierarchy={hierarchy}
             platform={platform}
             emptyMessage={platformViewConfig.emptyMessage}

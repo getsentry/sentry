@@ -34,21 +34,14 @@ const useReleaseCount = (props: Props) => {
     {shouldDoublePeriod: true}
   ).statsPeriod;
 
-  const commonQuery = {
-    environment: environments,
-    project: projects[0],
-    query,
-  };
+  const commonQuery = {environment: environments, project: projects[0], query};
 
   const currentQuery = useQuery({
     ...apiOptions.as<Release[]>()(
       '/organizations/$organizationIdOrSlug/releases/stats/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
+        query: {...commonQuery, ...normalizeDateTimeParams(datetime)},
         staleTime: Infinity,
       }
     ),
@@ -91,11 +84,7 @@ const useReleaseCount = (props: Props) => {
       '/organizations/$organizationIdOrSlug/releases/stats/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...commonQuery,
-          statsPeriod: '90d',
-          per_page: 1,
-        },
+        query: {...commonQuery, statsPeriod: '90d', per_page: 1},
         staleTime: Infinity,
       }
     ),

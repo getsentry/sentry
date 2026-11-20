@@ -48,9 +48,7 @@ describe('OverviewCardAction', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
     });
     MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
@@ -113,12 +111,7 @@ describe('OverviewCardAction', () => {
 
       expect(trackAnalytics).toHaveBeenCalledWith(
         'autofix.overview.action_clicked',
-        expect.objectContaining({
-          organization,
-          group_id: '2',
-          run_id: 'run-1',
-          action,
-        })
+        expect.objectContaining({organization, group_id: '2', run_id: 'run-1', action})
       );
     }
   );
@@ -249,9 +242,7 @@ describe('OverviewCardAction', () => {
   it('defers coding agent fetches until the dropdown is opened', async () => {
     const agentsRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
     });
     const reposRequest = MockApiClient.addMockResponse({
       url: '/projects/org-slug/project-slug/seer/repos/',
@@ -351,9 +342,7 @@ describe('OverviewCardAction', () => {
     const codingAgents = Promise.withResolvers<void>();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/integrations/coding-agents/',
-      body: {
-        integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}],
-      },
+      body: {integrations: [{id: '123', name: 'Claude Agent', provider: 'claude_code'}]},
       asyncDelay: codingAgents.promise,
     });
 

@@ -7,10 +7,7 @@ import {ONBOARDING_ENTER} from 'sentry/views/onboarding/animations';
 
 import {OnboardingStepHeading} from './onboardingStepHeading';
 
-type Props = {
-  platform: PlatformKey;
-  stepHeaderText: string;
-};
+type Props = {platform: PlatformKey; stepHeaderText: string};
 export function SetupIntroduction({stepHeaderText, platform}: Props) {
   return (
     <TitleContainer>

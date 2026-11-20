@@ -13,10 +13,7 @@ import type {UserReport} from 'sentry/types/group';
 import type {AvatarUser} from 'sentry/types/user';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 
-type Props = {
-  report: UserReport;
-  eventLink?: string;
-};
+type Props = {report: UserReport; eventLink?: string};
 
 export function EventUserFeedback({eventLink, report}: Props) {
   const {copy} = useCopyToClipboard();

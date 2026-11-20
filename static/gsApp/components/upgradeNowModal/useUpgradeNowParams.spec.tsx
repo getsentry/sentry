@@ -15,10 +15,7 @@ describe('useUpgradeNowParams', () => {
   const organization = OrganizationFixture();
 
   it('should return the plan that matches the subscription settings', async () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am2_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am2_team'});
 
     const billingConfigRequest = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-config/`,
@@ -27,17 +24,11 @@ describe('useUpgradeNowParams', () => {
     });
 
     const {result} = renderHookWithProviders(useUpgradeNowParams, {
-      initialProps: {
-        organization,
-        subscription,
-      },
+      initialProps: {organization, subscription},
     });
 
     expect(billingConfigRequest).toHaveBeenCalledTimes(1);
-    expect(result.current).toStrictEqual({
-      plan: undefined,
-      reservations: undefined,
-    });
+    expect(result.current).toStrictEqual({plan: undefined, reservations: undefined});
 
     await waitFor(() => expect(billingConfigRequest).toHaveBeenCalledTimes(1));
     await waitFor(() =>

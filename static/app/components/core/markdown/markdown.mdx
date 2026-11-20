@@ -133,18 +133,14 @@ Override `Heading` to render headings as bold text instead of `<h1>`-`<h6>`.
 <Storybook.Demo>
   <Markdown
     raw={`# Heading becomes bold\n\nParagraph stays normal.`}
-    components={{
-      Heading: ({children}) => <strong>{children}</strong>,
-    }}
+    components={{Heading: ({children}) => <strong>{children}</strong>}}
   />
 </Storybook.Demo>
 
 ```jsx
 <Markdown
   raw={content}
-  components={{
-    Heading: ({children}) => <strong>{children}</strong>,
-  }}
+  components={{Heading: ({children}) => <strong>{children}</strong>}}
 />
 ```
 

@@ -67,25 +67,13 @@ describe('diffWidgets', () => {
     const base = makeWidget({
       id: '1',
       queries: [
-        {
-          conditions: 'level:error',
-          aggregates: [],
-          columns: [],
-          orderby: '',
-          name: '',
-        },
+        {conditions: 'level:error', aggregates: [], columns: [], orderby: '', name: ''},
       ],
     });
     const snap = makeWidget({
       id: '1',
       queries: [
-        {
-          conditions: 'level:warning',
-          aggregates: [],
-          columns: [],
-          orderby: '',
-          name: '',
-        },
+        {conditions: 'level:warning', aggregates: [], columns: [], orderby: '', name: ''},
       ],
     });
     const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
@@ -250,14 +238,8 @@ describe('diffWidgets', () => {
   });
 
   it('detects a threshold change', () => {
-    const base = makeWidget({
-      id: '1',
-      thresholds: {max_values: {max1: 100}, unit: 'ms'},
-    });
-    const snap = makeWidget({
-      id: '1',
-      thresholds: {max_values: {max1: 200}, unit: 'ms'},
-    });
+    const base = makeWidget({id: '1', thresholds: {max_values: {max1: 100}, unit: 'ms'}});
+    const snap = makeWidget({id: '1', thresholds: {max_values: {max1: 200}, unit: 'ms'}});
     const result = diffWidgets(makeDashboard([base]), makeDashboard([snap]));
     expect(result[0]).toMatchObject({
       status: 'modified',
@@ -392,10 +374,7 @@ describe('diffFilters', () => {
   it('returns environment and release changes', () => {
     const result = diffFilters(
       makeDash(),
-      makeDash({
-        environment: ['production', 'staging'],
-        filters: {release: ['v1.0.0']},
-      }),
+      makeDash({environment: ['production', 'staging'], filters: {release: ['v1.0.0']}}),
       resolve
     );
     expect(result).toContainEqual(

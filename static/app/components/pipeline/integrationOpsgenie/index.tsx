@@ -46,11 +46,7 @@ function OpsgenieInstallationConfigStep({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      baseUrl: choices[0]?.value ?? '',
-      provider: '',
-      apiKey: '',
-    },
+    defaultValues: {baseUrl: choices[0]?.value ?? '', provider: '', apiKey: ''},
     validators: {onDynamic: installationConfigSchema},
     onSubmit: ({value}) => {
       advance({

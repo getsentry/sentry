@@ -28,10 +28,7 @@ import {useIssueViewUnsavedChanges} from './useIssueViewUnsavedChanges';
 import {useSelectedGroupSearchView} from './useSelectedGroupSeachView';
 import {canEditIssueView} from './utils';
 
-type IssueViewSaveButtonProps = {
-  query: string;
-  sort: IssueSortOptions;
-};
+type IssueViewSaveButtonProps = {query: string; sort: IssueSortOptions};
 
 function SegmentedIssueViewSaveButton({
   openCreateIssueViewModal,
@@ -51,10 +48,7 @@ function SegmentedIssueViewSaveButton({
   const discardUnsavedChanges = () => {
     if (view) {
       trackAnalytics('issue_views.reset.clicked', {organization});
-      navigate({
-        pathname: location.pathname,
-        query: getIssueViewQueryParams({view}),
-      });
+      navigate({pathname: location.pathname, query: getIssueViewQueryParams({view})});
     }
   };
 

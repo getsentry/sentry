@@ -1,12 +1,14 @@
 import os
 from datetime import timedelta
+from hashlib import sha1
 from io import BytesIO
 from unittest.mock import MagicMock, Mock, patch
 from uuid import uuid4
 
 import pytest
 from django.core.files.base import ContentFile
-from django.db import DatabaseError
+from django.db import DatabaseError, connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.models.files.file import File
@@ -78,6 +80,40 @@ class FileBlobTest(TestCase):
 
 
 class FileTest(TestCase):
+    def test_assemble_inserts_blob_indexes_in_one_query(self) -> None:
+        file = self.create_file()
+        first = FileBlob.from_file(ContentFile(b"ab"))
+        second = FileBlob.from_file(ContentFile(b"c"))
+        contents = b"abcab"
+
+        with (
+            CaptureQueriesContext(connections[router.db_for_write(FileBlobIndex)]) as queries,
+            file.assemble_from_file_blob_ids(
+                [first.id, second.id, first.id], sha1(contents).hexdigest()
+            ) as assembled,
+        ):
+            assert assembled.read() == contents
+
+        inserts = [q["sql"] for q in queries if 'INSERT INTO "sentry_fileblobindex"' in q["sql"]]
+        assert len(inserts) == 1
+        assert list(
+            FileBlobIndex.objects.filter(file=file)
+            .order_by("offset")
+            .values_list("blob_id", "offset")
+        ) == [(first.id, 0), (second.id, 2), (first.id, 3)]
+
+    def test_assemble_rolls_back_blob_indexes_on_read_failure(self) -> None:
+        file = self.create_file()
+        blob = FileBlob.from_file(ContentFile(b"ab"))
+
+        with (
+            patch.object(FileBlob, "getfile", side_effect=FileNotFoundError),
+            pytest.raises(FileNotFoundError),
+        ):
+            file.assemble_from_file_blob_ids([blob.id, blob.id], sha1(b"abab").hexdigest())
+
+        assert not FileBlobIndex.objects.filter(file=file).exists()
+
     def test_delete_also_removes_blobs(self) -> None:
         fileobj = ContentFile(b"foo bar")
         baz_file = File.objects.create(name="baz.js", type="default", size=7)

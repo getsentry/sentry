@@ -1,5 +1,4 @@
 import React from 'react';
-import qs from 'query-string';
 import {EventFixture} from 'sentry-fixture/event';
 import {LogFixture} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
@@ -23,6 +22,7 @@ import * as analytics from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {FieldValueType} from 'sentry/utils/fields';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
+import * as qs from 'sentry/utils/url/qs';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
 import {
   LOGS_FIELDS_KEY,
@@ -50,9 +50,7 @@ jest.mock('@tanstack/react-virtual', () => {
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
       measure: jest.fn(),
-      options: {
-        scrollMargin: 0,
-      },
+      options: {scrollMargin: 0},
       scrollDirection: 'forward',
       scrollOffset: 0,
       isScrolling: false,
@@ -65,9 +63,7 @@ jest.mock('@tanstack/react-virtual', () => {
       ]),
       getTotalSize: jest.fn().mockReturnValue(150),
       measure: jest.fn(),
-      options: {
-        scrollMargin: 0,
-      },
+      options: {scrollMargin: 0},
       scrollDirection: 'forward',
       scrollOffset: 0,
       scrollToIndex: (...args: unknown[]) => mockScrollToIndex(...args),
@@ -100,9 +96,7 @@ describe('addValidatedFieldTypesToLogsMeta', () => {
 });
 
 describe('LogsInfiniteTable', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
   const project = ProjectFixture();
 
   const mockLogsData = [
@@ -177,22 +171,12 @@ describe('LogsInfiniteTable', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/releases/1.0.0/`,
-      body: {
-        id: 10,
-        lastCommit: {
-          id: '1e5a9462e6ac23908299b218e18377837297bda1',
-        },
-      },
+      body: {id: 10, lastCommit: {id: '1e5a9462e6ac23908299b218e18377837297bda1'}},
     });
 
     MockApiClient.addMockResponse({
@@ -316,9 +300,7 @@ describe('LogsInfiniteTable', () => {
           jest.advanceTimersByTime(DEFAULT_TRACE_ITEM_HOVER_TIMEOUT + 1);
         });
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
-        const actionsButton = within(cell).queryByRole('button', {
-          name: 'Actions',
-        });
+        const actionsButton = within(cell).queryByRole('button', {name: 'Actions'});
         expect(actionsButton).toBeInTheDocument();
       }
     }
@@ -345,9 +327,7 @@ describe('LogsInfiniteTable', () => {
     for (const row of allTreeRows) {
       for (const field of frozenColumnFields) {
         const cell = await within(row).findByTestId(`log-table-cell-${field}`);
-        const actionsButton = within(cell).queryByRole('button', {
-          name: 'Actions',
-        });
+        const actionsButton = within(cell).queryByRole('button', {name: 'Actions'});
         expect(actionsButton).not.toBeInTheDocument();
       }
     }
@@ -358,13 +338,7 @@ describe('LogsInfiniteTable', () => {
     const emptyApiMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-          units: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}, units: {}}},
     });
 
     renderWithProviders(
@@ -474,9 +448,7 @@ describe('LogsInfiniteTable', () => {
           datasetReason: 'unchanged',
           dataset: 'ourlogs',
           dataScanned: 'full',
-          accuracy: {
-            confidence: [{}, {}],
-          },
+          accuracy: {confidence: [{}, {}]},
         },
         confidence: [{}, {}],
       },
@@ -485,10 +457,7 @@ describe('LogsInfiniteTable', () => {
     const replayMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       method: 'GET',
-      body: {
-        [replayId]: 1,
-        [replayId2]: 1,
-      },
+      body: {[replayId]: 1, [replayId2]: 1},
     });
 
     renderWithProviders(
@@ -992,10 +961,7 @@ describe('LogsInfiniteTable', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {fields: {}, units: {}},
-      },
+      body: {data: [], meta: {fields: {}, units: {}}},
     });
 
     const traceError: TraceTree.TraceError = {

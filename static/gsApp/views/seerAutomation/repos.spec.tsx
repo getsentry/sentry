@@ -6,9 +6,7 @@ import SeerAutomationRepos from 'getsentry/views/seerAutomation/repos';
 
 describe('SeerAutomationRepos', () => {
   it('shows no access for legacy seer-added-only orgs', () => {
-    const organization = OrganizationFixture({
-      features: ['seer-added'],
-    });
+    const organization = OrganizationFixture({features: ['seer-added']});
 
     render(<SeerAutomationRepos />, {organization});
 

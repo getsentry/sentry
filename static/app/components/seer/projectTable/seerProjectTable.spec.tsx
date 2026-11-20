@@ -42,9 +42,7 @@ describe('SeerProjectTable', () => {
   function mockBaseEndpoints() {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -95,7 +93,6 @@ describe('SeerProjectTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     jest.restoreAllMocks();
   });
 
@@ -575,7 +572,7 @@ describe('SeerProjectTable', () => {
         organization: OrganizationFixture({
           slug: organization.slug,
           access: ['org:write'],
-          features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+          features: ['token-billed-seer-enabled'],
         }),
       });
 

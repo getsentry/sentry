@@ -1,11 +1,12 @@
 import {useTheme} from '@emotion/react';
 
+import {useDateTimeFormatter} from '@sentry/scraps/dateTime';
+
 import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {ReleaseMetaBasic} from 'sentry/types/release';
 import {escape} from 'sentry/utils';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
@@ -24,6 +25,7 @@ export function useReleaseMarkLineSeries({
 }) {
   const navigate = useNavigate();
   const theme = useTheme();
+  const formatDateTime = useDateTimeFormatter();
   const eventView = useIssueDetailsEventView({group});
   const organization = useOrganization();
 
@@ -33,14 +35,8 @@ export function useReleaseMarkLineSeries({
 
   const markLine = createMarkLine({
     animation: false,
-    lineStyle: {
-      color: theme.tokens.graphics.accent.vibrant,
-      opacity: 0.3,
-      type: 'solid',
-    },
-    label: {
-      show: false,
-    },
+    lineStyle: {color: theme.tokens.graphics.accent.vibrant, opacity: 0.3, type: 'solid'},
+    label: {show: false},
     data: releases.map(release => ({
       xAxis: +new Date(release.date),
       name: formatVersion(release.version, true),
@@ -57,20 +53,16 @@ export function useReleaseMarkLineSeries({
           })
         );
       },
-      label: {
-        formatter: () => formatVersion(release.version, true),
-      },
+      label: {formatter: () => formatVersion(release.version, true)},
     })),
     tooltip: {
       trigger: 'item',
       formatter: ({data}: any) => {
-        const time = getFormattedDate(
-          data.value,
-          getFormat({timeZone: true, year: true}),
-          {
-            local: !eventView.utc,
-          }
-        );
+        const time = formatDateTime(data.value, {
+          year: 'always',
+          showTimezone: true,
+          timezone: eventView.utc ? 'UTC' : undefined,
+        });
         const version = escape(formatVersion(data.name, true));
         return [
           '<div class="tooltip-series">',

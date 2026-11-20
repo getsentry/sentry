@@ -4,7 +4,4 @@
 import {size} from '@sentry/scraps/tokens/size';
 import {typography} from '@sentry/scraps/tokens/typography';
 
-export const baseTheme = {
-  ...size,
-  ...typography,
-};
+export const baseTheme = {...size, ...typography};

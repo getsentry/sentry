@@ -30,9 +30,7 @@ describe('DetectorSection', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/detectors/${detectorId}/`,
-      body: MetricDetectorFixture({
-        id: detectorId,
-      }),
+      body: MetricDetectorFixture({id: detectorId}),
     });
   });
 
@@ -51,14 +49,7 @@ describe('DetectorSection', () => {
   });
 
   it('displays the detector details for a metric issue', () => {
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {
-          detectorId,
-        },
-        type: 8001,
-      },
-    });
+    const event = EventFixture({occurrence: {evidenceData: {detectorId}, type: 8001}});
     const group = GroupFixture({
       issueCategory: IssueCategory.METRIC,
       issueType: IssueType.METRIC_ISSUE,
@@ -88,10 +79,7 @@ describe('DetectorSection', () => {
   it('displays the detector details for a cron monitor', () => {
     const monitorId = 'a7f8594c-66f8-4a2f-b4aa-bd8ad20c2741';
     const event = EventFixture({
-      occurrence: {
-        evidenceData: {detectorId: Number(detectorId)},
-        type: 4001,
-      },
+      occurrence: {evidenceData: {detectorId: Number(detectorId)}, type: 4001},
       tags: [
         {key: 'monitor.slug', value: 'my-cron-job'},
         {key: 'monitor.id', value: monitorId},
@@ -124,14 +112,7 @@ describe('DetectorSection', () => {
   });
 
   it('displays the detector details for a mobile build monitor', () => {
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {
-          detectorId,
-        },
-        type: 11003,
-      },
-    });
+    const event = EventFixture({occurrence: {evidenceData: {detectorId}, type: 11003}});
     const group = GroupFixture({
       issueCategory: IssueCategory.PREPROD,
       issueType: IssueType.PREPROD_SIZE_ANALYSIS,
@@ -159,11 +140,7 @@ describe('DetectorSection', () => {
   });
 
   it('displays the detector details for an uptime monitor', () => {
-    const event = EventFixture({
-      occurrence: {
-        evidenceData: {detectorId},
-      },
-    });
+    const event = EventFixture({occurrence: {evidenceData: {detectorId}}});
     const group = GroupFixture({
       issueCategory: IssueCategory.UPTIME,
       issueType: IssueType.UPTIME_DOMAIN_FAILURE,

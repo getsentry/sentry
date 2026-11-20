@@ -19,11 +19,7 @@ import {
 import {ButtonWrapper, SubscriptionBody} from 'getsentry/views/subscriptionPage/styles';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-  referrer?: string;
-};
+type Props = {organization: Organization; subscription: Subscription; referrer?: string};
 
 function OrgStatsBanner({organization, subscription, referrer}: Props) {
   if (!subscription.canSelfServe || !hasPerformance(subscription.planDetails)) {
@@ -37,9 +33,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
     subscription,
     referrer,
     source: referrer,
-    buttonProps: {
-      size: 'sm' as const,
-    },
+    buttonProps: {size: 'sm' as const},
   };
   const isPaidPlan = subscription.planDetails.totalPrice > 0;
   // only show start trial if on a free plan and trial available
@@ -67,9 +61,7 @@ function OrgStatsBanner({organization, subscription, referrer}: Props) {
           t('Request an Upgrade to Business'),
           tct(
             '[italicized] your Organization’s owner to upgrade Sentry (See what I did there?).',
-            {
-              italicized: <i>{t('Bug')}</i>,
-            }
+            {italicized: <i>{t('Bug')}</i>}
           ),
         ];
       case 'send_to_checkout':

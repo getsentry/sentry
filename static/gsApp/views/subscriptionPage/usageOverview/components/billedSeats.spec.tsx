@@ -39,10 +39,7 @@ describe('BilledSeats', () => {
   it('should not render when Seer is disabled', () => {
     subscription.addOns = {
       ...subscription.addOns,
-      seer: {
-        ...subscription.addOns?.seer!,
-        enabled: false,
-      },
+      seer: {...subscription.addOns?.seer!, enabled: false},
     };
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -58,10 +55,7 @@ describe('BilledSeats', () => {
   it('should render when Seer is enabled', () => {
     subscription.addOns = {
       ...subscription.addOns,
-      seer: {
-        ...subscription.addOns?.seer!,
-        enabled: true,
-      },
+      seer: {...subscription.addOns?.seer!, enabled: true},
     };
     SubscriptionStore.set(organization.slug, subscription);
     render(
@@ -77,10 +71,7 @@ describe('BilledSeats', () => {
   it('should render the list of active contributors', async () => {
     subscription.addOns = {
       ...subscription.addOns,
-      seer: {
-        ...subscription.addOns?.seer!,
-        enabled: true,
-      },
+      seer: {...subscription.addOns?.seer!, enabled: true},
     };
     SubscriptionStore.set(organization.slug, subscription);
     MockApiClient.addMockResponse({

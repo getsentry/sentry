@@ -39,21 +39,13 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
     a_bounds: number | null;
     a_frame_type: number | null;
     a_position: number | null;
-  } = {
-    a_bounds: null,
-    a_frame_type: null,
-    a_position: null,
-  };
+  } = {a_bounds: null, a_frame_type: null, a_position: null};
 
   uniforms: {
     u_border_width: WebGLUniformLocation | null;
     u_model: WebGLUniformLocation | null;
     u_projection: WebGLUniformLocation | null;
-  } = {
-    u_border_width: null,
-    u_model: null,
-    u_projection: null,
-  };
+  } = {u_border_width: null, u_model: null, u_projection: null};
 
   constructor(
     canvas: HTMLCanvasElement,
@@ -161,16 +153,8 @@ class UIFramesRendererWebGL extends UIFramesRenderer {
       throw new Error('Uninitialized WebGL context');
     }
 
-    this.uniforms = {
-      u_border_width: null,
-      u_model: null,
-      u_projection: null,
-    };
-    this.attributes = {
-      a_position: null,
-      a_bounds: null,
-      a_frame_type: null,
-    };
+    this.uniforms = {u_border_width: null, u_model: null, u_projection: null};
+    this.attributes = {a_position: null, a_bounds: null, a_frame_type: null};
 
     const vertexShader = createShader(
       this.ctx,

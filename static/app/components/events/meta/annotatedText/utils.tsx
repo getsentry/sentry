@@ -29,7 +29,13 @@ export function getTooltipText({
   rule_id,
   organization,
   project,
+  hideRuleDescription = false,
 }: Pick<ChunkType, 'remark' | 'rule_id'> & {
+  /**
+   * Links to the rule with a short label instead of its description, which lists
+   * every source the rule applies to and can get long.
+   */
+  hideRuleDescription?: boolean;
   organization?: Organization;
   project?: DetailedProject;
 }) {
@@ -55,9 +61,7 @@ export function getTooltipText({
         <Wrapper>
           {tct(
             "[method] because of a data scrubbing rule in your organization's settings.",
-            {
-              method,
-            }
+            {method}
           )}
         </Wrapper>
       );
@@ -65,6 +69,27 @@ export function getTooltipText({
 
     const rules = convertRelayPiiConfig(organization?.relayPiiConfig);
     const rule = rules.find(({id}) => String(id) === ruleId);
+
+    if (rule && hideRuleDescription) {
+      return (
+        <Wrapper>
+          {tct(
+            "[method] because of a [ruleLink:data scrubbing rule] in your [orgSettingsLink:organization's settings]",
+            {
+              method,
+              ruleLink: (
+                <Link
+                  to={`/settings/${organization.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+                />
+              ),
+              orgSettingsLink: (
+                <Link to={`/settings/${organization.slug}/security-and-privacy/`} />
+              ),
+            }
+          )}
+        </Wrapper>
+      );
+    }
 
     return (
       <Wrapper>
@@ -115,6 +140,31 @@ export function getTooltipText({
 
   const rules = convertRelayPiiConfig(project?.relayPiiConfig);
   const rule = rules.find(({id}) => String(id) === ruleId);
+
+  if (rule && hideRuleDescription) {
+    return (
+      <Wrapper>
+        {tct(
+          '[method] because of a [ruleLink:data scrubbing rule] in the settings of the project [projectSlug]',
+          {
+            method,
+            ruleLink: (
+              <Link
+                to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/advanced-data-scrubbing/${ruleId}/`}
+              />
+            ),
+            projectSlug: (
+              <Link
+                to={`/settings/${organization.slug}/projects/${project.slug}/security-and-privacy/`}
+              >
+                {project.slug}
+              </Link>
+            ),
+          }
+        )}
+      </Wrapper>
+    );
+  }
 
   return (
     <Wrapper>

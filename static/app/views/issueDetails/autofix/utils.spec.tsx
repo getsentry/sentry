@@ -53,12 +53,7 @@ describe('makeSeerLocation', () => {
       makeSeerLocation({
         organization: withPage,
         groupId: '101',
-        query: {
-          project: '1',
-          environment: 'prod',
-          statsPeriod: '7d',
-          seerDrawer: 'true',
-        },
+        query: {project: '1', environment: 'prod', statsPeriod: '7d', seerDrawer: 'true'},
       })
     ).toEqual({
       pathname: '/organizations/org-slug/issues/101/autofix/',

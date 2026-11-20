@@ -9,9 +9,7 @@ import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 
-type Props = {
-  children: React.ReactNode;
-};
+type Props = {children: React.ReactNode};
 
 export function EmptyState({children}: Props) {
   return (

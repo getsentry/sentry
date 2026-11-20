@@ -52,7 +52,6 @@ import {DEPLOY_PREVIEW_CONFIG, NODE_ENV} from 'sentry/constants';
 import {t, toggleLocaleDebug} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {EventIdResponse} from 'sentry/types/event';
 import type {ShortIdResponse} from 'sentry/types/group';
 import type {Member, Team} from 'sentry/types/organization';
@@ -159,16 +158,8 @@ function renderAsyncResult(item: CommandPaletteAction, index: number) {
 }
 
 type ResolvedIdentifier =
-  | (ShortIdResponse & {
-      kind: 'issue';
-      project: AvatarProject;
-      details?: string;
-    })
-  | (EventIdResponse & {
-      kind: 'event';
-      project: AvatarProject;
-      details?: string;
-    });
+  | (ShortIdResponse & {kind: 'issue'; project: AvatarProject; details?: string})
+  | (EventIdResponse & {kind: 'event'; project: AvatarProject; details?: string});
 
 function ResolvedIdentifierCommandPaletteAction() {
   const organization = useOrganization();
@@ -304,7 +295,7 @@ export function GlobalCommandPaletteActions() {
   const user = useUser();
   const isSentryEmployee = useIsSentryEmployee();
   const {projects} = useProjects();
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const {isSelfHosted, singleOrganization} = useStore(
     ConfigStore,
     useShallow(state => ({
@@ -320,10 +311,7 @@ export function GlobalCommandPaletteActions() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const {mutate: exitSuperuser} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/auth/superuser/'),
-        method: 'DELETE',
-      }),
+      fetchMutation({url: getApiUrl('/auth/superuser/'), method: 'DELETE'}),
     onSuccess: () => window.location.reload(),
   });
 
@@ -350,10 +338,7 @@ export function GlobalCommandPaletteActions() {
       features: new Set(organization.features),
       organization,
     };
-    return getNavigationConfiguration({
-      organization,
-      settingsV3,
-    })
+    return getNavigationConfiguration({organization, settingsV3})
       .flatMap(section =>
         section.items.filter(navItem =>
           isNavItemVisible(navItem, {...context, ...section})
@@ -459,12 +444,7 @@ export function GlobalCommandPaletteActions() {
             />
           )}
           {/* TODO(nikki): I removed the errors on eap UI here so it wouldn't get confused with discover errors, add it back before launch */}
-          <CMDKAction
-            display={{
-              label: t('Errors'),
-            }}
-            to={`${prefix}/explore/errors/`}
-          />
+          <CMDKAction display={{label: t('Errors')}} to={`${prefix}/explore/errors/`} />
           {organization.features.includes('profiling') && (
             <CMDKAction
               display={{label: t('Profiles')}}
@@ -484,12 +464,10 @@ export function GlobalCommandPaletteActions() {
             keywords={[t('release health')]}
             to={`${prefix}/explore/releases/`}
           />
-          {organization.features.includes('gen-ai-conversations') && (
-            <CMDKAction
-              display={{label: t('Agents')}}
-              to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
-            />
-          )}
+          <CMDKAction
+            display={{label: t('Agents')}}
+            to={`${prefix}/explore/${EXPLORE_AGENTS_SUB_PATH}/?referrer=cmdk`}
+          />
           <CMDKAction
             display={{label: t('Saved Queries')}}
             to={`${prefix}/explore/saved-queries/`}
@@ -534,9 +512,7 @@ export function GlobalCommandPaletteActions() {
             limit={5}
             resource={query =>
               cmdkQueryOptions({
-                ...dashboardsApiOptions(organization, {
-                  query: {query, per_page: 20},
-                }),
+                ...dashboardsApiOptions(organization, {query: {query, per_page: 20}}),
                 enabled: query.length >= 1,
                 select: data =>
                   data.json.map(dashboard => ({
@@ -556,12 +532,9 @@ export function GlobalCommandPaletteActions() {
 
         {/* Hide the Insights section once the insights-to-dashboards migration
             is active; Crons and Uptime now live under the Monitors section. */}
-        {organization.features.includes('performance-view') && !hasInsightsRollout && (
+        {!hasInsightsRollout && (
           <CMDKAction
-            display={{
-              label: t('Insights'),
-              icon: <IconGraph type="area" />,
-            }}
+            display={{label: t('Insights'), icon: <IconGraph type="area" />}}
             limit={4}
           >
             {!hasInsightsRollout && (
@@ -1025,10 +998,7 @@ export function GlobalCommandPaletteActions() {
                   icon: <ProjectAvatar project={project} size={16} />,
                 },
                 keywords: [project.name, project.slug],
-                to: makeProjectsPathname({
-                  path: `/${project.slug}/`,
-                  organization,
-                }),
+                to: makeProjectsPathname({path: `/${project.slug}/`, organization}),
               })),
           });
         }}

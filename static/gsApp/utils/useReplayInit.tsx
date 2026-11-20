@@ -91,14 +91,14 @@ export function useReplayInit(): boolean {
 
         replayRef = replayIntegration({
           maskAllText: true,
-          _experiments: {
-            captureExceptions: true,
-            traceInternals: true,
-          },
+          _experiments: {captureExceptions: true, traceInternals: true},
+          // These are substring matchers for request URLs, not URLs to request.
+          /* eslint-disable @sentry/no-relative-api-url */
           networkDetailAllowUrls: ['/api/0/'],
           networkDetailDenyUrls: [
             '/api/0/customers/',
             '/api/0/invoices/',
+            /* eslint-enable @sentry/no-relative-api-url */
             /\/api\/0\/projects\/[^/]*\/[^/]*\/replays\/[^/]*\/recording-segments\//,
           ],
           networkRequestHeaders: ['sentry-trace', 'origin'],

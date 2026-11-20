@@ -68,10 +68,7 @@ export function ProjectEventRedirect() {
       if ('feedback' in event.contexts) {
         navigate(
           {
-            pathname: makeFeedbackPathname({
-              path: '/',
-              organization,
-            }),
+            pathname: makeFeedbackPathname({path: '/', organization}),
             query: {
               feedbackSlug: event.projectSlug
                 ? `${event.projectSlug}:${event.groupID}`
@@ -86,10 +83,7 @@ export function ProjectEventRedirect() {
       navigate(
         {
           pathname: `/organizations/${organization.slug}/issues/${event.groupID}/events/${event.eventID}/`,
-          query: {
-            project: location.query.project,
-            referrer: location.query.referrer,
-          },
+          query: {project: location.query.project, referrer: location.query.referrer},
         },
         {replace: true}
       );

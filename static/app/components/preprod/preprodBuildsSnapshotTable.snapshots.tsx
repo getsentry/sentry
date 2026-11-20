@@ -136,12 +136,7 @@ describe('PreprodBuildsSnapshotTable', () => {
 
   it.snapshot(
     'status-no-comparison',
-    () =>
-      renderTable(
-        makeBuild({
-          snapshot_comparison_info: undefined,
-        })
-      ),
+    () => renderTable(makeBuild({snapshot_comparison_info: undefined})),
     {tags: {area: 'snapshots'}}
   );
 

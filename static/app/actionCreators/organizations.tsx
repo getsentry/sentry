@@ -87,9 +87,7 @@ type RemoveParams = {
 function remove(api: Client, {successMessage, errorMessage, orgId}: RemoveParams) {
   const endpoint = `/organizations/${orgId}/`;
   return api
-    .requestPromise(endpoint, {
-      method: 'DELETE',
-    })
+    .requestPromise(endpoint, {method: 'DELETE'})
     .then(() => {
       OrganizationsStore.onRemoveSuccess(orgId);
 
@@ -139,10 +137,7 @@ export function updateOrganization(org: Partial<Organization>) {
   OrganizationStore.onUpdate(org);
 }
 
-type FetchOrganizationByMemberParams = {
-  addOrg?: boolean;
-  fetchOrgDetails?: boolean;
-};
+type FetchOrganizationByMemberParams = {addOrg?: boolean; fetchOrgDetails?: boolean};
 
 export async function fetchOrganizationByMember(
   api: Client,
@@ -192,11 +187,7 @@ export async function fetchOrganizationDetails(
     getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      query: {
-        include_feature_flags: 1,
-      },
-    }
+    {query: {include_feature_flags: 1}}
   );
 
   if (setActive) {

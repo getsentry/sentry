@@ -19,10 +19,7 @@ enum EventExtraDataType {
 
 type TEventExtraData = Record<string, any>;
 
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
+type Output = {subject: string; value?: React.ReactNode};
 
 function getEventExtraDataKnownDataDetails({
   data,
@@ -33,15 +30,9 @@ function getEventExtraDataKnownDataDetails({
 }): Output {
   switch (type) {
     case EventExtraDataType.CRASHED_PROCESS:
-      return {
-        subject: t('Crashed Process'),
-        value: data[type],
-      };
+      return {subject: t('Crashed Process'), value: data[type]};
     default:
-      return {
-        subject: type,
-        value: data[type],
-      };
+      return {subject: type, value: data[type]};
   }
 }
 

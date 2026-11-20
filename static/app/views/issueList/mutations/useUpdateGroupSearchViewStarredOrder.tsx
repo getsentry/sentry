@@ -10,10 +10,7 @@ import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {starredGroupSearchViewsApiOptions} from 'sentry/views/issueList/queries/starredGroupSearchViews';
 import {groupSearchViewsApiOptions} from 'sentry/views/issueList/queries/useFetchGroupSearchViews';
 
-type UpdateGroupSearchViewStarredOrderVariables = {
-  orgSlug: string;
-  viewIds: number[];
-};
+type UpdateGroupSearchViewStarredOrderVariables = {orgSlug: string; viewIds: number[]};
 
 export const useUpdateGroupSearchViewStarredOrder = () => {
   const queryClient = useQueryClient();
@@ -23,9 +20,7 @@ export const useUpdateGroupSearchViewStarredOrder = () => {
       fetchMutation<void>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/group-search-views/starred/order/',
-          {
-            path: {organizationIdOrSlug: orgSlug},
-          }
+          {path: {organizationIdOrSlug: orgSlug}}
         ),
         method: 'PUT',
         data: {view_ids: viewIds},

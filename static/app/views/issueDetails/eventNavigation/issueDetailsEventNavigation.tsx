@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {LinkButton} from '@sentry/scraps/button';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -66,16 +66,8 @@ export function IssueDetailsEventNavigation({
   );
 
   const eventNavPresets = [
-    {
-      key: 'oldest',
-      label: t('First'),
-      tooltip: t('Earliest event matching filters'),
-    },
-    {
-      key: 'latest',
-      label: t('Latest'),
-      tooltip: t('Newest event matching filters'),
-    },
+    {key: 'oldest', label: t('First'), tooltip: t('Earliest event matching filters')},
+    {key: 'latest', label: t('Latest'), tooltip: t('Newest event matching filters')},
     {
       key: 'recommended',
       label: isSmallNav ? t('Rec.') : t('Recommended'),
@@ -151,29 +143,28 @@ export function IssueDetailsEventNavigation({
           }}
         />
       </Navigation>
-      <Tabs value={currentEventKey} onChange={onTabChange} size="xs">
-        <TabList variant="floating">
-          {eventNavPresets.map(({key, label, tooltip}) => {
-            const eventPath =
-              key === currentEventKey
-                ? undefined
-                : {
-                    pathname: normalizeUrl(baseEventsPath + key + '/'),
-                    query: {...location.query, referrer: `${key}-event`},
-                  };
-            return (
-              <TabList.Item
-                to={eventPath}
-                key={key}
-                textValue={label}
-                tooltip={{title: tooltip}}
-              >
-                {label}
-              </TabList.Item>
-            );
-          })}
-        </TabList>
-      </Tabs>
+      <LinkTabs value={currentEventKey} onChange={onTabChange} size="xs">
+        {({TabList}) => (
+          <TabList variant="floating">
+            {eventNavPresets.map(({key, label, tooltip}) => {
+              const eventPath = {
+                pathname: normalizeUrl(baseEventsPath + key + '/'),
+                query: {...location.query, referrer: `${key}-event`},
+              };
+              return (
+                <TabList.Item
+                  to={eventPath}
+                  key={key}
+                  textValue={label}
+                  tooltip={{title: tooltip}}
+                >
+                  {label}
+                </TabList.Item>
+              );
+            })}
+          </TabList>
+        )}
+      </LinkTabs>
     </Fragment>
   );
 }

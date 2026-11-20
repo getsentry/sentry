@@ -10,10 +10,7 @@ import {HighlightsSettingsForm} from './highlightsSettingsForm';
 describe('HighlightsSettingForm', () => {
   const organization = OrganizationFixture();
   const highlightTags = ['environment', 'handled', 'release', 'url'];
-  const highlightContext = {
-    user: ['email'],
-    browser: ['name', 'version'],
-  };
+  const highlightContext = {user: ['email'], browser: ['name', 'version']};
   const project = DetailedProjectFixture({highlightContext, highlightTags});
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
 
@@ -57,9 +54,7 @@ describe('HighlightsSettingForm', () => {
     await waitFor(() => {
       expect(updateProjectMock).toHaveBeenCalledWith(
         url,
-        expect.objectContaining({
-          data: {highlightTags: [...highlightTags, newTag]},
-        })
+        expect.objectContaining({data: {highlightTags: [...highlightTags, newTag]}})
       );
     });
     expect(analyticsSpy).toHaveBeenCalledWith(
@@ -90,9 +85,7 @@ describe('HighlightsSettingForm', () => {
     await waitFor(() => {
       expect(updateProjectMock).toHaveBeenCalledWith(
         url,
-        expect.objectContaining({
-          data: {highlightContext: newContext},
-        })
+        expect.objectContaining({data: {highlightContext: newContext}})
       );
     });
   });

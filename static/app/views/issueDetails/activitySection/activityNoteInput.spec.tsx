@@ -14,10 +14,7 @@ function getEditor() {
 describe('ActivityNoteInput', () => {
   beforeEach(() => {
     localStorage.clear();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   });
 
   it('loads and saves a draft', async () => {

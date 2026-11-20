@@ -1,9 +1,6 @@
 import {parse} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/grammar.pegjs';
 
-type PercentageTokenValue = {
-  value: string;
-  unit?: string;
-};
+type PercentageTokenValue = {value: string; unit?: string};
 
 /**
  * This parser is specifically meant for parsing the value of a percentage filter.

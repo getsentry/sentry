@@ -58,7 +58,7 @@ public static MauiApp CreateMauiApp()
       }
 
       // Other Sentry options can be set here.
-  })
+  });
 
   // ... the remainder of your MAUI app setup
 
@@ -93,9 +93,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -123,16 +121,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Then add Sentry to [code:MauiProgram.cs] through the [code:MauiAppBuilder]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],

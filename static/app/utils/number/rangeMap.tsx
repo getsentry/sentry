@@ -1,10 +1,6 @@
 import orderBy from 'lodash/orderBy';
 
-export type Range<T> = {
-  max: number;
-  min: number;
-  value: T;
-};
+export type Range<T> = {max: number; min: number; value: T};
 
 /**
  * Maps a set of integer ranges to the corresponding values.

@@ -113,10 +113,7 @@ describe('EmailAuth', () => {
       url: '/auth/login/',
       method: 'POST',
       statusCode: 202,
-      body: {
-        mfaRequired: true,
-        mfaMethods: [{id: 'totp'}, {id: 'recovery'}],
-      },
+      body: {mfaRequired: true, mfaMethods: [{id: 'totp'}, {id: 'recovery'}]},
     });
     render(<EmailAuth onAuthResult={onAuthResult} />);
 
@@ -229,9 +226,7 @@ describe('EmailAuth', () => {
       url: '/auth/recovery/',
       method: 'POST',
       statusCode: 202,
-      body: {
-        detail: 'If an eligible account exists, a recovery email has been sent.',
-      },
+      body: {detail: 'If an eligible account exists, a recovery email has been sent.'},
     });
     render(<EmailAuth onAuthResult={jest.fn()} />);
 

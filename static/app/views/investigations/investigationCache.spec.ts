@@ -23,10 +23,7 @@ describe('updateInvestigationCache', () => {
   it('immutably updates the response JSON and preserves headers', () => {
     const queryClient = makeTestQueryClient();
     const options = getInvestigationDetailQueryOptions('org-slug', 'investigation-1');
-    const cachedResponse = {
-      headers: {Link: 'preserved'},
-      json: investigation,
-    };
+    const cachedResponse = {headers: {Link: 'preserved'}, json: investigation};
     queryClient.setQueryData(options.queryKey, cachedResponse);
 
     updateInvestigationCache(queryClient, 'org-slug', 'investigation-1', current => ({

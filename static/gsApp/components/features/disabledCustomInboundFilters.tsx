@@ -11,10 +11,7 @@ import {openUpsellModal} from 'getsentry/actionCreators/modal';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: string[];
-  organization: Organization;
-};
+type Props = {features: string[]; organization: Organization};
 
 function DisabledAlert({organization, features}: Props) {
   return (
@@ -63,10 +60,7 @@ type OverrideProps = Parameters<Overrides['feature-disabled:custom-inbound-filte
 
 export function DisabledCustomInboundFilters(props: OverrideProps) {
   if (typeof props.children === 'function') {
-    return props.children({
-      ...props,
-      renderDisabled: DisabledAlert,
-    });
+    return props.children({...props, renderDisabled: DisabledAlert});
   }
   return props.children;
 }

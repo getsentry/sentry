@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import DEFAULT_DURATION_BUDGET, cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.api.helpers.creator import get_creator_reference
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.groupsearchview import (
@@ -26,7 +27,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
-from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import is_owned_by_acting_user, require_user
@@ -110,6 +111,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
             GlobalParams.ORG_ID_OR_SLUG,
             OrganizationGroupSearchViewGetSerializer,
             CursorQueryParam,
+            VisibilityParams.PER_PAGE,
         ],
         responses={
             200: inline_sentry_response_serializer(
@@ -265,11 +267,16 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         for project in projects:
             self.check_object_permissions(request, project)
 
+        # Saved views act on the caller as a person, so only a user can create one.
         user = require_user(request)
+
         # Create the new view
+        creator = get_creator_reference(request)
         view = GroupSearchView.objects.create(
             organization=organization,
-            user_id=user.id,
+            user_id=creator["created_by_id"],
+            created_by_service_account_id=creator["created_by_service_account_id"],
+            created_by_org_auth_token_id=creator["created_by_org_auth_token_id"],
             name=validated_data["name"],
             query=validated_data["query"],
             query_sort=validated_data["querySort"],

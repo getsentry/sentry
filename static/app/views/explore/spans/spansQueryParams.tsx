@@ -35,6 +35,7 @@ import {
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
+import {isHeatMapAggregate} from 'sentry/views/explore/utils/heatMapAggregate';
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {canShareChart} from './sharedChartAggregates';
@@ -211,21 +212,11 @@ function defaultFields(): string[] {
 
 function defaultSortBys(fields: string[]): Sort[] {
   if (fields.includes('timestamp')) {
-    return [
-      {
-        field: 'timestamp',
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: 'timestamp', kind: 'desc' as const}];
   }
 
   if (fields.length) {
-    return [
-      {
-        field: fields[0]!,
-        kind: 'desc' as const,
-      },
-    ];
+    return [{field: fields[0]!, kind: 'desc' as const}];
   }
 
   return [];
@@ -280,24 +271,14 @@ function getSpansAggregateFields(values: SpansQueryValues): AggregateField[] {
 
 function defaultAggregateSortBys(aggregateFields: AggregateField[]): Sort[] {
   for (const aggregateField of aggregateFields) {
-    if (isVisualize(aggregateField)) {
-      return [
-        {
-          field: aggregateField.yAxis,
-          kind: 'desc' as const,
-        },
-      ];
+    if (isVisualize(aggregateField) && !isHeatMapAggregate(aggregateField.yAxis)) {
+      return [{field: aggregateField.yAxis, kind: 'desc' as const}];
     }
   }
 
   for (const aggregateField of aggregateFields) {
     if (isGroupBy(aggregateField)) {
-      return [
-        {
-          field: aggregateField.groupBy,
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: aggregateField.groupBy, kind: 'desc' as const}];
     }
   }
 

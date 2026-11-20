@@ -59,16 +59,8 @@ describe('Performance > Widgets > Query Batching', () => {
       method: 'GET',
       url: '/organizations/org-slug/events/',
       body: {
-        data: [
-          {
-            'epm()': 53.12,
-            'user_misery()': 0.023,
-            'failure_rate()': 0.012,
-          },
-        ],
-        meta: {
-          isMetricsData: false,
-        },
+        data: [{'epm()': 53.12, 'user_misery()': 0.023, 'failure_rate()': 0.012}],
+        meta: {isMetricsData: false},
       },
     });
 
@@ -78,22 +70,8 @@ describe('Performance > Widgets > Query Batching', () => {
       body: {
         'epm()': {
           data: [
-            [
-              1636822800,
-              [
-                {
-                  count: 30,
-                },
-              ],
-            ],
-            [
-              1636995600,
-              [
-                {
-                  count: 60.1,
-                },
-              ],
-            ],
+            [1636822800, [{count: 30}]],
+            [1636995600, [{count: 60.1}]],
           ],
           order: 1,
           start: 1636822800,
@@ -101,22 +79,8 @@ describe('Performance > Widgets > Query Batching', () => {
         },
         'user_misery()': {
           data: [
-            [
-              1636822800,
-              [
-                {
-                  count: 0.02,
-                },
-              ],
-            ],
-            [
-              1636995600,
-              [
-                {
-                  count: 0.03,
-                },
-              ],
-            ],
+            [1636822800, [{count: 0.02}]],
+            [1636995600, [{count: 0.03}]],
           ],
           order: 1,
           start: 1636822800,
@@ -124,22 +88,8 @@ describe('Performance > Widgets > Query Batching', () => {
         },
         'failure_rate()': {
           data: [
-            [
-              1636822800,
-              [
-                {
-                  count: 0.002,
-                },
-              ],
-            ],
-            [
-              1636995600,
-              [
-                {
-                  count: 0.001,
-                },
-              ],
-            ],
+            [1636822800, [{count: 0.002}]],
+            [1636995600, [{count: 0.001}]],
           ],
           order: 2,
           start: 1636822800,
@@ -158,9 +108,7 @@ describe('Performance > Widgets > Query Batching', () => {
         defaultChartSetting={PerformanceWidgetSetting.TPM_AREA}
         isMEPEnabled={false}
       />,
-      {
-        organization: data.organization,
-      }
+      {organization: data.organization}
     );
 
     expect(await screen.findByTestId('performance-widget-title')).toBeInTheDocument();
@@ -170,10 +118,7 @@ describe('Performance > Widgets > Query Batching', () => {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          ...BASIC_QUERY_PARAMS,
-          yAxis: 'epm()',
-        }),
+        query: expect.objectContaining({...BASIC_QUERY_PARAMS, yAxis: 'epm()'}),
       })
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
@@ -211,9 +156,7 @@ describe('Performance > Widgets > Query Batching', () => {
           isMEPEnabled={false}
         />
       </Fragment>,
-      {
-        organization: data.organization,
-      }
+      {organization: data.organization}
     );
 
     expect(await screen.findAllByTestId('performance-widget-title')).toHaveLength(3);
@@ -224,10 +167,7 @@ describe('Performance > Widgets > Query Batching', () => {
       1,
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          ...BASIC_QUERY_PARAMS,
-          yAxis: 'epm()',
-        }),
+        query: expect.objectContaining({...BASIC_QUERY_PARAMS, yAxis: 'epm()'}),
       })
     );
   });

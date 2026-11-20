@@ -23,10 +23,7 @@ async function createFuzzySearch<T = string>(
   const fuseImported = await import('fuse.js/basic');
   const fuse = {Fuse: fuseImported.default};
 
-  return new fuse.Fuse(objects, {
-    ...DEFAULT_FUSE_OPTIONS,
-    ...options,
-  });
+  return new fuse.Fuse(objects, {...DEFAULT_FUSE_OPTIONS, ...options});
 }
 
 // re-export fuse type to make it easier to use

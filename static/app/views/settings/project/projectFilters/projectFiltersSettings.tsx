@@ -300,9 +300,7 @@ const projectBooleanSchema = z.object({
 
 const legacyBrowserSchema = z.object({'legacy-browsers': z.array(z.string())});
 
-const blacklistedIpsSchema = z.object({
-  'filters:blacklisted_ips': z.string(),
-});
+const blacklistedIpsSchema = z.object({'filters:blacklisted_ips': z.string()});
 
 const customFiltersSchema = z.object({
   'filters:releases': z.string(),
@@ -533,19 +531,9 @@ function CustomFiltersForm({
   );
 }
 
-type Props = {
-  params: {
-    projectId: string;
-  };
-  project: DetailedProject;
-};
+type Props = {params: {projectId: string}; project: DetailedProject};
 
-type Filter = {
-  active: boolean | string[];
-  description: string;
-  id: string;
-  name: string;
-};
+type Filter = {active: boolean | string[]; description: string; id: string; name: string};
 
 type StandardFilterId = keyof z.infer<typeof booleanFilterSchema>;
 type ProjectBooleanFilterId = keyof z.infer<typeof projectBooleanSchema>;
@@ -595,9 +583,7 @@ function StandardFilter({
             data: {active: data[name]},
           });
         },
-        onMutate: data => ({
-          previousActive: onUpdate(filter.id, data[name]),
-        }),
+        onMutate: data => ({previousActive: onUpdate(filter.id, data[name])}),
         onError: (_error, _data, context) => {
           if (context) {
             onUpdate(filter.id, context.previousActive);
@@ -658,10 +644,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
   const filterQueryOptions = apiOptions.as<Filter[]>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/filters/',
     {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: projectSlug,
-      },
+      path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
       staleTime: 0,
     }
   );
@@ -679,10 +662,7 @@ export function ProjectFiltersSettings({project, params}: Props) {
     const previous = filterList.find(f => f.id === filterId)?.active ?? false;
     queryClient.setQueryData(filterQueryOptions.queryKey, prev =>
       prev
-        ? {
-            ...prev,
-            json: prev.json.map(f => (f.id === filterId ? {...f, active} : f)),
-          }
+        ? {...prev, json: prev.json.map(f => (f.id === filterId ? {...f, active} : f))}
         : prev
     );
     return previous;

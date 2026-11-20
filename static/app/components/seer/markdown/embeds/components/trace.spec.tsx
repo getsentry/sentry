@@ -7,10 +7,7 @@ describe('trace embed', () => {
   const timestamp = '2026-08-25T16:37:12Z';
 
   it('converts the ISO timestamp to unix seconds for the waterfall', () => {
-    const href = getEmbedLinkHref('trace', 'Trace a1b2c3d4', {
-      traceId,
-      timestamp,
-    });
+    const href = getEmbedLinkHref('trace', 'Trace a1b2c3d4', {traceId, timestamp});
 
     expect(href).toContain(`/explore/traces/trace/${traceId}/`);
     expect(href).toContain(`timestamp=${Date.parse(timestamp) / 1000}`);

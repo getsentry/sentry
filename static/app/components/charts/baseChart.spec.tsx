@@ -32,14 +32,8 @@ describe('BaseChart', () => {
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
           {seriesName: 'count()', data: [{value: 123, name: Date.now()}]},
-          {
-            seriesName: 'count_unique(user)',
-            data: [{value: 123, name: Date.now()}],
-          },
-          {
-            seriesName: 'failure_count()',
-            data: [{value: 123, name: Date.now()}],
-          },
+          {seriesName: 'count_unique(user)', data: [{value: 123, name: Date.now()}]},
+          {seriesName: 'failure_count()', data: [{value: 123, name: Date.now()}]},
         ]}
       />
     );

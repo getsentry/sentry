@@ -21,10 +21,7 @@ describe('useGroupEvent', () => {
     });
 
     renderHookWithProviders(useGroupEvent, {
-      initialProps: {
-        groupId: group.id,
-        eventId: 'abc123',
-      },
+      initialProps: {groupId: group.id, eventId: 'abc123'},
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
         location: {
@@ -37,9 +34,7 @@ describe('useGroupEvent', () => {
     await waitFor(() => expect(mockEventRequest).toHaveBeenCalled());
     expect(mockEventRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '1h'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '1h'})})
     );
   });
 
@@ -50,10 +45,7 @@ describe('useGroupEvent', () => {
     });
 
     renderHookWithProviders(useGroupEvent, {
-      initialProps: {
-        groupId: group.id,
-        eventId: 'latest',
-      },
+      initialProps: {groupId: group.id, eventId: 'latest'},
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
         location: {
@@ -66,9 +58,7 @@ describe('useGroupEvent', () => {
     await waitFor(() => expect(mockEventRequest).toHaveBeenCalled());
     expect(mockEventRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '1h'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '1h'})})
     );
   });
 
@@ -79,10 +69,7 @@ describe('useGroupEvent', () => {
     });
 
     renderHookWithProviders(useGroupEvent, {
-      initialProps: {
-        groupId: group.id,
-        eventId: 'abc123',
-      },
+      initialProps: {groupId: group.id, eventId: 'abc123'},
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
         location: {
@@ -95,15 +82,11 @@ describe('useGroupEvent', () => {
     await waitFor(() => expect(mockEventRequest).toHaveBeenCalled());
     expect(mockEventRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '1h'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '1h'})})
     );
     expect(mockEventRequest).not.toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '14d'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '14d'})})
     );
   });
 
@@ -114,10 +97,7 @@ describe('useGroupEvent', () => {
     });
 
     renderHookWithProviders(useGroupEvent, {
-      initialProps: {
-        groupId: group.id,
-        eventId: 'abc123',
-      },
+      initialProps: {groupId: group.id, eventId: 'abc123'},
       initialRouterConfig: {
         route: '/organizations/:orgId/issues/:groupId/events/:eventId/',
         location: {

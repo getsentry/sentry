@@ -342,6 +342,24 @@ class GroupAIAutofixSetupFreeCohortTest(APITestCase, SnubaTestCase):
         "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
         return_value=True,
     )
+    def test_free_cohort_org_with_existing_single_run_has_autofix_quota(
+        self, mock_is_free_cohort: MagicMock
+    ) -> None:
+        group = self.create_group()
+        run = self.create_seer_run(organization=self.organization)
+        self.create_seer_agent_run(run, source="autofix_single_run", group=group)
+
+        self.login_as(user=self.user)
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["billing"]["hasAutofixQuota"] is True
+
+    @patch(
+        "sentry.seer.endpoints.group_autofix_setup_check.is_free_cohort_org",
+        return_value=True,
+    )
     def test_free_cohort_org_without_existing_run_has_no_autofix_quota(
         self, mock_is_free_cohort: MagicMock
     ) -> None:

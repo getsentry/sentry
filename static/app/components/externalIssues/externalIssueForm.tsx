@@ -6,7 +6,7 @@ import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {openModal, type ModalRenderProps} from '@sentry/scraps/modal';
 import type {SelectValue} from '@sentry/scraps/select';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Heading} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -70,10 +70,7 @@ const MESSAGES_BY_ACTION = {
   create: t('Successfully created issue.'),
 };
 
-const SUBMIT_LABEL_BY_ACTION = {
-  link: t('Link Issue'),
-  create: t('Create Issue'),
-};
+const SUBMIT_LABEL_BY_ACTION = {link: t('Link Issue'), create: t('Create Issue')};
 
 interface ExternalIssueFormProps extends ModalRenderProps {
   group: Group;
@@ -95,11 +92,7 @@ function makeIntegrationIssueConfigApiOptions({
   return apiOptions.as<IntegrationIssueConfig>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/integrations/$integrationId/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        issueId: groupId,
-        integrationId,
-      },
+      path: {organizationIdOrSlug: orgSlug, issueId: groupId, integrationId},
       query: {action},
       staleTime: Infinity,
     }
@@ -347,10 +340,7 @@ export function ExternalIssueForm({
           c => !existingValues.has(String(c[0]))
         );
         if (missingChoices.length > 0) {
-          return {
-            ...field,
-            choices: [...(field.choices ?? []), ...missingChoices],
-          };
+          return {...field, choices: [...(field.choices ?? []), ...missingChoices]};
         }
       }
       return field;
@@ -361,10 +351,7 @@ export function ExternalIssueForm({
     (fieldName: string, value: unknown) => {
       if (Object.hasOwn(dynamicFieldValues, fieldName)) {
         setDynamicFieldValue(fieldName, value);
-        refetchWithDynamicFields({
-          ...dynamicFieldValues,
-          [fieldName]: value,
-        });
+        refetchWithDynamicFields({...dynamicFieldValues, [fieldName]: value});
       }
     },
     [dynamicFieldValues, refetchWithDynamicFields, setDynamicFieldValue]
@@ -395,10 +382,12 @@ export function ExternalIssueForm({
         <Stack area="content" align="stretch" gap="lg" minWidth={0}>
           <Heading as="h2">{title}</Heading>
           <Tabs value={action} onChange={handleClick}>
-            <TabList>
-              <TabList.Item key="create">{t('Create')}</TabList.Item>
-              <TabList.Item key="link">{t('Link')}</TabList.Item>
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                <TabList.Item key="create">{t('Create')}</TabList.Item>
+                <TabList.Item key="link">{t('Link')}</TabList.Item>
+              </TabList>
+            )}
           </Tabs>
         </Stack>
         <Container area="close" justifySelf="center">

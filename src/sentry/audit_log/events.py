@@ -138,8 +138,10 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
             return "renamed project slug from {old_slug} to {new_slug}".format(
                 **audit_log_entry.data
             )
+        # Historical entries may contain the raw token.
         items_string = " ".join(
-            f"in {key} to {value}" for (key, value) in audit_log_entry.data.items()
+            f"in {key} to {'[Filtered]' if key == 'sentry:token' else value}"
+            for key, value in audit_log_entry.data.items()
         )
         return "edited project settings " + items_string
 
@@ -383,7 +385,14 @@ class InternalIntegrationDisabledAuditLogEvent(AuditLogEvent):
 
     def render(self, audit_log_entry: AuditLogEntry) -> str:
         integration_name = audit_log_entry.data.get("name") or ""
-        return f"disabled internal integration {integration_name}".format(**audit_log_entry.data)
+        return f"disabled internal integration {integration_name}"
+
+
+class InternalIntegrationTokenAuditLogEvent(AuditLogEvent):
+    def render(self, audit_log_entry: AuditLogEntry) -> str:
+        # Legacy entries stored the app under sentry_app_slug instead of sentry_app.
+        data = audit_log_entry.data
+        return (self.template or "").format(**{"sentry_app": data.get("sentry_app_slug"), **data})
 
 
 class MonitorAddAuditLogEvent(AuditLogEvent):

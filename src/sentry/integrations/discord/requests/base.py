@@ -10,7 +10,6 @@ from rest_framework import status
 from rest_framework.request import Request
 from sentry_viewercontext import viewer_context_var
 
-from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
@@ -161,9 +160,6 @@ class DiscordRequest:
         self._set_viewer_context_actor()
 
     def _set_viewer_context_actor(self) -> None:
-        if not settings.SENTRY_VIEWER_CONTEXT_ENABLED:
-            return
-
         current = get_viewer_context()
         # A guild can span organizations. Keep only previously resolved scope.
         viewer_context_var.set(
@@ -177,7 +173,7 @@ class DiscordRequest:
         )
 
     def authorize(self) -> None:
-        public_key: str = options.get("discord.public-key")
+        public_key: str = settings.SENTRY_DISCORD_PUBLIC_KEY
         signature: str | None = self.request.META.get("HTTP_X_SIGNATURE_ED25519")
         timestamp: str | None = self.request.META.get("HTTP_X_SIGNATURE_TIMESTAMP")
         body: str = self._body

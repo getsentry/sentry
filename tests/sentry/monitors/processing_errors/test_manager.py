@@ -61,6 +61,18 @@ class CheckinProcessErrorsManagerTest(TestCase):
         assert len(fetched_processing_error) == 1
         assert_processing_errors_equal(processing_error, fetched_processing_error[0])
 
+    def test_store_monitor_not_found_skips_lookup(self) -> None:
+        monitor = self.create_monitor()
+        processing_error = build_checkin_processing_error(
+            [{"type": ProcessingErrorType.MONITOR_NOT_FOUND}],
+            message_overrides={"project_id": self.project.id},
+            payload_overrides={"monitor_slug": monitor.slug},
+        )
+        with self.assertNumQueries(0):
+            store_error(processing_error, None)
+        assert get_errors_for_monitor(monitor) == []
+        assert len(get_errors_for_projects([self.project])) == 1
+
     def test_store_max(self) -> None:
         monitor = self.create_monitor()
         processing_errors = [
@@ -300,6 +312,32 @@ class HandleProcessingErrorsTest(TestCase):
             ProcessingErrorsException(
                 [{"type": ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED}], monitor=monitor
             ),
+        )
+
+        assert len(get_errors_for_monitor(monitor)) == 1
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.5)
+    def test_over_quota_errors_are_sampled_out(self, mock_random: mock.Mock) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}]),
+        )
+
+        assert get_errors_for_monitor(monitor) == []
+
+    @mock.patch("sentry.monitors.processing_errors.manager.random.random", return_value=0.0)
+    def test_over_quota_errors_are_sampled_in(self, mock_random: mock.Mock) -> None:
+        monitor = self.create_monitor()
+        handle_processing_errors(
+            build_checkin_item(
+                message_overrides={"project_id": self.project.id},
+                payload_overrides={"monitor_slug": monitor.slug},
+            ),
+            ProcessingErrorsException([{"type": ProcessingErrorType.MONITOR_OVER_QUOTA}]),
         )
 
         assert len(get_errors_for_monitor(monitor)) == 1
