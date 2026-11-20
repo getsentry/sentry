@@ -21,6 +21,20 @@ export const GIGABYTE = 10 ** 9;
 export const MILLISECONDS_IN_HOUR = 3_600_000;
 
 /**
+ * Seer Credits are a billing platform line item with no data category, so the
+ * subscription and usage responses key them by their line item UID
+ * (getsentry's `SEER_CREDITS_LINE_ITEM_UID`). The billing page reports them on
+ * the Seer card rather than with the other categories.
+ *
+ * The UID is fixed: getsentry also keys each organization's Seer Credits ledger
+ * account by it.
+ *
+ * It is not a `DataCategory`, so match it against the string keys of those
+ * responses, not against `BillingMetricHistory.category`.
+ */
+export const SEER_CREDITS_LINE_ITEM_UID = '8ee96181-c10a-4fe1-8e00-08af59522463';
+
+/**
  * Pseudo-tiers accepted by the customer billing-config endpoint as its `tier`
  * query param. The backend resolves each server-side so the frontend doesn't
  * have to replicate the selection logic. See getsentry's

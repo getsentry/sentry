@@ -12,15 +12,12 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 import {AddEventsCTA} from 'getsentry/components/addEventsCTA';
-import {RESERVED_BUDGET_QUOTA} from 'getsentry/constants';
-import OrgStatsBanner from 'getsentry/overrides/orgStatsBanner';
+import {RESERVED_BUDGET_QUOTA, SEER_CREDITS_LINE_ITEM_UID} from 'getsentry/constants';
 import type {CustomerUsage, Subscription} from 'getsentry/types';
 import {
   convertUsageToReservedUnit,
   formatReservedWithUnits,
   getBestActionToIncreaseEventLimits,
-  hasPerformance,
-  isBizPlanFamily,
   isUnlimitedReserved,
   UsageAction,
 } from 'getsentry/utils/billing';
@@ -46,7 +43,8 @@ function ExceededInfo({getActionSentence, primaryCTA, subscription}: ExceededInf
   const exceededList = sortCategoriesWithKeys(subscription.categories)
     .filter(
       ([category]) =>
-        category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling
+        category !== SEER_CREDITS_LINE_ITEM_UID &&
+        (category !== DataCategory.SPANS_INDEXED || subscription.hadCustomDynamicSampling)
     )
     .reduce<string[]>((acc, [category, currentHistory]) => {
       if (currentHistory.usageExceeded) {
@@ -176,6 +174,7 @@ export function UsageAlert({subscription, usage}: Props) {
     return Object.entries(subscription.categories).reduce<ProjectedOverages>(
       (acc, [category, currentHistory]) => {
         if (
+          category === SEER_CREDITS_LINE_ITEM_UID ||
           currentHistory.reserved === RESERVED_BUDGET_QUOTA ||
           isUnlimitedReserved(currentHistory.reserved) ||
           isUnlimitedReserved(currentHistory.prepaid)
@@ -209,23 +208,15 @@ export function UsageAlert({subscription, usage}: Props) {
     return null;
   }
 
-  const hasExceeded = Object.values(subscription.categories).some(
-    ({usageExceeded}) => usageExceeded
+  const hasExceeded = Object.entries(subscription.categories).some(
+    ([category, {usageExceeded}]) =>
+      usageExceeded && category !== SEER_CREDITS_LINE_ITEM_UID
   );
   const projectedOverages = getProjectedOverages();
   const hasOverage = hasExceeded || !!projectedOverages.length;
 
-  // if no overage, we can still have a CTA
   if (!hasOverage) {
-    return getBestActionToIncreaseEventLimits(organization, subscription) ===
-      'request_add_events' &&
-      isBizPlanFamily(subscription.planDetails) &&
-      hasPerformance(subscription.planDetails) ? (
-      <OrgStatsBanner
-        organization={organization}
-        referrer="subscription-default-event-cta"
-      />
-    ) : null;
+    return null;
   }
 
   const showProjected = !hasExceeded;

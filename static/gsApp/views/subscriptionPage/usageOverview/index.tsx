@@ -14,6 +14,7 @@ import {Heading} from '@sentry/scraps/text';
 import {tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 
+import {SEER_CREDITS_LINE_ITEM_UID} from 'getsentry/constants';
 import {AddOnCategory, OnDemandBudgetMode} from 'getsentry/types';
 import {
   checkIsAddOn,
@@ -69,7 +70,8 @@ export function UsageOverview({
             (subscription.onDemandBudgets?.budgetMode === OnDemandBudgetMode.SHARED
               ? subscription.onDemandBudgets.sharedMaxBudget
               : (subscription.onDemandBudgets?.budgets?.[dataCategory] ?? 0)) > 0;
-        if (isSelectable) {
+        // Seer Credits have no row in the table to go with their panel.
+        if (isSelectable && productFromQuery !== SEER_CREDITS_LINE_ITEM_UID) {
           // oxlint-disable-next-line react/set-state-in-effect
           setSelectedProduct(
             isAddOn
