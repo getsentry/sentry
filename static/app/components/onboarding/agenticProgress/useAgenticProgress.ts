@@ -21,7 +21,10 @@ export function useAgenticProgress({runId, enabled = true}: UseAgenticProgressOp
       runId: queryEnabled ? runId : null,
     }),
     enabled: queryEnabled,
-    refetchInterval: POLL_INTERVAL_MS,
+    // The backend sets continueUpdates to false once the run reaches a terminal state,
+    // after which the run can no longer change.
+    refetchInterval: query =>
+      query.state.data?.json.continueUpdates === false ? false : POLL_INTERVAL_MS,
     refetchOnWindowFocus: true,
   });
 }
