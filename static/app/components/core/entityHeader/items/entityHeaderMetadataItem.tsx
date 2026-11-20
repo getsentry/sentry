@@ -200,59 +200,47 @@ function MetadataItemFrame({children, role, trailing}: MetadataItemFrameProps) {
 }
 
 export function EntityHeaderMetadataItemSkeleton({
+  hasGraphic = false,
   trailing,
 }: {
   trailing: React.ReactNode;
+  /**
+   * Keeps an empty box where the graphic will be, so the item keeps its width.
+   */
+  hasGraphic?: boolean;
 }) {
   return (
     <MetadataItemFrame role="listitem" trailing={trailing}>
+      {hasGraphic && <MetadataGraphic />}
       <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
     </MetadataItemFrame>
   );
 }
 
-/**
- * A copy of an entry that is only read, such as a collapsed one: a link draws
- * as text and the tooltip is dropped, so the copy adds no tab stop.
- */
-function toReadOnlyEntry(
-  entry: EntityHeaderMetadataListEntry
-): EntityHeaderMetadataListEntry {
-  return {
-    key: entry.key,
-    label: entry.label,
-    leadingGraphic: entry.leadingGraphic,
-    mode: entry.mode,
-    secondary: entry.secondary,
-    type: 'text',
-    value: entry.value,
-    variant: entry.type === 'text' ? entry.variant : undefined,
-  };
-}
-
-function getValueBehavior(props: MetadataValueData): EntityHeaderTextBehavior {
-  return props.type === 'link'
-    ? {
-        type: 'link',
-        ...toLinkDestination(props),
-        'aria-label': props.label ? `${props.label} ${props.value}` : undefined,
-        tooltip: props.tooltip,
-      }
-    : {type: 'text', variant: props.variant, tooltip: props.tooltip};
-}
-
 interface MetadataValueProps {
   value: MetadataValueData;
   /**
-   * Keeps `secondary` from explaining its key in a tooltip, which is a tab
-   * stop. The rest of a read-only copy is made by `toReadOnlyEntry`.
+   * Draws a copy that is only read, such as a collapsed entry's: a link draws
+   * as text and no tooltip is drawn, so the copy adds no tab stop.
    */
   readOnly?: boolean;
 }
 
-function MetadataValue({value: props, readOnly}: MetadataValueProps) {
+function MetadataValue({value: props, readOnly = false}: MetadataValueProps) {
   const {label, mode = 'compact', secondary} = props;
-  const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
+  const isLink = props.type === 'link' && !readOnly;
+  // A link names itself from `label`; text needs the label beside it.
+  const needsOwnLabel = Boolean(label) && (!isLink || mode === 'full');
+  const behavior: EntityHeaderTextBehavior = readOnly
+    ? {type: 'text', variant: props.type === 'text' ? props.variant : undefined}
+    : props.type === 'link'
+      ? {
+          type: 'link',
+          ...toLinkDestination(props),
+          'aria-label': label ? `${label} ${props.value}` : undefined,
+          tooltip: props.tooltip,
+        }
+      : {type: 'text', variant: props.variant, tooltip: props.tooltip};
   const secondaryLabel = secondary
     ? label
       ? `${label} ${secondary.label}`
@@ -270,7 +258,7 @@ function MetadataValue({value: props, readOnly}: MetadataValueProps) {
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
       <EntityHeaderText
-        behavior={getValueBehavior(props)}
+        behavior={behavior}
         // Truncates rather than overflowing its item, so the pipe after it
         // follows the text a narrow header shows.
         styles={{size: 'md', density: 'comfortable', ellipsis: true}}
@@ -299,7 +287,7 @@ function MetadataValue({value: props, readOnly}: MetadataValueProps) {
 }
 
 interface MetadataEntryProps {
-  entry: EntityHeaderMetadataListEntry;
+  entry: MetadataValueData;
   /**
    * Set on a list's first visible entry, which starts the property: it
    * carries the list's graphic and label.
@@ -318,10 +306,7 @@ function MetadataEntry({entry, lead, readOnly, role, trailing}: MetadataEntryPro
     <MetadataItemFrame role={role} trailing={trailing}>
       {lead}
       {entry.leadingGraphic && <MetadataGraphic>{entry.leadingGraphic}</MetadataGraphic>}
-      <MetadataValue
-        value={readOnly ? toReadOnlyEntry(entry) : entry}
-        readOnly={readOnly}
-      />
+      <MetadataValue value={entry} readOnly={readOnly} />
     </MetadataItemFrame>
   );
 }
@@ -413,10 +398,10 @@ export function EntityHeaderMetadataItem({
 }: EntityHeaderMetadataItemProps & {trailing: React.ReactNode; isLoading?: boolean}) {
   if (isLoading) {
     return (
-      <MetadataItemFrame role="listitem" trailing={trailing}>
-        {props.leadingGraphic && <MetadataGraphic />}
-        <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
-      </MetadataItemFrame>
+      <EntityHeaderMetadataItemSkeleton
+        hasGraphic={Boolean(props.leadingGraphic)}
+        trailing={trailing}
+      />
     );
   }
 
@@ -424,10 +409,5 @@ export function EntityHeaderMetadataItem({
     return <MetadataList {...props} trailing={trailing} />;
   }
 
-  return (
-    <MetadataItemFrame role="listitem" trailing={trailing}>
-      {props.leadingGraphic && <MetadataGraphic>{props.leadingGraphic}</MetadataGraphic>}
-      <MetadataValue value={props} />
-    </MetadataItemFrame>
-  );
+  return <MetadataEntry entry={props} role="listitem" trailing={trailing} />;
 }
