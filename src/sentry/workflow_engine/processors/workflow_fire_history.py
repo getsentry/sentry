@@ -31,7 +31,7 @@ def create_workflow_fire_histories(
     is_delayed: bool = False,
     start_timestamp: datetime | None = None,
     *,
-    eligible_workflow_ids: Collection[int] | None = None,
+    eligible_workflow_ids: Collection[int],
 ) -> list[WorkflowFireHistory]:
     """
     Record that the workflows associated with these actions were fired for this
@@ -48,8 +48,7 @@ def create_workflow_fire_histories(
         ).values_list("workflow_id", flat=True)
     )
 
-    if eligible_workflow_ids is not None:
-        workflow_ids.intersection_update(eligible_workflow_ids)
+    workflow_ids.intersection_update(eligible_workflow_ids)
 
     event_id = event_data.event_id
 
