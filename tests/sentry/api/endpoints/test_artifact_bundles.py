@@ -7,7 +7,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
@@ -70,7 +69,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id_3,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle_3,
         )
 
@@ -466,7 +464,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
 
@@ -513,7 +510,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
 
