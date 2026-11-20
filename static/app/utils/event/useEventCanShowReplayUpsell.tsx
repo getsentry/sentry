@@ -16,16 +16,8 @@ interface Props {
 }
 
 type Result =
-  | {
-      canShowUpsell: false;
-      upsellPlatform: undefined;
-      upsellProjectId: undefined;
-    }
-  | {
-      canShowUpsell: boolean;
-      upsellPlatform: PlatformKey;
-      upsellProjectId: string;
-    };
+  | {canShowUpsell: false; upsellPlatform: undefined; upsellProjectId: undefined}
+  | {canShowUpsell: boolean; upsellPlatform: PlatformKey; upsellProjectId: string};
 
 export function useEventCanShowReplayUpsell({event, group, projectSlug}: Props): Result {
   const organization = useOrganization();
@@ -36,11 +28,7 @@ export function useEventCanShowReplayUpsell({event, group, projectSlug}: Props):
   const project = useProjectFromSlug({organization, projectSlug});
 
   if (!hasReplaysFeature || fetchingHasSentReplays) {
-    return {
-      canShowUpsell: false,
-      upsellPlatform: undefined,
-      upsellProjectId: undefined,
-    };
+    return {canShowUpsell: false, upsellPlatform: undefined, upsellProjectId: undefined};
   }
 
   const upsellPlatform = group?.project.platform ?? group?.platform ?? 'other';
@@ -57,9 +45,5 @@ export function useEventCanShowReplayUpsell({event, group, projectSlug}: Props):
   const canShowUpsell =
     groupHasReplays && projectCanUpsellReplay(project) && !hasOrgSentReplays;
 
-  return {
-    canShowUpsell,
-    upsellPlatform,
-    upsellProjectId,
-  };
+  return {canShowUpsell, upsellPlatform, upsellProjectId};
 }

@@ -6,10 +6,7 @@ import {Container} from '@sentry/scraps/layout';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 
-type Props = {
-  examples: string[];
-  sourceName: string;
-};
+type Props = {examples: string[]; sourceName: string};
 
 export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (

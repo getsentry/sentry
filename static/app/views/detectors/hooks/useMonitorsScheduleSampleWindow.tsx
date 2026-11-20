@@ -6,10 +6,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import type {UseMonitorsScheduleSamplesOptions} from './useMonitorsScheduleSamples';
 
-type ScheduleSampleWindowResponse = {
-  end: number;
-  start: number;
-};
+type ScheduleSampleWindowResponse = {end: number; start: number};
 
 export function useMonitorsScheduleSampleWindow({
   schedule,

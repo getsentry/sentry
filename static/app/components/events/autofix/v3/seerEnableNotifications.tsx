@@ -64,11 +64,7 @@ export function SeerEnableNotifications({status}: Props) {
     snoozePrompt,
     isLoading: isPromptLoading,
     isError: isPromptError,
-  } = usePrompt({
-    feature: PROMPT_FEATURE,
-    organization,
-    options: {enabled: isEligible},
-  });
+  } = usePrompt({feature: PROMPT_FEATURE, organization, options: {enabled: isEligible}});
 
   const shouldRender =
     isEligible && !isPromptDismissed && !isPromptLoading && !isPromptError;

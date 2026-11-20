@@ -79,13 +79,52 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({
-        start: '2026-11-09',
-        end: '2026-11-09',
-      })
+      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
+  });
+
+  it('links each invoice by day after the amount', async () => {
+    const body = comparisonBody();
+    MockApiClient.addMockResponse({
+      url: COMPARISON_URL,
+      body: {
+        ...body,
+        rows: [
+          {
+            ...body.rows[0],
+            legacy_invoice_count: 2,
+            legacy_invoices: [
+              {guid: 'legacy-a', date_added: '2026-11-18T23:55:00+00:00'},
+              {guid: 'legacy-b', date_added: '2026-11-19T00:05:00+00:00'},
+            ],
+            platform_invoices: [
+              {guid: 'platform-a', date_added: '2026-11-19T01:00:00+00:00'},
+            ],
+          },
+        ],
+      },
+    });
+
+    renderComparison({start: '2026-11-18', end: '2026-11-19'});
+
+    expect(await screen.findByRole('link', {name: '11/18'})).toHaveAttribute(
+      'href',
+      '/_admin/invoices/us/legacy-a/'
+    );
+    const [legacyDay, platformDay] = screen.getAllByRole('link', {name: '11/19'});
+    expect(legacyDay).toHaveAttribute('href', '/_admin/invoices/us/legacy-b/');
+    expect(platformDay).toHaveAttribute('href', '/_admin/invoices/us/platform-a/');
+    expect(screen.getByText('$10.00', {exact: false}).closest('td')).toHaveTextContent(
+      '$10.00 (11/18, 11/19)'
+    );
+    expect(screen.queryByRole('link', {name: /\$/})).not.toBeInTheDocument();
+
+    await userEvent.hover(legacyDay!);
+    expect(
+      await screen.findByText('Invoice legacy-b, created 2026-11-19 00:05 UTC')
+    ).toBeInTheDocument();
   });
 
   it('notes how many small mismatches are hidden', async () => {
@@ -107,10 +146,7 @@ describe('InvoiceComparison', () => {
   it('does not say a range is empty when every row is a hidden small mismatch', async () => {
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
-      body: {
-        ...comparisonBody({hiddenSmallMismatchCount: 2}),
-        rows: [],
-      },
+      body: {...comparisonBody({hiddenSmallMismatchCount: 2}), rows: []},
     });
 
     renderComparison({start: '2026-11-09', end: '2026-11-09'});
@@ -137,18 +173,12 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({
-        start: '2026-11-09',
-        end: '2026-11-09',
-      })
+      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
     );
   });
 
   it('queries whole UTC days for the selected dates', async () => {
-    MockApiClient.addMockResponse({
-      url: COMPARISON_URL,
-      body: comparisonBody(),
-    });
+    MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
     const {router} = renderComparison({});
     const startInput = screen.getByLabelText('First day (UTC)');
@@ -195,10 +225,7 @@ describe('InvoiceComparison', () => {
     });
 
     it('writes a typed cutoff to the URL on Run', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
       const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
       const input = screen.getByLabelText('Hide mismatches under ($)');
@@ -211,10 +238,7 @@ describe('InvoiceComparison', () => {
     });
 
     it('disables Run while the cutoff is empty', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
       renderComparison({start: '2026-11-09', end: '2026-11-09'});
       await userEvent.clear(screen.getByLabelText('Hide mismatches under ($)'));
@@ -236,10 +260,7 @@ describe('InvoiceComparison', () => {
       COMPARISON_URL,
       expect.objectContaining({
         host: US_URL,
-        query: expect.objectContaining({
-          start: '2026-01-01',
-          end: '2026-01-03',
-        }),
+        query: expect.objectContaining({start: '2026-01-01', end: '2026-01-03'}),
       })
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-01-01');
@@ -339,10 +360,7 @@ describe('InvoiceComparison', () => {
   });
 
   it('pins the window when rewriting an unsupported page size', async () => {
-    MockApiClient.addMockResponse({
-      url: COMPARISON_URL,
-      body: comparisonBody(),
-    });
+    MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
     const {router} = renderComparison({page_size: '200'});
 
@@ -398,14 +416,8 @@ describe('InvoiceComparison', () => {
     });
 
     it('persists the selected region to the URL', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
-      MockApiClient.addMockResponse({
-        url: DE_COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
+      MockApiClient.addMockResponse({url: DE_COMPARISON_URL, body: comparisonBody()});
 
       const {router} = renderComparison({start, end});
 

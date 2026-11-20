@@ -217,14 +217,8 @@ export const useFetchProguardMappingFiles = ({
     ...apiOptions.as<DebugFile[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project.slug,
-        },
-        query: {
-          query: proGuardImageUuid,
-          file_formats: 'proguard',
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
+        query: {query: proGuardImageUuid, file_formats: 'proguard'},
         staleTime: Infinity,
       }
     ),

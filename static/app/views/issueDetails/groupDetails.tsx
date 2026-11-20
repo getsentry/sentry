@@ -97,10 +97,7 @@ import {
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 // Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
-const allProjectsQueryParsers = {
-  _allp: parseAsString,
-  project: parseAsString,
-};
+const allProjectsQueryParsers = {_allp: parseAsString, project: parseAsString};
 
 const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
 
@@ -193,10 +190,7 @@ function getReprocessingNewRoute({
     reprocessingStatus === ReprocessingStatus.REPROCESSING &&
     currentTab !== Tab.DETAILS
   ) {
-    return {
-      pathname: baseUrl,
-      query: location.query,
-    };
+    return {pathname: baseUrl, query: location.query};
   }
 
   if (
@@ -204,10 +198,7 @@ function getReprocessingNewRoute({
     currentTab !== Tab.ACTIVITY &&
     currentTab !== Tab.USER_FEEDBACK
   ) {
-    return {
-      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-      query: location.query,
-    };
+    return {pathname: `${baseUrl}${Tab.ACTIVITY}/`, query: location.query};
   }
 
   return;
@@ -279,10 +270,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId,
-  });
+  } = useGroupEvent({groupId, eventId});
 
   const {
     data: groupData,
@@ -705,14 +693,7 @@ function GroupDetailsContentInner({
     openSeerDrawer,
   ]);
 
-  useTrackView({
-    group,
-    event,
-    project,
-    tab: currentTab,
-    organization,
-    hasAutofixQuota,
-  });
+  useTrackView({group, event, project, tab: currentTab, organization, hasAutofixQuota});
 
   useEngagedViewTracking({group, project});
 
@@ -806,10 +787,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
-    {
-      orgSlug: organization.slug,
-      projectSlug: projectSlug ?? '',
-    },
+    {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
     {enabled: !!projectSlug}
   );
 

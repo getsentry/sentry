@@ -7,14 +7,8 @@
  *              deleted/renamed in `getsentry`, this will fail
  */
 const DISPATCHES = [
-  {
-    workflow: 'backend.yml',
-    pathFilterName: 'backend_all',
-  },
-  {
-    workflow: 'acceptance.yml',
-    pathFilterName: 'gsapp',
-  },
+  {workflow: 'backend.yml', pathFilterName: 'backend_all'},
+  {workflow: 'acceptance.yml', pathFilterName: 'gsapp'},
 ];
 
 const RETRY_DELAYS_MS = [5000, 15000, 30000, 60000];

@@ -1,4 +1,12 @@
-import {Fragment, useMemo} from 'react';
+import {
+  Children,
+  createContext,
+  Fragment,
+  useContext,
+  useMemo,
+  type ComponentType,
+  type ReactNode,
+} from 'react';
 import {useTheme} from '@emotion/react';
 
 import {InlineCode} from '@sentry/scraps/code';
@@ -93,10 +101,62 @@ function ScrubbedInlineCode({children}: {children: string}) {
   );
 }
 
+// Markdown gaps list items but stacks the blocks inside one item flush, so a
+// sub-list hugs the line above it and a label like "Web Server:" runs into
+// the sub-list before it. Each child of a list item gets its position, so the
+// blocks after the first can be spaced like the items around them.
+const ListItemChildIndexContext = createContext<number | null>(null);
+
+function SpacedListItem({
+  children,
+  Default,
+}: {
+  Default: ComponentType<{children: ReactNode}>;
+  children: ReactNode;
+}) {
+  return (
+    <Default>
+      {Children.map(children, (child, index) => (
+        <ListItemChildIndexContext value={index}>{child}</ListItemChildIndexContext>
+      ))}
+    </Default>
+  );
+}
+
+function SpacedListItemBlock({children, gap}: {children: ReactNode; gap: 'sm' | 'md'}) {
+  const index = useContext(ListItemChildIndexContext);
+  if (!index) {
+    return children;
+  }
+  return <Container marginTop={gap}>{children}</Container>;
+}
+
+const listSpacingComponents: MarkdownProps['components'] = {
+  ListItem: SpacedListItem,
+  // A sub-list sits as far from the line above it as list items sit apart.
+  UnorderedList: ({children, Default}) => (
+    <SpacedListItemBlock gap="sm">
+      <Default>{children}</Default>
+    </SpacedListItemBlock>
+  ),
+  OrderedList: ({children, Default}) => (
+    <SpacedListItemBlock gap="sm">
+      <Default>{children}</Default>
+    </SpacedListItemBlock>
+  ),
+  // A paragraph after other blocks starts a new group, so it gets more room.
+  Paragraph: ({children, Default}) => (
+    <SpacedListItemBlock gap="md">
+      <Default>{children}</Default>
+    </SpacedListItemBlock>
+  ),
+};
+
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
 // highlighted code block when the content isn't valid JSON. Unknown {% tag %}
 // tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
+  ...listSpacingComponents,
   CodeBlock: ({children, lang, Default}) => {
     if (lang?.toLowerCase() === 'json') {
       const parsed = parseJson(children);
@@ -116,6 +176,7 @@ const markdownComponents: MarkdownProps['components'] = {
 };
 
 const plainTextMarkdownComponents: MarkdownProps['components'] = {
+  ...listSpacingComponents,
   InlineCode: ScrubbedInlineCode,
   Annotation: ScrubbedAnnotation,
 };

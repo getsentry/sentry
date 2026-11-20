@@ -6,6 +6,7 @@ import {SeerWorkflowConfigFixture} from 'sentry-fixture/seerWorkflowConfig';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {
+  cleanup,
   render,
   screen,
   userEvent,
@@ -329,6 +330,7 @@ describe('AutomationsList', () => {
 describe('getNextUpdate', () => {
   afterEach(() => {
     try {
+      cleanup();
       jest.runOnlyPendingTimers();
     } finally {
       jest.useRealTimers();

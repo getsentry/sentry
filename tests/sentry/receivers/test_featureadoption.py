@@ -665,6 +665,57 @@ class FeatureAdoptionTest(TestCase, SnubaTestCase):
         )
         assert feature_complete
 
+    def test_delete_and_discard_records_after_commit(self) -> None:
+        # Create the group first: group creation calls Redis, so it must not
+        # run inside the transaction below.
+        group = self.group
+        delete_and_discard_id = manager.get_by_slug("delete_and_discard").id
+        assert not FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=delete_and_discard_id
+        ).exists()
+        assert not FeatureAdoption.objects.in_cache(self.organization.id, delete_and_discard_id)
+
+        with transaction.atomic(router.db_for_write(GroupTombstone)):
+            GroupTombstone.objects.create(previous_group_id=group.id, project=self.project)
+            # With a clean cache, no row here means that record did not run
+            # inside the transaction, so it made no Redis call there.
+            assert not FeatureAdoption.objects.filter(
+                organization_id=self.organization.id, feature_id=delete_and_discard_id
+            ).exists()
+
+        assert FeatureAdoption.objects.filter(
+            organization_id=self.organization.id, feature_id=delete_and_discard_id
+        ).exists()
+        assert FeatureAdoption.objects.in_cache(self.organization.id, delete_and_discard_id)
+
+    def test_delete_and_discard_record_failure_is_logged(self) -> None:
+        group = self.group
+        with (
+            patch.object(
+                FeatureAdoption.objects.cache_backend,
+                "in_cache",
+                side_effect=RedisConnectionError("redis is down"),
+            ),
+            self.caplog.at_level(logging.ERROR, logger="sentry.receivers.features"),
+        ):
+            with transaction.atomic(router.db_for_write(GroupTombstone)):
+                GroupTombstone.objects.create(previous_group_id=group.id, project=self.project)
+
+        assert any(
+            r.message == "feature_adoption.delete_and_discard_failed"
+            and getattr(r, "organization_id", None) == self.organization.id
+            for r in self.caplog.records
+        )
+        assert (
+            FeatureAdoption.objects.get_by_slug(
+                organization=self.organization, slug="delete_and_discard"
+            )
+            is None
+        )
+        assert GroupTombstone.objects.filter(
+            previous_group_id=group.id, project=self.project
+        ).exists()
+
     def test_bulk_record_keeps_new_features_after_cache_loss(self) -> None:
         org_id = self.organization.id
         FeatureAdoption.objects.record(org_id, "python")

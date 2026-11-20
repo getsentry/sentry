@@ -173,11 +173,7 @@ export const preferReactComponent = defineRule({
         // Parent JSX may appear after the candidate, so wait until traversal is complete.
         for (const {frame, name} of candidates) {
           if (isNestedInReactScope(frame)) {
-            context.report({
-              node: frame.node,
-              messageId: 'useComponent',
-              data: {name},
-            });
+            context.report({node: frame.node, messageId: 'useComponent', data: {name}});
           }
         }
       },

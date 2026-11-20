@@ -120,10 +120,7 @@ export function EventGraph({
     setIsSmallContainer(width < 450);
   }, []);
 
-  useResizeObserver({
-    ref: chartContainerRef,
-    onResize,
-  });
+  useResizeObserver({ref: chartContainerRef, onResize});
   const eventViewHook = useIssueDetailsEventView({group, isSmallContainer});
   const eventView = eventViewProps || eventViewHook;
 
@@ -215,10 +212,7 @@ export function EventGraph({
 
   const [legendSelected, setLegendSelected] = useLocalStorageState(
     'issue-details-graph-legend',
-    {
-      'Feature Flags': true,
-      Releases: false,
-    }
+    {'Feature Flags': true, Releases: false}
   );
 
   const {releases = []} = useReleaseStats(
@@ -231,9 +225,7 @@ export function EventGraph({
         period: eventView.statsPeriod,
       },
     },
-    {
-      staleTime: 0,
-    }
+    {staleTime: 0}
   );
   const {flags} = useFlagsInEvent({
     eventId: event?.id,
@@ -268,10 +260,7 @@ export function EventGraph({
   });
 
   // always show flag lines regardless of release line/bubble display
-  const flagSeries = useFlagSeries({
-    event,
-    flags,
-  });
+  const flagSeries = useFlagSeries({event, flags});
 
   // Do some manipulation to make sure the release buckets match up to `eventSeries`
   const lastEventSeries = eventSeries.at(-1);
@@ -304,11 +293,7 @@ export function EventGraph({
     flags: shouldShowBubbles ? flags : [],
     projects: eventView.project,
     environments: eventView.environment,
-    datetime: {
-      start: eventView.start,
-      end: eventView.end,
-      period: eventView.statsPeriod,
-    },
+    datetime: {start: eventView.start, end: eventView.end, period: eventView.statsPeriod},
   });
 
   const mergedChartRef = useMemo(
@@ -426,10 +411,7 @@ export function EventGraph({
     (params, instance) => {
       onReleaseBubbleLegendSelectChanged(params, instance);
       const newValue = params.selected[params.name];
-      setLegendSelected(prevState => ({
-        ...prevState,
-        [params.name]: newValue,
-      }));
+      setLegendSelected(prevState => ({...prevState, [params.name]: newValue}));
     },
     [onReleaseBubbleLegendSelectChanged, setLegendSelected]
   );
@@ -499,13 +481,7 @@ export function EventGraph({
           onLegendSelectChanged={onLegendSelectChanged}
           showTimeInTooltip
           utc={location.query.utc === 'true'}
-          grid={{
-            left: 8,
-            right: 8,
-            top: 20,
-            bottom: 0,
-            ...releaseBubbleGrid,
-          }}
+          grid={{left: 8, right: 8, top: 20, bottom: 0, ...releaseBubbleGrid}}
           tooltip={{
             appendToBody: true,
             formatAxisLabel: (
@@ -537,15 +513,7 @@ export function EventGraph({
               },
             },
           }}
-          xAxis={{
-            axisTick: {
-              show: false,
-            },
-            axisLabel: {
-              margin: 8,
-            },
-            ...releaseBubbleXAxis,
-          }}
+          xAxis={{axisTick: {show: false}, axisLabel: {margin: 8}, ...releaseBubbleXAxis}}
           {...chartZoomProps}
         />
       </Container>
@@ -557,10 +525,7 @@ function GraphButton({
   label,
   count,
   ...props
-}: {
-  label: string;
-  count?: string;
-} & Partial<ButtonProps>) {
+}: {label: string; count?: string} & Partial<ButtonProps>) {
   return (
     <Container height="unset" padding="xs lg">
       {layoutProps => (

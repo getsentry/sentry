@@ -103,26 +103,14 @@ const SECOND_TO_LAST_ROW_SENTINEL = -2;
 
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
-  additionalData?: {
-    event?: Event;
-    scrollToDisabled?: boolean;
-  };
+  additionalData?: {event?: Event; scrollToDisabled?: boolean};
   booleanAttributes?: TagCollection;
   embedded?: boolean;
-  embeddedOptions?: {
-    openWithExpandedIds?: string[];
-    replay?: ReplayEmbeddedTableOptions;
-  };
-  embeddedStyling?: {
-    disableBodyPadding?: boolean;
-    showVerticalScrollbar?: boolean;
-  };
+  embeddedOptions?: {openWithExpandedIds?: string[]; replay?: ReplayEmbeddedTableOptions};
+  embeddedStyling?: {disableBodyPadding?: boolean; showVerticalScrollbar?: boolean};
   emptyRenderer?: () => React.ReactNode;
   injectedErrorRows?: ErrorLogRowItem[];
-  localOnlyItemFilters?: {
-    filterText: string;
-    filteredItems: OurLogsResponseItem[];
-  };
+  localOnlyItemFilters?: {filterText: string; filteredItems: OurLogsResponseItem[]};
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
   showExploreConnectedSpansLink?: boolean;
@@ -181,11 +169,7 @@ export function LogsInfiniteTable({
     clearAnchor,
   } = useLogsPageDataQueryResult();
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToLogsMeta({
-        meta: rawMeta,
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToLogsMeta({meta: rawMeta, validatedFieldTypes}),
     [rawMeta, validatedFieldTypes]
   );
 
@@ -370,10 +354,7 @@ export function LogsInfiniteTable({
 
   const handleScrollToRow = useCallback(
     (index: number) => {
-      virtualizer.scrollToIndex(index, {
-        behavior: 'smooth',
-        align: 'center',
-      });
+      virtualizer.scrollToIndex(index, {behavior: 'smooth', align: 'center'});
     },
     [virtualizer]
   );
@@ -383,10 +364,7 @@ export function LogsInfiniteTable({
   const scrollToPseudoRow = useEffectEvent(() => {
     const scrollToIndex =
       pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
-    virtualizer.scrollToIndex(scrollToIndex, {
-      behavior: 'smooth',
-      align: 'center',
-    });
+    virtualizer.scrollToIndex(scrollToIndex, {behavior: 'smooth', align: 'center'});
   });
 
   // Scrolling to the end would load another page and move the event's row again.
@@ -488,10 +466,7 @@ export function LogsInfiniteTable({
 
   useEffect(() => {
     if (hasReplay) {
-      onRowsRendered({
-        startIndex: firstItemIndex ?? 0,
-        stopIndex: lastItemIndex ?? 0,
-      });
+      onRowsRendered({startIndex: firstItemIndex ?? 0, stopIndex: lastItemIndex ?? 0});
     }
   }, [hasReplay, firstItemIndex, lastItemIndex, onRowsRendered]);
 
@@ -841,9 +816,7 @@ function LogsTableHeader({
 }: Pick<
   LogsTableProps,
   'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
-> & {
-  isFrozen: boolean;
-}) {
+> & {isFrozen: boolean}) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
@@ -993,9 +966,7 @@ function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | un
   return fieldType;
 }
 
-const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: string;
-}>`
+const StyledLoadingIndicator = styled(LoadingIndicator)<{margin: string}>`
   ${p => p.margin && `margin: ${p.margin}`};
 `;
 
@@ -1037,9 +1008,7 @@ function BackToTopButton({
     <Button
       onClick={() => {
         setIsFunctionScrolling(true);
-        virtualizer.scrollToOffset(0, {
-          behavior: 'smooth',
-        });
+        virtualizer.scrollToOffset(0, {behavior: 'smooth'});
       }}
       aria-label="Back to top"
     >

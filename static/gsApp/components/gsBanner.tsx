@@ -227,10 +227,7 @@ function NoticeModal({
   );
 }
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-};
+type Props = {organization: Organization; subscription: Subscription};
 
 function GSBanner({organization, subscription}: Props) {
   const api = useApi();
@@ -274,9 +271,7 @@ function GSBanner({organization, subscription}: Props) {
       // TODO: should delay Pendo if there is any popup at all that's blocking and not just guides
       const guideIsActive = !!GuideStore.getState().currentGuide;
       window.pendo.initialize({
-        guides: {
-          delay: guideIsActive,
-        },
+        guides: {delay: guideIsActive},
         visitor: {
           id: `${organization.id}.${user.id}`, // need uniqueness per org per user
           userId: user.id,
@@ -344,9 +339,7 @@ function GSBanner({organization, subscription}: Props) {
       return;
     }
 
-    const modalAnalytics = {
-      [ModalType.PAST_DUE]: 'past_due_modal.seen',
-    } as const;
+    const modalAnalytics = {[ModalType.PAST_DUE]: 'past_due_modal.seen'} as const;
 
     const eventKey = modalAnalytics[whichModal];
     const billingPermissions = hasBillingPerms;
@@ -409,9 +402,7 @@ function GSBanner({organization, subscription}: Props) {
           // product trial alerts
           ...category_product_trial_prompts,
         ],
-        {
-          organization,
-        }
+        {organization}
       );
 
       // not billing related prompt checks
@@ -624,9 +615,7 @@ function GSBanner({organization, subscription}: Props) {
                       }),
                 middleSentence:
                   membersDeactivatedFromLimit === 1
-                    ? tct('[wrappedNumber] member has been deactivated.', {
-                        wrappedNumber,
-                      })
+                    ? tct('[wrappedNumber] member has been deactivated.', {wrappedNumber})
                     : tct('[wrappedNumber] members have been deactivated.', {
                         wrappedNumber,
                       }),

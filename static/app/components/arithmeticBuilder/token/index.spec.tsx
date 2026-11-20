@@ -115,9 +115,7 @@ describe('token', () => {
     it('renders default place holder', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -129,9 +127,7 @@ describe('token', () => {
     it('allow selecting function using mouse', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -153,9 +149,7 @@ describe('token', () => {
     it('allow selecting function using keyboard', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -166,9 +160,7 @@ describe('token', () => {
 
       await userEvent.type(input, '{ArrowDown}{Enter}');
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -186,18 +178,14 @@ describe('token', () => {
       await userEvent.click(screen.getByRole('option', {name: 'avg_if'}));
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
     });
 
     it('allows selecting function with no arguments using mouse', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -216,9 +204,7 @@ describe('token', () => {
     it('allows selecting function with no arguments using keyboard', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -237,9 +223,7 @@ describe('token', () => {
     it('allows selecting parenthesis using mouse', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -259,9 +243,7 @@ describe('token', () => {
     it('allows selecting parenthesis using keyboard', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -280,18 +262,14 @@ describe('token', () => {
     it('autocompletes function token when they reach the open parenthesis', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -302,18 +280,14 @@ describe('token', () => {
     it('autocompletes function token when they reach the open parenthesis even if there is more text', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'foo bar  avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       expect(input).toHaveValue('foo bar');
@@ -326,9 +300,7 @@ describe('token', () => {
     it('autocompletes function token with no arguments when they reach the open parenthesis', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -337,19 +309,13 @@ describe('token', () => {
       await waitFor(() => expect(getLastInput()).toHaveFocus());
       await userEvent.keyboard('{Escape}');
 
-      expect(
-        await screen.findByRole('row', {
-          name: 'epm()',
-        })
-      ).toBeInTheDocument();
+      expect(await screen.findByRole('row', {name: 'epm()'})).toBeInTheDocument();
     });
 
     it('autocompletes addition', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -365,9 +331,7 @@ describe('token', () => {
     it('autocompletes subtract', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -383,9 +347,7 @@ describe('token', () => {
     it('autocompletes multiply', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -401,9 +363,7 @@ describe('token', () => {
     it('autocompletes divide', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -419,9 +379,7 @@ describe('token', () => {
     it('autocompletes open parenthesis', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -438,9 +396,7 @@ describe('token', () => {
     it('autocompletes close parenthesis', async () => {
       render(<Tokens expression="" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -457,9 +413,7 @@ describe('token', () => {
     it('allows selecting reference using mouse', async () => {
       render(<Tokens expression="" references={new Set(['A', 'B'])} />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -478,9 +432,7 @@ describe('token', () => {
     it('automatically replaces freetext token with reference when typing a match', async () => {
       render(<Tokens expression="" references={new Set(['A', 'B'])} />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -500,14 +452,10 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -527,9 +475,7 @@ describe('token', () => {
 
       await waitFor(() => {
         expect(
-          screen.getByRole('row', {
-            name: 'avg(span.self_time)',
-          })
+          screen.getByRole('row', {name: 'avg(span.self_time)'})
         ).toBeInTheDocument();
       });
     });
@@ -538,14 +484,10 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -564,9 +506,7 @@ describe('token', () => {
       await userEvent.type(getLastInput(), '{Escape}');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.self_time)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.self_time)'})
       ).toBeInTheDocument();
     });
 
@@ -574,14 +514,10 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -601,9 +537,7 @@ describe('token', () => {
       await userEvent.type(lastInput, '{Escape}');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.self_time)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.self_time)'})
       ).toBeInTheDocument();
     });
 
@@ -611,14 +545,10 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -633,9 +563,7 @@ describe('token', () => {
       await userEvent.type(lastInput, '{Escape}');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.self_time)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.self_time)'})
       ).toBeInTheDocument();
     });
 
@@ -643,14 +571,10 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -666,9 +590,7 @@ describe('token', () => {
       await userEvent.type(lastInput, '{Escape}');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
     });
 
@@ -676,29 +598,21 @@ describe('token', () => {
       render(<Tokens expression="avg(span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await userEvent.click(
-        screen.getByRole('button', {
-          name: 'Remove function avg(span.duration)',
-        })
+        screen.getByRole('button', {name: 'Remove function avg(span.duration)'})
       );
 
       expect(
-        screen.queryByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        screen.queryByRole('row', {name: 'avg(span.duration)'})
       ).not.toBeInTheDocument();
     });
 
     it('filters only compatible number attributes for some functions', async () => {
       render(<Tokens expression="avg(span.duration)" />);
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       await userEvent.click(input);
       const options = screen.getAllByRole('option');
       expect(options).toHaveLength(2);
@@ -710,9 +624,7 @@ describe('token', () => {
 
     it('filters only compatible string attributes for some functions', async () => {
       render(<Tokens expression="count_unique(span.op)" />);
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       await userEvent.click(input);
       const options = screen.getAllByRole('option');
       expect(options).toHaveLength(2);
@@ -725,27 +637,21 @@ describe('token', () => {
     it('shows "spans" placeholder for count argument input', async () => {
       render(<Tokens expression="count(span.duration)" />);
 
-      const input = await screen.findByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = await screen.findByRole('combobox', {name: 'Select an attribute'});
       expect(input).toHaveAttribute('placeholder', 'spans');
     });
 
     it('shows "span.duration" placeholder for avg argument input', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
-      const input = await screen.findByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = await screen.findByRole('combobox', {name: 'Select an attribute'});
       expect(input).toHaveAttribute('placeholder', 'span.duration');
     });
 
     it('shows "spans" as the dropdown label for count argument', async () => {
       render(<Tokens expression="count(span.duration)" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       await userEvent.click(input);
 
       const options = screen.getAllByRole('option');
@@ -757,9 +663,7 @@ describe('token', () => {
       const dispatch = jest.fn();
       render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
 
       await userEvent.click(input);
       await userEvent.clear(input);
@@ -767,10 +671,7 @@ describe('token', () => {
 
       await waitFor(() => {
         expect(dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'REPLACE_TOKEN',
-            text: 'count(span.duration)',
-          })
+          expect.objectContaining({type: 'REPLACE_TOKEN', text: 'count(span.duration)'})
         );
       });
     });
@@ -779,18 +680,13 @@ describe('token', () => {
       const dispatch = jest.fn();
       render(<Tokens expression="count(span.duration)" dispatch={dispatch} />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       await userEvent.click(input);
       await userEvent.click(screen.getByRole('option', {name: 'spans'}));
 
       await waitFor(() => {
         expect(dispatch).toHaveBeenCalledWith(
-          expect.objectContaining({
-            type: 'REPLACE_TOKEN',
-            text: 'count(span.duration)',
-          })
+          expect.objectContaining({type: 'REPLACE_TOKEN', text: 'count(span.duration)'})
         );
       });
     });
@@ -798,9 +694,7 @@ describe('token', () => {
     it('shows "span.duration" as the dropdown label for avg argument', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 
-      const input = screen.getByRole('combobox', {
-        name: 'Select an attribute',
-      });
+      const input = screen.getByRole('combobox', {name: 'Select an attribute'});
       await userEvent.click(input);
 
       const options = screen.getAllByRole('option');
@@ -813,9 +707,7 @@ describe('token', () => {
       render(<Tokens expression="epm()" />);
       await waitFor(() => {
         expect(
-          screen.queryByRole('combobox', {
-            name: 'Select an attribute',
-          })
+          screen.queryByRole('combobox', {name: 'Select an attribute'})
         ).not.toBeInTheDocument();
       });
     });
@@ -824,9 +716,7 @@ describe('token', () => {
       render(<Tokens expression="count_if(span.op,equals,browser)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'count_if(span.op,equals,browser)',
-        })
+        await screen.findByRole('row', {name: 'count_if(span.op,equals,browser)'})
       ).toBeInTheDocument();
 
       const args = within(
@@ -879,9 +769,7 @@ describe('token', () => {
       render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -897,9 +785,7 @@ describe('token', () => {
       render(<Tokens expression="avg_if(``,span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -930,9 +816,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -970,9 +854,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1012,9 +894,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1047,9 +927,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1071,9 +949,7 @@ describe('token', () => {
       render(<Tokens expression="avg_if(``,span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1102,9 +978,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1134,9 +1008,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1165,9 +1037,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1211,9 +1081,7 @@ describe('token', () => {
       render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const args = within(
@@ -1251,9 +1119,7 @@ describe('token', () => {
       render(<Tokens expression="avg_if(``,span.duration)" dispatch={dispatch} />);
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(``,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(``,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1281,9 +1147,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1311,9 +1175,7 @@ describe('token', () => {
       );
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg_if(`span.op:db`,span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
       ).toBeInTheDocument();
 
       const filterArg = within(
@@ -1443,9 +1305,7 @@ describe('token', () => {
       const conditionArg = within(argumentsGrid).getByRole('combobox', {
         name: 'Select an option',
       });
-      const valueArg = within(argumentsGrid).getByRole('textbox', {
-        name: 'Add a value',
-      });
+      const valueArg = within(argumentsGrid).getByRole('textbox', {name: 'Add a value'});
 
       await userEvent.click(numberArg!);
       expect(screen.getAllByRole('option').map(option => option.textContent)).toEqual([
@@ -1494,9 +1354,7 @@ describe('token', () => {
     render(<Tokens expression="count_if(span.op,equals,browser)" />);
 
     expect(
-      await screen.findByRole('row', {
-        name: 'count_if(span.op,equals,browser)',
-      })
+      await screen.findByRole('row', {name: 'count_if(span.op,equals,browser)'})
     ).toBeInTheDocument();
 
     const args = within(
@@ -1546,17 +1404,13 @@ describe('token', () => {
     render(<Tokens expression="avg_if(`span.op:db`,span.duration)" />);
 
     expect(
-      await screen.findByRole('row', {
-        name: 'avg_if(`span.op:db`,span.duration)',
-      })
+      await screen.findByRole('row', {name: 'avg_if(`span.op:db`,span.duration)'})
     ).toBeInTheDocument();
 
     const argsGrid = screen.getByRole('grid', {name: 'Enter arguments'});
     expect(within(argsGrid).queryAllByRole('gridcell')).toHaveLength(2);
 
-    const filterArg = within(argsGrid).getByRole('combobox', {
-      name: 'Add a filter',
-    });
+    const filterArg = within(argsGrid).getByRole('combobox', {name: 'Add a filter'});
     const columnArg = within(argsGrid).getByRole('combobox', {
       name: 'Select an attribute',
     });
@@ -1586,9 +1440,7 @@ describe('token', () => {
 
         expect(await screen.findByRole('row', {name: expression})).toBeInTheDocument();
 
-        const input = screen.getByRole('textbox', {
-          name: 'Add a literal',
-        });
+        const input = screen.getByRole('textbox', {name: 'Add a literal'});
         expect(input).toBeInTheDocument();
       }
     );
@@ -1599,9 +1451,7 @@ describe('token', () => {
 
       expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
 
-      const input = screen.getByRole('textbox', {
-        name: 'Add a literal',
-      });
+      const input = screen.getByRole('textbox', {name: 'Add a literal'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -1622,9 +1472,7 @@ describe('token', () => {
 
       expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
 
-      const input = screen.getByRole('textbox', {
-        name: 'Add a literal',
-      });
+      const input = screen.getByRole('textbox', {name: 'Add a literal'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -1647,9 +1495,7 @@ describe('token', () => {
 
       expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
 
-      const input = screen.getByRole('textbox', {
-        name: 'Add a literal',
-      });
+      const input = screen.getByRole('textbox', {name: 'Add a literal'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -1673,9 +1519,7 @@ describe('token', () => {
 
       expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
 
-      const input = screen.getByRole('textbox', {
-        name: 'Add a literal',
-      });
+      const input = screen.getByRole('textbox', {name: 'Add a literal'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -1697,9 +1541,7 @@ describe('token', () => {
 
       expect(await screen.findByRole('row', {name: '1'})).toBeInTheDocument();
 
-      const input = screen.getByRole('textbox', {
-        name: 'Add a literal',
-      });
+      const input = screen.getByRole('textbox', {name: 'Add a literal'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
@@ -1772,17 +1614,19 @@ describe('token', () => {
       // sits on the lower-right and other free-text spacers stay on the left.
       freeTextRows.forEach((row, index) => {
         const isTrailing = row === trailingRow;
-        jest.spyOn(row, 'getBoundingClientRect').mockReturnValue({
-          x: isTrailing ? 200 : 0,
-          y: isTrailing ? 40 : 0,
-          top: isTrailing ? 40 : 0,
-          left: isTrailing ? 200 : 0,
-          bottom: isTrailing ? 64 : 24,
-          right: isTrailing ? 400 : index === 0 ? 0 : 8,
-          width: isTrailing ? 200 : index === 0 ? 0 : 8,
-          height: 24,
-          toJSON: () => ({}),
-        });
+        jest
+          .spyOn(row, 'getBoundingClientRect')
+          .mockReturnValue({
+            x: isTrailing ? 200 : 0,
+            y: isTrailing ? 40 : 0,
+            top: isTrailing ? 40 : 0,
+            left: isTrailing ? 200 : 0,
+            bottom: isTrailing ? 64 : 24,
+            right: isTrailing ? 400 : index === 0 ? 0 : 8,
+            width: isTrailing ? 200 : index === 0 ? 0 : 8,
+            height: 24,
+            toJSON: () => ({}),
+          });
       });
 
       const gridRect = {left: 0, width: 400};
@@ -1790,17 +1634,19 @@ describe('token', () => {
       // Mid-grid clicks still use nearest (not a vertical first/last split).
       expect(findNearestRow(freeTextRows, 220, 50)).toBe(trailingRow);
 
-      jest.spyOn(grid, 'getBoundingClientRect').mockReturnValue({
-        x: 0,
-        y: 0,
-        top: 0,
-        left: 0,
-        bottom: 80,
-        right: 400,
-        width: 400,
-        height: 80,
-        toJSON: () => ({}),
-      });
+      jest
+        .spyOn(grid, 'getBoundingClientRect')
+        .mockReturnValue({
+          x: 0,
+          y: 0,
+          top: 0,
+          left: 0,
+          bottom: 80,
+          right: 400,
+          width: 400,
+          height: 80,
+          toJSON: () => ({}),
+        });
 
       // Click empty padding near the visual end. The old clientY half-split focused
       // the leading spacer whenever the pointer was in the top half of the grid.
@@ -1842,30 +1688,34 @@ describe('token', () => {
 
       freeTextRows.forEach((row, index) => {
         const isLeading = row === leadingRow;
-        jest.spyOn(row, 'getBoundingClientRect').mockReturnValue({
-          x: isLeading ? 0 : 40 + index * 20,
-          y: 0,
-          top: 0,
-          left: isLeading ? 0 : 40 + index * 20,
-          bottom: 24,
-          right: isLeading ? 0 : 48 + index * 20,
-          width: isLeading ? 0 : 8,
-          height: 24,
-          toJSON: () => ({}),
-        });
+        jest
+          .spyOn(row, 'getBoundingClientRect')
+          .mockReturnValue({
+            x: isLeading ? 0 : 40 + index * 20,
+            y: 0,
+            top: 0,
+            left: isLeading ? 0 : 40 + index * 20,
+            bottom: 24,
+            right: isLeading ? 0 : 48 + index * 20,
+            width: isLeading ? 0 : 8,
+            height: 24,
+            toJSON: () => ({}),
+          });
       });
 
-      jest.spyOn(grid, 'getBoundingClientRect').mockReturnValue({
-        x: 0,
-        y: 0,
-        top: 0,
-        left: 0,
-        bottom: 40,
-        right: 400,
-        width: 400,
-        height: 40,
-        toJSON: () => ({}),
-      });
+      jest
+        .spyOn(grid, 'getBoundingClientRect')
+        .mockReturnValue({
+          x: 0,
+          y: 0,
+          top: 0,
+          left: 0,
+          bottom: 40,
+          right: 400,
+          width: 400,
+          height: 40,
+          toJSON: () => ({}),
+        });
 
       expect(resolvePaddingClickRow(freeTextRows, {left: 0, width: 400}, 20, 10)).toBe(
         leadingRow
@@ -1897,13 +1747,9 @@ describe('token', () => {
           kind: TokenKind.OPERATOR,
           operator: Operator.PLUS,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
 
     it('renders subtract operator', async () => {
@@ -1921,13 +1767,9 @@ describe('token', () => {
           kind: TokenKind.OPERATOR,
           operator: Operator.MINUS,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
 
     it('renders multiply operator', async () => {
@@ -1945,13 +1787,9 @@ describe('token', () => {
           kind: TokenKind.OPERATOR,
           operator: Operator.MULTIPLY,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
 
     it('renders divide operator', async () => {
@@ -1969,13 +1807,9 @@ describe('token', () => {
           kind: TokenKind.OPERATOR,
           operator: Operator.DIVIDE,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
   });
 
@@ -1996,13 +1830,9 @@ describe('token', () => {
           kind: TokenKind.OPEN_PARENTHESIS,
           parenthesis: Parenthesis.OPEN,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
 
     it('renders right parenthesis', async () => {
@@ -2021,13 +1851,9 @@ describe('token', () => {
           kind: TokenKind.CLOSE_PARENTHESIS,
           parenthesis: Parenthesis.CLOSE,
         }),
-        focusOverride: {
-          itemKey: 'str:0',
-        },
+        focusOverride: {itemKey: 'str:0'},
       });
-      expect(dispatch).toHaveBeenNthCalledWith(2, {
-        type: 'RESET_FOCUS_OVERRIDE',
-      });
+      expect(dispatch).toHaveBeenNthCalledWith(2, {type: 'RESET_FOCUS_OVERRIDE'});
     });
   });
 });

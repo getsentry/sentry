@@ -25,19 +25,11 @@ export function useDeleteDetectorsMutation() {
           path: {organizationIdOrSlug: org.slug},
         }),
         method: 'DELETE',
-        options: {
-          query: {
-            id: params.ids,
-            query: params.query,
-            project: params.projects,
-          },
-        },
+        options: {query: {id: params.ids, query: params.query, project: params.projects}},
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
       toast.success(t('Monitors deleted'));
     },
     onError: () => {

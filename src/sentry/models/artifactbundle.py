@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import zipfile
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
@@ -37,10 +37,6 @@ class SourceFileType(Enum):
     MINIFIED_SOURCE = 2
     SOURCE_MAP = 3
     INDEXED_RAM_BUNDLE = 4
-
-    @classmethod
-    def choices(cls) -> list[tuple[int, str]]:
-        return [(key.value, key.name) for key in cls]
 
     @classmethod
     def from_lowercase_key(cls, lowercase_key: str | None) -> SourceFileType | None:
@@ -192,7 +188,6 @@ class DebugIdArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -316,8 +311,8 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> list[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
-        return self._entries_by_debug_id.keys()
+    def get_all_debug_ids(self) -> set[str]:
+        return {debug_id for debug_id, _ in self._entries_by_debug_id}
 
     def has_debug_ids(self) -> bool:
         return len(self._entries_by_debug_id) > 0
@@ -354,12 +349,6 @@ class ArtifactBundleArchive:
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, Any]]:
         file_path, info = self._entries_by_url[url]
-        return self._zip_file.open(file_path), info.get("headers", {})
-
-    def get_file_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> tuple[IO[bytes], dict[str, Any]]:
-        file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file(self, file_path: str) -> tuple[IO[bytes], dict[str, Any]]:
@@ -414,15 +403,6 @@ class ArtifactBundleArchive:
             return self._zip_file.getinfo(file_path)
         except KeyError:
             return None
-
-    def get_file_url_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> str | None:
-        entry = self._entries_by_debug_id.get((debug_id, source_file_type))
-        if entry is not None:
-            return entry[1]
-
-        return None
 
     def get_file_url_by_file_path(self, file_path: str) -> str | None:
         files = self.manifest.get("files", {})

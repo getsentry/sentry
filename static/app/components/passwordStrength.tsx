@@ -74,10 +74,5 @@ function getPasswordStrength(value: string, theme: Theme) {
   ] as const;
   const grades = ['F', 'D', 'C', 'B', 'A'] as const;
 
-  return {
-    score,
-    color: colors[score],
-    grade: grades[score],
-    label: labels[score],
-  };
+  return {score, color: colors[score], grade: grades[score], label: labels[score]};
 }

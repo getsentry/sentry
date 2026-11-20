@@ -4,10 +4,7 @@ import type {UptimeOp} from 'sentry/views/detectors/components/uptime/types';
 
 type ConnectorType = 'vertical' | 'horizontal';
 
-export type Connector = {
-  depth: number;
-  type: ConnectorType;
-};
+export type Connector = {depth: number; type: ConnectorType};
 
 export abstract class TreeNode<T extends UptimeOp = UptimeOp> {
   value: T;
@@ -61,16 +58,10 @@ export abstract class TreeNode<T extends UptimeOp = UptimeOp> {
     }
 
     // Vertical line at the immediate parent's position.
-    connectors.push({
-      type: 'vertical',
-      depth: this.depth - 1,
-    });
+    connectors.push({type: 'vertical', depth: this.depth - 1});
 
     // Horizontal connector from parent column to this column.
-    connectors.push({
-      type: 'horizontal',
-      depth: this.depth - 1,
-    });
+    connectors.push({type: 'horizontal', depth: this.depth - 1});
 
     return connectors;
   }

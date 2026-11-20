@@ -81,7 +81,7 @@ class OrganizationNotebookCommentDetailsEndpoint(OrganizationNotebookCommentEndp
         if (error := check_is_author(request, comment)) is not None:
             return error
         validator = CommentUpdateValidator(
-            comment, data=request.data, context={"notebook": notebook}
+            comment, data=request.data, context={"notebook": notebook, "organization": organization}
         )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)

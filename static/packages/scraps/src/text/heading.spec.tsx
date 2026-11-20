@@ -122,9 +122,7 @@ describe('Heading', () => {
     });
 
     it('render prop signature limits children to (props: {className: string}) => React.ReactNode | undefined', () => {
-      const props: HeadingPropsWithRenderFunction = {
-        children: () => {},
-      };
+      const props: HeadingPropsWithRenderFunction = {children: () => {}};
       expectTypeOf(props.children).toEqualTypeOf<
         (props: {className: string}) => React.ReactNode | undefined
       >();
