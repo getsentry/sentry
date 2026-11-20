@@ -227,6 +227,24 @@ def _get_channel_info(
     return results
 
 
+def get_slack_channel_name(*, integration_id: int, channel_id: str) -> str:
+    """Resolve a public or private channel, excluding archived channels and DMs."""
+    channel = _get_channel_info(integration_id=integration_id, input_channel_id=channel_id).get(
+        "channel", {}
+    )
+    if (
+        not isinstance(channel, dict)
+        or not (channel.get("is_channel") or channel.get("is_group"))
+        or channel.get("is_mpim")
+        or channel.get("is_im")
+        or channel.get("is_archived")
+        or not isinstance(name := channel.get("name"), str)
+        or not name
+    ):
+        raise ValidationError("Choose an accessible Slack channel.")
+    return name
+
+
 def validate_channel_id(name: str, integration_id: int, input_channel_id: str) -> None:
     """
     In the case that the user is creating an alert via the API and providing the channel ID and name

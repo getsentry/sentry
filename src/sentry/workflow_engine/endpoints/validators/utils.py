@@ -186,9 +186,8 @@ def validate_detectors_exist_and_have_permissions(
 def validate_workflows_exist(
     workflow_ids: list[int], organization: Organization
 ) -> QuerySet[Workflow]:
-    # Users should not be able to reference the ids of hidden workflows
-    workflows = Workflow.objects.filter(
-        organization=organization, id__in=workflow_ids, type__in=VISIBLE_WORKFLOW_TYPES
+    workflows = Workflow.objects.visible_in_alerts().filter(
+        organization=organization, id__in=workflow_ids
     )
     found_workflow_ids = set(workflows.values_list("id", flat=True))
     missing_workflow_ids = set(workflow_ids) - found_workflow_ids

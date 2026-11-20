@@ -38,6 +38,9 @@ class WorkflowSnapshot(TypedDict):
 
 
 class WorkflowManager(BaseManager["Workflow"]):
+    def visible_in_alerts(self) -> BaseQuerySet[Workflow]:
+        return self.get_queryset().filter(type__in=VISIBLE_WORKFLOW_TYPES)
+
     def get_queryset(self) -> BaseQuerySet[Workflow]:
         return (
             super()

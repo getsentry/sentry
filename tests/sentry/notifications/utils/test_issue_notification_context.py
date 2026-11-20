@@ -18,7 +18,7 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.models import Action, Workflow
 from sentry.workflow_engine.types import ActionInvocation, DetectorPriorityLevel, WorkflowEventData
 from tests.sentry.notifications.notification_action.test_metric_alert_registry_handlers import (
     MetricAlertHandlerBase,
@@ -85,6 +85,13 @@ class TestIssueNotificationContext(MetricAlertHandlerBase):
 
         assert notification_context.workflow_id is None
         assert notification_context.workflow_name is None
+
+    def test_inbox_workflow_has_no_alert_link(self) -> None:
+        self.workflow.update(type=Workflow.Type.INBOX)
+        context = self._make_context().notification_context
+
+        assert context.workflow_id is None
+        assert context.workflow_name is None
 
     def test_alert_context(self) -> None:
         ctx = self._make_context()

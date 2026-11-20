@@ -37,6 +37,7 @@ from sentry.seer.workflows.base import (
     validate_service_account_grant,
 )
 from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.slack_channel import SlackChannel
 from sentry.service_accounts.models import (
     MAX_NAME_LENGTH,
     ServiceAccountOwnerKind,
@@ -108,6 +109,7 @@ class SeerWorkflow:
         enabled: bool = ...,
         schedule: SeerWorkflowSchedule = ...,
         scope: SelectedMonitors,
+        slack_channel: SlackChannel | None = ...,
         environments: Sequence[str] = ...,
         name: str | None = ...,
         created_by_id: int | None = ...,
@@ -141,6 +143,7 @@ class SeerWorkflow:
         enabled: bool = False,
         schedule: SeerWorkflowSchedule = SeerWorkflowSchedule.DAILY,
         scope: ScopeSelection,
+        slack_channel: SlackChannel | None = None,
         environments: Sequence[str] = (),
         name: str | None = None,
         created_by_id: int | None = None,
@@ -207,6 +210,8 @@ class SeerWorkflow:
                     name=name, created_by_id=created_by_id, enabled=enabled
                 )
                 update.set_scope(scope)
+                if slack_channel is not None:
+                    update.set_slack_channel(slack_channel)
                 if update.dirty_fields:
                     config.save(using=database, update_fields=sorted(update.dirty_fields))
                 definition.sync(config)

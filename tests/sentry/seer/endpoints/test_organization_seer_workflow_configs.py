@@ -38,6 +38,7 @@ from sentry.seer.workflows.base import (
     WorkflowUpdateError,
 )
 from sentry.seer.workflows.breached_metrics import ConnectedMonitor
+from sentry.seer.workflows.slack_channel import SlackChannel, get_slack_channels
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
@@ -119,6 +120,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
             "version": 4,
             "projects": [project.id],
             "monitorIds": [],
+            "slackChannel": None,
             "serviceAccount": None,
             "environments": ["production"],
             "filters": {"minEventCount": 10},
@@ -388,6 +390,39 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
                 projectIds=[self.project.id],
                 status_code=404,
             )
+
+    @with_feature("organizations:integrations-alert-rule")
+    @patch("sentry.integrations.slack.utils.channel.SlackSdkClient")
+    def test_partial_project_access_cannot_redirect_or_clear_slack_channel(
+        self, client: MagicMock
+    ) -> None:
+        member, visible = self.create_member_with_project(open_membership=False)
+        visible_monitor = self.create_metric_monitor(visible)
+        hidden_monitor = self.create_metric_monitor(
+            self.create_project(organization=self.organization, teams=[])
+        )
+        workflow = self.create_metric_workflow([visible_monitor.id, hidden_monitor.id])
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack"
+        )
+        channel = SlackChannel(integration.id, "C123", "on-call")
+        with workflow.update_config() as update:
+            update.set_slack_channel(channel)
+        client.return_value.conversations_info.return_value.data = {
+            "channel": {"is_channel": True, "name": "another-channel"}
+        }
+        self.login_as(member)
+        for destination in ({"integrationId": str(integration.id), "channelId": "C456"}, None):
+            self.get_error_response(
+                self.organization.slug,
+                workflow.config_id,
+                method="put",
+                slackChannel=destination,
+                monitorIds=[],
+                status_code=403,
+            )
+        assert get_slack_channels([workflow.get_config()]) == {workflow.config_id: channel}
+        assert self.connected_monitor_ids(workflow) == {visible_monitor.id, hidden_monitor.id}
 
     def test_get_matches_list_item(self) -> None:
         config = self.create_config()
@@ -1002,6 +1037,28 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert config.version == 1
         assert not DetectorWorkflow.objects.filter(workflow_id=config.backing_workflow_id).exists()
 
+    def test_put_uses_saved_strategy_before_resolving_slack_channel(self) -> None:
+        config = self.create_config()
+        with patch(
+            "sentry.seer.endpoints.organization_seer_workflow_configs.integration_service.organization_context"
+        ) as workspace_lookup:
+            response = self.get_error_response(
+                self.organization.slug,
+                config.id,
+                method="put",
+                strategy="breached_metric_investigation",
+                slackChannel={"integrationId": "123", "channelId": "C123"},
+                status_code=400,
+            )
+        assert "slackChannel" in response.data
+        workspace_lookup.assert_not_called()
+
+        cleared = self.get_success_response(
+            self.organization.slug, config.id, method="put", slackChannel=None
+        )
+        assert cleared.data["slackChannel"] is None
+        assert cleared.data["version"] == config.version
+
     def test_put_breached_metric_member_needs_access_to_monitor_projects(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
         accessible = self.create_metric_monitor(accessible_project)
@@ -1267,6 +1324,93 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             )
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    @with_feature("organizations:integrations-alert-rule")
+    @patch("sentry.integrations.slack.utils.channel.SlackSdkClient")
+    def test_metric_slack_channel_lifecycle(self, client: MagicMock) -> None:
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack", name="Workspace"
+        )
+        lookup = client.return_value.conversations_info
+        lookup.return_value.data = {"channel": {"is_channel": True, "name": "on-call"}}
+        channel = {"integrationId": str(integration.id), "channelId": "C123"}
+        created = self.get_success_response(
+            self.organization.slug,
+            strategy="breached_metric_investigation",
+            slackChannel=channel,
+            status_code=201,
+        )
+        expected = {**channel, "channelName": "on-call"}
+        assert created.data["slackChannel"] == expected
+        lookup.assert_called_once_with(channel="C123")
+        configs_url = f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/"
+        detail_url = f"{configs_url}{created.data['id']}/"
+        listed = self.client.get(configs_url, {"id": created.data["id"]})
+        assert listed.data["configs"][0]["slackChannel"] == expected
+        assert self.client.get(detail_url).data["slackChannel"] == expected
+        assert self.client.put(detail_url, {"name": "Renamed"}).data["slackChannel"] == expected
+        next_channel = {**channel, "channelId": "C456"}
+        lookup.return_value.data = {"channel": {"is_group": True, "name": "triage"}}
+        updated = self.client.put(detail_url, {"slackChannel": next_channel})
+        assert updated.data["slackChannel"] == {**next_channel, "channelName": "triage"}
+        repeated = self.client.put(detail_url, {"slackChannel": next_channel})
+        assert repeated.data["version"] == updated.data["version"]
+        cleared = self.client.put(detail_url, {"slackChannel": None})
+        assert cleared.data["slackChannel"] is None
+        assert cleared.data["version"] == updated.data["version"] + 1
+
+    @with_feature("organizations:integrations-alert-rule")
+    @patch("sentry.integrations.slack.utils.channel.SlackSdkClient")
+    def test_rejects_unsupported_slack_destinations(self, client: MagicMock) -> None:
+        foreign_integration, _ = self.create_provider_integration_for(
+            self.create_organization(),
+            self.user,
+            provider="slack",
+            external_id="other",
+            name="Other workspace",
+        )
+        other_provider, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="discord", name="Discord"
+        )
+        integration, org_integration = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack", name="Workspace"
+        )
+
+        def rejected(integration_id: int) -> None:
+            self.get_error_response(
+                self.organization.slug,
+                strategy="breached_metric_investigation",
+                slackChannel={"integrationId": str(integration_id), "channelId": "C123"},
+                status_code=400,
+            )
+
+        rejected(foreign_integration.id)
+        rejected(other_provider.id)
+
+        client.assert_not_called()
+        client.return_value.conversations_info.return_value.data = {
+            "channel": {"is_group": True, "is_mpim": True, "name": "group-dm"}
+        }
+        rejected(integration.id)
+        client.return_value.conversations_info.side_effect = TimeoutError()
+        rejected(integration.id)
+        client.reset_mock()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            org_integration.update(status=ObjectStatus.DISABLED)
+        rejected(integration.id)
+        client.assert_not_called()
+        assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
+
+    def test_scheduled_workflow_rejects_slack_channel(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            strategy="agentic_triage_v2",
+            slackChannel={"integrationId": "123", "channelId": "C123"},
+            status_code=400,
+        )
+        assert response.data["slackChannel"] == {
+            "non_field_errors": ["Only metric automations support Slack channels."]
+        }
+
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
             self.organization.slug, strategy="agentic_triage_v2", status_code=201
@@ -1281,6 +1425,7 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
             "version": 1,
             "projects": [],
             "monitorIds": [],
+            "slackChannel": None,
             "serviceAccount": {
                 "serviceAccountId": str(config.service_account_id),
                 "scopes": ["event:read"],

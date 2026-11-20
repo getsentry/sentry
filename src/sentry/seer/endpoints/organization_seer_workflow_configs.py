@@ -6,6 +6,7 @@ from datetime import datetime
 from functools import partial
 from typing import Any, Literal, NotRequired, TypedDict
 
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db.models import OuterRef, Subquery, prefetch_related_objects
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -27,6 +28,9 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user_id
 from sentry.cadence.api import ScheduledTriggerType, get_schedules
 from sentry.constants import ALL_ACCESS_PROJECT_ID, ALL_ACCESS_PROJECTS, ObjectStatus
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.slack.utils.channel import get_slack_channel_name
+from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.ratelimits.config import RateLimitConfig
@@ -54,6 +58,7 @@ from sentry.seer.workflows.breached_metrics import (
     get_monitor_project_ids,
 )
 from sentry.seer.workflows.definitions import get_definition
+from sentry.seer.workflows.slack_channel import SlackChannel, get_slack_channels
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
@@ -61,7 +66,10 @@ from sentry.service_accounts.models import (
     ServiceAccountReplica,
 )
 from sentry.service_accounts.services.service_account import RpcServiceAccount
+from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.processors.action import is_action_permitted
 
 logger = logging.getLogger(__name__)
 
@@ -77,7 +85,14 @@ class SeerServiceAccountResponse(TypedDict):
     allProjects: bool
 
 
+class SlackChannelResponse(TypedDict):
+    integrationId: str
+    channelId: str
+    channelName: str
+
+
 class SeerWorkflowConfigResponse(TypedDict):
+    slackChannel: SlackChannelResponse | None
     id: str
     strategy: str
     enabled: bool
@@ -143,7 +158,51 @@ class ServiceAccountGrantSerializer(serializers.Serializer):
         )
 
 
-class WorkflowConfigCreateSerializer(serializers.Serializer):
+class SlackChannelSerializer(serializers.Serializer):
+    integrationId = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
+    channelId = serializers.CharField(max_length=255)
+
+
+class WorkflowConfigSerializer(serializers.Serializer):
+    slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+
+    def resolve_slack_channel(self, data: dict[str, Any], strategy: str) -> None:
+        channel = data.get("slackChannel")
+        if channel is None:
+            return
+        if strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise ValidationError(
+                {
+                    "slackChannel": {
+                        "non_field_errors": ["Only metric automations support Slack channels."]
+                    }
+                }
+            )
+        organization = self.context["organization"]
+        integration_id = channel["integrationId"]
+        integration_context = integration_service.organization_context(
+            organization_id=organization.id, integration_id=integration_id
+        )
+        if (
+            integration_context.integration is None
+            or integration_context.integration.provider != IntegrationProviderSlug.SLACK
+            or integration_context.active() is None
+            or not is_action_permitted(Action.Type.SLACK, organization)
+        ):
+            raise ValidationError(
+                {"slackChannel": {"integrationId": ["Choose an available Slack workspace."]}}
+            )
+        channel_id = channel["channelId"]
+        try:
+            name = get_slack_channel_name(integration_id=integration_id, channel_id=channel_id)
+        except (DjangoValidationError, IntegrationError, OSError) as exc:
+            raise ValidationError(
+                {"slackChannel": {"channelId": ["Could not resolve this Slack channel."]}}
+            ) from exc
+        data["slackChannel"] = SlackChannel(integration_id, channel_id, name)
+
+
+class WorkflowConfigCreateSerializer(WorkflowConfigSerializer):
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
     )
@@ -190,10 +249,11 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"monitorIds": "This automation type does not support monitor selection."}
             )
+        self.resolve_slack_channel(data, data["strategy"])
         return data
 
 
-class WorkflowConfigUpdateSerializer(serializers.Serializer):
+class WorkflowConfigUpdateSerializer(WorkflowConfigSerializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
@@ -223,6 +283,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
+        self.resolve_slack_channel(data, self.context["strategy"])
         return data
 
 
@@ -417,7 +478,8 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
 
         Metric automations (``breached_metric_investigation``) take ``monitorIds``
         instead of ``projectIds``; their projects come from the connected monitors, and
-        the caller needs read access to each monitor's project.
+        the caller needs read access to each monitor's project. To post the standard breach
+        notification, pass e.g. ``"slackChannel": {"integrationId": "123", "channelId": "C123"}``.
 
         ``serviceAccount`` sets the scopes and projects investigations run with, on a
         service account created for the automation.
@@ -430,7 +492,9 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
 
-        serializer = WorkflowConfigCreateSerializer(data=request.data)
+        serializer = WorkflowConfigCreateSerializer(
+            data=request.data, context={"organization": organization}
+        )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
         data = serializer.validated_data
@@ -461,6 +525,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
                     strategy=strategy,
                     enabled=data["enabled"],
                     scope=SelectedMonitors(tuple(monitor_ids)),
+                    slack_channel=data.get("slackChannel"),
                     environments=data["environments"],
                     name=data.get("name"),
                     created_by_id=acting_user_id(request.user),
@@ -577,33 +642,35 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization, config_id: str) -> Response:
         """Update a saved Seer automation workflow.
 
-        Only the fields sent are changed. ``projectIds`` replaces the projects the
-        caller can access; selected projects the caller can't access are kept.
+                Only the fields sent are changed. ``projectIds`` replaces the projects the
+                caller can access; selected projects the caller can't access are kept.
 
-        - The same project-access rules apply here AND to the associated projects of ``monitorIds``.
-        - Changing the projects of a config that covers all projects requires global
-          access.
-        - ``monitorIds`` replaces the monitors of a metric automation and is rejected
-          for other strategies.
-        - Enabling or pausing requires access to every project the config covers.
-        - ``environments`` replaces the environments the automation covers; ``[]``
-          selects all environments. Like enabling, it requires access to every project
-          the config covers.
-        - ``serviceAccount`` replaces the scopes and projects of the automation's service
-          account. Like ``projectIds``, the account's projects the caller can't access are
-          kept, and scopes can't be added while any are.
-        - ``name`` renames the config. It is trimmed and must be non-empty.
+                - The same project-access rules apply here AND to the associated projects of ``monitorIds``.
+                - Changing the projects of a config that covers all projects requires global
+                  access.
+                - ``monitorIds`` replaces the monitors of a metric automation and is rejected
+                  for other strategies.
+        <<<<<<< HEAD
+                - Set ``slackChannel`` to replace a metric workflow's destination, or null to clear it.
+                  Omitting the field preserves it. Like enabling or pausing, writing the destination
+                  requires access to every project the config covers.
+        =======
+                - Enabling or pausing requires access to every project the config covers.
+                - ``environments`` replaces the environments the automation covers; ``[]``
+                  selects all environments. Like enabling, it requires access to every project
+                  the config covers.
+        >>>>>>> origin/master
+                - ``serviceAccount`` replaces the scopes and projects of the automation's service
+                  account. Like ``projectIds``, the account's projects the caller can't access are
+                  kept, and scopes can't be added while any are.
+                - ``name`` renames the config. It is trimmed and must be non-empty.
 
-        An update the caller isn't allowed to make returns a 403. One the automation
-        rejects returns a 400 with a generic detail. Returns the updated config in the
-        same shape as an item in the list endpoint's ``configs``.
+                An update the caller isn't allowed to make returns a 403. One the automation
+                rejects returns a 400 with a generic detail. Returns the updated config in the
+                same shape as an item in the list endpoint's ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
-
-        serializer = WorkflowConfigUpdateSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=400)
 
         try:
             config = SeerWorkflowConfig.objects.get(
@@ -614,6 +681,12 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         except (ValueError, SeerWorkflowConfig.DoesNotExist) as e:
             raise NotFound from e
         workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
+
+        serializer = WorkflowConfigUpdateSerializer(
+            data=request.data, context={"organization": organization, "strategy": config.strategy}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
         enabled: bool | None = serializer.validated_data.get("enabled")
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
@@ -645,6 +718,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
         if grant is not None:
             check_can_grant_service_account(grant, request, organization, self)
+        channel_supplied = "slackChannel" in serializer.validated_data
         applied_grant: SeerServiceAccountGrant | None = None
 
         # Updates are done in one txn. Error cases must raise instead of early return,
@@ -656,7 +730,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if enabled is not None or environments is not None:
+                if enabled is not None or environments is not None or channel_supplied:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -675,6 +749,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
                 if environments is not None:
                     update.set_environments(environments)
+
+                if channel_supplied:
+                    update.set_slack_channel(serializer.validated_data["slackChannel"])
 
                 if project_ids is not None:
                     # Narrowing an all-projects config drops future projects the caller may
@@ -836,6 +913,7 @@ def serialize_workflow_configs(
         configs, accessible_project_ids=accessible_project_ids
     )
     connected_monitors = get_config_monitors_bulk(configs, project_filter=accessible_project_ids)
+    channels = get_slack_channels(configs)
     last_runs = get_config_last_runs(
         configs,
         accessible_project_ids=accessible_project_ids,
@@ -847,6 +925,7 @@ def serialize_workflow_configs(
         "configs": [
             serialize_workflow_config(
                 config,
+                channel=channels.get(config.id),
                 selected_project_ids=selected_projects[config.id],
                 connected_monitors=connected_monitors.get(config.id, []),
                 last_run=last_runs_by_config_id.get(config.id),
@@ -923,6 +1002,7 @@ def serialize_workflow_config(
     *,
     selected_project_ids: list[int],
     connected_monitors: list[ConnectedMonitor],
+    channel: SlackChannel | None,
     last_run: WorkflowConfigLastRun | None,
     service_account: SeerServiceAccountResponse | None,
     next_run_at: datetime | None,
@@ -944,6 +1024,13 @@ def serialize_workflow_config(
         "version": config.version,
         "projects": project_ids,
         "monitorIds": monitor_ids,
+        "slackChannel": SlackChannelResponse(
+            integrationId=str(channel.integration_id),
+            channelId=channel.channel_id,
+            channelName=channel.channel_name,
+        )
+        if channel
+        else None,
         "serviceAccount": service_account,
         "environments": filters.environments,
         "filters": convert_dict_key_case(

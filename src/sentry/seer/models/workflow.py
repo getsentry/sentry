@@ -58,6 +58,9 @@ class SeerWorkflowFilters(BaseModel):
     # An empty list means all environments.
     environments: list[str] = []
 
+    def matches_environment(self, environment: str | None) -> bool:
+        return not self.environments or environment in self.environments
+
 
 class SeerWorkflowSchedule(models.TextChoices):
     DAILY = "daily"
