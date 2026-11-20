@@ -8,7 +8,7 @@ migrations-drift check drops them from the migrated database first.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
     from django.db.backends.base.base import BaseDatabaseWrapper
@@ -17,11 +17,7 @@ if TYPE_CHECKING:
     from sentry.new_migrations.monkey.state import SentryProjectState
 
 
-_ST = TypeVar("_ST")
-_GT = TypeVar("_GT")
-
-
-def _auto_through_table(field: ManyToManyField[_ST, _GT]) -> str | None:
+def _auto_through_table(field: ManyToManyField[Any, Any]) -> str | None:
     through = field.remote_field.through
     assert through is not None
     return through._meta.db_table if through._meta.auto_created else None
