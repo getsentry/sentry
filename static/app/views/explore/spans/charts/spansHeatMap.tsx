@@ -55,6 +55,8 @@ import {
 } from 'sentry/views/explore/utils/setExploreAttributeBounds';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import type {HeatMapYBounds} from './useSpansHeatMapOutlierBound';
+
 export const SPANS_HEAT_MAP_Y_AXES = [
   SpanFields.SPAN_DURATION,
   SpanFields.SPAN_SELF_TIME,
@@ -100,7 +102,7 @@ interface SpansHeatMapProps {
    */
   isYBoundsPending?: boolean;
   samplingMode?: SamplingMode;
-  yBounds?: {yMax: number; yMin: number};
+  yBounds?: HeatMapYBounds;
 }
 
 export function SpansHeatMap({
@@ -143,10 +145,9 @@ export function SpansHeatMap({
     leading: dimensions.width > 0 && dimensions.height > 0,
   });
 
-  // The endpoint clamps values outside the bounds into the edge rows, so filter
-  // out spans above the clip instead or they pile up into a solid band. The clip
-  // is added to the attribute's filters rather than replacing them, so a range
-  // the user zoomed into still applies.
+  // Filtering out spans above the clip lets the endpoint derive the Y axis from
+  // the remaining spans. The clip is added to the attribute's filters rather
+  // than replacing them, so a range the user zoomed into still applies.
   let heatMapQuery = query;
   if (yBounds) {
     const search = new MutableSearch(query);
@@ -174,8 +175,6 @@ export function SpansHeatMap({
       yBuckets: defined(bucketDimensions)
         ? Math.min(bucketDimensions.yBuckets, MAX_Y_BUCKETS)
         : undefined,
-      yMin: yBounds?.yMin,
-      yMax: yBounds?.yMax,
       caseInsensitive: Boolean(caseInsensitive),
       extrapolate,
       ...crossEventQueries,

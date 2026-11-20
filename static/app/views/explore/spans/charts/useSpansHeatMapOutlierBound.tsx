@@ -39,7 +39,6 @@ type OutlierBoundResponse = {
 
 export interface HeatMapYBounds {
   yMax: number;
-  yMin: number;
 }
 
 interface UseSpansHeatMapOutlierBoundOptions {
@@ -168,7 +167,7 @@ function estimateBounds({
     }
     const yMax = p99 * Math.pow(p99 / p95, (z - Z_P99) / (Z_P99 - Z_P95));
     if (max >= MIN_CLIP_GAIN * yMax) {
-      bounds[cutoff] = {yMin: 0, yMax};
+      bounds[cutoff] = {yMax};
     }
   }
   return bounds;
