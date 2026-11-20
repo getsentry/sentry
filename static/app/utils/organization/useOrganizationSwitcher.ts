@@ -1,4 +1,3 @@
-import {useCallback} from 'react';
 import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -53,17 +52,14 @@ export function useOrganizationSwitcher(): OrganizationSwitcher {
         : {to: '/organizations/new/'}
       : null;
 
-  const switchTo = useCallback(
-    (target: OrganizationSummary, path: string) => {
-      const url = resolveRoute(path, null, target);
-      if (url.startsWith('http')) {
-        window.location.assign(url);
-      } else {
-        navigate(url);
-      }
-    },
-    [navigate]
-  );
+  const switchTo = (target: OrganizationSummary, path: string) => {
+    const url = resolveRoute(path, null, target);
+    if (url.startsWith('http')) {
+      window.location.assign(url);
+    } else {
+      navigate(url);
+    }
+  };
 
   return {canSwitch, createOrganizationLink, switchTo};
 }
