@@ -22,7 +22,7 @@ import {MetricFilterBar} from 'sentry/views/explore/metrics/metricToolbar/filter
 
 import {MetricSelectRow} from './metricSelectRow';
 import {RowLabel} from './rowLabel';
-import type {HiddenTraceMetricRow as HiddenTraceMetricRowData} from './unifiedEquations';
+import type {MetricRow} from './rowModel';
 
 interface TraceMetricRowProps {
   /**
@@ -109,10 +109,9 @@ export function TraceMetricRow({
 }
 
 interface HiddenTraceMetricRowProps {
-  label: string;
   onFieldChange: (field: QueryFieldValue) => void;
   onShow: () => void;
-  row: HiddenTraceMetricRowData;
+  row: MetricRow;
   disabled?: boolean;
   /**
    * Leave room for the drag handle the visible rows render.
@@ -122,11 +121,10 @@ interface HiddenTraceMetricRowProps {
 
 /**
  * A metric row that only feeds an equation. It is not plotted and not saved on
- * its own; edits rewrite the equation that references it.
+ * its own.
  */
 export function HiddenTraceMetricRow({
   row,
-  label,
   disabled,
   indent,
   onFieldChange,
@@ -139,7 +137,7 @@ export function HiddenTraceMetricRow({
         <FieldBar>
           <TraceMetricRow
             label={
-              <RowLabel label={label} hidden disabled={disabled} onToggle={onShow} />
+              <RowLabel label={row.letter} hidden disabled={disabled} onToggle={onShow} />
             }
             field={row.field}
             disabled={disabled}

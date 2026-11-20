@@ -1,62 +1,51 @@
-import {useCallback, useState} from 'react';
+import {useCallback} from 'react';
 
 import type {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {EquationBuilder} from 'sentry/views/explore/metrics/equationBuilder';
 
-import {unresolveEquationWithDuplicates} from './unifiedEquations';
-
 interface TraceMetricEquationRowProps {
   /**
-   * The equation in its saved, fully inlined form (without the `equation|` prefix).
+   * The equation in letter form, e.g. `A + B`. This is what the user edits.
    */
-  equation: string;
-  onUpdate: (equation: string) => void;
+  expression: string;
+  onChange: (expression: string) => void;
   /**
-   * Row label (A, B, ...) to the aggregate it stands for.
+   * Row letter (A, B, ...) to the aggregate it stands for.
    */
   referenceMap: Record<string, string>;
+  /**
+   * The equation in its saved, fully inlined form (without the `equation|`
+   * prefix), for the builder's validation.
+   */
+  resolved: string;
   disabled?: boolean;
 }
 
 /**
- * Equation row for the trace metrics visualize list. The user edits the
- * equation with row letters; the saved equation is always the inlined form.
+ * Equation row for the trace metrics visualize list. The row model keeps the
+ * equation in letter form, so this only reports the letters typed; resolving
+ * them to aggregates happens when the saved fields are derived.
  */
 export function TraceMetricEquationRow({
-  equation,
+  expression,
+  resolved,
   referenceMap,
   disabled,
-  onUpdate,
+  onChange,
 }: TraceMetricEquationRowProps) {
-  // The letter form the user typed, kept while the saved equation it produced
-  // is still the current one and the letters still mean the same rows. When
-  // either changes from elsewhere (a referenced row was edited, or rows were
-  // reordered) the letters are derived again.
-  const references = JSON.stringify(referenceMap);
-  const [internal, setInternal] = useState<{
-    equation: string;
-    references: string;
-    text: string;
-  } | null>(null);
-
   const handleExpressionChange = useCallback(
-    (resolved: Expression, internalText: string) => {
-      setInternal({equation: resolved.text, references, text: internalText});
-      onUpdate(resolved.text);
+    (_resolved: Expression, internalText: string) => {
+      onChange(internalText);
     },
-    [onUpdate, references]
+    [onChange]
   );
 
   return (
     <EquationBuilder
-      expression={equation}
+      expression={resolved}
       referenceMap={referenceMap}
       handleExpressionChange={handleExpressionChange}
-      storedInternalExpression={
-        internal?.equation === equation && internal.references === references
-          ? internal.text
-          : unresolveEquationWithDuplicates(equation, referenceMap)
-      }
+      storedInternalExpression={expression}
       disabled={disabled}
     />
   );

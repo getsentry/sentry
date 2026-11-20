@@ -3015,7 +3015,7 @@ describe('Visualize', () => {
       ).toBeInTheDocument();
     });
 
-    it('keeps the equation when editing one of two identical series', async () => {
+    it('follows a row in the equation when its metric changes', async () => {
       const {router} = renderUnified([
         SUM_ALPHA,
         SUM_ALPHA,
@@ -3023,8 +3023,8 @@ describe('Visualize', () => {
       ]);
       await screen.findByRole('button', {name: 'Hide series A'});
 
-      // Point row B at beta_metric. Row A still provides sum(alpha), so the
-      // equation must not be rewritten.
+      // The equation reads A + B. Pointing row B at beta_metric makes the
+      // saved equation alpha + beta, and row A is left alone.
       await userEvent.click(screen.getAllByRole('button', {name: 'alpha_metric'})[1]!);
       await userEvent.click(await screen.findByRole('option', {name: 'beta_metric'}));
 
@@ -3032,9 +3032,50 @@ describe('Visualize', () => {
         expect(decodeList(router.location.query.yAxis)).toEqual([
           SUM_ALPHA,
           SUM_BETA,
-          `equation|${SUM_ALPHA} + ${SUM_ALPHA}`,
+          `equation|${SUM_ALPHA} + ${SUM_BETA}`,
         ]);
       });
+    });
+
+    it('keeps letters with their rows when series are reordered', async () => {
+      // dnd-kit's keyboard sensor needs distinct element positions to find a drop target
+      jest.spyOn(Element.prototype, 'getBoundingClientRect').mockImplementation(function (
+        this: Element
+      ) {
+        const siblings = this.parentElement
+          ? Array.from(this.parentElement.children)
+          : [];
+        const top = Math.max(siblings.indexOf(this), 0) * 50;
+        return DOMRect.fromRect({x: 0, y: top, width: 300, height: 40});
+      });
+      const {router} = renderUnified([
+        SUM_ALPHA,
+        SUM_BETA,
+        `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+      ]);
+
+      const [firstHandle] = await screen.findAllByRole('button', {
+        name: 'Drag to reorder',
+      });
+      act(() => firstHandle!.focus());
+      await userEvent.keyboard(' ');
+      await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+      await userEvent.keyboard(' ');
+
+      // alpha_metric is now second but is still A, and the equation still
+      // reads alpha minus beta.
+      await waitFor(() => {
+        expect(decodeList(router.location.query.yAxis)).toEqual([
+          SUM_BETA,
+          SUM_ALPHA,
+          `equation|${SUM_ALPHA} - ${SUM_BETA}`,
+        ]);
+      });
+      const hideButtons = screen.getAllByRole('button', {name: /Hide series/});
+      expect(hideButtons.map(button => button.getAttribute('aria-label'))).toEqual([
+        'Hide series B',
+        'Hide series A',
+      ]);
     });
 
     it('shows a hidden series again', async () => {
