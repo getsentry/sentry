@@ -21,10 +21,7 @@ export function RepositorySwitcher({
   const location = useLocation();
 
   const handleRepoFilterChange = (activeRepo: string) => {
-    navigate({
-      ...location,
-      query: {...location.query, cursor: undefined, activeRepo},
-    });
+    navigate({...location, query: {...location.query, cursor: undefined, activeRepo}});
   };
 
   const activeRepo = activeRepository?.name;

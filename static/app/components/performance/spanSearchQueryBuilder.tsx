@@ -73,10 +73,7 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
 
   const spanStringAttributesWithSemver = useMemo(() => {
     if (SpanFields.RELEASE in spanStringAttributes) {
-      return {
-        ...spanStringAttributes,
-        ...STATIC_SEMVER_TAGS,
-      };
+      return {...spanStringAttributes, ...STATIC_SEMVER_TAGS};
     }
     return spanStringAttributes;
   }, [spanStringAttributes]);
@@ -185,8 +182,5 @@ export function useSpanSearchQueryBuilderProps(props: UseSpanSearchQueryBuilderP
     invalidFilterKeys,
   };
 
-  return {
-    spanSearchQueryBuilderProps,
-    spanSearchQueryBuilderProviderProps,
-  };
+  return {spanSearchQueryBuilderProps, spanSearchQueryBuilderProviderProps};
 }

@@ -7,9 +7,7 @@ type DetectorAnalyticsEventPayload = ReturnType<typeof getDetectorAnalyticsPaylo
 type AutomationAnalyticsEventPayload = ReturnType<typeof getAutomationAnalyticsPayload>;
 
 type DetectorCreateAnalyticsEventPayload =
-  | (DetectorAnalyticsEventPayload & {
-      success: true;
-    })
+  | (DetectorAnalyticsEventPayload & {success: true})
   | {detector_type: string; success: false};
 
 export type MonitorsEventParameters = {

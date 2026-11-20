@@ -25,11 +25,7 @@ export type SaveQueryEventParameters = {
 };
 
 export type DiscoverEventParameters = SaveQueryEventParameters & {
-  'discover_search.failed': {
-    error: string;
-    search_source: string;
-    search_type: string;
-  };
+  'discover_search.failed': {error: string; search_source: string; search_type: string};
   'discover_search.success': {
     has_results: boolean;
     search_source: string;

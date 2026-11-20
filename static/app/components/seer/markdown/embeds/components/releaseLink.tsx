@@ -16,10 +16,7 @@ export function getReleaseHref(
 ): string {
   return qs.stringifyUrl(
     {
-      url: makeReleasesPathname({
-        organization,
-        path: `/${encodeURIComponent(version)}/`,
-      }),
+      url: makeReleasesPathname({organization, path: `/${encodeURIComponent(version)}/`}),
       query: {project: projectId},
     },
     {skipNull: true}

@@ -59,10 +59,5 @@ export function useProfileEventsStats<F extends string>({
     [yAxes, data, dataset]
   );
 
-  return {
-    data: transformed,
-    isPending,
-    isError,
-    error,
-  };
+  return {data: transformed, isPending, isError, error};
 }

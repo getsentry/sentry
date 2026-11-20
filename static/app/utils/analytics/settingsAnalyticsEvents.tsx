@@ -23,9 +23,7 @@ export type SettingsEntryPoint =
 type SettingsOrgMenuProjectSource = 'quick_access' | 'all_projects';
 
 export type SettingsEventParameters = {
-  'notification_settings.tuning_page_viewed': {
-    notification_type: string;
-  };
+  'notification_settings.tuning_page_viewed': {notification_type: string};
   'notification_settings.updated_tuning_setting': {
     notification_type: string;
     tuning_field_type: string;
@@ -34,9 +32,7 @@ export type SettingsEventParameters = {
    * A link or button outside of the settings navigation was clicked and opened a
    * settings page. `entry_point` says where it was.
    */
-  'settings.entry_point_clicked': {
-    entry_point: SettingsEntryPoint;
-  };
+  'settings.entry_point_clicked': {entry_point: SettingsEntryPoint};
   /**
    * A project was bookmarked or unbookmarked from the organization avatar menu.
    */
@@ -48,19 +44,13 @@ export type SettingsEventParameters = {
    * A project was clicked in the organization avatar menu, opening its
    * project settings.
    */
-  'settings.org_menu.project_clicked': {
-    source: SettingsOrgMenuProjectSource;
-  };
+  'settings.org_menu.project_clicked': {source: SettingsOrgMenuProjectSource};
   /**
    * A different project was picked in the project selector at the top of the
    * project settings sidebar.
    */
   'settings.project_selector.changed': Record<string, unknown>;
-  'sidebar.item_clicked': {
-    dest: string;
-    project_id?: string;
-    sidebar_item_id?: string;
-  };
+  'sidebar.item_clicked': {dest: string; project_id?: string; sidebar_item_id?: string};
 };
 
 type SettingsEventKey = keyof SettingsEventParameters;

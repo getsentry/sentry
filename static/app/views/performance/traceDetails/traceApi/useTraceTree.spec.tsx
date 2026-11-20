@@ -30,11 +30,7 @@ const contextWrapper = () => {
 describe('useTraceTree', () => {
   it('returns tree for error case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('error'),
-          replay: null,
-        }),
+      () => useTraceTree({trace: getMockedTraceResults('error'), replay: null}),
       {additionalWrapper: contextWrapper()}
     );
 
@@ -45,11 +41,7 @@ describe('useTraceTree', () => {
 
   it('returns tree for loading case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('pending'),
-          replay: null,
-        }),
+      () => useTraceTree({trace: getMockedTraceResults('pending'), replay: null}),
       {additionalWrapper: contextWrapper()}
     );
 
@@ -60,11 +52,7 @@ describe('useTraceTree', () => {
 
   it('returns tree for empty success case', async () => {
     const {result} = renderHookWithProviders(
-      () =>
-        useTraceTree({
-          trace: getMockedTraceResults('success', []),
-          replay: null,
-        }),
+      () => useTraceTree({trace: getMockedTraceResults('success', []), replay: null}),
       {additionalWrapper: contextWrapper()}
     );
 

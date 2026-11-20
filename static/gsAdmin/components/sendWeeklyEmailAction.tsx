@@ -13,11 +13,7 @@ import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationMo
 
 type Props = {orgId: string} & AdminConfirmRenderProps;
 
-type WeeklyEmailData = {
-  deliveryEmail: string;
-  dryRun: boolean;
-  targetEmail: string;
-};
+type WeeklyEmailData = {deliveryEmail: string; dryRun: boolean; targetEmail: string};
 
 /**
  * Rendered as part of a openAdminConfirmModal call

@@ -156,13 +156,7 @@ export function AgentsCharts() {
   );
 
   const widgetLegendState = useMemo(
-    () =>
-      new WidgetLegendSelectionState({
-        dashboard,
-        location,
-        navigate,
-        organization,
-      }),
+    () => new WidgetLegendSelectionState({dashboard, location, navigate, organization}),
     [dashboard, location, navigate, organization]
   );
 

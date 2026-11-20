@@ -35,10 +35,7 @@ describe('EAPSampledEventsTab', () => {
     // Count query
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {fields: {'count()': 'integer'}},
-        data: [{'count()': 1}],
-      },
+      body: {meta: {fields: {'count()': 'integer'}}, data: [{'count()': 1}]},
       match: [
         (_url, options) =>
           options.query?.field?.includes('count()') &&

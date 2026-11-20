@@ -3,10 +3,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 
-export type AutomationProjectScope = {
-  includesAllProjects: boolean;
-  projectIds: string[];
-};
+export type AutomationProjectScope = {includesAllProjects: boolean; projectIds: string[]};
 
 export function hasOrganizationAutomationWriteAccess(
   organization: Organization

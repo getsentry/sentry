@@ -98,13 +98,7 @@ describe('useProjectStats', () => {
 
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [
-        {
-          ...project,
-          stats: responseStats,
-          transactionStats: responseStats,
-        },
-      ],
+      body: [{...project, stats: responseStats, transactionStats: responseStats}],
     });
 
     render(<TestHarness />, {organization});

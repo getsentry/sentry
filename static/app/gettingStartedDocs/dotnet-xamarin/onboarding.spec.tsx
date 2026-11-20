@@ -9,11 +9,7 @@ import {docs} from './index';
 describe('xamarin onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dotnet.xamarin-forms': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dotnet.xamarin-forms': {version: '1.99.9'}},
       selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
     });
 

@@ -46,18 +46,13 @@ export type LogsAnalyticsEventParameters = {
     platform: PlatformKey | 'unknown';
     supports_onboarding_checklist: boolean;
   };
-  'logs.explorer.table_tab_changed': {
-    organization: Organization;
-    tab: string;
-  };
+  'logs.explorer.table_tab_changed': {organization: Organization; tab: string};
   'logs.export_modal': {
     action: 'cancel' | 'open';
     organization: Organization;
     close_reason?: 'backdrop_click' | 'cancel_button' | 'close_button' | 'escape_key';
   };
-  'logs.issue_details.drawer_opened': {
-    organization: Organization;
-  };
+  'logs.issue_details.drawer_opened': {organization: Organization};
   'logs.onboarding': {
     organization: Organization;
     platform: PlatformKey | 'unknown';
@@ -80,34 +75,17 @@ export type LogsAnalyticsEventParameters = {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
   };
-  'logs.table.pinned_row_not_in_results': {
-    log_id: string;
-    organization: Organization;
-  };
-  'logs.table.pinned_row_scrolled_to': {
-    log_id: string;
-    organization: Organization;
-  };
-  'logs.table.row_copied_as_json': {
-    log_id: string;
-    organization: Organization;
-  };
-  'logs.table.row_expanded': {
-    log_id: string;
-    page_source: LogsAnalyticsPageSource;
-  };
-  'logs.table.row_link_copied': {
-    log_id: string;
-    organization: Organization;
-  };
+  'logs.table.pinned_row_not_in_results': {log_id: string; organization: Organization};
+  'logs.table.pinned_row_scrolled_to': {log_id: string; organization: Organization};
+  'logs.table.row_copied_as_json': {log_id: string; organization: Organization};
+  'logs.table.row_expanded': {log_id: string; page_source: LogsAnalyticsPageSource};
+  'logs.table.row_link_copied': {log_id: string; organization: Organization};
   'logs.table.row_viewed_in_context': {
     context: 'trace' | 'time';
     log_id: string;
     organization: Organization;
   };
-  'logs.timestamp_tooltip.add_timezone_clicked': {
-    organization: Organization;
-  };
+  'logs.timestamp_tooltip.add_timezone_clicked': {organization: Organization};
 };
 
 type LogsAnalyticsEventKey = keyof LogsAnalyticsEventParameters;

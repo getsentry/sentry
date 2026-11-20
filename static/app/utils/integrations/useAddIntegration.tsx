@@ -33,10 +33,7 @@ export interface AddIntegrationParams {
    * Overrides for the install modal's copy. Passed straight through to
    * `openPipelineModal`; this hook does not read them.
    */
-  modalParams?: {
-    description?: React.ReactNode;
-    title?: string;
-  };
+  modalParams?: {description?: React.ReactNode; title?: string};
   onCancel?: () => void;
   onError?: (error: string) => void;
   /**

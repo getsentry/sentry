@@ -69,11 +69,7 @@ export function getAppContextData({
   return getContextKeys({data}).map(ctxKey => {
     switch (ctxKey) {
       case AppContextKeys.ID:
-        return {
-          key: ctxKey,
-          subject: t('ID'),
-          value: data.app_id,
-        };
+        return {key: ctxKey, subject: t('ID'), value: data.app_id};
       case AppContextKeys.START_TIME:
         return {
           key: ctxKey,
@@ -84,53 +80,21 @@ export function getAppContextData({
           ),
         };
       case AppContextKeys.DEVICE_HASH:
-        return {
-          key: ctxKey,
-          subject: t('Device'),
-          value: data.device_app_hash,
-        };
+        return {key: ctxKey, subject: t('Device'), value: data.device_app_hash};
       case AppContextKeys.TYPE:
-        return {
-          key: ctxKey,
-          subject: t('Build Type'),
-          value: data.build_type,
-        };
+        return {key: ctxKey, subject: t('Build Type'), value: data.build_type};
       case AppContextKeys.IDENTIFIER:
-        return {
-          key: ctxKey,
-          subject: t('Build ID'),
-          value: data.app_identifier,
-        };
+        return {key: ctxKey, subject: t('Build ID'), value: data.app_identifier};
       case AppContextKeys.NAME:
-        return {
-          key: ctxKey,
-          subject: t('Build Name'),
-          value: data.app_name,
-        };
+        return {key: ctxKey, subject: t('Build Name'), value: data.app_name};
       case AppContextKeys.VERSION:
-        return {
-          key: ctxKey,
-          subject: t('Version'),
-          value: data.app_version,
-        };
+        return {key: ctxKey, subject: t('Version'), value: data.app_version};
       case AppContextKeys.BUILD:
-        return {
-          key: ctxKey,
-          subject: t('App Build'),
-          value: data.app_build,
-        };
+        return {key: ctxKey, subject: t('App Build'), value: data.app_build};
       case AppContextKeys.IN_FOREGROUND:
-        return {
-          key: ctxKey,
-          subject: t('In Foreground'),
-          value: data.in_foreground,
-        };
+        return {key: ctxKey, subject: t('In Foreground'), value: data.in_foreground};
       case AppContextKeys.IS_ACTIVE:
-        return {
-          key: ctxKey,
-          subject: t('Is Active'),
-          value: data.is_active,
-        };
+        return {key: ctxKey, subject: t('Is Active'), value: data.is_active};
       case AppContextKeys.APP_MEMORY:
         return {
           key: ctxKey,
@@ -138,11 +102,7 @@ export function getAppContextData({
           value: data.app_memory ? formatMemory(data.app_memory) : undefined,
         };
       case AppContextKeys.VIEW_NAMES:
-        return {
-          key: ctxKey,
-          subject: t('View Names'),
-          value: data.view_names,
-        };
+        return {key: ctxKey, subject: t('View Names'), value: data.view_names};
       case AppContextKeys.FREE_MEMORY:
         return {
           key: ctxKey,
@@ -150,23 +110,11 @@ export function getAppContextData({
           value: data.free_memory ? formatMemory(data.free_memory) : undefined,
         };
       case AppContextKeys.ARCHITECTURE:
-        return {
-          key: ctxKey,
-          subject: t('Architecture'),
-          value: data.app_arch,
-        };
+        return {key: ctxKey, subject: t('Architecture'), value: data.app_arch};
       case AppContextKeys.IS_SPLIT_APKS:
-        return {
-          key: ctxKey,
-          subject: t('Split APKs'),
-          value: data.is_split_apks,
-        };
+        return {key: ctxKey, subject: t('Split APKs'), value: data.is_split_apks};
       case AppContextKeys.PERMISSIONS:
-        return {
-          key: ctxKey,
-          subject: t('Permissions'),
-          value: data.permissions,
-        };
+        return {key: ctxKey, subject: t('Permissions'), value: data.permissions};
       default:
         return {
           key: ctxKey,

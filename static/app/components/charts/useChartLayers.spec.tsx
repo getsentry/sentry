@@ -165,9 +165,7 @@ describe('useChartLayers', () => {
       await waitFor(() =>
         expect(flagLogRequest).toHaveBeenCalledWith(
           `/organizations/${annotationsOrganization.slug}/flags/logs/`,
-          expect.objectContaining({
-            query: expect.objectContaining({sort: 'created_at'}),
-          })
+          expect.objectContaining({query: expect.objectContaining({sort: 'created_at'})})
         )
       );
     });
@@ -208,27 +206,26 @@ describe('useChartLayers', () => {
       });
     });
 
-    it('opens the drawer on the first tab with annotations in a clicked bucket', async () => {
+    it('opens the drawer on the activity section when a bucket is clicked', async () => {
+      Element.prototype.scrollIntoView = jest.fn();
       const {result, router} = renderAnnotationsHook({
         releases: [release],
         flags: [flagChange],
       });
       await waitFor(() => expect(result.current.annotations).toHaveLength(2));
 
-      act(() => result.current.onAnnotationClick([flagAnnotation, releaseAnnotation]));
+      act(() => result.current.onAnnotationClick());
 
-      await waitFor(() => expect(router.location.query.contextTab).toBe('releases'));
+      await waitFor(() => expect(router.location.query.contextTab).toBe('annotations'));
+      expect(router.location.query.contextSection).toBe('activity');
       expect(router.location.query.droppedData).toBe('spans');
       expect(trackAnalytics).toHaveBeenCalledWith('explore.chart_context.drawer_opened', {
         organization: annotationsOrganization,
         dataset: DiscoverDatasets.SPANS,
         source: 'explore',
-        tab: 'releases',
+        tab: 'annotations',
+        section: 'activity',
       });
-
-      act(() => result.current.onAnnotationClick([flagAnnotation]));
-
-      await waitFor(() => expect(router.location.query.contextTab).toBe('flags'));
     });
 
     it('disables the Releases and Flags layers when the range has neither', async () => {

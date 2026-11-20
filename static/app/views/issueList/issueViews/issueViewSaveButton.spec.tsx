@@ -18,38 +18,24 @@ import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
 import {IssueViewSaveButton} from './issueViewSaveButton';
 
-const organization = OrganizationFixture({
-  features: ['issue-views'],
-});
+const organization = OrganizationFixture({features: ['issue-views']});
 
-const defaultProps = {
-  query: 'is:unresolved',
-  sort: IssueSortOptions.DATE,
-};
+const defaultProps = {query: 'is:unresolved', sort: IssueSortOptions.DATE};
 
 const mockGroupSearchView = GroupSearchViewFixture({id: '100'});
 const defaultPageFilters = {
   projects: [1],
   environments: ['prod'],
-  datetime: {
-    period: '7d',
-    utc: null,
-    start: null,
-    end: null,
-  },
+  datetime: {period: '7d', utc: null, start: null, end: null},
 };
 
 const initialRouterConfigFeed = {
-  location: {
-    pathname: '/organizations/org-slug/issues/',
-  },
+  location: {pathname: '/organizations/org-slug/issues/'},
   route: '/organizations/:orgId/issues/',
 };
 
 const initialRouterConfigView = {
-  location: {
-    pathname: '/organizations/org-slug/issues/views/100/',
-  },
+  location: {pathname: '/organizations/org-slug/issues/views/100/'},
   route: '/organizations/:orgId/issues/views/:viewId/',
 };
 
@@ -82,10 +68,7 @@ describe('IssueViewSaveButton', () => {
         <IssueViewSaveButton {...defaultProps} />
         <GlobalModal />
       </Fragment>,
-      {
-        initialRouterConfig: initialRouterConfigFeed,
-        organization,
-      }
+      {initialRouterConfig: initialRouterConfigFeed, organization}
     );
 
     await userEvent.click(await screen.findByRole('button', {name: /save as/i}));
@@ -134,10 +117,7 @@ describe('IssueViewSaveButton', () => {
         <IssueViewSaveButton {...defaultProps} />
         <GlobalModal />
       </Fragment>,
-      {
-        initialRouterConfig: initialRouterConfigView,
-        organization,
-      }
+      {initialRouterConfig: initialRouterConfigView, organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'More save options'}));
@@ -212,11 +192,7 @@ describe('IssueViewSaveButton', () => {
 
     expect(mockUpdateIssueView).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({
-          environments: ['dev'],
-        }),
-      })
+      expect.objectContaining({data: expect.objectContaining({environments: ['dev']})})
     );
   });
 
@@ -329,9 +305,7 @@ describe('IssueViewSaveButton', () => {
 
   it('shows a feature disabled hovercard when the feature is disabled', async () => {
     render(<IssueViewSaveButton {...defaultProps} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}),
     });
     expect(await screen.findByRole('button', {name: /save as/i})).toBeDisabled();
   });

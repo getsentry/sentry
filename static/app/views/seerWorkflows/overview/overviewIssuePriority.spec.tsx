@@ -76,9 +76,7 @@ describe('OverviewIssuePriority', () => {
       {organization}
     );
 
-    const priorityDropdown = screen.getByRole('button', {
-      name: 'Modify issue priority',
-    });
+    const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
     expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
 
     await userEvent.click(priorityDropdown);

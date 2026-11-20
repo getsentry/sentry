@@ -16,11 +16,7 @@ export function WidgetWrapper({displayType, ...motionProps}: WidgetWrapperProps)
       position="relative"
       area={
         displayType === 'big_number'
-          ? {
-              zero: 'span 1 / span 2',
-              xl: 'span 1 / span 1',
-              '5xl': 'span 1 / span 2',
-            }
+          ? {zero: 'span 1 / span 2', xl: 'span 1 / span 1', '5xl': 'span 1 / span 2'}
           : 'span 2 / span 2'
       }
       css={css`

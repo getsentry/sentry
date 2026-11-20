@@ -22,6 +22,7 @@ import {
   type ConsolePlatform,
 } from 'sentry/constants/consolePlatforms';
 import type {Organization} from 'sentry/types/organization';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {
@@ -206,10 +207,7 @@ function ToggleConsolePlatformsModal({
 
     if (pendingRevocations.length > 0) {
       promises.push(
-        revokeConsoleInvites({
-          orgSlug: organization.slug,
-          items: pendingRevocations,
-        })
+        revokeConsoleInvites({orgSlug: organization.slug, items: pendingRevocations})
       );
     }
     promises.push(updateConsolePlatforms(data));
@@ -225,9 +223,12 @@ function ToggleConsolePlatformsModal({
         setPendingRevocations([]);
       })
       .finally(() => {
-        queryClient.invalidateQueries({
-          queryKey: [`/organizations/${organization.slug}/console-sdk-invites/`],
-        });
+        queryClient.invalidateQueries(
+          apiOptions.queryFilter(
+            '/organizations/$organizationIdOrSlug/console-sdk-invites/',
+            {path: {organizationIdOrSlug: organization.slug}}
+          )
+        );
       });
   };
 

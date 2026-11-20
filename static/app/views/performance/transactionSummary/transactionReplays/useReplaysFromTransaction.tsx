@@ -32,10 +32,7 @@ export type EventSpanData = {
 };
 
 type Return = {
-  data: null | {
-    events: EventSpanData[];
-    replayRecordsEventView: EventView;
-  };
+  data: null | {events: EventSpanData[]; replayRecordsEventView: EventView};
   fetchError: any;
   isFetching: boolean;
   pageLinks: null | string;
@@ -101,10 +98,7 @@ export function useReplaysFromTransaction({
 
   return {
     data: replayRecordsEventView
-      ? {
-          events: response.events,
-          replayRecordsEventView,
-        }
+      ? {events: response.events, replayRecordsEventView}
       : null,
     fetchError,
     isFetching: !fetchError && !response.replayIds,

@@ -18,10 +18,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -35,10 +32,7 @@ describe('TraceSearchEvaluator', () => {
     it('text filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({op: 'db'}), makeEAPSpan({op: 'http'})],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -55,10 +49,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -75,10 +66,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -95,10 +83,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({start_timestamp: 0, end_timestamp: 1}),
           makeEAPSpan({start_timestamp: 0, end_timestamp: 0.5}),
         ],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -112,10 +97,7 @@ describe('TraceSearchEvaluator', () => {
     it('name filter', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -129,10 +111,7 @@ describe('TraceSearchEvaluator', () => {
     it('name filter with prefix', async () => {
       const tree = TraceTree.FromTrace(
         [makeEAPSpan({name: 'authentication'}), makeEAPSpan({name: 'database'})],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();
@@ -149,10 +128,7 @@ describe('TraceSearchEvaluator', () => {
           makeEAPSpan({name: 'user_authentication_service', op: 'http'}),
           makeEAPSpan({name: 'database_query', op: 'db'}),
         ],
-        {
-          replay: null,
-          organization,
-        }
+        {replay: null, organization}
       );
 
       const cb = jest.fn();

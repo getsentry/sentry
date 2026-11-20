@@ -30,6 +30,7 @@ import type {PageFilterDatetime} from 'sentry/types/core';
 import type {BaseGroup, Group, PriorityLevel} from 'sentry/types/group';
 import {GroupStatus} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {CursorPoller} from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -270,11 +271,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -348,10 +345,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -381,17 +375,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -420,11 +405,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -649,20 +630,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -681,10 +656,7 @@ function IssueListOverviewInner({
       delete queryData.sort;
     }
 
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -697,10 +669,7 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
     if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
@@ -734,13 +703,11 @@ function IssueListOverviewInner({
   };
 
   const invalidateIssueCounts = () => {
-    queryClient.invalidateQueries({
-      queryKey: [
-        getApiUrl('/organizations/$organizationIdOrSlug/issues-count/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
-      ],
-    });
+    queryClient.invalidateQueries(
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues-count/', {
+        path: {organizationIdOrSlug: organization.slug},
+      })
+    );
   };
 
   const undoAction = async ({
@@ -759,10 +726,7 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       invalidateIssueCounts();
@@ -914,10 +878,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);

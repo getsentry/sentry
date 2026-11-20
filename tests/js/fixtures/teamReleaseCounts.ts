@@ -18,13 +18,7 @@ export function TeamReleaseCountsFixture(): ProjectReleaseCount {
       '2021-03-23': 0,
       '2021-03-24': 0,
     },
-    project_avgs: {
-      123: 3,
-      234: 4,
-    },
-    last_week_totals: {
-      123: 2,
-      234: 4,
-    },
+    project_avgs: {123: 3, 234: 4},
+    last_week_totals: {123: 2, 234: 4},
   };
 }

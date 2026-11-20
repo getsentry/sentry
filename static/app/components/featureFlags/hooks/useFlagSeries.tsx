@@ -26,24 +26,14 @@ export function useFlagSeries({event, flags}: FlagSeriesProps) {
   const renderToString = useRenderToString();
 
   if (!flags.length) {
-    return {
-      seriesName: t('Feature Flags'),
-      markLine: {},
-      data: [],
-    };
+    return {seriesName: t('Feature Flags'), markLine: {}, data: []};
   }
 
   // create a markline series using hydrated flag data
   const markLine = createMarkLine({
     animation: false,
-    lineStyle: {
-      color: theme.colors.pink400,
-      opacity: 0.3,
-      type: 'solid',
-    },
-    label: {
-      show: false,
-    },
+    lineStyle: {color: theme.colors.pink400, opacity: 0.3, type: 'solid'},
+    label: {show: false},
     data: hydrateToFlagSeries(flags),
     tooltip: {
       trigger: 'item',

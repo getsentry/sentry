@@ -20,7 +20,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useResizable} from 'sentry/utils/useResizable';
@@ -121,7 +121,7 @@ function InboxList({filters, setFilters, selectedSubject}: InboxListProps) {
     <ListItemCheckboxProvider
       hits={items.length}
       knownIds={items.map(item => item.id)}
-      endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+      endpointOptions={parseQueryKey(queryOptions.queryKey).options}
     >
       <InboxListHeader filters={filters} setFilters={setFilters} />
       <Container flex={1} overflowY="auto" minHeight={0}>
@@ -284,10 +284,7 @@ export default function Inbox() {
         title={{
           type: 'page-title',
           label: t('Inbox'),
-          trailingActions: {
-            type: 'badge',
-            element: <FeatureBadge type="alpha" />,
-          },
+          trailingActions: {type: 'badge', element: <FeatureBadge type="alpha" />},
         }}
       />
       <Stack flex={1} minHeight={0} background="primary" overflow="hidden" contain="size">
