@@ -1,5 +1,7 @@
 import type {size} from '@sentry/scraps/tokens/size';
 
+import type {lightTheme} from './light';
+
 /**
  * Font size constraint for body typography.
  */
@@ -83,6 +85,20 @@ export type BorderVariant =
   | 'secondary'
   | 'muted'
   | 'none';
+
+/**
+ * Dot paths to every leaf of a token object, e.g. `'transparent.neutral.muted'`.
+ */
+type TokenPath<T> = {
+  [K in keyof T & string]: T[K] extends string ? K : `${K}.${TokenPath<T[K]>}`;
+}[keyof T & string];
+
+/**
+ * Every background color token, as a path into `tokens.background`. Derived
+ * from the theme, so a new background token is available without changing
+ * this type.
+ */
+export type BackgroundToken = TokenPath<(typeof lightTheme)['tokens']['background']>;
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)
 

@@ -120,6 +120,29 @@ Apply rounded corners using theme radius values:
 </Container>
 ```
 
+### Background
+
+`background` sets the background color. Any background token works, written as its path in `tokens.background`, for example `secondary`, `accent.vibrant` or `transparent.neutral.muted`. Values match the token names in the theme exactly.
+
+<Storybook.Demo>
+  <Flex gap="md">
+    <Container padding="md" radius="md" background="secondary">
+      secondary
+    </Container>
+    <Container padding="md" radius="md" background="transparent.accent.muted">
+      transparent.accent.muted
+    </Container>
+  </Flex>
+</Storybook.Demo>
+```jsx
+<Container background="secondary" radius="md">
+  secondary
+</Container>
+<Container background="transparent.accent.muted" radius="md">
+  transparent.accent.muted
+</Container>
+```
+
 ### Position
 
 Set positioning for absolute/relative layouts:
