@@ -1,5 +1,7 @@
-import type {RadioGroupProps} from 'sentry/components/forms/controls/radioGroup';
-import {RadioGroup} from 'sentry/components/forms/controls/radioGroup';
+import {
+  RadioGroup,
+  type RadioGroupProps,
+} from 'sentry/components/forms/controls/radioGroup';
 import {FormField} from 'sentry/components/forms/formField';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props

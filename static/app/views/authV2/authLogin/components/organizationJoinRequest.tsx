@@ -8,7 +8,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
@@ -109,20 +109,19 @@ function JoinRequestForm({
   });
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {email: ''},
-    validators: {onDynamic: joinRequestSchema},
+    validators: defaultFormValidators(joinRequestSchema),
     onSubmit: ({value}) => mutation.mutateAsync(value).catch(() => {}),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="email">
+    <ScrapsForm form={form}>
+      <form.Field name="email">
         {field => (
           <Stack gap="sm">
             <field.Input
               type="email"
-              value={field.state.value}
+              value={field.value}
               onChange={field.handleChange}
               aria-label={t('Email')}
               autoComplete="email"
@@ -142,7 +141,7 @@ function JoinRequestForm({
             </Text>
           </Stack>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }

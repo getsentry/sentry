@@ -180,7 +180,7 @@ function AccountDetails() {
             {field => (
               <field.Layout.Row label={t('Name')} hintText={t('Your full name')} required>
                 <field.Input
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   placeholder="e.g. John Doe"
                 />
@@ -198,7 +198,7 @@ function AccountDetails() {
               {field => (
                 <field.Layout.Row label={t('Username')} required>
                   <field.Input
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder="e.g. name@example.com"
                     disabled={user.isManaged}
@@ -221,11 +221,7 @@ function AccountDetails() {
                   'The unique identifier for your account. It cannot be modified.'
                 )}
               >
-                <field.Input
-                  value={field.state.value}
-                  onChange={field.handleChange}
-                  disabled
-                />
+                <field.Input value={field.value} onChange={field.handleChange} disabled />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -246,7 +242,7 @@ function AccountDetails() {
                 )}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={THEME_OPTIONS}
                 />
@@ -263,7 +259,7 @@ function AccountDetails() {
             {field => (
               <field.Layout.Row label={t('Language')}>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={LANGUAGE_OPTIONS}
                 />
@@ -280,7 +276,7 @@ function AccountDetails() {
             {field => (
               <field.Layout.Row label={t('Timezone')}>
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={timezoneOptions}
                 />
@@ -296,7 +292,7 @@ function AccountDetails() {
           >
             {field => (
               <field.Layout.Row label={t('Use a 24-hour clock')}>
-                <field.Switch checked={field.state.value} onChange={field.handleChange} />
+                <field.Switch checked={field.value} onChange={field.handleChange} />
               </field.Layout.Row>
             )}
           </AutoSaveForm>
@@ -313,7 +309,7 @@ function AccountDetails() {
                 hintText={t('Choose the default ordering of frames in stack traces')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={STACKTRACE_ORDER_OPTIONS}
                 />
@@ -333,7 +329,7 @@ function AccountDetails() {
                 hintText={t('Choose what event gets displayed by default')}
               >
                 <field.Select
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   options={DEFAULT_ISSUE_EVENT_OPTIONS}
                 />

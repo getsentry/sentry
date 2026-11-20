@@ -32,7 +32,7 @@ export function GeneralSettingsSection({
               hintText={t('Enables images from real data to be displayed')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasWriteAccess}
               />

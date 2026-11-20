@@ -12,7 +12,12 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
-import {AutoSaveForm, defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {
+  AutoSaveForm,
+  useScrapsForm,
+  ScrapsForm,
+  defaultFormValidators,
+} from '@sentry/scraps/form';
 import {Grid} from '@sentry/scraps/layout';
 
 const schema = z.object({
@@ -35,18 +40,17 @@ function TestForm({
   onSubmit?: (value: {scopes: string[]}) => void;
 }) {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {scopes: defaultValue},
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: ({value}) => onSubmit(value),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="scopes">
+    <ScrapsForm form={form}>
+      <form.Field name="scopes">
         {field => (
           <field.CheckboxGroup
-            value={field.state.value}
+            value={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           >
@@ -62,9 +66,9 @@ function TestForm({
             )}
           </field.CheckboxGroup>
         )}
-      </form.AppField>
+      </form.Field>
       <form.SubmitButton>Save</form.SubmitButton>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 
@@ -81,7 +85,7 @@ function AutoSaveTestForm({
       mutationOptions={{mutationFn}}
     >
       {field => (
-        <field.CheckboxGroup value={field.state.value} onChange={field.handleChange}>
+        <field.CheckboxGroup value={field.value} onChange={field.handleChange}>
           {({Item}) => (
             <field.Layout.Stack label="Scopes">
               <Item value="read">Read</Item>
@@ -110,10 +114,10 @@ describe('CheckboxGroupField types', () => {
       const form = useScrapsForm({defaultValues: {scopes: value}});
 
       return (
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
             <field.CheckboxGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<Scope[]>();
                 field.handleChange(next);
@@ -127,7 +131,7 @@ describe('CheckboxGroupField types', () => {
               }}
             </field.CheckboxGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -146,7 +150,7 @@ describe('CheckboxGroupField types', () => {
         >
           {field => (
             <field.CheckboxGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<Scope[]>();
                 field.handleChange(next);
@@ -174,12 +178,9 @@ describe('CheckboxGroupField types', () => {
       const form = useScrapsForm({defaultValues: {scopes: value}});
 
       return (
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
-            <field.CheckboxGroup
-              value={field.state.value}
-              onChange={(_value: string[]) => {}}
-            >
+            <field.CheckboxGroup value={field.value} onChange={(_value: string[]) => {}}>
               {({Item}) => {
                 expectTypeOf<
                   React.ComponentProps<typeof Item>['value']
@@ -191,7 +192,7 @@ describe('CheckboxGroupField types', () => {
               }}
             </field.CheckboxGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -202,17 +203,17 @@ describe('CheckboxGroupField types', () => {
       const form = useScrapsForm({defaultValues: {scopes: value}});
 
       return (
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
             <field.CheckboxGroup
-              value={field.state.value}
+              value={field.value}
               // @ts-expect-error The callback must accept arrays with any allowed item value.
               onChange={(_value: Array<'read'>) => {}}
             >
               {({Item}) => <Item value="write">Write</Item>}
             </field.CheckboxGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -224,7 +225,7 @@ describe('CheckboxGroupField types', () => {
       const form = useScrapsForm({defaultValues});
 
       return (
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
             <field.CheckboxGroup<Scope> value={[]} onChange={field.handleChange}>
               {({Item}) => {
@@ -235,7 +236,7 @@ describe('CheckboxGroupField types', () => {
               }}
             </field.CheckboxGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;
@@ -246,10 +247,10 @@ describe('CheckboxGroupField types', () => {
       const form = useScrapsForm({defaultValues: {scopes: value}});
 
       return (
-        <form.AppField name="scopes">
+        <form.Field name="scopes">
           {field => (
             <field.CheckboxGroup
-              value={field.state.value}
+              value={field.value}
               onChange={next => {
                 expectTypeOf(next).toEqualTypeOf<string[]>();
                 field.handleChange(next);
@@ -263,7 +264,7 @@ describe('CheckboxGroupField types', () => {
               }}
             </field.CheckboxGroup>
           )}
-        </form.AppField>
+        </form.Field>
       );
     }
     void TypeTest;

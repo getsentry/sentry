@@ -29,7 +29,7 @@ export function DetectorBooleanField({
       {field => (
         <field.Layout.Row label={label} hintText={help}>
           <field.Switch
-            checked={field.state.value}
+            checked={field.value}
             onChange={field.handleChange}
             disabled={disabled}
           />

@@ -2,28 +2,27 @@ import {z} from 'zod';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 
 function TestForm() {
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {subscribe: false},
-    validators: {onDynamic: z.object({subscribe: z.boolean()})},
+    validators: defaultFormValidators(z.object({subscribe: z.boolean()})),
   });
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="subscribe">
+    <ScrapsForm form={form}>
+      <form.Field name="subscribe">
         {field => (
           <field.Checkbox
-            checked={field.state.value}
+            checked={field.value}
             onChange={field.handleChange}
             label="Subscribe to updates"
             hintText="Monthly product news"
           />
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 

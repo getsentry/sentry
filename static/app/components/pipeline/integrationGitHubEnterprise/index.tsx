@@ -1,8 +1,8 @@
-import {useCallback, useEffect} from 'react';
+import {useCallback} from 'react';
 import {z} from 'zod';
 
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, setFieldErrors, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -17,6 +17,7 @@ import type {
 import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t, tct} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 
 const installationConfigSchema = z.object({
@@ -53,14 +54,12 @@ interface InstallationConfigAdvanceData {
 function InstallationConfigStep({
   stepData,
   advance,
-  advanceError,
   isAdvancing,
   isInitializing,
 }: PipelineStepProps<InstallationConfigStepData, InstallationConfigAdvanceData>) {
   const defaults = stepData?.defaults ?? {};
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {
       url: '',
       id: '',
@@ -72,20 +71,19 @@ function InstallationConfigStep({
       clientId: '',
       clientSecret: '',
     },
-    validators: {onDynamic: installationConfigSchema},
-    onSubmit: ({value}) => {
-      advance(installationConfigSchema.parse(value));
-    },
+    validators: defaultFormValidators(installationConfigSchema),
+    onSubmit: ({value, createValidationError}) =>
+      advance(installationConfigSchema.parse(value)).catch(error => {
+        if (error instanceof RequestError) {
+          const fields = requestErrorToFieldErrors(error, value);
+          return fields ? createValidationError({fields}) : undefined;
+        }
+        throw error;
+      }),
   });
 
-  useEffect(() => {
-    if (advanceError) {
-      setFieldErrors(form, requestErrorToFieldErrors(advanceError, form.state.values));
-    }
-  }, [advanceError, form]);
-
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Stack gap="lg">
         <Text>
           {tct(
@@ -98,7 +96,7 @@ function InstallationConfigStep({
           )}
         </Text>
 
-        <form.AppField name="url">
+        <form.Field name="url">
           {field => (
             <field.Layout.Stack
               label={t('Installation URL')}
@@ -108,15 +106,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="https://github.example.com"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="id">
+        <form.Field name="id">
           {field => (
             <field.Layout.Stack
               label={t('GitHub App ID')}
@@ -124,15 +122,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="1"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="name">
+        <form.Field name="name">
           {field => (
             <field.Layout.Stack
               label={t('GitHub App Name')}
@@ -142,15 +140,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="our-sentry-app"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="webhookSecret">
+        <form.Field name="webhookSecret">
           {field => (
             <field.Layout.Stack
               label={t('Webhook Secret')}
@@ -160,15 +158,15 @@ function InstallationConfigStep({
               required
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 type="password"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="privateKey">
+        <form.Field name="privateKey">
           {field => (
             <field.Layout.Stack
               label={t('Private Key')}
@@ -176,7 +174,7 @@ function InstallationConfigStep({
               required
             >
               <field.TextArea
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 rows={3}
                 monospace
@@ -186,29 +184,29 @@ function InstallationConfigStep({
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="clientId">
+        <form.Field name="clientId">
           {field => (
             <field.Layout.Stack label={t('OAuth Client ID')} required>
-              <field.Input value={field.state.value} onChange={field.handleChange} />
+              <field.Input value={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="clientSecret">
+        <form.Field name="clientSecret">
           {field => (
             <field.Layout.Stack label={t('OAuth Client Secret')} required>
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 type="password"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="publicLink">
+        <form.Field name="publicLink">
           {field => (
             <field.Layout.Stack
               label={t('Public Link')}
@@ -217,15 +215,15 @@ function InstallationConfigStep({
               )}
             >
               <field.Input
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 placeholder="https://github.example.com/github-apps/our-sentry-app"
               />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
-        <form.AppField name="verifySsl">
+        <form.Field name="verifySsl">
           {field => (
             <field.Layout.Stack
               label={t('Verify SSL')}
@@ -233,10 +231,10 @@ function InstallationConfigStep({
                 'Verify SSL certificates when communicating with your GitHub Enterprise instance.'
               )}
             >
-              <field.Switch checked={field.state.value} onChange={field.handleChange} />
+              <field.Switch checked={field.value} onChange={field.handleChange} />
             </field.Layout.Stack>
           )}
-        </form.AppField>
+        </form.Field>
 
         <Flex>
           <form.SubmitButton busy={isAdvancing} disabled={isInitializing}>
@@ -244,7 +242,7 @@ function InstallationConfigStep({
           </form.SubmitButton>
         </Flex>
       </Stack>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

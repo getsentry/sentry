@@ -1,20 +1,17 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
 
 function TestForm() {
-  const form = useScrapsForm({
-    ...defaultFormOptions,
-    defaultValues: {superuserAccessCategory: 'development'},
-  });
+  const form = useScrapsForm({defaultValues: {superuserAccessCategory: 'development'}});
 
   return (
-    <form.AppForm form={form}>
-      <form.AppField name="superuserAccessCategory">
+    <ScrapsForm form={form}>
+      <form.Field name="superuserAccessCategory">
         {field => (
-          <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+          <field.RadioGroup value={field.value} onChange={field.handleChange}>
             {({Item}) => (
               <field.Layout.Stack label="Categories of Superuser Access" required>
                 <SuperuserAccessCategory RadioItem={Item} />
@@ -22,8 +19,8 @@ function TestForm() {
             )}
           </field.RadioGroup>
         )}
-      </form.AppField>
-    </form.AppForm>
+      </form.Field>
+    </ScrapsForm>
   );
 }
 

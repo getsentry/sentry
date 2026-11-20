@@ -11,11 +11,11 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {
-  defaultFormOptions,
+  ScrapsForm,
+  defaultFormValidators,
   DisplayField,
-  setFieldErrors,
   useScrapsForm,
-  useStore,
+  useSelector,
 } from '@sentry/scraps/form';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Switch} from '@sentry/scraps/switch';
@@ -151,7 +151,6 @@ export function MetricAutomationForm(props: Props) {
     return config;
   };
   const form = useScrapsForm({
-    ...defaultFormOptions,
     ...(props.mode === 'edit' ? {formId: props.formId} : {}),
     defaultValues: {
       enabled: props.mode === 'edit' ? props.config.enabled : false,
@@ -165,8 +164,8 @@ export function MetricAutomationForm(props: Props) {
         serviceAccount?.scopes ??
         DEFAULT_SERVICE_ACCOUNT_SCOPES.filter(scope => grantableScopes.has(scope)),
     },
-    validators: {onDynamic: schema},
-    onSubmit: async ({value, formApi}) => {
+    validators: defaultFormValidators(schema),
+    onSubmit: async ({value, formApi, createValidationError}) => {
       try {
         const config = await saveConfig(schema.parse(value));
         if (props.mode === 'edit') {
@@ -183,20 +182,24 @@ export function MetricAutomationForm(props: Props) {
       } catch (error) {
         toast.error(getRequestErrorUserMessage(error, t('Unable to save automation.')));
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, requestErrorToFieldErrors(error, formApi.state.values));
+          const fields = requestErrorToFieldErrors(error, value);
+          if (fields) {
+            return createValidationError({fields});
+          }
         }
       }
+      return;
     },
   });
   const formRef = props.mode === 'edit' ? props.formRef : undefined;
   // Lets the page header's Cancel button discard changes from outside the form
   useImperativeHandle(formRef, () => ({reset: () => form.reset()}), [form]);
-  const hasChanges = useStore(form.store, state => !state.isDefaultValue);
+  const hasChanges = useSelector(form.atom, state => !state.isDefaultValue);
   const setFormHasChanges = props.mode === 'edit' ? props.setFormHasChanges : undefined;
   useEffect(() => setFormHasChanges?.(hasChanges), [setFormHasChanges, hasChanges]);
   // Fetch connected monitors by ID so they resolve regardless of the picker's filters
   const queryClient = useQueryClient();
-  const monitorIds = useStore(form.store, state => state.values.monitorIds);
+  const monitorIds = useSelector(form.atom, state => state.values.monitorIds);
   const monitorsQueryOptions = detectorListApiOptions(organization, {
     ids: monitorIds,
     projects: [-1],
@@ -235,15 +238,15 @@ export function MetricAutomationForm(props: Props) {
       ? (monitorsQuery.data?.filter(monitor => monitor.type === 'metric_issue') ?? [])
       : [];
   const connectedMonitors = monitors.filter(monitor => monitorIds.includes(monitor.id));
-  const serviceAccountProjects = useStore(
-    form.store,
+  const serviceAccountProjects = useSelector(
+    form.atom,
     state => state.values.serviceAccountProjects
   );
-  const scopes = useStore(form.store, state => state.values.scopes);
+  const scopes = useSelector(form.atom, state => state.values.scopes);
 
   return (
     <Container maxWidth="960px" width="100%" containerType="inline-size">
-      <form.AppForm form={form}>
+      <ScrapsForm form={form}>
         <Stack gap="lg">
           {mutationError && (
             <Alert variant="danger">
@@ -253,18 +256,18 @@ export function MetricAutomationForm(props: Props) {
           <FormSection title={t('Description')}>
             <form.FieldGroup>
               {props.mode === 'create' && (
-                <form.AppField name="name">
+                <form.Field name="name">
                   {field => (
                     <field.Layout.Stack label={t('Name')} required>
                       <field.Input
-                        value={field.state.value}
+                        value={field.value}
                         onChange={field.handleChange}
                         placeholder={t('e.g. Investigate checkout errors')}
                         maxLength={64}
                       />
                     </field.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
               <Container padding="lg xl">
                 <Text variant="muted">
@@ -295,7 +298,7 @@ export function MetricAutomationForm(props: Props) {
 
           <FormSection title={t('Scope')}>
             <form.FieldGroup>
-              <form.AppField name="monitorIds">
+              <form.Field name="monitorIds">
                 {field => (
                   <field.Layout.Stack
                     label={t('Connected monitors')}
@@ -306,7 +309,7 @@ export function MetricAutomationForm(props: Props) {
                     <field.Base>
                       {() => (
                         <ConnectedMonitors
-                          monitorIds={field.state.value}
+                          monitorIds={field.value}
                           monitors={monitors}
                           isPending={monitorsQuery.isLoading}
                           isError={hasMonitorsError}
@@ -338,7 +341,7 @@ export function MetricAutomationForm(props: Props) {
                     </field.Base>
                   </field.Layout.Stack>
                 )}
-              </form.AppField>
+              </form.Field>
             </form.FieldGroup>
           </FormSection>
 
@@ -378,7 +381,7 @@ export function MetricAutomationForm(props: Props) {
                   </Disclosure.Title>
                   <Disclosure.Content>
                     <Stack gap="2xl" paddingTop="md">
-                      <form.AppField name="serviceAccountProjects">
+                      <form.Field name="serviceAccountProjects">
                         {field => (
                           <field.Layout.Stack label={t('Project access')}>
                             <field.Base>
@@ -390,7 +393,7 @@ export function MetricAutomationForm(props: Props) {
                                     )}
                                   </Text>
                                   <ServiceAccountProjects
-                                    value={field.state.value}
+                                    value={field.value}
                                     monitors={connectedMonitors}
                                     disabled={readOnly}
                                     onChange={field.handleChange}
@@ -400,9 +403,9 @@ export function MetricAutomationForm(props: Props) {
                             </field.Base>
                           </field.Layout.Stack>
                         )}
-                      </form.AppField>
+                      </form.Field>
                       <Container borderTop="primary" paddingTop="2xl">
-                        <form.AppField name="scopes">
+                        <form.Field name="scopes">
                           {field => (
                             <field.Layout.Stack label={t('Permissions')}>
                               <field.Base>
@@ -414,7 +417,7 @@ export function MetricAutomationForm(props: Props) {
                                       )}
                                     </Text>
                                     <ServiceAccountPermissions
-                                      value={field.state.value}
+                                      value={field.value}
                                       disabled={readOnly}
                                       onChange={field.handleChange}
                                     />
@@ -423,7 +426,7 @@ export function MetricAutomationForm(props: Props) {
                               </field.Base>
                             </field.Layout.Stack>
                           )}
-                        </form.AppField>
+                        </form.Field>
                       </Container>
                     </Stack>
                   </Disclosure.Content>
@@ -451,7 +454,7 @@ export function MetricAutomationForm(props: Props) {
             )}
           </Flex>
         </Stack>
-      </form.AppForm>
+      </ScrapsForm>
     </Container>
   );
 }

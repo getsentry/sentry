@@ -12,7 +12,7 @@ import {z} from 'zod';
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Confirm} from '@sentry/scraps/confirm';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {useFormErrorMapper} from '@sentry/scraps/form/formErrorContext';
 import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -359,7 +359,6 @@ function LinkProjectModal({
   const [error, setError] = useState<SaveError | null>(null);
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues: {vercelProjectId: '', sentryProjectId: ''},
     onSubmit: ({value}) =>
       onLink([Number(value.sentryProjectId), value.vercelProjectId]).then(
@@ -405,29 +404,29 @@ function LinkProjectModal({
   ];
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Heading as="h4">{t('Link Vercel Project')}</Heading>
       </Header>
       <Body>
         <Stack gap="xl">
-          <form.AppField name="vercelProjectId">
+          <form.Field name="vercelProjectId">
             {vercelField => (
               <vercelField.Layout.Stack label={t('Vercel project')} required>
                 <vercelField.Select
-                  value={vercelField.state.value}
+                  value={vercelField.value}
                   onChange={vercelField.handleChange}
                   placeholder={t('Choose Vercel project')}
                   options={vercelProjectOptions}
                 />
               </vercelField.Layout.Stack>
             )}
-          </form.AppField>
-          <form.AppField name="sentryProjectId">
+          </form.Field>
+          <form.Field name="sentryProjectId">
             {sentryField => (
               <sentryField.Layout.Stack label={t('Sentry project')} required>
                 <sentryField.Select
-                  value={sentryField.state.value}
+                  value={sentryField.value}
                   onChange={value => {
                     if (value === CREATE_PROJECT) {
                       window.open(
@@ -444,7 +443,7 @@ function LinkProjectModal({
                 />
               </sentryField.Layout.Stack>
             )}
-          </form.AppField>
+          </form.Field>
           {error && <SaveErrorAlert {...error} />}
         </Stack>
       </Body>
@@ -464,7 +463,7 @@ function LinkProjectModal({
           </form.Subscribe>
         </Flex>
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

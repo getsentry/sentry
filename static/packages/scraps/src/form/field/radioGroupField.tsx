@@ -2,20 +2,21 @@ import type * as React from 'react';
 import {useId} from 'react';
 
 import {useAutoSaveContext} from '@sentry/scraps/form/autoSaveContext';
-import {useLabelId} from '@sentry/scraps/form/field/fieldIds';
+import {getLabelId} from '@sentry/scraps/form/field/fieldIds';
 import {
   GroupProvider,
   useGroupItemContext,
   type GroupContextValue,
 } from '@sentry/scraps/form/field/groupContext';
 import {FieldMeta} from '@sentry/scraps/form/field/meta';
-import {useFieldContext} from '@sentry/scraps/form/formContext';
+import {fieldComponent, type FieldWithValue} from '@sentry/scraps/form/formHelpers';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Radio} from '@sentry/scraps/radio';
 import {Text} from '@sentry/scraps/text';
 
 import {useAutoSaveIndicator} from './baseField';
 
+/** @public Required by generated form declarations. */
 export interface RadioGroupProps<T extends string> {
   children: (components: {
     Item: (props: RadioItemProps<NoInfer<T>>) => React.JSX.Element;
@@ -25,11 +26,16 @@ export interface RadioGroupProps<T extends string> {
   disabled?: boolean | string;
 }
 
-function RadioGroup({children, value, onChange, disabled}: RadioGroupProps<string>) {
-  const field = useFieldContext();
-  const labelId = useLabelId();
+function RadioGroup({
+  children,
+  value,
+  onChange,
+  disabled,
+  field,
+}: RadioGroupProps<string> & {field: FieldWithValue<unknown>}) {
+  const labelId = getLabelId(field);
   const autoSaveContext = useAutoSaveContext();
-  const indicator = useAutoSaveIndicator();
+  const indicator = useAutoSaveIndicator(field);
 
   const isDisabled = !!disabled || autoSaveContext?.status === 'pending';
 
@@ -47,7 +53,7 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps<strin
     },
     onBlur: field.handleBlur,
     disabled: isDisabled,
-    'aria-invalid': !field.state.meta.isValid,
+    'aria-invalid': !field.meta.isValid,
   };
 
   return (
@@ -61,7 +67,8 @@ function RadioGroup({children, value, onChange, disabled}: RadioGroupProps<strin
   );
 }
 
-interface RadioItemProps<T extends string> {
+/** @public Required by generated form declarations. */
+export interface RadioItemProps<T extends string> {
   children: React.ReactNode;
   value: T;
   description?: React.ReactNode;
@@ -96,6 +103,8 @@ const radioGroupComponents = {Item: RadioItem};
 
 // The callback ties the item values to the selected value's type. The runtime
 // components stay shared so that rendering the callback does not remount items.
-export const RadioGroupField = RadioGroup as <T extends string>(
+export const RadioGroupField = fieldComponent.loose(RadioGroup, 'field') as <
+  T extends string,
+>(
   props: RadioGroupProps<T>
 ) => React.JSX.Element;

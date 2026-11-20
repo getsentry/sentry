@@ -72,7 +72,7 @@ export function OrganizationMembershipSettingsForm({
             >
               <field.Select
                 options={roleOptions}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled || !hasOrgAdmin || !hasInviteMembers}
               />
@@ -101,7 +101,7 @@ export function OrganizationMembershipSettingsForm({
               hintText={t('Allow organization members to freely join any team')}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />
@@ -130,7 +130,7 @@ export function OrganizationMembershipSettingsForm({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />
@@ -159,7 +159,7 @@ export function OrganizationMembershipSettingsForm({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={!hasOrgWrite}
               />
@@ -188,7 +188,7 @@ export function OrganizationMembershipSettingsForm({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />
@@ -217,7 +217,7 @@ export function OrganizationMembershipSettingsForm({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />
@@ -241,7 +241,7 @@ export function OrganizationMembershipSettingsForm({
               >
                 <field.Select
                   options={roleOptions}
-                  value={field.state.value}
+                  value={field.value}
                   onChange={field.handleChange}
                   disabled={baseDisabled}
                 />
@@ -265,7 +265,7 @@ export function OrganizationMembershipSettingsForm({
             >
               <field.Select
                 options={roleOptions}
-                value={field.state.value}
+                value={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />
@@ -294,7 +294,7 @@ export function OrganizationMembershipSettingsForm({
               )}
             >
               <field.Switch
-                checked={field.state.value}
+                checked={field.value}
                 onChange={field.handleChange}
                 disabled={baseDisabled}
               />

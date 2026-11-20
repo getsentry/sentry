@@ -179,7 +179,7 @@ export function usePipeline<
   });
 
   const {
-    mutate: advanceMutate,
+    mutateAsync: advanceMutateAsync,
     isPending: isAdvancePending,
     error: advanceError,
     reset: resetAdvance,
@@ -266,6 +266,17 @@ export function usePipeline<
     },
   });
 
+  const advance = useCallback(
+    (data?: Record<string, unknown>) => {
+      const promise = advanceMutateAsync(data ?? {});
+      // Form submissions consume the rejection. Other pipeline steps call
+      // advance from event handlers and do not await the returned promise.
+      void promise.catch(() => {});
+      return promise;
+    },
+    [advanceMutateAsync]
+  );
+
   const restart = useCallback(() => {
     generationRef.current += 1;
     resetAdvance();
@@ -327,7 +338,7 @@ export function usePipeline<
             stepIndex: state.stepInfo.stepIndex,
             totalSteps: state.stepInfo.totalSteps,
             stepData: state.stepData,
-            advance: advanceMutate,
+            advance,
             isAdvancing: isAdvancePending,
             isInitializing: false,
             advanceError,
@@ -337,7 +348,7 @@ export function usePipeline<
             stepIndex: 0,
             totalSteps: definition.steps.length,
             stepData: null,
-            advance: advanceMutate,
+            advance,
             isAdvancing: false,
             isInitializing: true,
             advanceError: null,
@@ -349,7 +360,7 @@ export function usePipeline<
     state,
     stepDefinition,
     definition,
-    advanceMutate,
+    advance,
     isAdvancePending,
     advanceError,
     finish,
@@ -401,8 +412,8 @@ function getErrorMessage(err: Error): string {
  * 2. Initialization failure — bad provider, missing params, etc.
  * 3. Step error — PipelineStepResult.error() returned as 400 with
  *    {status: "error", data: {detail: "..."}}. Field-level validation
- *    errors are NOT surfaced here; those go to step components via
- *    advanceError / setFieldErrors().
+ *    errors are NOT surfaced here; those go to step components via the
+ *    returned validation errors.
  */
 function getPipelineError(
   state: {status: string; error?: Error},

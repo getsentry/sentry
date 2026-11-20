@@ -51,7 +51,7 @@ describe('Jira Server InstallationConfigStep', () => {
   });
 
   it('calls advance with form data on submit', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
     await fillRequiredConfigFields();
@@ -68,7 +68,7 @@ describe('Jira Server InstallationConfigStep', () => {
   });
 
   it('strips trailing slashes from the URL', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<InstallationConfigStep {...makeStepProps({stepData: {}, advance})} />);
 
     await fillRequiredConfigFields();
@@ -111,7 +111,7 @@ describe('Jira Server OAuthCallbackStep', () => {
   });
 
   it('opens the popup and advances with oauthToken on callback', async () => {
-    const advance = jest.fn();
+    const advance = jest.fn().mockResolvedValue({status: 'advance'});
     render(<OAuthCallbackStep {...makeStepProps({stepData: {oauthUrl}, advance})} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Authorize Jira Server'}));

@@ -2,7 +2,7 @@ import {useEffect} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {z} from 'zod';
 
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {defaultFormValidators, ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
@@ -33,9 +33,8 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
     onSuccess: onSubmitSuccess,
   });
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: schema},
+    validators: defaultFormValidators(schema),
     onSubmit: async ({value}) => {
       try {
         await mutation.mutateAsync(schema.parse(value));
@@ -59,11 +58,11 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
         <Text as="p">
           {t('Pardon the interruption, we just need to get a quick answer from you.')}
         </Text>
-        <form.AppForm form={form}>
+        <ScrapsForm form={form}>
           <Stack gap="xl">
-            <form.AppField name="subscribed">
+            <form.Field name="subscribed">
               {field => (
-                <field.RadioGroup value={field.state.value} onChange={field.handleChange}>
+                <field.RadioGroup value={field.value} onChange={field.handleChange}>
                   {({Item}) => (
                     <field.Layout.Stack
                       label={t('Email Updates')}
@@ -88,12 +87,12 @@ function NewsletterConsent({onSubmitSuccess}: Props) {
                   )}
                 </field.RadioGroup>
               )}
-            </form.AppField>
+            </form.Field>
             <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
               <form.SubmitButton>{t('Continue')}</form.SubmitButton>
             </Flex>
           </Stack>
-        </form.AppForm>
+        </ScrapsForm>
       </Stack>
     </NarrowLayout>
   );

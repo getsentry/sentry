@@ -5,7 +5,7 @@ import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
-import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
+import {useScrapsForm, ScrapsForm, defaultFormValidators} from '@sentry/scraps/form';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {ModalRenderProps} from '@sentry/scraps/modal';
@@ -1011,10 +1011,11 @@ function CustomFilterModal({
   };
 
   const form = useScrapsForm({
-    ...defaultFormOptions,
     defaultValues,
-    validators: {onDynamic: filterSchema},
-    listeners: {onBlur: ({formApi}) => suggestName(formApi.state.values)},
+    validators: defaultFormValidators(filterSchema),
+    listeners: [
+      {run: ({formApi}) => suggestName(formApi.state.values), triggers: ['blur']},
+    ],
     onSubmit: ({value}) =>
       saveMutation
         .mutateAsync(value)
@@ -1023,7 +1024,7 @@ function CustomFilterModal({
   });
 
   return (
-    <form.AppForm form={form}>
+    <ScrapsForm form={form}>
       <Header closeButton>
         <Stack gap="xs">
           <Heading as="h4">{getModalTitle(isReadOnly, !!filter)}</Heading>
@@ -1035,12 +1036,12 @@ function CustomFilterModal({
       <Body>
         <Stack gap="xl">
           <Grid columns={{zero: '1fr', md: '3fr minmax(180px, 1fr)'}} gap="md">
-            <form.AppField name="name">
+            <form.Field name="name">
               {field => (
                 <field.Layout.Stack label={t('Name')} required>
                   <field.Input
                     disabled={isReadOnly}
-                    value={field.state.value}
+                    value={field.value}
                     onChange={field.handleChange}
                     placeholder={
                       suggestNameMutation.isPending
@@ -1050,25 +1051,25 @@ function CustomFilterModal({
                   />
                 </field.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
 
-            <form.AppField name="dataType">
+            <form.Field name="dataType">
               {dataTypeField => (
                 <dataTypeField.Layout.Stack label={t('Data Type')} required>
                   <dataTypeField.Select
                     clearable={false}
                     disabled={isReadOnly || legacyCondition !== undefined}
                     options={modalDataTypeOptions}
-                    value={dataTypeField.state.value}
+                    value={dataTypeField.value}
                     onChange={value => dataTypeField.handleChange(value)}
                   />
                 </dataTypeField.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           </Grid>
 
           {legacyCondition ? (
-            <form.AppField name="conditions">
+            <form.Field name="conditions">
               {linesField => (
                 <linesField.Layout.Stack
                   label={getCondition(legacyCondition.type).label}
@@ -1077,7 +1078,7 @@ function CustomFilterModal({
                   <linesField.TextArea
                     readOnly={isReadOnly}
                     placeholder={getCondition(legacyCondition.type).placeholder}
-                    value={linesField.state.value}
+                    value={linesField.value}
                     onChange={linesField.handleChange}
                     monospace
                     autosize
@@ -1089,11 +1090,11 @@ function CustomFilterModal({
                   )}
                 </linesField.Layout.Stack>
               )}
-            </form.AppField>
+            </form.Field>
           ) : (
             <form.Subscribe selector={state => state.values}>
               {({dataType, conditions}) => (
-                <form.AppField name="conditions">
+                <form.Field name="conditions">
                   {queryField => (
                     <queryField.Layout.Stack
                       label={t('Conditions')}
@@ -1115,7 +1116,7 @@ function CustomFilterModal({
                             <SearchQueryBuilder
                               key={dataType}
                               label={t('Conditions')}
-                              initialQuery={queryField.state.value}
+                              initialQuery={queryField.value}
                               filterKeys={getOfferedFilterKeys(
                                 dataType,
                                 organization.features
@@ -1142,20 +1143,17 @@ function CustomFilterModal({
                           </Container>
                         )}
                       </queryField.Base>
-                      {queryField.state.meta.isTouched &&
-                        !queryField.state.meta.isValid && (
-                          <Text size="sm" variant="danger">
-                            {queryField.state.meta.errors
-                              .map(error => error?.message)
-                              .join(' ')}
-                          </Text>
-                        )}
+                      {queryField.meta.isTouched && !queryField.meta.isValid && (
+                        <Text size="sm" variant="danger">
+                          {queryField.errors.map(error => error?.message).join(' ')}
+                        </Text>
+                      )}
                       {(parseConditionQuery(conditions, dataType).conditions ?? []).some(
                         condition => RAW_ERROR_PROPERTIES.has(condition.type)
                       ) && <ObfuscatedErrorWarning project={project} />}
                     </queryField.Layout.Stack>
                   )}
-                </form.AppField>
+                </form.Field>
               )}
             </form.Subscribe>
           )}
@@ -1178,7 +1176,7 @@ function CustomFilterModal({
           </Flex>
         )}
       </Footer>
-    </form.AppForm>
+    </ScrapsForm>
   );
 }
 

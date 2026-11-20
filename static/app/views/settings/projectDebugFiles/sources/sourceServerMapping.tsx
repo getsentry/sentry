@@ -32,7 +32,7 @@ export function SourceServerMapping({organization, project}: Props) {
             )}
           >
             <field.Switch
-              checked={field.state.value}
+              checked={field.value}
               onChange={field.handleChange}
               disabled={
                 hasAccess ? false : t('You do not have permission to edit this setting.')

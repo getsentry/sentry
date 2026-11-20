@@ -333,7 +333,7 @@ export function SeerProjectTable() {
                               onChange={field.handleChange}
                               options={stoppingPointOptions}
                               size="xs"
-                              value={field.state.value}
+                              value={field.value}
                             />
                           )}
                         </AutoSaveForm>
@@ -363,7 +363,7 @@ export function SeerProjectTable() {
                               onChange={field.handleChange}
                               options={PR_ITERATION_OPTIONS}
                               size="xs"
-                              value={field.state.value}
+                              value={field.value}
                             />
                           )}
                         </AutoSaveForm>
@@ -454,7 +454,7 @@ function AgentSelectCell({
           }}
           options={agentSelectOptions}
           size="xs"
-          value={field.state.value}
+          value={field.value}
         />
       )}
     </AutoSaveForm>

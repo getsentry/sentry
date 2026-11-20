@@ -87,7 +87,7 @@ export function SnapshotStatusChecks() {
               'Sentry will post status checks based on snapshot changes in your builds.'
             )}
           >
-            <field.Switch checked={field.state.value} onChange={field.handleChange} />
+            <field.Switch checked={field.value} onChange={field.handleChange} />
           </field.Layout.Row>
         )}
       </AutoSaveForm>
@@ -104,10 +104,7 @@ export function SnapshotStatusChecks() {
             >
               {field => (
                 <field.Layout.Row label={label} hintText={hintText}>
-                  <field.Switch
-                    checked={field.state.value}
-                    onChange={field.handleChange}
-                  />
+                  <field.Switch checked={field.value} onChange={field.handleChange} />
                 </field.Layout.Row>
               )}
             </AutoSaveForm>
