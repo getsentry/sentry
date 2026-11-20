@@ -38,8 +38,12 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.serializers import serialize
 from sentry.api.utils import get_date_range_from_params
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import GlobalParams, OrganizationParams, UptimeParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.uptime.endpoints.serializers import UptimeSummarySerializerResponse
 from sentry.uptime.endpoints.utils import (
     MAX_UPTIME_SUBSCRIPTION_IDS,
     authorize_and_map_uptime_detector_subscription_ids,
@@ -51,7 +55,7 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
-@extend_schema(tags=["Uptime Monitors"])
+@extend_schema(tags=["Crons"])
 class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
@@ -59,7 +63,36 @@ class OrganizationUptimeSummaryEndpoint(OrganizationEndpoint):
     owner = ApiOwner.CRONS
     permission_classes = (OrganizationPermission,)
 
-    def get(self, request: Request, organization: Organization) -> Response:
+    @extend_schema(
+        operation_id="listOrganizationUptimeSummaries",
+        summary="Retrieve Check Summaries for an Organization's Uptime Monitors",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            UptimeParams.STATS_DETECTOR_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            OrganizationParams.PROJECT,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "OrganizationUptimeSummaryResponse", dict[int, UptimeSummarySerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def get(
+        self, request: Request, organization: Organization
+    ) -> Response[dict[int, UptimeSummarySerializerResponse]] | Response[str]:
+        """
+        Return check counts and the average check duration for each requested uptime monitor
+        over a time range. The response maps each uptime monitor ID to its summary. An uptime
+        monitor with no checks in the range is left out. The time range defaults to the last
+        90 days.
+        """
         start, end = get_date_range_from_params(request.GET)
         projects = self.get_projects(request, organization, include_all_accessible=True)
 

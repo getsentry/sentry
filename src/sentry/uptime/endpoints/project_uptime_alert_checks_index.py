@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 from typing import Any, cast
 
+from drf_spectacular.utils import extend_schema
 from google.protobuf.timestamp_pb2 import Timestamp
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,6 +32,9 @@ from sentry.api.base import cell_silo_endpoint
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers.base import serialize
 from sentry.api.utils import get_date_range_from_params, handle_query_errors
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, UptimeParams
+from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.project import Project
 from sentry.uptime.eap_utils import get_columns_for_uptime_result
 from sentry.uptime.endpoints.bases import ProjectUptimeAlertEndpoint
@@ -44,6 +48,7 @@ logger = logging.getLogger(__name__)
 
 
 @cell_silo_endpoint
+@extend_schema(tags=["Crons"])
 class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
     owner = ApiOwner.CRONS
 
@@ -51,12 +56,39 @@ class ProjectUptimeAlertCheckIndexEndpoint(ProjectUptimeAlertEndpoint):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
 
+    @extend_schema(
+        operation_id="listProjectUptimeMonitorChecks",
+        summary="List an Uptime Monitor's Checks",
+        parameters=[
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            UptimeParams.UPTIME_ALERT_ID,
+            GlobalParams.STATS_PERIOD,
+            GlobalParams.START,
+            GlobalParams.END,
+            UptimeParams.CHECKS_PER_PAGE,
+            CursorQueryParam,
+        ],
+        request=None,
+        responses={
+            200: inline_sentry_response_serializer(
+                "UptimeMonitorCheckListResponse", list[EapCheckEntrySerializerResponse]
+            ),
+            400: RESPONSE_BAD_REQUEST,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
     def get(
         self,
         request: Request,
         project: Project,
         uptime_detector: Detector,
-    ) -> Response:
+    ) -> Response[list[EapCheckEntrySerializerResponse]]:
+        """
+        Return the checks an uptime monitor ran in a time range, newest first. The time
+        range defaults to the last 90 days.
+        """
         uptime_subscription = get_uptime_subscription(uptime_detector)
 
         if uptime_subscription.subscription_id is None:
