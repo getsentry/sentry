@@ -6,6 +6,7 @@ import {Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
+import {makeAutomationDetailsPathname} from 'sentry/views/automations/pathnames';
 
 const EMPTY_VALUE = '—';
 
@@ -31,6 +32,10 @@ const SUBJECT_SPECS: Record<string, SubjectSpec> = {
     label: t('Alert Rule'),
     getUrl: (id, organization) =>
       makeAlertsPathname({organization, path: `/rules/details/${id}/`}),
+  },
+  workflow: {
+    label: t('Alert'),
+    getUrl: (id, organization) => makeAutomationDetailsPathname(organization.slug, id),
   },
   preprod_artifact: {
     label: t('Build'),

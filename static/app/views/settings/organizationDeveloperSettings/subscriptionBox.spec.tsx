@@ -98,4 +98,22 @@ describe('SubscriptionBox', () => {
       expect(screen.getByRole('checkbox', {name: 'preprod_artifact'})).toBeEnabled();
     });
   });
+
+  describe('alert resource subscription', () => {
+    it('hidden without sentry-app-alert-webhooks flag', () => {
+      renderComponent({resource: 'alert'});
+
+      expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    });
+
+    it('renders alert checkboxes with sentry-app-alert-webhooks flag', () => {
+      renderComponent(
+        {resource: 'alert'},
+        {organization: OrganizationFixture({features: ['sentry-app-alert-webhooks']})}
+      );
+
+      expect(screen.getByRole('checkbox', {name: 'alert'})).toBeEnabled();
+      expect(screen.getByRole('checkbox', {name: 'alert.triggered'})).toBeEnabled();
+    });
+  });
 });
