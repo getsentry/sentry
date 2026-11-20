@@ -10,6 +10,7 @@ from .views import (
 from .webhooks import (
     JiraForgeConfigureLinkWebhook,
     JiraForgeInstallationWebhook,
+    JiraForgeIssuePanelWebhook,
     JiraForgeIssueUpdatedWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
@@ -26,6 +27,11 @@ urlpatterns = [
         r"^forge/installation/$",
         JiraForgeInstallationWebhook.as_view(),
         name="sentry-extensions-jira-forge-installation",
+    ),
+    re_path(
+        r"^forge/issue-panel/$",
+        JiraForgeIssuePanelWebhook.as_view(),
+        name="sentry-extensions-jira-forge-issue-panel",
     ),
     re_path(
         r"^forge/issue-updated/$",
