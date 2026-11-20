@@ -58,6 +58,7 @@ class CellDirectoryTest(TestCase):
             "snowflake_id": 2,
             "address": "http://eu.testserver",
             "api_gateway_address": "http://eu-gateway.testserver",
+            "h2_address": "http://eu-h2.testserver",
         },
         {
             "name": "acme",
@@ -91,6 +92,7 @@ class CellDirectoryTest(TestCase):
             2,
             "http://eu.testserver",
             api_gateway_address="http://eu-gateway.testserver",
+            h2_address="http://eu-h2.testserver",
         ),
         Cell("acme", 3, "http://acme.testserver"),
     )

@@ -201,6 +201,8 @@ def build_proxied_request(
 
 
 def get_cell_address(cell: Cell) -> str:
+    if app.config.endpoints.protos.get(cell.name) == "h2" and cell.h2_address:
+        return cell.h2_address
     if app.config.endpoints.use_cell_gw and cell.api_gateway_address:
         return cell.api_gateway_address
     return cell.address
