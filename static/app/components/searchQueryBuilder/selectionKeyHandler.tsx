@@ -48,6 +48,10 @@ export function SelectionKeyHandler({
     e.preventDefault();
     e.stopPropagation();
 
+    if (!e.clipboardData) {
+      return;
+    }
+
     const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
     dispatch({type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE', tokens: selectedTokens, text});
