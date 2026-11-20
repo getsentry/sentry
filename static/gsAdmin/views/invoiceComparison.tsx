@@ -25,10 +25,7 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
-type InvoiceRef = {
-  date_added: string;
-  guid: string;
-};
+type InvoiceRef = {date_added: string; guid: string};
 
 type Row = {
   delta_cents: number;
@@ -63,10 +60,7 @@ type Summary = {
   min_listed_mismatch_cents?: number;
 };
 
-type ComparisonResponse = {
-  rows: Row[];
-  summary: Summary;
-};
+type ComparisonResponse = {rows: Row[]; summary: Summary};
 
 const STATUS_VARIANT: Record<RowStatus, TagProps['variant']> = {
   match: 'success',

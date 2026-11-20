@@ -134,9 +134,7 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(migrateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/migrate-legacy-seer/`,
-        expect.objectContaining({
-          data: {applyImmediately: false, addSeerTrial: true},
-        })
+        expect.objectContaining({data: {applyImmediately: false, addSeerTrial: true}})
       );
     });
   });
@@ -157,9 +155,7 @@ describe('MigrateLegacySeerAction', () => {
     await waitFor(() => {
       expect(migrateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/migrate-legacy-seer/`,
-        expect.objectContaining({
-          data: {applyImmediately: true, addSeerTrial: false},
-        })
+        expect.objectContaining({data: {applyImmediately: true, addSeerTrial: false}})
       );
     });
   });

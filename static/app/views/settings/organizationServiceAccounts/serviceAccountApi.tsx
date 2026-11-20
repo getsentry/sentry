@@ -13,11 +13,7 @@ export function serviceAccountsApiOptions(
 ) {
   return apiOptions.as<ServiceAccount[]>()(
     '/organizations/$organizationIdOrSlug/service-accounts/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query: {cursor},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, query: {cursor}, staleTime: 0}
   );
 }
 
@@ -27,10 +23,7 @@ export function serviceAccountApiOptions(
 ) {
   return apiOptions.as<ServiceAccount>()(
     '/organizations/$organizationIdOrSlug/service-accounts/$serviceAccountId/',
-    {
-      path: {organizationIdOrSlug: organization.slug, serviceAccountId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug, serviceAccountId}, staleTime: 0}
   );
 }
 

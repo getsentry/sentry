@@ -28,10 +28,7 @@ import {SolutionCard} from './solutionCard';
 
 jest.mock('sentry/views/seerExplorer/useSeerExplorerContext', () => {
   const actual = jest.requireActual('sentry/views/seerExplorer/useSeerExplorerContext');
-  return {
-    ...actual,
-    useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext),
-  };
+  return {...actual, useSeerExplorerContext: jest.fn(actual.useSeerExplorerContext)};
 });
 
 jest.mock('sentry/views/seerExplorer/components/fileDiffViewer', () => ({
@@ -150,19 +147,11 @@ const mockAutofixWithRunState: ReturnType<typeof useExplorerAutofix> = {
 };
 
 function makeRootCauseArtifact(data: RootCauseArtifact | null) {
-  return {
-    key: 'root-cause',
-    reason: 'Found root cause',
-    data,
-  };
+  return {key: 'root-cause', reason: 'Found root cause', data};
 }
 
 function makeSolutionArtifact(data: SolutionArtifact | null) {
-  return {
-    key: 'solution',
-    reason: 'Found solution',
-    data,
-  };
+  return {key: 'solution', reason: 'Found solution', data};
 }
 
 describe('ArtifactCard', () => {
@@ -187,10 +176,9 @@ describe('ArtifactCard', () => {
     );
 
     beforeEach(() => {
-      jest.mocked(useSeerExplorerContext).mockImplementation(() => ({
-        ...actualUseSeerExplorerContext(),
-        openChatPrompt,
-      }));
+      jest
+        .mocked(useSeerExplorerContext)
+        .mockImplementation(() => ({...actualUseSeerExplorerContext(), openChatPrompt}));
     });
 
     afterEach(() => {
@@ -488,11 +476,7 @@ describe('ArtifactCard', () => {
     });
 
     it('shows why a single run stopped instead of the failure text', () => {
-      const stop = {
-        key: 'stop',
-        reason: 'stop',
-        data: {reason: 'R', suggestion: 'N'},
-      };
+      const stop = {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}};
 
       render(
         <RootCauseCard
@@ -1353,10 +1337,7 @@ describe('ArtifactCard', () => {
         />,
         {
           initialRouterConfig: {
-            location: {
-              pathname: '/',
-              query: {seerDrawerAction: 'retry_code_changes'},
-            },
+            location: {pathname: '/', query: {seerDrawerAction: 'retry_code_changes'}},
           },
         }
       );
@@ -1405,10 +1386,7 @@ describe('ArtifactCard', () => {
           metadata: {
             step: 'pr_iteration',
             iteration_index: '0',
-            feedback: JSON.stringify({
-              text: 'ignored',
-              source: {type: 'mystery'},
-            }),
+            feedback: JSON.stringify({text: 'ignored', source: {type: 'mystery'}}),
           },
         },
       };
@@ -2364,9 +2342,7 @@ describe('ArtifactCard', () => {
       );
 
       expect(screen.getByText('Pull Requests')).toBeInTheDocument();
-      const button = screen.getByRole('button', {
-        name: 'View org/repo#42',
-      });
+      const button = screen.getByRole('button', {name: 'View org/repo#42'});
       expect(button).toHaveAttribute('href', 'https://github.com/org/repo/pull/42');
     });
 
@@ -2376,16 +2352,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofixWithRunState}
           section={makeSection('pull_request', 'completed', [
             [
-              makePR({
-                repo_name: 'org/repo-a',
-                pr_number: 10,
-                pr_url: 'https://pr/10',
-              }),
-              makePR({
-                repo_name: 'org/repo-b',
-                pr_number: 20,
-                pr_url: 'https://pr/20',
-              }),
+              makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
+              makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
             ],
           ])}
         />
@@ -2407,11 +2375,7 @@ describe('ArtifactCard', () => {
             [
               makePR({repo_name: 'org/repo-a', pr_url: null}),
               makePR({repo_name: 'org/repo-b', pr_number: null}),
-              makePR({
-                repo_name: 'org/valid',
-                pr_number: 55,
-                pr_url: 'https://pr/55',
-              }),
+              makePR({repo_name: 'org/valid', pr_number: 55, pr_url: 'https://pr/55'}),
             ],
           ])}
         />
@@ -2523,11 +2487,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
           ])}
         />
       );
@@ -2540,11 +2500,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
           ])}
         />
       );
@@ -2557,11 +2513,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-              }),
-            ],
+            [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
           ])}
         />
       );
@@ -2600,11 +2552,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );
@@ -2645,16 +2593,8 @@ describe('ArtifactCard', () => {
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
             [
-              makeCodingAgent({
-                id: 'agent-1',
-                name: 'Agent One',
-                status: 'completed',
-              }),
-              makeCodingAgent({
-                id: 'agent-2',
-                name: 'Agent Two',
-                status: 'running',
-              }),
+              makeCodingAgent({id: 'agent-1', name: 'Agent One', status: 'completed'}),
+              makeCodingAgent({id: 'agent-2', name: 'Agent Two', status: 'running'}),
             ],
           ])}
         />
@@ -2671,11 +2611,7 @@ describe('ArtifactCard', () => {
         <CodingAgentsCard
           autofix={mockAutofix}
           section={makeSection('coding_agents', 'completed', [
-            [
-              makeCodingAgent({
-                agent_url: 'https://cursor.com/agent/1',
-              }),
-            ],
+            [makeCodingAgent({agent_url: 'https://cursor.com/agent/1'})],
           ])}
         />
       );

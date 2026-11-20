@@ -23,10 +23,7 @@ describe('SpanCategoryFilter', () => {
     const {router} = render(<SpanCategoryFilter segmentSpanName="/api/" />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/insights/summary/',
-          query: {transaction: '/api/'},
-        },
+        location: {pathname: '/insights/summary/', query: {transaction: '/api/'}},
       },
     });
 
@@ -42,10 +39,7 @@ describe('SpanCategoryFilter', () => {
     render(<SpanCategoryFilter segmentSpanName="/api/" />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/insights/summary/',
-          query: {'span.category': 'http'},
-        },
+        location: {pathname: '/insights/summary/', query: {'span.category': 'http'}},
       },
     });
 

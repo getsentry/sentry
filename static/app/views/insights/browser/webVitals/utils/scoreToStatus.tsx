@@ -10,8 +10,4 @@ export const scoreToStatus = (score: number) => {
   return 'bad';
 };
 
-export const STATUS_TEXT = {
-  good: t('Good'),
-  needsImprovement: t('Meh'),
-  bad: t('Poor'),
-};
+export const STATUS_TEXT = {good: t('Good'), needsImprovement: t('Meh'), bad: t('Poor')};

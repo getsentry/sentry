@@ -49,11 +49,7 @@ export interface SnapshotActions {
    */
   buildMenuItems: (openDeleteModal: () => void) => MenuItemProps[];
   canApprove: boolean;
-  confirmDeleteProps: {
-    confirmInput: string;
-    message: string;
-    onConfirm: () => void;
-  };
+  confirmDeleteProps: {confirmInput: string; message: string; onConfirm: () => void};
   isApproving: boolean;
   onApprove: () => void;
 }

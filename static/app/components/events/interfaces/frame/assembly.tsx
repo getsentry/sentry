@@ -4,12 +4,7 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 
-type Props = {
-  culture?: string;
-  name?: string;
-  publicKeyToken?: string;
-  version?: string;
-};
+type Props = {culture?: string; name?: string; publicKeyToken?: string; version?: string};
 
 function Assembly({name, version, culture, publicKeyToken}: Props) {
   return (

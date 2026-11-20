@@ -25,10 +25,7 @@ export type FormulaParam = {
   value: string;
 };
 
-export type FormulaReference = {
-  name: string;
-  value: string;
-};
+export type FormulaReference = {name: string; value: string};
 
 export type SavedFormula = {
   /** Null for prebuilt formulas, which are created by Sentry. */
@@ -54,11 +51,7 @@ function savedFormulasApiOptions(
 ) {
   return apiOptions.as<SavedFormula[]>()(
     '/organizations/$organizationIdOrSlug/explore/formulas/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, query, staleTime: 0}
   );
 }
 
@@ -119,10 +112,7 @@ export function useDatasetFormulas(dataset: FormulaDataset) {
 function savedFormulaApiOptions(organization: Organization, id: string) {
   return apiOptions.as<SavedFormula>()(
     '/organizations/$organizationIdOrSlug/explore/formulas/$id/',
-    {
-      path: {organizationIdOrSlug: organization.slug, id},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug, id}, staleTime: 0}
   );
 }
 

@@ -23,9 +23,7 @@ export const replay: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'In order to use Session Replay, you will need version 7.27.0 of [code:@sentry/angular] at minimum. You do not need to install any additional packages.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,

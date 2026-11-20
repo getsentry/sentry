@@ -64,9 +64,7 @@ export function useAggregateFlamegraphQuery(
   const {selection} = usePageFilters();
 
   const endpointOptions = useMemo(() => {
-    const params: {
-      query: Record<string, unknown>;
-    } = {
+    const params: {query: Record<string, unknown>} = {
       query: {
         project: projects ?? selection.projects,
         environment: environments ?? selection.environments,

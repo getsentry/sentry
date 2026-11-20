@@ -556,6 +556,7 @@ class MonitorCheckIn(Model):
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -730,9 +731,6 @@ class MonitorEnvironment(Model):
         app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
-        indexes = [
-            models.Index(fields=["status", "next_checkin_latest"]),
-        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 

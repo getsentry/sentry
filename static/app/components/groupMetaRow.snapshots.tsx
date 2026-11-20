@@ -25,9 +25,7 @@ jest.mock('sentry/components/timeSince', () => ({
 jest.mock('sentry/components/group/issueReplayCount', () => ({
   IssueReplayCount: () => null,
 }));
-jest.mock('sentry/components/group/issueSeerBadge', () => ({
-  IssueSeerBadge: () => null,
-}));
+jest.mock('sentry/components/group/issueSeerBadge', () => ({IssueSeerBadge: () => null}));
 
 import {GroupMetaRow} from './groupMetaRow';
 
@@ -37,10 +35,7 @@ function SsrLink({to, children}: LinkProps) {
   return <a href={typeof to === 'string' ? to : '#'}>{children}</a>;
 }
 
-const ssrLinkBehavior = {
-  component: SsrLink,
-  behavior: (props: LinkProps) => props,
-};
+const ssrLinkBehavior = {component: SsrLink, behavior: (props: LinkProps) => props};
 
 const project = ProjectFixture({slug: 'javascript', platform: 'javascript'});
 

@@ -34,7 +34,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
@@ -148,11 +148,7 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 25,
-        query: mutableSearch,
-        sortBy,
-      },
+      query: {per_page: 25, query: mutableSearch, sortBy},
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });
@@ -231,7 +227,7 @@ export function SeerProjectTable() {
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader

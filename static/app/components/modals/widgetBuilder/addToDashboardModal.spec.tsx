@@ -60,12 +60,7 @@ describe('add to dashboard modal', () => {
   const defaultSelection = {
     projects: [],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: '24h',
-      utc: false,
-    },
+    datetime: {start: null, end: null, period: '24h', utc: false},
   };
 
   beforeEach(() => {
@@ -714,9 +709,7 @@ describe('add to dashboard modal', () => {
       {
         initialRouterConfig: {
           route: '/organizations/:orgId/dashboard/:dashboardId/',
-          location: {
-            pathname: '/organizations/org-slug/dashboard/1/',
-          },
+          location: {pathname: '/organizations/org-slug/dashboard/1/'},
         },
       }
     );
@@ -826,12 +819,7 @@ describe('add to dashboard modal', () => {
     const customSelection = {
       projects: [2, 3],
       environments: ['production', 'staging'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: false,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: false},
     };
 
     const {router} = render(
@@ -884,12 +872,7 @@ describe('add to dashboard modal', () => {
     const customSelection = {
       projects: [2, 3],
       environments: ['production', 'staging'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: false,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: false},
     };
 
     const {router} = render(

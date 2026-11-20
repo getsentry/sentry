@@ -91,11 +91,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'JavaScript',
-              language: 'javascript',
-              code: 'myUndefinedFunction();',
-            },
+            {label: 'JavaScript', language: 'javascript', code: 'myUndefinedFunction();'},
           ],
         },
       ],

@@ -18,8 +18,8 @@ export function GroupStatusTag({fontSize = 'sm', children}: GroupStatusBadgeProp
   );
 }
 
-const StyledTag = styled(Tag, {
-  shouldForwardProp: p => p !== 'fontSize',
-})<{fontSize: 'sm' | 'md'}>`
+const StyledTag = styled(Tag, {shouldForwardProp: p => p !== 'fontSize'})<{
+  fontSize: 'sm' | 'md';
+}>`
   font-size: ${p => (p.fontSize === 'sm' ? p.theme.font.size.sm : p.theme.font.size.md)};
 `;

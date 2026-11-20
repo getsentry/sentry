@@ -16,9 +16,7 @@ export type TourStep = {
   image?: React.ReactNode;
 };
 
-type ChildProps = {
-  showModal: () => void;
-};
+type ChildProps = {showModal: () => void};
 
 type Props = {
   children: (props: ChildProps) => React.ReactNode;
@@ -110,9 +108,7 @@ export function FeatureTourModal({
 }
 
 type ContentsProps = ModalRenderProps &
-  Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> & {
-    openedAt: number;
-  };
+  Pick<Props, 'steps' | 'doneText' | 'doneUrl' | 'onAdvance'> & {openedAt: number};
 
 function ModalContents({
   Body,

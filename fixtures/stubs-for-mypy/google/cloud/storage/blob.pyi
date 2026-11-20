@@ -1,4 +1,5 @@
 from datetime import datetime
+from os import PathLike
 from typing import IO, Any
 
 from google.cloud.storage.bucket import Bucket
@@ -19,6 +20,9 @@ class Blob:
         size: int | None = None,
         content_type: str | None = None,
         **kwargs: Any,
+    ) -> None: ...
+    def upload_from_filename(
+        self, filename: str | PathLike[str], content_type: str | None = None, **kwargs: Any
     ) -> None: ...
     def upload_from_string(
         self, data: bytes | str, content_type: str | None = None, **kwargs: Any
