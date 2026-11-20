@@ -193,6 +193,10 @@ export type SeerWorkflowConfigCreateRequest = {
  */
 export type SeerWorkflowConfigUpdateRequest = {
   enabled?: boolean;
+  /**
+   * Empty means all environments
+   */
+  environments?: string[];
   monitorIds?: number[];
   name?: string;
   /**
