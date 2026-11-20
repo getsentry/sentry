@@ -17,7 +17,7 @@ from django.utils import timezone
 from packaging.version import parse as parse_version
 
 from sentry.models.project import Project
-from sentry.preprod.models import InstallablePreprodArtifact, PreprodArtifact
+from sentry.preprod.models import HAS_INSTALLABLE_FILE, InstallablePreprodArtifact, PreprodArtifact
 from sentry.utils.http import absolute_uri
 from sentry.utils.numbers import validate_bigint
 
@@ -136,7 +136,7 @@ def get_artifact_install_info(artifact: PreprodArtifact) -> ArtifactInstallInfo:
 
 
 def is_installable_artifact(artifact: PreprodArtifact) -> bool:
-    if artifact.installable_app_file_id is None:
+    if not artifact.has_installable_file:
         return False
     if artifact.artifact_type == PreprodArtifact.ArtifactType.XCARCHIVE:
         extras = artifact.extras or {}
@@ -368,7 +368,6 @@ def find_latest_installable_artifact(
         "project": project,
         "app_id": app_id,
         "state": PreprodArtifact.ArtifactState.PROCESSED,
-        "installable_app_file_id__isnull": False,
         "mobile_app_info__build_number__isnull": False,
     }
     filter_kwargs.update(get_platform_artifact_type_filter(platform))
@@ -385,7 +384,7 @@ def find_latest_installable_artifact(
     install_groups_q = build_install_groups_q(install_groups) if install_groups else None
 
     # Get all distinct versions from installable artifacts only
-    versions_queryset = PreprodArtifact.objects.filter(**filter_kwargs)
+    versions_queryset = PreprodArtifact.objects.filter(HAS_INSTALLABLE_FILE, **filter_kwargs)
     if install_groups_q:
         versions_queryset = versions_queryset.filter(install_groups_q)
 
@@ -410,7 +409,7 @@ def find_latest_installable_artifact(
     # Select the winning ID before loading related objects to keep the candidate sort narrow.
     filter_kwargs["mobile_app_info__build_version"] = highest_version
     candidate_artifacts = (
-        PreprodArtifact.objects.filter(**filter_kwargs)
+        PreprodArtifact.objects.filter(HAS_INSTALLABLE_FILE, **filter_kwargs)
         .annotate(build_number_suffix=_build_number_suffix())
         .order_by(
             "-mobile_app_info__build_number",

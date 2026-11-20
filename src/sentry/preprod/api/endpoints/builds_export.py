@@ -15,7 +15,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.preprod.build_distribution_utils import is_installable_artifact
 from sentry.preprod.builds_query import filtered_builds_queryset
-from sentry.preprod.models import PreprodArtifact
+from sentry.preprod.models import HAS_INSTALLABLE_FILE, PreprodArtifact
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import json
@@ -118,7 +118,7 @@ class BuildsExportEndpoint(OrganizationEndpoint):
             )
 
         # Filter out non-installable builds since they aren't really relevant for distribution info.
-        queryset = queryset.filter(installable_app_file_id__isnull=False)
+        queryset = queryset.filter(HAS_INSTALLABLE_FILE)
 
         # Reject oversized exports rather than silently truncating. The SQL limit is conservatively
         # correct, but could lead to false-negatives in some edge cases, which we're ignoring.
