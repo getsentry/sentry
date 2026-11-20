@@ -8,7 +8,8 @@ from sentry.shared_integrations.response.base import BaseApiResponse
 API_VERSION = "/api/v4"
 
 
-def build_integration_external_id(hostname: str, group_id: int, organization_id: int) -> str:
+def build_integration_external_id(hostname: str, group_id: int | str, organization_id: int) -> str:
+    # group_id is a GitLab group number, or "_instance_" on a legacy instance-wide id.
     return f"{hostname}:{group_id}-{organization_id}"
 
 
