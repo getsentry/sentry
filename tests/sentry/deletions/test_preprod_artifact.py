@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from typing import Any
+from unittest.mock import MagicMock, patch
 
 from sentry.deletions.defaults.preprod_artifact import PreprodArtifactDeletionTask
 from sentry.models.files.file import File
@@ -8,6 +9,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
 )
+from sentry.preprod.snapshots.models import PreprodSnapshotMetrics
 from sentry.testutils.cases import TestCase
 
 
@@ -15,6 +17,10 @@ class PreprodArtifactDeletionTaskTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.project = self.create_project()
+
+        patcher = patch("sentry.preprod.helpers.deletion.snuba_rpc.delete_trace_items_rpc")
+        self.mock_delete_eap = patcher.start()
+        self.addCleanup(patcher.stop)
 
     def _delete_artifacts(self, query: Mapping[str, Any]) -> None:
         task = PreprodArtifactDeletionTask(
@@ -107,3 +113,32 @@ class PreprodArtifactDeletionTaskTest(TestCase):
         self._delete_artifacts({"id": artifact.id})
 
         assert not PreprodArtifact.objects.filter(id=artifact.id).exists()
+
+    def test_delete_instance_bulk_deletes_eap_data(self) -> None:
+        artifact = self.create_preprod_artifact(project=self.project)
+
+        self._delete_artifacts({"id": artifact.id})
+
+        self.mock_delete_eap.assert_called_once()
+        request = self.mock_delete_eap.call_args.args[0]
+        assert request.meta.organization_id == self.project.organization_id
+        assert list(request.meta.project_ids) == [self.project.id]
+
+    @patch("sentry.preprod.helpers.deletion.get_snapshot_storage")
+    def test_delete_instance_bulk_deletes_snapshot_objects(
+        self, mock_get_snapshot_storage: MagicMock
+    ) -> None:
+        artifact = self.create_preprod_artifact(project=self.project)
+        snapshot_metrics = PreprodSnapshotMetrics.objects.create(
+            preprod_artifact=artifact,
+            image_count=1,
+            extras={"manifest_key": "manifest.json", "head_images_key": "head-images.json"},
+        )
+
+        self._delete_artifacts({"id": artifact.id})
+
+        assert not PreprodSnapshotMetrics.objects.filter(id=snapshot_metrics.id).exists()
+        deleted_keys = {
+            call.args[0] for call in mock_get_snapshot_storage.return_value.delete.call_args_list
+        }
+        assert deleted_keys == {"manifest.json", "head-images.json"}
