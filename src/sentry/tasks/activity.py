@@ -82,6 +82,7 @@ def send_activity_notifications(activity_id: int) -> None:
         ACTIVITY_TYPE_TO_SOURCE,
         ActivityNotificationData,
         build_activity_notification_data,
+        get_activity_email_threading_options,
     )
     from sentry.types.activity import ActivityType
 
@@ -109,4 +110,9 @@ def send_activity_notifications(activity_id: int) -> None:
     strategy = IssueSubscribersActivityStrategy(activity=activity)
     for target in strategy.get_targets():
         data = build_activity_notification_data(activity=activity, target=target)
-        NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
+        NotificationService[ActivityNotificationData](data=data).notify_target(
+            target=target,
+            threading_options=get_activity_email_threading_options(
+                activity=activity, target=target
+            ),
+        )

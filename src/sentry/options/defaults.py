@@ -3906,6 +3906,15 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Thread activity emails with NotificationThread instead of setting their thread headers from
+# GroupEmailThread.
+register(
+    "notifications.platform.email-threading",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Killswitch list of NotificationSource values that should be blocked from being
 # dispatched by the notification platform's NotificationService. Values must match
 # the string values of `sentry.notifications.platform.types.NotificationSource`.

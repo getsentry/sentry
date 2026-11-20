@@ -74,4 +74,4 @@ class TestSendActivityNotification(BaseWorkflowTest):
         assert isinstance(data, ActivityNotificationData)
 
         mock_instance = mock_subscripted.return_value
-        mock_instance.notify_target.assert_called_once_with(target=target)
+        mock_instance.notify_target.assert_called_once_with(target=target, threading_options=None)

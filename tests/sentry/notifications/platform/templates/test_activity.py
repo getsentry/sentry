@@ -1,6 +1,14 @@
+from unittest import mock
 from urllib.parse import urlencode
 
-from sentry.notifications.platform.target import GenericNotificationTarget
+from sentry.models.activity import Activity
+from sentry.models.groupemailthread import GroupEmailThread
+from sentry.notifications.models.notificationthread import NotificationThread
+from sentry.notifications.platform.service import NotificationService
+from sentry.notifications.platform.target import (
+    GenericNotificationTarget,
+    IntegrationNotificationTarget,
+)
 from sentry.notifications.platform.templates.activity.assigned import get_assigned_subject
 from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_NOTIFICATION_REFERRER,
@@ -17,6 +25,7 @@ from sentry.notifications.platform.templates.activity.base import (
     build_issue_link,
     build_subject_prefix,
     create_activity_notification_example,
+    get_activity_email_threading_options,
     get_issue_description,
 )
 from sentry.notifications.platform.templates.activity.seer.base import (
@@ -34,6 +43,7 @@ from sentry.notifications.platform.types import (
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.types.activity import ActivityType
 from sentry.utils.http import absolute_uri
 
@@ -393,3 +403,88 @@ class ActivityAssignedAlertBaseTest(TestCase):
         assert "auto-assigned" in subject_text
         assert "proxy-user.sentry.io" not in subject_text
         assert "the workflows team" in subject_text
+
+
+@override_options({"notifications.platform.email-threading": True})
+class ActivityEmailThreadingTest(TestCase):
+    def setUp(self) -> None:
+        self.email = "user@example.com"
+        self.target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=self.email,
+        )
+        self.group = self.create_group(project=self.project)
+        self.activity = Activity.objects.create_group_activity(
+            self.group,
+            ActivityType.SET_RESOLVED,
+            user=self.user,
+            data={},
+        )
+
+    def _send_activity_email(self, mock_send_messages: mock.MagicMock) -> dict[str, str]:
+        data = build_activity_notification_data(activity=self.activity, target=self.target)
+        NotificationService(data=data).notify_target(
+            target=self.target,
+            threading_options=get_activity_email_threading_options(
+                activity=self.activity, target=self.target
+            ),
+        )
+        [sent_message] = mock_send_messages.call_args[0][0]
+        return sent_message.extra_headers
+
+    def test_threading_options_only_for_email(self) -> None:
+        threading_options = get_activity_email_threading_options(
+            activity=self.activity, target=self.target
+        )
+        assert threading_options is not None
+        assert threading_options.thread_key.key_data == {"group_id": self.group.id}
+
+        slack_target = IntegrationNotificationTarget(
+            provider_key=NotificationProviderKey.SLACK,
+            resource_type=NotificationTargetResourceType.CHANNEL,
+            resource_id="C1234567890",
+            integration_id=1,
+            organization_id=self.organization.id,
+        )
+        assert (
+            get_activity_email_threading_options(activity=self.activity, target=slack_target)
+            is None
+        )
+
+    @override_options({"notifications.platform.email-threading": False})
+    def test_threading_options_off(self) -> None:
+        assert (
+            get_activity_email_threading_options(activity=self.activity, target=self.target) is None
+        )
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_replies_to_first_email(self, mock_send_messages: mock.MagicMock) -> None:
+        first_headers = self._send_activity_email(mock_send_messages)
+        root_message_id = first_headers["Message-Id"]
+        assert "In-Reply-To" not in first_headers
+
+        second_headers = self._send_activity_email(mock_send_messages)
+
+        assert second_headers["In-Reply-To"] == root_message_id
+        assert second_headers["References"] == root_message_id
+        thread = NotificationThread.objects.get(target_id=self.email)
+        assert thread.thread_identifier == root_message_id
+        assert GroupEmailThread.objects.get(email=self.email, group=self.group).msgid == (
+            root_message_id
+        )
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_continues_legacy_thread(self, mock_send_messages: mock.MagicMock) -> None:
+        legacy_message_id = "<legacy@example.com>"
+        GroupEmailThread.objects.create(
+            email=self.email, group=self.group, project=self.project, msgid=legacy_message_id
+        )
+
+        headers = self._send_activity_email(mock_send_messages)
+
+        assert headers["In-Reply-To"] == legacy_message_id
+        assert headers["References"] == legacy_message_id
+        assert NotificationThread.objects.get(target_id=self.email).thread_identifier == (
+            legacy_message_id
+        )
