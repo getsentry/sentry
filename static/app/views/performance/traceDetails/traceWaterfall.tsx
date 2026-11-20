@@ -19,7 +19,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -43,7 +43,11 @@ import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceLinksNavigation} from './traceLinksNavigation/traceLinksNavigation';
-import {collectClockDriftCorrections} from './traceModels/clockDriftCorrection';
+import {
+  applyClockDriftCorrection,
+  collectClockDriftCorrections,
+  removeClockDriftCorrection,
+} from './traceModels/clockDriftCorrection';
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -774,9 +778,12 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
       TraceTree.RemoveMissingInstrumentationNodes(root);
     }
 
-    const count = value
-      ? TraceTree.ApplyClockDriftCorrection(root)
-      : TraceTree.RemoveClockDriftCorrection(root);
+    let count = 0;
+    if (value) {
+      count = applyClockDriftCorrection(root);
+    } else {
+      removeClockDriftCorrection(root);
+    }
 
     if (missing_instrumentation) {
       TraceTree.DetectMissingInstrumentation(root);
@@ -794,17 +801,18 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     toast.success(
       value
         ? count > 0
-          ? tct('Clock drift correction enabled, adjusted [count] spans', {count})
+          ? tn(
+              'Clock drift correction enabled, adjusted %s span',
+              'Clock drift correction enabled, adjusted %s spans',
+              count
+            )
           : t('Clock drift correction enabled')
         : t('Clock drift correction disabled')
     );
 
     traceAnalytics.trackClockDriftCorrectionPreferenceChange(props.organization, value);
     props.tree.rebuild();
-    traceDispatch({
-      type: 'set clock drift correction',
-      payload: value,
-    });
+    traceDispatch({type: 'set clock drift correction', payload: value});
   }, [traceDispatch, traceState.preferences, props.tree, props.organization]);
 
   const clockDriftCorrectionCount = useMemo(

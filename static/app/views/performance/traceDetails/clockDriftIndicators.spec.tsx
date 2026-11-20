@@ -23,10 +23,10 @@ describe('ClockDriftTag', () => {
   it('explains a shift to an earlier time', async () => {
     render(<ClockDriftTag offsetMs={-340} />);
 
-    await userEvent.hover(screen.getByText('Shifted −340ms'));
+    await userEvent.hover(screen.getByText('Shifted −340.00ms'));
 
     expect(
-      await screen.findByText(/^Shown 340ms earlier in the waterfall/)
+      await screen.findByText(/^Shown 340.00ms earlier in the waterfall/)
     ).toBeInTheDocument();
   });
 });

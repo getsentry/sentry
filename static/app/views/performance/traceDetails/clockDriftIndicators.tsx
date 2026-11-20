@@ -4,9 +4,9 @@ import {Tag} from '@sentry/scraps/badge';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {tct} from 'sentry/locale';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 
 import {
-  formatClockDriftDistance,
   formatClockDriftOffset,
   type ClockDriftCorrection,
 } from './traceModels/clockDriftCorrection';
@@ -81,7 +81,7 @@ export function ClockDriftTag({offsetMs}: {offsetMs: number}) {
     return null;
   }
 
-  const distance = formatClockDriftDistance(offsetMs);
+  const distance = formatTraceDuration(Math.abs(offsetMs));
   const title =
     offsetMs > 0
       ? tct(

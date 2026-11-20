@@ -2336,9 +2336,6 @@ export class VirtualizedViewManager {
   }
 }
 
-// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
-// of the span to include the icon. We need this because when the icon is close to the edge
-// it can extend it and cause overlaps with duration labels
 /**
  * The width of icons rendered inside the duration label, in addition to its text.
  */
@@ -2348,6 +2345,9 @@ function getLabelIconWidthPx(node: BaseNode): number {
     : 0;
 }
 
+// Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
+// of the span to include the icon. We need this because when the icon is close to the edge
+// it can extend it and cause overlaps with duration labels
 function getIconTimestamps(
   node: BaseNode,
   span_space: [number, number],

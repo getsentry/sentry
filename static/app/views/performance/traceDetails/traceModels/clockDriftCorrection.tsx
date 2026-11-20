@@ -1,4 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
+import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
@@ -12,9 +13,6 @@ import type {EapSpanNode} from './traceTreeNode/eapSpanNode';
 export const MIN_CLOCK_DRIFT_CORRECTION_MS = 10;
 
 /**
- * Formats a signed offset, e.g. `+312ms` or `−1.42s`.
- */
-/**
  * Clock drift correction is only available to organizations with the feature flag. Without it, the
  * correction is never applied, whatever the stored preference says.
  */
@@ -26,30 +24,15 @@ export function hasClockDriftCorrectionFeature(
   );
 }
 
+/**
+ * Formats a signed offset, e.g. `+312.00ms` or `−1.42s`.
+ */
 export function formatClockDriftOffset(offsetMs: number): string {
   const sign = offsetMs < 0 ? '−' : '+';
-  return `${sign}${formatClockDriftDistance(offsetMs)}`;
-}
-
-/**
- * Formats how far a span was shifted, without the direction.
- */
-export function formatClockDriftDistance(offsetMs: number): string {
-  const abs = Math.abs(offsetMs);
-  if (abs < 1000) {
-    return `${Math.round(abs)}ms`;
-  }
-  if (abs < 60_000) {
-    return `${(abs / 1000).toFixed(2)}s`;
-  }
-  return `${(abs / 60_000).toFixed(1)}min`;
+  return `${sign}${formatTraceDuration(Math.abs(offsetMs))}`;
 }
 
 export type ClockDriftCorrection = {
-  /**
-   * The client span the server subtree was aligned to.
-   */
-  clientNode: BaseNode;
   /**
    * How far the server subtree was moved, in milliseconds. Positive values move it later.
    */
@@ -62,11 +45,7 @@ type ClientServerPair = {client: EapSpanNode; server: EapSpanNode};
  * A server span continuing a trace from a client span in another process. Their timestamps come
  * from different clocks, so they can disagree.
  */
-function isClientServerPair(client: BaseNode, server: BaseNode): boolean {
-  if (!isEAPSpanNode(client) || !isEAPSpanNode(server)) {
-    return false;
-  }
-
+function isClientServerPair(client: EapSpanNode, server: EapSpanNode): boolean {
   if (!client.op?.startsWith('http.client') || !server.op?.startsWith('http.server')) {
     return false;
   }
@@ -89,9 +68,12 @@ function findClientServerPairs(root: BaseNode): ClientServerPair[] {
   const pairs: ClientServerPair[] = [];
 
   root.forEachChild(node => {
+    if (!isEAPSpanNode(node)) {
+      return;
+    }
     for (const child of node.children) {
-      if (isClientServerPair(node, child)) {
-        pairs.push({client: node as EapSpanNode, server: child as EapSpanNode});
+      if (isEAPSpanNode(child) && isClientServerPair(node, child)) {
+        pairs.push({client: node, server: child});
       }
     }
   });
@@ -134,12 +116,12 @@ export function getSmallestShift([min, max]: [number, number]): number {
 }
 
 /**
- * Requests whose ranges miss each other by up to this much still count as agreeing on a shift. Their
+ * Whether the shift lies within the range, give or take {@link MIN_CLOCK_DRIFT_CORRECTION_MS}.
+ * Requests whose ranges miss each other by that much still count as agreeing on a shift: their
  * timestamps come from timers with limited precision, so exact agreement is too strict.
  */
-const CLOCK_DRIFT_AGREEMENT_TOLERANCE_MS = MIN_CLOCK_DRIFT_CORRECTION_MS;
-
-function isWithinRange(range: [number, number], shift: number, tolerance = 0): boolean {
+function isWithinRange(range: [number, number], shift: number): boolean {
+  const tolerance = MIN_CLOCK_DRIFT_CORRECTION_MS;
   return range[0] - tolerance <= shift && shift <= range[1] + tolerance;
 }
 
@@ -161,18 +143,18 @@ export function getClockDriftShifts(
   }
 
   // The best shift is either 0 or at the edge of a range, so these are the only candidates to check
-  const tolerance = CLOCK_DRIFT_AGREEMENT_TOLERANCE_MS;
   const candidates = [0];
   for (const [min, max] of validRanges) {
-    candidates.push(min - tolerance, max + tolerance);
+    candidates.push(
+      min - MIN_CLOCK_DRIFT_CORRECTION_MS,
+      max + MIN_CLOCK_DRIFT_CORRECTION_MS
+    );
   }
 
   let consensus = 0;
   let consensusCount = 0;
   for (const candidate of candidates) {
-    const count = validRanges.filter(range =>
-      isWithinRange(range, candidate, tolerance)
-    ).length;
+    const count = validRanges.filter(range => isWithinRange(range, candidate)).length;
     if (
       count > consensusCount ||
       (count === consensusCount && Math.abs(candidate) < Math.abs(consensus))
@@ -187,7 +169,7 @@ export function getClockDriftShifts(
   }
 
   const agrees = (range: [number, number] | null): range is [number, number] =>
-    range !== null && isWithinRange(range, consensus, tolerance);
+    range !== null && isWithinRange(range, consensus);
 
   // Use the smallest shift that fits all agreeing requests exactly. If they only agree within the
   // tolerance, split the difference so no request is off by more than the others.
@@ -204,7 +186,7 @@ export function getClockDriftShifts(
   return ranges.map(range => (agrees(range) ? shift : null));
 }
 
-function shiftSubtree(server: BaseNode, client: BaseNode, offsetMs: number): void {
+function shiftSubtree(server: BaseNode, offsetMs: number): void {
   const shift = (node: BaseNode) => {
     node.space = [node.space[0] + offsetMs, node.space[1]];
     node.clockDriftOffsetMs += offsetMs;
@@ -212,7 +194,7 @@ function shiftSubtree(server: BaseNode, client: BaseNode, offsetMs: number): voi
 
   shift(server);
   server.forEachChild(shift);
-  server.clockDriftCorrection = {clientNode: client, offsetMs};
+  server.clockDriftCorrection = {offsetMs};
 }
 
 /**
@@ -251,16 +233,12 @@ export function applyClockDriftCorrection(root: BaseNode): number {
     );
     const shifts = getClockDriftShifts(ranges);
 
-    for (const [index, {client, server}] of pairs.entries()) {
-      const shift = shifts[index];
-      if (
-        shift === null ||
-        shift === undefined ||
-        Math.abs(shift) < MIN_CLOCK_DRIFT_CORRECTION_MS
-      ) {
+    for (const [index, {server}] of pairs.entries()) {
+      const shift = shifts[index] ?? 0;
+      if (Math.abs(shift) < MIN_CLOCK_DRIFT_CORRECTION_MS) {
         continue;
       }
-      shiftSubtree(server, client, shift);
+      shiftSubtree(server, shift);
       correctedCount++;
     }
   }
@@ -270,17 +248,10 @@ export function applyClockDriftCorrection(root: BaseNode): number {
 
 /**
  * Restores the original spaces of all nodes moved by {@link applyClockDriftCorrection}.
- *
- * Returns the number of server subtrees that were restored.
  */
-export function removeClockDriftCorrection(root: BaseNode): number {
-  let restoredCount = 0;
-
+export function removeClockDriftCorrection(root: BaseNode): void {
   const restore = (node: BaseNode) => {
-    if (node.clockDriftCorrection) {
-      restoredCount++;
-      node.clockDriftCorrection = null;
-    }
+    node.clockDriftCorrection = null;
     if (node.clockDriftOffsetMs !== 0) {
       node.space = [node.space[0] - node.clockDriftOffsetMs, node.space[1]];
       node.clockDriftOffsetMs = 0;
@@ -289,8 +260,6 @@ export function removeClockDriftCorrection(root: BaseNode): number {
 
   restore(root);
   root.forEachChild(restore);
-
-  return restoredCount;
 }
 
 export function collectClockDriftCorrections(root: BaseNode): BaseNode[] {
