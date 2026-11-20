@@ -94,6 +94,13 @@ export type BorderToken = TokenPath<(typeof lightTheme)['tokens']['border']>;
  */
 export type BorderVariant = BorderToken | 'none';
 
+/**
+ * Every background color token, as a path into `tokens.background`. Derived
+ * from the theme, so a new background token is available without changing
+ * this type.
+ */
+export type BackgroundToken = TokenPath<(typeof lightTheme)['tokens']['background']>;
+
 // Component Variants (should be moved locally, aligned to SemanticVariant)
 
 /**
