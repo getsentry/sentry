@@ -14,18 +14,12 @@ describe('DisabledMemberView', () => {
     const sub = SubscriptionFixture({organization});
     SubscriptionStore.set(organization.slug, sub);
 
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/',
-      body: sub,
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/', body: sub});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'GET',
-      query: {
-        detailed: '0',
-        include_feature_flags: '1',
-      },
+      query: {detailed: '0', include_feature_flags: '1'},
       body: organization,
     });
 

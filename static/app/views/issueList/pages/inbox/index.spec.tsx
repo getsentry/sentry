@@ -28,9 +28,9 @@ import {DiffFileType} from 'sentry/components/events/autofix/types';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {TeamStore} from 'sentry/stores/teamStore';
 import {ProgressState} from 'sentry/types/group';
-import {INBOX_AUTOFIX_CATEGORY_FILTER} from 'sentry/views/issueList/pages/inbox/utils';
 
 import InboxPage from './index';
+import {INBOX_AUTOFIX_CATEGORY_FILTER} from './utils';
 
 function InboxPageInContainer() {
   return (
@@ -53,11 +53,7 @@ describe('InboxPage', () => {
   const initialRouterConfig = {
     location: {
       pathname: '/organizations/org-slug/issues/inbox/',
-      query: {
-        project: project.id,
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {project: project.id, environment: 'production', statsPeriod: '7d'},
     },
   };
   const assignedUser = UserFixture({
@@ -101,11 +97,7 @@ describe('InboxPage', () => {
     shortId: 'PROJECT-102',
     project,
     hasSeen: true,
-    metadata: {
-      type: 'Error',
-      title: 'Diagnosed issue',
-      value: 'Diagnosed message',
-    },
+    metadata: {type: 'Error', title: 'Diagnosed issue', value: 'Diagnosed message'},
     derivedData: {
       progress: ProgressState.DIAGNOSED,
       status: 'open',
@@ -121,11 +113,7 @@ describe('InboxPage', () => {
     shortId: 'PROJECT-103',
     project,
     hasSeen: true,
-    metadata: {
-      type: 'Error',
-      title: 'Assigned issue',
-      value: 'Assigned message',
-    },
+    metadata: {type: 'Error', title: 'Assigned issue', value: 'Assigned message'},
     derivedData: {
       progress: ProgressState.ASSIGNED,
       status: 'open',
@@ -140,6 +128,7 @@ describe('InboxPage', () => {
   beforeEach(() => {
     Element.prototype.scrollIntoView = jest.fn();
     ProjectsStore.reset();
+    TeamStore.reset();
     ProjectsStore.loadInitialData([project]);
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/',
@@ -164,7 +153,6 @@ describe('InboxPage', () => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
     localStorage.removeItem('inbox-split-size');
-    TeamStore.reset();
   });
 
   function mockSection(
@@ -299,10 +287,7 @@ describe('InboxPage', () => {
       url: `/organizations/org-slug/issues/${group.id}/pull-requests/`,
       body: {pullRequests: []},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
 
     return markSeenRequest;
   }
@@ -315,9 +300,7 @@ describe('InboxPage', () => {
   }
 
   async function openFixProposedPreview() {
-    const preview = screen.getByRole('complementary', {
-      name: 'Issue preview',
-    });
+    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     const issueLink = await within(
       screen.getByRole('region', {name: 'Fix Proposed'})
     ).findByRole('link', {name: /Fix proposed issue/});
@@ -342,7 +325,6 @@ describe('InboxPage', () => {
       body: {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: false,
-        isCodeReviewEnabled: false,
         isSeerConfigured: false,
       },
     });
@@ -403,16 +385,10 @@ describe('InboxPage', () => {
     const diagnosedSection = screen.getByRole('region', {name: 'Diagnosed'});
     const assignedSection = screen.getByRole('region', {name: 'Assigned'});
     expect(
-      within(fixSection).getByRole('heading', {
-        name: 'Fix Proposed',
-        level: 3,
-      })
+      within(fixSection).getByRole('heading', {name: 'Fix Proposed', level: 3})
     ).toBeInTheDocument();
     expect(
-      within(fixSection).getByRole('heading', {
-        name: 'Fix proposed issue',
-        level: 4,
-      })
+      within(fixSection).getByRole('heading', {name: 'Fix proposed issue', level: 4})
     ).toBeInTheDocument();
     expect(within(fixSection).getByText('2')).toBeInTheDocument();
     expect(within(diagnosedSection).getByText('2')).toBeInTheDocument();
@@ -555,21 +531,9 @@ describe('InboxPage', () => {
     const groupWithSuggestedOwner = GroupFixture({
       ...diagnosedGroup,
       owners: [
-        {
-          type: 'seerSuggested',
-          owner: `user:${suggestedOwner.id}`,
-          date_added: '',
-        },
-        {
-          type: 'seerSuggested',
-          owner: `user:${secondSuggestedOwner.id}`,
-          date_added: '',
-        },
-        {
-          type: 'seerSuggested',
-          owner: `team:${suggestedTeam.id}`,
-          date_added: '',
-        },
+        {type: 'seerSuggested', owner: `user:${suggestedOwner.id}`, date_added: ''},
+        {type: 'seerSuggested', owner: `user:${secondSuggestedOwner.id}`, date_added: ''},
+        {type: 'seerSuggested', owner: `team:${suggestedTeam.id}`, date_added: ''},
       ],
     });
     mockSection(
@@ -694,10 +658,7 @@ describe('InboxPage', () => {
     ]);
     mockSection('issue.progress:fix_applied is:unresolved', []);
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     expect(screen.queryByRole('region', {name: 'Identified'})).not.toBeInTheDocument();
 
@@ -782,9 +743,7 @@ describe('InboxPage', () => {
     const fixAppliedEmptyMessage = await screen.findByText(
       'No issues with an applied fix'
     );
-    const fixProposedButton = screen.getByRole('button', {
-      name: 'Fix Proposed',
-    });
+    const fixProposedButton = screen.getByRole('button', {name: 'Fix Proposed'});
     const fixAppliedButton = screen.getByRole('button', {name: 'Fix Applied'});
 
     expect(fixProposedButton).toHaveAttribute('aria-expanded', 'true');
@@ -958,9 +917,7 @@ describe('InboxPage', () => {
 
     const fixSection = screen.getByRole('region', {name: 'Fix Proposed'});
     expect(await within(fixSection).findByText('Fix proposed issue')).toBeInTheDocument();
-    const loadMoreButton = within(fixSection).getByRole('button', {
-      name: 'Show 10 more',
-    });
+    const loadMoreButton = within(fixSection).getByRole('button', {name: 'Show 10 more'});
 
     await userEvent.click(loadMoreButton);
 
@@ -1042,13 +999,8 @@ describe('InboxPage', () => {
     mockSuccessfulSections();
     mockIssuePreview();
 
-    const {router} = render(<InboxPage />, {
-      organization,
-      initialRouterConfig,
-    });
-    const preview = screen.getByRole('complementary', {
-      name: 'Issue preview',
-    });
+    const {router} = render(<InboxPage />, {organization, initialRouterConfig});
+    const preview = screen.getByRole('complementary', {name: 'Issue preview'});
     expect(
       within(preview).queryByRole('button', {name: 'Open Issue'})
     ).not.toBeInTheDocument();
@@ -1063,9 +1015,7 @@ describe('InboxPage', () => {
     expect(issueLink).toHaveAttribute('aria-current', 'true');
     expect(Element.prototype.scrollIntoView).not.toHaveBeenCalled();
     expect(
-      await within(preview).findByRole('heading', {
-        name: 'Fix proposed issue',
-      })
+      await within(preview).findByRole('heading', {name: 'Fix proposed issue'})
     ).toBeInTheDocument();
     expect(within(preview).getByLabelText('11 affected users')).toHaveTextContent(
       '11Users'
@@ -1101,10 +1051,7 @@ describe('InboxPage', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            preview: fixProposedGroup.id,
-          },
+          query: {...initialRouterConfig.location.query, preview: fixProposedGroup.id},
         },
       },
     });
@@ -1127,10 +1074,7 @@ describe('InboxPage', () => {
       asyncDelay: 100,
     });
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openFixProposedPreview();
 
@@ -1219,11 +1163,7 @@ describe('InboxPage', () => {
   });
 
   it('keeps Resolve available for an assigned issue without Seer quota', async () => {
-    mockAssignedPreview(
-      AutofixSetupFixture({
-        billing: {hasAutofixQuota: false},
-      })
-    );
+    mockAssignedPreview(AutofixSetupFixture({billing: {hasAutofixQuota: false}}));
     render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openAssignedPreview();
@@ -1255,10 +1195,7 @@ describe('InboxPage', () => {
       asyncDelay: 100,
     });
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openFixProposedPreview();
     await within(preview).findByRole('button', {name: 'Make a Plan'});
@@ -1329,10 +1266,7 @@ describe('InboxPage', () => {
       body: {run_id: 42},
     });
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openFixProposedPreview();
     await within(preview).findByRole('button', {name: 'Write a Code Fix'});
@@ -1424,17 +1358,91 @@ describe('InboxPage', () => {
       })
     );
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openFixProposedPreview();
-    expect(
-      await within(preview).findByRole('button', {
-        name: 'View PR',
-      })
-    ).toHaveAttribute('href', 'https://github.com/org/repository/pull/649');
+    expect(await within(preview).findByRole('button', {name: 'View PR'})).toHaveAttribute(
+      'href',
+      'https://github.com/org/repository/pull/649'
+    );
+  });
+
+  describe('an Autofix pull request that failed for credits', () => {
+    const creditsOrganization = OrganizationFixture({
+      features: [...organization.features, 'token-billed-seer-enabled'],
+    });
+
+    function mockOutOfCreditsPullRequest() {
+      mockSuccessfulSections();
+      mockIssuePreview();
+      mockAutofixResponse(
+        ExplorerAutofixResponseFixture({
+          autofix: ExplorerAutofixStateFixture({
+            repo_pr_states: {
+              'org/repository': AutofixRepoPRStateFixture({
+                pr_creation_error:
+                  "Your organization doesn't have enough Seer credits for this.",
+                pr_creation_error_code: 'out_of_credits',
+                pr_creation_status: 'error',
+                pr_id: null,
+                pr_number: null,
+                pr_url: null,
+              }),
+            },
+          }),
+        })
+      );
+    }
+
+    function mockCreditCheck(hasEnoughCredits: boolean) {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${creditsOrganization.slug}/seer/credit-check/`,
+        match: [MockApiClient.matchQuery({operation: 'autofix_open_pr'})],
+        body: {hasEnoughCredits},
+      });
+    }
+
+    it('keeps its retry, disabled, while out of credits', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(false);
+
+      render(<InboxPage />, {organization: creditsOrganization, initialRouterConfig});
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      expect(retryButton).toHaveAttribute('aria-disabled', 'true');
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          'Your organization does not have enough Seer credits for this.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('enables its retry once the organization can afford it', async () => {
+      mockOutOfCreditsPullRequest();
+      mockCreditCheck(true);
+
+      render(<InboxPage />, {organization: creditsOrganization, initialRouterConfig});
+
+      const preview = await openFixProposedPreview();
+      const retryButton = await within(preview).findByRole('button', {
+        name: 'Retry PR in org/repository',
+      });
+      await waitFor(() =>
+        expect(retryButton).not.toHaveAttribute('aria-disabled', 'true')
+      );
+
+      await userEvent.hover(retryButton);
+      expect(
+        await screen.findByText(
+          "Seer couldn't open a pull request in org/repository because your organization is out of credits."
+        )
+      ).toBeInTheDocument();
+    });
   });
 
   it('retries a failed Autofix pull request', async () => {
@@ -1462,10 +1470,7 @@ describe('InboxPage', () => {
       asyncDelay: 100,
     });
 
-    render(<InboxPage />, {
-      organization: seerOrganization,
-      initialRouterConfig,
-    });
+    render(<InboxPage />, {organization: seerOrganization, initialRouterConfig});
 
     const preview = await openFixProposedPreview();
     const retryButton = await within(preview).findByRole('button', {
@@ -1514,7 +1519,7 @@ describe('InboxPage', () => {
     );
   });
 
-  it('does not render without the progress UI feature', () => {
+  it('does not render without the issue-inbox feature', () => {
     render(<InboxPage />, {
       organization: OrganizationFixture({features: []}),
       initialRouterConfig,
@@ -1525,10 +1530,7 @@ describe('InboxPage', () => {
 
   it('does not show the empty state when the container is narrow', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(803);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
     render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
@@ -1541,10 +1543,7 @@ describe('InboxPage', () => {
 
   it('shows the empty state at the 2xl container breakpoint', async () => {
     jest.spyOn(Element.prototype, 'clientWidth', 'get').mockReturnValue(900);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
     render(<InboxPageInContainer />, {organization, initialRouterConfig});
 
@@ -1583,10 +1582,7 @@ describe('InboxPage', () => {
     });
 
     it('does not show the empty state when the inbox count is nonzero', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues-count/',
         body: {
@@ -1654,10 +1650,7 @@ describe('InboxPage', () => {
         );
       });
 
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
       await userEvent.click(screen.getByRole('radio', {name: /^Me/}));
 
       await waitFor(() => {
@@ -1667,10 +1660,7 @@ describe('InboxPage', () => {
     });
 
     it('shows an empty state when every section is empty', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
       render(<InboxPageInContainer />, {
         organization: seerOrganization,
@@ -1681,10 +1671,7 @@ describe('InboxPage', () => {
     });
 
     it('links to the all inbox when the team inbox is empty', async () => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/issues/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues-count/',
         body: {

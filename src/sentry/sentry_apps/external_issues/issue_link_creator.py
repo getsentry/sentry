@@ -51,9 +51,9 @@ class IssueLinkCreator:
 
         with lock:
             if self.expected_external_issue_url is not None:
-                existing = PlatformExternalIssue.objects.filter(
+                existing = PlatformExternalIssue.objects.get_or_none(
                     group_id=self.group.id, service_type=self.install.sentry_app.slug
-                ).first()
+                )
                 if existing is not None:
                     self._verify_expected_url(existing.web_url)
                     return existing

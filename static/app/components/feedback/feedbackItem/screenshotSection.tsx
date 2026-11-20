@@ -2,25 +2,19 @@ import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 
 import {Button} from '@sentry/scraps/button';
+import {openConfirmModal} from '@sentry/scraps/confirm';
 import {useModal} from '@sentry/scraps/modal';
 
 import {useDeleteEventAttachmentOptimistic} from 'sentry/actionCreators/events';
-import {openConfirmModal} from 'sentry/components/confirm';
-import {FeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/feedbackScreenshot';
-import {
-  modalCss,
-  ScreenshotsModal,
-} from 'sentry/components/feedback/feedbackItem/screenshotsModal';
-import {useFeedbackScreenshot} from 'sentry/components/feedback/feedbackItem/useFeedbackHasScreenshot';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 
-type Props = {
-  event: Event;
-  organization: Organization;
-  projectSlug: string;
-};
+import {FeedbackScreenshot} from './feedbackScreenshot';
+import {modalCss, ScreenshotsModal} from './screenshotsModal';
+import {useFeedbackScreenshot} from './useFeedbackHasScreenshot';
+
+type Props = {event: Event; organization: Organization; projectSlug: string};
 
 export function ScreenshotSection({event, organization, projectSlug}: Props) {
   const {openModal} = useModal();

@@ -60,7 +60,8 @@ import {
   TOTAL_EXPANDABLE_ROWS_HEIGHT,
 } from 'sentry/views/performance/landing/widgets/utils';
 import {PerformanceWidgetSetting} from 'sentry/views/performance/landing/widgets/widgetDefinitions';
-import {EAP_QUERY_PARAMS} from 'sentry/views/performance/landing/widgets/widgets/settings';
+
+import {EAP_QUERY_PARAMS} from './settings';
 
 type DataType = {
   chart: WidgetDataResult & ReturnType<typeof transformEventsRequestToArea>;
@@ -139,19 +140,11 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
           } as any
         )[props.chartSetting];
         eventView.fields = [{field: 'transaction'}, {field}, {field: sortField}];
-        eventView.sorts = [
-          {
-            field: sortField,
-            kind: 'desc',
-          },
-        ];
+        eventView.sorts = [{field: sortField, kind: 'desc'}];
 
         // Change data set to metrics
         eventView.dataset = dataset;
-        extraQueryParams = {
-          ...extraQueryParams,
-          ...queryParams,
-        };
+        extraQueryParams = {...extraQueryParams, ...queryParams};
 
         // Update query
         const mutableSearch = new MutableSearch(eventView.query);
@@ -208,10 +201,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
           ]);
 
           eventView.dataset = dataset;
-          extraQueryParams = {
-            ...extraQueryParams,
-            ...queryParams,
-          };
+          extraQueryParams = {...extraQueryParams, ...queryParams};
 
           eventView.fields = [{field}, {field: 'release'}];
           const mutableSearch = new MutableSearch(eventView.query);
@@ -249,10 +239,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
     [props.chartSetting, selectedListIndex, mepSetting.memoizationKey, primaryRelease]
   );
 
-  const Queries = {
-    list: listQuery,
-    chart: chartQuery,
-  };
+  const Queries = {list: listQuery, chart: chartQuery};
 
   const assembleAccordionItems = (provided: ComponentData) => {
     const transformedReleaseSeries: Record<string, Series> = {};
@@ -265,10 +252,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
         const label = release;
         const seriesData =
           data.map(datum => {
-            return {
-              name: datum.name,
-              value: datum.value,
-            };
+            return {name: datum.name, value: datum.value};
           }) ?? [];
 
         const colors = theme.chart.getColorPalette(3);
@@ -288,12 +272,7 @@ export function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps)
           height={props.chartHeight}
           data={Object.values(transformedReleaseSeries)}
           loading={provided.widgetData.chart.isLoading}
-          grid={{
-            left: '0',
-            right: '0',
-            top: '8px',
-            bottom: '0',
-          }}
+          grid={{left: '0', right: '0', top: '8px', bottom: '0'}}
           type={ChartType.LINE}
           aggregateOutputFormat="duration"
           tooltipFormatterOptions={{

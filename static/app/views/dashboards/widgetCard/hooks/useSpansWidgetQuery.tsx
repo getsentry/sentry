@@ -37,13 +37,6 @@ import {
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {
-  combineWidgetJsonQueryResults,
-  combineWidgetQueryResults,
-} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getSeriesConfidenceInformation} from 'sentry/views/dashboards/widgetCard/hooks/utils/getSeriesConfidenceInformation';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {getTimeseriesWidgetQueryOptions} from 'sentry/views/dashboards/widgetCard/hooks/utils/getTimeseriesWidgetQueryOptions';
-import {
   getConditionalFilterInvalidSeriesMessageForAggregates,
   getValidAggregatesForRequest,
   hasNoValidAggregatesForRequest,
@@ -51,6 +44,14 @@ import {
 import {STARRED_SEGMENT_TABLE_QUERY_KEY} from 'sentry/views/insights/common/components/tableCells/starredSegmentCell';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  combineWidgetJsonQueryResults,
+  combineWidgetQueryResults,
+} from './utils/combineWidgetQueryResults';
+import {getSeriesConfidenceInformation} from './utils/getSeriesConfidenceInformation';
+import {getWidgetStaleTime} from './utils/getStaleTime';
+import {getTimeseriesWidgetQueryOptions} from './utils/getTimeseriesWidgetQueryOptions';
 
 type SpansTableResponse = TableData | EventsTableData;
 
@@ -276,11 +277,7 @@ export function useSpansSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -426,10 +423,7 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({
-            field: SpanFields.IS_STARRED_TRANSACTION,
-            kind: 'desc',
-          }),
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
           ...existingSort,
         ];
       }
@@ -507,11 +501,7 @@ export function useSpansTableQuery(
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];
@@ -541,9 +531,7 @@ export function useSpansTableQuery(
       const meta = transformedDataItem.meta;
       const fieldMeta = queryForTransform.fieldMeta;
       if (fieldMeta && meta) {
-        // oxlint-disable-next-line react/todo
         const units = (meta.units ??= {});
-        // oxlint-disable-next-line react/todo
         const fields = (meta.fields ??= {});
         fieldMeta.forEach((m, index) => {
           const field = queryForTransform.fields?.[index];

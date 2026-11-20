@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {FuseResultMatch} from 'fuse.js/basic';
 
-import {getFuseMatches, highlightFuseMatches} from 'sentry/utils/highlightFuseMatches';
+import {getFuseMatches, highlightFuseMatches} from './highlightFuseMatches';
 
 describe('highlightFuseMatches', () => {
   const matchObj: FuseResultMatch = {
@@ -22,34 +22,13 @@ describe('highlightFuseMatches', () => {
 
   it('gets the correct tokens', () => {
     expect(getFuseMatches(matchObj)).toEqual([
-      {
-        highlight: false,
-        text: 'Auth',
-      },
-      {
-        highlight: true,
-        text: 'ent',
-      },
-      {
-        highlight: false,
-        text: 'icati',
-      },
-      {
-        highlight: true,
-        text: 'on',
-      },
-      {
-        highlight: false,
-        text: ' ',
-      },
-      {
-        highlight: true,
-        text: 'to',
-      },
-      {
-        highlight: false,
-        text: 'kens allow you to perform actions',
-      },
+      {highlight: false, text: 'Auth'},
+      {highlight: true, text: 'ent'},
+      {highlight: false, text: 'icati'},
+      {highlight: true, text: 'on'},
+      {highlight: false, text: ' '},
+      {highlight: true, text: 'to'},
+      {highlight: false, text: 'kens allow you to perform actions'},
     ]);
   });
 

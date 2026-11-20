@@ -2,7 +2,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import OrganizationJoinRequest from 'sentry/views/organizationJoinRequest';
 
@@ -11,22 +12,19 @@ jest.mock('sentry/utils/analytics', () => ({
   trackAnalytics: jest.fn(),
 }));
 
-jest.mock('sentry/actionCreators/indicator');
-
 describe('OrganizationJoinRequest', () => {
   const org = OrganizationFixture({slug: 'test-org'});
   const endpoint = `/organizations/${org.slug}/join-request/`;
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
     MockApiClient.clearMockResponses();
   });
 
   it('renders', () => {
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -37,16 +35,11 @@ describe('OrganizationJoinRequest', () => {
   });
 
   it('submits', async () => {
-    const postMock = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-    });
+    const postMock = MockApiClient.addMockResponse({url: endpoint, method: 'POST'});
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -68,16 +61,11 @@ describe('OrganizationJoinRequest', () => {
   });
 
   it('shows validation error for invalid email', async () => {
-    const postMock = MockApiClient.addMockResponse({
-      url: endpoint,
-      method: 'POST',
-    });
+    const postMock = MockApiClient.addMockResponse({url: endpoint, method: 'POST'});
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -102,9 +90,7 @@ describe('OrganizationJoinRequest', () => {
 
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });
@@ -117,7 +103,7 @@ describe('OrganizationJoinRequest', () => {
     await waitFor(() => {
       expect(postMock).toHaveBeenCalled();
     });
-    expect(addErrorMessage).toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
 
     expect(screen.getByRole('heading', {name: 'Request to Join'})).toBeInTheDocument();
   });
@@ -125,9 +111,7 @@ describe('OrganizationJoinRequest', () => {
   it('cancels', async () => {
     render(<OrganizationJoinRequest />, {
       initialRouterConfig: {
-        location: {
-          pathname: `/join-request/${org.slug}/`,
-        },
+        location: {pathname: `/join-request/${org.slug}/`},
         route: '/join-request/:orgId/',
       },
     });

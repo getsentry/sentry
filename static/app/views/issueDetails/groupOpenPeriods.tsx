@@ -3,11 +3,12 @@ import styled from '@emotion/styled';
 import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 import orderBy from 'lodash/orderBy';
+import {parseAsString, useQueryState} from 'nuqs';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {DataGrid, type GridColumnOrder} from 'sentry/components/tables/dataGrid';
 import {t} from 'sentry/locale';
 import type {GroupOpenPeriodActivity} from 'sentry/types/group';
@@ -15,9 +16,7 @@ import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getShortEventId} from 'sentry/utils/events';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {unreachable} from 'sentry/utils/unreachable';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import {openPeriodsApiOptions} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {investigationCandidatesQueryOptions} from 'sentry/views/investigations/api';
 import type {MetricOpenPeriodInvestigationSource} from 'sentry/views/investigations/types';
@@ -25,7 +24,9 @@ import {
   getInvestigationPath,
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
-import {EventListTable} from 'sentry/views/issueDetails/eventListTable';
+
+import {EventListTable} from './eventListTable';
+import {useGroupId} from './groupIdContext';
 
 interface OpenPeriodDisplayData {
   description: string;
@@ -50,11 +51,10 @@ function getOpenPeriodActivityTypeLabel(activity: GroupOpenPeriodActivity): stri
   }
 }
 
-// TODO(snigdha): make this work for the old UI
 function IssueOpenPeriodsList() {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams<{groupId: string}>();
+  const [cursor] = useQueryState('cursor', parseAsString);
+  const groupId = useGroupId();
   const {
     data: response,
     isPending,
@@ -62,8 +62,8 @@ function IssueOpenPeriodsList() {
   } = useQuery({
     ...openPeriodsApiOptions({
       organization,
-      groupId: params.groupId,
-      cursor: location.query?.cursor,
+      groupId,
+      cursor: cursor ?? undefined,
       limit: 10,
     }),
     select: selectJsonWithHeaders,
@@ -71,10 +71,7 @@ function IssueOpenPeriodsList() {
   const openPeriods = response?.json ?? [];
   const investigationsEnabled = useInvestigationsEnabled();
   const candidateSources: MetricOpenPeriodInvestigationSource[] = openPeriods.map(
-    period => ({
-      type: 'metric_open_period',
-      ref: {groupId: params.groupId, openPeriodId: period.id},
-    })
+    period => ({type: 'metric_open_period', ref: {groupId, openPeriodId: period.id}})
   );
   const {data: candidates} = useQuery({
     ...investigationCandidatesQueryOptions({
@@ -101,7 +98,7 @@ function IssueOpenPeriodsList() {
         openPeriod: activity.type === 'opened' ? `#${period.id}` : undefined,
         eventId: activity.eventId ? (
           <EventIdLink
-            to={`/organizations/${organization.slug}/issues/${params.groupId}/events/${activity.eventId}/`}
+            to={`/organizations/${organization.slug}/issues/${groupId}/events/${activity.eventId}/`}
           >
             {getShortEventId(activity.eventId)}
           </EventIdLink>
@@ -131,13 +128,7 @@ function IssueOpenPeriodsList() {
     {key: 'start', width: COL_WIDTH_UNDEFINED, name: t('Start')},
     {key: 'end', width: COL_WIDTH_UNDEFINED, name: t('End')},
     ...(investigationsEnabled
-      ? [
-          {
-            key: 'investigation',
-            width: COL_WIDTH_UNDEFINED,
-            name: t('Investigation'),
-          },
-        ]
+      ? [{key: 'investigation', width: COL_WIDTH_UNDEFINED, name: t('Investigation')}]
       : []),
   ];
 
@@ -174,9 +165,7 @@ function IssueOpenPeriodsList() {
         data={data}
         error={error}
         columnOrder={columnOrder}
-        grid={{
-          renderBodyCell,
-        }}
+        grid={{renderBodyCell}}
       />
     </EventListTable>
   );

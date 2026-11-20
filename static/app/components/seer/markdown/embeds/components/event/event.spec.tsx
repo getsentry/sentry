@@ -155,11 +155,7 @@ describe('Seer event embed', () => {
         {key: 'server_name', value: '[Filtered]'},
       ],
       // Served positionally: this annotates `tags[1]`, not a key called '1'.
-      _meta: {
-        tags: {
-          1: {value: {'': {len: 7, rem: [['project:0', 's', 0, 10]]}}},
-        },
-      },
+      _meta: {tags: {1: {value: {'': {len: 7, rem: [['project:0', 's', 0, 10]]}}}}},
     });
 
     renderEventEmbed({view: 'tags'});

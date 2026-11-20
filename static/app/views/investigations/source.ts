@@ -1,7 +1,8 @@
 import {z} from 'zod';
 
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import type {InvestigationDetail} from 'sentry/views/investigations/types';
+
+import type {InvestigationDetail} from './types';
 
 // Mirrors the snapshot built in src/sentry/investigations/services/breached_metrics.py.
 const sourceConditionSchema = z.object({
@@ -46,9 +47,7 @@ const metricOpenPeriodSourceSchema = z.object({
     .catch(undefined),
 });
 
-export type SourceMonitor = z.infer<typeof sourceMonitorSchema> & {
-  projectSlug: string;
-};
+export type SourceMonitor = z.infer<typeof sourceMonitorSchema> & {projectSlug: string};
 
 function parseMetricOpenPeriodSource(source: InvestigationDetail['source']) {
   const parsed = metricOpenPeriodSourceSchema.safeParse(source);

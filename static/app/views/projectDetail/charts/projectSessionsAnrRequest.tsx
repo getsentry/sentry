@@ -1,5 +1,6 @@
 import {Fragment, useEffect, useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 import type {LineSeriesOption} from 'echarts';
 
 import {createLineSeries} from 'sentry/components/charts/series/lineSeries';
@@ -8,10 +9,9 @@ import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
 import type {SessionApiResponse} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {filterSessionsInTimeWindow, getSessionsInterval} from 'sentry/utils/sessions';
 import {DisplayModes} from 'sentry/views/projectDetail/displayModes';
 
@@ -53,19 +53,14 @@ export function ProjectSessionsAnrRequest({
   function getParams(): Record<string, any> {
     const baseParams = {
       field: [yAxis, 'count_unique(user)'],
-      interval: getSessionsInterval(datetime, {
-        dailyInterval: true,
-      }),
+      interval: getSessionsInterval(datetime, {dailyInterval: true}),
       project: projects[0],
       environment,
       query,
     };
 
     if (!shouldFetchWithPrevious) {
-      return {
-        ...baseParams,
-        ...normalizeDateTimeParams(datetime),
-      };
+      return {...baseParams, ...normalizeDateTimeParams(datetime)};
     }
 
     const {period} = selection.datetime;
@@ -74,24 +69,16 @@ export function ProjectSessionsAnrRequest({
       {shouldDoublePeriod: true}
     ).statsPeriod;
 
-    return {
-      ...baseParams,
-      statsPeriod: doubledPeriod,
-    };
+    return {...baseParams, statsPeriod: doubledPeriod};
   }
 
   const queryParams = getParams();
 
-  const {data, isRefetching, isError} = useApiQuery<SessionApiResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sessions/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-      {query: queryParams},
-    ],
-    {
-      staleTime: 0,
-    }
+  const {data, isRefetching, isError} = useQuery(
+    apiOptions.as<SessionApiResponse>()(
+      '/organizations/$organizationIdOrSlug/sessions/',
+      {path: {organizationIdOrSlug: organization.slug}, query: queryParams, staleTime: 0}
+    )
   );
 
   useEffect(() => {

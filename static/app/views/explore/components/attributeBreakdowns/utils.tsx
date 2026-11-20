@@ -2,16 +2,13 @@ import type {Theme} from '@sentry/scraps/theme';
 
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
-import type {AttributeDistribution} from 'sentry/views/explore/components/attributeBreakdowns/attributeDistributionContent';
 import {Actions} from 'sentry/views/explore/hooks/useAttributeBreakdownsTooltip';
 
+import type {AttributeDistribution} from './attributeDistributionContent';
 import {CHART_AXIS_LABEL_FONT_SIZE, CHART_MAX_SERIES_LENGTH} from './constants';
 
 export function calculateAttributePopulationPercentage(
-  values: Array<{
-    label: string;
-    value: number;
-  }>,
+  values: Array<{label: string; value: number}>,
   cohortTotal: number
 ): number {
   if (cohortTotal === 0) {
@@ -155,10 +152,7 @@ export function distributionToSeriesData(
 export function cohortsToSeriesData(
   cohort1: Array<{label: string; value: number}>,
   cohort2: Array<{label: string; value: number}>,
-  seriesTotals: {
-    baseline: number;
-    selected: number;
-  }
+  seriesTotals: {baseline: number; selected: number}
 ) {
   const cohort1Map = new Map(cohort1.map(({label, value}) => [label, value]));
   const cohort2Map = new Map(cohort2.map(({label, value}) => [label, value]));
@@ -193,8 +187,5 @@ export function cohortsToSeriesData(
     baselineSeriesData.push({label, value: baselineValue});
   }
 
-  return {
-    selected: selectedSeriesData,
-    baseline: baselineSeriesData,
-  };
+  return {selected: selectedSeriesData, baseline: baselineSeriesData};
 }

@@ -8,8 +8,6 @@ import type {
   AggregationKeyWithAlias,
   QueryFieldValue,
 } from 'sentry/utils/discover/fields';
-import {handleOrderByReset} from 'sentry/views/dashboards/datasetConfig/utils/handleOrderByReset';
-import {releasesResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/releasesResponseTransforms';
 import type {WidgetQuery} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 import {
@@ -31,6 +29,8 @@ import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import type {FieldValue} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 
+import {handleOrderByReset} from './utils/handleOrderByReset';
+import {releasesResponseTransforms} from './utils/releasesResponseTransforms';
 import type {DatasetConfig} from './base';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -99,10 +99,7 @@ function disableSortOptions(widgetQuery: WidgetQuery) {
       disableSortReason: t('Sorting currently not supported with session.status'),
     };
   }
-  return {
-    disableSort: false,
-    disableSortDirection: false,
-  };
+  return {disableSort: false, disableSortDirection: false};
 }
 
 function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {

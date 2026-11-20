@@ -3,7 +3,7 @@ import {
   type QueryStatus,
   type QueryFunctionContext,
 } from '@tanstack/react-query';
-import * as qs from 'query-string';
+import {createLoader} from 'nuqs';
 
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
@@ -15,25 +15,19 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {useDefaultMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {traceDateTimeParsers} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 
 import type {EAPTraceMeta, ResponseEAPTraceMeta} from './types';
 
-export type TraceMetaTrace = {
-  timestamp: number | undefined;
-  traceSlug: string;
-};
+export type TraceMetaTrace = {timestamp: number | undefined; traceSlug: string};
 
 type UseTraceMetaOptions = TraceMetaTrace | TraceMetaTrace[];
 
+const loadTraceMetaQueryParams = createLoader(traceDateTimeParsers);
+
 type TraceMetaQueryParams =
-  | {
-      include_uptime: string;
-      statsPeriod: string;
-    }
-  | {
-      include_uptime: string;
-      timestamp: number;
-    };
+  | {include_uptime: string; statsPeriod: string}
+  | {include_uptime: string; timestamp: number};
 
 function isEmptyMeta(meta: EAPTraceMeta): boolean {
   return (
@@ -100,12 +94,7 @@ async function fetchTraceMetaInBatches(
       batch.map(trace => {
         const url = getApiUrl(
           '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              traceId: trace.traceSlug,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug}}
         );
 
         return apiFetch<ResponseEAPTraceMeta>({
@@ -173,7 +162,7 @@ export function useTraceMeta(
   const traces = getTraceMetaTraces(options);
 
   const normalizedParams = normalizeDateTimeParams(
-    disableUrlSync ? {} : qs.parse(location.search),
+    disableUrlSync ? {} : loadTraceMetaQueryParams(location.search),
     {allowAbsolutePageDatetime: true}
   );
 

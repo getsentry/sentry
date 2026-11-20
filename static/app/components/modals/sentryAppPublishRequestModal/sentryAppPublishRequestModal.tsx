@@ -6,11 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {INTEGRATION_CATEGORIES} from 'sentry/components/modals/sentryAppPublishRequestModal/sentryAppUtils';
 import {t, tct} from 'sentry/locale';
 import type {SentryApp} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
@@ -18,6 +17,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {safeURL} from 'sentry/utils/url/safeURL';
+
+import {INTEGRATION_CATEGORIES} from './sentryAppUtils';
 
 const urlValidation = z
   .string()
@@ -53,18 +54,9 @@ const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
     question:
       'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on Sentry Integrations.',
   },
-  {
-    name: 'question2',
-    question: 'Select what category best describes your integration.',
-  },
-  {
-    name: 'question3',
-    question: 'Link to your documentation page.',
-  },
-  {
-    name: 'supportEmail',
-    question: 'Email address for user support.',
-  },
+  {name: 'question2', question: 'Select what category best describes your integration.'},
+  {name: 'question3', question: 'Link to your documentation page.'},
+  {name: 'supportEmail', question: 'Email address for user support.'},
   {
     name: 'question4',
     question:
@@ -72,10 +64,7 @@ const QUESTIONS: ReadonlyArray<{name: keyof FormValues; question: string}> = [
   },
 ];
 
-const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({
-  value,
-  label,
-}));
+const CATEGORY_OPTIONS = INTEGRATION_CATEGORIES.map(([value, label]) => ({value, label}));
 
 type Props = ModalRenderProps & {
   app: SentryApp;
@@ -101,7 +90,7 @@ export function SentryAppPublishRequestModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage(t('Request to publish %s successful.', app.slug));
+      toast.success(t('Request to publish %s successful.', app.slug));
       closeModal();
       onPublishSubmission();
     },
@@ -109,7 +98,7 @@ export function SentryAppPublishRequestModal({
       const rawDetail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
       const detail = typeof rawDetail === 'string' ? rawDetail : rawDetail?.message;
-      addErrorMessage(
+      toast.error(
         detail
           ? tct('Request to publish [app] fails. [detail]', {app: app.slug, detail})
           : t('Request to publish %s fails.', app.slug)
@@ -177,9 +166,7 @@ export function SentryAppPublishRequestModal({
               <field.Layout.Stack
                 label={tct(
                   'Provide a one-liner describing your integration. Subject to approval, we’ll use this to describe your integration on [link:Sentry Integrations].',
-                  {
-                    link: <ExternalLink href="https://sentry.io/integrations/" />,
-                  }
+                  {link: <ExternalLink href="https://sentry.io/integrations/" />}
                 )}
                 required
               >

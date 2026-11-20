@@ -4,13 +4,11 @@ import type {LocationDescriptor, LocationDescriptorObject} from 'history';
 import {Container} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
 
-import {ContextPickerModalContainer as ContextPickerModal} from 'sentry/components/contextPickerModal';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
-type Project = {
-  id: string;
-  slug: string;
-};
+import {ContextPickerModalContainer as ContextPickerModal} from './contextPickerModal';
+
+type Project = {id: string; slug: string};
 
 type Props = {
   /**

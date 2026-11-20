@@ -29,14 +29,8 @@ function Wrappers({
 
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
-    tags: {
-      foo: ['bar', 'baz'],
-      my_custom_tag: ['a wordy value'],
-    },
+    browser: {name: 'Chrome', version: '110.0.0'},
+    tags: {foo: ['bar', 'baz'], my_custom_tag: ['a wordy value']},
   }),
   errors: [],
   fetching: false,
@@ -62,11 +56,13 @@ describe('OurLogs', () => {
   it("should show a placeholder if there's no replay record", () => {
     // The loading state currently renders a tbody outside a table.
     const errorSpy = jest.spyOn(console, 'error').mockImplementation();
-    jest.mocked(useReplayTraces).mockReturnValue({
-      replayTraces: [],
-      indexComplete: true,
-      indexError: undefined,
-    } as any);
+    jest
+      .mocked(useReplayTraces)
+      .mockReturnValue({
+        replayTraces: [],
+        indexComplete: true,
+        indexError: undefined,
+      } as any);
 
     render(
       <Wrappers>

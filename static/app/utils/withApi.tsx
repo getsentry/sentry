@@ -1,10 +1,9 @@
 import type {Client} from 'sentry/api';
-import {getDisplayName} from 'sentry/utils/getDisplayName';
-import {useApi} from 'sentry/utils/useApi';
 
-type InjectedApiProps = {
-  api: Client;
-};
+import {getDisplayName} from './getDisplayName';
+import {useApi} from './useApi';
+
+type InjectedApiProps = {api: Client};
 
 type WrappedProps<P> = Omit<P, keyof InjectedApiProps> & Partial<InjectedApiProps>;
 

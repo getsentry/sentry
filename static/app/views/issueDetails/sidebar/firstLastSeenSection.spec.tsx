@@ -6,7 +6,7 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastSeenSection';
+import {FirstLastSeenSection} from './firstLastSeenSection';
 
 describe('FirstLastSeenSection', () => {
   const organization = OrganizationFixture();
@@ -30,11 +30,7 @@ describe('FirstLastSeenSection', () => {
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
-      body: {
-        id: group.id,
-        firstRelease,
-        lastRelease,
-      },
+      body: {id: group.id, firstRelease, lastRelease},
     });
 
     MockApiClient.addMockResponse({
@@ -96,11 +92,7 @@ describe('FirstLastSeenSection', () => {
 
     expect(mockFirstLastRelease).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
-      expect.objectContaining({
-        query: {
-          environment: ['production', 'staging'],
-        },
-      })
+      expect.objectContaining({query: {environment: ['production', 'staging']}})
     );
   });
 
@@ -137,11 +129,7 @@ describe('FirstLastSeenSection', () => {
     mockFirstLastRelease = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/first-last-release/`,
       method: 'GET',
-      body: {
-        id: group.id,
-        firstRelease: null,
-        lastRelease: null,
-      },
+      body: {id: group.id, firstRelease: null, lastRelease: null},
     });
 
     render(<FirstLastSeenSection group={group} />, {

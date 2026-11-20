@@ -5,8 +5,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {GroupMetaRow} from 'sentry/components/groupMetaRow';
 import {GroupStatus, IssueCategory} from 'sentry/types/group';
+
+import {GroupMetaRow} from './groupMetaRow';
 
 describe('GroupMetaRow', () => {
   it('renders last and first seen', () => {
@@ -83,9 +84,7 @@ describe('GroupMetaRow', () => {
   });
 
   it('should only make one replay-count API request', async () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
     const mockReplayCount = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replay-count/`,
       body: {groupId: 5},

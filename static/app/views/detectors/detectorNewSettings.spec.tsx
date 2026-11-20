@@ -21,27 +21,21 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {DetectorType} from 'sentry/types/workflowEngine/detectors';
-import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
-import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
-import DetectorNewSettings from 'sentry/views/detectors/detectorNewSettings';
+
+import {getDatasetConfig} from './datasetConfig/getDatasetConfig';
+import {DetectorDataset} from './datasetConfig/types';
+import DetectorNewSettings from './detectorNewSettings';
 
 describe('DetectorEdit', () => {
-  const organization = OrganizationFixture({
-    features: ['visibility-explore-view', 'performance-view'],
-  });
+  const organization = OrganizationFixture({features: ['visibility-explore-view']});
   const organizationWithMonitorDuplication = OrganizationFixture({
     ...organization,
     features: [...organization.features, 'monitor-duplication'],
   });
-  const project = ProjectFixture({
-    organization,
-    environments: ['production'],
-  });
+  const project = ProjectFixture({organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/monitors/new/settings/',
-    location: {
-      pathname: '/organizations/org-slug/monitors/new/settings/',
-    },
+    location: {pathname: '/organizations/org-slug/monitors/new/settings/'},
   };
 
   function getDuplicateRouterConfig(detectorType: DetectorType, duplicateFrom: string) {
@@ -203,9 +197,7 @@ describe('DetectorEdit', () => {
 
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Project'}));
     expect(
-      await screen.findByRole('menuitemradio', {
-        name: otherWritableProject.slug,
-      })
+      await screen.findByRole('menuitemradio', {name: otherWritableProject.slug})
     ).toBeInTheDocument();
     expect(
       screen.queryByRole('menuitemradio', {name: readOnlyProject.slug})
@@ -415,14 +407,8 @@ describe('DetectorEdit', () => {
               name: 'Checkout uptime (Copy)',
               type: 'uptime_domain_failure',
               workflowIds: ['100'],
-              dataSources: [
-                expect.objectContaining({
-                  url: 'https://example.com',
-                }),
-              ],
-              config: expect.objectContaining({
-                environment: 'production',
-              }),
+              dataSources: [expect.objectContaining({url: 'https://example.com'})],
+              config: expect.objectContaining({environment: 'production'}),
             }),
           })
         );
@@ -435,10 +421,7 @@ describe('DetectorEdit', () => {
         name: 'iOS download size',
         projectId: project.id,
         workflowIds: ['100'],
-        config: {
-          measurement: 'download_size',
-          thresholdType: 'relative_diff',
-        },
+        config: {measurement: 'download_size', thresholdType: 'relative_diff'},
       });
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${sourceDetector.id}/`,
@@ -531,9 +514,7 @@ describe('DetectorEdit', () => {
             data: expect.objectContaining({
               name: 'Edited copy',
               dataSources: [
-                expect.objectContaining({
-                  headers: [['Authorization', 'Bearer secret']],
-                }),
+                expect.objectContaining({headers: [['Authorization', 'Bearer secret']]}),
               ],
             }),
           })
@@ -827,22 +808,12 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'static',
-              },
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -967,16 +938,8 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
@@ -1019,7 +982,8 @@ describe('DetectorEdit', () => {
       await userEvent.keyboard('Foo{enter}');
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my metric monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my metric monitor description');
 
       await userEvent.type(
         screen.getByRole('spinbutton', {name: 'High threshold'}),
@@ -1111,17 +1075,9 @@ describe('DetectorEdit', () => {
               logicType: 'any',
               conditions: [
                 // Main trigger condition at HIGH
-                {
-                  comparison: 100,
-                  conditionResult: 75,
-                  type: 'gt',
-                },
+                {comparison: 100, conditionResult: 75, type: 'gt'},
                 // Manual resolution condition at OK
-                {
-                  comparison: 80,
-                  conditionResult: 0,
-                  type: 'lte',
-                },
+                {comparison: 80, conditionResult: 0, type: 'lte'},
               ],
             },
           }),
@@ -1169,23 +1125,11 @@ describe('DetectorEdit', () => {
               logicType: 'any',
               conditions: [
                 // High priority condition
-                {
-                  comparison: 100,
-                  conditionResult: 75,
-                  type: 'gt',
-                },
+                {comparison: 100, conditionResult: 75, type: 'gt'},
                 // Medium priority condition
-                {
-                  comparison: 50,
-                  conditionResult: 50,
-                  type: 'gt',
-                },
+                {comparison: 50, conditionResult: 50, type: 'gt'},
                 // Default resolution condition uses MEDIUM threshold (50) with swapped operator
-                {
-                  comparison: 50,
-                  conditionResult: 0,
-                  type: 'lte',
-                },
+                {comparison: 50, conditionResult: 0, type: 'lte'},
               ],
             },
           }),
@@ -1275,9 +1219,7 @@ describe('DetectorEdit', () => {
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'dynamic',
-              },
+              config: {detectionType: 'dynamic'},
               dataSources: [
                 {
                   aggregate: 'count()',
@@ -1343,22 +1285,12 @@ describe('DetectorEdit', () => {
               workflowIds: [],
               conditionGroup: {
                 conditions: [
-                  {
-                    comparison: 100,
-                    conditionResult: 75,
-                    type: 'gt',
-                  },
-                  {
-                    comparison: 100,
-                    conditionResult: 0,
-                    type: 'lte',
-                  },
+                  {comparison: 100, conditionResult: 75, type: 'gt'},
+                  {comparison: 100, conditionResult: 0, type: 'lte'},
                 ],
                 logicType: 'any',
               },
-              config: {
-                detectionType: 'static',
-              },
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   aggregate: 'apdex(span.duration,100)',
@@ -1381,10 +1313,7 @@ describe('DetectorEdit', () => {
     const newMetricQuery = {detectorType: 'metric_issue', project: project.id};
 
     function getRouterConfig(query: Record<string, string>) {
-      return {
-        ...initialRouterConfig,
-        location: {...initialRouterConfig.location, query},
-      };
+      return {...initialRouterConfig, location: {...initialRouterConfig.location, query}};
     }
 
     function getDraft(router: {location: {query: Record<string, unknown>}}) {
@@ -1587,7 +1516,7 @@ describe('DetectorEdit', () => {
   describe('Metric Detector with Metrics dataset', () => {
     it('shows metrics dataset option', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       render(<DetectorNewSettings />, {
@@ -1617,7 +1546,7 @@ describe('DetectorEdit', () => {
 
     it('can submit a new metric detector with metrics dataset from URL params', async () => {
       const metricsOrganization = OrganizationFixture({
-        features: ['visibility-explore-view', 'performance-view', 'tracemetrics-enabled'],
+        features: ['visibility-explore-view', 'tracemetrics-enabled'],
       });
 
       MockApiClient.addMockResponse({
@@ -2021,10 +1950,7 @@ describe('DetectorEdit', () => {
       ...initialRouterConfig,
       location: {
         ...initialRouterConfig.location,
-        query: {
-          detectorType: 'monitor_check_in_failure',
-          project: project.id,
-        },
+        query: {detectorType: 'monitor_check_in_failure', project: project.id},
       },
     };
 
@@ -2167,7 +2093,8 @@ describe('DetectorEdit', () => {
       });
 
       const description = screen.getByRole('textbox', {name: 'description'});
-      await userEvent.type(description, 'This is my cron monitor description');
+      await userEvent.click(description);
+      await userEvent.paste('This is my cron monitor description');
 
       await userEvent.click(screen.getByRole('button', {name: 'Create Monitor'}));
 
@@ -2237,9 +2164,7 @@ describe('DetectorEdit', () => {
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
-        body: {
-          dataSources: {slug: [errorMessage]},
-        },
+        body: {dataSources: {slug: [errorMessage]}},
       });
 
       render(<DetectorNewSettings />, {
@@ -2268,11 +2193,7 @@ describe('DetectorEdit', () => {
         url: `/organizations/${organization.slug}/projects/${project.id}/detectors/`,
         method: 'POST',
         statusCode: 400,
-        body: {
-          dataSources: {
-            config: {schedule: [errorMessage]},
-          },
-        },
+        body: {dataSources: {config: {schedule: [errorMessage]}}},
       });
 
       render(<DetectorNewSettings />, {

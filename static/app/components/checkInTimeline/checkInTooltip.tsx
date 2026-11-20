@@ -2,15 +2,22 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Flex} from '@sentry/scraps/layout';
+import {DateTime} from '@sentry/scraps/dateTime';
+import {Flex, Stack} from '@sentry/scraps/layout';
+import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 
 import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
+
+const COLUMNS: TableColumnConfig[] = [
+  {key: 'status', width: 'max-content'},
+  {key: 'count', width: 'max-content'},
+  {key: 'unit', width: 'max-content'},
+];
 
 interface CheckInTooltipProps<Status extends string> extends Omit<TooltipProps, 'title'> {
   /**
@@ -42,7 +49,7 @@ export function CheckInTooltip<Status extends string>({
   ...props
 }: CheckInTooltipProps<Status>) {
   const {startTs, endTs, stats} = jobTick;
-  const {dateLabelFormat} = timeWindowConfig;
+  const {dateLabelOptions} = timeWindowConfig;
   const representsSingleJob =
     Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
 
@@ -50,91 +57,63 @@ export function CheckInTooltip<Status extends string>({
   const labelColors = statusStyle(theme);
 
   const tooltipTitle = (
-    <Fragment>
+    <Stack gap="md">
       <Flex justify="center">
-        <DateTime date={startTs * 1000} format={dateLabelFormat} />
+        <DateTime date={startTs * 1000} {...dateLabelOptions} />
         {!representsSingleJob && (
           <Fragment>
             <Text>{'\u2014'}</Text>
-            <DateTime date={endTs * 1000} format={dateLabelFormat} />
+            <DateTime date={endTs * 1000} {...dateLabelOptions} />
           </Fragment>
         )}
       </Flex>
-      <StatusCountContainer>
-        <thead>
-          <tr>
-            <td>{t('Status')}</td>
-            <td>{t('Count')}</td>
-            <td>{t('Unit')}</td>
-          </tr>
-        </thead>
-        <tbody>
+      <StatusCountTable columns={COLUMNS}>
+        <VisuallyHiddenHead>
+          <Table.Row>
+            <Table.HeadCell>{t('Status')}</Table.HeadCell>
+            <Table.HeadCell>{t('Count')}</Table.HeadCell>
+            <Table.HeadCell>{t('Unit')}</Table.HeadCell>
+          </Table.Row>
+        </VisuallyHiddenHead>
+        <Table.Body>
           {(Object.entries(stats) as Array<[Status, number]>).map(
             ([status, count]) =>
               count > 0 && (
-                <tr key={status}>
-                  <StatusLabel
-                    labelColor={
-                      labelColors[status]?.labelColor ?? theme.tokens.content.disabled
-                    }
+                <Table.Row key={status}>
+                  <Table.Cell
+                    style={{
+                      color:
+                        labelColors[status]?.labelColor ?? theme.tokens.content.disabled,
+                    }}
                   >
                     {statusLabel[status]}
-                  </StatusLabel>
-                  <StatusCount>{count}</StatusCount>
-                  <StatusUnit>{makeUnit(count)}</StatusUnit>
-                </tr>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Text tabular>{count}</Text>
+                  </Table.Cell>
+                  <Table.Cell>
+                    <Text variant="muted">{makeUnit(count)}</Text>
+                  </Table.Cell>
+                </Table.Row>
               )
           )}
-        </tbody>
-      </StatusCountContainer>
-    </Fragment>
+        </Table.Body>
+      </StatusCountTable>
+    </Stack>
   );
 
   return (
-    <Tooltip title={tooltipTitle} skipWrapper {...props}>
+    <Tooltip title={tooltipTitle} skipWrapper maxWidth="none" {...props}>
       {children}
     </Tooltip>
   );
 }
 
-const StatusCountContainer = styled('table')`
-  width: 100%;
-  margin: 0;
-  display: grid;
-  grid-template-columns: max-content max-content max-content;
-  gap: ${p => p.theme.space.md};
-
-  /* Visually hide the tooltip headers but keep them for accessability */
-  thead {
-    overflow: hidden;
-    height: 0;
-    gap: 0;
-    td {
-      width: 0;
-    }
-  }
-
-  tbody,
-  thead,
-  tr {
-    display: grid;
-    grid-column: 1 / -1;
-    grid-template-columns: subgrid;
-  }
-
-  td {
-    text-align: left;
-  }
+const StatusCountTable = styled(Table)`
+  column-gap: ${p => p.theme.space.md};
+  text-align: left;
 `;
 
-const StatusLabel = styled('td')<{labelColor: string}>`
-  color: ${p => p.labelColor};
-`;
-
-const StatusCount = styled('td')`
-  font-variant-numeric: tabular-nums;
-`;
-
-const StatusUnit = styled('td')`
-  color: ${p => p.theme.tokens.content.secondary};
+const VisuallyHiddenHead = styled(Table.Head)`
+  ${p => p.theme.visuallyHidden}
 `;

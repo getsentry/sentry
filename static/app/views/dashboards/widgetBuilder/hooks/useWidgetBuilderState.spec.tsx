@@ -1,14 +1,16 @@
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import type {AggregationKeyWithAlias, Column} from 'sentry/utils/discover/fields';
+import {
+  explodeField,
+  type AggregationKeyWithAlias,
+  type Column,
+} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {
-  BuilderStateAction,
-  useWidgetBuilderState,
-} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
 import {serializeFields} from 'sentry/views/dashboards/widgetBuilder/utils/serialization.ts';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
+
+import {BuilderStateAction, useWidgetBuilderState} from './useWidgetBuilderState';
 
 type Query = Record<string, string | number | string[]>;
 
@@ -55,10 +57,7 @@ describe('useWidgetBuilderState', () => {
   it('sets the new title and description in the query params', () => {
     const {result, router} = renderWidgetBuilderState();
     act(() => {
-      result.current.dispatch({
-        type: BuilderStateAction.SET_TITLE,
-        payload: 'new title',
-      });
+      result.current.dispatch({type: BuilderStateAction.SET_TITLE, payload: 'new title'});
     });
 
     act(() => {
@@ -81,10 +80,7 @@ describe('useWidgetBuilderState', () => {
 
     act(() => {
       result.current.dispatch(
-        {
-          type: BuilderStateAction.SET_TITLE,
-          payload: 'new title',
-        },
+        {type: BuilderStateAction.SET_TITLE, payload: 'new title'},
         {debounceUrl: true}
       );
     });
@@ -95,10 +91,7 @@ describe('useWidgetBuilderState', () => {
 
     // Committing writes it through, cancelling the pending debounce
     act(() => {
-      result.current.dispatch({
-        type: BuilderStateAction.SET_TITLE,
-        payload: 'new title',
-      });
+      result.current.dispatch({type: BuilderStateAction.SET_TITLE, payload: 'new title'});
     });
     flushUrlUpdates();
 
@@ -106,6 +99,41 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('display type', () => {
+    it('retargets a stale equation sort when a trace metrics table becomes a time series', () => {
+      const countTtfb = 'count(value,browser.web_vital.ttfb,distribution,millisecond)';
+      const {result} = renderWidgetBuilderState({
+        dataset: WidgetType.TRACEMETRICS,
+        displayType: DisplayType.TABLE,
+        field: [
+          'transaction',
+          'project',
+          countTtfb,
+          'p75(value,browser.web_vital.lcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.fcp,distribution,millisecond)',
+          'p75(value,browser.web_vital.cls,distribution,none)',
+          'equation|performance_score()',
+          'equation|opportunity_score()',
+        ],
+        sort: ['-equation[1]'],
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_DISPLAY_TYPE,
+          payload: DisplayType.AREA,
+        });
+      });
+
+      expect(result.current.state.fields).toEqual([
+        {kind: 'field', field: 'transaction'},
+        {kind: 'field', field: 'project'},
+      ]);
+      expect(result.current.state.yAxis).toHaveLength(3);
+      // The equations were dropped with the y-axis cap, so the sort moves to a
+      // plotted aggregate instead of pointing at a missing equation
+      expect(result.current.state.sort).toEqual([{kind: 'desc', field: countTtfb}]);
+    });
+
     it('returns the display type from the query params', () => {
       const {result} = renderWidgetBuilderState({displayType: DisplayType.AREA});
 
@@ -495,9 +523,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('keeps only aggregates and clears sort when switching to heat map', () => {
-      const {result} = renderWidgetBuilderState({
-        field: ['event.type', 'count()'],
-      });
+      const {result} = renderWidgetBuilderState({field: ['event.type', 'count()']});
 
       expect(result.current.state.fields).toEqual([
         {field: 'event.type', alias: undefined, kind: 'field'},
@@ -904,7 +930,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      // PREPROD_APP_SIZE only supports LINE, so TABLE should be reset to LINE
+      // PREPROD_APP_SIZE does not support TABLE, so it resets to the first supported type
       expect(result.current.state.displayType).toBe(DisplayType.LINE);
     });
 
@@ -938,10 +964,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.yAxis).toEqual([]);
       expect(result.current.state.query).toEqual(['']);
       expect(result.current.state.sort).toEqual([
-        {
-          field: 'count(span.duration)',
-          kind: 'desc',
-        },
+        {field: 'count(span.duration)', kind: 'desc'},
       ]);
     });
 
@@ -991,12 +1014,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.sort).toEqual([
-        {
-          field: 'testField',
-          kind: 'desc',
-        },
-      ]);
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
     });
 
     it('keeps sort when the sort is in the new fields', () => {
@@ -1015,12 +1033,7 @@ describe('useWidgetBuilderState', () => {
         });
       });
 
-      expect(result.current.state.sort).toEqual([
-        {
-          field: 'testField',
-          kind: 'desc',
-        },
-      ]);
+      expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
     });
 
     it('resets selectedAggregate when the dataset is switched', () => {
@@ -1144,6 +1157,91 @@ describe('useWidgetBuilderState', () => {
       expect(encodedFields).toEqual([
         '{"field":"event.type","alias":"test"}',
         'event.type',
+      ]);
+    });
+
+    it('round trips every field shape through the field and yAxis query params', () => {
+      const columns = [
+        explodeField({field: 'event.type'}),
+        explodeField({field: 'event.type', alias: 'type'}),
+        explodeField({field: 'count()', alias: 'total "events" {x} [y]'}),
+        explodeField({field: 'p90(transaction.duration)'}),
+        explodeField({field: 'count_if(transaction,equals,"{a}")'}),
+        explodeField({field: 'equation|count() * 2'}),
+        explodeField({field: 'equation|count() / 2', alias: 'half'}),
+        explodeField({field: 'calculated|score'}),
+        explodeField({field: '123'}),
+        explodeField({field: 'null'}),
+        explodeField({field: '"quoted"'}),
+      ];
+      const encoded = serializeFields(columns);
+
+      const {result} = renderWidgetBuilderState({field: encoded, yAxis: encoded});
+
+      expect(result.current.state.fields).toEqual(columns);
+      expect(result.current.state.yAxis).toEqual(columns);
+      expect(serializeFields(result.current.state.fields ?? [])).toEqual(encoded);
+      expect(serializeFields(result.current.state.yAxis ?? [])).toEqual(encoded);
+    });
+
+    it.each([
+      '123',
+      'true',
+      'null',
+      '"quoted"',
+      '[1]',
+      '{}',
+      '{"alias":"test"}',
+      '{"field":123,"alias":"test"}',
+      '{"field":null}',
+      '{"field":"event.type"',
+    ])('decodes %s as a plain field when it is not a field object', field => {
+      const {result} = renderWidgetBuilderState({field: [field], yAxis: [field]});
+
+      expect(result.current.state.fields).toEqual([
+        {field, alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toEqual([
+        {field, alias: undefined, kind: 'field'},
+      ]);
+    });
+
+    it.each([
+      ['{"field":"event.type"}', undefined],
+      ['{"field":"event.type","alias":""}', ''],
+      ['{"field":"event.type","alias":"test","width":100}', 'test'],
+      ['{"field":"event.type","alias":5}', undefined],
+      ['{"field":"event.type","alias":true}', undefined],
+      ['{"field":"event.type","alias":null}', undefined],
+      ['{"field":"event.type","alias":{"name":"test"}}', undefined],
+    ])('decodes %s with the alias %p', (field, alias) => {
+      const {result} = renderWidgetBuilderState({field: [field]});
+
+      expect(result.current.state.fields).toStrictEqual([
+        {field: 'event.type', alias, kind: 'field'},
+      ]);
+    });
+
+    it('decodes JSON and plain fields from a SET_STATE payload', () => {
+      const {result} = renderWidgetBuilderState();
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            field: ['{"field":"event.type","alias":"type"}', '123'],
+            yAxis: ['{"field":"count()","alias":5}', 'null'],
+          },
+        });
+      });
+
+      expect(result.current.state.fields).toStrictEqual([
+        {field: 'event.type', alias: 'type', kind: 'field'},
+        {field: '123', alias: undefined, kind: 'field'},
+      ]);
+      expect(result.current.state.yAxis).toStrictEqual([
+        {function: ['count', ''], alias: undefined, kind: 'function'},
+        {field: 'null', alias: undefined, kind: 'field'},
       ]);
     });
 
@@ -1471,7 +1569,7 @@ describe('useWidgetBuilderState', () => {
   });
 
   describe('transformations', () => {
-    it('updates or clears one aggregate across filters without changing sibling pipelines', () => {
+    it('updates or clears one aggregate across filters without changing sibling transformations', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1501,7 +1599,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('moves equation pipelines when equations are reordered', () => {
+    it('moves equation transformations when equations are reordered', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1521,7 +1619,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{0: ['smooth(sma,3)']}]);
     });
 
-    it('keeps pipelines aligned through duplicate-axis moves, edits, additions, and deletion', () => {
+    it('keeps transformations aligned through duplicate-axis moves, edits, additions, and deletion', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1573,7 +1671,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('removes a filter pipeline and copies the first pipeline for an appended filter', () => {
+    it("removes a filter's transformations and copies the first filter's transformations for an appended filter", () => {
       const {result} = renderWidgetBuilderState({
         yAxis: ['count()'],
         query: ['environment:prod', 'environment:staging', 'environment:dev'],
@@ -1604,7 +1702,7 @@ describe('useWidgetBuilderState', () => {
       ]);
     });
 
-    it('clears previous pipelines when loading a widget without transformations', () => {
+    it('clears previous transformations when loading a widget without transformations', () => {
       const {result} = renderWidgetBuilderState({
         transformations: '[{"0":["fill(zero)"]}]',
       });
@@ -1620,6 +1718,52 @@ describe('useWidgetBuilderState', () => {
       });
       expect(result.current.state.dataset).toBe(WidgetType.LOGS);
       expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('loads transformations when setting the state', () => {
+      const {result} = renderWidgetBuilderState();
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()', 'count()'],
+            transformations: '[{"1":["fill(zero)"]}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
+    });
+
+    it('clears previous transformations when loading a widget with malformed transformations', () => {
+      const {result} = renderWidgetBuilderState({
+        transformations: '[{"0":["fill(zero)"]}]',
+      });
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            dataset: WidgetType.SPANS,
+            displayType: DisplayType.LINE,
+            yAxis: ['count()'],
+            transformations: '[{"0":"fill(zero)"}]',
+          },
+        });
+      });
+      expect(result.current.state.transformations).toBeUndefined();
+    });
+
+    it('writes transformations to the URL as JSON', () => {
+      const {result, router} = renderWidgetBuilderState({yAxis: ['count()', 'count()']});
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS,
+          payload: {index: 1, transformations: ['fill(zero)']},
+        });
+      });
+      flushUrlUpdates();
+      expect(router.location.query.transformations).toBe('[{"1":["fill(zero)"]}]');
     });
 
     it.each([
@@ -1645,7 +1789,7 @@ describe('useWidgetBuilderState', () => {
       expect(result.current.state.transformations).toEqual([{1: ['fill(zero)']}]);
     });
 
-    it('retains pipelines for timeseries chart changes and clears them on dataset changes', () => {
+    it('retains transformations for timeseries chart changes and clears them on dataset changes', () => {
       const {result} = renderWidgetBuilderState({
         dataset: WidgetType.SPANS,
         displayType: DisplayType.LINE,
@@ -1802,9 +1946,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('can decode and update sorts', () => {
-      const {result} = renderWidgetBuilderState({
-        sort: ['-testField'],
-      });
+      const {result} = renderWidgetBuilderState({sort: ['-testField']});
 
       expect(result.current.state.sort).toEqual([{field: 'testField', kind: 'desc'}]);
 
@@ -1841,17 +1983,12 @@ describe('useWidgetBuilderState', () => {
 
   describe('limit', () => {
     it('can decode and update limit', () => {
-      const {result} = renderWidgetBuilderState({
-        limit: '4',
-      });
+      const {result} = renderWidgetBuilderState({limit: '4'});
 
       expect(result.current.state.limit).toBe(4);
 
       act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.SET_LIMIT,
-          payload: 10,
-        });
+        result.current.dispatch({type: BuilderStateAction.SET_LIMIT, payload: 10});
       });
 
       expect(result.current.state.limit).toBe(10);
@@ -1860,9 +1997,7 @@ describe('useWidgetBuilderState', () => {
 
   describe('legendAlias', () => {
     it('can decode and update legendAlias', () => {
-      const {result} = renderWidgetBuilderState({
-        legendAlias: ['test', 'test2'],
-      });
+      const {result} = renderWidgetBuilderState({legendAlias: ['test', 'test2']});
 
       expect(result.current.state.legendAlias).toEqual(['test', 'test2']);
 
@@ -1874,6 +2009,40 @@ describe('useWidgetBuilderState', () => {
       });
 
       expect(result.current.state.legendAlias).toEqual(['test3', 'test4']);
+    });
+  });
+
+  describe('linkedDashboards', () => {
+    it('keeps the valid linked dashboards when the URL has a malformed one', () => {
+      const {result} = renderWidgetBuilderState({
+        linkedDashboards: [
+          '{"dashboardId":5,"field":"project"}',
+          'not json',
+          '{"dashboardId":"6","field":"transaction"}',
+        ],
+      });
+
+      expect(result.current.state.linkedDashboards).toEqual([
+        {dashboardId: '5', field: 'project'},
+        {dashboardId: '6', field: 'transaction'},
+      ]);
+    });
+
+    it('keeps the valid linked dashboards when SET_STATE has a malformed one', () => {
+      const {result} = renderWidgetBuilderState();
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_STATE,
+          payload: {
+            linkedDashboards: ['not json', '{"dashboardId":6,"field":"transaction"}'],
+          },
+        });
+      });
+
+      expect(result.current.state.linkedDashboards).toEqual([
+        {dashboardId: '6', field: 'transaction'},
+      ]);
     });
   });
 
@@ -1920,6 +2089,37 @@ describe('useWidgetBuilderState', () => {
       flushUrlUpdates();
 
       expect(router.location.query).not.toHaveProperty('selectedAggregate');
+    });
+  });
+
+  describe('thresholds', () => {
+    it('writes thresholds to the URL as JSON when SET_THRESHOLDS is dispatched', () => {
+      const {result, router} = renderWidgetBuilderState({displayType: DisplayType.LINE});
+
+      act(() => {
+        result.current.dispatch({
+          type: BuilderStateAction.SET_THRESHOLDS,
+          payload: {
+            max_values: {max1: 100, max2: 200},
+            unit: 'seconds',
+            preferredPolarity: '+',
+          },
+        });
+      });
+      flushUrlUpdates();
+
+      expect(router.location.query.thresholds).toBe(
+        '{"max_values":{"max1":100,"max2":200},"unit":"seconds","preferredPolarity":"+"}'
+      );
+    });
+
+    it('ignores thresholds when the URL value is malformed', () => {
+      const {result} = renderWidgetBuilderState({
+        displayType: DisplayType.LINE,
+        thresholds: '{"max_values":{"max1":"abc","max2":200}}',
+      });
+
+      expect(result.current.state.thresholds).toBeUndefined();
     });
   });
 
@@ -1997,10 +2197,7 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_Y_AXIS,
           payload: [
-            {
-              kind: 'function',
-              function: ['avg_if', '`span.op:db`', 'span.duration'],
-            },
+            {kind: 'function', function: ['avg_if', '`span.op:db`', 'span.duration']},
           ] as Column[],
         });
       });
@@ -2023,14 +2220,8 @@ describe('useWidgetBuilderState', () => {
         result.current.dispatch({
           type: BuilderStateAction.SET_Y_AXIS,
           payload: [
-            {
-              kind: 'function',
-              function: ['avg', 'span.duration'],
-            },
-            {
-              kind: 'function',
-              function: ['p95_if', '`span.op:db`', 'span.duration'],
-            },
+            {kind: 'function', function: ['avg', 'span.duration']},
+            {kind: 'function', function: ['p95_if', '`span.op:db`', 'span.duration']},
           ] as Column[],
         });
       });
@@ -2050,10 +2241,7 @@ describe('useWidgetBuilderState', () => {
       });
 
       act(() => {
-        result.current.dispatch({
-          type: BuilderStateAction.DELETE_AGGREGATE,
-          payload: 0,
-        });
+        result.current.dispatch({type: BuilderStateAction.DELETE_AGGREGATE, payload: 0});
       });
 
       expect(result.current.state.sort).toEqual([{kind: 'desc', field: 'equation[0]'}]);
@@ -2122,9 +2310,7 @@ describe('useWidgetBuilderState', () => {
 
       // sort should reference the full aggregate string with args
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-per_second(value,my.metric,counter,none)',
-        })
+        expect.objectContaining({sort: '-per_second(value,my.metric,counter,none)'})
       );
     });
   });
@@ -2135,10 +2321,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
       });
 
@@ -2170,10 +2353,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-transaction'],
       });
@@ -2188,11 +2368,7 @@ describe('useWidgetBuilderState', () => {
       flushUrlUpdates();
 
       // Sort should be reset to first aggregate
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count()',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({sort: '-count()'}));
     });
 
     it('preserves sort when X-axis changes but sort was on aggregate', () => {
@@ -2200,10 +2376,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-count()'],
       });
@@ -2248,9 +2421,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should use equation[0] alias format
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-equation[0]',
-        })
+        expect.objectContaining({sort: '-equation[0]'})
       );
     });
 
@@ -2294,10 +2465,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
         sort: ['-equation[0]'],
       });
@@ -2312,11 +2480,7 @@ describe('useWidgetBuilderState', () => {
       flushUrlUpdates();
 
       // Sort should be reset to first aggregate since there are no equations in fields
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count()',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({sort: '-count()'}));
     });
 
     it('preserves all aggregates and equations when switching from line to categorical bar', () => {
@@ -2351,9 +2515,7 @@ describe('useWidgetBuilderState', () => {
 
       // Sort should be on the last aggregate (equation) by default
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-equation[0]',
-        })
+        expect.objectContaining({sort: '-equation[0]'})
       );
     });
 
@@ -2362,10 +2524,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
           {kind: FieldValueKind.EQUATION, field: 'count() / 5'},
         ]),
       });
@@ -2380,10 +2539,7 @@ describe('useWidgetBuilderState', () => {
         displayType: DisplayType.CATEGORICAL_BAR,
         field: serializeFields([
           {kind: FieldValueKind.FIELD, field: 'transaction'},
-          {
-            kind: FieldValueKind.FUNCTION,
-            function: ['count', '', undefined, undefined],
-          },
+          {kind: FieldValueKind.FUNCTION, function: ['count', '', undefined, undefined]},
         ]),
       });
 
@@ -2428,15 +2584,9 @@ describe('useWidgetBuilderState', () => {
         })
       );
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          sort: '-count_unique(user)',
-        })
+        expect.objectContaining({sort: '-count_unique(user)'})
       );
-      expect(router.location.query).toEqual(
-        expect.objectContaining({
-          limit: '20',
-        })
-      );
+      expect(router.location.query).toEqual(expect.objectContaining({limit: '20'}));
     });
   });
   describe('text widget actions', () => {
@@ -2501,9 +2651,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('clears textContent when switching away from text display type', () => {
-      const {result} = renderWidgetBuilderState({
-        displayType: DisplayType.TEXT,
-      });
+      const {result} = renderWidgetBuilderState({displayType: DisplayType.TEXT});
 
       act(() => {
         result.current.dispatch({
@@ -2525,9 +2673,7 @@ describe('useWidgetBuilderState', () => {
     });
 
     it('SET_TEXT_CONTENT updates textContent without navigating', () => {
-      const {result, router} = renderWidgetBuilderState({
-        displayType: DisplayType.TEXT,
-      });
+      const {result, router} = renderWidgetBuilderState({displayType: DisplayType.TEXT});
 
       act(() => {
         result.current.dispatch({

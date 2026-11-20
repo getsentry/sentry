@@ -51,9 +51,7 @@ describe('NextBillCard', () => {
           amount: 89_00,
           type: 'subscription',
           description: 'Subscription to Business',
-          data: {
-            plan: 'am3_business',
-          },
+          data: {plan: 'am3_business'},
           period_start: '',
           period_end: '',
         },
@@ -113,10 +111,7 @@ describe('NextBillCard', () => {
       method: 'GET',
       body: mockNextBill,
     });
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am3_business',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am3_business'});
     render(<NextBillCard organization={organization} subscription={subscription} />);
 
     await screen.findByText('Mar 31, 2021・in 28 days');

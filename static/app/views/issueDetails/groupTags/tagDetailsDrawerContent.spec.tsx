@@ -1,4 +1,4 @@
-import * as qs from 'query-string';
+import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -14,6 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
+import * as qs from 'sentry/utils/url/qs';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
@@ -24,15 +25,18 @@ const pageLinks =
   '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
 const makeInitialRouterConfig = (tagKey: string) => ({
-  location: {
-    pathname: `/organizations/org-slug/issues/1/tags/${tagKey}/`,
-    query: {},
-  },
+  location: {pathname: `/organizations/org-slug/issues/1/tags/${tagKey}/`, query: {}},
   route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
 });
 
+// The testing adapter briefly re-reads the pre-write cursor and refetches both pages, so a late fetch can outlive the mocks.
+function ProductionNuqsAdapter({children}: {children?: React.ReactNode}) {
+  return <NuqsAdapter defaultOptions={{shallow: false}}>{children}</NuqsAdapter>;
+}
+
 describe('TagDetailsDrawerContent', () => {
   beforeEach(() => {
+    window.history.replaceState(null, '', '/');
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/',
       body: tags.find(({key}) => key === 'user'),
@@ -91,9 +95,17 @@ describe('TagDetailsDrawerContent', () => {
       body: TagValuesFixture(),
       headers: {Link: pageLinks},
     });
+    const nextPageRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+      headers: {Link: pageLinks},
+      match: [MockApiClient.matchQuery({cursor: '0:100:0'})],
+    });
     const {router} = render(<TagDetailsDrawerContent group={group} />, {
       initialRouterConfig: makeInitialRouterConfig('user'),
+      additionalWrapper: ProductionNuqsAdapter,
     });
+    const historyLength = window.history.length;
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
 
@@ -104,6 +116,8 @@ describe('TagDetailsDrawerContent', () => {
     await waitFor(() => {
       expect(router.location.query.tagDrawerCursor).toBe('0:100:0');
     });
+    expect(window.history).toHaveLength(historyLength + 1);
+    await waitFor(() => expect(nextPageRequest).toHaveBeenCalled());
   });
 
   it('sorts tag values by the clicked column header', async () => {
@@ -141,6 +155,34 @@ describe('TagDetailsDrawerContent', () => {
     expect(dateSortRequest).toHaveBeenCalled();
   });
 
+  it('drops the pagination params from the sort links', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/user/values/',
+      body: TagValuesFixture(),
+    });
+    render(<TagDetailsDrawerContent group={group} />, {
+      initialRouterConfig: {
+        ...makeInitialRouterConfig('user'),
+        location: {
+          pathname: '/organizations/org-slug/issues/1/tags/user/',
+          query: {
+            cursor: '1:0:0',
+            page: '2',
+            tagDrawerCursor: '0:100:0',
+            statsPeriod: '7d',
+          },
+        },
+      },
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+
+    expect(screen.getByRole('link', {name: 'Last Seen'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/issues/1/tags/user/?statsPeriod=7d&tagDrawerSort=date'
+    );
+  });
+
   it('renders an empty state when the tag has no values', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -167,9 +209,7 @@ describe('TagDetailsDrawerContent', () => {
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
     expect(
-      screen.getByRole('menuitemradio', {
-        name: 'View other events with this tag value',
-      })
+      screen.getByRole('menuitemradio', {name: 'View other events with this tag value'})
     ).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
@@ -243,9 +283,7 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('navigates to explore with issue + tag query', async () => {
-    const discoverOrganization = OrganizationFixture({
-      features: ['discover-basic'],
-    });
+    const discoverOrganization = OrganizationFixture({features: ['discover-basic']});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -260,9 +298,7 @@ describe('TagDetailsDrawerContent', () => {
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
 
-    const discoverMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Open in Explore',
-    });
+    const discoverMenuItem = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
     expect(discoverMenuItem).toBeInTheDocument();
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
@@ -275,7 +311,7 @@ describe('TagDetailsDrawerContent', () => {
       interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
-      query: 'issue:JAVASCRIPT-6QS (user.username:david)',
+      query: 'issue.id:1 (user.username:david)',
       queryDataset: 'error-events',
       statsPeriod: '14d',
       yAxis: ['count()', 'count_unique(user)'],

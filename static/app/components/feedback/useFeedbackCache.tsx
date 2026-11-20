@@ -1,11 +1,12 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
-import {useFeedbackApiOptions} from 'sentry/components/feedback/useFeedbackApiOptions';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {defined} from 'sentry/utils/defined';
 import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+
+import {useFeedbackApiOptions} from './useFeedbackApiOptions';
 
 type TFeedbackIds = 'all' | string[];
 
@@ -96,10 +97,7 @@ export function useFeedbackCache() {
         return;
       }
       if (ids === 'all') {
-        queryClient.invalidateQueries({
-          queryKey: listQueryKey,
-          type: 'all',
-        });
+        queryClient.invalidateQueries({queryKey: listQueryKey, type: 'all'});
       } else {
         queryClient.refetchQueries({
           queryKey: listQueryKey,
@@ -127,9 +125,5 @@ export function useFeedbackCache() {
     invalidateCachedListPage('all');
   }, [invalidateCachedListPage]);
 
-  return {
-    updateCached,
-    invalidateCached,
-    invalidateListCache,
-  };
+  return {updateCached, invalidateCached, invalidateListCache};
 }

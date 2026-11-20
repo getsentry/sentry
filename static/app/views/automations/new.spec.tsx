@@ -19,7 +19,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Action} from 'sentry/types/workflowEngine/actions';
@@ -30,7 +31,8 @@ import {
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import AutomationNewSettings from 'sentry/views/automations/new';
+
+import AutomationNewSettings from './new';
 
 jest.mock('sentry/utils/analytics');
 
@@ -219,9 +221,7 @@ describe('AutomationNewSettings', () => {
 
     const {router} = render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     // Add an action filter (tagged event)
@@ -348,9 +348,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     const addAction = async (label: string) => {
@@ -402,20 +400,12 @@ describe('AutomationNewSettings', () => {
       slack: {
         type: 'slack',
         integrationId: 'slack-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: '',
-          targetDisplay: '#alerts',
-        },
+        config: {targetType: 'specific', targetIdentifier: '', targetDisplay: '#alerts'},
       },
       discord: {
         type: 'discord',
         integrationId: 'discord-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: '123',
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: '123', targetDisplay: null},
       },
       msteams: {
         type: 'msteams',
@@ -448,11 +438,7 @@ describe('AutomationNewSettings', () => {
       },
       email: {
         type: 'email',
-        config: {
-          targetType: 'user',
-          targetIdentifier: '1',
-          targetDisplay: null,
-        },
+        config: {targetType: 'user', targetIdentifier: '1', targetDisplay: null},
         data: {},
       },
       webhook: {
@@ -474,47 +460,27 @@ describe('AutomationNewSettings', () => {
       github: {
         type: 'github',
         integrationId: 'github-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       github_enterprise: {
         type: 'github_enterprise',
         integrationId: 'github-enterprise-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       jira: {
         type: 'jira',
         integrationId: 'jira-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       jira_server: {
         type: 'jira_server',
         integrationId: 'jira-server-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       vsts: {
         type: 'vsts',
         integrationId: 'azure-1',
-        config: {
-          targetType: 'specific',
-          targetIdentifier: null,
-          targetDisplay: null,
-        },
+        config: {targetType: 'specific', targetIdentifier: null, targetDisplay: null},
       },
       slack_staging: {
         type: 'slack_staging',
@@ -540,7 +506,7 @@ describe('AutomationNewSettings', () => {
   }, 30000);
 
   it('sends test notification with project slug from connected monitor', async () => {
-    jest.spyOn(indicators, 'addSuccessMessage');
+    jest.spyOn(toast, 'success');
 
     const project = ProjectFixture({id: '1', slug: 'my-project'});
     ProjectsStore.loadInitialData([project]);
@@ -597,7 +563,7 @@ describe('AutomationNewSettings', () => {
     });
 
     await waitFor(() => {
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith('Notification fired!');
+      expect(toast.success).toHaveBeenCalledWith('Notification fired!');
     });
   });
 
@@ -657,9 +623,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: queryProject.id}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: queryProject.id}}},
     });
 
     expect(await screen.findByText('query-project')).toBeInTheDocument();
@@ -713,7 +677,7 @@ describe('AutomationNewSettings', () => {
   });
 
   it('surfaces API error message when automation creation fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -724,9 +688,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     // Add an action so builder validation passes
@@ -736,7 +698,7 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'You may not exceed 1000 workflows per organization.',
         {duration: 10000}
       );
@@ -744,7 +706,7 @@ describe('AutomationNewSettings', () => {
   });
 
   it('shows one error toast when creation fails validation', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/workflows/`,
@@ -757,9 +719,7 @@ describe('AutomationNewSettings', () => {
 
     render(<AutomationNewSettings />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {connectedIds: '123'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {connectedIds: '123'}}},
     });
 
     await selectEvent.select(screen.getByRole('textbox', {name: 'Add action'}), 'Slack');
@@ -768,27 +728,23 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Create Alert'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Organization does not allow this action type: slack',
         {duration: 10000}
       );
     });
-    expect(indicators.addErrorMessage).toHaveBeenCalledTimes(1);
-    expect(indicators.addErrorMessage).not.toHaveBeenCalledWith(
-      'Unknown error while saving'
-    );
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    expect(toast.error).not.toHaveBeenCalledWith('Unknown error while saving');
   });
 
   it('surfaces error details when test notification fails', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/test-fire-actions/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        actions: [{repo: 'Repository is required'}],
-      },
+      body: {actions: [{repo: 'Repository is required'}]},
     });
 
     render(<AutomationNewSettings />, {organization});
@@ -798,7 +754,7 @@ describe('AutomationNewSettings', () => {
     await userEvent.click(screen.getByRole('button', {name: 'Send Test Notification'}));
 
     await waitFor(() => {
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith('Repository is required');
+      expect(toast.error).toHaveBeenCalledWith('Repository is required');
     });
   });
 

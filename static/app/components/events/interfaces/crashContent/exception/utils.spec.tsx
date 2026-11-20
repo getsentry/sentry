@@ -1,6 +1,6 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
+import {renderLinksInText} from './utils';
 
 describe('Linkify()', () => {
   it('does not alter text that does not contain urls', () => {
@@ -18,11 +18,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com';
     const text = `Go to ${url} to search.`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
@@ -128,11 +124,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com';
     const text = `Go to ${url}.`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
@@ -143,11 +135,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com/page.html';
     const text = `Go to ${url}`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();

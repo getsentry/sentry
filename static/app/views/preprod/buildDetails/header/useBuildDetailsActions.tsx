@@ -1,7 +1,8 @@
 import {useNavigate} from 'react-router';
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {downloadPreprodArtifact} from 'sentry/utils/downloadPreprodArtifact';
@@ -37,11 +38,11 @@ export function useBuildDetailsActions({
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Build deleted successfully'));
+      toast.success(t('Build deleted successfully'));
       navigate(makeReleasesUrl(organization.slug, projectId));
     },
     onError: () => {
-      addErrorMessage(t('Failed to delete build'));
+      toast.error(t('Failed to delete build'));
     },
   });
 
@@ -54,19 +55,17 @@ export function useBuildDetailsActions({
       return fetchMutation({
         url: getApiUrl('/internal/preprod-artifact/rerun-analysis/'),
         method: 'POST',
-        data: {
-          preprod_artifact_id: artifactId,
-        },
+        data: {preprod_artifact_id: artifactId},
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Analysis rerun initiated successfully'));
+      toast.success(t('Analysis rerun initiated successfully'));
     },
     onError: error => {
       if (error.status === 403) {
         handleStaffPermissionError(error.responseJSON?.detail);
       } else {
-        addErrorMessage(t('Failed to rerun analysis'));
+        toast.error(t('Failed to rerun analysis'));
       }
     },
   });
@@ -95,16 +94,14 @@ export function useBuildDetailsActions({
           {path: {organizationIdOrSlug: organization.slug, headArtifactId: artifactId}}
         ),
         method: 'POST',
-        data: {
-          check_types: ['size'],
-        },
+        data: {check_types: ['size']},
       });
     },
     onSuccess: () => {
-      addSuccessMessage(t('Status checks rerun initiated successfully'));
+      toast.success(t('Status checks rerun initiated successfully'));
     },
     onError: () => {
-      addErrorMessage(t('Failed to rerun status checks'));
+      toast.error(t('Failed to rerun status checks'));
     },
   });
 

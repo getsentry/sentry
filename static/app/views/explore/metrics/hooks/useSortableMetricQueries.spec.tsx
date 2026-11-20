@@ -3,7 +3,6 @@ import type {DragEndEvent} from '@dnd-kit/core';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
-import {useSortableMetricQueries} from 'sentry/views/explore/metrics/hooks/useSortableMetricQueries';
 import {
   MultiMetricsQueryParamsProvider,
   useMultiMetricsQueryParams,
@@ -13,6 +12,8 @@ import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
+
+import {useSortableMetricQueries} from './useSortableMetricQueries';
 
 function Wrapper({children}: {children: React.ReactNode}) {
   return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
@@ -191,9 +192,7 @@ describe('useSortableMetricQueries', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: [duplicateQuery, duplicateQuery],
-          },
+          query: {metric: [duplicateQuery, duplicateQuery]},
         },
       },
     });
@@ -203,10 +202,7 @@ describe('useSortableMetricQueries', () => {
     ).toEqual(['A', 'B']);
 
     act(() => {
-      result.current.onDragEnd({
-        active: {id: 'A'},
-        over: {id: 'B'},
-      } as DragEndEvent);
+      result.current.onDragEnd({active: {id: 'A'}, over: {id: 'B'}} as DragEndEvent);
     });
 
     expect(

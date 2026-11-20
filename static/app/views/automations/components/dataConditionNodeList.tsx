@@ -13,16 +13,17 @@ import {
   DataConditionHandlerSubgroupType,
   DataConditionType,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {useAutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
+import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
+
+import {useAutomationBuilderConflictContext} from './automationBuilderConflictContext';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {AutomationBuilderRow} from './automationBuilderRow';
 import {
   DataConditionNodeContext,
   useDataConditionNodeContext,
-} from 'sentry/views/automations/components/dataConditionNodeContext';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import {useDataConditionsQuery} from 'sentry/views/automations/hooks';
+} from './dataConditionNodeContext';
+import {dataConditionNodesMap} from './dataConditionNodes';
 
 interface DataConditionNodeListProps {
   conditions: DataCondition[];
@@ -136,11 +137,7 @@ export function DataConditionNodeList({
         label: t('Filter by Event Attributes'),
         options: eventAttributeOptions,
       },
-      {
-        key: 'other',
-        label: t('Other'),
-        options: otherOptions,
-      },
+      {key: 'other', label: t('Other'), options: otherOptions},
     ];
   }, [dataConditionHandlers, handlerGroup, state.triggers.conditions]);
 

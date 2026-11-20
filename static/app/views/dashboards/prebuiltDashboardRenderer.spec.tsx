@@ -3,8 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {PrebuiltDashboardRenderer} from 'sentry/views/dashboards/prebuiltDashboardRenderer';
-import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs';
+import {PrebuiltDashboardId} from './utils/prebuiltConfigs';
+import {PrebuiltDashboardRenderer} from './prebuiltDashboardRenderer';
 
 jest.mock('sentry/views/dashboards/detail', () => ({
   DashboardDetailWithInjectedProps: ({pageAlerts}: {pageAlerts?: ReactNode}) => (
@@ -13,10 +13,7 @@ jest.mock('sentry/views/dashboards/detail', () => ({
 }));
 
 jest.mock('sentry/views/dashboards/utils/usePopulateLinkedDashboards', () => ({
-  useGetPrebuiltDashboard: () => ({
-    dashboard: {id: '42', widgets: []},
-    isLoading: false,
-  }),
+  useGetPrebuiltDashboard: () => ({dashboard: {id: '42', widgets: []}, isLoading: false}),
 }));
 
 describe('PrebuiltDashboardRenderer', () => {
@@ -24,11 +21,7 @@ describe('PrebuiltDashboardRenderer', () => {
     route: '/insights/backend/',
     location: {
       pathname: '/insights/backend/',
-      query: {
-        project: '1',
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: 'production', statsPeriod: '7d'},
     },
   };
 

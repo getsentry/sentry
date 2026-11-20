@@ -1,4 +1,4 @@
-import {CRON_DETECTOR_DRAFT_SCHEMA} from 'sentry/views/detectors/components/forms/cron/cronDraftConfig';
+import {CRON_DETECTOR_DRAFT_SCHEMA} from './cronDraftConfig';
 
 describe('CRON_DETECTOR_DRAFT_SCHEMA', () => {
   it('converts edited number inputs to numbers', () => {
@@ -39,9 +39,7 @@ describe('CRON_DETECTOR_DRAFT_SCHEMA', () => {
   });
 
   it('uses the canonical timezone name when given a different case', () => {
-    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
-      timezone: 'utc',
-    });
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({timezone: 'utc'});
 
     expect(values).toStrictEqual({timezone: 'UTC'});
   });

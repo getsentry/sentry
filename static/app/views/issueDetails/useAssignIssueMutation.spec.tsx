@@ -5,8 +5,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {GroupStore} from 'sentry/stores/groupStore';
-import {useAssignIssueMutation} from 'sentry/views/issueDetails/useAssignIssueMutation';
-import {useGroup} from 'sentry/views/issueDetails/useGroup';
+
+import {useAssignIssueMutation} from './useAssignIssueMutation';
+import {useGroup} from './useGroup';
 
 describe('useAssignIssueMutation', () => {
   const organization = OrganizationFixture();
@@ -45,14 +46,8 @@ describe('useAssignIssueMutation', () => {
   });
 
   it.each([
-    {
-      name: 'assignment',
-      assignedTo: ActorFixture({id: '2', type: 'user'}),
-    },
-    {
-      name: 'unassignment',
-      assignedTo: null,
-    },
+    {name: 'assignment', assignedTo: ActorFixture({id: '2', type: 'user'})},
+    {name: 'unassignment', assignedTo: null},
   ])('invalidates the group query after an $name', async ({assignedTo}) => {
     const group = GroupFixture({id: '1', activity: []});
     const response = {...group, assignedTo};

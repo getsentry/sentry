@@ -1,8 +1,9 @@
 import {lazy} from 'react';
 
 import {LazyLoad} from 'sentry/components/lazyLoad';
-import {EventLink} from 'sentry/components/seer/markdown/embeds/components/event/eventLink';
 import {defineSeerEmbed} from 'sentry/components/seer/markdown/embeds/utils';
+
+import {EventLink} from './eventLink';
 
 const LazySeerEventBlock = lazy(() => import('./eventBlock'));
 

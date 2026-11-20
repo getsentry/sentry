@@ -103,23 +103,29 @@ relationships and fields are:
 - Configuration JSON schema
 - Query filter for detector visibility
 - API operation availability
+- Type discovery visibility
 
 `Detector.settings` reads directly from this registry. Its handler, schema, and query
 filters do not require a matching [`GroupType`](../../issues/grouptype.py). A group type
 classifies the output issue; handlers select it through `DetectorOccurrence.type`.
 
-The model field remains a `CharField`, and database reads return strings. Settings lookup
+The model field is a `CharField`, and database reads return strings. Settings lookup
 validates enum membership and registration; normal model saves call that lookup before
 validating configuration. Unknown stored types can still be loaded for inspection, but
 accessing their settings or saving them raises and logs an error for existing detectors.
-`config_schema=None` skips configuration validation for legacy pipelines that already
+`config_schema=None` skips configuration validation for pipelines that
 validate their own configuration. It does not skip type validation.
 
-Some compatibility paths still use the shared slug: `Detector.group_type` looks up a
-group type by detector type, and `GroupType.detector_settings` looks up settings by the
-issue-type slug. API type validation, type discovery, and default provisioning still use
-these relationships. Existing type values remain unchanged, and adding settings alone
-does not make a type discoverable through the API.
+`api_availability[DetectorAPIOperation.DISCOVER]` controls type discovery and suggested
+validation choices. It defaults to `True`; set it to `False` for internal types or use
+a `FeatureGate` for a rollout. Discovery also requires a handler and `GET` availability;
+suggested choices require a validator. `DISCOVER` does not restrict access to detector
+rows or explicit creation requests. Row operations have their own availability gates.
+
+Default provisioning gets detector names from `DEFAULT_DETECTOR_NAMES`. API validation
+and discovery use detector settings; history lookup uses those settings and the
+associated issues. `Detector.group_type` and `GroupType.detector_settings` assume
+matching slugs; use the detector registry when implementing detector behavior.
 
 `Detector` does not enforce a database uniqueness constraint for project and type.
 Default detector creation uses short distributed locks and idempotent lookups instead.
@@ -180,12 +186,13 @@ This allows workflows to target a product-specific detector or the broader issue
 
 [`Workflow`](../models/workflow.py) is organization-scoped. Important fields are:
 
-| Field or relationship  | Meaning                                                 |
-| ---------------------- | ------------------------------------------------------- |
-| `when_condition_group` | Optional trigger group evaluated before action filters  |
-| `environment`          | `NULL` for all environments or one specific environment |
-| `config.frequency`     | Repeat suppression interval in minutes                  |
-| `enabled`              | Whether the workflow is eligible to run                 |
+| Field or relationship  | Meaning                                                                                                                                |
+| ---------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`                 | `alert` (default) for user-facing alerts, or a hidden automation type such as `inbox`; alert APIs expose only `VISIBLE_WORKFLOW_TYPES` |
+| `when_condition_group` | Optional trigger group evaluated before action filters                                                                                 |
+| `environment`          | `NULL` for all environments or one specific environment                                                                                |
+| `config.frequency`     | Repeat suppression interval in minutes                                                                                                 |
+| `enabled`              | Whether the workflow is eligible to run                                                                                                |
 
 ### `WorkflowDataConditionGroup`
 
@@ -205,6 +212,13 @@ owning integration or notification package rather than in `workflow_engine`.
 
 An action can be reachable from more than one Workflow. The data model does not define
 action execution order.
+
+API serializers load this graph in bulk: `WorkflowSerializer.get_attrs()` prefetches
+environments and joins each `WorkflowDataConditionGroup` to its condition group;
+`DataConditionGroupSerializer.get_attrs()` joins each `DataConditionGroupAction` to
+its action. The latter also serves detector trigger groups. Per-object `serialize()`
+methods use the loaded attributes without database queries. Keep these joins within
+the cell silo; owner and integration references must not introduce cross-silo joins.
 
 ## Runtime State and History
 
@@ -237,6 +251,13 @@ The association is normally created during Issue Platform ingestion. Compatibili
 paths can backfill missing associations. Callers resolving a detector from an issue must
 handle deleted or missing detector records.
 
+Open-period history serialization groups activities by `group_open_period_id`, without
+loading each activity's parent. Serializer attributes remain keyed by the original
+`GroupOpenPeriod` instances from the page. Activities are ordered by creation time and
+clipped to 100 per period after fetching and serialization. With a start bound, the
+current query includes one globally latest pre-window activity across the page, not
+one per period; ID grouping does not change this selection policy.
+
 ### `WorkflowActionGroupStatus`
 
 [`WorkflowActionGroupStatus`](../models/workflow_action_group_status.py) records when a
@@ -246,7 +267,7 @@ external action completed.
 
 ### `WorkflowFireHistory`
 
-[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, issue
+[`WorkflowFireHistory`](../models/workflow_fire_history.py) stores a Workflow, optional issue
 group, event ID, notification UUID, and optional detector. It has no action or delivery
 outcome field. Rows are created before inactive-action filtering and event-level
 deduplication, so they record pre-dispatch intent rather than a scheduled or successfully
@@ -270,6 +291,11 @@ source object, generic data source, source mapping, and workflows.
 
 Default detectors and workflows are created by [`defaults/`](../defaults) from project
 and organization signal receivers. These functions must remain idempotent.
+
+Workflows created through the public API go through
+[`WorkflowValidator`](../endpoints/validators/base/workflow.py), which never sets `type`,
+so they are always `alert`. Code that creates a hidden workflow type passes `type` to
+`Workflow.objects.create` directly.
 
 ### Updates
 

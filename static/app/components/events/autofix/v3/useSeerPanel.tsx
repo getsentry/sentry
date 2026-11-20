@@ -1,23 +1,24 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isSingleRunAutofix,
   useExplorerAutofix,
-  type AutofixExplorerStep,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
-import {useForceBashMode} from 'sentry/components/events/autofix/v3/useForceBashMode';
-import {artifactToMarkdown} from 'sentry/components/events/autofix/v3/utils';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
+
+import {useOpenSingleRunChat, useRerunSingleRun} from './useToggleSingleRunChat';
+import {artifactToMarkdown} from './utils';
 
 /**
  * Everything an Autofix surface needs apart from its own chrome, so the drawer
@@ -26,34 +27,15 @@ import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer
  * scrolls with the page.
  */
 export function useSeerPanel({group, project}: {group: Group; project: Project}) {
-  const organization = useOrganization();
   const aiConfig = useAiConfig(group, project);
   const aiAutofix = useExplorerAutofix(group, {
-    // Automated CI iteration pushes commits with no user action, so poll for both.
-    pollPR:
-      organization.features.includes('autofix-pr-iteration') ||
-      organization.features.includes('autofix-pr-iteration-manual'),
+    // Automated CI iteration can push commits without any user action.
+    pollPR: true,
   });
-  const [enableBashMode, setEnableBashMode] = useForceBashMode();
 
-  const autofix = useMemo(
-    () => ({
-      ...aiAutofix,
-      startStep: (
-        step: AutofixExplorerStep,
-        options?: Parameters<ReturnType<typeof useExplorerAutofix>['startStep']>[1]
-      ) =>
-        aiAutofix.startStep(step, {
-          ...options,
-          enableBashMode: enableBashMode || undefined,
-        }),
-    }),
-    [aiAutofix, enableBashMode]
-  );
-
-  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix: autofix});
-  const handleRestart = useHandleRestart({aiAutofix: autofix});
-  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix: autofix});
+  const handleCopyMarkdown = useHandleCopyMarkdown({aiAutofix});
+  const handleRestart = useHandleRestart({aiAutofix});
+  const handleOpenSeerAgent = useHandleOpenSeerAgent({aiAutofix});
 
   const referrer = useMemo(
     () => getReferrerFromBlocks(aiAutofix.runState?.blocks ?? []),
@@ -62,14 +44,12 @@ export function useSeerPanel({group, project}: {group: Group; project: Project})
 
   return {
     aiConfig,
-    autofix,
-    enableBashMode,
+    autofix: aiAutofix,
     handleCopyMarkdown,
     handleOpenSeerAgent,
     handleRestart,
     referrer,
     runState: aiAutofix.runState,
-    setEnableBashMode,
     warnings: aiAutofix.warnings,
   };
 }
@@ -102,12 +82,28 @@ function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
-}): () => void {
-  const {startStep} = aiAutofix;
+}): (() => void) | undefined {
+  const {rerun, disabled} = useRerunSingleRun(aiAutofix, {enabled: true});
+  const openSingleRunChat = useOpenSingleRunChat();
+  const chatDispatch = useSeerExplorerChatDispatch();
+  const runState = aiAutofix.runState;
+  const runId = getAutofixRunId(runState);
+  const asksInChat =
+    defined(runId) && isSingleRunAutofix(runState) && runState?.status === 'completed';
 
-  return useCallback(() => {
-    startStep('root_cause');
-  }, [startStep]);
+  return useMemo(() => {
+    if (disabled) {
+      return;
+    }
+    return () => {
+      if (!asksInChat) {
+        rerun();
+        return;
+      }
+      openSingleRunChat(runId);
+      chatDispatch({type: 'set pending restart', payload: {onSubmit: rerun}});
+    };
+  }, [asksInChat, chatDispatch, disabled, openSingleRunChat, rerun, runId]);
 }
 
 function useHandleOpenSeerAgent({

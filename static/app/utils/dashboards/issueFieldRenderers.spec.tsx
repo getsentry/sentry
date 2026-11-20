@@ -7,10 +7,8 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Group} from 'sentry/types/group';
-import {
-  getIssueFieldRenderer,
-  type IssueRowMetadata,
-} from 'sentry/utils/dashboards/issueFieldRenderers';
+
+import {getIssueFieldRenderer, type IssueRowMetadata} from './issueFieldRenderers';
 
 describe('getIssueFieldRenderer', () => {
   let location: any,
@@ -22,19 +20,13 @@ describe('getIssueFieldRenderer', () => {
     user: any;
 
   beforeEach(() => {
-    context = initializeOrg({
-      organization,
-      projects: [ProjectFixture()],
-    });
+    context = initializeOrg({organization, projects: [ProjectFixture()]});
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
     user = 'email:text@example.com';
 
-    location = {
-      pathname: '/events',
-      query: {},
-    };
+    location = {pathname: '/events', query: {}};
     data = {
       id: '1',
       team_key_transaction: 1,
@@ -80,11 +72,7 @@ describe('getIssueFieldRenderer', () => {
   });
 
   function makeIssueMeta(issueId: string, metadata: IssueRowMetadata) {
-    return {
-      issueRowMetadata: {
-        [issueId]: metadata,
-      },
-    };
+    return {issueRowMetadata: {[issueId]: metadata}};
   }
 
   describe('Issue fields', () => {
@@ -93,10 +81,7 @@ describe('getIssueFieldRenderer', () => {
         id: '1',
         name: 'Test User',
         email: 'test@sentry.io',
-        avatar: {
-          avatarType: 'letter_avatar',
-          avatarUuid: null,
-        },
+        avatar: {avatarType: 'letter_avatar', avatarUuid: null},
       });
 
       const assignedTo = {
@@ -137,16 +122,8 @@ describe('getIssueFieldRenderer', () => {
 
     it('updates assignee when changed', async () => {
       const users = [
-        UserFixture({
-          id: '1',
-          name: 'Test User',
-          email: 'test@sentry.io',
-        }),
-        UserFixture({
-          id: '2',
-          name: 'Next User',
-          email: 'next@sentry.io',
-        }),
+        UserFixture({id: '1', name: 'Test User', email: 'test@sentry.io'}),
+        UserFixture({id: '2', name: 'Next User', email: 'next@sentry.io'}),
       ];
 
       const assignedTo = {
@@ -175,12 +152,7 @@ describe('getIssueFieldRenderer', () => {
         url: `/organizations/${organization.slug}/issues/${data.id}/`,
         body: {
           ...GroupFixture({id: data.id, project, assignedTo}),
-          assignedTo: {
-            email: 'next@sentry.io',
-            type: 'user',
-            id: '2',
-            name: 'Next User',
-          },
+          assignedTo: {email: 'next@sentry.io', type: 'user', id: '2', name: 'Next User'},
         },
       });
 

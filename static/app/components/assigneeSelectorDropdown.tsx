@@ -24,15 +24,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {openInviteMembersModal} from 'sentry/actionCreators/modal';
-import {
-  AssignedTooltip,
-  type AssignmentDetails,
-  UnassignedTooltip,
-} from 'sentry/components/assigneeBadge';
-import {TeamBadge} from 'sentry/components/idBadge/teamBadge';
-import {UserBadge} from 'sentry/components/idBadge/userBadge';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {SuggestedAvatarStack} from 'sentry/components/suggestedAvatarStack';
 import {t, tct, tn} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Actor} from 'sentry/types/core';
@@ -42,6 +33,16 @@ import type {User} from 'sentry/types/user';
 import {buildTeamId} from 'sentry/utils';
 import {useNewIssuePriorityAndAssigneeUI} from 'sentry/utils/useNewIssuePriorityAndAssigneeUI';
 import {useUser} from 'sentry/utils/useUser';
+
+import {TeamBadge} from './idBadge/teamBadge';
+import {UserBadge} from './idBadge/userBadge';
+import {
+  AssignedTooltip,
+  type AssignmentDetails,
+  UnassignedTooltip,
+} from './assigneeBadge';
+import {LoadingIndicator} from './loadingIndicator';
+import {SuggestedAvatarStack} from './suggestedAvatarStack';
 
 const suggestedReasonTable: Record<SuggestedOwnerReason, string> = {
   suspectCommit: t('Suspect Commit'),
@@ -65,12 +66,7 @@ export type SuggestedAssignee = Actor & {
   suggestedReasonText?: React.ReactNode;
 };
 
-type AssignableTeam = {
-  display: string;
-  email: string;
-  id: string;
-  team: Team;
-};
+type AssignableTeam = {display: string; email: string; id: string; team: Team};
 
 export type AssigneeGroup = Pick<Group, 'assignedTo' | 'id' | 'owners'> & {
   project: Pick<Group['project'], 'id' | 'slug'>;
@@ -323,11 +319,7 @@ export function AssigneeSelectorDropdown({
         if (owner.type === 'user') {
           const member = currentMemberList.find(user => user.id === owner.id);
           if (member) {
-            return {
-              ...owner,
-              name: owner.name || member.name,
-              assignee: member,
-            };
+            return {...owner, name: owner.name || member.name, assignee: member};
           }
         }
         if (owner.type === 'team') {
@@ -380,23 +372,14 @@ export function AssigneeSelectorDropdown({
         assignableTeam => assignableTeam.team.id === assigneeId
       )!;
       // Convert AssingableTeam to Actor
-      assignee = {
-        id: assignedTeam.id,
-        name: assignedTeam.team.slug,
-        type: 'team',
-      };
+      assignee = {id: assignedTeam.id, name: assignedTeam.team.slug, type: 'team'};
     }
     // Assignee is guaranteed to exist here, but we check to satisfy the type-checker
     if (assignee && onAssign) {
       const suggestedAssignee = getSuggestedAssignees().find(
         actor => actor.type === type && actor.id === assignee.id
       );
-      onAssign({
-        assignee,
-        id: assigneeId,
-        type,
-        suggestedAssignee,
-      });
+      onAssign({assignee, id: assigneeId, type, suggestedAssignee});
     }
   };
 
@@ -585,11 +568,7 @@ export function AssigneeSelectorDropdown({
           aria-label={t('Modify issue assignee: %s', triggerLabel)}
           avatar={
             actor
-              ? getAvatarButtonAvatar({
-                  actor,
-                  assignee,
-                  suggested: !group.assignedTo,
-                })
+              ? getAvatarButtonAvatar({actor, assignee, suggested: !group.assignedTo})
               : undefined
           }
           busy={loading}

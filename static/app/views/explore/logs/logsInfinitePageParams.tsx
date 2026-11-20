@@ -6,13 +6,11 @@ import {defined} from 'sentry/utils/defined';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {encodeSort} from 'sentry/utils/queryString';
-import {getIngestDelayFilter} from 'sentry/views/explore/logs/logsIngestDelay';
-import {
-  OurLogKnownFieldKey,
-  type EventsLogsResult,
-} from 'sentry/views/explore/logs/types';
-import type {LogAnchor} from 'sentry/views/explore/logs/useLogAnchor';
-import {getTimeBasedSortBy} from 'sentry/views/explore/logs/utils';
+
+import {getIngestDelayFilter} from './logsIngestDelay';
+import {OurLogKnownFieldKey, type EventsLogsResult} from './types';
+import type {LogAnchor} from './useLogAnchor';
+import {getTimeBasedSortBy} from './utils';
 
 /**
  * The page param represents a page of log data, we always use the timestamp precise field as timestamp is too inaccurate for high resolution logs.
@@ -43,10 +41,7 @@ export function getLogPageParam(
     const isDescending = sortBy.kind === 'desc';
     // Previous pages have to have the sort order reversed in order to start at the limit from the initial page.
     const querySortDirection: Sort | undefined = isGetPreviousPage
-      ? {
-          field: OurLogKnownFieldKey.TIMESTAMP,
-          kind: isDescending ? 'asc' : 'desc',
-        }
+      ? {field: OurLogKnownFieldKey.TIMESTAMP, kind: isDescending ? 'asc' : 'desc'}
       : undefined;
 
     if (highFidelity || isFlexTimePageParam(pageParam)) {
@@ -171,10 +166,7 @@ export function getParamBasedQuery(
   }
 
   if (isFlexTimePageParam(pageParam)) {
-    return {
-      ...query,
-      cursor: pageParam.cursor,
-    };
+    return {...query, cursor: pageParam.cursor};
   }
 
   const comparison =

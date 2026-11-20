@@ -16,10 +16,7 @@ export function withPanelOverlayProps<T extends {style?: CSSProperties}>(
   if (menuPresentation !== 'panel') {
     return overlayProps;
   }
-  return {
-    ...overlayProps,
-    style: PANEL_OVERLAY_STYLE,
-  };
+  return {...overlayProps, style: PANEL_OVERLAY_STYLE};
 }
 
 /**

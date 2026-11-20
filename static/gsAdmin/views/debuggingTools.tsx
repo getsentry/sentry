@@ -6,8 +6,8 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Input} from '@sentry/scraps/input';
 import {Grid, type GridProps} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
 import {LineChart} from 'sentry/components/charts/lineChart';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -34,7 +34,7 @@ function IssueOwnerDebbuging() {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!projectSlug || !stacktracePath) {
-      addErrorMessage(
+      toast.error(
         'Requires the organization slug, the project slug and the stacktrace path.'
       );
       return;
@@ -45,15 +45,11 @@ function IssueOwnerDebbuging() {
         getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
-        {
-          method: 'GET',
-          query: {projectSlug, stacktracePath},
-          includeAllArgs: true,
-        }
+        {method: 'GET', query: {projectSlug, stacktracePath}, includeAllArgs: true}
       );
       setRuleMatches(data);
     } catch {
-      addErrorMessage('Failed to fetch matching Issue Owner rules.');
+      toast.error('Failed to fetch matching Issue Owner rules.');
     }
   };
 
@@ -173,7 +169,7 @@ function IssueEscalatingDebugging() {
   const handleSubmit = async (event: any) => {
     event.preventDefault();
     if (!groupId) {
-      addErrorMessage('Requires the group id.');
+      toast.error('Requires the group id.');
       return;
     }
 
@@ -182,10 +178,7 @@ function IssueEscalatingDebugging() {
       getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
         path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
       }),
-      {
-        method: 'GET',
-        query: {expand},
-      }
+      {method: 'GET', query: {expand}}
     );
 
     const forecast = data.forecast;
@@ -251,9 +244,7 @@ function IssueEscalatingDebugging() {
         series={hourlySeries}
         grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         showTimeInTooltip
-        xAxis={{
-          show: hourlySeries.length > 0,
-        }}
+        xAxis={{show: hourlySeries.length > 0}}
         legend={{
           show: true,
           orient: 'horizontal',

@@ -20,11 +20,12 @@ import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {FeedbackEvent} from 'sentry/utils/feedback/types';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import {useFeedbackEvents} from 'sentry/utils/replays/hooks/useFeedbackEvents';
-import {useReplayProjectSlug} from 'sentry/utils/replays/hooks/useReplayProjectSlug';
 import {mapResponseToReplayRecord} from 'sentry/utils/replays/replayDataUtils';
 import type {RawReplayError} from 'sentry/utils/replays/types';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {useFeedbackEvents} from './useFeedbackEvents';
+import {useReplayProjectSlug} from './useReplayProjectSlug';
 
 export function replayRecordApiOptions({
   organizationIdOrSlug,
@@ -35,10 +36,7 @@ export function replayRecordApiOptions({
 }) {
   return apiOptions.as<{data: unknown}>()(
     '/organizations/$organizationIdOrSlug/replays/$replayId/',
-    {
-      path: replayId ? {organizationIdOrSlug, replayId} : skipToken,
-      staleTime: Infinity,
-    }
+    {path: replayId ? {organizationIdOrSlug, replayId} : skipToken, staleTime: Infinity}
   );
 }
 
@@ -73,15 +71,7 @@ export function replayAttachmentsApiOptions({
 }) {
   return apiOptions.as<unknown>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/replays/$replayId/recording-segments/',
-    {
-      path: {
-        organizationIdOrSlug,
-        projectIdOrSlug,
-        replayId,
-      },
-      query,
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug, projectIdOrSlug, replayId}, query, staleTime: Infinity}
   );
 }
 
@@ -269,10 +259,7 @@ export function useReplayData({replayId, orgSlug}: Options): Result {
     queries: enableErrors
       ? errorCursors.map(cursor =>
           queryOptions({
-            ...getErrorsQueryOptions({
-              cursor,
-              per_page: ERRORS_PER_PAGE,
-            }),
+            ...getErrorsQueryOptions({cursor, per_page: ERRORS_PER_PAGE}),
             select: selectJsonWithHeaders,
           })
         )

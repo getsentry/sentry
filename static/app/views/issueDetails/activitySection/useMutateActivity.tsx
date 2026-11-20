@@ -7,8 +7,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
-import {issueCommentsQueryOptions} from 'sentry/views/issueDetails/activitySection/issueCommentsQueryOptions';
 import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+
+import {issueCommentsQueryOptions} from './issueCommentsQueryOptions';
 
 type ActivityMutation =
   | {method: 'POST'; note: NoteType}
@@ -47,10 +48,7 @@ export function useMutateActivity({organization, group}: Props) {
               }
             )
           : getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/comments/', {
-              path: {
-                organizationIdOrSlug: organization.slug,
-                issueId: group.id,
-              },
+              path: {organizationIdOrSlug: organization.slug, issueId: group.id},
             });
 
       return fetchMutation<GroupActivityNote>({
@@ -72,10 +70,7 @@ export function useMutateActivity({organization, group}: Props) {
         const updateGroup = (
           activity: GroupActivity[],
           numComments: number
-        ): ApiResponse<Group> => ({
-          ...prev,
-          json: {...prev.json, activity, numComments},
-        });
+        ): ApiResponse<Group> => ({...prev, json: {...prev.json, activity, numComments}});
 
         switch (mutation.method) {
           case 'POST':
@@ -87,10 +82,7 @@ export function useMutateActivity({organization, group}: Props) {
             return updateGroup(
               prev.json.activity.map(item =>
                 item.type === GroupActivityType.NOTE && item.commentId === mutation.noteId
-                  ? {
-                      ...item,
-                      data: {...item.data, ...result.data},
-                    }
+                  ? {...item, data: {...item.data, ...result.data}}
                   : item
               ),
               prev.json.numComments

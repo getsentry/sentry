@@ -1,13 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import DashboardWidgetQuerySelectorModal from 'sentry/components/modals/dashboardWidgetQuerySelectorModal';
 import type {Widget} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';
 
-const stubEl: any = (props: any) => <div>{props.children}</div>;
+import DashboardWidgetQuerySelectorModal from './dashboardWidgetQuerySelectorModal';
 
-const api = new MockApiClient();
+const stubEl: any = (props: any) => <div>{props.children}</div>;
 
 function renderModal({
   initialData,
@@ -25,7 +24,6 @@ function renderModal({
       closeModal={() => {}}
       organization={initialData.organization}
       widget={widget}
-      api={api}
       dashboardFilters={undefined}
     />
   );
@@ -33,9 +31,7 @@ function renderModal({
 
 describe('Modals -> AddDashboardWidgetModal', () => {
   const initialData = initializeOrg({
-    organization: {
-      features: ['performance-view', 'discover-query'],
-    },
+    organization: {features: ['discover-query']},
     projects: [],
   });
   let mockQuery!: Widget['queries'][number];
@@ -95,10 +91,7 @@ describe('Modals -> AddDashboardWidgetModal', () => {
       ...mockQuery,
       conditions: 'title:/organizations/:orgId/performance/',
     });
-    mockWidget.queries.push({
-      ...mockQuery,
-      conditions: 'title:/organizations/:orgId/',
-    });
+    mockWidget.queries.push({...mockQuery, conditions: 'title:/organizations/:orgId/'});
     renderModal({initialData, widget: mockWidget});
     const queryFields = screen.getAllByRole('textbox');
     expect(queryFields).toHaveLength(3);

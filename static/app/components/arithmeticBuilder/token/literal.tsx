@@ -10,12 +10,6 @@ import {
   isTokenParenthesis,
   TokenKind,
 } from 'sentry/components/arithmeticBuilder/token';
-import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {
-  GridCell,
-  LeftGridCell,
-  Row,
-} from 'sentry/components/arithmeticBuilder/token/styles';
 import {
   nextTokenKeyOfKind,
   tokenizeExpression,
@@ -25,6 +19,9 @@ import {focusTarget} from 'sentry/components/tokenizedInput/grid/utils';
 import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
+
+import {DeleteButton} from './deleteButton';
+import {GridCell, LeftGridCell, Row} from './styles';
 
 interface ArithmeticTokenLiteralProps {
   item: Node<Token>;
@@ -38,12 +35,7 @@ export function ArithmeticTokenLiteral({
   token,
 }: ArithmeticTokenLiteralProps) {
   const ref = useRef<HTMLDivElement>(null);
-  const {rowProps, gridCellProps} = useGridListItem({
-    item,
-    ref,
-    state,
-    focusable: true,
-  });
+  const {rowProps, gridCellProps} = useGridListItem({item, ref, state, focusable: true});
 
   return (
     <Row
@@ -94,11 +86,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const onInputBlur = useCallback(() => {
     const trimmed = inputValue.trim();
     const text = validateLiteral(trimmed) ? trimmed : token.text;
-    dispatch({
-      text,
-      type: 'REPLACE_TOKEN',
-      token,
-    });
+    dispatch({text, type: 'REPLACE_TOKEN', token});
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);
 
@@ -111,9 +99,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
           text,
           type: 'REPLACE_TOKEN',
           token,
-          focusOverride: {
-            itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-          },
+          focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
         });
         resetInputValue();
         return;
@@ -169,9 +155,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
       text,
       type: 'REPLACE_TOKEN',
       token,
-      focusOverride: {
-        itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT),
-      },
+      focusOverride: {itemKey: nextTokenKeyOfKind(state, token, TokenKind.FREE_TEXT)},
     });
     resetInputValue();
   }, [dispatch, state, token, inputValue, resetInputValue]);
@@ -179,11 +163,7 @@ function InternalInput({item, state, token}: InternalInputProps) {
   const onInputEscape = useCallback(() => {
     const text = inputValue.trim();
     if (validateLiteral(text)) {
-      dispatch({
-        type: 'REPLACE_TOKEN',
-        token,
-        text,
-      });
+      dispatch({type: 'REPLACE_TOKEN', token, text});
     }
     resetInputValue();
   }, [dispatch, inputValue, token, resetInputValue]);

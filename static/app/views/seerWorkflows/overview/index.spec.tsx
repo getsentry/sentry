@@ -8,6 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -30,18 +31,17 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {Actor} from 'sentry/types/core';
 import type {PullRequestStatus} from 'sentry/types/integrations';
 import AutofixOverview from 'sentry/views/seerWorkflows/overview';
+
 import type {
   AutofixOverviewResponse,
   OverviewPullRequest,
   OverviewRunIssue,
-} from 'sentry/views/seerWorkflows/overview/types';
-import {SCM_WINDOW_SIZE} from 'sentry/views/seerWorkflows/overview/types';
-import {useOverviewSeerDrawer} from 'sentry/views/seerWorkflows/overview/useOverviewSeerDrawer';
+} from './types';
+import {SCM_WINDOW_SIZE} from './types';
+import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
 describe('AutofixOverview', () => {
-  const organization = OrganizationFixture({
-    features: ['seer-night-shift-ui'],
-  });
+  const organization = OrganizationFixture({features: ['seer-night-shift-ui']});
   const basePath = `/organizations/${organization.slug}/issues/autofix/`;
 
   const emptyMilestones = {
@@ -106,9 +106,7 @@ describe('AutofixOverview', () => {
       headline: null,
       oneLineDescription: 'The Authorization header is dropped.',
     },
-    proposedFix: {
-      oneLineSummary: 'Restore the Authorization header as a fallback.',
-    },
+    proposedFix: {oneLineSummary: 'Restore the Authorization header as a fallback.'},
     seerRunId: 'run-2',
     lastTriggeredAt: '2026-07-14T10:00:00Z',
     pullRequests: [],
@@ -160,10 +158,7 @@ describe('AutofixOverview', () => {
       url: `/organizations/${organization.slug}/seer/autofix-overview/`,
       match: [MockApiClient.matchQuery({expand: ['projectConfig']})],
       asyncDelay: projectConfigAsyncDelay,
-      body: {
-        ...overviewBody,
-        ...(projectConfig ? {projectConfig} : {}),
-      },
+      body: {...overviewBody, ...(projectConfig ? {projectConfig} : {})},
     });
     const scmInfoRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/autofix-scm-info/`,
@@ -294,10 +289,7 @@ describe('AutofixOverview', () => {
 
   it('renders only populated sections with counts from the single endpoint', async () => {
     mockOverview({
-      base: {
-        autofix_root_cause: [rootCauseRun],
-        autofix_solution: [solutionRun],
-      },
+      base: {autofix_root_cause: [rootCauseRun], autofix_solution: [solutionRun]},
     });
 
     renderPage();
@@ -446,9 +438,7 @@ describe('AutofixOverview', () => {
 
       const {router} = render(<AutofixOverview />, {
         organization: OrganizationFixture({features: ['seer-night-shift-ui']}),
-        initialRouterConfig: {
-          location: {pathname: basePath, query: {seerDrawer: '2'}},
-        },
+        initialRouterConfig: {location: {pathname: basePath, query: {seerDrawer: '2'}}},
       });
 
       expect(
@@ -609,9 +599,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '7d'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
   });
 
@@ -734,10 +722,7 @@ describe('AutofixOverview', () => {
 
   it('renders card prose and links from the endpoint payload', async () => {
     mockOverview({
-      base: {
-        autofix_root_cause: [rootCauseRun],
-        autofix_solution: [solutionRun],
-      },
+      base: {autofix_root_cause: [rootCauseRun], autofix_solution: [solutionRun]},
     });
 
     renderPage();
@@ -859,6 +844,7 @@ describe('AutofixOverview', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -904,9 +890,7 @@ describe('AutofixOverview', () => {
               headline: null,
               oneLineDescription: 'The request is passed to `dateutil.parse()`.',
             },
-            proposedFix: {
-              oneLineSummary: 'Wrap `parse_date()` in a try/catch.',
-            },
+            proposedFix: {oneLineSummary: 'Wrap `parse_date()` in a try/catch.'},
           },
         ],
       },
@@ -932,9 +916,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({project: [2]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [2]})})
     );
   });
 
@@ -955,9 +937,7 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({statsPeriod: '24h'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '24h'})})
     );
   });
 
@@ -1019,15 +999,11 @@ describe('AutofixOverview', () => {
     ).toBeInTheDocument();
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({expand: ['status']}),
-      })
+      expect.objectContaining({query: expect.objectContaining({expand: ['status']})})
     );
     expect(issueStatsRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({expand: ['issueStats']}),
-      })
+      expect.objectContaining({query: expect.objectContaining({expand: ['issueStats']})})
     );
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
@@ -1450,12 +1426,7 @@ describe('AutofixOverview', () => {
       checksStatus: 'success',
       reviewStatus: 'approved',
       files: [
-        {
-          path: 'src/sentry/foo.py',
-          additions: 10,
-          deletions: 2,
-          changeType: 'MODIFIED',
-        },
+        {path: 'src/sentry/foo.py', additions: 10, deletions: 2, changeType: 'MODIFIED'},
       ],
     };
     mockOverview({
@@ -2046,9 +2017,7 @@ describe('AutofixOverview', () => {
     expect(screen.getByRole('button', {name: /Sort/})).toHaveTextContent('Recommended');
     expect(statusPollRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/seer/autofix-overview/`,
-      expect.objectContaining({
-        query: expect.objectContaining({sort: 'recommended'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({sort: 'recommended'})})
     );
     expect(router.location.query.sort).toBeUndefined();
   });
@@ -2099,9 +2068,7 @@ describe('AutofixOverview', () => {
     await waitFor(() =>
       expect(statusPollRequest).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/seer/autofix-overview/`,
-        expect.objectContaining({
-          query: expect.objectContaining({sort}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort})})
       )
     );
     expect(router.location.query.sort).toBe(sort);

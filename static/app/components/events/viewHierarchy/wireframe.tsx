@@ -9,15 +9,16 @@ import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
 import type {ViewHierarchyWindow} from 'sentry/components/events/viewHierarchy';
+import {t} from 'sentry/locale';
+import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+
 import {
   calculateScale,
   getDeepestNodeAtPoint,
   getHierarchyDimensions,
   useResizeCanvasObserver,
-} from 'sentry/components/events/viewHierarchy/utils';
-import {t} from 'sentry/locale';
-import {getCenterScaleMatrixFromConfigPosition} from 'sentry/utils/profiling/gl/utils';
-import type {Rect} from 'sentry/utils/profiling/speedscope';
+} from './utils';
 
 const MIN_BORDER_SIZE = 20;
 const MOUSE_DRAG_THRESHOLD = 3;
@@ -75,10 +76,7 @@ function Wireframe({
     return calculateScale(
       {width: canvasSize.width, height: canvasSize.height},
       {width: hierarchyData.maxWidth, height: hierarchyData.maxHeight},
-      {
-        x: MIN_BORDER_SIZE,
-        y: MIN_BORDER_SIZE,
-      }
+      {x: MIN_BORDER_SIZE, y: MIN_BORDER_SIZE}
     );
   }, [
     canvasSize.height,

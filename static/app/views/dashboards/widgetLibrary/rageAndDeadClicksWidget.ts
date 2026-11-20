@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import type {WidgetTemplate} from 'sentry/views/dashboards/widgetLibrary/types';
+
+import type {WidgetTemplate} from './types';
 
 export const RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE: WidgetTemplate = {
   id: 'rage-and-dead-clicks-widget',
@@ -10,13 +11,6 @@ export const RAGE_AND_DEAD_CLICKS_WIDGET_TEMPLATE: WidgetTemplate = {
   displayType: DisplayType.RAGE_AND_DEAD_CLICKS,
   interval: '5m',
   queries: [
-    {
-      name: '',
-      conditions: '',
-      aggregates: [],
-      columns: [],
-      orderby: '',
-      fields: [],
-    },
+    {name: '', conditions: '', aggregates: [], columns: [], orderby: '', fields: []},
   ],
 };

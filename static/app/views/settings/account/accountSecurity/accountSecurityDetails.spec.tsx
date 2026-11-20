@@ -12,8 +12,8 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import AccountSecurityDetails from 'sentry/views/settings/account/accountSecurity/accountSecurityDetails';
-import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
+import AccountSecurityDetails from './accountSecurityDetails';
+import AccountSecurityWrapper from './accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ACCOUNT_EMAILS_ENDPOINT = '/users/me/emails/';
@@ -25,15 +25,9 @@ describe('AccountSecurityDetails', () => {
   });
   describe('Totp', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        body: AllAuthenticatorsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, body: AllAuthenticatorsFixture()});
 
-      MockApiClient.addMockResponse({
-        url: ORG_ENDPOINT,
-        body: OrganizationsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}15/`,
@@ -49,16 +43,9 @@ describe('AccountSecurityDetails', () => {
     it('shows the authentication method title and dates', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -79,16 +66,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -114,16 +94,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -149,16 +122,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/15/',
-          },
+          location: {pathname: '/settings/account/security/mfa/15/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -171,15 +137,9 @@ describe('AccountSecurityDetails', () => {
 
   describe('Recovery', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        body: AllAuthenticatorsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, body: AllAuthenticatorsFixture()});
 
-      MockApiClient.addMockResponse({
-        url: ORG_ENDPOINT,
-        body: OrganizationsFixture(),
-      });
+      MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
@@ -195,16 +155,9 @@ describe('AccountSecurityDetails', () => {
     it('shows the recovery method title without a remove button', async () => {
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -232,16 +185,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 
@@ -263,9 +209,7 @@ describe('AccountSecurityDetails', () => {
     });
 
     it('has copy, print and download buttons', async () => {
-      Object.defineProperty(document, 'queryCommandSupported', {
-        value: () => true,
-      });
+      Object.defineProperty(document, 'queryCommandSupported', {value: () => true});
 
       MockApiClient.addMockResponse({
         url: `${ENDPOINT}16/`,
@@ -275,16 +219,9 @@ describe('AccountSecurityDetails', () => {
 
       render(<AccountSecurityWrapper />, {
         initialRouterConfig: {
-          location: {
-            pathname: '/settings/account/security/mfa/16/',
-          },
+          location: {pathname: '/settings/account/security/mfa/16/'},
           route: '/settings/account/security/',
-          children: [
-            {
-              path: 'mfa/:authId/',
-              element: <AccountSecurityDetails />,
-            },
-          ],
+          children: [{path: 'mfa/:authId/', element: <AccountSecurityDetails />}],
         },
       });
 

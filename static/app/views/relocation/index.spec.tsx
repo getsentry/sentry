@@ -19,23 +19,16 @@ describe('Relocation Onboarding Container', () => {
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/publickeys/relocations/',
-      body: {
-        public_key: fakePublicKey,
-      },
+      body: {public_key: fakePublicKey},
     });
-    MockApiClient.addMockResponse({
-      url: '/relocations/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/relocations/', body: []});
   });
 
   it('should render if feature enabled', async () => {
     ConfigStore.set('features', new Set(['relocation:enabled']));
     render(<RelocationOnboardingContainer />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/relocation/get-started/',
-        },
+        location: {pathname: '/relocation/get-started/'},
         route: '/relocation/:step/',
       },
     });
@@ -51,9 +44,7 @@ describe('Relocation Onboarding Container', () => {
     ConfigStore.set('features', new Set());
     render(<RelocationOnboardingContainer />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/relocation/get-started/',
-        },
+        location: {pathname: '/relocation/get-started/'},
         route: '/relocation/:step/',
       },
     });

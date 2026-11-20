@@ -5,16 +5,15 @@ import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestin
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Organization} from 'sentry/types/organization';
-import {SampleImages} from 'sentry/views/insights/browser/resources/components/sampleImages';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {SampleImages} from './sampleImages';
 
 const {SPAN_GROUP, HTTP_RESPONSE_CONTENT_LENGTH, RAW_DOMAIN, SPAN_DESCRIPTION} =
   SpanFields;
 
 describe('SampleImages', () => {
-  const organization = OrganizationFixture({
-    features: ['insight-modules'],
-  });
+  const organization = OrganizationFixture({features: ['insight-modules']});
 
   beforeEach(() => {
     setupMocks();
@@ -92,8 +91,6 @@ const setupMockRequests = (
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/performance/configure/',
     method: 'GET',
-    body: {
-      enable_images: enableImages,
-    },
+    body: {enable_images: enableImages},
   });
 };

@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage, clearIndicators} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {User} from 'sentry/types/user';
@@ -14,10 +14,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-type Props = ModalRenderProps & {
-  onAction: (data: any) => void;
-  userId: string;
-};
+type Props = ModalRenderProps & {onAction: (data: any) => void; userId: string};
 
 const mergeSchema = z.object({
   users: z.array(z.custom<User>()).min(1, 'Select at least one account'),
@@ -26,9 +23,7 @@ const defaultValues: z.infer<typeof mergeSchema> = {users: []};
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
-  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
-    path: {userId},
-  });
+  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {path: {userId}});
   const accountsQueryOptions = apiOptions.as<{users: User[]}>()(
     '/users/$userId/merge-accounts/',
     {path: {userId}, staleTime: 0}
@@ -44,20 +39,16 @@ export function MergeAccountsModal(props: Props) {
   const mergeAccounts = fetchedMergeAccounts ?? {users: []};
   const doMergeMutation = useMutation({
     mutationFn: (userIds: string[]) => {
-      addLoadingMessage();
-      return fetchMutation({
-        url: endpoint,
-        method: 'POST',
-        data: {users: userIds},
-      });
+      toast.loading('Saving changes...');
+      return fetchMutation({url: endpoint, method: 'POST', data: {users: userIds}});
     },
     onSuccess: () => {
-      clearIndicators();
+      toast.dismiss();
       closeModal();
       onAction({});
     },
     onError: err => {
-      clearIndicators();
+      toast.dismiss();
       onAction({error: err});
     },
   });

@@ -5,18 +5,20 @@ import {Flex} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {
+  explodeFieldString,
+  generateFieldAsString,
   type AggregationKeyWithAlias,
   type Column,
   type QueryFieldValue,
 } from 'sentry/utils/discover/fields';
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {AggregateSelector} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceMetrics/aggregateSelector';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
   buildTraceMetricAggregate,
   extractTraceMetricFromColumn,
   getTraceMetricAggregateActionType,
   getTraceMetricDisplayFields,
+  getTraceMetricFunctionParts,
 } from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {
@@ -28,6 +30,8 @@ import type {TraceMetric} from 'sentry/views/explore/metrics/metricQuery';
 import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import type {MetricSelectorOption} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/types';
 
+import {AggregateSelector} from './aggregateSelector';
+
 function getDefaultAggregate(
   traceMetric: TraceMetric
 ): AggregationKeyWithAlias | undefined {
@@ -38,52 +42,36 @@ function getDefaultAggregate(
   return aggregate as AggregationKeyWithAlias | undefined;
 }
 
-function getUpdatedAggregatesMultiMetric(
-  aggregateSource: Column[],
-  index: number,
+/**
+ * Returns the aggregate column for `field` after switching it to `newTraceMetric`.
+ * Keeps the current aggregation when the new metric type supports it and keeps
+ * any `_if` filter on the row.
+ */
+function getUpdatedAggregateField(
+  field: QueryFieldValue,
   newTraceMetric: TraceMetric
-): Column[] | undefined {
-  const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
-  const currentAggregateKey =
-    aggregateSource?.[index]?.kind === 'function'
-      ? aggregateSource[index].function[0]
-      : undefined;
+): Column | undefined {
+  if (field.kind !== FieldValueKind.FUNCTION) {
+    const aggregate = getDefaultAggregate(newTraceMetric);
+    return aggregate ? buildTraceMetricAggregate(aggregate, newTraceMetric) : undefined;
+  }
 
+  const parts = getTraceMetricFunctionParts(field);
+  const currentAggregateKey = parts?.aggregation as AggregationKeyWithAlias | undefined;
   if (!currentAggregateKey) {
     return undefined;
   }
 
+  const validAggregateOptions = OPTIONS_BY_TYPE[newTraceMetric.type] ?? [];
   const isValid = validAggregateOptions.some(opt => opt.value === currentAggregateKey);
-
   const nextAggregateKey = isValid
     ? currentAggregateKey
     : getDefaultAggregate(newTraceMetric);
-
   if (!nextAggregateKey) {
     return undefined;
   }
 
-  const updatedAggregate = buildTraceMetricAggregate(nextAggregateKey, newTraceMetric);
-
-  const updatedAggregates = [...(aggregateSource ?? [])];
-  updatedAggregates[index] = updatedAggregate;
-
-  return updatedAggregates;
-}
-
-function replaceFieldWithDefaultAggregate(
-  aggregateSource: Column[],
-  index: number,
-  traceMetric: TraceMetric
-): Column[] | undefined {
-  const aggregate = getDefaultAggregate(traceMetric);
-  if (!aggregate) {
-    return undefined;
-  }
-
-  const updatedAggregates = [...aggregateSource];
-  updatedAggregates[index] = buildTraceMetricAggregate(aggregate, traceMetric);
-  return updatedAggregates;
+  return buildTraceMetricAggregate(nextAggregateKey, newTraceMetric, parts?.filter);
 }
 
 export function MetricSelectRow({
@@ -91,11 +79,30 @@ export function MetricSelectRow({
   field,
   fieldSelector,
   index,
+  onFieldChange,
+  disabledAggregates,
+  excludeDefaultAggregates,
 }: {
   disabled: boolean;
   field: QueryFieldValue;
   index: number;
+  /**
+   * Aggregations that cannot be picked for this row, with the reason shown
+   * in the dropdown.
+   */
+  disabledAggregates?: Record<string, string>;
+  /**
+   * Aggregates that a new, empty row must not land on when the selector picks a
+   * default metric. A metric is skipped only if picking it would produce one of
+   * these exact aggregates; every metric stays selectable by hand.
+   */
+  excludeDefaultAggregates?: string[];
   fieldSelector?: (autoSelectFirstColumn: boolean) => ReactNode;
+  /**
+   * When set, changes are reported here instead of being dispatched to the
+   * widget builder state. Used for rows that are not stored in the state.
+   */
+  onFieldChange?: (field: QueryFieldValue) => void;
 }) {
   const {state, dispatch} = useWidgetBuilderContext();
   const [shouldAutoSelectFirstColumn, setShouldAutoSelectFirstColumn] = useState(false);
@@ -106,9 +113,10 @@ export function MetricSelectRow({
     state.fields
   );
 
-  const traceMetric = (displayFields?.[index]
-    ? extractTraceMetricFromColumn(displayFields[index])
-    : undefined) ?? {name: '', type: ''};
+  // Hidden rows are not in the builder state, so read the column prop.
+  // Visible rows read the state like before.
+  const sourceField = onFieldChange ? field : (displayFields?.[index] ?? field);
+  const traceMetric = extractTraceMetricFromColumn(sourceField) ?? {name: '', type: ''};
 
   // Dashboards is visualization-first: once Heat Map is chosen, restrict the
   // metric picker to distributions (the only type a heat map can render).
@@ -130,14 +138,18 @@ export function MetricSelectRow({
         return;
       }
 
-      const updatedAggregates =
-        field.kind === FieldValueKind.FUNCTION
-          ? getUpdatedAggregatesMultiMetric(displayFields ?? [], index, newTraceMetric)
-          : replaceFieldWithDefaultAggregate(displayFields ?? [], index, newTraceMetric);
-
-      if (!updatedAggregates) {
+      const updatedField = getUpdatedAggregateField(field, newTraceMetric);
+      if (!updatedField) {
         return;
       }
+
+      if (onFieldChange) {
+        onFieldChange(updatedField);
+        return;
+      }
+
+      const updatedAggregates = [...(displayFields ?? [])];
+      updatedAggregates[index] = updatedField;
 
       // Sort fixup is handled by the dispatch handlers
       // (SET_Y_AXIS, SET_FIELDS, SET_CATEGORICAL_AGGREGATE)
@@ -146,7 +158,7 @@ export function MetricSelectRow({
         payload: updatedAggregates,
       });
     },
-    [displayFields, dispatch, field, index, state.displayType]
+    [displayFields, dispatch, field, index, onFieldChange, state.displayType]
   );
 
   const onSelectField = useCallback(() => {
@@ -186,12 +198,38 @@ export function MetricSelectRow({
     };
   }, [field.kind, hasOnlyAggregate, onSelectField]);
 
+  const excludedAggregateKeys = useMemo(
+    () =>
+      new Set(
+        excludeDefaultAggregates?.map(aggregate =>
+          generateFieldAsString(explodeFieldString(aggregate))
+        )
+      ),
+    [excludeDefaultAggregates]
+  );
+
+  // Skip a metric when selecting it would produce an excluded aggregate.
+  const skipDefaultOption = useCallback(
+    (option: MetricSelectorOption) => {
+      const candidate = getUpdatedAggregateField(field, {
+        name: option.metricName,
+        type: option.metricType,
+        unit: option.metricUnit,
+      });
+      return Boolean(
+        candidate && excludedAggregateKeys.has(generateFieldAsString(candidate))
+      );
+    },
+    [excludedAggregateKeys, field]
+  );
+
   return (
     <Flex gap="0" width="100%" minWidth="0">
       <MetricSelectorWrapper isFieldSelected={field.kind === FieldValueKind.FIELD}>
         <MetricSelector
           traceMetric={traceMetric}
           usePortal
+          skipDefaultOption={excludeDefaultAggregates ? skipDefaultOption : undefined}
           getDisabledOptionReason={
             state.displayType === DisplayType.HEATMAP
               ? getDisabledOptionReason
@@ -208,6 +246,8 @@ export function MetricSelectRow({
             traceMetric={traceMetric}
             field={field}
             index={index}
+            onFieldChange={onFieldChange}
+            disabledAggregates={disabledAggregates}
           />
         </AggregateSelectorWrapper>
       )}
@@ -220,9 +260,7 @@ export function MetricSelectRow({
   );
 }
 
-const MetricSelectorWrapper = styled('div')<{
-  isFieldSelected: boolean;
-}>`
+const MetricSelectorWrapper = styled('div')<{isFieldSelected: boolean}>`
   flex: ${p => (p.isFieldSelected ? '0 0 80px' : '1 1 auto')};
   max-width: ${p => (p.isFieldSelected ? '80px' : undefined)};
   min-width: 0;

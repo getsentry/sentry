@@ -15,11 +15,12 @@ import type {
   DataConditionGroup,
   Subfilter,
 } from 'sentry/types/workflowEngine/dataConditions';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import type {AutomationBuilderState} from 'sentry/views/automations/components/automationBuilderContext';
-import {dataConditionNodesMap} from 'sentry/views/automations/components/dataConditionNodes';
-import {CONNECTED_MONITORS_ERROR_ID} from 'sentry/views/automations/components/editConnectedMonitors';
 import type {AlertPreviewRequest} from 'sentry/views/automations/utils/alertPreviewQueryOptions';
+
+import {actionNodesMap} from './actionNodes';
+import type {AutomationBuilderState} from './automationBuilderContext';
+import {dataConditionNodesMap} from './dataConditionNodes';
+import {CONNECTED_MONITORS_ERROR_ID} from './editConnectedMonitors';
 
 export interface AutomationFormData {
   allProjects: boolean;
@@ -60,10 +61,7 @@ export const stripActionFields = (action: Action): NewAutomationAction => {
 
   // Strip targetDisplay from email action config
   if ([ActionType.EMAIL, ActionType.WEBHOOK].includes(action.type) && action.config) {
-    return {
-      ...actionWithoutId,
-      config: {...action.config, targetDisplay: null},
-    };
+    return {...actionWithoutId, config: {...action.config, targetDisplay: null}};
   }
 
   return actionWithoutId;
@@ -102,9 +100,7 @@ export function getNewAutomationData({
     triggers: stripDataConditionGroupId(state.triggers),
     environment: data.environment,
     actionFilters: state.actionFilters.map(stripDataConditionGroupId),
-    config: {
-      frequency: data.frequency ?? undefined,
-    },
+    config: {frequency: data.frequency ?? undefined},
     detectorIds: data.detectorIds,
     enabled: data.enabled,
   };
@@ -235,10 +231,7 @@ export function assignSubfilterIds(
 }
 
 function assignConditionGroupSubfilterIds(group: DataConditionGroup): DataConditionGroup {
-  return {
-    ...group,
-    conditions: group.conditions.map(assignConditionSubfilterIds),
-  };
+  return {...group, conditions: group.conditions.map(assignConditionSubfilterIds)};
 }
 
 function assignConditionSubfilterIds(condition: DataCondition): DataCondition {
@@ -248,16 +241,10 @@ function assignConditionSubfilterIds(condition: DataCondition): DataCondition {
   }
   return {
     ...condition,
-    comparison: {
-      ...condition.comparison,
-      filters: filters.map(assignSubfilterId),
-    },
+    comparison: {...condition.comparison, filters: filters.map(assignSubfilterId)},
   };
 }
 
 function assignSubfilterId(filter: Subfilter): Subfilter {
-  return {
-    ...filter,
-    id: filter.id ?? uuid4(),
-  };
+  return {...filter, id: filter.id ?? uuid4()};
 }

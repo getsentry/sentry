@@ -35,6 +35,7 @@ import {IconClose} from '@sentry/icons/close';
 import {IconGrabbable} from '@sentry/icons/grabbable';
 import {AnimatePresence, motion} from 'framer-motion';
 
+import {FeatureBadge, type FeatureBadgeProps} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link, type LinkProps} from '@sentry/scraps/link';
@@ -46,6 +47,7 @@ import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {useHovercardContext} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {NavigationItemClicked} from 'sentry/utils/analytics/navigationAnalyticsEvents';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -68,8 +70,12 @@ import {
   type NavigationTourElementProps,
 } from 'sentry/views/navigation/navigationTour';
 import {isPrimaryNavigationLinkActive} from 'sentry/views/navigation/primary/components';
-import {usePrimaryNavigation} from 'sentry/views/navigation/primaryNavigationContext';
+import {
+  useNavigationGroupHoverEnabled,
+  usePrimaryNavigation,
+} from 'sentry/views/navigation/primaryNavigationContext';
 import {useSecondaryNavigation} from 'sentry/views/navigation/secondaryNavigationContext';
+import {useSettingsNavigation} from 'sentry/views/navigation/useSettingsNavigation';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
 const MotionContainer = motion.create(Container);
@@ -117,6 +123,9 @@ function SecondarySidebarPanel({
   const containerRef = useObjectRef(tourRef);
   const resizeHandleRef = useRef<HTMLDivElement>(null);
   const {layout, activeGroup} = usePrimaryNavigation();
+  // Group switches only animate to smooth over hover previews.
+  const shouldAnimateGroupSwitch = useNavigationGroupHoverEnabled();
+  const isSettingsNavigation = useSettingsNavigation();
 
   const [secondarySidebarWidth, setSecondarySidebarWidth] = useSyncedLocalStorageState(
     NAVIGATION_SIDEBAR_SECONDARY_WIDTH_LOCAL_STORAGE_KEY,
@@ -144,20 +153,24 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...mergeProps(props, {
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      })}
+      {...mergeProps(props, {[NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true})}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
-      <AnimatePresence mode="popLayout" initial={false}>
+      <AnimatePresence
+        // Settings swaps the whole navigation, so start a fresh presence instead
+        // of animating from the previous group.
+        key={isSettingsNavigation ? 'settings' : 'app'}
+        mode="popLayout"
+        initial={false}
+      >
         <MotionContainer
           width="100%"
           height="100%"
           key={activeGroup}
-          initial={{x: -6, opacity: 0}}
+          initial={shouldAnimateGroupSwitch ? {x: -6, opacity: 0} : false}
           animate={{x: 0, opacity: 1}}
-          exit={{x: 6, opacity: 0}}
+          exit={shouldAnimateGroupSwitch ? {x: 6, opacity: 0} : undefined}
           transition={{duration: 0.06}}
         >
           <Grid
@@ -274,6 +287,11 @@ interface SecondaryNavigationItemProps extends Omit<LinkProps, 'ref' | 'to'> {
   activeTo?: To | To[];
   analyticsItemName?: string;
   /**
+   * Extra parameters sent with `navigation.secondary_item_clicked`. Only used
+   * when `analyticsItemName` is set.
+   */
+  analyticsParams?: Omit<NavigationItemClicked, 'item'>;
+  /**
    * When passed, will not show the link as active for descendant paths.
    * Same as the RR6 `NavLink` `end` prop.
    */
@@ -325,8 +343,12 @@ function SecondaryNavigationHeaderTitle({children}: {children: ReactNode}) {
 
 function SecondaryNavigationToggle() {
   const {layout} = usePrimaryNavigation();
-  const {view, setView} = useSecondaryNavigation();
+  const {collapsible, view, setView} = useSecondaryNavigation();
   const isCollapsed = view !== 'expanded';
+
+  if (!collapsible) {
+    return null;
+  }
 
   if (layout === 'mobile') {
     return (
@@ -522,6 +544,7 @@ function SecondaryNavigationSection(props: SecondaryNavigationSectionProps) {
 
 function SecondaryNavigationLink({
   analyticsItemName,
+  analyticsParams,
   children,
   to,
   activeTo = to,
@@ -555,6 +578,7 @@ function SecondaryNavigationLink({
     onClick: (e: React.MouseEvent<HTMLAnchorElement>) => {
       if (analyticsItemName) {
         trackAnalytics('navigation.secondary_item_clicked', {
+          ...analyticsParams,
           item: analyticsItemName,
           organization,
         });
@@ -694,14 +718,15 @@ function Collapsible(props: CollapsibleProps) {
           direction="column-reverse"
           key="collapsible-content"
           variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
+            collapsed: {height: 0, overflow: 'hidden'},
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
-              ...(settingsV3 ? {transitionEnd: {overflow: 'visible'}} : {}),
+              // Animating `overflow` too gives it a motion value, which transitionEnd
+              // needs in order to update the DOM after a collapse and reopen.
+              ...(settingsV3
+                ? {overflow: 'hidden', transitionEnd: {overflow: 'visible'}}
+                : {}),
             },
           }}
           initial="collapsed"
@@ -843,12 +868,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const sensors = useSensors(
-    useSensor(NavigationPointerSensor, {
-      activationConstraint: {distance: 5},
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(NavigationPointerSensor, {activationConstraint: {distance: 5}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   // We need to hold a copy of the local state because dnd-kit does not play well
@@ -878,6 +899,11 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
 
   return (
     <DndContext
+      // dnd-kit renders its position: fixed live region inline by default. While the
+      // panel animates, its transform turns that region into an absolute element
+      // below the scrolled list. If the list overflows, the page grows a scrollbar
+      // and the main content shifts.
+      accessibility={{container: document.body}}
       sensors={sensors}
       collisionDetection={closestCenter}
       modifiers={[restrictToVerticalAxis, restrictToParentElement]}
@@ -1094,6 +1120,18 @@ const GrabHandleAnimation = styled('div')`
   }
 `;
 
+interface SecondaryNavigationFeatureBadgeProps {
+  type: FeatureBadgeProps['type'];
+}
+
+/**
+ * Feature badges can sit before the link label, so a tooltip on the right
+ * would cover the label of the hovered link.
+ */
+function SecondaryNavigationFeatureBadge({type}: SecondaryNavigationFeatureBadgeProps) {
+  return <FeatureBadge type={type} tooltipProps={{position: 'top'}} />;
+}
+
 interface SecondaryNavigationIndicatorProps {
   variant: 'accent' | 'danger' | 'warning';
   ref?: React.Ref<HTMLDivElement>;
@@ -1123,9 +1161,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 
 const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
   user-select: none;
@@ -1183,9 +1219,7 @@ const StyledReorderableLink = styled(Link, {
 
 const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;
@@ -1334,4 +1368,5 @@ export const SecondaryNavigation = {
   ReorderableList: SecondaryNavigationReorderableList,
   ReorderableLink: SecondaryNavigationReorderableLink,
   Indicator: SecondaryNavigationIndicator,
+  FeatureBadge: SecondaryNavigationFeatureBadge,
 };

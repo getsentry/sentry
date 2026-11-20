@@ -6,10 +6,10 @@ from typing import Any
 from urllib.parse import urlencode
 
 import orjson
+from django.conf import settings
 from requests.models import Response
 from rest_framework import status
 
-from sentry import options
 from sentry.integrations.client import ApiClient
 from sentry.integrations.discord.message_builder.base.base import DiscordMessage
 from sentry.integrations.discord.utils.consts import DISCORD_ERROR_CODES, DISCORD_USER_ERRORS
@@ -52,11 +52,11 @@ class DiscordClient(ApiClient):
     _METRICS_USER_ERROR_KEY: str = "sentry.integrations.discord.failure.user_error"
     _METRICS_RATE_LIMIT_KEY: str = "sentry.integrations.discord.failure.rate_limit"
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self.application_id = options.get("discord.application-id")
-        self.client_secret = options.get("discord.client-secret")
-        self.bot_token = options.get("discord.bot-token")
+        self.application_id = settings.SENTRY_DISCORD_APPLICATION_ID
+        self.client_secret = settings.SENTRY_DISCORD_CLIENT_SECRET
+        self.bot_token = settings.SENTRY_DISCORD_BOT_TOKEN
 
     def prepare_auth_header(self) -> dict[str, str]:
         return {"Authorization": f"Bot {self.bot_token}"}
@@ -76,10 +76,12 @@ class DiscordClient(ApiClient):
         return bool(response)
 
     def get_guild_name(self, guild_id: str) -> str:
-        response = self.get(GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header())
+        response = self.get_mapping(
+            GUILD_URL.format(guild_id=guild_id), headers=self.prepare_auth_header()
+        )
         return response["name"]
 
-    def get_access_token(self, code: str, url: str):
+    def get_access_token(self, code: str, url: str) -> str:
         data = {
             "client_id": self.application_id,
             "client_secret": self.client_secret,
@@ -91,12 +93,12 @@ class DiscordClient(ApiClient):
         headers = {
             "Content-Type": "application/x-www-form-urlencoded",
         }
-        response = self.post(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
+        response = self.post_mapping(TOKEN_URL, json=False, data=urlencode(data), headers=headers)
         return response["access_token"]
 
-    def get_user_id(self, access_token: str):
+    def get_user_id(self, access_token: str) -> str:
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = self.get(
+        response = self.get_mapping(
             USER_URL,
             headers=headers,
         )
@@ -180,7 +182,7 @@ class DiscordClient(ApiClient):
         Do extra logic to handle an error from Discord
         """
 
-        discord_error_response: dict | None = None
+        discord_error_response: dict[str, object] | None = None
         if resp is not None:
             # Try to get the additional error code that Discord sent us to help determine what specific error happened
             try:

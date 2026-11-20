@@ -2,10 +2,13 @@ from __future__ import annotations
 
 import logging
 import re
+from collections.abc import Mapping
+from typing import Any, cast
 
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.db.models.query import QuerySet
+from django.http import QueryDict
 from django.utils.functional import cached_property
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
@@ -31,9 +34,9 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, ReleaseParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import MAX_RELEASE_FILES_OFFSET
-from sentry.debug_files.release_files import maybe_renew_releasefiles
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
+from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile, read_artifact_index
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
@@ -78,7 +81,7 @@ class ReleaseFileUploadSerializer(serializers.Serializer):
     )
 
 
-def load_dist(results):
+def load_dist(results: list[ReleaseFile]) -> list[ReleaseFile]:
     # Dists are pretty uncommon.  In case they do appear load them now
     # as trying to join this on the DB does terrible things with large
     # offsets (it would otherwise generate a left outer join).
@@ -94,13 +97,15 @@ def load_dist(results):
         if result.dist_id is not None:
             result_dist = dist_map.get(result.dist_id)
             if result_dist is not None:
-                result.dist = result_dist
+                setattr(result, "dist", result_dist)
 
     return results
 
 
 class ReleaseFilesMixin(BaseEndpointMixin):
-    def get_releasefiles(self, request: Request, release, organization_id):
+    def get_releasefiles(
+        self, request: Request, release: Release, organization_id: int
+    ) -> Response:
         query = request.GET.getlist("query")
         checksums = request.GET.getlist("checksum")
 
@@ -139,10 +144,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                 source = ArtifactSource(dist, files, query, checksums)
                 data_sources.append(source)
 
-        def on_results(release_files: list[ReleaseFile]):
-            # this should filter out all the "pseudo-ReleaseFile"s
-            maybe_renew_releasefiles([rf for rf in release_files if rf.id])
-
+        def on_results(release_files: list[ReleaseFile]) -> Any:
             return serialize(load_dist(release_files), request.user)
 
         # NOTE: Returned release files are ordered by name within their block,
@@ -156,7 +158,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
         )
 
     @staticmethod
-    def post_releasefile(request, release, logger):
+    def post_releasefile(request: Request, release: Release, logger: logging.Logger) -> Response:
         if "file" not in request.data:
             return Response({"detail": "Missing uploaded file"}, status=400)
 
@@ -174,7 +176,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
             )
 
         headers = {"Content-Type": fileobj.content_type}
-        for headerval in request.data.getlist("header") or ():
+        for headerval in cast("QueryDict", request.data).getlist("header") or ():
             try:
                 k, v = headerval.split(":", 1)
             except ValueError:
@@ -199,7 +201,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
             organization_id=release.organization_id,
             release_id=release.id,
             name=full_name,
-            dist_id=dist.id if dist else dist,
+            dist_id=dist.id if dist is not None else None,
         ).exists():
             return Response({"detail": ERR_FILE_EXISTS}, status=409)
 
@@ -215,7 +217,7 @@ class ReleaseFilesMixin(BaseEndpointMixin):
                     release_id=release.id,
                     file=file,
                     name=full_name,
-                    dist_id=dist.id if dist else dist,
+                    dist_id=dist.id if dist is not None else None,
                 )
         except IntegrityError:
             file.delete()
@@ -228,15 +230,19 @@ class ArtifactSource:
     """Provides artifact data to ChainPaginator on-demand"""
 
     def __init__(
-        self, dist: Distribution | None, files: dict, query: list[str], checksums: list[str]
-    ):
+        self,
+        dist: Distribution | None,
+        files: dict[str, Any],
+        query: list[str],
+        checksums: list[str],
+    ) -> None:
         self._dist = dist
         self._files = files
         self._query = query
         self._checksums = checksums
 
     @cached_property
-    def sorted_and_filtered_files(self) -> list[tuple[str, dict]]:
+    def sorted_and_filtered_files(self) -> list[tuple[str, dict[str, Any]]]:
         query = self._query
         checksums = self._checksums
         files = [
@@ -253,14 +259,14 @@ class ArtifactSource:
     def __len__(self) -> int:
         return len(self.sorted_and_filtered_files)
 
-    def __getitem__(self, range):
+    def __getitem__(self, range: slice) -> list[ReleaseFile]:
         return [
             pseudo_releasefile(url, info, self._dist)
             for url, info in self.sorted_and_filtered_files[range]
         ]
 
 
-def pseudo_releasefile(url, info, dist):
+def pseudo_releasefile(url: str, info: Mapping[str, Any], dist: Distribution | None) -> ReleaseFile:
     """Create a pseudo-ReleaseFile from an ArtifactIndex entry"""
     return ReleaseFile(
         name=url,
@@ -270,7 +276,7 @@ def pseudo_releasefile(url, info, dist):
             timestamp=info["date_created"],
             checksum=info["sha1"],
         ),
-        dist_id=dist.id if dist else dist,
+        dist_id=dist.id if dist is not None else None,
     )
 
 
@@ -282,6 +288,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         "GET": ApiPublishStatus.PUBLIC,
         "POST": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
     permission_classes = (ProjectReleasePermission,)
     rate_limits = RateLimitConfig(
         group="CLI", limit_overrides={"GET": SENTRY_RATELIMITER_GROUP_DEFAULTS["default"]}
@@ -322,7 +329,7 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
         },
     )
     def get(
-        self, request: Request, project, version
+        self, request: Request, project: Project, version: str
     ) -> Response[list[ReleaseFileSerializerResponse]]:
         """
         Retrieve a list of files for a given release.
@@ -356,7 +363,9 @@ class ProjectReleaseFilesEndpoint(ProjectEndpoint, ReleaseFilesMixin):
             409: RESPONSE_CONFLICT,
         },
     )
-    def post(self, request: Request, project, version) -> Response[ReleaseFileSerializerResponse]:
+    def post(
+        self, request: Request, project: Project, version: str
+    ) -> Response[ReleaseFileSerializerResponse]:
         """
         Upload a new file for the given release.
 

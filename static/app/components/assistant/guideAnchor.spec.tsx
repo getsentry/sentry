@@ -3,26 +3,19 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GuideStore} from 'sentry/stores/guideStore';
 
+import {GuideAnchor} from './guideAnchor';
+
 describe('GuideAnchor', () => {
-  const serverGuide = [
-    {
-      guide: 'trace_view',
-      seen: false,
-    },
-  ];
+  const serverGuide = [{guide: 'trace_view', seen: false}];
   const firstGuideHeader = 'Event Breakdown';
 
   beforeEach(() => {
     ConfigStore.loadInitialData(
       ConfigFixture({
-        user: UserFixture({
-          isSuperuser: false,
-          dateJoined: '2020-01-01T00:00:00',
-        }),
+        user: UserFixture({isSuperuser: false, dateJoined: '2020-01-01T00:00:00'}),
       })
     );
   });
@@ -50,10 +43,7 @@ describe('GuideAnchor', () => {
     expect(screen.queryByText('Events')).not.toBeInTheDocument();
 
     // Clicking on the button in the last step should finish the guide.
-    const finishMock = MockApiClient.addMockResponse({
-      method: 'PUT',
-      url: '/assistant/',
-    });
+    const finishMock = MockApiClient.addMockResponse({method: 'PUT', url: '/assistant/'});
 
     await userEvent.click(screen.getByLabelText('Enough Already'));
 
@@ -61,10 +51,7 @@ describe('GuideAnchor', () => {
       '/assistant/',
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          guide: 'trace_view',
-          status: 'viewed',
-        },
+        data: {guide: 'trace_view', status: 'viewed'},
       })
     );
   });
@@ -92,10 +79,7 @@ describe('GuideAnchor', () => {
       '/assistant/',
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          guide: 'trace_view',
-          status: 'dismissed',
-        },
+        data: {guide: 'trace_view', status: 'dismissed'},
       })
     );
 

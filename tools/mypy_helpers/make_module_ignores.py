@@ -50,8 +50,16 @@ def main() -> int:
         msg = "sentry modules with typing issues"
         before, begin, rest = src.partition(f"# begin: {msg}\n")
         _, end, rest = rest.partition(f"# end: {msg}\n")
+
+    if not mods:
+        new_src = (before + rest).rstrip("\n") + "\n"
+    elif begin:
+        new_src = before + begin + generated + end + rest
+    else:
+        new_src = src.rstrip("\n") + "\n\n" + f"# begin: {msg}\n" + generated + f"# end: {msg}\n"
+
     with open("pyproject.toml", "w") as f:
-        f.write(before + begin + generated + end + rest)
+        f.write(new_src)
 
     return 0
 

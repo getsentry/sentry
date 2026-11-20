@@ -1,6 +1,7 @@
 import {useQueryClient, useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -12,9 +13,7 @@ import type {GroupSearchView} from 'sentry/views/issueList/types';
 type UpdateGroupSearchViewVariables = Pick<
   GroupSearchView,
   'id' | 'name' | 'query' | 'querySort' | 'projects' | 'environments' | 'timeFilters'
-> & {
-  optimistic?: boolean;
-};
+> & {optimistic?: boolean};
 
 export const useUpdateGroupSearchView = (
   options: {onSuccess?: (data: GroupSearchView) => void} = {}
@@ -89,7 +88,7 @@ export const useUpdateGroupSearchView = (
       options.onSuccess?.(data);
     },
     onError: () => {
-      addErrorMessage(t('Failed to update view'));
+      toast.error(t('Failed to update view'));
     },
   });
 };

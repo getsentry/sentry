@@ -22,8 +22,9 @@ import {
   getInvestigationPath,
   useInvestigationsEnabled,
 } from 'sentry/views/investigations/utils';
-import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
 import {usePageReferrer} from 'sentry/views/seerExplorer/utils';
+
+import {usePageContextCapture} from './usePageContextCapture';
 
 // A run without a prompt waits for input, which the investigation page has no
 // way to give, so there is always a question to start from.

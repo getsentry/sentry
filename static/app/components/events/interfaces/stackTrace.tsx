@@ -1,7 +1,3 @@
-import {
-  StacktraceContext,
-  useStacktraceContext,
-} from 'sentry/components/events/interfaces/stackTraceContext';
 import {TraceEventDataSection} from 'sentry/components/events/traceEventDataSection';
 import {t} from 'sentry/locale';
 import type {Event, ExceptionValue} from 'sentry/types/event';
@@ -12,6 +8,7 @@ import type {Project} from 'sentry/types/project';
 
 import {StackTraceContent} from './crashContent/stackTrace';
 import {NoStackTraceMessage} from './noStackTraceMessage';
+import {StacktraceContext, useStacktraceContext} from './stackTraceContext';
 import {isStacktraceNewestFirst} from './utils';
 
 type Props = {
@@ -27,9 +24,7 @@ function StackTraceContentWrapper({
   data,
   groupingCurrentLevel,
   platform,
-}: Pick<Props, 'event' | 'data' | 'groupingCurrentLevel'> & {
-  platform: PlatformKey;
-}) {
+}: Pick<Props, 'event' | 'data' | 'groupingCurrentLevel'> & {platform: PlatformKey}) {
   const {isNewestFramesFirst, stackView} = useStacktraceContext();
 
   const entryIndex = event.entries.findIndex(

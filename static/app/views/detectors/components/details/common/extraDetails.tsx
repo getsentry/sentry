@@ -1,9 +1,9 @@
 import {Fragment} from 'react';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Placeholder} from 'sentry/components/placeholder';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -13,9 +13,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
-type Props = {
-  children: React.ReactNode;
-};
+type Props = {children: React.ReactNode};
 
 export function DetectorExtraDetails({children}: Props) {
   return (
@@ -36,7 +34,7 @@ DetectorExtraDetails.DateCreated = function DetectorExtraDetailsDateCreated({
     <Fragment>
       <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
       <DescriptionList.Details>
-        <DateTime date={detector.dateCreated} dateOnly year />
+        <DateTime date={detector.dateCreated} mode="date" year="always" />
       </DescriptionList.Details>
     </Fragment>
   );
@@ -53,9 +51,7 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
     isPending,
     isError,
     data: user,
-  } = useUserFromId({
-    id: createdBy ? parseInt(createdBy, 10) : undefined,
-  });
+  } = useUserFromId({id: createdBy ? parseInt(createdBy, 10) : undefined});
 
   const keyName = t('Created by');
 

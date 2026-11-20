@@ -14,15 +14,16 @@ import {
   type DashboardFilters,
   type Widget,
 } from 'sentry/views/dashboards/types';
-import {
-  DEFAULT_WIDGET_DRAG_POSITIONING,
-  snapPreviewToCorners,
-} from 'sentry/views/dashboards/widgetBuilder/components/common/draggableUtils';
-import {WidgetBuilderSlideout} from 'sentry/views/dashboards/widgetBuilder/components/widgetBuilderSlideout';
-import {WidgetPreviewContainer} from 'sentry/views/dashboards/widgetBuilder/components/widgetPreviewContainer';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import type {OnDataFetchedParams} from 'sentry/views/dashboards/widgetCard';
 import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
+
+import {
+  DEFAULT_WIDGET_DRAG_POSITIONING,
+  snapPreviewToCorners,
+} from './common/draggableUtils';
+import {WidgetBuilderSlideout} from './widgetBuilderSlideout';
+import {WidgetPreviewContainer} from './widgetPreviewContainer';
 
 export interface ThresholdMetaState {
   dataType?: string;
@@ -144,11 +145,7 @@ export function WidgetBuilderV2({
                 // oxlint-disable-next-line react/refs
                 navigationElementRef.current
                   ? isMediumScreen
-                    ? {
-                        left: 0,
-                        top: contentTop,
-                        willChange: 'top',
-                      }
+                    ? {left: 0, top: contentTop, willChange: 'top'}
                     : {
                         left: `${dimensions.width ?? 0}px`,
                         top: contentTop,

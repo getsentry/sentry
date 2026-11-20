@@ -14,11 +14,12 @@ import {
   useStore,
 } from '@sentry/scraps/form';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import type {Client} from 'sentry/api';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {canUseMetricsPiiScrubbingUI} from 'sentry/views/explore/metrics/metricsFlags';
@@ -125,9 +126,7 @@ export function DataScrubFormModal({
       dataset: initialDataset,
       eventId: sourceGroupData.eventId,
     },
-    validators: {
-      onDynamic: dataScrubSchema,
-    },
+    validators: {onDynamic: dataScrubSchema},
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
@@ -142,17 +141,13 @@ export function DataScrubFormModal({
         switch (parsedError.type) {
           case ErrorType.INVALID_SELECTOR:
           case ErrorType.ATTRIBUTE_INVALID:
-            setFieldErrors(form, {
-              source: {message: parsedError.message},
-            });
+            setFieldErrors(form, {source: {message: parsedError.message}});
             break;
           case ErrorType.REGEX_PARSE:
-            setFieldErrors(form, {
-              pattern: {message: parsedError.message},
-            });
+            setFieldErrors(form, {pattern: {message: parsedError.message}});
             break;
           default:
-            addErrorMessage(parsedError.message);
+            toast.error(parsedError.message);
         }
       }
     },
@@ -169,9 +164,7 @@ export function DataScrubFormModal({
 
     const validation = validateTraceItemFieldSelector(traceItemField);
     if (!validation.isValid && validation.error) {
-      setFieldErrors(form, {
-        source: {message: validation.error},
-      });
+      setFieldErrors(form, {source: {message: validation.error}});
     }
   };
 
@@ -233,28 +226,30 @@ export function DataScrubFormModal({
           {traceItemDatasetsEnabled && (
             <form.AppField name="dataset">
               {field => (
-                <field.Radio.Group
+                <field.RadioGroup
                   value={field.state.value}
                   onChange={value => {
-                    field.handleChange(value as AllowedDataScrubbingDatasets);
-                    setDataset(value as AllowedDataScrubbingDatasets);
+                    field.handleChange(value);
+                    setDataset(value);
                     form.setFieldValue('source', '');
                   }}
                 >
-                  <field.Layout.Stack
-                    label={t('Dataset')}
-                    hintText={t('The dataset targeted by the scrubbing rule')}
-                    variant="compact"
-                  >
-                    <Stack gap="lg">
-                      {sortBy(enabledDatasets).map(value => (
-                        <field.Radio.Item key={value} value={value}>
-                          {getDatasetLabelLong(value)}
-                        </field.Radio.Item>
-                      ))}
-                    </Stack>
-                  </field.Layout.Stack>
-                </field.Radio.Group>
+                  {({Item}) => (
+                    <field.Layout.Stack
+                      label={t('Dataset')}
+                      hintText={t('The dataset targeted by the scrubbing rule')}
+                      variant="compact"
+                    >
+                      <Stack gap="lg">
+                        {sortBy(enabledDatasets).map(value => (
+                          <Item key={value} value={value}>
+                            {getDatasetLabelLong(value)}
+                          </Item>
+                        ))}
+                      </Stack>
+                    </field.Layout.Stack>
+                  )}
+                </field.RadioGroup>
               )}
             </form.AppField>
           )}
@@ -450,8 +445,14 @@ export function DataScrubFormModal({
                           </sourceField.Layout.Stack>
                           {containsRootDeepWildcard(sourceValue) && (
                             <Alert variant="warning" style={{marginTop: '8px'}}>
-                              {t(
-                                "Deep wildcards ('**') apply to all datasets unless negated (eg. ** || !$logs.**)"
+                              {tct(
+                                'Deep wildcards ([wildcard]) also apply to log and metric attributes marked as [conventionsLink:auto scrubbed in Sentry Conventions], and to attributes not listed there.',
+                                {
+                                  wildcard: <code>**</code>,
+                                  conventionsLink: (
+                                    <ExternalLink href="https://conventions.sentry.dev/attributes/?scrubbing=auto" />
+                                  ),
+                                }
                               )}
                             </Alert>
                           )}

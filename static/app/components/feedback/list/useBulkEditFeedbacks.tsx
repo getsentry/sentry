@@ -1,12 +1,9 @@
 import {useCallback, useMemo} from 'react';
 import {useQueryState} from 'nuqs';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import {openConfirmModal} from 'sentry/components/confirm';
+import {openConfirmModal} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
+
 import {useDeleteFeedback} from 'sentry/components/feedback/useDeleteFeedback';
 import {useMutateFeedback} from 'sentry/components/feedback/useMutateFeedback';
 import {t, tct, tn} from 'sentry/locale';
@@ -52,7 +49,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
   const mutationOptions = useMemo(
     () => ({
       onError: () => {
-        addErrorMessage(
+        toast.error(
           tn(
             'An error occurred while updating the feedback item',
             'An error occurred while updating the feedback items',
@@ -61,7 +58,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
         );
       },
       onSuccess: () => {
-        addSuccessMessage(
+        toast.success(
           tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
         );
         deselectAll();
@@ -77,12 +74,9 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
         onConfirm: () => {
           if (newMailbox === GroupStatus.IGNORED) {
             // target action is marking as spam aka ignored
-            trackAnalytics('feedback.mark-spam-clicked', {
-              organization,
-              type: 'bulk',
-            });
+            trackAnalytics('feedback.mark-spam-clicked', {organization, type: 'bulk'});
           }
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -115,7 +109,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -139,7 +133,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
       openConfirmModal({
         bypass: Array.isArray(selectedIds) && selectedIds.length === 1,
         onConfirm: () => {
-          addLoadingMessage(
+          toast.loading(
             tn(
               'Updating feedback item...',
               'Updating feedback items...',
@@ -148,7 +142,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
           );
           markAsRead(false, {
             onError: () => {
-              addErrorMessage(
+              toast.error(
                 tn(
                   'An error occurred while updating the feedback item',
                   'An error occurred while updating the feedback items',
@@ -157,7 +151,7 @@ export function useBulkEditFeedbacks({deselectAll, selectedIds}: Props) {
               );
             },
             onSuccess: () => {
-              addSuccessMessage(
+              toast.success(
                 tn('Updated feedback item', 'Updated feedback items', selectedIdsLength)
               );
               deselectAll();

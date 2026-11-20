@@ -3,10 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getARTContextData,
-  type ARTContext,
-} from 'sentry/components/events/contexts/knownContext/art';
+
+import {getARTContextData, type ARTContext} from './art';
 
 const MOCK_ART_CONTEXT: ARTContext = {
   'gc.blocking_count': 5,
@@ -23,12 +21,7 @@ const MOCK_ART_CONTEXT: ARTContext = {
 };
 
 const MOCK_REDACTION = {
-  'gc.total_time': {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
+  'gc.total_time': {'': {rem: [['organization:0', 's', 0, 0]], len: 5}},
 };
 
 describe('ARTContext', () => {
@@ -48,9 +41,7 @@ describe('ARTContext', () => {
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {art: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {art: MOCK_REDACTION}}});
 
     render(
       <ContextCard

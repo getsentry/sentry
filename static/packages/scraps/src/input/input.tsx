@@ -3,6 +3,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 
 import {inputStyles, type InputStylesProps} from './inputStyles';
+import {passwordManagerIgnoreProps} from './passwordManagerIgnoreProps';
 
 export {type InputStylesProps} from './inputStyles';
 export interface InputProps
@@ -21,6 +22,8 @@ export interface InputProps
  *
  * To add leading/trailing items (e.g. a search icon on the left side), use
  * InputControl (components/inputControl) instead.
+ *
+ * `type="search"` inputs opt out of password manager autofill.
  */
 export const Input = styled(
   ({
@@ -33,7 +36,14 @@ export const Input = styled(
     nativeSize,
 
     ...props
-  }: InputProps) => <input {...props} ref={ref} size={nativeSize} />,
+  }: InputProps) => (
+    <input
+      {...(props.type === 'search' ? passwordManagerIgnoreProps : undefined)}
+      {...props}
+      ref={ref}
+      size={nativeSize}
+    />
+  ),
   {shouldForwardProp: prop => prop === 'nativeSize' || isPropValid(prop)}
 )`
   ${p => inputStyles(p)};

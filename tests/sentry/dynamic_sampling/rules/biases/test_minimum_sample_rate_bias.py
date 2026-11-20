@@ -1,10 +1,11 @@
 from sentry.dynamic_sampling.rules.biases.minimum_sample_rate_bias import MinimumSampleRateBias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, RuleType
+from sentry.models.project import Project
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
 @django_db_all
-def test_generate_rules_with_different_sample_rates(default_project) -> None:
+def test_generate_rules_with_different_sample_rates(default_project: Project) -> None:
     test_rates = [0.01, 0.05, 0.1, 0.5, 1.0]
 
     for base_sample_rate in test_rates:

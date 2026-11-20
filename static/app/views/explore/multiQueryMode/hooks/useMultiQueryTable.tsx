@@ -44,9 +44,7 @@ export function useMultiQueryTableAggregateMode({
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableAggregateModeImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {groupBys, query, yAxes, sortBys, enabled, queryExtras},
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy},
   });
 }
 
@@ -93,7 +91,6 @@ function useMultiQueryTableAggregateModeImpl({
     initialData: [],
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 
@@ -118,9 +115,7 @@ export function useMultiQueryTableSampleMode({
   return useProgressiveQuery({
     queryHookImplementation: useMultiQueryTableSampleModeImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {query, yAxes, sortBys, enabled, queryExtras},
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy},
   });
 }
 
@@ -164,7 +159,6 @@ function useMultiQueryTableSampleModeImpl({
     initialData: [],
     limit: 10,
     referrer: 'api.explore.multi-query-spans-table',
-    trackResponseAnalytics: false,
     queryExtras,
   });
 

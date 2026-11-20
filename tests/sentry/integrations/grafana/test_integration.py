@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, cast
 
 import pytest
 import responses
@@ -65,9 +65,12 @@ class GrafanaIntegrationProviderTest(IntegrationTestCase):
         return installation
 
     def _org_integration_config(self, integration: Integration) -> dict[str, Any]:
-        return OrganizationIntegration.objects.get(
-            organization_id=self.organization.id, integration_id=integration.id
-        ).config
+        return cast(
+            "dict[str, Any]",
+            OrganizationIntegration.objects.get(
+                organization_id=self.organization.id, integration_id=integration.id
+            ).config,
+        )
 
     @responses.activate
     def test_build_integration_stores_token_in_metadata_and_url_in_post_install_config(

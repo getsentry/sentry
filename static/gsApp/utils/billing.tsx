@@ -22,6 +22,7 @@ import {
 } from 'getsentry/constants';
 import {
   AddOnCategory,
+  BillingType,
   CREDIT_INVOICE_ITEM_TYPES,
   FEE_INVOICE_ITEM_TYPES,
   OnDemandBudgetMode,
@@ -260,11 +261,7 @@ function formatMicroCents(microCents: number): string {
 export function formatReservedWithUnits(
   reservedQuantity: number | null,
   dataCategory: DataCategory,
-  options: FormatOptions = {
-    isAbbreviated: false,
-    useUnitScaling: false,
-    isGifted: false,
-  }
+  options: FormatOptions = {isAbbreviated: false, useUnitScaling: false, isGifted: false}
 ): string {
   if (
     options.unitType === 'microCents' &&
@@ -339,9 +336,7 @@ export function formatUsageWithUnits(
     }
     return options.isAbbreviated
       ? displayNumber(usageProfileHours, 1)
-      : usageProfileHours.toLocaleString(undefined, {
-          maximumFractionDigits: 1,
-        });
+      : usageProfileHours.toLocaleString(undefined, {maximumFractionDigits: 1});
   }
   return options.isAbbreviated
     ? displayNumber(usageQuantity)
@@ -693,6 +688,17 @@ export function hasPaygBudgetForCategory(
 }
 
 /**
+ * Returns true if sales manages the subscription: it is invoiced, or it has a custom
+ * price. Billing platform subscriptions never report a custom price.
+ */
+export function isSalesAccount(subscription: Subscription) {
+  return (
+    subscription.type === BillingType.INVOICED ||
+    (subscription.customPrice !== null && subscription.customPrice > 0)
+  );
+}
+
+/**
  * Returns true if the current user has billing perms.
  */
 export function hasBillingAccess(organization: Organization) {
@@ -704,6 +710,30 @@ export function hasAccessToSubscriptionOverview(
   organization: Organization
 ): boolean {
   return hasBillingAccess(organization) || Boolean(subscription?.canSelfServe);
+}
+
+/**
+ * Whether to link the user to the billing information page.
+ *
+ * Enterprise trials, and orgs that cannot use PAYG and are not self-serve on a
+ * free or trial plan, get no link. The page itself only redirects
+ * partner-billed orgs.
+ */
+export function shouldShowBillingInformation(
+  subscription: Subscription,
+  organization: Organization
+): boolean {
+  if (!hasBillingAccess(organization) || subscription.isSelfServePartner) {
+    return false;
+  }
+
+  const isTrialOrFreePlan =
+    subscription.onTrialPlan || isDeveloperPlan(subscription.planDetails);
+
+  return (
+    supportsPayg(subscription) ||
+    (subscription.canSelfServe && isTrialOrFreePlan && !subscription.isEnterpriseTrial)
+  );
 }
 
 /**

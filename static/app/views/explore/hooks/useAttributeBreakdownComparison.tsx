@@ -10,25 +10,17 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {FieldKey} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
+
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 export type AttributeBreakdownsComparison = {
   cohort1Total: number;
   cohort2Total: number;
   rankedAttributes: Array<{
     attributeName: string;
-    cohort1: Array<{
-      label: string;
-      value: number;
-    }>;
-    cohort2: Array<{
-      label: string;
-      value: number;
-    }>;
-    order: {
-      rrf: number;
-      rrr: number | null;
-    };
+    cohort1: Array<{label: string; value: number}>;
+    cohort2: Array<{label: string; value: number}>;
+    order: {rrf: number; rrr: number | null};
   }>;
 };
 
@@ -39,6 +31,8 @@ export function useAttributeBreakdownComparison({
   dataset = DiscoverDatasets.SPANS,
   extrapolate = '1',
   pageFilters: pageFiltersProp,
+  yAttribute,
+  yRange,
 }: {
   aggregateFunction: string;
   query: string;
@@ -46,6 +40,11 @@ export function useAttributeBreakdownComparison({
   dataset?: DiscoverDatasets;
   extrapolate?: string;
   pageFilters?: PageFilters;
+  /**
+   * Attribute that `yRange` bounds, e.g. `span.duration` for a heatmap selection.
+   */
+  yAttribute?: string;
+  yRange?: [number, number];
 }) {
   const organization = useOrganization();
   const {selection: contextPageFilters} = usePageFilters();
@@ -70,6 +69,11 @@ export function useAttributeBreakdownComparison({
   // Add the selected region by x-axis to the query, timestamp: [x1, x2]
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `>=${formattedStartTimestamp}`);
   selectedRegionQuery.addFilterValue(FieldKey.TIMESTAMP, `<=${formattedEndTimestamp}`);
+
+  if (yAttribute && yRange) {
+    selectedRegionQuery.addFilterValue(yAttribute, `>=${yRange[0]}`, false);
+    selectedRegionQuery.addFilterValue(yAttribute, `<${yRange[1]}`, false);
+  }
 
   return useQuery({
     ...apiOptions.as<AttributeBreakdownsComparison>()(

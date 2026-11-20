@@ -5,8 +5,9 @@ import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
-import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
+import {traceAnalytics} from './traceAnalytics';
 
 export function TraceResetZoomButton(props: {
   organization: Organization;
@@ -30,9 +31,7 @@ export function TraceResetZoomButton(props: {
   );
 }
 
-const ResetZoomButton = styled(Button)<{
-  hide: boolean;
-}>`
+const ResetZoomButton = styled(Button)<{hide: boolean}>`
   display: ${props => (props.hide ? 'none' : 'block')};
 
   &[disabled] {

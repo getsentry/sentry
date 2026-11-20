@@ -5,7 +5,17 @@ import pytest
 from fixtures.seer.webhooks import MOCK_GROUP_ID, MOCK_RUN_ID
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
 from sentry.notifications.platform.templates.seer import (
+    AGENT_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE,
+    AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
+    SeerAgentOutOfCredits,
+    SeerAgentOutOfCreditsTemplate,
+    SeerAutofixOutOfCredits,
+    SeerAutofixOutOfCreditsTemplate,
     SeerAutofixTrigger,
     SeerAutofixUpdate,
     SeerInvestigationConclusionTemplate,
@@ -142,6 +152,58 @@ class SeerAgentErrorTemplateTest(TestCase):
         assert rendered.body[0].blocks[0].text == "Timeout."
 
 
+@pytest.mark.parametrize(
+    ("has_billing_access", "auto_reload_enabled", "message"),
+    [
+        (False, False, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (False, True, AUTOFIX_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (True, False, AUTOFIX_OUT_OF_CREDITS_BILLING_MESSAGE),
+        (True, True, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_autofix_out_of_credits_template(
+    has_billing_access: bool, auto_reload_enabled: bool, message: str
+) -> None:
+    rendered = SeerAutofixOutOfCreditsTemplate().render(
+        SeerAutofixOutOfCredits(
+            organization_id=1,
+            has_billing_access=has_billing_access,
+            auto_reload_enabled=auto_reload_enabled,
+        )
+    )
+
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
+
+
+@pytest.mark.parametrize(
+    ("has_billing_access", "auto_reload_enabled", "message"),
+    [
+        (False, False, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (False, True, AGENT_OUT_OF_CREDITS_MEMBER_MESSAGE),
+        (True, False, AGENT_OUT_OF_CREDITS_BILLING_MESSAGE),
+        (True, True, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE),
+    ],
+)
+def test_agent_out_of_credits_template(
+    has_billing_access: bool, auto_reload_enabled: bool, message: str
+) -> None:
+    rendered = SeerAgentOutOfCreditsTemplate().render(
+        SeerAgentOutOfCredits(
+            organization_id=1,
+            has_billing_access=has_billing_access,
+            auto_reload_enabled=auto_reload_enabled,
+        )
+    )
+
+    assert rendered.subject == message
+    assert len(rendered.body) == 1
+    assert isinstance(rendered.body[0], ParagraphSection)
+    assert rendered.body[0].blocks[0].text == message
+
+
 class SeerInvestigationStartedTemplateTest(TestCase):
     def test_render(self) -> None:
         rendered = SeerInvestigationStartedTemplate().render(
@@ -188,7 +250,7 @@ class SeerInvestigationConclusionTemplateTest(TestCase):
         rendered = template.render_example()
 
         assert rendered.subject == "Seer investigation conclusion"
-        assert len(rendered.body) == 2
+        assert len(rendered.body) == 3
         (action,) = rendered.actions
         assert action.label == "View full investigation"
         assert action.link == template.example_data.investigation_url

@@ -2,11 +2,12 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {DateTimeProvider} from '@sentry/scraps/datetime';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {TimestampTooltipBody} from 'sentry/views/explore/logs/logsTimeTooltip';
-import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
+
+import {TimestampTooltipBody} from './logsTimeTooltip';
+import {OurLogKnownFieldKey} from './types';
 
 describe('TimestampTooltipBody', () => {
   const timestamp = '2024-01-15T15:45:30.456Z';
@@ -20,12 +21,10 @@ describe('TimestampTooltipBody', () => {
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
 
-    const attributes = {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
-    };
+    const attributes = {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012'};
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -41,12 +40,10 @@ describe('TimestampTooltipBody', () => {
     user.options.timezone = 'UTC';
     ConfigStore.set('user', user);
 
-    const attributes = {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
-    };
+    const attributes = {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012'};
 
     render(
-      <DateTimeProvider value={{timezone: 'UTC', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'UTC', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -68,7 +65,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -82,12 +79,10 @@ describe('TimestampTooltipBody', () => {
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
 
-    const attributes = {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
-    };
+    const attributes = {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012'};
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -107,7 +102,7 @@ describe('TimestampTooltipBody', () => {
     };
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody timestamp={timestamp} attributes={attributes} />
       </DateTimeProvider>
     );
@@ -121,12 +116,10 @@ describe('TimestampTooltipBody', () => {
     user.options.timezone = 'America/New_York';
     ConfigStore.set('user', user);
 
-    const attributes = {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012',
-    };
+    const attributes = {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705333530456789012'};
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '12'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '12'}}>
         <TimestampTooltipBody
           timestamp={timestamp}
           attributes={attributes}
@@ -141,12 +134,10 @@ describe('TimestampTooltipBody', () => {
 
   it('renders in 24h format when user preference is set', () => {
     const pmTimestamp = '2024-01-15T20:45:30.456Z';
-    const attributes = {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705351530456789012',
-    };
+    const attributes = {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: '1705351530456789012'};
 
     render(
-      <DateTimeProvider value={{timezone: 'America/New_York', clockDisplay: '24'}}>
+      <DateTimeProvider value={{timezone: 'America/New_York', clock: '24'}}>
         <TimestampTooltipBody timestamp={pmTimestamp} attributes={attributes} />
       </DateTimeProvider>
     );

@@ -7,16 +7,12 @@ import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {FieldFromConfig} from 'sentry/components/forms/fieldFromConfig';
 import {Form} from 'sentry/components/forms/form';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -204,28 +200,25 @@ function ToggleConsolePlatformsModal({
   };
 
   const handleSubmit = async (data: Record<string, boolean | number>) => {
-    addLoadingMessage('Saving changes...');
+    toast.loading('Saving changes...');
 
     const promises: Array<Promise<unknown>> = [];
 
     if (pendingRevocations.length > 0) {
       promises.push(
-        revokeConsoleInvites({
-          orgSlug: organization.slug,
-          items: pendingRevocations,
-        })
+        revokeConsoleInvites({orgSlug: organization.slug, items: pendingRevocations})
       );
     }
     promises.push(updateConsolePlatforms(data));
 
     await Promise.all(promises)
       .then(() => {
-        addSuccessMessage('Console SDK settings updated successfully');
+        toast.success('Console SDK settings updated successfully');
         closeModal();
         onSuccess();
       })
       .catch(() => {
-        addErrorMessage('Failed to update console SDK settings');
+        toast.error('Failed to update console SDK settings');
         setPendingRevocations([]);
       })
       .finally(() => {

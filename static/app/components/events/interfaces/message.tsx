@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import {AnsiText} from 'sentry/components/ansiText';
-import {renderLinksInText} from 'sentry/components/events/interfaces/crashContent/exception/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import {KeyValueTableCard} from 'sentry/components/tables/keyValueTable';
@@ -12,11 +11,10 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
+import {renderLinksInText} from './crashContent/exception/utils';
+
 type Props = {
-  data: {
-    formatted: string | null;
-    params?: Record<string, any> | any[] | null;
-  };
+  data: {formatted: string | null; params?: Record<string, any> | any[] | null};
   event: Event;
 };
 

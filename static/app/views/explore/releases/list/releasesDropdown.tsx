@@ -18,12 +18,7 @@ export function ReleasesDropdown({
   onSelect,
 }: Props) {
   const mappedOptions = Object.entries(options).map(
-    ([key, {label, tooltip, disabled}]) => ({
-      value: key,
-      label,
-      tooltip,
-      disabled,
-    })
+    ([key, {label, tooltip, disabled}]) => ({value: key, label, tooltip, disabled})
   );
 
   return (

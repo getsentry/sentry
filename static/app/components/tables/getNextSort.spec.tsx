@@ -1,4 +1,4 @@
-import {getNextDirection, getNextSort} from 'sentry/components/tables/getNextSort';
+import {getNextDirection, getNextSort} from './getNextSort';
 
 describe('getNextDirection', () => {
   it('returns desc when the column is unsorted', () => {
@@ -41,9 +41,6 @@ describe('getNextSort', () => {
   });
 
   it('sorts descending when no column holds the sort', () => {
-    expect(getNextSort('duration', undefined)).toEqual({
-      field: 'duration',
-      kind: 'desc',
-    });
+    expect(getNextSort('duration', undefined)).toEqual({field: 'duration', kind: 'desc'});
   });
 });

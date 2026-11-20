@@ -14,8 +14,8 @@ from sentry.issue_detection.performance_detection import (
     run_detector_on_data,
 )
 from sentry.issue_detection.performance_problem import PerformanceProblem
-from sentry.issue_detection.types import Span
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
+from sentry.spans.grouping.strategy.base import Span
 from sentry.testutils.cases import TestCase
 from sentry.testutils.issue_detection.event_generators import create_event, create_span, get_event
 

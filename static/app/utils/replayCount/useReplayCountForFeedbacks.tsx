@@ -1,7 +1,8 @@
 import {useMemo} from 'react';
 
-import {useReplayCount} from 'sentry/utils/replayCount/useReplayCount';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {useReplayCount} from './useReplayCount';
 
 /**
  * Query results for whether a Feedback has replays associated.
@@ -17,10 +18,7 @@ export function useReplayCountForFeedbacks() {
   });
 
   return useMemo(
-    () => ({
-      feedbackHasReplay: hasOne,
-      feedbacksHaveReplay: hasMany,
-    }),
+    () => ({feedbackHasReplay: hasOne, feedbacksHaveReplay: hasMany}),
     [hasMany, hasOne]
   );
 }

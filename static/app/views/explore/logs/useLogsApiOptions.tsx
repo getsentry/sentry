@@ -6,21 +6,8 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
-  AlwaysPresentLogFields,
-  QUERY_PAGE_LIMIT,
-  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
-} from 'sentry/views/explore/logs/constants';
-import {
-  useLogsFrozenProjectIds,
-  useLogsFrozenReplayInfo,
-  useLogsFrozenSearch,
-  useLogsFrozenTraceIds,
-  useLogsFrozenTraceTimestamp,
-} from 'sentry/views/explore/logs/logsFrozenContext';
-import type {EventsLogsResult} from 'sentry/views/explore/logs/types';
-import {useLogsQueryTruncate} from 'sentry/views/explore/logs/useLogsQueryTruncate';
 import {
   useQueryParamsCursor,
   useQueryParamsFields,
@@ -30,12 +17,29 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {getEventView} from 'sentry/views/insights/common/queries/useDiscover';
 
+import {
+  AlwaysPresentLogFields,
+  QUERY_PAGE_LIMIT,
+  QUERY_PAGE_LIMIT_WITH_AUTO_REFRESH,
+} from './constants';
+import {
+  useLogsFrozenProjectIds,
+  useLogsFrozenReplayInfo,
+  useLogsFrozenSearch,
+  useLogsFrozenTraceIds,
+  useLogsFrozenTraceTimestamp,
+} from './logsFrozenContext';
+import type {EventsLogsResult} from './types';
+import {useLogsQueryTruncate} from './useLogsQueryTruncate';
+
 const LOGS_DATA_CATEGORIES = [DataCategory.LOG_BYTE] as const;
 
 function getSamplingMode({
+  faster,
   highAccuracy,
   highFidelity,
 }: {
+  faster?: boolean;
   highAccuracy?: boolean;
   highFidelity?: boolean;
 }) {
@@ -45,6 +49,10 @@ function getSamplingMode({
 
   if (highFidelity) {
     return SAMPLING_MODE.FLEX_TIME;
+  }
+
+  if (faster) {
+    return SAMPLING_MODE.LOW_PRIORITY;
   }
 
   return SAMPLING_MODE.NORMAL;
@@ -77,6 +85,7 @@ function useLogsApiOptions({
   const groupBys = useQueryParamsGroupBys();
   const [caseInsensitive] = useCaseInsensitivity();
   const truncate = useLogsQueryTruncate();
+  const {speed} = useExploreQuerySpeed();
 
   const search = baseSearch ? _search.copy() : _search;
   if (baseSearch) {
@@ -123,7 +132,7 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: getSamplingMode({highAccuracy, highFidelity}),
+    sampling: getSamplingMode({faster: speed === 'faster', highAccuracy, highFidelity}),
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -172,13 +181,7 @@ export function useLogsApiOptionsWithInfinite({
     highAccuracy,
     highFidelity,
   });
-  return {
-    infiniteApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {infiniteApiOptions, other: {eventView, pageFiltersReady}};
 }
 
 export type LogsInfiniteQueryKey = ReturnType<

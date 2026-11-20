@@ -1,7 +1,8 @@
 import type {Location as RouterLocation, To} from 'react-router';
 import * as Sentry from '@sentry/react';
 import type {Location as LegacyLocation, LocationDescriptor, Query} from 'history';
-import * as qs from 'query-string';
+
+import * as qs from 'sentry/utils/url/qs';
 
 /**
  * Sentry still accepts React Router 3-style destinations with `.query` and
@@ -15,9 +16,7 @@ export function legacyLocationDescriptorToTo(path: LocationDescriptor): To {
 
   let query = path.query ? {...path.query} : undefined;
 
-  const to: To = {
-    pathname: path.pathname,
-  };
+  const to: To = {pathname: path.pathname};
 
   // XXX(epurkhiser): In react router 3 it was possible to include the search
   // query parameters in te pathname field of a LocationDescriptor. You can no

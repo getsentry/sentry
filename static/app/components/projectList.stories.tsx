@@ -1,7 +1,8 @@
 import {Fragment} from 'react';
 
-import {ProjectList} from 'sentry/components/projectList';
 import * as Storybook from 'sentry/stories';
+
+import {ProjectList} from './projectList';
 
 const PROJECT_SLUGS = ['sentry', 'javascript', 'snuba', 'seer'];
 
@@ -14,9 +15,7 @@ export default Storybook.story('ProjectList', story => {
       </p>
       <p>The default is 2.</p>
       <Storybook.PropMatrix
-        propMatrix={{
-          maxVisibleProjects: [1, 2, 3, 4],
-        }}
+        propMatrix={{maxVisibleProjects: [1, 2, 3, 4]}}
         render={props => <ProjectList {...props} projectSlugs={PROJECT_SLUGS} />}
         selectedProps={['maxVisibleProjects']}
       />

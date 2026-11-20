@@ -4,20 +4,15 @@ import {UserFixture} from 'sentry-fixture/user';
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useIsSentryEmployee} from 'sentry/utils/useIsSentryEmployee';
+
+import {useIsSentryEmployee} from './useIsSentryEmployee';
 
 describe('useIsSentryEmployee', () => {
   it('should return true if the user is a Sentry employee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@sentry.io',
-              is_verified: true,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@sentry.io', is_verified: true, id: '1'}],
         }),
       })
     );
@@ -32,13 +27,7 @@ describe('useIsSentryEmployee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@not-sentry.com',
-              is_verified: true,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@not-sentry.com', is_verified: true, id: '1'}],
         }),
       })
     );
@@ -52,13 +41,7 @@ describe('useIsSentryEmployee', () => {
     ConfigStore.loadInitialData(
       ConfigFixture({
         user: UserFixture({
-          emails: [
-            {
-              email: 'jenn@sentry.io',
-              is_verified: false,
-              id: '1',
-            },
-          ],
+          emails: [{email: 'jenn@sentry.io', is_verified: false, id: '1'}],
         }),
       })
     );

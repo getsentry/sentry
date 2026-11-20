@@ -1,15 +1,24 @@
-import {isUnlinkableFilename} from 'sentry/components/events/interfaces/frame/utils';
+import {useQuery} from '@tanstack/react-query';
+
 import type {Event, Frame} from 'sentry/types/event';
 import type {StacktraceLinkResult} from 'sentry/types/integrations';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import type {UseApiQueryOptions} from 'sentry/utils/queryClient';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {isUnlinkableFilename} from './utils';
 
 interface UseStacktraceLinkProps {
   event: Partial<Pick<Event, 'platform' | 'release' | 'sdk' | 'groupID'>>;
   frame: Partial<
-    Pick<Frame, 'absPath' | 'filename' | 'function' | 'module' | 'package' | 'lineNo'>
+    Pick<
+      Frame,
+      | 'absPath'
+      | 'fileRevision'
+      | 'filename'
+      | 'function'
+      | 'module'
+      | 'package'
+      | 'lineNo'
+    >
   >;
   orgSlug: string;
   projectSlug: string | undefined;
@@ -21,6 +30,7 @@ type StacktraceLinkQuery = {
   platform: string;
   absPath?: string;
   commitId?: string;
+  fileRevision?: string;
   groupId?: string;
   module?: string;
   package?: string;
@@ -39,38 +49,36 @@ export function buildStacktraceLinkQuery(
     commitId: event.release?.lastCommit?.id,
     ...(event.sdk?.name && {sdkName: event.sdk.name}),
     ...(frame.absPath && {absPath: frame.absPath}),
+    ...(frame.fileRevision && {fileRevision: frame.fileRevision}),
     ...(frame.module && {module: frame.module}),
     ...(frame.package && {package: frame.package}),
   };
   return query;
 }
 
-const stacktraceLinkQueryKey = (
+const stacktraceLinkOptions = (
   orgSlug: string,
   projectSlug: string | undefined,
   query: StacktraceLinkQuery
-): ApiQueryKey => [
-  getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/', {
-    path: {
-      organizationIdOrSlug: orgSlug,
-      projectIdOrSlug: projectSlug!,
-    },
-  }),
-  {query},
-];
+) =>
+  apiOptions.as<StacktraceLinkResult>()(
+    '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/',
+    {
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!},
+      query,
+      staleTime: Infinity,
+    }
+  );
 
 export function useStacktraceLink(
   {event, frame, orgSlug, projectSlug}: UseStacktraceLinkProps,
-  options: Partial<UseApiQueryOptions<StacktraceLinkResult>> = {}
+  options: {enabled?: boolean} = {}
 ) {
   const query = buildStacktraceLinkQuery(event, frame);
-  return useApiQuery<StacktraceLinkResult>(
-    stacktraceLinkQueryKey(orgSlug, projectSlug, query),
-    {
-      staleTime: Infinity,
-      retry: false,
-      ...options,
-      enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
-    }
-  );
+  return useQuery({
+    ...stacktraceLinkOptions(orgSlug, projectSlug, query),
+    retry: false,
+    ...options,
+    enabled: (options.enabled ?? true) && !isUnlinkableFilename(frame.filename ?? ''),
+  });
 }

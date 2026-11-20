@@ -5,7 +5,8 @@ import {ImageFixture} from 'sentry-fixture/image';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {DebugImageDetails} from 'sentry/components/events/interfaces/debugMeta/debugImageDetails';
 import {ImageStatus} from 'sentry/types/debugImage';
 

@@ -24,15 +24,11 @@ import {Status} from './candidate/status';
 import {Candidate} from './candidate';
 import {INTERNAL_SOURCE} from './utils';
 
-const filterOptionCategories = {
-  status: t('Status'),
-  source: t('Source'),
-};
+const filterOptionCategories = {status: t('Status'), source: t('Source')};
 
 type ImageCandidates = NonNullable<Image['candidates']>;
 
 type Props = {
-  baseUrl: string;
   candidates: ImageCandidates;
   hasReprocessWarning: boolean;
   isLoading: boolean;
@@ -85,10 +81,7 @@ export class Candidates extends Component<Props, State> {
         filterSelections
       );
 
-      this.setState({
-        filteredCandidatesBySearch: candidates,
-        filteredCandidatesByFilter,
-      });
+      this.setState({filteredCandidatesBySearch: candidates, filteredCandidatesByFilter});
       return;
     }
 
@@ -125,10 +118,7 @@ export class Candidates extends Component<Props, State> {
       filterSelections
     );
 
-    this.setState({
-      filteredCandidatesBySearch,
-      filteredCandidatesByFilter,
-    });
+    this.setState({filteredCandidatesBySearch, filteredCandidatesByFilter});
   }
 
   doSearch = debounce(this.filterCandidatesBySearch, 300);
@@ -257,9 +247,7 @@ export class Candidates extends Component<Props, State> {
       };
     }
 
-    return {
-      emptyMessage: t('There are no debug files to be displayed'),
-    };
+    return {emptyMessage: t('There are no debug files to be displayed')};
   }
 
   handleChangeSearchTerm = (searchTerm = '') => {
@@ -293,7 +281,6 @@ export class Candidates extends Component<Props, State> {
     const {
       organization,
       projSlug,
-      baseUrl,
       onDelete,
       isLoading,
       candidates,
@@ -386,7 +373,6 @@ export class Candidates extends Component<Props, State> {
                 key={index}
                 candidate={candidate}
                 organization={organization}
-                baseUrl={baseUrl}
                 projSlug={projSlug}
                 eventDateReceived={eventDateReceived}
                 hasReprocessWarning={hasReprocessWarning}

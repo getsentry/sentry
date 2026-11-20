@@ -4,9 +4,10 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 import {makeCanvasMock, makeContextMock} from 'sentry-test/profiling/utils';
 
 import {makeLightFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {UIFramesRendererWebGL} from 'sentry/utils/profiling/renderers/uiFramesRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
+
+import {UIFramesRendererWebGL} from './uiFramesRendererWebGL';
 
 const theme = makeLightFlamegraphTheme(ThemeFixture());
 
@@ -19,31 +20,16 @@ describe('UIFramesRenderer', () => {
       frozen: {
         unit: 'nanoseconds',
         values: [
-          {
-            elapsed: 1,
-            value: 1,
-          },
-          {
-            elapsed: 3,
-            value: 1,
-          },
-          {
-            elapsed: 5.5,
-            value: 1,
-          },
+          {elapsed: 1, value: 1},
+          {elapsed: 3, value: 1},
+          {elapsed: 5.5, value: 1},
         ],
       },
       slow: {
         unit: 'nanoseconds',
         values: [
-          {
-            elapsed: 3,
-            value: 1,
-          },
-          {
-            elapsed: 5,
-            value: 1,
-          },
+          {elapsed: 3, value: 1},
+          {elapsed: 5, value: 1},
         ],
       },
     },

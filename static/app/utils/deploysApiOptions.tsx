@@ -1,5 +1,6 @@
 import type {Deploy} from 'sentry/types/release';
-import {apiOptions} from 'sentry/utils/api/apiOptions';
+
+import {apiOptions} from './api/apiOptions';
 
 export function deploysApiOptions({
   orgSlug,
@@ -13,10 +14,7 @@ export function deploysApiOptions({
   return apiOptions.as<Deploy[]>()(
     '/organizations/$organizationIdOrSlug/releases/$version/deploys/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        version: releaseVersion,
-      },
+      path: {organizationIdOrSlug: orgSlug, version: releaseVersion},
       query,
       staleTime: Infinity,
     }

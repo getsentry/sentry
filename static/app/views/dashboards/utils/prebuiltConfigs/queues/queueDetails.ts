@@ -4,10 +4,11 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {QUEUE_CHARTS} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/queueCharts';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/queues/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {QUEUE_CHARTS} from './queueCharts';
+import {DETAILS_DASHBOARD_TITLE} from './settings';
 
 const SPAN_OP_FILTER = `${SpanFields.SPAN_OP}:[queue.process,queue.publish]`;
 
@@ -156,13 +157,7 @@ const PRODUCER_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 7,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 7, w: 6, h: 3, minH: 3},
 };
 
 const CONSUMER_TABLE: PrebuiltWidget = {
@@ -202,13 +197,7 @@ const CONSUMER_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 4,
-    w: 6,
-    h: 3,
-    minH: 3,
-  },
+  layout: {x: 0, y: 4, w: 6, h: 3, minH: 3},
 };
 
 export const QUEUE_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {

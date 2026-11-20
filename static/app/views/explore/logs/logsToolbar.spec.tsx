@@ -11,15 +11,16 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
-import {LOGS_AGGREGATE_FIELD_KEY} from 'sentry/views/explore/logs/logsQueryParams';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {LogsToolbar} from 'sentry/views/explore/logs/logsToolbar';
 import {
   useQueryParamsGroupBys,
   useQueryParamsMode,
 } from 'sentry/views/explore/queryParams/context';
 import {Mode} from 'sentry/views/explore/queryParams/mode';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+
+import {LOGS_AGGREGATE_FIELD_KEY} from './logsQueryParams';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
+import {LogsToolbar} from './logsToolbar';
 
 function Wrapper({children}: {children: ReactNode}) {
   return (
@@ -39,11 +40,7 @@ function makeValidationBody(fields: EventValidationData['field']): EventValidati
     field: fields,
     orderby: [],
     projects: [],
-    query: {
-      error: null,
-      fields: [],
-      valid: true,
-    },
+    query: {error: null, fields: [], valid: true},
     valid: fields.every(field => field.valid),
   };
 }
@@ -226,7 +223,7 @@ describe('LogsToolbar', () => {
       await userEvent.click(screen.getByRole('button', {name: 'bar'}));
       const listbox = await screen.findByRole('listbox');
       const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
-      const searchInput = within(menu).getByRole('textbox');
+      const searchInput = within(menu).getByRole('searchbox');
       await userEvent.type(searchInput, 'searched');
       await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
 
@@ -319,9 +316,7 @@ describe('LogsToolbar', () => {
               query: {
                 aggregateField: [
                   JSON.stringify({groupBy: ''}),
-                  JSON.stringify({
-                    yAxes: ['count_if(`severity:error`,message)'],
-                  }),
+                  JSON.stringify({yAxes: ['count_if(`severity:error`,message)']}),
                 ],
               },
             },
@@ -405,10 +400,7 @@ describe('LogsToolbar', () => {
     });
 
     it('disables an attribute already selected in another group by', async () => {
-      render(<LogsToolbar />, {
-        organization,
-        additionalWrapper: Wrapper,
-      });
+      render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 
       const firstColumn = screen.getAllByTestId('editor-column')[0]!;
       await userEvent.click(within(firstColumn).getByRole('button', {name: '—'}));
@@ -462,12 +454,7 @@ describe('LogsToolbar', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/validate/`,
         body: makeValidationBody([
-          {
-            attrType: 'number',
-            error: null,
-            name: 'custom.measurement',
-            valid: true,
-          },
+          {attrType: 'number', error: null, name: 'custom.measurement', valid: true},
         ]),
       });
 
@@ -561,12 +548,7 @@ describe('LogsToolbar', () => {
           (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
         ],
         body: makeValidationBody([
-          {
-            attrType: 'string',
-            error: null,
-            name: 'valid.first',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'valid.first', valid: true},
           {
             attrType: null,
             error: 'Invalid attribute',
@@ -627,12 +609,7 @@ describe('LogsToolbar', () => {
             name: 'invalid.attribute',
             valid: false,
           },
-          {
-            attrType: 'string',
-            error: null,
-            name: 'severity',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'severity', valid: true},
         ]),
       });
 
@@ -711,7 +688,7 @@ describe('LogsToolbar', () => {
 
     const listbox = await screen.findByRole('listbox');
     const menu = listbox.closest<HTMLElement>('[data-overlay]')!;
-    const searchInput = within(menu).getByRole('textbox');
+    const searchInput = within(menu).getByRole('searchbox');
     await userEvent.type(searchInput, 'searched');
 
     await waitFor(() => expect(searchAttributesMock).toHaveBeenCalled());
@@ -719,5 +696,37 @@ describe('LogsToolbar', () => {
     expect(
       await screen.findByRole('option', {name: 'custom.searched_tag'})
     ).toBeInTheDocument();
+  });
+
+  it('hides query speed without the low priority flag', async () => {
+    render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
+
+    expect(await screen.findByTestId('section-group-by')).toBeInTheDocument();
+    expect(screen.queryByTestId('section-query-speed')).not.toBeInTheDocument();
+  });
+
+  it('changes query speed under the group by section', async () => {
+    const {router} = render(<LogsToolbar />, {
+      organization: {...organization, features: ['low-priority-queries']},
+      additionalWrapper: Wrapper,
+    });
+
+    const groupBySection = await screen.findByTestId('section-group-by');
+    const speedSection = screen.getByTestId('section-query-speed');
+    expect(
+      groupBySection.compareDocumentPosition(speedSection) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    expect(within(speedSection).getByText('Query Speed')).toBeInTheDocument();
+
+    await userEvent.click(
+      within(speedSection).getByRole('button', {name: 'Balanced Querying'})
+    );
+    await userEvent.click(screen.getByRole('option', {name: 'Fast Querying'}));
+
+    expect(
+      within(speedSection).getByRole('button', {name: 'Fast Querying'})
+    ).toBeInTheDocument();
+    expect(router.location.query.queryPriority).toBe('faster');
   });
 });

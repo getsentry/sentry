@@ -4,7 +4,7 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useConfigureReplayMenuItem} from 'sentry/components/replays/header/configureReplayMenuItem';
+import {useConfigureReplayMenuItem} from './configureReplayMenuItem';
 
 function renderMenuItem({sdkName, isMobile}: {isMobile: boolean; sdkName: string}) {
   const {result} = renderHookWithProviders(useConfigureReplayMenuItem, {
@@ -30,10 +30,7 @@ describe('useConfigureReplayMenuItem', () => {
   });
 
   it('returns the configuration documentation submenu', () => {
-    const item = renderMenuItem({
-      sdkName: 'sentry.javascript.react',
-      isMobile: false,
-    });
+    const item = renderMenuItem({sdkName: 'sentry.javascript.react', isMobile: false});
 
     expect(item).toMatchObject({
       key: 'configure-replay',

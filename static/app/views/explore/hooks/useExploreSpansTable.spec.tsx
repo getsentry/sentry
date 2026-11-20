@@ -4,13 +4,14 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useExploreSpansTable} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   useQueryParamsFields,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {useExploreSpansTable} from './useExploreSpansTable';
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -19,11 +20,7 @@ function Wrapper({children}: {children: ReactNode}) {
 function useTestExploreSpansTable(query: string) {
   const fields = useQueryParamsFields();
   const setFields = useSetQueryParamsFields();
-  const spansTable = useExploreSpansTable({
-    query,
-    enabled: true,
-    limit: 10,
-  });
+  const spansTable = useExploreSpansTable({query, enabled: true, limit: 10});
 
   return {fields, setFields, spansTable};
 }
@@ -34,20 +31,10 @@ describe('useExploreSpansTable', () => {
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -65,12 +52,7 @@ describe('useExploreSpansTable', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
+      () => useExploreSpansTable({query: 'test value', enabled: true, limit: 10}),
       {additionalWrapper: Wrapper}
     );
 
@@ -90,11 +72,7 @@ describe('useExploreSpansTable', () => {
     });
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          query: 'test value',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'test value'})})
     );
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
@@ -115,10 +93,7 @@ describe('useExploreSpansTable', () => {
     const originalPageLinks = 'original page links';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: initialData,
-        meta: {dataScanned: 'full', fields: {id: 'string'}},
-      },
+      body: {data: initialData, meta: {dataScanned: 'full', fields: {id: 'string'}}},
       headers: {Link: originalPageLinks},
       method: 'GET',
       match: [
@@ -131,10 +106,7 @@ describe('useExploreSpansTable', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: initialData.map(row => ({...row, 'span.custom': 'value'})),
-        meta: {
-          dataScanned: 'full',
-          fields: {id: 'string', 'span.custom': 'string'},
-        },
+        meta: {dataScanned: 'full', fields: {id: 'string', 'span.custom': 'string'}},
       },
       headers: {Link: 'filtered page links'},
       method: 'GET',
@@ -185,10 +157,7 @@ describe('useExploreSpansTable', () => {
     const refreshedData = [{id: 'cccccccccccccccc', 'span.custom': 'fresh value'}];
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: initialData,
-        meta: {dataScanned: 'full', fields: {id: 'string'}},
-      },
+      body: {data: initialData, meta: {dataScanned: 'full', fields: {id: 'string'}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -203,10 +172,7 @@ describe('useExploreSpansTable', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: [{...initialData[0], 'span.custom': 'value'}],
-        meta: {
-          dataScanned: 'full',
-          fields: {id: 'string', 'span.custom': 'string'},
-        },
+        meta: {dataScanned: 'full', fields: {id: 'string', 'span.custom': 'string'}},
       },
       method: 'GET',
       match: [
@@ -219,10 +185,7 @@ describe('useExploreSpansTable', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: [{id: 'bbbbbbbbbbbbbbbb', 'span.custom': 'other value'}],
-        meta: {
-          dataScanned: 'full',
-          fields: {id: 'string', 'span.custom': 'string'},
-        },
+        meta: {dataScanned: 'full', fields: {id: 'string', 'span.custom': 'string'}},
       },
       method: 'GET',
       match: [MockApiClient.matchQuery({query: 'span.op:db'})],
@@ -231,10 +194,7 @@ describe('useExploreSpansTable', () => {
       url: '/organizations/org-slug/events/',
       body: {
         data: refreshedData,
-        meta: {
-          dataScanned: 'full',
-          fields: {id: 'string', 'span.custom': 'string'},
-        },
+        meta: {dataScanned: 'full', fields: {id: 'string', 'span.custom': 'string'}},
       },
       method: 'GET',
       match: [
@@ -253,9 +213,7 @@ describe('useExploreSpansTable', () => {
         additionalWrapper: Wrapper,
         initialProps: {query: 'span.op:http'},
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/explore/traces/',
-          },
+          location: {pathname: '/organizations/org-slug/explore/traces/'},
         },
       }
     );
@@ -299,20 +257,13 @@ describe('useExploreSpansTable', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreSpansTable({
-          query: 'test value',
-          enabled: true,
-          limit: 10,
-        }),
+      () => useExploreSpansTable({query: 'test value', enabled: true, limit: 10}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+            query: {extrapolate: '0'},
           },
         },
       }

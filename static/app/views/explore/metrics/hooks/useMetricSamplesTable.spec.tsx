@@ -4,40 +4,26 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {MockMetricQueryParamsContext} from 'sentry/views/explore/metrics/hooks/testUtils';
-import {useMetricSamplesTable} from 'sentry/views/explore/metrics/hooks/useMetricSamplesTable';
+
+import {MockMetricQueryParamsContext} from './testUtils';
+import {useMetricSamplesTable} from './useMetricSamplesTable';
 
 describe('useMetricSamplesTable', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
         projects: [1, 2],
-        datetime: {
-          start: null,
-          end: null,
-          period: '24h',
-          utc: null,
-        },
+        datetime: {start: null, end: null, period: '24h', utc: null},
         environments: ['prod'],
       })
     );
     jest.clearAllMocks();
   });
 
-  afterEach(() => {
-    PageFiltersStore.reset();
-  });
-
   it('triggers the high accuracy request when there is no data and a partial scan', async () => {
     const mockNormalRequestUrl = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          dataScanned: 'partial',
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
       method: 'GET',
       match: [
         function (_url: string, options: Record<string, any>) {
@@ -57,10 +43,7 @@ describe('useMetricSamplesTable', () => {
     renderHookWithProviders(useMetricSamplesTable, {
       additionalWrapper: MockMetricQueryParamsContext,
       initialProps: {
-        traceMetric: {
-          name: 'test metric',
-          type: 'counter',
-        },
+        traceMetric: {name: 'test metric', type: 'counter'},
         fields: [],
         limit: 100,
         ingestionDelaySeconds: 0,
@@ -71,9 +54,7 @@ describe('useMetricSamplesTable', () => {
     expect(mockNormalRequestUrl).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.NORMAL,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.NORMAL}),
       })
     );
 
@@ -83,9 +64,7 @@ describe('useMetricSamplesTable', () => {
     expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: SAMPLING_MODE.HIGH_ACCURACY,
-        }),
+        query: expect.objectContaining({sampling: SAMPLING_MODE.HIGH_ACCURACY}),
       })
     );
   });
@@ -93,22 +72,14 @@ describe('useMetricSamplesTable', () => {
   it('simple usage', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
       method: 'GET',
     });
 
     renderHookWithProviders(useMetricSamplesTable, {
       additionalWrapper: MockMetricQueryParamsContext,
       initialProps: {
-        traceMetric: {
-          name: 'test.metric',
-          type: 'counter',
-        },
+        traceMetric: {name: 'test.metric', type: 'counter'},
         fields: ['trace', 'timestamp'],
         limit: 50,
         ingestionDelaySeconds: 0,
@@ -124,9 +95,7 @@ describe('useMetricSamplesTable', () => {
       expect.objectContaining({
         query: expect.objectContaining({
           query: 'metric.name:test.metric metric.type:counter',
-          caseInsensitive: undefined,
           dataset: 'tracemetrics',
-          disableAggregateExtrapolation: undefined,
           environment: ['prod'],
           field: [
             'id',
@@ -152,22 +121,14 @@ describe('useMetricSamplesTable', () => {
   it('uses relative delayed periods for ingestion delay windows', async () => {
     const mockRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
       method: 'GET',
     });
 
     renderHookWithProviders(useMetricSamplesTable, {
       additionalWrapper: MockMetricQueryParamsContext,
       initialProps: {
-        traceMetric: {
-          name: 'test.metric',
-          type: 'counter',
-        },
+        traceMetric: {name: 'test.metric', type: 'counter'},
         fields: ['trace'],
         limit: 50,
         ingestionDelaySeconds: 120,
@@ -181,13 +142,7 @@ describe('useMetricSamplesTable', () => {
     expect(mockRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriodStart: '24h',
-          statsPeriodEnd: '120s',
-          statsPeriod: undefined,
-          start: undefined,
-          end: undefined,
-        }),
+        query: expect.objectContaining({statsPeriodStart: '24h', statsPeriodEnd: '120s'}),
       })
     );
   });

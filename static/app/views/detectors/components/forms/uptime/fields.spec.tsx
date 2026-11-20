@@ -1,17 +1,18 @@
 import {UptimeDetectorFixture} from 'sentry-fixture/detectors';
 
 import {
-  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
-  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
-  uptimeFormDataToEndpointPayload,
-  uptimeSavedDetectorToFormData,
-} from 'sentry/views/detectors/components/forms/uptime/fields';
-import {
   UptimeComparisonType,
   UptimeMonitorMode,
   UptimeOpType,
   type UptimeAssertion,
 } from 'sentry/views/detectors/components/uptime/types';
+
+import {
+  UPTIME_DEFAULT_DOWNTIME_THRESHOLD,
+  UPTIME_DEFAULT_RECOVERY_THRESHOLD,
+  uptimeFormDataToEndpointPayload,
+  uptimeSavedDetectorToFormData,
+} from './fields';
 
 describe('uptimeFormDataToEndpointPayload', () => {
   it('converts form data to endpoint payload', () => {
@@ -198,11 +199,7 @@ describe('uptimeFormDataToEndpointPayload', () => {
       headers: [],
       body: '',
       assertion: {
-        root: {
-          op: UptimeOpType.AND,
-          id: 'empty-root',
-          children: [],
-        },
+        root: {op: UptimeOpType.AND, id: 'empty-root', children: []},
       } satisfies UptimeAssertion,
       recoveryThreshold: 1,
       downtimeThreshold: 3,
@@ -261,10 +258,7 @@ describe('uptimeSavedDetectorToFormData', () => {
       dataSources: [
         {
           ...UptimeDetectorFixture().dataSources[0],
-          queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
-            assertion,
-          },
+          queryObj: {...UptimeDetectorFixture().dataSources[0].queryObj, assertion},
         },
       ],
     });
@@ -293,18 +287,12 @@ describe('uptimeSavedDetectorToFormData', () => {
     const formData = uptimeSavedDetectorToFormData(detector);
 
     expect(formData.assertion).toMatchObject({
-      root: {
-        op: UptimeOpType.AND,
-        children: [],
-        id: expect.any(String),
-      },
+      root: {op: UptimeOpType.AND, children: [], id: expect.any(String)},
     });
   });
 
   it('uses default values when data source is missing', () => {
-    const detector = UptimeDetectorFixture({
-      dataSources: [] as any,
-    });
+    const detector = UptimeDetectorFixture({dataSources: [] as any});
 
     const formData = uptimeSavedDetectorToFormData(detector);
 
@@ -318,20 +306,12 @@ describe('uptimeSavedDetectorToFormData', () => {
       body: '',
       // Uses empty assertion structure (not null) for consistency with the main case.
       // null would cause a crash in getValue when accessing value.root.children.length
-      assertion: {
-        root: {
-          op: UptimeOpType.AND,
-          children: [],
-          id: expect.any(String),
-        },
-      },
+      assertion: {root: {op: UptimeOpType.AND, children: [], id: expect.any(String)}},
     });
   });
 
   it('uses default thresholds when config is missing', () => {
-    const detector = UptimeDetectorFixture({
-      config: {} as any,
-    });
+    const detector = UptimeDetectorFixture({config: {} as any});
 
     const formData = uptimeSavedDetectorToFormData(detector);
 
@@ -344,10 +324,7 @@ describe('uptimeSavedDetectorToFormData', () => {
       dataSources: [
         {
           ...UptimeDetectorFixture().dataSources[0],
-          queryObj: {
-            ...UptimeDetectorFixture().dataSources[0].queryObj,
-            body: null,
-          },
+          queryObj: {...UptimeDetectorFixture().dataSources[0].queryObj, body: null},
         },
       ],
     });

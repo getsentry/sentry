@@ -3,25 +3,20 @@ import {EventFixture} from 'sentry-fixture/event';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 
+import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
 import {
   EMPTY_HIGHLIGHT_DEFAULT,
   getHighlightContextData,
   getHighlightTagData,
   getRuntimeLabelAndTooltip,
-} from 'sentry/components/events/highlights/util';
-
-import {TEST_EVENT_CONTEXTS, TEST_EVENT_TAGS} from './testUtils';
+} from './util';
 
 describe('getHighlightContextData', () => {
   it('returns only highlight context data', () => {
     const {organization, project} = initializeOrg();
-    const event = EventFixture({
-      contexts: TEST_EVENT_CONTEXTS,
-    });
+    const event = EventFixture({contexts: TEST_EVENT_CONTEXTS});
     const missingContextKey = 'color';
-    const highlightContext = {
-      keyboard: ['brand', 'switches', missingContextKey],
-    };
+    const highlightContext = {keyboard: ['brand', 'switches', missingContextKey]};
     const highlightCtxData = getHighlightContextData({
       event,
       highlightContext,
@@ -49,9 +44,7 @@ describe('getHighlightContextData', () => {
     ['title', {'Client Operating System': ['version']}],
   ])('matches highlights on context %s', (_type, highlightContext) => {
     const {organization, project} = initializeOrg();
-    const event = EventFixture({
-      contexts: TEST_EVENT_CONTEXTS,
-    });
+    const event = EventFixture({contexts: TEST_EVENT_CONTEXTS});
     const highlightCtxData = getHighlightContextData({
       event,
       highlightContext,
@@ -66,9 +59,7 @@ describe('getHighlightContextData', () => {
 
 describe('getHighlightTagData', () => {
   it('returns only highlight tag data', () => {
-    const event = EventFixture({
-      tags: TEST_EVENT_TAGS,
-    });
+    const event = EventFixture({tags: TEST_EVENT_TAGS});
     const missingTag = 'zamboni';
     const highlightTags = ['release', 'url', 'environment', missingTag];
     const highlightTagsSet = new Set(highlightTags);
@@ -88,19 +79,13 @@ describe('getHighlightTagData', () => {
 
 describe('getRuntimeLabel', () => {
   it('returns null for non-JavaScript SDK events', () => {
-    const event = EventFixture({
-      type: 'error',
-      sdk: {name: 'python'},
-    });
+    const event = EventFixture({type: 'error', sdk: {name: 'python'}});
 
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
 
   it('returns null for javascript issues without context information', () => {
-    const event = EventFixture({
-      type: 'error',
-      sdk: {name: 'javascript'},
-    });
+    const event = EventFixture({type: 'error', sdk: {name: 'javascript'}});
 
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();
   });
@@ -109,9 +94,7 @@ describe('getRuntimeLabel', () => {
     const frontendEvent = EventFixture({
       type: 'error',
       sdk: {name: 'javascript'},
-      contexts: {
-        browser: {name: 'Chrome'},
-      },
+      contexts: {browser: {name: 'Chrome'}},
     });
 
     expect(getRuntimeLabelAndTooltip(frontendEvent)?.label).toBe('Frontend');
@@ -158,9 +141,7 @@ describe('getRuntimeLabel', () => {
     const event = EventFixture({
       type: 'transaction',
       sdk: {name: 'javascript'},
-      contexts: {
-        browser: {name: 'Chrome'},
-      },
+      contexts: {browser: {name: 'Chrome'}},
     });
 
     expect(getRuntimeLabelAndTooltip(event)).toBeNull();

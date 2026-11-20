@@ -7,7 +7,7 @@ from sentry.signals import project_created
 
 
 @project_created.connect(weak=False, dispatch_uid="enroll_project_in_data_forwarding")
-def enroll_project_in_data_forwarding(project: Project, **kwargs):
+def enroll_project_in_data_forwarding(project: Project, **kwargs: object) -> None:
     data_forwarders = DataForwarder.objects.filter(
         organization_id=project.organization_id, is_enabled=True, enroll_new_projects=True
     )

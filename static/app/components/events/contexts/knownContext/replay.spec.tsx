@@ -3,7 +3,8 @@ import {EventFixture} from 'sentry-fixture/event';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {getReplayContextData} from 'sentry/components/events/contexts/knownContext/replay';
+
+import {getReplayContextData} from './replay';
 
 const REPLAY_ID = '61d2d7c5acf448ffa8e2f8f973e2cd36';
 const MOCK_REPLAY_CONTEXT = {
@@ -14,37 +15,18 @@ const MOCK_REPLAY_CONTEXT = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  extra_data: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {extra_data: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('ReplayContext', () => {
   it('returns values and according to the parameters', () => {
     expect(getReplayContextData({data: MOCK_REPLAY_CONTEXT})).toEqual([
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123, meta: undefined},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {replay: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {replay: MOCK_REDACTION}}});
 
     render(
       <ContextCard

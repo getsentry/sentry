@@ -10,9 +10,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
-import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 
 import {EventDetailsHeader} from './eventDetailsHeader';
+import {GroupDataContextProvider} from './groupDataContext';
 
 describe('EventDetailsHeader', () => {
   const organization = OrganizationFixture();
@@ -23,10 +23,7 @@ describe('EventDetailsHeader', () => {
     // first seen 19 days ago
     firstSeen: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  const event = EventFixture({
-    id: 'event-id',
-    occurrence: {evidenceData: {}},
-  });
+  const event = EventFixture({id: 'event-id', occurrence: {evidenceData: {}}});
 
   const defaultProps = {group, event, project};
 
@@ -72,11 +69,11 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={group} project={group.project}>
         <EventDetailsHeader {...defaultProps} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
 
     expect(screen.getByRole('button', {name: 'All Envs'})).toBeInTheDocument();
     // Date selection is based on first seen unless selected by the user
@@ -85,9 +82,7 @@ describe('EventDetailsHeader', () => {
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {
-        name: 'Toggle graph series - Events',
-      })
+      screen.getByRole('button', {name: 'Toggle graph series - Events'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
@@ -104,9 +99,7 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={oldGroup} project={oldGroup.project}>
         <EventDetailsHeader {...defaultProps} group={oldGroup} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
@@ -115,13 +108,7 @@ describe('EventDetailsHeader', () => {
     const [tagKey, tagValue] = ['user.email', 's@s.io'];
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
+      body: [{key: tagKey, name: tagValue, value: tagValue}],
       method: 'GET',
     });
 
@@ -157,7 +144,33 @@ describe('EventDetailsHeader', () => {
         query: `${tagKey}:${tagValue}`,
       });
     });
+    expect(router.historyAction).toBe('REPLACE');
   }, 20_000);
+
+  it('keeps an empty query param when the search is cleared', async () => {
+    const {router} = render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <EventDetailsHeader {...defaultProps} />
+      </GroupDataContextProvider>,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/${group.id}/events/`,
+            query: {cursor: '2:0:0', query: 'release:1.0'},
+          },
+        },
+      }
+    );
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Clear search query'})
+    );
+
+    await waitFor(() => {
+      expect(router.location.query).toEqual({query: ''});
+    });
+  });
 
   it('resets pagination when changing the time range while preserving the other filters', async () => {
     const {router} = render(
@@ -193,6 +206,7 @@ describe('EventDetailsHeader', () => {
         query: 'release:1.0',
       });
     });
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('does not render timeline summary if disabled', async () => {
@@ -200,11 +214,11 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={group} project={group.project}>
         <EventDetailsHeader {...defaultProps} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
-    expect(await screen.findByTestId('event-graph-loading')).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
+    );
     expect(screen.queryByText('Duration')).not.toBeInTheDocument();
   });
 
@@ -233,9 +247,7 @@ describe('EventDetailsHeader', () => {
           })}
         />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     expect(await screen.findByText('Status Code')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();

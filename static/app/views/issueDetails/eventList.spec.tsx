@@ -13,9 +13,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {RequestOptions} from 'sentry/api';
-import {useEventColumns} from 'sentry/views/issueDetails/allEventsTable';
 import {MOCK_EVENTS_TABLE_DATA} from 'sentry/views/performance/transactionSummary/transactionEvents/testUtils';
 
+import {useEventColumns} from './allEventsTable';
 import {EventList} from './eventList';
 
 describe('EventList', () => {
@@ -24,7 +24,7 @@ describe('EventList', () => {
     environments: ['production', 'staging', 'development'],
   });
   const group = GroupFixture();
-  const persistantQuery = `issue:${group.shortId}`;
+  const persistantQuery = `issue.id:${group.id}`;
   const totalCount = 100;
 
   const initialRouterConfig = {
@@ -56,9 +56,7 @@ describe('EventList', () => {
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
       },
-      body: {
-        data: MOCK_EVENTS_TABLE_DATA,
-      },
+      body: {data: MOCK_EVENTS_TABLE_DATA},
       match: [
         (_url, options) => {
           return options.query?.field?.includes('user.display');
@@ -72,9 +70,7 @@ describe('EventList', () => {
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=2:0:0>; rel="next"; results="true"; cursor="2:0:0",` +
           `<http://localhost/api/0/organizations/${organization.slug}/events/?cursor=1:0:0>; rel="previous"; results="false"; cursor="1:0:0"`,
       },
-      body: {
-        data: [{'count()': totalCount}],
-      },
+      body: {data: [{'count()': totalCount}]},
       match: [
         (_url, options) => {
           return options.query?.field?.includes('count()');
@@ -128,19 +124,14 @@ describe('EventList', () => {
       render(<EventList group={group} />, {
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {query},
-          },
+          location: {...initialRouterConfig.location, query: {query}},
         },
       });
 
       const expectedArgs = [
         '/organizations/org-slug/events/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            query: `${persistantQuery} (${query})`,
-          }),
+          query: expect.objectContaining({query: `${persistantQuery} (${query})`}),
         }),
       ];
 

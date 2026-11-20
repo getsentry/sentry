@@ -15,18 +15,18 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
-import {IssueTraceWaterfallOverlay} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
-import {IssuesTraceTree} from 'sentry/views/performance/traceDetails/traceModels/issuesTraceTree';
-import {useDividerResizeSync} from 'sentry/views/performance/traceDetails/useDividerResizeSync';
-import {useTraceSpaceListeners} from 'sentry/views/performance/traceDetails/useTraceSpaceListeners';
 
+import {IssuesTraceTree} from './traceModels/issuesTraceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
+import {IssueTraceWaterfallOverlay} from './issuesTraceWaterfallOverlay';
 import {Trace} from './trace';
 import type {TraceWaterfallProps} from './traceWaterfall';
 import {TraceGrid} from './traceWaterfall';
 import {TraceWaterfallState} from './traceWaterfallState';
+import {useDividerResizeSync} from './useDividerResizeSync';
 import {useTraceIssuesOnLoad} from './useTraceOnLoad';
+import {useTraceSpaceListeners} from './useTraceSpaceListeners';
 import {useTraceTimelineChangeSync} from './useTraceTimelineChangeSync';
 import {useTraceWaterfallModels} from './useTraceWaterfallModels';
 
@@ -72,10 +72,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
-    return traceDispatch({
-      type: 'set roving count',
-      items: props.tree.list.length - 1,
-    });
+    return traceDispatch({type: 'set roving count', items: props.tree.list.length - 1});
   }, [props.tree.list.length, traceDispatch]);
 
   const onRowClick = useCallback(
@@ -88,12 +85,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
           projects.find(p => p.slug === node.projectSlug)?.platform || 'other',
       });
 
-      traceDispatch({
-        type: 'set roving index',
-        node,
-        index,
-        action_source: 'click',
-      });
+      traceDispatch({type: 'set roving index', node, index, action_source: 'click'});
     },
     [organization, projects, traceDispatch]
   );
@@ -197,12 +189,7 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
       viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
 
       // setRowAsFocused(node, null, traceStateRef.current.search.resultsLookup, index);
-      traceDispatch({
-        type: 'set roving index',
-        node,
-        index,
-        action_source: 'load',
-      });
+      traceDispatch({type: 'set roving index', node, index, action_source: 'load'});
     });
   }, [
     traceDispatch,
@@ -213,16 +200,9 @@ export function IssuesTraceWaterfall(props: IssuesTraceWaterfallProps) {
     problemSpans.affectedSpanIds,
   ]);
 
-  useTraceTimelineChangeSync({
-    tree: props.tree,
-    traceScheduler,
-  });
+  useTraceTimelineChangeSync({tree: props.tree, traceScheduler});
 
-  useTraceSpaceListeners({
-    view: traceView,
-    viewManager,
-    traceScheduler,
-  });
+  useTraceSpaceListeners({view: traceView, viewManager, traceScheduler});
 
   useDividerResizeSync(traceScheduler);
 

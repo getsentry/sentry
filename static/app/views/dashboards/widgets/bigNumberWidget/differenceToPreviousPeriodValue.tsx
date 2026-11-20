@@ -8,12 +8,10 @@ import {
   getPolarityRating,
   type Polarity,
 } from 'sentry/components/percentChange';
-import {
-  DEEMPHASIS_VARIANT,
-  LOADING_PLACEHOLDER,
-} from 'sentry/views/dashboards/widgets/bigNumberWidget/settings';
 import {DEFAULT_FIELD} from 'sentry/views/dashboards/widgets/common/settings';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
+
+import {DEEMPHASIS_VARIANT, LOADING_PLACEHOLDER} from './settings';
 
 interface DifferenceToPreviousPeriodValueProps {
   previousPeriodValue: number;
@@ -41,9 +39,7 @@ export function DifferenceToPreviousPeriodValue({
   const directionMarker = getDifferenceDirectionMarker(difference);
 
   // Create a fake data row so we can pass it to field renderers. Omit the +/- sign since the direction marker will indicate it
-  const differenceAsDatum = {
-    [field ?? 'unknown']: Math.abs(difference),
-  };
+  const differenceAsDatum = {[field ?? 'unknown']: Math.abs(difference)};
 
   return (
     <Difference rating={rating}>

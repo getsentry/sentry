@@ -1000,7 +1000,7 @@ class TestAssociateNewGroupWithDetector(TestCase):
         assert associate_new_group_with_detector(group, deleted_detector_id)
 
         detector_group = DetectorGroup.objects.get(group_id=group.id)
-        assert detector_group.detector_id is None
+        assert detector_group.detector is None
         assert detector_group.group_id == group.id
 
     @patch("sentry.workflow_engine.processors.detector.metrics")
@@ -1077,7 +1077,7 @@ class TestEnsureAssociationWithDetector(TestCase):
         assert ensure_association_with_detector(group, deleted_detector_id)
 
         detector_group = DetectorGroup.objects.get(group_id=group.id)
-        assert detector_group.detector_id is None
+        assert detector_group.detector is None
         assert detector_group.group_id == group.id
 
     def test_backdates_date_added_to_group_first_seen(self) -> None:

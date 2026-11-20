@@ -12,13 +12,13 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {removePageFiltersStorage} from 'sentry/components/pageFilters/persistence';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ProjectRouteProvider} from 'sentry/views/projects/projectRouteContext';
 import {ProjectGeneralSettings} from 'sentry/views/settings/projectGeneralSettings';
 
-jest.mock('sentry/actionCreators/indicator');
 jest.mock('sentry/components/pageFilters/persistence');
 
 function getField(role: string, name: string) {
@@ -40,13 +40,13 @@ describe('projectGeneralSettings', () => {
   const mockOnChangeSlug = jest.fn();
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/settings/${organization.slug}/projects/${project.slug}/`},
     route: '/settings/:orgId/projects/:projectId/',
   };
 
   beforeEach(() => {
+    jest.spyOn(toast, 'error').mockClear();
+    jest.spyOn(toast, 'success').mockClear();
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -63,6 +63,11 @@ describe('projectGeneralSettings', () => {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/repo/`,
+      method: 'GET',
+      body: [],
+    });
     mockOnChangeSlug.mockClear();
   });
 
@@ -75,10 +80,7 @@ describe('projectGeneralSettings', () => {
     render(
       <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />,
 
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     expect(await screen.findByRole('textbox', {name: 'Slug'})).toHaveValue(
@@ -123,10 +125,7 @@ describe('projectGeneralSettings', () => {
 
     expect(putMock).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {allowedDomains: ['changed.com']},
-      })
+      expect.objectContaining({method: 'PUT', data: {allowedDomains: ['changed.com']}})
     );
   });
 
@@ -157,18 +156,13 @@ describe('projectGeneralSettings', () => {
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {enableAutoReleaseCreation: false},
-        })
+        expect.objectContaining({method: 'PUT', data: {enableAutoReleaseCreation: false}})
       )
     );
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', async () => {
-    const orgWithoutScrapeJavaScript = OrganizationFixture({
-      scrapeJavaScript: false,
-    });
+    const orgWithoutScrapeJavaScript = OrganizationFixture({scrapeJavaScript: false});
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: orgWithoutScrapeJavaScript,
@@ -194,9 +188,7 @@ describe('projectGeneralSettings', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/${project.slug}/`,
-          },
+          location: {pathname: `/${project.slug}/`},
           route: '/:projectId/',
         },
       }
@@ -234,16 +226,11 @@ describe('projectGeneralSettings', () => {
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/transfer/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            email: 'billy@sentry.io',
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {email: 'billy@sentry.io'}})
       )
     );
 
-    expect(addSuccessMessage).toHaveBeenCalled();
+    expect(toast.success).toHaveBeenCalled();
   });
 
   it('handles errors on transfer project', async () => {
@@ -268,13 +255,13 @@ describe('projectGeneralSettings', () => {
 
     await waitFor(() => expect(deleteMock).toHaveBeenCalled());
 
-    expect(addSuccessMessage).not.toHaveBeenCalled();
-    expect(addErrorMessage).toHaveBeenCalled();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalled();
 
     // Check the error message
-    const errorMessage = jest.mocked(addErrorMessage).mock.calls[0]![0];
+    const errorMessage = jest.mocked(toast.error).mock.calls[0]![0];
     if (!isValidElement(errorMessage)) {
-      throw new Error('Expected addErrorMessage to be called with a React element');
+      throw new Error('Expected toast.error to be called with a React element');
     }
     const {container} = render(errorMessage);
     expect(container).toHaveTextContent(
@@ -283,9 +270,7 @@ describe('projectGeneralSettings', () => {
   });
 
   it('displays transfer/remove message for non-admins', async () => {
-    const nonAdminOrg = OrganizationFixture({
-      access: ['org:read'],
-    });
+    const nonAdminOrg = OrganizationFixture({access: ['org:read']});
 
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
       organization: nonAdminOrg,
@@ -316,6 +301,43 @@ describe('projectGeneralSettings', () => {
     screen.queryAllByRole('textbox').forEach(textbox => expect(textbox).toBeDisabled());
 
     expect(await screen.findByTestId('project-permission-alert')).toBeInTheDocument();
+    expect(
+      screen.getByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('shows a protected token when the API omits its value', async () => {
+    render(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: undefined}}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    expect(
+      await screen.findByText('You do not have permission to view this token.')
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('textbox', {name: 'Security Token'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps an explicitly empty security token editable', async () => {
+    render(
+      <ProjectGeneralSettings
+        project={{...project, securityToken: ''}}
+        onChangeSlug={mockOnChangeSlug}
+      />,
+      {organization, initialRouterConfig}
+    );
+
+    const input = await screen.findByRole('textbox', {name: 'Security Token'});
+    expect(input).toBeEnabled();
+    expect(input).toHaveValue('');
   });
 
   it('changing project platform updates ProjectsStore', async () => {
@@ -324,20 +346,14 @@ describe('projectGeneralSettings', () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {
-        ...project,
-        platform: 'javascript',
-      },
+      body: {...project, platform: 'javascript'},
     });
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectRouteProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -354,20 +370,14 @@ describe('projectGeneralSettings', () => {
     putMock = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
-      body: {
-        ...project,
-        slug: 'new-project',
-      },
+      body: {...project, slug: 'new-project'},
     });
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>
         <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
       </ProjectRouteProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
 
     await userEvent.type(
@@ -395,10 +405,7 @@ describe('projectGeneralSettings', () => {
       putMock = MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
-        body: {
-          ...project,
-          slug: 'new-project',
-        },
+        body: {...project, slug: 'new-project'},
       });
     });
 
@@ -407,10 +414,7 @@ describe('projectGeneralSettings', () => {
         <ProjectRouteProvider projectSlug={project.slug}>
           <ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />
         </ProjectRouteProvider>,
-        {
-          organization,
-          initialRouterConfig,
-        }
+        {organization, initialRouterConfig}
       );
     }
 
@@ -459,11 +463,7 @@ describe('projectGeneralSettings', () => {
       await waitFor(() => {
         expect(putMock).toHaveBeenCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            data: {
-              resolveAge: 12,
-            },
-          })
+          expect.objectContaining({data: {resolveAge: 12}})
         );
       });
 
@@ -472,21 +472,6 @@ describe('projectGeneralSettings', () => {
   });
 
   describe('Console Platform Access Control', () => {
-    beforeEach(() => {
-      mockOnChangeSlug.mockClear();
-      MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/projects/org-slug/project-slug/environments/',
-        method: 'GET',
-        body: [],
-      });
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        method: 'GET',
-        body: [],
-      });
-    });
-
     it('shows all platform options when all console platforms enabled', async () => {
       const orgWithGamingAccess = OrganizationFixture({
         enabledConsolePlatforms: ['nintendo-switch', 'playstation', 'xbox'],
@@ -513,10 +498,7 @@ describe('projectGeneralSettings', () => {
           project={projectWithPlatform}
           onChangeSlug={mockOnChangeSlug}
         />,
-        {
-          organization: orgWithGamingAccess,
-          initialRouterConfig: routerConfig,
-        }
+        {organization: orgWithGamingAccess, initialRouterConfig: routerConfig}
       );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -552,10 +534,7 @@ describe('projectGeneralSettings', () => {
 
       render(
         <ProjectGeneralSettings project={baseProject} onChangeSlug={mockOnChangeSlug} />,
-        {
-          organization: orgWithoutGamingFeature,
-          initialRouterConfig: routerConfig,
-        }
+        {organization: orgWithoutGamingFeature, initialRouterConfig: routerConfig}
       );
 
       const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -574,15 +553,8 @@ describe('projectGeneralSettings', () => {
   });
 
   it('renders connected repositories panel', async () => {
-    const orgWithFlag = OrganizationFixture({features: ['code-mappings-refactor']});
-    MockApiClient.addMockResponse({
-      url: `/projects/${orgWithFlag.slug}/${project.slug}/repo/`,
-      method: 'GET',
-      body: [],
-    });
-
     render(<ProjectGeneralSettings project={project} onChangeSlug={mockOnChangeSlug} />, {
-      organization: orgWithFlag,
+      organization,
       initialRouterConfig,
     });
 

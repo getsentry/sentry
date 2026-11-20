@@ -4,17 +4,14 @@ import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {useAttributeBreakdowns} from 'sentry/views/explore/hooks/useAttributeBreakdowns';
+
+import {useAttributeBreakdowns} from './useAttributeBreakdowns';
 
 describe('useAttributeBreakdowns', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('sends the case setting when ignoring case', async () => {

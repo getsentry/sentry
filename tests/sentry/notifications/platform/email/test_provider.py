@@ -2,6 +2,7 @@ from unittest import mock
 
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
+from django.test import override_settings
 
 from sentry import options
 from sentry.mail.notifications import build_subject_prefix
@@ -32,6 +33,7 @@ from sentry.notifications.platform.types import (
     ParagraphSection,
     PlainTextBlock,
 )
+from sentry.organizations.services.organization.serial import serialize_organization_summary
 from sentry.testutils.cases import TestCase
 from sentry.testutils.notifications.platform import MockNotification, MockNotificationTemplate
 from sentry.types.activity import ActivityType
@@ -202,7 +204,7 @@ class EmailRendererTest(TestCase):
         assert email.subject == "[Project] Injected: Test subject"
 
     def test_subject_prefix_uses_project_option_with_global_fallback(self) -> None:
-        with self.options({"mail.subject-prefix": "[Global]"}):
+        with override_settings(EMAIL_SUBJECT_PREFIX="[Global]"):
             assert build_subject_prefix(self.project) == "[Global]"
 
             self.project.update_option("mail:subject_prefix", "[Project]")
@@ -227,7 +229,12 @@ class EmailNotificationProviderTest(TestCase):
         assert self.provider.target_class == GenericNotificationTarget
         assert self.provider.target_resource_types == [NotificationTargetResourceType.EMAIL]
         assert EmailNotificationProvider.is_available() is True
-        assert EmailNotificationProvider.is_available(organization=self.organization) is True
+        assert (
+            EmailNotificationProvider.is_available(
+                organization=serialize_organization_summary(self.organization)
+            )
+            is True
+        )
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_send(self, mock_send_messages: mock.MagicMock) -> None:
@@ -290,7 +297,7 @@ class EmailNotificationProviderTest(TestCase):
         assert isinstance(data, AssignedNotificationData)
         rendered_template = AssignedActivityTemplate().render(data)
 
-        with self.options({"mail.enable-replies": True}):
+        with override_settings(SENTRY_MAIL_ENABLE_REPLIES=True):
             email = render_email(data, rendered_template)
             EmailNotificationProvider.send(target=self.target, renderable=email)
             first_message_id = email.extra_headers["Message-Id"]

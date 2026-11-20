@@ -5,8 +5,8 @@ import {Alert} from '@sentry/scraps/alert';
 import {InfoTip} from '@sentry/scraps/info';
 import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
@@ -124,9 +124,8 @@ export function ProjectTableHeader({
   // single-row save to finish first, so a row isn't rebuilt in the middle of
   // its own save.
   const isRowSaving =
-    useIsMutating({
-      mutationKey: getSeerProjectSettingsMutationKey(organization.slug),
-    }) > 0;
+    useIsMutating({mutationKey: getSeerProjectSettingsMutationKey(organization.slug)}) >
+    0;
 
   const {mutate, isPending: isBulkSaving} = bulkEdit;
 
@@ -171,14 +170,10 @@ export function ProjectTableHeader({
               isDisabled={isDisabled}
               onChange={value => {
                 mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    agentOption: value,
-                  },
+                  {query: mutableSearch.formatString(), selectedIds, agentOption: value},
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update agent for %s project',
                           'Failed to update agent for %s projects',
@@ -186,7 +181,7 @@ export function ProjectTableHeader({
                         )
                       ),
                     onSuccess: () => {
-                      addSuccessMessage(
+                      toast.success(
                         tn(
                           'Agent updated for %s project',
                           'Agent updated for %s projects',
@@ -209,7 +204,7 @@ export function ProjectTableHeader({
                   },
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update stopping point for %s project',
                           'Failed to update stopping point for %s projects',
@@ -217,7 +212,7 @@ export function ProjectTableHeader({
                         )
                       ),
                     onSuccess: () => {
-                      addSuccessMessage(
+                      toast.success(
                         tn(
                           'Stopping point updated for %s project',
                           'Stopping point updated for %s projects',
@@ -233,14 +228,10 @@ export function ProjectTableHeader({
               isDisabled={isDisabled}
               onChange={prIteration => {
                 mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    prIteration,
-                  },
+                  {query: mutableSearch.formatString(), selectedIds, prIteration},
                   {
                     onError: () =>
-                      addErrorMessage(
+                      toast.error(
                         tn(
                           'Failed to update PR iteration for %s project',
                           'Failed to update PR iteration for %s projects',
@@ -248,7 +239,7 @@ export function ProjectTableHeader({
                         )
                       ),
                     onSuccess: () => {
-                      addSuccessMessage(
+                      toast.success(
                         prIteration
                           ? tn(
                               'PR iteration enabled for %s project',

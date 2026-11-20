@@ -1,14 +1,11 @@
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 import {ExternalLink, Link} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import type {TagTreeContent} from 'sentry/components/events/eventTags/eventTagsTree';
-import {EventTagsValue} from 'sentry/components/events/eventTags/eventTagsValue';
 import {AnnotatedTextErrors} from 'sentry/components/events/meta/annotatedText/annotatedTextErrors';
 import {KeyValueTreeRow} from 'sentry/components/keyValueTree/keyValueTreeRow';
 import {
@@ -25,6 +22,7 @@ import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
 import {escapeIssueTagKey, generateQueryWithTag} from 'sentry/utils/queryString';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -38,6 +36,9 @@ import {
 } from 'sentry/views/performance/traceDetails/traceDrawer/details/utils';
 import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 import {getSizeBuildPath} from 'sentry/views/preprod/utils/buildLinkUtils';
+
+import type {TagTreeContent} from './eventTagsTree';
+import {EventTagsValue} from './eventTagsValue';
 
 interface EventTagsTreeRowProps {
   content: TagTreeContent;
@@ -129,17 +130,11 @@ function EventTagsTreeRowDropdown({
     highlightTagSet.has(originalTag.key);
   const query = generateQueryWithTag(
     {referrer},
-    {
-      ...originalTag,
-      key: escapeIssueTagKey(originalTag.key),
-    }
+    {...originalTag, key: escapeIssueTagKey(originalTag.key)}
   );
   const globalSelectionParams = extractSelectionParameters(location.query);
 
-  const isProjectAdmin = hasEveryAccess(['project:admin'], {
-    organization,
-    project,
-  });
+  const isProjectAdmin = hasEveryAccess(['project:admin'], {organization, project});
   const isIssueDetailsRoute = location.pathname.includes(`issues/${event.groupID}/`);
   const isFeedback = Boolean(event.contexts.feedback);
 
@@ -214,19 +209,17 @@ function EventTagsTreeRowDropdown({
       hidden: hideAddHighlightsOption || !isProjectAdmin || isFeedback,
       onAction: () => {
         saveTag(
-          {
-            highlightTags: [...(project?.highlightTags ?? []), originalTag.key],
-          },
+          {highlightTags: [...(project?.highlightTags ?? []), originalTag.key]},
           {
             onError: () => {
-              addErrorMessage(
+              toast.error(
                 tct("Failed to update '[projectName]' project", {
                   projectName: project.name,
                 })
               );
             },
             onSuccess: () => {
-              addSuccessMessage(
+              toast.success(
                 tct("Successfully updated '[projectName]' project", {
                   projectName: project.name,
                 })
@@ -256,11 +249,7 @@ function EventTagsTreeRowDropdown({
         originalTag.key === 'transaction'
           ? {
               pathname: `${getTransactionSummaryBaseUrl(organization)}/`,
-              query: {
-                project: event.projectID,
-                transaction: content.value,
-                referrer,
-              },
+              query: {project: event.projectID, transaction: content.value, referrer},
             }
           : undefined,
     },
@@ -352,14 +341,7 @@ function EventTagsTreeValue({
       });
       tagValue = (
         <TagLinkText>
-          <Link
-            to={{
-              pathname: replayPath,
-              query: {referrer},
-            }}
-          >
-            {content.value}
-          </Link>
+          <Link to={{pathname: replayPath, query: {referrer}}}>{content.value}</Link>
         </TagLinkText>
       );
       break;

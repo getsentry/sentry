@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {usePrevious} from 'sentry/utils/usePrevious';
+import {usePrevious} from './usePrevious';
 
 describe('usePrevious', () => {
   it('stores initial value', () => {
@@ -9,9 +9,7 @@ describe('usePrevious', () => {
   });
 
   it('provides initial value', () => {
-    const {result} = renderHook(usePrevious, {
-      initialProps: 'Initial Value',
-    });
+    const {result} = renderHook(usePrevious, {initialProps: 'Initial Value'});
 
     expect(result.current).toBe('Initial Value');
   });

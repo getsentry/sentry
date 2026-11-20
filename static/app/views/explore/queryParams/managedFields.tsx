@@ -1,14 +1,10 @@
 import {defined} from 'sentry/utils/defined';
-import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {
-  isBaseVisualize,
-  isVisualizeFunction,
-  Visualize,
-  type BaseVisualize,
-} from 'sentry/views/explore/queryParams/visualize';
-import type {WritableQueryParams} from 'sentry/views/explore/queryParams/writableQueryParams';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
+
+import {isGroupBy, type GroupBy} from './groupBy';
+import type {ReadableQueryParams} from './readableQueryParams';
+import {isVisualizeFunction, parseVisualize, type Visualize} from './visualize';
+import type {WritableQueryParams} from './writableQueryParams';
 
 const NUMERIC_LITERAL = /^-?\d*\.?\d+$/;
 
@@ -24,9 +20,7 @@ export function deriveUpdatedManagedFields(
 ): DerivedUpdatedManagedFields {
   // null means to clear it, when this happens we should stop managing all fields
   if (writableQueryParams.fields === null) {
-    return {
-      updatedManagedFields: new Set(),
-    };
+    return {updatedManagedFields: new Set()};
   }
 
   const {readableRefs, writableRefs} = findAllFieldRefs(
@@ -81,7 +75,7 @@ export function deriveUpdatedManagedFields(
     fieldsToDelete.delete(field);
   });
 
-  let updatedFields: string[] | undefined = undefined;
+  let updatedFields: string[] | undefined;
 
   if (fieldsToAdd.size || fieldsToDelete.size) {
     updatedFields = fields.filter(field => {
@@ -108,10 +102,7 @@ type Counter = Map<string, number>;
 function findAllFieldRefs(
   readableQueryParams: ReadableQueryParams,
   writableQueryParams: WritableQueryParams
-): {
-  readableRefs: Counter;
-  writableRefs: Counter;
-} {
+): {readableRefs: Counter; writableRefs: Counter} {
   const readableRefs = new Map();
   const writableRefs = new Map();
 
@@ -156,12 +147,9 @@ function findAllFieldRefs(
       ? // null means to clear it so make sure to handle it correctly
         []
       : defined(writableQueryParams.aggregateFields)
-        ? writableQueryParams.aggregateFields
-            .filter<BaseVisualize>(isBaseVisualize)
-            .flatMap(visualize => {
-              const visualizes = Visualize.fromJSON(visualize);
-              return visualizes.flatMap(getVisualizeFields);
-            })
+        ? writableQueryParams.aggregateFields.flatMap(aggregateField =>
+            parseVisualize(aggregateField).flatMap(getVisualizeFields)
+          )
         : // undefined means it's unchanged so use the results from the readableQueryParams
           readableVisualizeFields;
 
@@ -187,10 +175,7 @@ function getVisualizeFields(visualize: Visualize): string[] {
 function findChangedFields(
   readableQueryParams: ReadableQueryParams,
   writableQueryParams: WritableQueryParams
-): {
-  addedFields: Set<string>;
-  removedFields: Set<string>;
-} {
+): {addedFields: Set<string>; removedFields: Set<string>} {
   const addedFields = new Set<string>();
   const removedFields = new Set<string>();
 
@@ -225,8 +210,5 @@ function findChangedFields(
     });
   }
 
-  return {
-    addedFields,
-    removedFields,
-  };
+  return {addedFields, removedFields};
 }

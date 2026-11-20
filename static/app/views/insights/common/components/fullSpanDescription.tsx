@@ -2,7 +2,7 @@ import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {IconOpen} from '@sentry/icons/open';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
 import {ClippedBox} from 'sentry/components/clippedBox';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -28,9 +28,7 @@ interface Props {
 export function FullSpanDescription({group, shortDescription, moduleName}: Props) {
   const {data: indexedSpans, isFetching: areIndexedSpansLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({
-        'span.group': group ?? undefined,
-      }),
+      search: MutableSearch.fromQueryObject({'span.group': group ?? undefined}),
       limit: 1,
       fields: [
         SpanFields.PROJECT_ID,
@@ -107,10 +105,7 @@ export function FullSpanDescription({group, shortDescription, moduleName}: Props
   return <Fragment>{description}</Fragment>;
 }
 
-type TruncatedQueryClipBoxProps = {
-  children: ReactNode;
-  group: string | null | undefined;
-};
+type TruncatedQueryClipBoxProps = {children: ReactNode; group: string | null | undefined};
 
 function QueryClippedBox({group, children}: TruncatedQueryClipBoxProps) {
   const navigate = useNavigate();

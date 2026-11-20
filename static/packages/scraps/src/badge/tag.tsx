@@ -51,9 +51,7 @@ export function Tag({ref, variant, icon, onDismiss, children, ...props}: TagProp
   );
 }
 
-const TagPill = styled('div')<{
-  variant: TagVariant;
-}>`
+const TagPill = styled('div')<{variant: TagVariant}>`
   ${p => ({...makeTagPillTheme(p.variant, p.theme)})};
 
   height: 20px;
@@ -61,8 +59,9 @@ const TagPill = styled('div')<{
   display: inline-flex;
   gap: ${p => p.theme.space.xs};
   align-items: center;
+  justify-content: center;
   border-radius: ${p => p.theme.radius.xs};
-  padding: 0 ${p => p.theme.space.md};
+  padding: 0 ${p => p.theme.space.xs};
   max-width: 100%;
 
   /* @TODO(jonasbadalic): We need to override button colors because they wrongly default to a blue color... */
@@ -76,10 +75,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
   switch (type) {
     case undefined:
     case 'muted':
-      return {
-        color: theme.tokens.content.secondary,
-        background: theme.colors.gray100,
-      };
+      return {color: theme.tokens.content.secondary, background: theme.colors.gray100};
 
     // Highlight maps to info badge for now, but the highlight variant should be removed
     case 'info':
@@ -98,10 +94,7 @@ function makeTagPillTheme(type: TagVariant, theme: Theme): React.CSSProperties {
         background: theme.tokens.background.transparent.danger.muted,
       };
     case 'warning':
-      return {
-        color: theme.tokens.content.warning,
-        background: theme.colors.yellow100,
-      };
+      return {color: theme.tokens.content.warning, background: theme.colors.yellow100};
     case 'success':
       return {
         color: theme.tokens.content.success,
@@ -118,6 +111,8 @@ const TagText = styled('div')`
   white-space: nowrap;
   text-overflow: ellipsis;
   min-width: 0;
+  text-box-edge: text text;
+  text-box-trim: trim-both;
 
   &:has(> *) {
     display: flex;
@@ -133,6 +128,5 @@ const IconWrapper = styled('span')`
 `;
 
 const DismissButton = styled(Button)`
-  margin-right: -${p => p.theme.space.xs};
   border: none;
 `;

@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerChangeBalanceModal} from 'admin/components/changeBalanceAction';
 
@@ -17,14 +17,11 @@ describe('BalanceChangeAction', () => {
   const organization = OrganizationFixture();
   const subscription = SubscriptionFixture({organization, accountBalance: 0});
 
-  const modalProps = {
-    orgId: organization.slug,
-    onSuccess,
-  };
+  const modalProps = {orgId: organization.slug, onSuccess};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
   });
 
   it('renders no balance', async () => {
@@ -75,11 +72,7 @@ describe('BalanceChangeAction', () => {
         `/_admin/customers/${organization.slug}/balance-changes/`,
         expect.objectContaining({
           method: 'POST',
-          data: {
-            creditAmount: 3000,
-            ticketUrl: '',
-            notes: '',
-          },
+          data: {creditAmount: 3000, ticketUrl: '', notes: ''},
         })
       );
     });
@@ -110,11 +103,7 @@ describe('BalanceChangeAction', () => {
         `/_admin/customers/${organization.slug}/balance-changes/`,
         expect.objectContaining({
           method: 'POST',
-          data: {
-            creditAmount: -1000,
-            ticketUrl: url,
-            notes: note,
-          },
+          data: {creditAmount: -1000, ticketUrl: url, notes: note},
         })
       );
     });

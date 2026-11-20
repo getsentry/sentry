@@ -1,4 +1,5 @@
 from functools import cached_property
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid1
 
@@ -7,9 +8,9 @@ from django.conf import settings
 from django.core.cache.backends.locmem import LocMemCache
 from django.test import override_settings
 
-from sentry.models.options.option import Option
+from sentry.models.options.option import ControlOption, Option
 from sentry.options.manager import OptionsManager, UpdateChannel
-from sentry.options.store import OptionsStore
+from sentry.options.store import Key, OptionsStore
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
 
@@ -17,27 +18,27 @@ from sentry.testutils.silo import no_silo_test
 @no_silo_test
 class OptionsStoreTest(TestCase):
     @cached_property
-    def store(self):
+    def store(self) -> OptionsStore:
         c = LocMemCache("test", settings.CACHES["default"])
         c.clear()
         return OptionsStore(cache=c)
 
     @cached_property
-    def manager(self):
+    def manager(self) -> OptionsManager:
         return OptionsManager(store=self.store)
 
     @cached_property
-    def key(self):
+    def key(self) -> Key:
         return self.make_key()
 
     @pytest.fixture(autouse=True)
-    def flush_local_cache(self):
+    def flush_local_cache(self) -> None:
         self.store.flush_local_cache()
 
-    def make_key(self, ttl=10, grace=10, key_name: str | None = None):
+    def make_key(self, ttl: int = 10, grace: int = 10, key_name: str | None = None) -> Key:
         if key_name is None:
             key_name = uuid1().hex
-        return self.manager.make_key(key_name, "", object, 0, ttl, grace, None)
+        return self.manager.make_key(key_name, "", cast(Any, object), 0, ttl, grace, None)
 
     def test_simple(self) -> None:
         store, key = self.store, self.key
@@ -50,6 +51,13 @@ class OptionsStoreTest(TestCase):
 
     def test_not_in_store(self) -> None:
         assert self.store.get_last_update_channel(self.key) is None
+
+    def test_missing_key_while_silo_mode_changes(self) -> None:
+        # The model follows the silo mode, which another thread can switch between the
+        # query and the except clause. The miss must still read as a miss.
+        for lookup in (self.store.get_store, self.store.get_last_update_channel):
+            with patch.object(OptionsStore, "model_cls", side_effect=[Option, ControlOption]):
+                assert lookup(self.key) is None
 
     def test_simple_without_cache(self) -> None:
         store = OptionsStore(cache=None)
@@ -127,6 +135,7 @@ class OptionsStoreTest(TestCase):
                 assert store.get(key) == "bar"
 
         Option.objects.filter(key=key.name).update(value="lol")
+        assert store.cache is not None
         store.cache.delete(key.cache_key)
         # Still within TTL, so don't check database
         assert store.get(key) == "bar"

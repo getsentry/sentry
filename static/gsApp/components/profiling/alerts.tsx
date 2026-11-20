@@ -12,9 +12,9 @@ import {getDaysSinceDate} from 'sentry/utils/getDaysSinceDate';
 import {getProfileDurationCategoryForPlatform} from 'sentry/utils/profiling/platforms';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import AddEventsCTA, {type EventType} from 'getsentry/components/addEventsCTA';
+import {AddEventsCTA, type EventType} from 'getsentry/components/addEventsCTA';
 import {StartTrialButton} from 'getsentry/components/startTrialButton';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import {useSubscription} from 'getsentry/hooks/useSubscription';
 import type {BilledDataCategoryInfo, ProductTrial, Subscription} from 'getsentry/types';
 import {displayBudgetName, getProductTrial, UsageAction} from 'getsentry/utils/billing';
@@ -176,9 +176,7 @@ function ProductTrialBanner({
         <Text>
           {tct(
             'Activate your trial to take advantage of 14 days of unlimited [product]',
-            {
-              product: categoryInfo.productName,
-            }
+            {product: categoryInfo.productName}
           )}
         </Text>
       </AlertBody>
@@ -188,10 +186,7 @@ function ProductTrialBanner({
           organization={organization}
           source="profiling_onboarding"
           requestData={{
-            productTrial: {
-              category: trial.category,
-              reasonCode: trial.reasonCode,
-            },
+            productTrial: {category: trial.category, reasonCode: trial.reasonCode},
           }}
           aria-label={t('Start trial')}
           variant="primary"
@@ -237,11 +232,7 @@ function OnDemandOrPaygBanner({
         <AddEventsCTA
           organization={organization}
           subscription={subscription}
-          buttonProps={{
-            variant: 'primary',
-            size: 'sm',
-            style: {textDecoration: 'none'},
-          }}
+          buttonProps={{variant: 'primary', size: 'sm', style: {textDecoration: 'none'}}}
           eventTypes={eventTypes}
           action={
             hasBillingPerms ? UsageAction.ADD_EVENTS : UsageAction.REQUEST_ADD_EVENTS

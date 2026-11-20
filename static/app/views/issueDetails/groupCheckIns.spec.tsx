@@ -9,18 +9,13 @@ import {render, screen, type RouterConfig} from 'sentry-test/reactTestingLibrary
 import {GroupStore} from 'sentry/stores/groupStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-import GroupCheckIns from 'sentry/views/issueDetails/groupCheckIns';
+
+import GroupCheckIns from './groupCheckIns';
+import {GroupIdProvider} from './groupIdContext';
 
 describe('GroupCheckIns', () => {
   const monitorId = 'f75a223c-aae1-47e4-8f77-6c72243cb76e';
-  const event = EventFixture({
-    tags: [
-      {
-        key: 'monitor.id',
-        value: monitorId,
-      },
-    ],
-  });
+  const event = EventFixture({tags: [{key: 'monitor.id', value: monitorId}]});
   const project = ProjectFixture();
   const group = GroupFixture({
     issueCategory: IssueCategory.CRON,
@@ -55,10 +50,12 @@ describe('GroupCheckIns', () => {
       body: [],
     });
 
-    render(<GroupCheckIns />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupCheckIns />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(
       await screen.findByText('No check-ins have been recorded for this time period.')
@@ -72,10 +69,12 @@ describe('GroupCheckIns', () => {
       body: [check],
     });
 
-    render(<GroupCheckIns />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(
+      <GroupIdProvider groupId={group.id}>
+        <GroupCheckIns />
+      </GroupIdProvider>,
+      {organization, initialRouterConfig}
+    );
     expect(await screen.findByText('All Check-Ins')).toBeInTheDocument();
     expect(screen.queryByText('No matching check-ins found')).not.toBeInTheDocument();
     expect(await screen.findByText('Showing 1-1 matching check-ins')).toBeInTheDocument();

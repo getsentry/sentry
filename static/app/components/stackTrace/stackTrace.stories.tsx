@@ -11,20 +11,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {Panel} from 'sentry/components/panels/panel';
-import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
-import {HiddenFramesToggleAction} from 'sentry/components/stackTrace/frame/actions/hiddenFramesToggle';
-import {FrameContent} from 'sentry/components/stackTrace/frame/frameContent';
-import {StackTraceFrameRow} from 'sentry/components/stackTrace/frame/frameRow';
-import {IssueStackTrace} from 'sentry/components/stackTrace/issueStackTrace';
-import {IssueStackTracePreview} from 'sentry/components/stackTrace/issueStackTrace/issueStackTracePreview';
-import {
-  StackTraceViewStateProvider,
-  useStackTraceContext,
-  useStackTraceFrameContext,
-} from 'sentry/components/stackTrace/stackTraceContext';
-import {StackTraceFrames} from 'sentry/components/stackTrace/stackTraceFrames';
-import {StackTraceProvider} from 'sentry/components/stackTrace/stackTraceProvider';
-import type {StackTraceViewStateProviderProps} from 'sentry/components/stackTrace/types';
 import {t, tn} from 'sentry/locale';
 import * as Storybook from 'sentry/stories';
 import {
@@ -36,14 +22,26 @@ import {
 } from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 
+import {ChevronAction} from './frame/actions/chevron';
+import {HiddenFramesToggleAction} from './frame/actions/hiddenFramesToggle';
+import {FrameContent} from './frame/frameContent';
+import {StackTraceFrameRow} from './frame/frameRow';
+import {IssueStackTracePreview} from './issueStackTrace/issueStackTracePreview';
+import {IssueStackTrace} from './issueStackTrace';
+import {
+  StackTraceViewStateProvider,
+  useStackTraceContext,
+  useStackTraceFrameContext,
+} from './stackTraceContext';
+import {StackTraceFrames} from './stackTraceFrames';
+import {StackTraceProvider} from './stackTraceProvider';
+import type {StackTraceViewStateProviderProps} from './types';
+
 type StacktraceWithFrames = StacktraceType & {
   frames: NonNullable<StacktraceType['frames']>;
 };
 
-type StackTraceStoryData = {
-  event: Event;
-  stacktrace: StacktraceWithFrames;
-};
+type StackTraceStoryData = {event: Event; stacktrace: StacktraceWithFrames};
 
 function makeEvent(overrides: Partial<Event> = {}): Event {
   return {
@@ -169,10 +167,7 @@ function makeStackTraceData(): StackTraceStoryData {
       inApp: true,
       vars: {
         "'message'": "'My event just happened!'",
-        "'kwargs'": {
-          "'stack'": 'True',
-          "'tags'": 'None',
-        },
+        "'kwargs'": {"'stack'": 'True', "'tags'": 'None'},
       },
     }),
     makeFrame({
@@ -191,12 +186,7 @@ function makeStackTraceData(): StackTraceStoryData {
       ],
       lineNo: 77,
       inApp: true,
-      vars: {
-        "'options'": {
-          "'data'": 'None',
-          "'tags'": 'None',
-        },
-      },
+      vars: {"'options'": {"'data'": 'None', "'tags'": 'None'}},
     }),
     makeFrame({
       filename: 'raven/scripts/runner.py',
@@ -663,12 +653,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
     {
       type: 'ValueError',
       value: 'invalid input: expected positive integer',
-      mechanism: {
-        handled: true,
-        type: 'chained',
-        exception_id: 1,
-        parent_id: 0,
-      },
+      mechanism: {handled: true, type: 'chained', exception_id: 1, parent_id: 0},
       stacktrace: makeSimpleStacktrace('app/validators.py', 'validate_input', 15),
       module: 'app.validators',
       threadId: null,
@@ -693,12 +678,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
     {
       type: 'TypeError',
       value: "unsupported operand type(s) for +: 'int' and 'str'",
-      mechanism: {
-        handled: true,
-        type: 'chained',
-        exception_id: 3,
-        parent_id: 2,
-      },
+      mechanism: {handled: true, type: 'chained', exception_id: 3, parent_id: 2},
       stacktrace: makeSimpleStacktrace('app/math.py', 'add_values', 7),
       module: 'app.math',
       threadId: null,
@@ -707,12 +687,7 @@ function makeChainedWithExceptionGroupValues(): ExceptionValue[] {
     {
       type: 'KeyError',
       value: "'missing_key'",
-      mechanism: {
-        handled: true,
-        type: 'chained',
-        exception_id: 4,
-        parent_id: 2,
-      },
+      mechanism: {handled: true, type: 'chained', exception_id: 4, parent_id: 2},
       stacktrace: makeSimpleStacktrace('app/config.py', 'get_setting', 23),
       module: 'app.config',
       threadId: null,
@@ -897,10 +872,7 @@ export default Storybook.story('StackTrace', story => {
         </p>
         <StoryStackTraceProvider
           event={event}
-          stacktrace={{
-            ...stacktrace,
-            framesOmitted: [1, 3],
-          }}
+          stacktrace={{...stacktrace, framesOmitted: [1, 3]}}
         >
           <StackTraceFrames
             frameContextComponent={FrameContent}

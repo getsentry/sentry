@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useReleaseSeries} from 'sentry/components/charts/releaseSeries';
+import {useReleaseSeries} from './releaseSeries';
 
 type Props = Parameters<typeof useReleaseSeries>[0];
 
@@ -12,12 +12,7 @@ describe('useReleaseSeries', () => {
   let releasesMock: any;
 
   beforeEach(() => {
-    releases = [
-      {
-        version: 'sentry-android-shop@1.2.0',
-        date: '2020-03-23T00:00:00Z',
-      },
-    ];
+    releases = [{version: 'sentry-android-shop@1.2.0', date: '2020-03-23T00:00:00Z'}];
     MockApiClient.clearMockResponses();
     releasesMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/releases/stats/`,
@@ -92,9 +87,7 @@ describe('useReleaseSeries', () => {
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({project: [1, 2]}),
-        })
+        expect.objectContaining({query: expect.objectContaining({project: [1, 2]})})
       )
     );
   });
@@ -164,9 +157,7 @@ describe('useReleaseSeries', () => {
     await waitFor(() =>
       expect(releasesMock).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({statsPeriod: '14d'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({statsPeriod: '14d'})})
       )
     );
   });
@@ -274,10 +265,7 @@ describe('useReleaseSeries', () => {
   });
 
   it('allows updating the emphasized release without refetching', async () => {
-    releases.push({
-      version: 'sentry-android-shop@1.2.1',
-      date: '2020-03-24T00:00:00Z',
-    });
+    releases.push({version: 'sentry-android-shop@1.2.1', date: '2020-03-24T00:00:00Z'});
     const {result, rerender} = renderHookWithProviders(useReleaseSeries, {
       initialProps: {...baseProps, emphasizeReleases: ['sentry-android-shop@1.2.0']},
       organization,

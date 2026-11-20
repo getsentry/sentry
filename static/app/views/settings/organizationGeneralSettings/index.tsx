@@ -1,14 +1,14 @@
 import {Fragment} from 'react';
 
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
+import {toast} from '@sentry/scraps/toast';
 
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import {
   changeOrganizationSlug,
   removeAndRedirectToRemainingOrganization,
   updateOrganization,
 } from 'sentry/actionCreators/organizations';
-import {Confirm} from 'sentry/components/confirm';
 import {FieldGroup} from 'sentry/components/forms/fieldGroup';
 import {List} from 'sentry/components/list';
 import {ListItem} from 'sentry/components/list/listItem';
@@ -25,9 +25,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 import {OrganizationPermissionAlert} from 'sentry/views/settings/organization/organizationPermissionAlert';
-import {defaultEnableSeerFeaturesValue} from 'sentry/views/settings/organizationGeneralSettings/aiFeatureSettings';
+import {getSettingsScopeTitle} from 'sentry/views/settings/settingsScope';
 import {useSettingsV3} from 'sentry/views/settings/useSettingsV3';
 
+import {defaultEnableSeerFeaturesValue} from './aiFeatureSettings';
 import {OrganizationSettingsForm} from './organizationSettingsForm';
 
 export default function OrganizationGeneralSettings() {
@@ -41,9 +42,7 @@ export default function OrganizationGeneralSettings() {
       <TextBlock>
         {tct(
           'Removing the organization, [name] is permanent and cannot be undone! Are you sure you want to continue?',
-          {
-            name: organization && <strong>{organization.name}</strong>,
-          }
+          {name: organization && <strong>{organization.name}</strong>}
         )}
       </TextBlock>
 
@@ -86,7 +85,7 @@ export default function OrganizationGeneralSettings() {
       return;
     }
 
-    addLoadingMessage();
+    toast.loading(t('Saving changes...'));
     removeAndRedirectToRemainingOrganization(api, {
       navigate,
       orgId: organization.slug,
@@ -97,7 +96,10 @@ export default function OrganizationGeneralSettings() {
 
   return (
     <Fragment>
-      <SentryDocumentTitle title={t('General Settings')} orgSlug={organization.slug} />
+      <SentryDocumentTitle
+        title={settingsV3 ? getSettingsScopeTitle('org') : t('General Settings')}
+        orgSlug={organization.slug}
+      />
       <div>
         <SettingsPageHeader
           title={settingsV3 ? t('General') : t('Organization Settings')}

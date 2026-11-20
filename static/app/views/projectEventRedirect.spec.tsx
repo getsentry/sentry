@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {IssueCategory} from 'sentry/types/group';
-import {ProjectEventRedirect} from 'sentry/views/projectEventRedirect';
+
+import {ProjectEventRedirect} from './projectEventRedirect';
 
 describe('ProjectEventRedirect', () => {
   const organization = OrganizationFixture();
@@ -14,10 +15,7 @@ describe('ProjectEventRedirect', () => {
   });
 
   it('redirects to issue event page when event has groupID', async () => {
-    const event = EventFixture({
-      eventID: 'abc123',
-      groupID: '456',
-    });
+    const event = EventFixture({eventID: 'abc123', groupID: '456'});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/my-project:event-id/`,
@@ -47,11 +45,7 @@ describe('ProjectEventRedirect', () => {
     const event = EventFixture({
       eventID: 'abc123',
       groupID: undefined,
-      contexts: {
-        trace: {
-          trace_id: 'trace-123',
-        },
-      },
+      contexts: {trace: {trace_id: 'trace-123'}},
       dateCreated: '2024-01-01T00:00:00.000Z',
     });
 
@@ -72,9 +66,7 @@ describe('ProjectEventRedirect', () => {
 
     await waitFor(() => {
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: expect.stringContaining('/trace/trace-123/'),
-        })
+        expect.objectContaining({pathname: expect.stringContaining('/trace/trace-123/')})
       );
     });
   });
@@ -148,9 +140,7 @@ describe('ProjectEventRedirect', () => {
       groupID: '456',
       projectSlug: 'my-project',
       issueCategory: IssueCategory.FEEDBACK,
-      contexts: {
-        feedback: {message: 'some feedback'},
-      },
+      contexts: {feedback: {message: 'some feedback'}},
     });
 
     MockApiClient.addMockResponse({
@@ -172,9 +162,7 @@ describe('ProjectEventRedirect', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/issues/feedback/`,
-          query: expect.objectContaining({
-            feedbackSlug: 'my-project:456',
-          }),
+          query: expect.objectContaining({feedbackSlug: 'my-project:456'}),
         })
       );
     });
@@ -186,9 +174,7 @@ describe('ProjectEventRedirect', () => {
       groupID: '456',
       projectSlug: undefined,
       issueCategory: IssueCategory.FEEDBACK,
-      contexts: {
-        feedback: {message: 'some feedback'},
-      },
+      contexts: {feedback: {message: 'some feedback'}},
     });
 
     MockApiClient.addMockResponse({
@@ -210,19 +196,14 @@ describe('ProjectEventRedirect', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/issues/feedback/`,
-          query: expect.objectContaining({
-            feedbackSlug: '456',
-          }),
+          query: expect.objectContaining({feedbackSlug: '456'}),
         })
       );
     });
   });
 
   it('preserves only relevant query parameters during redirect', async () => {
-    const event = EventFixture({
-      eventID: 'abc123',
-      groupID: '456',
-    });
+    const event = EventFixture({eventID: 'abc123', groupID: '456'});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/my-project:event-id/`,
@@ -250,10 +231,7 @@ describe('ProjectEventRedirect', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${organization.slug}/issues/456/events/abc123/`,
-          query: {
-            project: '123',
-            referrer: 'discover-events-table',
-          },
+          query: {project: '123', referrer: 'discover-events-table'},
         })
       );
     });

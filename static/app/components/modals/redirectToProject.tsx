@@ -2,9 +2,9 @@ import {Fragment, useEffect, useState} from 'react';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 import {recreateRoute} from 'sentry/utils/recreateRoute';
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
@@ -52,10 +52,7 @@ function RedirectToProjectModal({slug, Header, Body}: Props) {
             <Text variant="muted">
               {tct(
                 'You will be redirected to the new project [project] in [timer] seconds...',
-                {
-                  project: <strong>{slug}</strong>,
-                  timer,
-                }
+                {project: <strong>{slug}</strong>, timer}
               )}
             </Text>
           </Stack>

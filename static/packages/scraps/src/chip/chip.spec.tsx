@@ -214,12 +214,7 @@ describe('Chip', () => {
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return (
     <ThemeProvider theme={lightTheme}>
-      <TranslationContextProvider
-        value={{
-          t: translate,
-          tct: template => template,
-        }}
-      >
+      <TranslationContextProvider value={{t: translate, tct: template => template}}>
         {children}
       </TranslationContextProvider>
     </ThemeProvider>

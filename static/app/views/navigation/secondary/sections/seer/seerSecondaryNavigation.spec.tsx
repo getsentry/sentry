@@ -16,22 +16,13 @@ describe('SeerSecondaryNavigation', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/all-queries/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   function renderNavigation(pathname: string, org = organization) {
@@ -100,6 +91,46 @@ describe('SeerSecondaryNavigation', () => {
     renderNavigation('/organizations/org-slug/seer/investigations/');
 
     expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
+  });
+
+  it('renders Classifiers with an alpha badge below Investigations', () => {
+    renderNavigation(
+      '/organizations/org-slug/seer/classifiers/',
+      OrganizationFixture({
+        features: ['investigations', 'classifiers-ui'],
+        openMembership: true,
+      })
+    );
+
+    const investigations = screen.getByRole('link', {name: /Investigations/});
+    const classifiers = screen.getByRole('link', {name: /Classifiers/});
+    expect(classifiers).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/seer/classifiers/'
+    );
+    expect(classifiers).toHaveAttribute('aria-current', 'page');
+    expect(within(classifiers).getByLabelText('alpha')).toBeInTheDocument();
+    expect(
+      investigations.compareDocumentPosition(classifiers) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+  });
+
+  it('renders only Classifiers when investigations and automations are unavailable', () => {
+    renderNavigation(
+      '/organizations/org-slug/seer/classifiers/',
+      OrganizationFixture({features: ['classifiers-ui'], openMembership: false})
+    );
+
+    expect(screen.getByRole('link', {name: /Classifiers/})).toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Investigations/})).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', {name: /Automations/})).not.toBeInTheDocument();
+  });
+
+  it('does not render Classifiers without the classifiers-ui flag', () => {
+    renderNavigation('/organizations/org-slug/seer/investigations/');
+
+    expect(screen.queryByRole('link', {name: /Classifiers/})).not.toBeInTheDocument();
   });
 
   it.each([

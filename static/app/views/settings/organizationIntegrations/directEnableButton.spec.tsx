@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {DirectEnableButton} from 'sentry/views/settings/organizationIntegrations/directEnableButton';
+import {DirectEnableButton} from './directEnableButton';
 
 describe('DirectEnableButton', () => {
   const organization = OrganizationFixture();
@@ -10,10 +10,7 @@ describe('DirectEnableButton', () => {
   const defaultProps = {
     providerSlug: 'github_copilot',
     userHasAccess: true,
-    buttonProps: {
-      size: 'sm' as const,
-      priority: 'primary' as const,
-    },
+    buttonProps: {size: 'sm' as const, priority: 'primary' as const},
   };
 
   it('renders Enable Integration button', () => {

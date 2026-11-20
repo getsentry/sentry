@@ -5,19 +5,16 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {IssueListContainer} from 'sentry/views/issueList';
-import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {IssueSortOptions} from './utils';
 
 describe('IssueListContainer', () => {
-  const defaultProps = {
-    children: <div>Foo</div>,
-  };
+  const defaultProps = {children: <div>Foo</div>};
 
   const organization = OrganizationFixture();
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/issues/views/100/',
-    },
+    location: {pathname: '/organizations/org-slug/issues/views/100/'},
     route: '/organizations/:orgId/issues/views/:viewId/',
   };
 

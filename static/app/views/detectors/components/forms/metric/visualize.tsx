@@ -23,12 +23,6 @@ import {
 import {unreachable} from 'sentry/utils/unreachable';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useTags} from 'sentry/utils/useTags';
-import {
-  METRIC_DETECTOR_FORM_FIELDS,
-  useMetricDetectorFormField,
-} from 'sentry/views/detectors/components/forms/metric/metricFormFields';
-import {MetricsEquationVisualize} from 'sentry/views/detectors/components/forms/metric/metricsEquationVisualize';
-import {MetricsVisualize} from 'sentry/views/detectors/components/forms/metric/metricsVisualize';
 import {SectionLabel} from 'sentry/views/detectors/components/forms/sectionLabel';
 import {getDatasetConfig} from 'sentry/views/detectors/datasetConfig/getDatasetConfig';
 import {DetectorDataset} from 'sentry/views/detectors/datasetConfig/types';
@@ -38,6 +32,13 @@ import {DEFAULT_VISUALIZATION_FIELD} from 'sentry/views/explore/contexts/pagePar
 import {useTraceItemDatasetAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {canUseMetricsEquationsInAlerts} from 'sentry/views/explore/metrics/metricsFlags';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {
+  METRIC_DETECTOR_FORM_FIELDS,
+  useMetricDetectorFormField,
+} from './metricFormFields';
+import {MetricsEquationVisualize} from './metricsEquationVisualize';
+import {MetricsVisualize} from './metricsVisualize';
 
 /**
  * Render a tag badge for field types, similar to dashboard widget builder
@@ -103,14 +104,8 @@ const ADDITIONAL_EAP_AGGREGATES = [AggregationKey.APDEX];
  * Locks the primary dropdown to the single option
  */
 const LOCKED_SPAN_AGGREGATES = {
-  [AggregationKey.APDEX]: {
-    value: DEFAULT_VISUALIZATION_FIELD,
-    label: 'span.duration',
-  },
-  [AggregationKey.COUNT]: {
-    value: DEFAULT_VISUALIZATION_FIELD,
-    label: 'spans',
-  },
+  [AggregationKey.APDEX]: {value: DEFAULT_VISUALIZATION_FIELD, label: 'span.duration'},
+  [AggregationKey.COUNT]: {value: DEFAULT_VISUALIZATION_FIELD, label: 'spans'},
 };
 
 // Type guard for locked span aggregates
@@ -170,16 +165,10 @@ function getAggregateOptionMetadata(
   // Type guard to check if meta has parameters
   const meta = option.value.meta;
   if ('parameters' in meta) {
-    return {
-      name: meta.name,
-      parameters: meta.parameters,
-    };
+    return {name: meta.name, parameters: meta.parameters};
   }
 
-  return {
-    name: meta.name,
-    parameters: [],
-  };
+  return {name: meta.name, parameters: []};
 }
 
 /**
@@ -187,24 +176,15 @@ function getAggregateOptionMetadata(
  */
 function parseAggregateFunction(aggregateFunction: string) {
   if (!aggregateFunction) {
-    return {
-      aggregate: '',
-      parameters: [],
-    };
+    return {aggregate: '', parameters: []};
   }
 
   const parsed = parseFunction(aggregateFunction);
   if (!parsed) {
-    return {
-      aggregate: aggregateFunction,
-      parameters: [],
-    };
+    return {aggregate: aggregateFunction, parameters: []};
   }
 
-  return {
-    aggregate: parsed.name,
-    parameters: parsed.arguments || [],
-  };
+  return {aggregate: parsed.name, parameters: parsed.arguments || []};
 }
 
 /**

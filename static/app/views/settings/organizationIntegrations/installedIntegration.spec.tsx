@@ -7,7 +7,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
-import {InstalledIntegration} from 'sentry/views/settings/organizationIntegrations/installedIntegration';
+
+import {InstalledIntegration} from './installedIntegration';
 
 describe('InstalledIntegration', () => {
   const organization = OrganizationFixture();
@@ -103,9 +104,7 @@ describe('InstalledIntegration', () => {
   });
 
   it('allows superusers to update without the admin tooltip', () => {
-    const superuserOrg = OrganizationFixture({
-      access: ['org:read', 'org:superuser'],
-    });
+    const superuserOrg = OrganizationFixture({access: ['org:read', 'org:superuser']});
     OrganizationStore.onUpdate(superuserOrg, {replace: true});
     ConfigStore.set('user', UserFixture({isSuperuser: true}));
 

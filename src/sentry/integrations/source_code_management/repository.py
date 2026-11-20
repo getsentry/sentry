@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Mapping
-from typing import Any, Generic, Literal, NotRequired, TypedDict, TypeVar
+from typing import Any, Generic, NotRequired, TypedDict, TypeVar
 from urllib.parse import quote as urlquote
 from urllib.parse import unquote, urlparse, urlunparse
 
@@ -18,7 +18,7 @@ from sentry.integrations.source_code_management.metrics import (
     get_current_scm_interaction_type,
     normalize_scm_provider_key,
 )
-from sentry.integrations.types import IntegrationProviderSlug
+from sentry.integrations.types import HaltReason, IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import (
     ApiConnectionResetError,
@@ -37,20 +37,6 @@ from sentry.users.models.identity import Identity
 from sentry.utils import metrics
 
 CHECK_FILE_METRIC = "integrations.source_code_management.check_file"
-
-HaltReason = Literal[
-    "configuration_error",
-    "connection_reset",
-    "host_timeout",
-    "host_unreachable",
-    "identity_not_found",
-    "identity_not_valid",
-    "installation_suspended",
-    "rate_limited",
-    "too_many_redirects",
-    "unauthorized",
-    "unsupported_response",
-]
 
 
 class RepositoryInfo(TypedDict):
@@ -234,7 +220,17 @@ class RepositoryIntegration(
                 return "unsupported_response"
             if isinstance(exc, ApiRateLimitedError):
                 return "rate_limited"
+            # Self-hosted instances that are down, or behind a proxy or
+            # Cloudflare (520-530) that can't reach them. A plain 500 is left
+            # to retry. The next scheduled sync tries again.
+            if exc.code is not None and 502 <= exc.code < 600:
+                return "host_unreachable"
             return None
+
+        # Self-hosted instances behind SSO or a captcha return an HTML login
+        # page instead of JSON, and the response parser raises ValueError.
+        if isinstance(exc, ValueError) and "not a valid response type" in str(exc).lower():
+            return "unsupported_response"
 
         if isinstance(exc, IntegrationConfigurationError):
             return "configuration_error"

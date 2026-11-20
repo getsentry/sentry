@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Collection
+from collections.abc import Collection, Mapping
 from enum import StrEnum
 from typing import TYPE_CHECKING, Any, Final
 
@@ -63,6 +63,8 @@ class SeerActionType(SentryAppActionType):
     PR_READY_FOR_REVIEW = "pr_ready_for_review"
     ITERATION_STARTED = "iteration_started"
     ITERATION_COMPLETED = "iteration_completed"
+    STOPPED = "stopped"
+    ERRORED = "errored"
 
 
 class PreprodArtifactActionType(SentryAppActionType):
@@ -112,6 +114,8 @@ EVENT_EXPANSION: Final[dict[SentryAppResourceType, list[SentryAppEventType]]] = 
         SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
         SentryAppEventType.SEER_ITERATION_STARTED,
         SentryAppEventType.SEER_ITERATION_COMPLETED,
+        SentryAppEventType.SEER_STOPPED,
+        SentryAppEventType.SEER_ERRORED,
     ],
     SentryAppResourceType.PREPROD_ARTIFACT: [
         SentryAppEventType.PREPROD_ARTIFACT_SIZE_ANALYSIS_COMPLETED,
@@ -162,7 +166,7 @@ def is_subscribed(stored_events: Collection[str], event: str) -> bool:
 
 
 def find_alert_rule_action_ui_component(
-    app_platform_event: AppPlatformEvent[dict[str, Any]],
+    app_platform_event: AppPlatformEvent[Mapping[str, Any]],
 ) -> bool:
     """
     Returns True if the metric alert event contains a sentry app action with UI component settings.

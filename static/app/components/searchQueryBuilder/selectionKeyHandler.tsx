@@ -1,16 +1,17 @@
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 
+import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils/defined';
+import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+
+import {useKeyboardSelection} from './hooks/useKeyboardSelection';
 import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderLayout,
   useSearchQueryBuilderState,
-} from 'sentry/components/searchQueryBuilder/context';
-import {useKeyboardSelection} from 'sentry/components/searchQueryBuilder/hooks/useKeyboardSelection';
-import {findNearestFreeTextKey} from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {defined} from 'sentry/utils/defined';
-import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
+} from './context';
+import {findNearestFreeTextKey} from './utils';
 
 type SelectionKeyHandlerProps = {
   gridRef: React.RefObject<HTMLDivElement | null>;
@@ -49,11 +50,7 @@ export function SelectionKeyHandler({
 
     const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
-    dispatch({
-      type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE',
-      tokens: selectedTokens,
-      text,
-    });
+    dispatch({type: 'REPLACE_TOKENS_WITH_TEXT_ON_PASTE', tokens: selectedTokens, text});
   };
 
   const onKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
@@ -147,10 +144,7 @@ export function SelectionKeyHandler({
         if ((e.key === '(' || e.key === ')') && selectedTokens.length > 0) {
           e.preventDefault();
           e.stopPropagation();
-          dispatch({
-            type: 'WRAP_TOKENS_WITH_PARENTHESES',
-            tokens: selectedTokens,
-          });
+          dispatch({type: 'WRAP_TOKENS_WITH_PARENTHESES', tokens: selectedTokens});
           state.selectionManager.clearSelection();
           return;
         }

@@ -11,7 +11,7 @@ import {getRetentionPriorityFields} from './retentionPrioritySettings';
 export function useSamplingPriorityMutationOptions(project: DetailedProject) {
   const organization = useOrganization();
   const {mutateAsync: updateProject} = useUpdateProject(project);
-  const priorityFields = getRetentionPriorityFields(organization);
+  const priorityFields = getRetentionPriorityFields();
   const mutationKey = ['project-sampling-priorities', project.id];
   const isUpdatingSamplingPriority = useIsMutating({mutationKey}) > 0;
 
@@ -21,10 +21,7 @@ export function useSamplingPriorityMutationOptions(project: DetailedProject) {
   const getMutationOptions = (priorityName: DynamicSamplingBiasType) => ({
     mutationKey,
     mutationFn: (data: Record<string, boolean>) => {
-      const updatedPriority = {
-        id: priorityName,
-        active: data[priorityName] ?? false,
-      };
+      const updatedPriority = {id: priorityName, active: data[priorityName] ?? false};
       const currentBiases = project.dynamicSamplingBiases ?? [];
       const hasCurrentPriority = currentBiases.some(bias => bias.id === priorityName);
 

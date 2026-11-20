@@ -8,7 +8,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {ErrorsConfig} from 'sentry/views/dashboards/datasetConfig/errors';
+
+import {ErrorsConfig} from './errors';
 
 const theme = ThemeFixture();
 
@@ -56,10 +57,7 @@ describe('ErrorsConfig', () => {
       expect(router.location.pathname).toBe(
         '/organizations/org-slug/dashboards/trace/abcd/'
       );
-      expect(router.location.query).toEqual({
-        source: 'dashboards',
-        statsPeriod: '14d',
-      });
+      expect(router.location.query).toEqual({source: 'dashboards', statsPeriod: '14d'});
     });
 
     it('links event ids to event details', async () => {

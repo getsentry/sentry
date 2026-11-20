@@ -59,12 +59,7 @@ const ORDERED_PLAN_TYPES = ['developer', 'team', 'business'];
 
 // TODO: this will need to be updated when Developer is surfaced in checkout
 const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
-  {
-    key: 'users',
-    displayStringMap: {
-      team: t('Unlimited users'),
-    },
-  },
+  {key: 'users', displayStringMap: {team: t('Unlimited users')}},
   {
     key: 'sso',
     displayStringMap: {
@@ -72,18 +67,8 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
       business: t('+ SAML and SCIM support'),
     },
   },
-  {
-    key: 'retention',
-    displayStringMap: {
-      team: t('Up to 90 day retention'),
-    },
-  },
-  {
-    key: 'integrations',
-    displayStringMap: {
-      developer: t('Third-party integrations'),
-    },
-  },
+  {key: 'retention', displayStringMap: {team: t('Up to 90 day retention')}},
+  {key: 'integrations', displayStringMap: {developer: t('Third-party integrations')}},
   {
     key: 'insights',
     displayStringMap: {
@@ -91,36 +76,11 @@ const EXPANSION_PACK_FEATURES: FeatureInfo[] = [
       business: t('+ 13 month sampled retention'),
     },
   },
-  {
-    key: 'codeowners',
-    displayStringMap: {
-      business: t('Code Owners and ownership rules'),
-    },
-  },
-  {
-    key: 'inbound-filters',
-    displayStringMap: {
-      business: t('Advanced inbound filtering'),
-    },
-  },
-  {
-    key: 'gh-multi-org',
-    displayStringMap: {
-      business: t('Multi-org support for GitHub'),
-    },
-  },
-  {
-    key: 'baa',
-    displayStringMap: {
-      business: t('Business Associate Agreement'),
-    },
-  },
-  {
-    key: 'relay',
-    displayStringMap: {
-      business: t('Relay'),
-    },
-  },
+  {key: 'codeowners', displayStringMap: {business: t('Code Owners and ownership rules')}},
+  {key: 'inbound-filters', displayStringMap: {business: t('Advanced inbound filtering')}},
+  {key: 'gh-multi-org', displayStringMap: {business: t('Multi-org support for GitHub')}},
+  {key: 'baa', displayStringMap: {business: t('Business Associate Agreement')}},
+  {key: 'relay', displayStringMap: {business: t('Relay')}},
 ];
 
 /**
@@ -200,14 +160,8 @@ function MonitoringAndDataFeatures({
   const featureKeyToInfo: Partial<
     Record<FeatureKey | DataCategory, Omit<FeatureInfo, 'key'>>
   > = {
-    alerts: {
-      displayStringSuffix: t(' Metric Monitors'),
-      displayStringMap: {},
-    },
-    dashboards: {
-      displayStringSuffix: t(' custom dashboards'),
-      displayStringMap: {},
-    },
+    alerts: {displayStringSuffix: t(' Metric Monitors'), displayStringMap: {}},
+    dashboards: {displayStringSuffix: t(' custom dashboards'), displayStringMap: {}},
   };
   const orderedKeys: FeatureKey[] = [];
 
@@ -240,9 +194,7 @@ function MonitoringAndDataFeatures({
         const formattedReserved = formatReservedWithUnits(
           minimumReserved,
           category as DataCategory,
-          {
-            isAbbreviated: true,
-          }
+          {isAbbreviated: true}
         );
         const displayString = `${formattedReserved} ${displayUnits}`;
         featureKeyToInfo[category as DataCategory] = {

@@ -3,22 +3,16 @@ import {queryOptions, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
 import {ExternalLink} from '@sentry/scraps/link';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {t, tct} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {selectJson} from 'sentry/utils/api/apiOptions';
 
 interface GitHubIntegrationInstallation {
-  account: {
-    login: string;
-    type: string;
-  };
-  sender: {
-    id: number;
-    login: string;
-  };
+  account: {login: string; type: string};
+  sender: {id: number; login: string};
 }
 
 // XXX: The GitHub installation info endpoint is the odd one out. Unlike the
@@ -49,9 +43,7 @@ function gitHubInstallationOptions(installationId: string) {
       );
       return {
         json: json as GitHubIntegrationInstallation,
-        headers: {
-          Link: response?.getResponseHeader('Link') ?? undefined,
-        },
+        headers: {Link: response?.getResponseHeader('Link') ?? undefined},
         status: response?.status,
       };
     },
@@ -79,7 +71,7 @@ export function GitHubInstallationCallout({installationId}: Props) {
 
   useEffect(() => {
     if (error) {
-      addErrorMessage(t('Failed to retrieve GitHub installation details'));
+      toast.error(t('Failed to retrieve GitHub installation details'));
     }
   }, [error]);
 

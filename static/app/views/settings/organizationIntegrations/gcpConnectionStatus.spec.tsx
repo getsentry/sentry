@@ -9,7 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {OrganizationIntegration} from 'sentry/types/integrations';
-import {GcpConnectionStatus} from 'sentry/views/settings/organizationIntegrations/gcpConnectionStatus';
+
+import {GcpConnectionStatus} from './gcpConnectionStatus';
 
 describe('GcpConnectionStatus', () => {
   const organization = OrganizationFixture();
@@ -213,11 +214,7 @@ describe('GcpConnectionStatus', () => {
   });
 
   it('still refreshes when the re-test request fails', async () => {
-    MockApiClient.addMockResponse({
-      url: VERIFY_URL,
-      method: 'POST',
-      statusCode: 502,
-    });
+    MockApiClient.addMockResponse({url: VERIFY_URL, method: 'POST', statusCode: 502});
     const onRetested = renderStatus({
       configData: {
         ...baseConfig,

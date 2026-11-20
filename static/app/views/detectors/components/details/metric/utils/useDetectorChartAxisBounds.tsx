@@ -68,9 +68,6 @@ export function useDetectorChartAxisBounds({
       minValue = Math.max(0, seriesMin - minPadding);
     }
 
-    return {
-      maxValue,
-      minValue,
-    };
+    return {maxValue, minValue};
   }, [series, thresholdMaxValue, aggregate]);
 }

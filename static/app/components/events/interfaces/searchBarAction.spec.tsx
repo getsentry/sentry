@@ -1,7 +1,8 @@
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {SearchBarAction} from 'sentry/components/events/interfaces/searchBarAction';
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+
+import {SearchBarAction} from './searchBarAction';
 
 const options: NonNullable<
   React.ComponentProps<typeof SearchBarAction>['filterOptions']
@@ -20,37 +21,21 @@ const options: NonNullable<
         label: 'Transaction',
         leadingItems: <span>transaction</span>,
       },
-      {
-        value: BreadcrumbType.UI,
-        label: 'User Action',
-        leadingItems: <span>ui</span>,
-      },
+      {value: BreadcrumbType.UI, label: 'User Action', leadingItems: <span>ui</span>},
       {
         value: BreadcrumbType.NAVIGATION,
         label: 'Navigation',
         leadingItems: <span>navigation</span>,
       },
-      {
-        value: BreadcrumbType.DEBUG,
-        label: 'Debug',
-        leadingItems: <span>debug</span>,
-      },
-      {
-        value: BreadcrumbType.ERROR,
-        label: 'Error',
-        leadingItems: <span>error</span>,
-      },
+      {value: BreadcrumbType.DEBUG, label: 'Debug', leadingItems: <span>debug</span>},
+      {value: BreadcrumbType.ERROR, label: 'Error', leadingItems: <span>error</span>},
     ],
   },
   {
     value: 'levels',
     label: 'Levels',
     options: [
-      {
-        value: BreadcrumbLevelType.INFO,
-        label: 'info',
-        leadingItems: <span>info</span>,
-      },
+      {value: BreadcrumbLevelType.INFO, label: 'info', leadingItems: <span>info</span>},
       {
         value: BreadcrumbLevelType.ERROR,
         label: 'error',

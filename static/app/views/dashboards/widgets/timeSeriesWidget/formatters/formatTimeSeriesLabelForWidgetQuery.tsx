@@ -4,7 +4,8 @@ import type {Widget, WidgetQuery} from 'sentry/views/dashboards/types';
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {prettifyQueryConditions} from 'sentry/views/dashboards/utils/prettifyQueryConditions';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
+
+import {formatTimeSeriesLabel} from './formatTimeSeriesLabel';
 
 /**
  * Build the legend label that ``visualizationWidget`` would show for a

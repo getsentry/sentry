@@ -13,8 +13,9 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricSelector} from 'sentry/views/explore/metrics/metricToolbar/metricSelector/metricSelector';
 import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
+
+import {MetricSelector} from './metricSelector';
 
 const SORTED_METRIC_NAMES = [
   'bar',
@@ -516,11 +517,7 @@ describe('MetricSelector', () => {
               [`max(${TraceMetricKnownFieldKey.TIMESTAMP_PRECISE})`]: 1736507580000000000,
             },
           ],
-          meta: {
-            fields: {},
-            units: {},
-            dataScanned: 'full',
-          },
+          meta: {fields: {}, units: {}, dataScanned: 'full'},
         },
         match: [
           MockApiClient.matchQuery({
@@ -532,13 +529,7 @@ describe('MetricSelector', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/trace-items/attributes/`,
         method: 'GET',
-        body: [
-          {
-            attributeType: 'string',
-            key: 'release',
-            name: 'release',
-          },
-        ],
+        body: [{attributeType: 'string', key: 'release', name: 'release'}],
       });
 
       render(
@@ -579,6 +570,25 @@ describe('MetricSelector', () => {
       await waitFor(() => {
         expect(onChange).toHaveBeenCalledWith(
           expect.objectContaining({name: SORTED_METRIC_NAMES[0]})
+        );
+      });
+    });
+
+    it('skips options the caller excludes when auto-selecting', async () => {
+      const onChange = jest.fn();
+
+      render(
+        <MetricSelector
+          traceMetric={{name: '', type: ''}}
+          onChange={onChange}
+          skipDefaultOption={option => option.metricName === SORTED_METRIC_NAMES[0]}
+        />,
+        {organization}
+      );
+
+      await waitFor(() => {
+        expect(onChange).toHaveBeenCalledWith(
+          expect.objectContaining({name: SORTED_METRIC_NAMES[1]})
         );
       });
     });

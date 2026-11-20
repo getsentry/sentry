@@ -1,5 +1,6 @@
 import {useState} from 'react';
 import {useTheme} from '@emotion/react';
+import {useQuery} from '@tanstack/react-query';
 
 import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {EmptyMessage} from 'sentry/components/emptyMessage';
@@ -10,22 +11,13 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 
-type KeyStatPoint = {
-  accepted: number;
-  dropped: number;
-  total: number;
-  ts: number;
-};
+type KeyStatPoint = {accepted: number; dropped: number; total: number; ts: number};
 
-type DerivedStats = {
-  emptyStats: boolean;
-  series: Series[];
-};
+type DerivedStats = {emptyStats: boolean; series: Series[]};
 
 function deriveStats(data: KeyStatPoint[]): DerivedStats {
   let emptyStats = true;
@@ -41,14 +33,8 @@ function deriveStats(data: KeyStatPoint[]): DerivedStats {
   });
 
   const series: Series[] = [
-    {
-      seriesName: t('Accepted'),
-      data: accepted,
-    },
-    {
-      seriesName: t('Rate Limited'),
-      data: dropped,
-    },
+    {seriesName: t('Accepted'), data: accepted},
+    {seriesName: t('Rate Limited'), data: dropped},
   ];
 
   return {series, emptyStats};
@@ -61,24 +47,22 @@ export function KeyStats() {
 
   const [queryBase] = useState(() => {
     const until = Math.floor(Date.now() / 1000);
-    return {
-      since: until - 3600 * 24 * 30,
-      until,
-    };
+    return {since: until - 3600 * 24 * 30, until};
   });
 
-  const {data, isPending, isError, refetch} = useApiQuery<KeyStatPoint[]>(
-    [
-      getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/', {
+  const {data, isPending, isError, refetch} = useQuery(
+    apiOptions.as<KeyStatPoint[]>()(
+      '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/stats/',
+      {
         path: {
           organizationIdOrSlug: organization.slug,
           projectIdOrSlug: projectId,
           keyId,
         },
-      }),
-      {query: {...queryBase, resolution: '1d'}},
-    ],
-    {staleTime: 0}
+        query: {...queryBase, resolution: '1d'},
+        staleTime: 0,
+      }
+    )
   );
 
   if (isError) {

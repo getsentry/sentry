@@ -23,8 +23,9 @@ import {
   WidgetContainer,
 } from 'sentry/views/explore/profiling/landing/styles';
 import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import {ReplayPanel} from 'sentry/views/explore/replays/list/replayPanel';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {ReplayPanel} from './replayPanel';
 
 export function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
@@ -217,10 +218,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
       >
         <LinkButton
           data-test-id="create-project-btn"
-          to={makeProjectsPathname({
-            path: '/new/',
-            organization,
-          })}
+          to={makeProjectsPathname({path: '/new/', organization})}
           variant="primary"
           disabled={disabled}
         >

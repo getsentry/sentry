@@ -1,4 +1,5 @@
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types/organization';
+
 import {
   filterSessionsInTimeWindow,
   getCount,
@@ -6,7 +7,7 @@ import {
   getCrashFreeRate,
   getSessionsInterval,
   getSessionStatusRate,
-} from 'sentry/utils/sessions';
+} from './sessions';
 
 const sessionsApiResponse = {
   start: '2021-07-09T23:00:00Z',
@@ -195,10 +196,7 @@ describe('utils/sessions', () => {
     it('>= 60 days', () => {
       expect(getSessionsInterval({period: '60d'})).toBe('1d');
       expect(
-        getSessionsInterval({
-          start: '2021-07-19T15:14:23Z',
-          end: '2021-10-19T15:14:23Z',
-        })
+        getSessionsInterval({start: '2021-07-19T15:14:23Z', end: '2021-10-19T15:14:23Z'})
       ).toBe('1d');
     });
 
@@ -233,10 +231,7 @@ describe('utils/sessions', () => {
 
     it('falls back to 1h if start is older than 30d', () => {
       expect(
-        getSessionsInterval({
-          start: '2017-09-15T02:41:20Z',
-          end: '2017-09-15T02:42:20Z',
-        })
+        getSessionsInterval({start: '2017-09-15T02:41:20Z', end: '2017-09-15T02:42:20Z'})
       ).toBe('1h');
     });
   });

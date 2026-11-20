@@ -17,7 +17,7 @@ import {Button} from '@sentry/scraps/button';
 import {Container, Flex, Stack, type StackProps} from '@sentry/scraps/layout';
 import {Heading} from '@sentry/scraps/text';
 
-import {ResourceLink} from 'sentry/components/seer/markdown/embeds/components/resourceLink';
+import {ResourceLink} from './resourceLink';
 
 /**
  * The header's link out, as a group. A block either names a page in Sentry and

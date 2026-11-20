@@ -107,7 +107,7 @@ class JiraSearchEndpoint(IntegrationEndpoint):
             ).capture() as lifecycle:
                 lifecycle.add_extra("field", field)
                 try:
-                    response = jira_client.search_users_for_project(
+                    users_response = jira_client.search_users_for_project(
                         request.GET.get("project", ""), query
                     )
                 except (ApiUnauthorized, ApiError) as e:
@@ -115,7 +115,8 @@ class JiraSearchEndpoint(IntegrationEndpoint):
                     return Response({"detail": "Unable to fetch users from Jira"}, status=400)
 
             user_tuples = filter(
-                None, [build_user_choice(user, jira_client.user_id_field()) for user in response]
+                None,
+                [build_user_choice(user, jira_client.user_id_field()) for user in users_response],
             )
             users = [{"value": user_id, "label": display} for user_id, display in user_tuples]
             return Response(users)

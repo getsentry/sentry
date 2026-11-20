@@ -6,8 +6,9 @@ import {t, tct} from 'sentry/locale';
 import type {Action, ActionHandler} from 'sentry/types/workflowEngine/actions';
 import {ActionType} from 'sentry/types/workflowEngine/actions';
 import {useActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {IntegrationField} from 'sentry/views/automations/components/actions/integrationField';
-import {ServiceField} from 'sentry/views/automations/components/actions/serviceField';
+
+import {IntegrationField} from './integrationField';
+import {ServiceField} from './serviceField';
 
 const PAGERDUTY_SEVERITIES = ['default', 'critical', 'warning', 'error', 'info'];
 
@@ -53,14 +54,9 @@ function SeverityField() {
       name={`${actionId}.data.priority`}
       aria-label={t('Severity')}
       value={action.data.priority}
-      options={PAGERDUTY_SEVERITIES.map(severity => ({
-        label: severity,
-        value: severity,
-      }))}
+      options={PAGERDUTY_SEVERITIES.map(severity => ({label: severity, value: severity}))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          data: {priority: option.value},
-        });
+        onUpdate({data: {priority: option.value}});
       }}
     />
   );

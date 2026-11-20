@@ -12,9 +12,6 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {FunctionDescription} from 'sentry/components/searchQueryBuilder/tokens/filter/functionDescription';
-import {replaceCommaSeparatedValue} from 'sentry/components/searchQueryBuilder/tokens/filter/replaceCommaSeparatedValue';
-import {useAggregateParamVisual} from 'sentry/components/searchQueryBuilder/tokens/filter/useAggregateParamVisual';
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import {resolveFilterKey} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
@@ -27,6 +24,10 @@ import {defined} from 'sentry/utils/defined';
 import type {FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 
+import {FunctionDescription} from './functionDescription';
+import {replaceCommaSeparatedValue} from './replaceCommaSeparatedValue';
+import {useAggregateParamVisual} from './useAggregateParamVisual';
+
 type ParametersComboboxProps = {
   onCommit: () => void;
   onDelete: () => void;
@@ -38,11 +39,7 @@ type ParametersComboboxProps = {
   ) => void;
 };
 
-type SuggestionItem = {
-  value: string;
-  description?: ReactNode;
-  label?: ReactNode;
-};
+type SuggestionItem = {value: string; description?: ReactNode; label?: ReactNode};
 
 function getInitialInputValue(token: AggregateFilter) {
   if ('args' in token.key) {
@@ -152,10 +149,7 @@ function useSelectionIndex({
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [inputValue, updateSelectionIndex]);
 
-  return {
-    selectionIndex,
-    updateSelectionIndex,
-  };
+  return {selectionIndex, updateSelectionIndex};
 }
 
 function useParameterSuggestions({
@@ -335,12 +329,7 @@ export function SearchQueryBuilderParametersCombobox({
         parameterIndex
       );
 
-      dispatch({
-        type: 'UPDATE_AGGREGATE_ARGS',
-        token,
-        value: newValue,
-        focusOverride,
-      });
+      dispatch({type: 'UPDATE_AGGREGATE_ARGS', token, value: newValue, focusOverride});
       updateInputValue(newValue);
       if (!defined(focusOverride)) {
         const newCursorPosition = getCursorPositionAtEndOfParameter(

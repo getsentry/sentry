@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {IconInfo} from '@sentry/icons/info';
 import {IconLightning} from '@sentry/icons/lightning';
-import {IconQuestion} from '@sentry/icons/question';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -72,7 +72,7 @@ export function PerformanceHovercard() {
       body={renderHovercardBody()}
     >
       <IconContainer>
-        <IconQuestion size="xs" variant="muted" />
+        <IconInfo size="xs" variant="muted" />
       </IconContainer>
     </StyledHovercard>
   );
@@ -175,9 +175,7 @@ export function VolumeSliders({
                       {formatReservedWithUnits(
                         currentSliderValues[category] ?? null,
                         category,
-                        {
-                          isAbbreviated: !isByteCategory(category),
-                        }
+                        {isAbbreviated: !isByteCategory(category)}
                       )}
                     </Text>
                     <div>

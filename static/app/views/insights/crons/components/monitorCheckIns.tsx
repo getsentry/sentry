@@ -7,6 +7,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import type {Project} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getNextCheckInEnv} from 'sentry/utils/monitor/cron';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {MonitorEnvironment} from 'sentry/views/insights/crons/types';
@@ -14,11 +15,7 @@ import {monitorCheckInsApiOptions} from 'sentry/views/insights/crons/utils/monit
 
 import {MonitorCheckInsGrid} from './monitorCheckInsGrid';
 
-type Props = {
-  monitorEnvs: MonitorEnvironment[];
-  monitorSlug: string;
-  project: Project;
-};
+type Props = {monitorEnvs: MonitorEnvironment[]; monitorSlug: string; project: Project};
 
 const PER_PAGE = 10;
 
@@ -61,7 +58,7 @@ export function MonitorCheckIns({monitorSlug, monitorEnvs, project}: Props) {
         hasMultiEnv={hasMultiEnv}
         project={project}
       />
-      <Pagination pageLinks={data?.headers.Link} />
+      <Pagination {...getPaginationProps(data?.headers.Link)} />
     </Fragment>
   );
 }

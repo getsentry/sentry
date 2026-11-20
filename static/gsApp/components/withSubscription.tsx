@@ -1,6 +1,7 @@
 import {Component} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import {getDisplayName} from 'sentry/utils/getDisplayName';
@@ -9,9 +10,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 import type {Subscription} from 'getsentry/types';
 
-type InjectedSubscriptionProps = {
-  subscription: Subscription;
-};
+type InjectedSubscriptionProps = {subscription: Subscription};
 
 type DependentProps = {
   organization?: Organization;
@@ -28,9 +27,7 @@ type Options = {
   noLoader?: boolean;
 };
 
-type State = {
-  subscription?: Subscription;
-};
+type State = {loadFailed: boolean; subscription?: Subscription};
 
 /**
  * HoC to inject the subscription object into the wrapped component. The
@@ -50,9 +47,7 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
   > {
     static displayName = `withSubscription(${getDisplayName(WrappedComponent)})`;
 
-    state: State = {
-      subscription: this.props.subscription,
-    };
+    state: State = {loadFailed: false, subscription: this.props.subscription};
 
     componentDidMount() {
       this.mounted = true;
@@ -62,13 +57,16 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
         // oxlint-disable-next-line react/no-did-mount-set-state -- Legacy class lifecycle.
         this.setState({subscription: this.props.subscription});
       } else {
-        SubscriptionStore.get(orgSlug, (subscription: Subscription) => {
-          if (!this.mounted) {
-            return;
-          }
-          this.setState({subscription});
-          this.configureScopeWithSubscriptionData(subscription);
-        });
+        this.checkLoadResult(
+          orgSlug,
+          SubscriptionStore.get(orgSlug, (subscription: Subscription) => {
+            if (!this.mounted) {
+              return;
+            }
+            this.setState({subscription});
+            this.configureScopeWithSubscriptionData(subscription);
+          })
+        );
       }
     }
 
@@ -77,11 +75,31 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
       this.unsubscribe();
     }
 
-    unsubscribe = SubscriptionStore.listen(
-      (subscription: Subscription) => this.onSubscriptionChange(subscription),
-      undefined
-    );
+    unsubscribe = SubscriptionStore.subscribe((state, prevState) => {
+      for (const [orgSlug, subscription] of Object.entries(state)) {
+        if (subscription !== prevState[orgSlug]) {
+          this.onSubscriptionChange(subscription);
+        }
+      }
+    });
     private mounted = false;
+
+    async checkLoadResult(orgSlug: string, load: Promise<void>) {
+      await load;
+      if (this.mounted && SubscriptionStore.errors[orgSlug] !== undefined) {
+        this.setState({loadFailed: true});
+      }
+    }
+
+    // The subscription arrives through the store listener, so no callback is queued.
+    handleRetry = () => {
+      const orgSlug = this.getOrgSlug();
+      if (orgSlug === null) {
+        return;
+      }
+      this.setState({loadFailed: false});
+      this.checkLoadResult(orgSlug, SubscriptionStore.loadData(orgSlug));
+    };
 
     configureScopeWithSubscriptionData(subscription: Subscription) {
       const {plan, totalMembers, planDetails} = subscription;
@@ -93,12 +111,12 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
 
     onSubscriptionChange(subscription: Subscription) {
       if (subscription && this.mounted) {
-        this.setState({subscription});
+        this.setState({subscription, loadFailed: false});
         this.configureScopeWithSubscriptionData(subscription);
       }
     }
 
-    getOrgSlug() {
+    getOrgSlug(): string | null {
       if (this.props.params?.orgId) {
         return this.props.params.orgId;
       }
@@ -110,11 +128,18 @@ export function withSubscription<P extends InjectedSubscriptionProps>(
     }
 
     render() {
-      const {subscription} = this.state;
+      const {subscription, loadFailed} = this.state;
       const {organization, ...otherProps} = this.props;
 
       if (subscription === undefined) {
-        return !noLoader && <LoadingIndicator />;
+        if (noLoader) {
+          return null;
+        }
+        return loadFailed ? (
+          <LoadingError onRetry={this.handleRetry} />
+        ) : (
+          <LoadingIndicator />
+        );
       }
       // Needed to solve type errors with DisabledDateRange hook.
       if (organization === undefined) {

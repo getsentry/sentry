@@ -1,5 +1,6 @@
 import {Outlet, useOutletContext} from 'react-router';
 import {useQuery} from '@tanstack/react-query';
+import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 
@@ -9,7 +10,6 @@ import {t} from 'sentry/locale';
 import type {Member} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {useProjectMembersQueryOptions} from 'sentry/utils/members/projectMembers';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -18,10 +18,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useScrollToTop} from 'sentry/utils/useScrollToTop';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 
-type AlertBuilderOutletContext = {
-  members: Member[] | undefined;
-  project: Project;
-};
+type AlertBuilderOutletContext = {members: Member[] | undefined; project: Project};
 
 function AlertBuilderOutlet(props: AlertBuilderOutletContext) {
   return <Outlet context={props} />;
@@ -36,9 +33,13 @@ export default function AlertBuilderProjectProvider() {
   const location = useLocation();
   const params = useParams<{projectId?: string}>();
   const navigate = useNavigate();
+  const [{project: projectParam, referrer}] = useQueryStates({
+    project: parseAsString,
+    referrer: parseAsString,
+  });
   useScrollToTop({location});
 
-  const projectId = params.projectId || decodeScalar(location.query.project);
+  const projectId = params.projectId || projectParam || undefined;
   const useFirstProject = projectId === undefined;
 
   const {projects, initiallyLoaded, fetching, fetchError} = useProjects();
@@ -58,10 +59,8 @@ export default function AlertBuilderProjectProvider() {
   // If there's no project show the project selector modal
   if (!project && !fetchError) {
     navigateTo(
-      makeAlertsPathname({
-        path: '/wizard/',
-        organization,
-      }) + `?referrer=${location.query.referrer}&project=:projectId`,
+      makeAlertsPathname({path: '/wizard/', organization}) +
+        `?referrer=${referrer ?? undefined}&project=:projectId`,
       navigate,
       location
     );

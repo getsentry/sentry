@@ -644,9 +644,7 @@ describe('ScmMessagingProviderRow', () => {
       await userEvent.click(screen.getByRole('button', {name: /Set up/}));
 
       expect(renderChannelPicker).toHaveBeenCalledWith(
-        expect.objectContaining({
-          integrations: [msteamsTeamIntegration],
-        })
+        expect.objectContaining({integrations: [msteamsTeamIntegration]})
       );
     });
 
@@ -738,9 +736,7 @@ describe('ScmMessagingProviderRow', () => {
 
       expect(screen.getByText('channel-picker')).toBeInTheDocument();
       expect(renderChannelPicker).toHaveBeenCalledWith(
-        expect.objectContaining({
-          onCancel: expect.any(Function),
-        })
+        expect.objectContaining({onCancel: expect.any(Function)})
       );
     });
   });

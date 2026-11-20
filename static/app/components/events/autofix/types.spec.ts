@@ -1,9 +1,4 @@
-import {
-  DiffFileType,
-  DiffLineType,
-  isFilePatch,
-  type FilePatch,
-} from 'sentry/components/events/autofix/types';
+import {DiffFileType, DiffLineType, isFilePatch, type FilePatch} from './types';
 
 function makeValidDiffLine(): FilePatch['hunks'][number]['lines'][number] {
   return {
@@ -63,10 +58,7 @@ describe('isFilePatch', () => {
 
   it('returns false when hunks contain invalid entries', () => {
     expect(
-      isFilePatch({
-        ...makeValidFilePatch(),
-        hunks: [{lines: [], source_start: 1}],
-      })
+      isFilePatch({...makeValidFilePatch(), hunks: [{lines: [], source_start: 1}]})
     ).toBe(false);
   });
 

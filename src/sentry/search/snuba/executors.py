@@ -120,7 +120,7 @@ class PostgresSortStrategy:
     # Optional cap-free path: return (queryset, order_by_key) for a native Postgres ORDER BY
     # so the sort can page past the in-memory candidate cap. None for Snuba-blended strategies
     # (e.g. recommended_v2) whose ordering can't be expressed entirely in Postgres.
-    native_order_by: Callable[[BaseQuerySet], tuple[BaseQuerySet, str]] | None = None
+    native_order_by: Callable[[BaseQuerySet[Group]], tuple[BaseQuerySet[Group], str]] | None = None
 
 
 # we cannot use snuba for these fields because they require a join with tables that don't exist there
@@ -216,7 +216,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable]:
+    def aggregation_defs(self) -> Mapping[str, Sequence[str] | Callable[..., Sequence[str]]]:
         """This method should return a dict of key:value
         where key is a field name for your aggregation
         and value is the aggregation function"""
@@ -256,7 +256,7 @@ class AbstractQueryExecutor(metaclass=ABCMeta):
         self,
         projects: Sequence[Project],
         retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group],
         environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
@@ -1155,7 +1155,9 @@ def _resolve_last_progressed_at(
     return {group_id: ts.timestamp() * 1000 for group_id, ts in rows if ts is not None}
 
 
-def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str]:
+def _progress_native_order_by(
+    queryset: BaseQuerySet[Group],
+) -> tuple[BaseQuerySet[Group], str]:
     """SQL reproduction of progress_strategy().score_fn so the sort can ORDER BY it natively
     (no in-memory candidate cap). ``.extra`` (not ``.annotate``) lets the cursor Paginator
     reuse the alias SQL in its WHERE clause; the ``-id`` tiebreak gives equal scores a total
@@ -1185,12 +1187,12 @@ def _progress_native_order_by(queryset: BaseQuerySet) -> tuple[BaseQuerySet, str
         " END)"
     )
     # F() on the nullable reverse OneToOne forces the LEFT OUTER JOIN the raw SQL relies on.
-    queryset = (
+    ordered = (
         queryset.annotate(_gdd_join=F("groupderiveddata__progress"))
         .extra(select={"progress_sort_score": sql}, select_params=params)
         .order_by("-progress_sort_score", "-id")
     )
-    return queryset, "-progress_sort_score"
+    return cast("BaseQuerySet[Group]", ordered), "-progress_sort_score"
 
 
 def progress_strategy() -> PostgresSortStrategy:
@@ -1274,16 +1276,16 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
 
     def _apply_type_visibility_filter(
         self,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group],
         search_filters: Sequence[SearchFilter] | None,
-    ) -> BaseQuerySet:
+    ) -> BaseQuerySet[Group]:
         return group_queryset.filter(type__in=group_types_from(search_filters))
 
     def _execute_postgres_sort(
         self,
         strategy: PostgresSortStrategy,
         sort_by: str,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group],
         projects: Sequence[Project],
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter] | None,
@@ -1340,9 +1342,12 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
                 attributes={"sentry.op": "search.postgres_sort.native_order_by"},
             ):
                 ordered_queryset, order_by = strategy.native_order_by(group_queryset)
-                return Paginator(
-                    ordered_queryset.using_replica(), order_by=order_by, **paginator_options
-                ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+                return cast(
+                    CursorResult[Group],
+                    Paginator(
+                        ordered_queryset.using_replica(), order_by=order_by, **paginator_options
+                    ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+                )
 
         max_candidates = options.get("snuba.search.max-pre-snuba-candidates")
         with traces.start_span(
@@ -1496,14 +1501,19 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         ).get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        return paginator_results
+        return CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
     def _execute_inverted_chunk_sort(
         self,
         *,
         strategy: PostgresSortStrategy,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group],
         projects: Sequence[Project],
         environments: Sequence[Environment] | None,
         search_filters: Sequence[SearchFilter] | None,
@@ -1707,14 +1717,19 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             sentry_sdk.set_tag("search.progress_inverted_budget_exhausted", "true")
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
-        return paginator_results
+        return CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
     def query(
         self,
         projects: Sequence[Project],
         retention_window_start: datetime | None,
-        group_queryset: BaseQuerySet,
+        group_queryset: BaseQuerySet[Group],
         environments: Sequence[Environment] | None,
         sort_by: str,
         limit: int,
@@ -1855,7 +1870,10 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             paginator = DateTimePaginator(group_queryset, "-last_seen", **paginator_options)
 
             # When it's a simple django-only search, we count_hits like normal
-            results = paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits)
+            results = cast(
+                CursorResult[Group],
+                paginator.get_result(limit, cursor, count_hits=count_hits, max_hits=max_hits),
+            )
             metrics.timing(
                 "snuba.search.query",
                 (timezone.now() - now).total_seconds(),
@@ -1939,7 +1957,7 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
             else:
                 return self.empty_result
 
-        paginator_results = self.empty_result
+        paginator_results: CursorResult[Group] | CursorResult[int] = self.empty_result
         result_groups: list[tuple[int, Any]] = []
         result_group_ids: set[int] = set()
 
@@ -2055,7 +2073,13 @@ class PostgresSnubaQueryExecutor(AbstractQueryExecutor):
         metrics.distribution("snuba.search.num_chunks", num_chunks)
 
         groups = Group.objects.in_bulk(paginator_results.results)
-        paginator_results.results = [groups[k] for k in paginator_results.results if k in groups]
+        paginator_results = CursorResult(
+            results=[groups[k] for k in paginator_results.results if k in groups],
+            next=paginator_results.next,
+            prev=paginator_results.prev,
+            hits=paginator_results.hits,
+            max_hits=paginator_results.max_hits,
+        )
 
         metrics.timing(
             "snuba.search.query",

@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import AdminOrganizations from 'sentry/views/admin/adminOrganizations';
+import AdminOrganizations from './adminOrganizations';
 
 describe('AdminOrganizations', () => {
   it('loads organizations with the selected sort and renders them in a table', async () => {
@@ -17,10 +17,7 @@ describe('AdminOrganizations', () => {
 
     render(<AdminOrganizations />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/manage/organizations/',
-          query: {sortBy: 'members'},
-        },
+        location: {pathname: '/manage/organizations/', query: {sortBy: 'members'}},
       },
     });
 

@@ -1,15 +1,8 @@
-import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {getRouteStringFromRoutes} from './getRouteStringFromRoutes';
 
 describe('getRouteStringFromRoutes', () => {
   const matches = [
-    {
-      handle: {path: '/'},
-      id: '1',
-      pathname: '/',
-      params: {},
-      data: {},
-      loaderData: {},
-    },
+    {handle: {path: '/'}, id: '1', pathname: '/', params: {}, data: {}, loaderData: {}},
     {
       handle: {path: '/:orgId/'},
       id: '2',

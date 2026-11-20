@@ -11,8 +11,9 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {BreadcrumbLevelType} from 'sentry/types/breadcrumbs';
 import type {useCrumbHandlers} from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
-import {MessageFormatter} from 'sentry/views/explore/replays/detail/console/messageFormatter';
 import {TimestampButton} from 'sentry/views/explore/replays/detail/timestampButton';
+
+import {MessageFormatter} from './messageFormatter';
 
 interface Props extends ReturnType<typeof useCrumbHandlers> {
   currentHoverTime: number | undefined;
@@ -90,10 +91,7 @@ export function ConsoleLogRow({
   );
 }
 
-const ConsoleLog = styled('div')<{
-  hasOccurred: boolean;
-  level: undefined | string;
-}>`
+const ConsoleLog = styled('div')<{hasOccurred: boolean; level: undefined | string}>`
   display: grid;
   grid-template-columns: 12px 1fr max-content;
   gap: ${p => p.theme.space.sm};

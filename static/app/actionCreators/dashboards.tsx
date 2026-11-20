@@ -1,7 +1,8 @@
 import type {QueryClient} from '@tanstack/react-query';
 import omit from 'lodash/omit';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -34,10 +35,7 @@ export function fetchDashboards(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
       path: {organizationIdOrSlug: orgSlug},
     }),
-    {
-      method: 'GET',
-      query: {sort: 'myDashboardsAndRecentlyViewed', ...query},
-    }
+    {method: 'GET', query: {sort: 'myDashboardsAndRecentlyViewed', ...query}}
   );
 
   promise.catch(response => {
@@ -46,9 +44,9 @@ export function fetchDashboards(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to fetch dashboards'));
+      toast.error(t('Unable to fetch dashboards'));
     }
   });
 
@@ -60,8 +58,18 @@ export function createDashboard(
   orgSlug: string,
   newDashboard: DashboardDetails
 ): Promise<DashboardDetails> {
-  const {title, widgets, projects, environment, period, start, end, filters, utc} =
-    newDashboard;
+  const {
+    title,
+    widgets,
+    projects,
+    environment,
+    period,
+    start,
+    end,
+    filters,
+    utc,
+    queryPriority,
+  } = newDashboard;
 
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/', {
@@ -79,11 +87,9 @@ export function createDashboard(
         end,
         filters,
         utc,
+        ...(queryPriority ? {queryPriority} : {}),
       },
-      query: {
-        project: projects,
-        environment,
-      },
+      query: {project: projects, environment},
     }
   );
 
@@ -93,9 +99,9 @@ export function createDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to create dashboard'));
+      toast.error(t('Unable to create dashboard'));
     }
   });
 
@@ -127,13 +133,7 @@ export function validateDashboard(
       filters,
       utc,
     },
-    options: {
-      query: {
-        validateOnly: '1',
-        project: projects,
-        environment,
-      },
-    },
+    options: {query: {validateOnly: '1', project: projects, environment}},
   });
 }
 
@@ -146,9 +146,7 @@ export function updateDashboardVisit(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/visit/', {
       path: {organizationIdOrSlug: orgId, dashboardId: String(dashboardId)},
     }),
-    {
-      method: 'POST',
-    }
+    {method: 'POST'}
   );
 
   return promise;
@@ -172,27 +170,20 @@ export async function updateDashboardFavorite(
           },
         }
       ),
-      {
-        method: 'PUT',
-        data: {
-          shouldFavorite: isFavorited,
-        },
-      }
+      {method: 'PUT', data: {shouldFavorite: isFavorited}}
     );
-    queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
-    });
-    addSuccessMessage(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
+    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
+    toast.success(isFavorited ? t('Added as favorite') : t('Removed as favorite'));
   } catch (response) {
     const errorResponse =
       response instanceof RequestError ? response?.responseJSON : null;
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else if (isFavorited) {
-      addErrorMessage(t('Unable to favorite dashboard'));
+      toast.error(t('Unable to favorite dashboard'));
     } else {
-      addErrorMessage(t('Unable to unfavorite dashboard'));
+      toast.error(t('Unable to unfavorite dashboard'));
     }
     throw response;
   }
@@ -207,9 +198,7 @@ export function fetchDashboard(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: orgId, dashboardId},
     }),
-    {
-      method: 'GET',
-    }
+    {method: 'GET'}
   );
 
   promise.catch(response => {
@@ -218,9 +207,9 @@ export function fetchDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to load dashboard'));
+      toast.error(t('Unable to load dashboard'));
     }
   });
   return promise;
@@ -269,12 +258,7 @@ export function updateDashboard(
     }),
     method: 'PUT',
     data,
-    options: {
-      query: {
-        project: projects,
-        environment,
-      },
-    },
+    options: {query: {project: projects, environment}},
   });
 
   // We let the callers of `updateDashboard` handle adding a success message, so
@@ -287,7 +271,7 @@ export function updateDashboard(
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
       const error = errors[Object.keys(errors)[0]!] as string;
-      addErrorMessage(
+      toast.error(
         STALE_DASHBOARD_ERRORS.includes(error)
           ? t(
               'This dashboard may have been updated somewhere else. Refresh the page and try again.'
@@ -295,7 +279,7 @@ export function updateDashboard(
           : error
       );
     } else {
-      addErrorMessage(t('Unable to update dashboard'));
+      toast.error(t('Unable to update dashboard'));
     }
   });
 
@@ -312,15 +296,11 @@ export function deleteDashboard(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: organization.slug, dashboardId},
     }),
-    {
-      method: 'DELETE',
-    }
+    {method: 'DELETE'}
   );
 
   promise.then(() => {
-    queryClient.invalidateQueries({
-      queryKey: getStarredDashboardsQueryKey(organization),
-    });
+    queryClient.invalidateQueries({queryKey: getStarredDashboardsQueryKey(organization)});
   });
 
   promise.catch(response => {
@@ -329,9 +309,9 @@ export function deleteDashboard(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!] as string);
+      toast.error(errors[Object.keys(errors)[0]!] as string);
     } else {
-      addErrorMessage(t('Unable to delete dashboard'));
+      toast.error(t('Unable to delete dashboard'));
     }
   });
 
@@ -384,9 +364,9 @@ export function updateDashboardTitle(
 
     if (errorResponse) {
       const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
+      toast.error(errors[Object.keys(errors)[0]!]! as string);
     } else {
-      addErrorMessage(t('Unable to rename dashboard'));
+      toast.error(t('Unable to rename dashboard'));
     }
   });
 
@@ -399,32 +379,28 @@ export function updateDashboardPermissions(
   dashboard: DashboardDetails | DashboardListItem
 ): Promise<DashboardDetails> {
   const {permissions} = dashboard;
-  const data = {
-    permissions,
-  };
+  const data = {permissions};
   const promise: Promise<DashboardDetails> = api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
       path: {organizationIdOrSlug: orgId, dashboardId: dashboard.id},
     }),
-    {
-      method: 'PUT',
-      data,
-    }
+    {method: 'PUT', data}
   );
 
-  promise.catch(response => {
-    const errorResponse =
-      response instanceof RequestError ? response?.responseJSON : null;
-
-    if (errorResponse) {
-      const errors = flattenErrors(errorResponse, {});
-      addErrorMessage(errors[Object.keys(errors)[0]!]! as string);
-    } else {
-      addErrorMessage(t('Unable to update dashboard permissions'));
-    }
-  });
+  promise.catch(showDashboardPermissionsError);
 
   return promise;
+}
+
+export function showDashboardPermissionsError(response: unknown) {
+  const errorResponse = response instanceof RequestError ? response?.responseJSON : null;
+
+  if (errorResponse) {
+    const errors = flattenErrors(errorResponse, {});
+    toast.error(errors[Object.keys(errors)[0]!]! as string);
+  } else {
+    toast.error(t('Unable to update dashboard permissions'));
+  }
 }
 
 export function validateWidget(
@@ -472,10 +448,7 @@ function _enforceWidgetLimit(widget: Widget) {
     // The default we historically assign for charts with a grouping is 5,
     // continue using that default unless there are conditions which make 5
     // too large to automatically apply.
-    return {
-      ...widget,
-      limit: Math.min(maxLimit, TOP_N),
-    };
+    return {...widget, limit: Math.min(maxLimit, TOP_N)};
   }
 
   if (hasColumns && defined(widget.limit) && widget.limit > maxLimit) {

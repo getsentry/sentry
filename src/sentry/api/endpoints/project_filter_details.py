@@ -1,4 +1,5 @@
 from collections.abc import Iterable
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
@@ -19,6 +20,10 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.ingest import inbound_filters
 from sentry.ingest.inbound_filters import FilterStatKeys, _LegacyBrowserFilterSerializer
+from sentry.models.project import Project
+from sentry.timeseries_annotations.producers.inbound_filters import (
+    record_builtin_filter_change_as_annotation,
+)
 
 
 @extend_schema(tags=["Projects"])
@@ -27,6 +32,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
     publish_status = {
         "PUT": ApiPublishStatus.PUBLIC,
     }
+    idempotent_methods = frozenset()
 
     @extend_schema(
         operation_id="updateProjectFilter",
@@ -46,7 +52,7 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         examples=None,
     )
     def put(
-        self, request: Request, project, filter_id
+        self, request: Request, project: Project, filter_id: str
     ) -> Response[None] | Response[ValidationErrorResponse]:
         """
         Update various inbound data filters for a project.
@@ -63,16 +69,22 @@ class ProjectFilterDetailsEndpoint(ProjectEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=400)
 
-        current_state = inbound_filters.get_filter_state(filter_id, project)
+        current_state: Any = inbound_filters.get_filter_state(filter_id, project)
         if isinstance(current_state, list):
             current_state = set(current_state)
 
-        new_state = inbound_filters.set_filter_state(filter_id, project, serializer.validated_data)
+        new_state: Any = inbound_filters.set_filter_state(
+            filter_id, project, serializer.validated_data
+        )
         if isinstance(new_state, list):
             new_state = set(new_state)
+
+        if current_state != new_state:
+            record_builtin_filter_change_as_annotation(project, filter_id, request.user)
+
         audit_log_state = audit_log.get_event_id("PROJECT_ENABLE")
 
-        returned_state = None
+        returned_state: bool | str | list[str] | set[str] | None = None
         if filter_id == "legacy-browsers":
             if isinstance(current_state, bool) or isinstance(new_state, bool):
                 returned_state = new_state

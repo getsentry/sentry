@@ -10,10 +10,8 @@ import {
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {useQueryParamsQuery} from 'sentry/views/explore/queryParams/context';
-import {
-  TraceViewMetricsProviderWrapper,
-  TraceViewMetricsSection,
-} from 'sentry/views/performance/traceDetails/traceMetrics';
+
+import {TraceViewMetricsProviderWrapper, TraceViewMetricsSection} from './traceMetrics';
 
 function CurrentMetricsQuery() {
   const query = useQueryParamsQuery();
@@ -64,12 +62,7 @@ describe('TraceViewMetricsSection', () => {
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
     });
     recentSearchesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
@@ -182,10 +175,7 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {
-              metricsQuery: 'metric.name:duration',
-              query: 'unrelated:value',
-            },
+            query: {metricsQuery: 'metric.name:duration', query: 'unrelated:value'},
           },
         },
       }
@@ -199,6 +189,7 @@ describe('TraceViewMetricsSection', () => {
       expect(router.location.query.metricsQuery).toBeUndefined();
     });
     expect(router.location.query.query).toBe('unrelated:value');
+    expect(router.historyAction).toBe('PUSH');
   });
 
   it('preserves the initial metrics query from the URL', async () => {
@@ -218,10 +209,7 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {
-              metricsQuery: 'metric.name:duration',
-              query: 'unrelated:value',
-            },
+            query: {metricsQuery: 'metric.name:duration', query: 'unrelated:value'},
           },
         },
       }
@@ -249,12 +237,7 @@ describe('TraceViewMetricsSection', () => {
     const valuesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
       method: 'GET',
-      body: [
-        {
-          key: 'metric.name',
-          value: 'duration',
-        },
-      ],
+      body: [{key: 'metric.name', value: 'duration'}],
     });
 
     render(

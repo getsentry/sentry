@@ -4,8 +4,9 @@ import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {WidgetType} from 'sentry/views/dashboards/types';
 import {WidgetBuilderProvider} from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
-import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {useWidgetBuilderTraceItemConfig} from './useWidgetBuilderTraceItemConfig';
 
 describe('useWidgetBuilderTraceItemConfig', () => {
   afterEach(() => {
@@ -13,9 +14,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
   });
 
   it('returns undefined query when multiple metrics are selected', () => {
-    const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
-    });
+    const organization = OrganizationFixture({features: ['visibility-explore-view']});
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,
@@ -41,9 +40,7 @@ describe('useWidgetBuilderTraceItemConfig', () => {
   });
 
   it('returns a query when a single metric is selected', () => {
-    const organization = OrganizationFixture({
-      features: ['visibility-explore-view'],
-    });
+    const organization = OrganizationFixture({features: ['visibility-explore-view']});
 
     const {result} = renderHookWithProviders(() => useWidgetBuilderTraceItemConfig(), {
       organization,

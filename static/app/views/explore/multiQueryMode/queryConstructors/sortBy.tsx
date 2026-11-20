@@ -13,17 +13,11 @@ import {
   useUpdateQueryAtIndex,
   type ReadableExploreQueryParts,
 } from 'sentry/views/explore/multiQueryMode/locationUtils';
-import {
-  Section,
-  SectionHeader,
-  SectionLabel,
-} from 'sentry/views/explore/multiQueryMode/queryConstructors/styles';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 
-type Props = {
-  index: number;
-  query: ReadableExploreQueryParts;
-};
+import {Section, SectionHeader, SectionLabel} from './styles';
+
+type Props = {index: number; query: ReadableExploreQueryParts};
 
 export function SortBySection({query, index}: Props) {
   const mode = query.groupBys.length === 0 ? Mode.SAMPLES : Mode.AGGREGATE;
@@ -43,16 +37,8 @@ export function SortBySection({query, index}: Props) {
 
   const kindOptions: Array<SelectOption<Sort['kind']>> = useMemo(() => {
     return [
-      {
-        label: 'Desc',
-        value: 'desc',
-        textValue: t('Descending'),
-      },
-      {
-        label: 'Asc',
-        value: 'asc',
-        textValue: t('Ascending'),
-      },
+      {label: 'Desc', value: 'desc', textValue: t('Descending')},
+      {label: 'Asc', value: 'asc', textValue: t('Ascending')},
     ];
   }, []);
 

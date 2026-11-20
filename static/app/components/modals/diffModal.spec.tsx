@@ -4,16 +4,14 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import DiffModal from 'sentry/components/modals/diffModal';
+import DiffModal from './diffModal';
 
 describe('DiffModal', () => {
   it('renders', () => {
     const project = ProjectFixture();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/123/events/latest/',
-      body: {
-        eventID: '456',
-      },
+      body: {eventID: '456'},
     });
     MockApiClient.addMockResponse({
       url: '/projects/123/project-slug/events/456/',
@@ -21,9 +19,7 @@ describe('DiffModal', () => {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/234/events/latest/',
-      body: {
-        eventID: '789',
-      },
+      body: {eventID: '789'},
     });
     MockApiClient.addMockResponse({
       url: '/projects/123/project-slug/events/789/',

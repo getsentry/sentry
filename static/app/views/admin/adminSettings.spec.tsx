@@ -1,16 +1,13 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AdminSettings from 'sentry/views/admin/adminSettings';
+import AdminSettings from './adminSettings';
 
 describe('AdminSettings', () => {
   it('saves a setting with a dotted option key', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',
       body: {
-        'system.support-email': {
-          field: {disabled: false},
-          value: 'original@example.com',
-        },
+        'system.support-email': {field: {disabled: false}, value: 'original@example.com'},
       },
     });
     const save = MockApiClient.addMockResponse({
@@ -182,12 +179,7 @@ describe('AdminSettings', () => {
   it('saves a boolean setting', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',
-      body: {
-        'auth.allow-registration': {
-          field: {disabled: false},
-          value: false,
-        },
-      },
+      body: {'auth.allow-registration': {field: {disabled: false}, value: false}},
     });
     const save = MockApiClient.addMockResponse({
       url: '/internal/options/',
@@ -223,12 +215,7 @@ describe('AdminSettings', () => {
   it('saves a radio setting', async () => {
     MockApiClient.addMockResponse({
       url: '/internal/options/',
-      body: {
-        'beacon.anonymous': {
-          field: {disabled: false},
-          value: false,
-        },
-      },
+      body: {'beacon.anonymous': {field: {disabled: false}, value: false}},
     });
     const save = MockApiClient.addMockResponse({
       url: '/internal/options/',

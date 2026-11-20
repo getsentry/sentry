@@ -46,10 +46,7 @@ export function useReleaseCommits({
           ...query,
           per_page: perPage,
           ...(activeRepository
-            ? {
-                repo_id: activeRepository.externalId,
-                repo_name: activeRepository.name,
-              }
+            ? {repo_id: activeRepository.externalId, repo_name: activeRepository.name}
             : {}),
         },
         staleTime: Infinity,

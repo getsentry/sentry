@@ -5,9 +5,10 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {withDomainRequired} from 'sentry/utils/withDomainRequired';
+
+import {testableWindowLocation} from './testableWindowLocation';
+import {useParams} from './useParams';
+import {withDomainRequired} from './withDomainRequired';
 
 describe('withDomainRequired', () => {
   function MyComponent() {
@@ -52,18 +53,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -91,18 +86,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -130,18 +119,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });

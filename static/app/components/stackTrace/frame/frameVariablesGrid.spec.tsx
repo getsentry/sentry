@@ -5,8 +5,9 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {FrameVariablesGrid} from 'sentry/components/stackTrace/frame/frameVariablesGrid';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
+
+import {FrameVariablesGrid} from './frameVariablesGrid';
 
 describe('FrameVariablesGrid', () => {
   it('renders proposed native payloads with type labels and formatted values', async () => {
@@ -138,23 +139,13 @@ describe('FrameVariablesGrid', () => {
 
     render(
       <FrameVariablesGrid
-        data={{
-          "'client'": '',
-          "'data'": null,
-        }}
+        data={{"'client'": '', "'data'": null}}
         meta={{
           "'client'": {
             '': {
               rem: [['project:0', 's', 0, 0]],
               len: 41,
-              chunks: [
-                {
-                  type: 'redaction',
-                  text: '',
-                  rule_id: 'project:0',
-                  remark: 's',
-                },
-              ],
+              chunks: [{type: 'redaction', text: '', rule_id: 'project:0', remark: 's'}],
             },
           },
         }}
@@ -250,11 +241,7 @@ describe('FrameVariablesGrid', () => {
   it('renders ruby variables correctly', () => {
     render(
       <FrameVariablesGrid
-        data={{
-          null: 'nil',
-          bool: 'true',
-          str: 'string',
-        }}
+        data={{null: 'nil', bool: 'true', str: 'string'}}
         platform="ruby"
       />
     );
@@ -271,11 +258,7 @@ describe('FrameVariablesGrid', () => {
   it('renders php variables correctly', () => {
     render(
       <FrameVariablesGrid
-        data={{
-          null: 'null',
-          bool: 'true',
-          str: 'string',
-        }}
+        data={{null: 'null', bool: 'true', str: 'string'}}
         platform="php"
       />
     );
@@ -292,11 +275,7 @@ describe('FrameVariablesGrid', () => {
   });
 
   it('does not mutate the data prop', () => {
-    const data = {
-      zebra: 'last',
-      alpha: 'first',
-      middle: 'middle',
-    };
+    const data = {zebra: 'last', alpha: 'first', middle: 'middle'};
     const originalKeys = Object.keys(data);
 
     render(<FrameVariablesGrid data={data} />);

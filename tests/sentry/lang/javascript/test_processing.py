@@ -1,7 +1,12 @@
 from unittest import TestCase
 from unittest.mock import Mock
 
-from sentry.lang.javascript.processing import NODE_MODULES_RE, is_in_app, process_js_stacktraces
+from sentry.lang.javascript.processing import (
+    NODE_MODULES_RE,
+    _merge_frame,
+    is_in_app,
+    process_js_stacktraces,
+)
 
 
 class JavaScriptProcessingTest(TestCase):
@@ -122,7 +127,9 @@ class JavaScriptProcessingTest(TestCase):
         self.assertIsNone(NODE_MODULES_RE.search("node_modules"))
         self.assertIsNone(NODE_MODULES_RE.search("mynode_modules"))
 
-    def _get_test_data_and_symbolicator(self, in_app_frames: bool, symbolicated_in_app=True):
+    def _get_test_data_and_symbolicator(
+        self, in_app_frames: bool, symbolicated_in_app: bool = True
+    ) -> tuple[dict[str, object], Mock]:
         """Helper method to create test data and mock symbolicator
 
         Args:
@@ -221,7 +228,7 @@ class JavaScriptProcessingTest(TestCase):
                 },
             ]
 
-        data = {
+        data: dict[str, object] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -265,3 +272,33 @@ class JavaScriptProcessingTest(TestCase):
         self.assertIsNone(
             result["symbolicated_in_app"]
         )  # Should be None since no frames are in_app
+
+    def test_merge_frame_copies_debug_id_flags(self) -> None:
+        merged = _merge_frame(
+            {"abs_path": "app:///main.min.js"},
+            {
+                "data": {
+                    "symbolicated": False,
+                    "minified_source_found_by_debug_id": True,
+                    "sourcemap_found_by_debug_id": False,
+                }
+            },
+        )
+
+        self.assertEqual(
+            merged["data"],
+            {
+                "symbolicated": False,
+                "minified_source_found_by_debug_id": True,
+                "sourcemap_found_by_debug_id": False,
+            },
+        )
+
+    def test_merge_frame_without_debug_id_flags(self) -> None:
+        merged = _merge_frame(
+            {"abs_path": "app:///main.min.js"},
+            {"data": {"symbolicated": True}},
+        )
+
+        self.assertNotIn("minified_source_found_by_debug_id", merged["data"])
+        self.assertNotIn("sourcemap_found_by_debug_id", merged["data"])

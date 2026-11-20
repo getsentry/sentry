@@ -165,7 +165,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
         ),
         ResolvedAttribute(
             public_alias="transaction",
-            internal_name="sentry.transaction",
+            internal_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
             search_type="string",
         ),
         ResolvedAttribute(
@@ -576,6 +576,7 @@ SPAN_ATTRIBUTE_DEFINITIONS = {
             public_alias="span_id",
             internal_name="sentry.item_id",
             search_type="string",
+            validator=validate_span_id,
         ),
         simple_sentry_field(
             "trace.status",
@@ -828,7 +829,7 @@ def is_starred_segment_context_constructor(
     value_map = {result.segment_name: "true" for result in starred_segment_results}
 
     return VirtualColumnContext(
-        from_column_name="sentry.transaction",
+        from_column_name=ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME,
         to_column_name="is_starred_transaction",
         value_map=value_map,
         default_value="false",  # We can directly make this a boolean when https://github.com/getsentry/eap-planning/issues/224 is fixed
@@ -851,7 +852,7 @@ SPANS_INTERNAL_TO_PUBLIC_ALIAS_MAPPINGS: dict[
         # to return the new aliases, remove these temp mappings.
         "sentry.description": "sentry.normalized_description",
         "sentry.span_id": "id",
-        ATTRIBUTE_NAMES.SENTRY_SEGMENT_NAME: "transaction",
+        "sentry.transaction": "transaction",
     },
     "boolean": {
         definition.internal_name: definition.public_alias

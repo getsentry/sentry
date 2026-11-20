@@ -1,15 +1,12 @@
 import styled from '@emotion/styled';
-import {IconQuestion} from '@sentry/icons/question';
+import {IconInfo} from '@sentry/icons/info';
 
 import {Container} from '@sentry/scraps/layout';
 
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 
-type Props = {
-  examples: string[];
-  sourceName: string;
-};
+type Props = {examples: string[]; sourceName: string};
 
 export function SourceSuggestionExamples({examples, sourceName}: Props) {
   return (
@@ -22,7 +19,7 @@ export function SourceSuggestionExamples({examples, sourceName}: Props) {
         ))}
       >
         <Content>
-          {t('See Example')} <IconQuestion size="xs" />
+          {t('See Example')} <IconInfo size="xs" />
         </Content>
       </ExampleCard>
     </Container>

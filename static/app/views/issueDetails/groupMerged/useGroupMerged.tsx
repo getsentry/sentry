@@ -2,11 +2,8 @@ import {useMemo, useReducer} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryState} from 'nuqs';
 
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
@@ -156,9 +153,7 @@ export function groupMergedReducer(
         fingerprintState: setFingerprintState(
           state.fingerprintState,
           action.fingerprintIds,
-          {
-            collapsed: !state.unmergeLastCollapsed,
-          }
+          {collapsed: !state.unmergeLastCollapsed}
         ),
         unmergeLastCollapsed: !state.unmergeLastCollapsed,
       };
@@ -236,11 +231,7 @@ export function useGroupMergedHashes({
       '/organizations/$organizationIdOrSlug/issues/$issueId/hashes/',
       {
         path: {organizationIdOrSlug: organization.slug, issueId: groupId},
-        query: {
-          cursor: cursor ?? undefined,
-          full: '0',
-          per_page: MERGED_HASH_LIMIT,
-        },
+        query: {cursor: cursor ?? undefined, full: '0', per_page: MERGED_HASH_LIMIT},
         staleTime: 30_000,
       }
     ),
@@ -328,17 +319,17 @@ export function useGroupMergedState({
       }
 
       dispatch({type: 'unmergePending', fingerprintIds});
-      addLoadingMessage(loadingMessage);
+      toast.loading(loadingMessage);
 
       unmergeFingerprints(
         {fingerprintIds},
         {
           onSuccess: () => {
-            addSuccessMessage(successMessage);
+            toast.success(successMessage);
             dispatch({type: 'unmergeSuccess', fingerprintIds});
           },
           onError: requestError => {
-            addErrorMessage(getErrorMessage(requestError, errorMessage));
+            toast.error(getErrorMessage(requestError, errorMessage));
             dispatch({type: 'unmergeError', fingerprintIds});
           },
         }

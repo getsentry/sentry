@@ -5,11 +5,12 @@ import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Flex} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import type {PlatformOption} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {useUrlPlatformOptions} from 'sentry/components/onboarding/platformOptionsControl';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import type {PlatformOption} from './gettingStartedDoc/types';
+import {useUrlPlatformOptions} from './platformOptionsControl';
 
 type OptionControlProps = {
   onChange: (selectedOption: SelectOption<string>) => void;
@@ -83,16 +84,7 @@ export function PlatformOptionDropdown({
 
   const handleChange = (key: string, value: string) => {
     onChange?.(key, value);
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [key]: value,
-        },
-      },
-      {replace: true}
-    );
+    navigate({...location, query: {...location.query, [key]: value}}, {replace: true});
   };
 
   if (Object.keys(platformOptions).length === 0) {

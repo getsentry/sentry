@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {IssueSeerBadge} from 'sentry/components/group/issueSeerBadge';
+import {IssueSeerBadge} from './issueSeerBadge';
 
 describe('IssueSeerBadge', () => {
   // The badge only renders once Seer has something to show, which
@@ -26,9 +26,7 @@ describe('IssueSeerBadge', () => {
 
   it('links to the autofix tab with the feature', () => {
     render(<IssueSeerBadge group={group} />, {
-      organization: OrganizationFixture({
-        features: ['autofix-page'],
-      }),
+      organization: OrganizationFixture({features: ['autofix-page']}),
     });
 
     expect(screen.getByRole('link')).toHaveAttribute(

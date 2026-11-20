@@ -28,7 +28,8 @@ import {selectUsersFromMembers} from 'sentry/utils/members/shared';
 import {useIssueEventOwners} from 'sentry/utils/useIssueEventOwners';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
-import {getOwnerList} from 'sentry/views/issueDetails/header/getOwnerList';
+
+import {getOwnerList} from './getOwnerList';
 
 interface GroupHeaderAssigneeSelectorProps {
   event: Event | null;
@@ -163,10 +164,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
 }: GroupHeaderAssigneeSelectorProps) {
   const organization = useOrganization();
   const user = useUser();
-  const {handleAssigneeChange} = useHandleAssigneeChange({
-    organization,
-    group,
-  });
+  const {handleAssigneeChange} = useHandleAssigneeChange({organization, group});
   const {data: eventOwners} = useIssueEventOwners({
     eventId: event?.id ?? '',
     projectSlug: project.slug,
@@ -200,13 +198,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
     : null;
 
   return (
-    <CMDKAction
-      display={{
-        label: t('Assign to'),
-        icon: currentAssigneeIcon,
-      }}
-      limit={4}
-    >
+    <CMDKAction display={{label: t('Assign to'), icon: currentAssigneeIcon}} limit={4}>
       {user && (
         <CMDKAction
           display={{
@@ -220,11 +212,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
             ),
           }}
           onAction={() =>
-            handleAssigneeChange({
-              assignee: user,
-              id: user.id,
-              type: 'user',
-            })
+            handleAssigneeChange({assignee: user, id: user.id, type: 'user'})
           }
         />
       )}
@@ -251,11 +239,7 @@ export function GroupHeaderAssigneeCommandPaletteAction({
             ),
           }}
           onAction={() =>
-            handleAssigneeChange({
-              assignee: member,
-              id: member.id,
-              type: 'user',
-            })
+            handleAssigneeChange({assignee: member, id: member.id, type: 'user'})
           }
         />
       ))}
@@ -282,22 +266,14 @@ export function GroupHeaderAssigneeCommandPaletteAction({
             label: owner.type === 'team' ? `#${owner.name}` : owner.name,
             icon: (
               <ActorAvatar
-                actor={{
-                  id: owner.id,
-                  name: owner.name,
-                  type: owner.type,
-                }}
+                actor={{id: owner.id, name: owner.name, type: owner.type}}
                 size={16}
                 hasTooltip={false}
               />
             ),
           }}
           onAction={() =>
-            handleAssigneeChange({
-              assignee: owner,
-              id: owner.id,
-              type: owner.type,
-            })
+            handleAssigneeChange({assignee: owner, id: owner.id, type: owner.type})
           }
         />
       ))}

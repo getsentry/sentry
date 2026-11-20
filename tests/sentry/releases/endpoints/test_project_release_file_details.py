@@ -1,8 +1,10 @@
 import io
 from base64 import urlsafe_b64decode, urlsafe_b64encode
+from collections.abc import Callable
 from hashlib import sha1
 
 from django.urls import reverse
+from rest_framework.response import Response
 
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
@@ -14,6 +16,7 @@ from sentry.releases.endpoints.project_release_file_details import (
     ClosesDependentFiles,
 )
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.helpers.response import close_streaming_response
 
 
@@ -197,7 +200,7 @@ class ReleaseFileDetailsTest(APITestCase):
         assert response.status_code == 200, response.content
         assert b"File contents here" == close_streaming_response(response)
 
-    def _get(self, file_id, postfix=""):
+    def _get(self, file_id: str, postfix: str = "") -> Response:
         url = reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
@@ -208,7 +211,8 @@ class ReleaseFileDetailsTest(APITestCase):
             },
         )
 
-        return self.client.get(url + postfix)
+        response: Response = self.client.get(url + postfix)
+        return response
 
     def test_invalid_id(self) -> None:
         # Invalid base64
@@ -262,6 +266,33 @@ class ReleaseFileDetailsTest(APITestCase):
         response = self._get(id.decode())
         assert response.status_code == 200
         assert response.data["id"] == id, urlsafe_b64decode(response.data["id"])
+
+    def test_get_and_download_do_not_renew_date_accessed(self) -> None:
+        file = self.create_file(name="application.js", type="release.file")
+        file.putfile(io.BytesIO(b"File contents here"))
+        releasefile = self.create_release_file(release_id=self.release.id, file=file)
+        date_accessed = before_now(days=60)
+        ReleaseFile.objects.filter(id=releasefile.id).update(date_accessed=date_accessed)
+
+        self.login_as(user=self.user)
+        url = reverse(
+            "sentry-api-0-project-release-file-details",
+            kwargs={
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
+                "version": self.release.version,
+                "file_id": releasefile.id,
+            },
+        )
+        response = self.client.get(url)
+        assert response.status_code == 200, response.content
+
+        response = self.client.get(url + "?download=1")
+        assert response.status_code == 200, response.content
+        assert close_streaming_response(response) == b"File contents here"
+
+        releasefile.refresh_from_db()
+        assert releasefile.date_accessed == date_accessed
 
 
 class ReleaseFileUpdateTest(APITestCase):
@@ -372,7 +403,7 @@ class ReleaseFileDeleteTest(APITestCase):
 
         assert self.release.count_artifacts() == 2
 
-        url = lambda id: reverse(
+        url: Callable[[str], str] = lambda id: reverse(
             "sentry-api-0-project-release-file-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,

@@ -1,4 +1,3 @@
-from django.test import override_settings
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
@@ -11,30 +10,9 @@ class LoginSuccessViewTest(APITestCase):
     def setUp(self) -> None:
         super().setUp()
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
-        # Note no login
 
-    def test_get_requires_auth(self) -> None:
-        """Unauthenticated requests should redirect to /auth/login."""
-        res = self.client.get(self.url)
-        assert res.status_code == 302
-        assert reverse("sentry-login") in res["Location"]
-
-    def test_get(self) -> None:
-        self.login_as(self.user)
+    def test_get_without_auth(self) -> None:
         res = self.client.get(self.url)
         assert res.status_code == 200
         self.assertTemplateUsed(res, TEMPLATE)
-
-    @override_settings(CSP_REPORT_ONLY=False)
-    def test_csp_script_src_nonce(self) -> None:
-        self.login_as(self.user)
-        res = self.client.get(self.url)
-        assert _has_nonce(res)
-
-
-def _has_nonce(response):
-    content = response.content.decode("utf-8")
-    # Middleware automatically injects the `nonce` attribute onto our <script>
-    # tag; so if that attribute is there then we can assume the nonce header and
-    # value are set correctly.
-    return "<script nonce=" in content
+        assert "The Sentry Toolbar is no longer available" in res.content.decode("utf-8")

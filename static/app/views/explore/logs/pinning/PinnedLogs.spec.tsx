@@ -6,17 +6,16 @@ import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
 import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
-import {PinnedLogs} from 'sentry/views/explore/logs/pinning/PinnedLogs';
-import {useLogsPinning} from 'sentry/views/explore/logs/pinning/useLogsPinning';
-import {usePinnedLogsQuery} from 'sentry/views/explore/logs/pinning/usePinnedLogsQuery';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
 } from 'sentry/views/explore/logs/types';
 
-const organization = OrganizationFixture({
-  features: ['ourlogs-enabled'],
-});
+import {PinnedLogs} from './PinnedLogs';
+import {useLogsPinning} from './useLogsPinning';
+import {usePinnedLogsQuery} from './usePinnedLogsQuery';
+
+const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 
 const allRows: OurLogsResponseItem[] = [
   LogFixture({
@@ -88,9 +87,7 @@ describe('PinnedLogs', () => {
   it('renders the pinned row when its id is present in allRows', () => {
     render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     expect(screen.getByTestId('pinned-row-log-1')).toBeInTheDocument();
@@ -112,9 +109,7 @@ describe('PinnedLogs', () => {
 
     render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-3'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-3'}}},
     });
 
     expect(await screen.findByTestId('pinned-row-log-3')).toBeInTheDocument();
@@ -177,9 +172,7 @@ describe('PinnedLogs', () => {
 
     const {router} = render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-a'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-a'}}},
     });
 
     expect(
@@ -283,9 +276,7 @@ describe('PinnedLogs', () => {
   it('hides the rendered pinned rows when the collapse button is clicked', async () => {
     render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Collapse 1 pinned'}));
@@ -296,9 +287,7 @@ describe('PinnedLogs', () => {
   it('shows the rendered pinned rows again when the toggle button is clicked twice', async () => {
     render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Collapse 1 pinned'}));
@@ -310,9 +299,7 @@ describe('PinnedLogs', () => {
   it('removes the rendered pinned rows when the Clear all button is clicked', async () => {
     render(<ExamplePinnedLogs />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/', query: {logsPinned: 'log-1'}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {logsPinned: 'log-1'}}},
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Clear all pins'}));

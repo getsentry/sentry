@@ -2,18 +2,18 @@ import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconStack} from '@sentry/icons/stack';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {z} from 'zod';
 
 import {AlertLink} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
 import {defaultFormOptions, FormSearch, useScrapsForm} from '@sentry/scraps/form';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {RequestOptions} from 'sentry/api';
-import {Confirm} from 'sentry/components/confirm';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -22,43 +22,37 @@ import {PanelHeader} from 'sentry/components/panels/panelHeader';
 import {PanelItem} from 'sentry/components/panels/panelItem';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import type {UserEmail} from 'sentry/types/user';
-import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 
+import {emailsOptions} from './emailsOptions';
+
 const ENDPOINT = getApiUrl('/users/$userId/emails/', {path: {userId: 'me'}});
 
-const schema = z.object({
-  email: z.email(t('Enter a valid email address')),
-});
+const schema = z.object({email: z.email(t('Enter a valid email address'))});
 
 function AccountEmails() {
   const queryClient = useQueryClient();
 
   const mutation = useMutation({
     mutationFn: (data: z.infer<typeof schema>) =>
-      fetchMutation<{detail?: string}>({
-        url: ENDPOINT,
-        method: 'POST',
-        data,
-      }),
+      fetchMutation<{detail?: string}>({url: ENDPOINT, method: 'POST', data}),
     onSuccess: response => {
-      queryClient.invalidateQueries({queryKey: makeEmailsEndpointKey()});
+      queryClient.invalidateQueries({queryKey: emailsOptions.queryKey});
       if (response?.detail) {
-        addSuccessMessage(response.detail);
+        toast.success(response.detail);
       }
     },
     onError: error => {
       if (error instanceof RequestError) {
         const errorMessage = error.responseJSON?.detail;
         if (typeof errorMessage === 'string') {
-          addErrorMessage(errorMessage);
+          toast.error(errorMessage);
         } else {
-          addErrorMessage(errorMessage?.message ?? t('An unknown error occurred.'));
+          toast.error(errorMessage?.message ?? t('An unknown error occurred.'));
         }
       }
     },
@@ -125,10 +119,6 @@ function AccountEmails() {
 
 export default AccountEmails;
 
-function makeEmailsEndpointKey(): ApiQueryKey {
-  return [ENDPOINT];
-}
-
 export function EmailAddresses() {
   const api = useApi();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -137,7 +127,7 @@ export function EmailAddresses() {
     isPending,
     isError,
     refetch,
-  } = useApiQuery<UserEmail[]>(makeEmailsEndpointKey(), {staleTime: 0, gcTime: 0});
+  } = useQuery({...emailsOptions, gcTime: 0});
 
   if (isPending || isUpdating) {
     return (
@@ -160,7 +150,7 @@ export function EmailAddresses() {
       .requestPromise(endpoint, requestParams)
       .catch(err => {
         if (err instanceof RequestError && typeof err?.responseJSON?.email === 'string') {
-          addErrorMessage(err.responseJSON.email);
+          toast.error(err.responseJSON.email);
         }
       })
       .finally(() => {
@@ -170,24 +160,15 @@ export function EmailAddresses() {
   }
 
   const handleSetPrimary = (email: string) => {
-    doApiCall(ENDPOINT, {
-      method: 'PUT',
-      data: {email},
-    });
+    doApiCall(ENDPOINT, {method: 'PUT', data: {email}});
   };
 
   const handleRemove = (email: string) => {
-    doApiCall(ENDPOINT, {
-      method: 'DELETE',
-      data: {email},
-    });
+    doApiCall(ENDPOINT, {method: 'DELETE', data: {email}});
   };
 
   const handleVerify = (email: string) => {
-    doApiCall(`${ENDPOINT}confirm/`, {
-      method: 'POST',
-      data: {email},
-    });
+    doApiCall(`${ENDPOINT}confirm/`, {method: 'POST', data: {email}});
   };
 
   const primary = emails.find(({isPrimary}) => isPrimary);

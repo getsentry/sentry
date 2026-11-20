@@ -4,7 +4,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from typing import Any
 
-from sentry.tsdb.base import BaseTSDB, TSDBItem, TSDBKey, TSDBModel
+from sentry.tsdb.base import BaseTSDB, SnubaCondition, TSDBItem, TSDBKey, TSDBModel
 
 
 def _environment_ids(environment_ids: Iterable[int | None] | None) -> set[int | None]:
@@ -16,13 +16,35 @@ class DummyTSDB(BaseTSDB):
     A no-op time-series storage.
     """
 
-    def incr(self, model, key: TSDBKey, timestamp=None, count=1, environment_id=None):
+    def incr(
+        self,
+        model: TSDBModel,
+        key: TSDBKey,
+        timestamp: datetime | None = None,
+        count: int = 1,
+        environment_id: int | None = None,
+    ) -> None:
         self.validate_arguments([model], [environment_id])
 
-    def merge(self, model, destination, sources, timestamp=None, environment_ids=None):
+    def merge(
+        self,
+        model: TSDBModel,
+        destination: int,
+        sources: list[int],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
         self.validate_arguments([model], _environment_ids(environment_ids))
 
-    def delete(self, models, keys, start=None, end=None, timestamp=None, environment_ids=None):
+    def delete(
+        self,
+        models: list[TSDBModel],
+        keys: list[int],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int | None] | None = None,
+    ) -> None:
         self.validate_arguments(models, _environment_ids(environment_ids))
 
     def get_range(
@@ -33,7 +55,7 @@ class DummyTSDB(BaseTSDB):
         end: datetime,
         rollup: int | None = None,
         environment_ids: Sequence[int] | None = None,
-        conditions=None,
+        conditions: list[SnubaCondition] | None = None,
         use_cache: bool = False,
         jitter_value: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
@@ -46,7 +68,14 @@ class DummyTSDB(BaseTSDB):
         _, series = self.get_optimal_rollup_series(start, end, rollup)
         return {k: [(ts, 0) for ts in series] for k in keys}
 
-    def record(self, model, key, values, timestamp=None, environment_id=None):
+    def record(
+        self,
+        model: TSDBModel,
+        key: int,
+        values: Iterable[str],
+        timestamp: datetime | None = None,
+        environment_id: int | None = None,
+    ) -> None:
         self.validate_arguments([model], [environment_id])
 
     def get_distinct_counts_series(
@@ -66,31 +95,42 @@ class DummyTSDB(BaseTSDB):
 
     def get_distinct_counts_totals(
         self,
-        model,
+        model: TSDBModel,
         keys: Sequence[TSDBKey],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-        use_cache=False,
-        jitter_value=None,
-        tenant_ids=None,
-        referrer_suffix=None,
-        conditions=None,
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        use_cache: bool = False,
+        jitter_value: int | None = None,
+        tenant_ids: dict[str, int | str] | None = None,
+        referrer_suffix: str | None = None,
+        conditions: list[SnubaCondition] | None = None,
         group_on_time: bool = False,
         project_ids: Sequence[int] | None = None,
-    ):
+    ) -> Mapping[TSDBKey, int]:
         self.validate_arguments([model], [environment_id])
         return {k: 0 for k in keys}
 
     def merge_distinct_counts(
-        self, model, destination, sources, timestamp=None, environment_ids=None
-    ):
+        self,
+        model: TSDBModel,
+        destination: int,
+        sources: list[int],
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
         self.validate_arguments([model], _environment_ids(environment_ids))
 
     def delete_distinct_counts(
-        self, models, keys, start=None, end=None, timestamp=None, environment_ids=None
-    ):
+        self,
+        models: list[TSDBModel],
+        keys: list[int],
+        start: datetime | None = None,
+        end: datetime | None = None,
+        timestamp: datetime | None = None,
+        environment_ids: Iterable[int] | None = None,
+    ) -> None:
         self.validate_arguments(models, _environment_ids(environment_ids))
 
     def get_frequency_series(
@@ -112,5 +152,5 @@ class DummyTSDB(BaseTSDB):
             for key, members in items.items()
         }
 
-    def flush(self):
+    def flush(self) -> None:
         pass

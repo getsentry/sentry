@@ -6,21 +6,20 @@ import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useOnClickOutside} from '@sentry/scraps/useOnClickOutside';
 
-import type {Client} from 'sentry/api';
 import {Hovercard} from 'sentry/components/hovercard';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import {withApi} from 'sentry/utils/withApi';
 
-import {TrialRequestedActions} from 'getsentry/actions/trialRequestedActions';
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
-import {TrialRequestedStore} from 'getsentry/stores/trialRequestedStore';
+import {
+  TrialRequestedStore,
+  useTrialRequested,
+} from 'getsentry/stores/trialRequestedStore';
 import type {Subscription} from 'getsentry/types';
 import {hasJustStartedPlanTrial} from 'getsentry/utils/billing';
 import {TrialBadge} from 'getsentry/views/subscriptionPage/trial/badge';
 
 type Props = {
-  api: Client;
   children: React.ReactNode;
   organization: Organization;
   subscription: Subscription;
@@ -102,27 +101,15 @@ function HovercardWrapper({
   );
 }
 
-function TrialStartedSidebarItem({subscription, organization, children}: Props) {
+export function TrialStartedSidebarItem({subscription, organization, children}: Props) {
   const [animationComplete, setAnimationComplete] = useState(
     !!hasJustStartedPlanTrial(subscription)
   );
-  const [trialRequested, setTrialRequested] = useState(
-    TrialRequestedStore.getTrialRequstedState()
-  );
-
-  useEffect(() => {
-    const unsubscribe = TrialRequestedStore.listen(
-      () => setTrialRequested(TrialRequestedStore.getTrialRequstedState()),
-      undefined
-    );
-    return () => {
-      unsubscribe();
-    };
-  }, []);
+  const trialRequested = useTrialRequested();
 
   const dismissNotification = () => {
     SubscriptionStore.clearStartedTrial(organization.slug);
-    TrialRequestedActions.clearNotification();
+    TrialRequestedStore.clearNotification();
   };
   // Dismiss trial started when user clicks outside of trial requested or started hovercard
   const hovercardBodyRef = useRef<HTMLDivElement>(null);
@@ -209,5 +196,3 @@ const HovercardHeader = styled('h1')`
   gap: ${p => p.theme.space.md};
   align-items: center;
 `;
-
-export default withApi(TrialStartedSidebarItem);

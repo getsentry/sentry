@@ -9,7 +9,8 @@ import {resetMockDate, setMockDate} from 'sentry-test/utils';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {FieldRenderer} from 'sentry/views/explore/tables/fieldRenderer';
+
+import {FieldRenderer} from './fieldRenderer';
 
 const mockedEventData = {
   id: 'spanId',
@@ -67,7 +68,6 @@ describe('FieldRenderer tests', () => {
   afterEach(() => {
     jest.restoreAllMocks();
     resetMockDate();
-    ProjectsStore.reset();
   });
 
   it('renders span.op', () => {
@@ -385,10 +385,7 @@ describe('FieldRenderer tests', () => {
         <Wrapper>
           <FieldRenderer
             column={eventView.getColumns()[columnIndex]}
-            data={{
-              ...mockedEventData,
-              [field]: wildcardUrl,
-            }}
+            data={{...mockedEventData, [field]: wildcardUrl}}
             meta={{}}
           />
         </Wrapper>,
@@ -420,10 +417,7 @@ describe('FieldRenderer tests', () => {
         <Wrapper>
           <FieldRenderer
             column={eventView.getColumns()[columnIndex]}
-            data={{
-              ...mockedEventData,
-              [field]: fullUrl,
-            }}
+            data={{...mockedEventData, [field]: fullUrl}}
             meta={{}}
           />
         </Wrapper>,

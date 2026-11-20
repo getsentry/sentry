@@ -24,13 +24,13 @@ import {
   issueAndEventToMarkdown,
   useActiveThreadId,
 } from 'sentry/views/issueDetails/hooks/useCopyIssueDetails';
-import {
-  PullRequestButtons,
-  useIssuePreviewPullRequests,
-} from 'sentry/views/issueList/pages/inbox/issuePreview/issuePreviewPullRequests';
 import {useInvalidateInboxQueries} from 'sentry/views/issueList/pages/inbox/useInvalidateInboxQueries';
 
 import {getCodingAgentLinks, type LocalCodingAgent} from './codingAgentLinks';
+import {
+  PullRequestButtons,
+  useIssuePreviewPullRequests,
+} from './issuePreviewPullRequests';
 import {getIssueSummaryText, type IssueSummary} from './issuePreviewSummary';
 
 interface CopyAsMarkdownDropdownProps {
@@ -82,9 +82,7 @@ function CopyAsMarkdownDropdown({
     if (trace) {
       markdown += `\n\n## In the trace\n\n${trace}`;
     }
-    void copy(markdown, {
-      successMessage: t('Copied issue to clipboard as Markdown'),
-    });
+    void copy(markdown, {successMessage: t('Copied issue to clipboard as Markdown')});
   }
 
   const analyticsParams = {

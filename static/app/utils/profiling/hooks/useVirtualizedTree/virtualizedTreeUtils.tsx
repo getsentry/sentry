@@ -1,13 +1,9 @@
 import type {Theme} from '@emotion/react';
 
-import type {
-  TreeLike,
-  UseVirtualizedTreeProps,
-} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
-import type {VirtualizedTree} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTree';
-import type {VirtualizedTreeNode} from 'sentry/utils/profiling/hooks/useVirtualizedTree/VirtualizedTreeNode';
-
+import type {TreeLike, UseVirtualizedTreeProps} from './useVirtualizedTree';
 import type {VirtualizedState} from './useVirtualizedTreeReducer';
+import type {VirtualizedTree} from './VirtualizedTree';
+import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
 
 function updateGhostRow({
   element,
@@ -124,9 +120,7 @@ export function markRowAsClicked(
  *
  * Credit: Joe Lambert (https://gist.github.com/joelambert/1002116#file-requesttimeout-js)
  */
-type AnimationTimeoutId = {
-  id: number;
-};
+type AnimationTimeoutId = {id: number};
 
 export function requestAnimationTimeout(
   callback: () => void,
@@ -150,9 +144,7 @@ export function requestAnimationTimeout(
     }
   };
 
-  const frame: AnimationTimeoutId = {
-    id: window.requestAnimationFrame(timeout),
-  };
+  const frame: AnimationTimeoutId = {id: window.requestAnimationFrame(timeout)};
 
   return frame;
 }

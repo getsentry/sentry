@@ -1,10 +1,8 @@
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ContextCard} from 'sentry/components/events/contexts/contextCard';
-import {
-  getWERContextData,
-  type WERContext,
-} from 'sentry/components/events/contexts/knownContext/wer';
+
+import {getWERContextData, type WERContext} from './wer';
 
 const REPORT_ID = '3ea2a4b8-2ab3-4f69-9f0b-baa5c60847b8';
 const MOCK_WER_CONTEXT: WERContext = {
@@ -17,12 +15,7 @@ describe('WERContext', () => {
   it('formats known values and preserves additional data', () => {
     expect(getWERContextData({data: MOCK_WER_CONTEXT})).toEqual([
       {key: 'report_id', subject: 'Report ID', value: REPORT_ID},
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-        meta: undefined,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something', meta: undefined},
     ]);
   });
 

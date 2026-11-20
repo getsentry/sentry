@@ -1,23 +1,18 @@
 import {t} from 'sentry/locale';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const cronConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for cron issues'),
-      },
+      delete: {enabled: false, disabledReason: t('Not yet supported for cron issues')},
       deleteAndDiscard: {
         enabled: false,
         disabledReason: t('Not yet supported for cron issues'),
       },
-      merge: {
-        enabled: false,
-        disabledReason: t('Not yet supported for cron issues'),
-      },
+      merge: {enabled: false, disabledReason: t('Not yet supported for cron issues')},
       ignore: {enabled: true},
       resolve: {enabled: false},
       resolveInRelease: {enabled: false},

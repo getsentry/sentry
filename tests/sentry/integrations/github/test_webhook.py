@@ -1,12 +1,11 @@
 from datetime import datetime, timedelta, timezone
-from typing import cast
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
 import pytest
 import responses
-from django.conf import settings
-from django.test import Client, override_settings
+from django.test import RequestFactory, override_settings
 
 from fixtures.github import (
     INSTALLATION_API_RESPONSE,
@@ -24,7 +23,6 @@ from fixtures.github import (
     push_event_with_author,
     push_event_with_commit_authors,
 )
-from sentry import options
 from sentry.analytics.events.pr_iteration_events import (
     AiAutofixPrIterationMissingPermissionsEvent,
 )
@@ -63,16 +61,44 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_failure_metric, assert_success_metric
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.activity import ActivityType
 from sentry.utils import json
+
+
+@pytest.mark.parametrize(
+    ("method", "header"),
+    [("sha1", "HTTP_X_HUB_SIGNATURE"), ("sha256", "HTTP_X_HUB_SIGNATURE_256")],
+)
+@override_settings(SENTRY_GITHUB_APP_WEBHOOK_SECRET="")
+def test_empty_secret_rejects_matching_signature(method: str, header: str) -> None:
+    body = b"{"
+    signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
+    request = RequestFactory().post(
+        "/extensions/github/webhook/",
+        data=body,
+        content_type="application/json",
+        HTTP_X_GITHUB_EVENT="push",
+    )
+    request.META[header] = f"{method}={signature}"
+    endpoint = GitHubIntegrationsWebhookEndpoint()
+    endpoint.setup(request)
+
+    with patch("sentry.integrations.github.webhook.metrics") as mock_metrics:
+        response = endpoint.handle(request)
+
+    assert response.status_code == 401
+    mock_metrics.incr.assert_called_once_with(
+        "github.webhook.hmac_failure",
+        tags={"reason": "missing_secret"},
+        sample_rate=1.0,
+    )
 
 
 class WebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def test_get(self) -> None:
         response = self.client.get(self.url)
@@ -120,30 +146,6 @@ class WebhookTest(APITestCase):
             sample_rate=1.0,
         )
 
-    @patch("sentry.integrations.github.webhook.metrics")
-    def test_missing_secret_rejects_empty_key_signature(self, mock_metrics: MagicMock) -> None:
-        options.delete("github-app.webhook-secret")
-        assert not options.get("github-app.webhook-secret")
-
-        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
-            "sha1", PUSH_EVENT_EXAMPLE_INSTALLATION.encode("utf-8"), ""
-        )
-        response = self.client.post(
-            path=self.url,
-            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
-            content_type="application/json",
-            HTTP_X_GITHUB_EVENT="push",
-            HTTP_X_HUB_SIGNATURE=f"sha1={signature}",
-            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
-        )
-
-        assert response.status_code == 401
-        mock_metrics.incr.assert_called_with(
-            "github.webhook.hmac_failure",
-            tags={"reason": "missing_secret"},
-            sample_rate=1.0,
-        )
-
     def test_missing_signature_event(self) -> None:
         response = self.client.post(
             path=self.url,
@@ -156,124 +158,6 @@ class WebhookTest(APITestCase):
         assert response.status_code == 400
 
 
-@pytest.mark.django_db(databases=["default", "control"])
-class TestWebhookCredentialSources:
-    @no_silo_test
-    @pytest.mark.parametrize(
-        "database_options,deployment_options,setting_secret,effective_secret,rejected_secret",
-        [
-            (
-                {"github-app.webhook-secret": "database-secret"},
-                {},
-                "",
-                "database-secret",
-                "incorrect-secret",
-            ),
-            (
-                {},
-                {"github-app.webhook-secret": "deployment-secret"},
-                "",
-                "deployment-secret",
-                "incorrect-secret",
-            ),
-            (
-                {"github-app.webhook-secret": "shared-secret"},
-                {"github-app.webhook-secret": "shared-secret"},
-                "shared-secret",
-                "shared-secret",
-                "incorrect-secret",
-            ),
-            (
-                {"github-app.webhook-secret": "database-secret"},
-                {"github-app.webhook-secret": "deployment-secret"},
-                "deployment-secret",
-                "database-secret",
-                "deployment-secret",
-            ),
-        ],
-        ids=["database-only", "legacy-deployment-only", "matching-dual", "database-wins"],
-    )
-    @pytest.mark.parametrize(
-        "method,signature_header",
-        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
-    )
-    def test_legacy_effective_secret_authenticates(
-        self,
-        client: Client,
-        database_options: dict[str, str],
-        deployment_options: dict[str, str],
-        setting_secret: str,
-        effective_secret: str,
-        rejected_secret: str,
-        method: str,
-        signature_header: str,
-    ) -> None:
-        options.delete("github-app.webhook-secret")
-        for key, value in database_options.items():
-            options.set(key, value)
-        deployment = {
-            key: value
-            for key, value in settings.SENTRY_OPTIONS.items()
-            if key != "github-app.webhook-secret"
-        }
-        deployment.update(deployment_options)
-        body = b"invalid-json"
-        valid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
-            method, body, effective_secret
-        )
-        invalid_signature = GitHubIntegrationsWebhookEndpoint.compute_signature(
-            method, body, rejected_secret
-        )
-
-        with override_settings(
-            SENTRY_OPTIONS=deployment,  # noqa: S011
-            SENTRY_GITHUB_APP_WEBHOOK_SECRET=setting_secret,
-        ):
-            accepted = client.post(
-                "/extensions/github/webhook/",
-                data=body,
-                content_type="application/json",
-                HTTP_X_GITHUB_EVENT="push",
-                headers={signature_header: f"{method}={valid_signature}"},
-            )
-            rejected = client.post(
-                "/extensions/github/webhook/",
-                data=body,
-                content_type="application/json",
-                HTTP_X_GITHUB_EVENT="push",
-                headers={signature_header: f"{method}={invalid_signature}"},
-            )
-
-        assert accepted.status_code == 400
-        assert rejected.status_code == 401
-
-    @no_silo_test
-    @pytest.mark.parametrize(
-        "method,signature_header",
-        [("sha1", "X-Hub-Signature"), ("sha256", "X-Hub-Signature-256")],
-    )
-    def test_missing_legacy_secret_rejects_empty_key_signature(
-        self, client: Client, method: str, signature_header: str
-    ) -> None:
-        options.delete("github-app.webhook-secret")
-        body = b"invalid-json"
-        signature = GitHubIntegrationsWebhookEndpoint.compute_signature(method, body, "")
-
-        with override_settings(
-            SENTRY_OPTIONS={**settings.SENTRY_OPTIONS, "github-app.webhook-secret": ""},  # noqa: S011
-            SENTRY_GITHUB_APP_WEBHOOK_SECRET="",
-        ):
-            response = client.post(
-                "/extensions/github/webhook/",
-                data=body,
-                content_type="application/json",
-                HTTP_X_GITHUB_EVENT="push",
-                headers={signature_header: f"{method}={signature}"},
-            )
-
-        assert response.status_code == 401
-
-
 class SCMOnlyWebhookTest(APITestCase):
     """Tests for webhook event types that have no legacy processors and only
     publish to the SCM event stream."""
@@ -281,7 +165,6 @@ class SCMOnlyWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def create_github_integration_and_repo(self) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
@@ -329,7 +212,6 @@ class InstallationEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     @responses.activate
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
@@ -402,7 +284,6 @@ class InstallationDeleteEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_deleted(self, get_jwt: MagicMock) -> None:
@@ -487,7 +368,6 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def _post(self) -> int:
         body = INSTALLATION_NEW_PERMISSIONS_EVENT_EXAMPLE
@@ -506,7 +386,7 @@ class InstallationNewPermissionsEventWebhookTest(APITestCase):
             HTTP_X_HUB_SIGNATURE_256=f"sha256={sig256}",
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
-        return response.status_code
+        return int(response.status_code)
 
     def _add_refresh_response(self) -> None:
         responses.add(
@@ -628,9 +508,13 @@ class InstallationRepositoriesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
-    def _make_event(self, action="added", repos_added=None, repos_removed=None):
+    def _make_event(
+        self,
+        action: str = "added",
+        repos_added: list[dict[str, Any]] | None = None,
+        repos_removed: list[dict[str, Any]] | None = None,
+    ) -> Any:
         return json.dumps(
             {
                 "action": action,
@@ -918,9 +802,8 @@ class PushEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
-    def _create_integration_and_send_push_event(self):
+    def _create_integration_and_send_push_event(self) -> None:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
@@ -943,7 +826,7 @@ class PushEventWebhookTest(APITestCase):
 
         assert response.status_code == 204
 
-    def _send_push_event(self, body: str):
+    def _send_push_event(self, body: str) -> Any:
         sig1 = GitHubIntegrationsWebhookEndpoint.compute_signature(
             "sha1", body.encode("utf-8"), self.secret
         )
@@ -960,7 +843,7 @@ class PushEventWebhookTest(APITestCase):
             HTTP_X_GITHUB_DELIVERY=str(uuid4()),
         )
 
-    def _setup_github_integration_and_repo(self):
+    def _setup_github_integration_and_repo(self) -> Any:
         Repository.objects.create(
             organization_id=self.organization.id,
             external_id="35129377",
@@ -1209,7 +1092,6 @@ class PushEventWebhookTest(APITestCase):
         assert_success_metric(mock_record)
 
     @responses.activate
-    @override_settings(SENTRY_VIEWER_CONTEXT_ENABLED=True)
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     def test_viewer_context_set_during_handler(self, mock_record: MagicMock) -> None:
         """ViewerContext is set with org_id and actor_type=INTEGRATION during webhook processing."""
@@ -1222,13 +1104,13 @@ class PushEventWebhookTest(APITestCase):
             name="baxterthehacker/repo",
         )
 
-        captured_contexts: list = []
+        captured_contexts: list[Any] = []
 
         from sentry.integrations.github.webhook import PushEventWebhook
 
         original_handle = PushEventWebhook._handle
 
-        def capturing_handle(self_handler, **kwargs):
+        def capturing_handle(self_handler: Any, **kwargs: Any) -> Any:
             captured_contexts.append(get_viewer_context())
             return original_handle(self_handler, **kwargs)
 
@@ -1465,7 +1347,6 @@ class PullRequestEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
     def _get_signature_sha1(self, body: bytes | str) -> str:
         if isinstance(body, str):
@@ -1509,7 +1390,7 @@ class PullRequestEventWebhookTest(APITestCase):
             integration_id=integration.id,
         )
 
-    def _create_integration_and_send_pull_request_opened_event(self):
+    def _create_integration_and_send_pull_request_opened_event(self) -> Any:
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
             integration = self.create_integration(
@@ -1806,8 +1687,6 @@ class PullRequestEventWebhookTest(APITestCase):
     def test_edited_pr_description_with_group_link(self) -> None:
         group = self.create_group(project=self.project, short_id=7)
         url = "/extensions/github/webhook/"
-        secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -2319,7 +2198,7 @@ class PullRequestEventWebhookTest(APITestCase):
         )
         assert merged_activity.user_id == self.user.id
 
-    def assert_group_link(self, group, pr):
+    def assert_group_link(self, group: Group, pr: PullRequest) -> None:
         link = GroupLink.objects.get()
         assert link.group_id == group.id
         assert link.linked_id == pr.id
@@ -2353,7 +2232,6 @@ class IssuesEventWebhookTest(APITestCase):
     def setUp(self) -> None:
         self.url = "/extensions/github/webhook/"
         self.secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.secret)
 
         future_expires = datetime.now().replace(microsecond=0) + timedelta(minutes=5)
 
@@ -2457,7 +2335,7 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return group
 
-    def _create_github_member(self, username: str):
+    def _create_github_member(self, username: str) -> Any:
         member = self.create_user(email=f"{username}@example.com")
         self.create_member(organization=self.organization, user=member, teams=[self.team])
         self.create_external_user(
@@ -2469,8 +2347,10 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return member
 
-    def _assigned_event(self, login: str, updated_at: str) -> dict:
+    def _assigned_event(self, login: str, updated_at: str) -> dict[str, Any]:
         event = json.loads(ISSUES_ASSIGNED_EVENT_EXAMPLE)
+        if not isinstance(event, dict):
+            raise TypeError("Issues assigned event is not a JSON object")
         event["issue"]["updated_at"] = updated_at
         event["issue"]["assignees"] = [{"login": login}]
         return event
@@ -2562,7 +2442,7 @@ class IssuesEventWebhookTest(APITestCase):
         )
         return f"sha256={sig}"
 
-    def _post_issues_event(self, event: dict) -> None:
+    def _post_issues_event(self, event: dict[str, Any]) -> None:
         body = json.dumps(event)
         response = self.client.post(
             path=self.url,

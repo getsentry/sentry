@@ -20,9 +20,10 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {downloadAsCsv} from 'sentry/views/discover/utils';
 import type {AggregatesTableResult} from 'sentry/views/explore/hooks/useExploreAggregatesTable';
 import type {SpansTableResult} from 'sentry/views/explore/hooks/useExploreSpansTable';
-import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
-import {TracesExportModalButton} from 'sentry/views/explore/spans/tracesExportModalButton';
 import type {RawCounts} from 'sentry/views/explore/useRawCounts';
+
+import {SpansQueryParamsProvider} from './spansQueryParamsProvider';
+import {TracesExportModalButton} from './tracesExportModalButton';
 
 jest.mock('sentry/views/discover/utils', () => ({
   ...jest.requireActual('sentry/views/discover/utils'),
@@ -68,9 +69,7 @@ function makeQueryResult(
 const HAS_MORE_ROWS_LINK = '<https://sentry.io/fake/next>; rel="next"; results="true"';
 
 describe('TracesExportModalButton', () => {
-  const {organization} = initializeOrg({
-    organization: {features: ['discover-query']},
-  });
+  const {organization} = initializeOrg({organization: {features: ['discover-query']}});
 
   const eventView = EventView.fromNewQueryWithLocation(
     {name: 'Traces', fields: ['span.description'], version: 2, query: ''},
@@ -292,10 +291,7 @@ describe('TracesExportModalButton', () => {
     const completeAggregatePage: AggregatesTableResult = {
       ...aggregatesTableResult,
       result: makeQueryResult(
-        Array.from({length: 50}, (_, i) => ({
-          id: String(i),
-          'span.description': 'GET /',
-        }))
+        Array.from({length: 50}, (_, i) => ({id: String(i), 'span.description': 'GET /'}))
       ),
     };
 

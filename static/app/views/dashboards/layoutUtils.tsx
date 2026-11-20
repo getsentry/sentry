@@ -8,9 +8,9 @@ import zip from 'lodash/zip';
 
 import {defined} from 'sentry/utils/defined';
 import {uniqueId} from 'sentry/utils/guid';
-import {NUM_DESKTOP_COLS} from 'sentry/views/dashboards/constants';
 
 import {clampWidgetLayout} from './clampWidgetLayout';
+import {NUM_DESKTOP_COLS} from './constants';
 import type {Widget, WidgetLayout} from './types';
 import {DisplayType} from './types';
 
@@ -186,12 +186,7 @@ export function assignDefaultLayout<T extends Pick<Widget, 'displayType' | 'layo
 
     return {
       ...widget,
-      layout: {
-        ...nextPosition,
-        h: height,
-        minH: height,
-        w: DEFAULT_WIDGET_WIDTH,
-      },
+      layout: {...nextPosition, h: height, minH: height, w: DEFAULT_WIDGET_WIDTH},
     };
   });
   return newWidgets;

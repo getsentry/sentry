@@ -8,10 +8,6 @@ import {
   useFetchEventAttachments,
 } from 'sentry/actionCreators/events';
 import {Screenshot} from 'sentry/components/events/eventTagsAndScreenshot/screenshot';
-import {
-  modalCss,
-  ScreenshotModal,
-} from 'sentry/components/events/eventTagsAndScreenshot/screenshot/modal';
 import {t, tn} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {EventAttachment} from 'sentry/types/group';
@@ -23,6 +19,8 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 import {Tab, TabPaths} from 'sentry/views/issueDetails/types';
+
+import {modalCss, ScreenshotModal} from './modal';
 
 interface ScreenshotDataSectionProps {
   event: Event;
@@ -39,11 +37,7 @@ export function ScreenshotDataSection({
   const location = useLocation();
   const organization = useOrganization();
   const {data: attachments} = useFetchEventAttachments(
-    {
-      orgSlug: organization.slug,
-      projectSlug,
-      eventId: event.id,
-    },
+    {orgSlug: organization.slug, projectSlug, eventId: event.id},
     {enabled: true}
   );
   const [screenshotInFocus, setScreenshotInFocus] = useState(0);
@@ -72,13 +66,9 @@ export function ScreenshotDataSection({
     eventAttachment: EventAttachment,
     downloadUrl: string
   ) {
-    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {
-      organization,
-    });
+    trackAnalytics('issue_details.issue_tab.screenshot_modal_opened', {organization});
     function handleDelete() {
-      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {
-        organization,
-      });
+      trackAnalytics('issue_details.issue_tab.screenshot_modal_deleted', {organization});
       handleDeleteScreenshot(eventAttachment.id);
     }
 

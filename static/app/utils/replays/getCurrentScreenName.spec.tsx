@@ -1,34 +1,22 @@
 import {ReplayNavFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {getCurrentScreenName} from 'sentry/utils/replays/getCurrentScreenName';
-import {
-  hydrateBreadcrumbs,
-  replayInitBreadcrumb,
-} from 'sentry/utils/replays/hydrateBreadcrumbs';
-import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
+import {getCurrentScreenName} from './getCurrentScreenName';
+import {hydrateBreadcrumbs, replayInitBreadcrumb} from './hydrateBreadcrumbs';
+import type {BreadcrumbFrame} from './types';
 
 const START_DATE = new Date('2022-06-15T00:40:00.111Z');
 const NAVIGATION_DATE_1 = new Date('2022-06-15T00:46:00.333Z');
 const NAVIGATION_DATE_2 = new Date('2022-06-15T00:48:00.444Z');
 const END_DATE = new Date('2022-06-15T00:50:00.555Z');
 
-const replayRecord = ReplayRecordFixture({
-  started_at: START_DATE,
-  finished_at: END_DATE,
-});
+const replayRecord = ReplayRecordFixture({started_at: START_DATE, finished_at: END_DATE});
 
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 
 const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(replayRecord, [
-  ReplayNavFrameFixture({
-    data: {to: 'MainActivityScreen'},
-    timestamp: NAVIGATION_DATE_1,
-  }),
-  ReplayNavFrameFixture({
-    data: {to: 'ConfirmPayment'},
-    timestamp: NAVIGATION_DATE_2,
-  }),
+  ReplayNavFrameFixture({data: {to: 'MainActivityScreen'}, timestamp: NAVIGATION_DATE_1}),
+  ReplayNavFrameFixture({data: {to: 'ConfirmPayment'}, timestamp: NAVIGATION_DATE_2}),
 ]);
 
 describe('getCurrentScreenName', () => {

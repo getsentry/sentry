@@ -4,12 +4,9 @@ import {
   isParentAutogroupedNode,
   isSiblingAutogroupedNode,
 } from 'sentry/views/performance/traceDetails/traceGuards';
-import {
-  makeEAPSpan,
-  makeEAPTrace,
-} from 'sentry/views/performance/traceDetails/traceModels/traceTreeTestUtils';
 
 import {TraceTree} from './traceTree';
+import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
 
 const organization = OrganizationFixture();
 const start = new Date('2024-02-29T00:00:00Z').getTime() / 1e3;
@@ -240,15 +237,10 @@ describe('autogrouping', () => {
             ],
           }),
         ]),
-        {
-          ...traceMetadata,
-          organization: EAPOrganization,
-        }
+        {...traceMetadata, organization: EAPOrganization}
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root, {
-        organization: EAPOrganization,
-      });
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, {organization: EAPOrganization});
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 

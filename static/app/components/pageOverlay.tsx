@@ -7,7 +7,7 @@ import {motion} from 'framer-motion';
 import {Container} from '@sentry/scraps/layout';
 import {Prose} from '@sentry/scraps/text';
 
-import {Panel} from 'sentry/components/panels/panel';
+import {Panel} from './panels/panel';
 
 /**
  * The default wrapper for the detail text.
@@ -20,18 +20,8 @@ const DefaultWrapper = styled('div')`
 `;
 
 const subItemAnimation: Variants = {
-  initial: {
-    opacity: 0,
-    x: 60,
-  },
-  animate: {
-    opacity: 1,
-    x: 0,
-    transition: {
-      type: 'spring',
-      duration: 0.4,
-    },
-  },
+  initial: {opacity: 0, x: 60},
+  animate: {opacity: 1, x: 0, transition: {type: 'spring', duration: 0.4}},
 };
 
 const Header = styled((props: React.ComponentProps<typeof motion.h2>) => (
@@ -49,10 +39,7 @@ const Body = styled((props: React.ComponentProps<typeof motion.div>) => (
   margin-bottom: ${p => p.theme.space.xl};
 `;
 
-type ContentOpts = {
-  Body: typeof Body;
-  Header: typeof Header;
-};
+type ContentOpts = {Body: typeof Body; Header: typeof Header};
 
 type PositioningStrategyOpts = {
   /**

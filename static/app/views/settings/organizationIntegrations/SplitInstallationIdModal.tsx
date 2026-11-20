@@ -2,14 +2,11 @@ import {useCallback, useEffect, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
+import {toast} from '@sentry/scraps/toast';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {TextCopyInput} from 'sentry/components/textCopyInput';
 
-type Props = {
-  closeModal: () => void;
-  installationId: string;
-};
+type Props = {closeModal: () => void; installationId: string};
 
 /**
  * This component is a hack for Split.
@@ -32,7 +29,7 @@ export function SplitInstallationIdModal(props: Props) {
 
   const handleContinue = () => {
     onCopy();
-    addSuccessMessage('Copied to clipboard');
+    toast.success('Copied to clipboard');
 
     window.clearTimeout(openAdminIntegrationTimeoutRef.current);
 

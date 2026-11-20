@@ -3,8 +3,9 @@ import {GroupFixture} from 'sentry-fixture/group';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {ProfileEventEvidence} from 'sentry/components/events/profileEventEvidence';
 import {IssueType} from 'sentry/types/group';
+
+import {ProfileEventEvidence} from './profileEventEvidence';
 
 describe('ProfileEventEvidence', () => {
   const defaultProps = {
@@ -21,15 +22,9 @@ describe('ProfileEventEvidence', () => {
           templateName: 'profile',
         },
       },
-      contexts: {
-        trace: {
-          trace_id: 'trace-id',
-        },
-      },
+      contexts: {trace: {trace_id: 'trace-id'}},
     }),
-    group: GroupFixture({
-      issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-    }),
+    group: GroupFixture({issueType: IssueType.PROFILE_FILE_IO_MAIN_THREAD}),
     projectSlug: 'project-slug',
   };
 

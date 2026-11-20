@@ -1,8 +1,8 @@
 import type {ReactElement} from 'react';
+import {useQuery} from '@tanstack/react-query';
 
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 import type {Plan, PreviewData, Subscription} from 'getsentry/types';
 
@@ -55,24 +55,17 @@ export function usePreviewData({
     isPending,
     isError,
     data: previewData,
-  } = useApiQuery<PreviewData>(
-    [
-      getApiUrl('/customers/$organizationIdOrSlug/subscription/preview/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  } = useQuery({
+    ...apiOptions.as<PreviewData>()(
+      '/customers/$organizationIdOrSlug/subscription/preview/',
       {
-        query: {
-          ...reservations,
-          plan: plan?.id,
-          referrer: 'replay-am2-update-modal',
-        },
-      },
-    ],
-    {
-      staleTime: 0,
-      enabled: !!plan && !!reservations && hasBillingAccess && enabled,
-    }
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...reservations, plan: plan?.id, referrer: 'replay-am2-update-modal'},
+        staleTime: 0,
+      }
+    ),
+    enabled: !!plan && !!reservations && hasBillingAccess && enabled,
+  });
 
   if (isError) {
     return {
@@ -94,11 +87,5 @@ export function usePreviewData({
     };
   }
 
-  return {
-    loading: false,
-    error: false,
-    plan,
-    previewData,
-    reservations,
-  };
+  return {loading: false, error: false, plan, previewData, reservations};
 }

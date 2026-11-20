@@ -1,11 +1,14 @@
 import {DashboardFixture} from 'sentry-fixture/dashboard';
 
-import {updateDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
 
-jest.mock('sentry/actionCreators/indicator');
+import {updateDashboard} from './dashboards';
 
 describe('updateDashboard', () => {
+  beforeEach(() => {
+    jest.spyOn(toast, 'error');
+  });
+
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
@@ -37,9 +40,7 @@ describe('updateDashboard', () => {
       body: dashboard,
     });
 
-    await updateDashboard('org-slug', dashboard, {
-      revisionSource: 'edit-with-agent',
-    });
+    await updateDashboard('org-slug', dashboard, {revisionSource: 'edit-with-agent'});
 
     expect(mockPut).toHaveBeenCalledWith(
       expect.anything(),
@@ -63,7 +64,7 @@ describe('updateDashboard', () => {
 
     await expect(updateDashboard('org-slug', dashboard)).rejects.toBeDefined();
 
-    expect(addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'This dashboard may have been updated somewhere else. Refresh the page and try again.'
     );
   });
@@ -79,6 +80,6 @@ describe('updateDashboard', () => {
 
     await expect(updateDashboard('org-slug', dashboard)).rejects.toBeDefined();
 
-    expect(addErrorMessage).toHaveBeenCalledWith('This field may not be blank.');
+    expect(toast.error).toHaveBeenCalledWith('This field may not be blank.');
   });
 });

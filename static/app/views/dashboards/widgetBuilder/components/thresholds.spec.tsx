@@ -1,12 +1,13 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {ThresholdsSection as Thresholds} from 'sentry/views/dashboards/widgetBuilder/components/thresholds';
 import {
   useWidgetBuilderContext,
   WidgetBuilderProvider,
 } from 'sentry/views/dashboards/widgetBuilder/contexts/widgetBuilderContext';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {ThresholdsSection as Thresholds} from './thresholds';
 
 describe('Thresholds', () => {
   it.each(['15', '0'])(
@@ -96,9 +97,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":null}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":null}'},
           },
         },
       }
@@ -124,9 +123,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }
@@ -148,10 +145,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              displayType: DisplayType.LINE,
-              yAxis: ['count()'],
-            },
+            query: {displayType: DisplayType.LINE, yAxis: ['count()']},
           },
         },
       }
@@ -352,7 +346,6 @@ describe('Thresholds', () => {
 
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }
@@ -390,7 +383,6 @@ describe('Thresholds', () => {
     // deviates from the URL param update (e.g. null vs undefined behavior)
     function StateCapture() {
       const {state} = useWidgetBuilderContext();
-      // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
       capturedState = state;
       return null;
     }
@@ -404,9 +396,7 @@ describe('Thresholds', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}',
-            },
+            query: {thresholds: '{"max_values":{"max1":100},"unit":"millisecond"}'},
           },
         },
       }

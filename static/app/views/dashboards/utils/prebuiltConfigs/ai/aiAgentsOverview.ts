@@ -6,10 +6,6 @@ import type {
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
 import {
-  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
-  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
-import {
   WIDGET_COLUMN_LABELS,
   TABLE_MIN_HEIGHT,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
@@ -21,6 +17,11 @@ import {
 } from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
 
+import {
+  AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
+} from './settings';
+
 const AGENT_FILTER = getAgentRunsFilter();
 const AI_CLIENT_FILTER = getAiClientSpansFilter();
 const AGENT_AND_AI_CLIENT_FILTER = `(${getAgentRunsFilter()} OR ${getAiClientSpansFilter()})`;
@@ -29,11 +30,7 @@ const TOOL_FILTER = getToolSpansFilter();
 const DEFAULT_GLOBAL_FILTERS = [
   {
     dataset: WidgetType.SPANS,
-    tag: {
-      key: 'gen_ai.agent.name',
-      name: 'gen_ai.agent.name',
-      kind: FieldKind.TAG,
-    },
+    tag: {key: 'gen_ai.agent.name', name: 'gen_ai.agent.name', kind: FieldKind.TAG},
     value: '',
   },
 ];
@@ -213,22 +210,9 @@ const AGENTS_TRACES_TABLE: PrebuiltWidget = {
   interval: '1h',
   limit: MAX_TABLE_LIMIT,
   queries: [
-    {
-      conditions: '',
-      fields: [],
-      columns: [],
-      aggregates: [],
-      name: '',
-      orderby: '',
-    },
+    {conditions: '', fields: [], columns: [], aggregates: [], name: '', orderby: ''},
   ],
-  layout: {
-    x: 0,
-    y: 6,
-    w: 6,
-    h: 4,
-    minH: TABLE_MIN_HEIGHT,
-  },
+  layout: {x: 0, y: 6, w: 6, h: 4, minH: TABLE_MIN_HEIGHT},
 };
 
 export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -236,9 +220,7 @@ export const AI_AGENTS_OVERVIEW_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: AI_AGENTS_OVERVIEW_DASHBOARD_TITLE,
   description: AI_AGENTS_OVERVIEW_DASHBOARD_DESCRIPTION,
-  filters: {
-    globalFilter: DEFAULT_GLOBAL_FILTERS,
-  },
+  filters: {globalFilter: DEFAULT_GLOBAL_FILTERS},
   widgets: [...FIRST_ROW_WIDGETS, ...SECOND_ROW_WIDGETS, AGENTS_TRACES_TABLE],
   onboarding: {
     type: 'custom',

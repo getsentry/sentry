@@ -3,10 +3,10 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import {useUserViewedReplays} from 'sentry/components/replays/useUserViewedReplays';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
 import {UnmaskAlert} from './unmaskAlert';
+import {useUserViewedReplays} from './useUserViewedReplays';
 
 jest.mock('sentry/utils/localStorage');
 jest.mock('sentry/components/replays/useUserViewedReplays.tsx');
@@ -25,11 +25,15 @@ describe('UnmaskAlert', () => {
   });
 
   it('should render the alert when local storage key is not set and user has viewed <= 3 replays', () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
-      isPending: false,
-      isError: false,
-      data: {data: [ReplayRecordFixture(), ReplayRecordFixture(), ReplayRecordFixture()]},
-    });
+    jest
+      .mocked(useUserViewedReplays)
+      .mockReturnValue({
+        isPending: false,
+        isError: false,
+        data: {
+          data: [ReplayRecordFixture(), ReplayRecordFixture(), ReplayRecordFixture()],
+        },
+      });
     render(<UnmaskAlert />);
 
     expect(screen.getByTestId('unmask-alert')).toBeVisible();
@@ -43,31 +47,33 @@ describe('UnmaskAlert', () => {
   });
 
   it('should not render the alert if the user has viewed > 3 replays', () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
-      isPending: false,
-      isError: false,
-      data: {
-        data: [
-          ReplayRecordFixture(),
-          ReplayRecordFixture(),
-          ReplayRecordFixture(),
-          ReplayRecordFixture(),
-        ],
-      },
-    });
+    jest
+      .mocked(useUserViewedReplays)
+      .mockReturnValue({
+        isPending: false,
+        isError: false,
+        data: {
+          data: [
+            ReplayRecordFixture(),
+            ReplayRecordFixture(),
+            ReplayRecordFixture(),
+            ReplayRecordFixture(),
+          ],
+        },
+      });
     render(<UnmaskAlert />);
 
     expect(screen.queryByTestId('unmask-alert')).not.toBeInTheDocument();
   });
 
   it('should be dismissable', async () => {
-    jest.mocked(useUserViewedReplays).mockReturnValue({
-      isPending: false,
-      isError: false,
-      data: {
-        data: [ReplayRecordFixture(), ReplayRecordFixture()],
-      },
-    });
+    jest
+      .mocked(useUserViewedReplays)
+      .mockReturnValue({
+        isPending: false,
+        isError: false,
+        data: {data: [ReplayRecordFixture(), ReplayRecordFixture()]},
+      });
     render(<UnmaskAlert />);
 
     expect(screen.getByTestId('unmask-alert')).toBeVisible();

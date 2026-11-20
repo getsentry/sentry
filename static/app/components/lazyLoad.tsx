@@ -3,11 +3,12 @@ import * as Sentry from '@sentry/react';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
-import {InitialLoadingIndicator} from 'sentry/components/initialLoadingIndicator';
-import {LoadingError} from 'sentry/components/loadingError';
-import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {isWebpackChunkLoadingError} from 'sentry/utils';
+
+import {InitialLoadingIndicator} from './initialLoadingIndicator';
+import {LoadingError} from './loadingError';
+import {LoadingIndicator} from './loadingIndicator';
 
 type Props<C extends React.LazyExoticComponent<C>> = React.ComponentProps<C> & {
   /**
@@ -92,10 +93,7 @@ interface ErrorBoundaryState {
 // Error boundaries currently have to be classes.
 class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundaryState> {
   static getDerivedStateFromError(error: Error) {
-    return {
-      hasError: true,
-      error,
-    };
+    return {hasError: true, error};
   }
 
   state = {hasError: false, error: null};
@@ -105,6 +103,8 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
     // This ensures that when React Fast Refresh occurs, the error boundary
     // doesn't persist stale error state after code fixes
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.accept(this.handleRetry);
 
@@ -142,6 +142,8 @@ class ErrorBoundary extends Component<{children: React.ReactNode}, ErrorBoundary
   componentWillUnmount(): void {
     // Clean up HMR listeners to prevent memory leaks
     if (process.env.NODE_ENV === 'development') {
+      // https://github.com/oxc-project/tsgolint/issues/1278
+      // oxlint-disable-next-line typescript/prefer-optional-chain
       if (typeof module !== 'undefined' && module.hot) {
         module.hot.dispose(this.handleRetry);
       }

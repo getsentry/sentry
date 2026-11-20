@@ -6,11 +6,10 @@ import {Button} from '@sentry/scraps/button';
 import {Link} from '@sentry/scraps/link';
 import {Heading} from '@sentry/scraps/text';
 
-import {PRELOAD_HANDLE} from 'sentry/router/preload';
-import {RouteConfigProvider} from 'sentry/router/routeConfigContext';
-import {SentryLinkBehaviorProvider} from 'sentry/scrapsProviders/link';
-import {OrganizationStore} from 'sentry/stores/organizationStore';
-
+import {PRELOAD_HANDLE} from './router/preload';
+import {RouteConfigProvider} from './router/routeConfigContext';
+import {SentryLinkBehaviorProvider} from './scrapsProviders/link';
+import {OrganizationStore} from './stores/organizationStore';
 import {makeLazyloadComponent} from './makeLazyloadComponent';
 
 // Mock component to be lazy loaded
@@ -292,9 +291,7 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/test-route',
           element: <div>Route wrapper</div>,
-          handle: {
-            [PRELOAD_HANDLE]: LazyComponent[PRELOAD_HANDLE],
-          },
+          handle: {[PRELOAD_HANDLE]: LazyComponent[PRELOAD_HANDLE]},
         },
       ];
 
@@ -367,16 +364,12 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/parent',
           element: <div>Parent</div>,
-          handle: {
-            [PRELOAD_HANDLE]: LazyComponent1[PRELOAD_HANDLE],
-          },
+          handle: {[PRELOAD_HANDLE]: LazyComponent1[PRELOAD_HANDLE]},
           children: [
             {
               path: 'child',
               element: <div>Child</div>,
-              handle: {
-                [PRELOAD_HANDLE]: LazyComponent2[PRELOAD_HANDLE],
-              },
+              handle: {[PRELOAD_HANDLE]: LazyComponent2[PRELOAD_HANDLE]},
             },
           ],
         },
@@ -434,9 +427,7 @@ describe('makeLazyloadComponent', () => {
         {
           path: '/no-preload',
           element: <div>No preload</div>,
-          handle: {
-            name: 'No preload route',
-          },
+          handle: {name: 'No preload route'},
         },
       ];
 

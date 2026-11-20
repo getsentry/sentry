@@ -1,8 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {axisLabelFormatter, getDurationUnit} from 'sentry/utils/discover/charts';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 
 type Props = React.ComponentPropsWithoutRef<typeof AreaChart>;
 
@@ -17,14 +18,8 @@ export function Chart(props: Props) {
       xAxis={{
         type: 'category' as const,
         truncate: true,
-        axisLabel: {
-          showMinLabel: true,
-          showMaxLabel: true,
-        },
-        axisTick: {
-          interval: 0,
-          alignWithLabel: true,
-        },
+        axisLabel: {showMinLabel: true, showMaxLabel: true},
+        axisTick: {interval: 0, alignWithLabel: true},
       }}
       yAxis={{
         minInterval: durationUnit,
@@ -36,7 +31,7 @@ export function Chart(props: Props) {
             axisLabelFormatter(value, 'duration', undefined, durationUnit),
         },
       }}
-      tooltip={{valueFormatter: value => getDuration(value / 1000, 2)}}
+      tooltip={{valueFormatter: value => getDuration(value / 1000, {precision: 2})}}
       {...props}
     />
   );

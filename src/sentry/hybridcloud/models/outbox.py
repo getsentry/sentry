@@ -25,8 +25,10 @@ from django.db.transaction import Atomic
 from django.utils import timezone
 from sentry_sdk import traces
 from sentry_sdk.traces import StreamedSpan
+from taskbroker_client.state import current_task
 
 from sentry import options
+from sentry.app import env
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
@@ -73,6 +75,17 @@ def _ensure_not_null(k: str, v: Any) -> Any:
     if v is None:
         raise ValueError(f"Attribute {k} was None, but it needed to be set!")
     return v
+
+
+def _current_caller() -> str:
+    """The endpoint (method:url_name) or task running a synchronous drain."""
+    request = env.request
+    if request is not None and request.resolver_match is not None:
+        return f"{request.method}:{request.resolver_match.url_name or 'unknown'}"
+    task = current_task()
+    if task is not None:
+        return task.taskname
+    return "unknown"
 
 
 class OutboxBase(Model):
@@ -226,13 +239,16 @@ class OutboxBase(Model):
         super().save(*args, **kwargs)
 
     def _drain_shard_with_metrics(self) -> None:
-        with metrics.timer(
-            "outbox.sync_shard_drain.duration",
-            tags={
-                "category": OutboxCategory(self.category).name,
-                "outbox_name": self._meta.label,
-            },
-        ):
+        category = OutboxCategory(self.category).name
+        tags = {"category": category, "outbox_name": self._meta.label}
+        # Tagging must never block the drain.
+        try:
+            if category in options.get("hybridcloud.outbox.sync_drain_caller_tag.categories"):
+                tags["caller"] = _current_caller()
+        except Exception:
+            logger.exception("outbox.sync_drain_caller_tag.failed")
+            tags["caller"] = "unknown"
+        with metrics.timer("outbox.sync_shard_drain.duration", tags=tags):
             self.drain_shard()
 
     @contextlib.contextmanager
@@ -366,7 +382,7 @@ class OutboxBase(Model):
         logger.error("outbox.unexpected_coalescing", extra=extra)
 
     def _set_span_data_for_coalesced_message(self, span: StreamedSpan, message: OutboxBase) -> None:
-        tag_for_outbox = OutboxScope.get_tag_name(message.shard_scope)
+        tag_for_outbox = OutboxScope.get_tag_name(OutboxScope(message.shard_scope))
         span.set_attribute(tag_for_outbox, message.shard_identifier)
         span.set_attribute("outbox_id", message.id)
         span.set_attribute("outbox_shard_id", message.shard_identifier)
@@ -613,6 +629,17 @@ class ControlOutboxBase(OutboxBase):
 
     cell_name = models.CharField(max_length=CELL_NAME_LENGTH, db_column="region_name")
 
+    @classmethod
+    def get_cell_category_depths(cls) -> dict[tuple[str, int], int]:
+        """
+        Like get_category_depths, but also grouped by destination cell, so a
+        backlog for one cell can be told apart from the rest.
+
+        :return: A mapping of (cell name, category value) to total depth.
+        """
+        rows = cls.objects.values("cell_name", "category").annotate(depth=Count("*"))
+        return {(row["cell_name"], row["category"]): row["depth"] for row in rows}
+
     def send_signal(self) -> None:
         process_control_outbox.send(
             sender=OutboxCategory(self.category),
@@ -669,38 +696,60 @@ def outbox_silo_modes() -> list[SiloMode]:
 
 
 class OutboxContext(threading.local):
-    flushing_enabled: bool | None = None
+    in_outbox_context: bool = False
+    flush_override: bool | None = None
+    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
+
+    @property
+    def flushing_enabled(self) -> bool | None:
+        """Whether outbox saves drain on commit; None outside any outbox_context."""
+        if not self.in_outbox_context:
+            return None
+
+        # 1. A flag was passed to this context, or 2. to an enclosing one: use it
+        if self.flush_override is not None:
+            return self.flush_override
+
+        # 3. No caller passed a flag: flush
+        return True
 
 
 _outbox_context = OutboxContext()
+
+
+def get_outbox_flush_override() -> bool | None:
+    """The flush flag a caller passed to an enclosing outbox_context, or None if none did."""
+    return _outbox_context.flush_override
 
 
 @contextlib.contextmanager
 def outbox_context(
     inner: Atomic | None = None, flush: bool | None = None
 ) -> Generator[Atomic | None]:
-    # If we don't specify our flush, use the outer specified override
+    original_in_outbox_context = _outbox_context.in_outbox_context
+    original_override = _outbox_context.flush_override
+
+    # Without a flag of our own, keep the one an enclosing caller passed
     if flush is None:
-        flush = _outbox_context.flushing_enabled
-        # But if there is no outer override, default to True
-        if flush is None:
-            flush = True
+        flush = original_override
 
-    assert not flush or inner, "Must either set a transaction or flush=False"
-
-    original = _outbox_context.flushing_enabled
+    assert flush is False or inner, "Must either set a transaction or flush=False"
 
     if inner:
         assert inner.using is not None
         with unguarded_write(using=inner.using), enforce_constraints(inner):
-            _outbox_context.flushing_enabled = flush
+            _outbox_context.in_outbox_context = True
+            _outbox_context.flush_override = flush
             try:
                 yield inner
             finally:
-                _outbox_context.flushing_enabled = original
+                _outbox_context.in_outbox_context = original_in_outbox_context
+                _outbox_context.flush_override = original_override
     else:
-        _outbox_context.flushing_enabled = flush
+        _outbox_context.in_outbox_context = True
+        _outbox_context.flush_override = flush
         try:
             yield None
         finally:
-            _outbox_context.flushing_enabled = original
+            _outbox_context.in_outbox_context = original_in_outbox_context
+            _outbox_context.flush_override = original_override

@@ -12,11 +12,12 @@ import {
   useReplayOnboardingSidebarPanel,
 } from 'sentry/utils/replays/hooks/useReplayOnboarding';
 import {useProjectSdkNeedsUpdate} from 'sentry/utils/useProjectSdkNeedsUpdate';
-import {useAllMobileProj} from 'sentry/views/explore/replays/detail/useAllMobileProj';
-import ListPage from 'sentry/views/explore/replays/list';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
+
+import {useAllMobileProj} from './detail/useAllMobileProj';
+import ListPage from './list';
 
 jest.mock('sentry/utils/replays/hooks/useDeadRageSelectors');
 jest.mock('sentry/utils/replays/hooks/useReplayOnboarding');
@@ -53,10 +54,7 @@ const AM1_FEATURES: string[] = [];
 const AM2_FEATURES: string[] = ['session-replay'];
 
 function getMockOrganizationFixture({features}: {features: string[]}) {
-  const mockOrg = OrganizationFixture({
-    features,
-    access: [],
-  });
+  const mockOrg = OrganizationFixture({features, access: []});
 
   return mockOrg;
 }
@@ -100,10 +98,7 @@ describe('ReplayList', () => {
     mockUseAllMobileProj.mockClear();
     mockUseLLMContext.mockClear();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     mockFetchReplayListRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/replays/',
       body: {},
@@ -292,9 +287,7 @@ describe('ReplayList', () => {
   });
 
   it('renders Save as inline and Hide Widgets in the controls bar', async () => {
-    const mockOrg = getMockOrganizationFixture({
-      features: [...AM2_FEATURES],
-    });
+    const mockOrg = getMockOrganizationFixture({features: [...AM2_FEATURES]});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
       hasSentOneReplay: true,

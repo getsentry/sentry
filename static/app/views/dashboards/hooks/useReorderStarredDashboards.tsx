@@ -3,8 +3,9 @@ import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {getStarredDashboardsQueryKey} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
 import type {DashboardListItem} from 'sentry/views/dashboards/types';
+
+import {getStarredDashboardsQueryKey} from './useGetStarredDashboards';
 
 export function useReorderStarredDashboards() {
   const organization = useOrganization();
@@ -18,9 +19,7 @@ export function useReorderStarredDashboards() {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'PUT',
-        data: {
-          dashboard_ids: dashboards.map(dashboard => dashboard.id),
-        },
+        data: {dashboard_ids: dashboards.map(dashboard => dashboard.id)},
       }),
     onMutate: dashboards => {
       queryClient.setQueryData(queryKey, prev =>

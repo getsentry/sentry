@@ -10,7 +10,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {IntegrationExternalTeamMappings} from 'sentry/views/settings/organizationIntegrations/integrationExternalTeamMappings';
+import {IntegrationExternalTeamMappings} from './integrationExternalTeamMappings';
 
 describe('IntegrationExternalTeamMappings', () => {
   const organization = OrganizationFixture({access: ['org:integrations']});
@@ -64,9 +64,7 @@ describe('IntegrationExternalTeamMappings', () => {
       },
     });
 
-    render(<IntegrationExternalTeamMappings integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationExternalTeamMappings integration={integration} />, {organization});
     renderGlobalModal();
 
     await waitFor(() => {

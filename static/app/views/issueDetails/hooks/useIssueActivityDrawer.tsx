@@ -4,21 +4,21 @@ import {useDrawer} from '@sentry/scraps/drawer';
 
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {GroupIdProvider} from 'sentry/views/issueDetails/groupIdContext';
 import {ActivityDrawer} from 'sentry/views/issueDetails/sidebar/activityDrawer';
-import {useGroupDetailsRoute} from 'sentry/views/issueDetails/useGroupDetailsRoute';
 
 interface UseIssueActivityDrawerProps {
+  getReturnPath: () => string;
   group: Group;
-  project: Project;
 }
 
-export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerProps) {
+export function useIssueActivityDrawer({
+  getReturnPath,
+  group,
+}: UseIssueActivityDrawerProps) {
   const {openDrawer} = useDrawer();
-  const {baseUrl} = useGroupDetailsRoute();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -26,7 +26,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
     openDrawer(
       () => (
         <GroupIdProvider groupId={group.id}>
-          <ActivityDrawer project={project} />
+          <ActivityDrawer />
         </GroupIdProvider>
       ),
       {
@@ -34,13 +34,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
         drawerKey: 'issue-activity-drawer',
         onClose: () => {
           navigate(
-            {
-              pathname: baseUrl,
-              query: {
-                ...location.query,
-                filter: undefined,
-              },
-            },
+            {pathname: getReturnPath(), query: {...location.query, filter: undefined}},
             {replace: true, preventScrollReset: true}
           );
         },
@@ -49,7 +43,7 @@ export function useIssueActivityDrawer({group, project}: UseIssueActivityDrawerP
         },
       }
     );
-  }, [openDrawer, baseUrl, navigate, location.query, group.id, project]);
+  }, [openDrawer, getReturnPath, navigate, location.query, group.id]);
 
   return {openIssueActivityDrawer};
 }

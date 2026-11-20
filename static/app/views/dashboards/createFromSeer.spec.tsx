@@ -68,31 +68,20 @@ const MOCKED_PROCESSING_SESSION = {
 };
 
 describe('CreateFromSeer', () => {
-  const organization = OrganizationFixture({
-    features: ['dashboards-edit'],
-  });
+  const organization = OrganizationFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.loadInitialData([ProjectFixture()]);
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/measurements-meta/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [],
@@ -113,11 +102,43 @@ describe('CreateFromSeer', () => {
     });
   });
 
-  it('shows loading state while session is processing', () => {
+  it('pushes the run id into the URL while keeping other params when a prompt is generated', async () => {
     MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_PROCESSING_SESSION,
+      url: '/organizations/org-slug/dashboards/generate/',
+      method: 'POST',
+      body: {run_id: String(SEER_RUN_ID)},
     });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_PROCESSING_SESSION});
+    const onNuqsUrlUpdate = jest.fn();
+
+    const {router} = render(<CreateFromSeer />, {
+      organization,
+      onNuqsUrlUpdate,
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/dashboards/new/from-seer/',
+          query: {project: '1'},
+        },
+      },
+    });
+
+    await userEvent.type(
+      screen.getByPlaceholderText(/Add details like what you are looking for/),
+      'errors by browser'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Generate'}));
+
+    expect(
+      await screen.findByRole('heading', {name: 'Generating Dashboard'})
+    ).toBeInTheDocument();
+    expect(router.location.query).toEqual({project: '1', seerRunId: String(SEER_RUN_ID)});
+    expect(onNuqsUrlUpdate).toHaveBeenLastCalledWith(
+      expect.objectContaining({options: expect.objectContaining({history: 'push'})})
+    );
+  });
+
+  it('shows loading state while session is processing', () => {
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_PROCESSING_SESSION});
 
     render(<CreateFromSeer />, {
       organization,
@@ -135,10 +156,7 @@ describe('CreateFromSeer', () => {
   });
 
   it('renders dashboard and chat panel when session is completed', async () => {
-    MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_COMPLETED_SESSION});
 
     render(<CreateFromSeer />, {
       organization,
@@ -157,10 +175,7 @@ describe('CreateFromSeer', () => {
   });
 
   it('sends user input message to seer through the chat panel', async () => {
-    MockApiClient.addMockResponse({
-      url: SEER_API_URL,
-      body: MOCKED_COMPLETED_SESSION,
-    });
+    MockApiClient.addMockResponse({url: SEER_API_URL, body: MOCKED_COMPLETED_SESSION});
 
     const postMock = MockApiClient.addMockResponse({
       url: SEER_API_URL,

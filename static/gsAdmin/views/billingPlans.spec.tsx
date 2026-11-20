@@ -56,9 +56,7 @@ const mockPlansResponse: BillingPlansResponse = {
     am9000: {
       business: {
         data_categories_disabled: [],
-        pricing: {
-          Platform: {monthly: 8900, annual: 96000},
-        },
+        pricing: {Platform: {monthly: 8900, annual: 96000}},
         price_tiers: {
           errors: [
             {tier: 1, volume: 100000, monthly: 0, annual: 0, od_ppe: 0, reserved_ppe: 0},
@@ -209,10 +207,7 @@ describe('BillingPlans Component', () => {
 
   it('displays "NOT LIVE" badge for plans that are not live', async () => {
     // Mock response with a plan in the 'not_live' array
-    const mockNotLiveResponse = {
-      not_live: ['am9000'],
-      data: mockPlansResponse.data,
-    };
+    const mockNotLiveResponse = {not_live: ['am9000'], data: mockPlansResponse.data};
 
     MockApiClient.addMockResponse({
       url: '/billing-plans/',
@@ -255,9 +250,7 @@ describe('BillingPlans Component', () => {
         am9000: {
           business: {
             data_categories_disabled: ['errors'],
-            pricing: {
-              Platform: {monthly: 8900, annual: 96000},
-            },
+            pricing: {Platform: {monthly: 8900, annual: 96000}},
             price_tiers: {
               errors: [
                 {

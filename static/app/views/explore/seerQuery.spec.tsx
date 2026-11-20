@@ -1,18 +1,14 @@
 import type {AskSeerSearchQuery} from 'sentry/components/searchQueryBuilder/askSeerCombobox/types';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {VisualizeFunction} from './queryParams/visualize';
 import {
   getSeerExploreQuery,
   getSeerSort,
   getSeerWritableAggregateFields,
-} from 'sentry/views/explore/seerQuery';
-import {ChartType} from 'sentry/views/insights/common/components/chart';
+} from './seerQuery';
 
-const pageDatetime = {
-  start: null,
-  end: null,
-  period: '7d',
-  utc: null,
-};
+const pageDatetime = {start: null, end: null, period: '7d', utc: null};
 
 function seerResult(overrides: Partial<AskSeerSearchQuery>): AskSeerSearchQuery {
   return {
@@ -67,12 +63,7 @@ describe('getSeerExploreQuery', () => {
       }),
     });
 
-    expect(result.datetime).toEqual({
-      start: null,
-      end: null,
-      period: '24h',
-      utc: null,
-    });
+    expect(result.datetime).toEqual({start: null, end: null, period: '24h', utc: null});
   });
 
   it('passes through the interval', () => {
@@ -85,10 +76,7 @@ describe('getSeerExploreQuery', () => {
   });
 
   it('leaves interval undefined when none is provided', () => {
-    const result = getSeerExploreQuery({
-      pageDatetime,
-      result: seerResult({}),
-    });
+    const result = getSeerExploreQuery({pageDatetime, result: seerResult({})});
 
     expect(result.interval).toBeUndefined();
   });

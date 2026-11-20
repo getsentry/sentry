@@ -2,7 +2,6 @@ import type {LocationDescriptor} from 'history';
 
 import type {SearchGroup} from 'sentry/components/searchBar/types';
 import {t} from 'sentry/locale';
-import type {ParsedOwnershipRule} from 'sentry/types/ownership';
 import type {FieldKind} from 'sentry/utils/fields';
 
 import type {Actor, TimeseriesValue} from './core';
@@ -16,6 +15,7 @@ import type {
   Repository,
 } from './integrations';
 import type {Team} from './organization';
+import type {ParsedOwnershipRule} from './ownership';
 import type {PlatformKey} from './platform';
 import type {AvatarProject, Project} from './project';
 import type {AvatarUser, User} from './user';
@@ -47,7 +47,7 @@ export type SavedSearch = {
   visibility: SavedSearchVisibility;
 };
 
-export enum SavedSearchVisibility {
+enum SavedSearchVisibility {
   ORGANIZATION = 'organization',
   OWNER = 'owner',
   OWNER_PINNED = 'owner_pinned',
@@ -579,10 +579,7 @@ export type TagWithTopValues = {
 /**
  * Inbox, issue owners and Activity
  */
-type Annotation = {
-  displayName: string;
-  url: string;
-};
+type Annotation = {displayName: string; url: string};
 
 type InboxReasonDetails = {
   count?: number | null;
@@ -673,6 +670,7 @@ export enum GroupActivityType {
   SEER_PR_READY_FOR_REVIEW = 'seer_pr_ready_for_review',
   SEER_ITERATION_STARTED = 'seer_iteration_started',
   SEER_ITERATION_COMPLETED = 'seer_iteration_completed',
+  SEER_STOPPED = 'seer_stopped',
   PULL_REQUEST_CLOSED = 'pull_request_closed',
   PULL_REQUEST_REOPENED = 'pull_request_reopened',
   PULL_REQUEST_MERGED = 'pull_request_merged',
@@ -680,6 +678,8 @@ export enum GroupActivityType {
   TRIGGER_AUTOFIX = 'trigger_autofix',
   UNLINK_EXTERNAL_ISSUE = 'unlink_external_issue',
   UNLINK_PLATFORM_EXTERNAL_ISSUE = 'unlink_platform_external_issue',
+  IMPACT_ASSESSMENT = 'impact_assessment',
+  INVESTIGATION_LINKED = 'investigation_linked',
 }
 
 export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
@@ -693,6 +693,7 @@ export const SEER_ACTIVITY_TYPES = new Set<GroupActivityType>([
   GroupActivityType.SEER_ITERATION_STARTED,
   GroupActivityType.SEER_ITERATION_COMPLETED,
   GroupActivityType.SEER_PR_READY_FOR_REVIEW,
+  GroupActivityType.SEER_STOPPED,
   GroupActivityType.TRIGGER_AUTOFIX,
 ]);
 
@@ -717,9 +718,7 @@ export interface GroupActivityIntegrationData {
 
 export interface GroupActivityNote extends GroupActivityBase {
   commentId: string;
-  data: {
-    text: string;
-  };
+  data: {text: string};
   type: GroupActivityType.NOTE;
 }
 
@@ -752,9 +751,7 @@ interface GroupActivitySetUnresolved extends GroupActivityBase {
 }
 
 interface GroupActivitySetUnresolvedForecast extends GroupActivityBase {
-  data: GroupActivityIntegrationData & {
-    forecast: number;
-  };
+  data: GroupActivityIntegrationData & {forecast: number};
   type: GroupActivityType.SET_UNRESOLVED;
 }
 
@@ -787,9 +784,7 @@ interface GroupActivitySetPrivate extends GroupActivityBase {
 }
 
 interface GroupActivitySetByAge extends GroupActivityBase {
-  data: {
-    age?: number | string;
-  };
+  data: {age?: number | string};
   type: GroupActivityType.SET_RESOLVED_BY_AGE;
 }
 
@@ -848,51 +843,37 @@ interface GroupActivitySetByResolvedInRelease extends GroupActivityBase {
 }
 
 interface GroupActivitySetByResolvedInCommit extends GroupActivityBase {
-  data: {
-    commit?: Commit | null;
-  };
+  data: {commit?: Commit | null};
   type: GroupActivityType.SET_RESOLVED_IN_COMMIT;
 }
 
 interface GroupActivityReferencedInCommit extends GroupActivityBase {
-  data: {
-    commit?: Commit | null;
-  };
+  data: {commit?: Commit | null};
   type: GroupActivityType.REFERENCED_IN_COMMIT;
 }
 
 export interface GroupActivitySetByResolvedInPullRequest extends GroupActivityBase {
-  data: {
-    pullRequest?: PullRequest | null;
-  };
+  data: {pullRequest?: PullRequest | null};
   type: GroupActivityType.SET_RESOLVED_IN_PULL_REQUEST;
 }
 
 export interface GroupActivityPullRequestClosed extends GroupActivityBase {
-  data: {
-    pullRequest?: PullRequest | null;
-  };
+  data: {pullRequest?: PullRequest | null};
   type: GroupActivityType.PULL_REQUEST_CLOSED;
 }
 
 interface GroupActivityPullRequestReopened extends GroupActivityBase {
-  data: {
-    pullRequest?: PullRequest | null;
-  };
+  data: {pullRequest?: PullRequest | null};
   type: GroupActivityType.PULL_REQUEST_REOPENED;
 }
 
 interface GroupActivityPullRequestMerged extends GroupActivityBase {
-  data: {
-    pullRequest?: PullRequest | null;
-  };
+  data: {pullRequest?: PullRequest | null};
   type: GroupActivityType.PULL_REQUEST_MERGED;
 }
 
 interface GroupActivityPullRequestUnlinked extends GroupActivityBase {
-  data: {
-    pullRequest?: PullRequest | null;
-  };
+  data: {pullRequest?: PullRequest | null};
   type: GroupActivityType.PULL_REQUEST_UNLINKED;
 }
 
@@ -916,9 +897,7 @@ type AutofixReferrer =
   | 'unknown';
 
 interface GroupActivityTriggerAutofix extends GroupActivityBase {
-  data: {
-    referrer?: AutofixReferrer;
-  };
+  data: {referrer?: AutofixReferrer};
   type: GroupActivityType.TRIGGER_AUTOFIX;
 }
 
@@ -937,47 +916,27 @@ export interface GroupActivitySetIgnored extends GroupActivityBase {
 }
 
 export interface GroupActivityReprocess extends GroupActivityBase {
-  data: {
-    eventCount: number;
-    newGroupId: number;
-    oldGroupId: number;
-  };
+  data: {eventCount: number; newGroupId: number; oldGroupId: number};
   type: GroupActivityType.REPROCESS;
 }
 
 interface GroupActivityUnmergeDestination extends GroupActivityBase {
-  data: {
-    fingerprints: string[];
-    source?: {
-      id: string;
-      shortId: string;
-    };
-  };
+  data: {fingerprints: string[]; source?: {id: string; shortId: string}};
   type: GroupActivityType.UNMERGE_DESTINATION;
 }
 
 interface GroupActivityUnmergeSource extends GroupActivityBase {
-  data: {
-    fingerprints: string[];
-    destination?: {
-      id: string;
-      shortId: string;
-    };
-  };
+  data: {fingerprints: string[]; destination?: {id: string; shortId: string}};
   type: GroupActivityType.UNMERGE_SOURCE;
 }
 
 interface GroupActivityMerge extends GroupActivityBase {
-  data: {
-    issues: any[];
-  };
+  data: {issues: any[]};
   type: GroupActivityType.MERGE;
 }
 
 interface GroupActivityAutoSetOngoing extends GroupActivityBase {
-  data: {
-    after_days?: number;
-  };
+  data: {after_days?: number};
   type: GroupActivityType.AUTO_SET_ONGOING;
 }
 
@@ -996,10 +955,7 @@ export interface GroupActivitySetEscalating extends GroupActivityBase {
 }
 
 interface GroupActivitySetPriority extends GroupActivityBase {
-  data: {
-    priority: PriorityLevel;
-    reason: string;
-  };
+  data: {priority: PriorityLevel; reason: string};
   type: GroupActivityType.SET_PRIORITY;
 }
 
@@ -1043,46 +999,32 @@ interface GroupActivityDeletedAttachment extends GroupActivityBase {
 }
 
 interface GroupActivitySeerRcaStarted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-  };
+  data: {run_id?: number};
   type: GroupActivityType.SEER_RCA_STARTED;
 }
 
 interface GroupActivitySeerRcaCompleted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-    summary?: string;
-  };
+  data: {run_id?: number; summary?: string};
   type: GroupActivityType.SEER_RCA_COMPLETED;
 }
 
 interface GroupActivitySeerSolutionStarted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-  };
+  data: {run_id?: number};
   type: GroupActivityType.SEER_SOLUTION_STARTED;
 }
 
 interface GroupActivitySeerSolutionCompleted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-    summary?: string;
-  };
+  data: {run_id?: number; summary?: string};
   type: GroupActivityType.SEER_SOLUTION_COMPLETED;
 }
 
 interface GroupActivitySeerCodingStarted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-  };
+  data: {run_id?: number};
   type: GroupActivityType.SEER_CODING_STARTED;
 }
 
 interface GroupActivitySeerCodingCompleted extends GroupActivityBase {
-  data: {
-    run_id?: number;
-  };
+  data: {run_id?: number};
   type: GroupActivityType.SEER_CODING_COMPLETED;
 }
 
@@ -1090,10 +1032,7 @@ interface GroupActivitySeerPrCreated extends GroupActivityBase {
   data: {
     pull_requests?: Array<{
       provider: string;
-      pull_request: {
-        pr_number: number;
-        pr_url: string;
-      };
+      pull_request: {pr_number: number; pr_url: string};
       repo_name: string;
     }>;
     run_id?: number;
@@ -1104,10 +1043,7 @@ interface GroupActivitySeerPrReadyForReview extends GroupActivityBase {
   data: {
     pull_requests?: Array<{
       provider: string;
-      pull_request: {
-        pr_number: number;
-        pr_url: string;
-      };
+      pull_request: {pr_number: number; pr_url: string};
       repo_name: string;
     }>;
     run_id?: number;
@@ -1116,11 +1052,7 @@ interface GroupActivitySeerPrReadyForReview extends GroupActivityBase {
 }
 
 interface GroupActivitySeerIterationStarted extends GroupActivityBase {
-  data: {
-    iteration_index?: number;
-    referrer?: AutofixReferrer;
-    run_id?: number;
-  };
+  data: {iteration_index?: number; referrer?: AutofixReferrer; run_id?: number};
   type: GroupActivityType.SEER_ITERATION_STARTED;
 }
 
@@ -1130,15 +1062,17 @@ interface GroupActivitySeerIterationCompleted extends GroupActivityBase {
     iteration_index?: number;
     pull_requests?: Array<{
       provider: string;
-      pull_request: {
-        pr_number: number;
-        pr_url: string;
-      };
+      pull_request: {pr_number: number; pr_url: string};
       repo_name: string;
     }>;
     run_id?: number;
   };
   type: GroupActivityType.SEER_ITERATION_COMPLETED;
+}
+
+interface GroupActivitySeerStopped extends GroupActivityBase {
+  data: {reason?: string; run_id?: number; suggestion?: string};
+  type: GroupActivityType.SEER_STOPPED;
 }
 
 interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
@@ -1149,6 +1083,52 @@ interface GroupActivityUnlinkExternalIssue extends GroupActivityBase {
 interface GroupActivityUnlinkPlatformExternalIssue extends GroupActivityBase {
   data: {display_name: string; service_type: string; web_url: string};
   type: GroupActivityType.UNLINK_PLATFORM_EXTERNAL_ISSUE;
+}
+
+type ImpactLevel = 'super_low' | 'low' | 'moderate' | 'high' | 'super_high';
+
+interface ImpactCitation {
+  claim: string;
+  reference: string;
+  source: string;
+}
+
+interface ImpactAssessment {
+  citations: ImpactCitation[];
+  description: string;
+  level: ImpactLevel | null;
+  score: number | null;
+  sourceEventId: string;
+}
+
+export interface GroupActivityImpactAssessment extends GroupActivityBase {
+  data: ImpactAssessment;
+  type: GroupActivityType.IMPACT_ASSESSMENT;
+}
+
+interface LinkedInvestigation {
+  id: string;
+  status: 'active' | 'archived';
+  title: string;
+}
+
+export interface GroupActivityInvestigationLinked extends GroupActivityBase {
+  data: {
+    hypothesisId: string;
+    /**
+     * The confirmed hypothesis whose evidence named this issue.
+     */
+    hypothesisStatement: string;
+    /**
+     * Null once the investigation is deleted.
+     */
+    investigation: LinkedInvestigation | null;
+    /**
+     * Seer's note on the evidence, usually counts and culprits.
+     */
+    reason: string | null;
+  };
+  type: GroupActivityType.INVESTIGATION_LINKED;
 }
 
 export type GroupActivity =
@@ -1192,11 +1172,14 @@ export type GroupActivity =
   | GroupActivitySeerPrReadyForReview
   | GroupActivitySeerIterationStarted
   | GroupActivitySeerIterationCompleted
+  | GroupActivitySeerStopped
   | GroupActivityPullRequestClosed
   | GroupActivityPullRequestReopened
   | GroupActivityPullRequestMerged
   | GroupActivityPullRequestUnlinked
-  | GroupActivityTriggerAutofix;
+  | GroupActivityTriggerAutofix
+  | GroupActivityImpactAssessment
+  | GroupActivityInvestigationLinked;
 
 export type Activity = GroupActivity;
 
@@ -1242,10 +1225,7 @@ export interface ResolvedStatusDetails {
   repository?: string;
 }
 interface ReprocessingStatusDetails {
-  info: {
-    dateCreated: string;
-    totalEvents: number;
-  } | null;
+  info: {dateCreated: string; totalEvents: number} | null;
   pendingEvents: number;
 }
 
@@ -1320,6 +1300,7 @@ interface GroupDerivedData {
   progress: ProgressState;
   status: 'open' | 'closed';
   viewCount: number;
+  impact?: ImpactAssessment | null;
 }
 
 // TODO(ts): incomplete
@@ -1490,9 +1471,7 @@ export type UserReport = {
 export type KeyValueListDataItem = {
   key: string;
   subject: string;
-  action?: {
-    link?: LocationDescriptor;
-  };
+  action?: {link?: LocationDescriptor};
   actionButton?: React.ReactNode;
   /**
    * If true, the action button will always be visible, not just on hover.

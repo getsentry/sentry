@@ -1,6 +1,7 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import isEqual from 'lodash/isEqual';
+import {useQueryStates} from 'nuqs';
 
 import {Stack} from '@sentry/scraps/layout';
 
@@ -9,17 +10,17 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
+import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useGetPrebuiltDashboard} from 'sentry/views/dashboards/utils/usePopulateLinkedDashboards';
 
 import {mergeGlobalFilters} from './globalFilter/utils';
+import {useGetPrebuiltDashboard} from './utils/usePopulateLinkedDashboards';
 import {assignTempId} from './layoutUtils';
 import type {DashboardDetails, DashboardListItem} from './types';
 import {getCurrentPageFilters, hasSavedPageFilters} from './utils';
@@ -44,7 +45,7 @@ interface OrgDashboardsProps {
 export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) {
   const location = useLocation();
   const organization = useOrganization();
-  const navigate = useNavigate();
+  const [, setPageFilterParams] = useQueryStates(pageFilterParsers, {history: 'replace'});
   const {dashboardId} = useParams<{dashboardId: string}>();
   const dashboardRedirectRef = useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -60,28 +61,21 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useQuery({
-    ...dashboardsApiOptions(organization),
-    retry: false,
-  });
+  } = useQuery({...dashboardsApiOptions(organization), retry: false});
 
   const {
     data: fetchedSelectedDashboard,
     isLoading: isSelectedDashboardLoading,
     isError: isSelectedDashboardError,
     error: selectedDashboardError,
-  } = useApiQuery<DashboardDetails>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/dashboards/$dashboardId/', {
-        path: {organizationIdOrSlug: organization.slug, dashboardId},
-      }),
-    ],
-    {
-      staleTime: 0,
-      enabled: !!dashboardId,
-      retry: false,
-    }
-  );
+  } = useQuery({
+    ...apiOptions.as<DashboardDetails>()(
+      '/organizations/$organizationIdOrSlug/dashboards/$dashboardId/',
+      {path: {organizationIdOrSlug: organization.slug, dashboardId}, staleTime: 0}
+    ),
+    enabled: !!dashboardId,
+    retry: false,
+  });
 
   let selectedDashboard = selectedDashboardState ?? fetchedSelectedDashboard;
 
@@ -106,6 +100,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
       start: selectedDashboard.start,
       end: selectedDashboard.end,
       utc: selectedDashboard.utc,
+      queryPriority: selectedDashboard.queryPriority,
     };
   }
 
@@ -142,22 +137,15 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     }
 
     dashboardRedirectRef.current = selectedDashboard.id;
-    navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          project: selectedDashboard.projects,
-          environment: selectedDashboard.environment,
-          statsPeriod: selectedDashboard.period,
-          start: selectedDashboard.start,
-          end: selectedDashboard.end,
-          utc: selectedDashboard.utc,
-        },
-      },
-      {replace: true}
-    );
-  }, [location, navigate, selectedDashboard]);
+    setPageFilterParams({
+      project: selectedDashboard.projects?.map(String) ?? null,
+      environment: selectedDashboard.environment ?? null,
+      statsPeriod: selectedDashboard.period ?? null,
+      start: selectedDashboard.start ?? null,
+      end: selectedDashboard.end ?? null,
+      utc: selectedDashboard.utc?.toString() ?? null,
+    });
+  }, [location, setPageFilterParams, selectedDashboard]);
 
   useEffect(() => {
     // Clean up the query cache when the dashboard unmounts to prevent
@@ -177,10 +165,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     () => ({
       error: Boolean(dashboardsError || selectedDashboardError),
       dashboard: selectedDashboard
-        ? {
-            ...selectedDashboard,
-            widgets: selectedDashboard.widgets.map(assignTempId),
-          }
+        ? {...selectedDashboard, widgets: selectedDashboard.widgets.map(assignTempId)}
         : null,
       dashboards: Array.isArray(dashboards) ? dashboards : [],
       onDashboardUpdate: setSelectedDashboardState,
@@ -215,7 +200,8 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
   if (isDashboardsError || isSelectedDashboardError) {
     const notFound =
       (dashboardsError instanceof RequestError && dashboardsError.status === 404) ||
-      selectedDashboardError?.status === 404;
+      (selectedDashboardError instanceof RequestError &&
+        selectedDashboardError.status === 404);
 
     if (notFound) {
       return <NotFound />;

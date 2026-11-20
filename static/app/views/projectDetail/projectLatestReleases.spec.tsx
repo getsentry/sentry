@@ -9,7 +9,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ProjectLatestReleases} from 'sentry/views/projectDetail/projectLatestReleases';
+import {ProjectLatestReleases} from './projectLatestReleases';
 
 describe('ProjectDetail > ProjectLatestReleases', () => {
   let endpointMock: jest.Mock;
@@ -51,9 +51,7 @@ describe('ProjectDetail > ProjectLatestReleases', () => {
     expect(endpointMock).toHaveBeenCalledTimes(1);
     expect(endpointMock).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: {per_page: 5},
-      })
+      expect.objectContaining({query: {per_page: 5}})
     );
     expect(endpointOlderReleasesMock).toHaveBeenCalledTimes(0);
   });

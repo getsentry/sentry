@@ -11,8 +11,9 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useOpenEditAccessModal} from 'sentry/views/dashboards/editAccessModal';
-import type {DashboardDetails, DashboardPermissions} from 'sentry/views/dashboards/types';
+
+import {useOpenEditAccessModal} from './editAccessModal';
+import type {DashboardDetails, DashboardPermissions} from './types';
 
 const teams = [
   TeamFixture({id: '1', slug: 'team1', name: 'Team 1'}),
@@ -64,10 +65,7 @@ function selectAllCheckbox() {
 describe('EditAccessModal', () => {
   beforeEach(() => {
     TeamStore.loadInitialData(teams);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: teams,
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: teams});
   });
 
   afterEach(() => {

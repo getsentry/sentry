@@ -6,23 +6,20 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  PERCENTAGE_3XX,
-  PERCENTAGE_4XX,
-  PERCENTAGE_5XX,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/constants';
+import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
+import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
+import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
+import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
+import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {PERCENTAGE_3XX, PERCENTAGE_4XX, PERCENTAGE_5XX} from './constants';
 import {
   AVERAGE_DURATION_TEXT,
   BASE_FILTERS,
   DETAILS_DASHBOARD_TITLE,
   RESPONSE_CODES_TEXT,
   THROUGHPUT_TEXT,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/http/settings';
-import {TABLE_MIN_HEIGHT} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
-import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
-import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
-import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
-import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+} from './settings';
 
 const FILTER_STRING = MutableSearch.fromQueryObject(BASE_FILTERS).formatString();
 
@@ -56,13 +53,7 @@ const DOMAIN_WIDGET: PrebuiltWidget = {
       linkedDashboards: [],
     },
   ],
-  layout: {
-    x: 0,
-    y: 0,
-    minH: 1,
-    h: 1,
-    w: 6,
-  },
+  layout: {x: 0, y: 0, minH: 1, h: 1, w: 6},
 };
 
 const BIG_NUMBER_ROW_WIDGETS = spaceWidgetsEquallyOnRow(
@@ -271,13 +262,7 @@ const TRANSACTIONS_TABLE: PrebuiltWidget = {
       orderby: `-sum(${SpanFields.SPAN_DURATION})`,
     },
   ],
-  layout: {
-    x: 0,
-    y: 4,
-    minH: TABLE_MIN_HEIGHT,
-    h: 5,
-    w: 6,
-  },
+  layout: {x: 0, y: 4, minH: TABLE_MIN_HEIGHT, h: 5, w: 6},
 };
 
 export const HTTP_DOMAIN_SUMMARY_PREBUILT_CONFIG: PrebuiltDashboard = {

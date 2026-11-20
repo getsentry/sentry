@@ -2,7 +2,6 @@ import type {CSSProperties} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
-import queryString from 'query-string';
 
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Flex} from '@sentry/scraps/layout';
@@ -12,6 +11,7 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {t} from 'sentry/locale';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import * as qs from 'sentry/utils/url/qs';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeFeedbackPathname} from 'sentry/views/feedback/pathnames';
@@ -45,11 +45,8 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
   // or other options are passed, which breaks the copy-paste.
   const feedbackUrl =
     window.location.origin +
-    makeFeedbackPathname({
-      path: '/',
-      organization,
-    }) +
-    queryString.stringifyUrl({
+    makeFeedbackPathname({path: '/', organization}) +
+    qs.stringifyUrl({
       url: '?',
       query: {
         feedbackSlug: projectSlug ? `${projectSlug}:${feedbackItem.id}` : feedbackItem.id,
@@ -89,9 +86,7 @@ export function FeedbackShortId({className, feedbackItem, style}: Props) {
             key: 'copy-url',
             label: t('Copy Feedback URL'),
             onAction: () =>
-              copy(feedbackUrl, {
-                successMessage: t('Copied Feedback URL to clipboard'),
-              }),
+              copy(feedbackUrl, {successMessage: t('Copied Feedback URL to clipboard')}),
           },
           {
             key: 'copy-short-id',

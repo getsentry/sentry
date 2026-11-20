@@ -29,30 +29,28 @@ import {defined} from 'sentry/utils/defined';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjects} from 'sentry/utils/useProjects';
+
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
   coalesePreferredAgent,
-} from 'sentry/utils/seer/preferredAgent';
+} from './preferredAgent';
 import {
   getMutateSeerProjectSettingsOptions,
   getSeerProjectSettingsQueryOptions,
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectsSettingsOptions,
   seerProjectSettingsSchema,
-} from 'sentry/utils/seer/seerProjectSettings';
-import {
-  coaleseStoppingPoint,
-  useStoppingPointSelectOptions,
-} from 'sentry/utils/seer/stoppingPoint';
+} from './seerProjectSettings';
+import {coaleseStoppingPoint, useStoppingPointSelectOptions} from './stoppingPoint';
 import type {
   AutofixAgentSelectOption,
   InternalAutomationTuning,
   SeerAutofixStoppingPoint,
   SeerProjectSettingResponse,
-} from 'sentry/utils/seer/types';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjects} from 'sentry/utils/useProjects';
+} from './types';
 
 const STORY_COLUMNS: TableColumnConfig[] = [
   {key: 'select', width: 'max-content'},
@@ -305,12 +303,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const queryOptions = infiniteQueryOptions({
       ...getInfiniteSeerProjectsSettingsQueryOptions({
         organization,
-        query: {
-          per_page: 25,
-          query: MutableSearch.fromQueryObject({
-            reposCount: '>0',
-          }),
-        },
+        query: {per_page: 25, query: MutableSearch.fromQueryObject({reposCount: '>0'})},
       }),
       select: ({pages}) => pages.flatMap(page => page.json),
     });
@@ -444,22 +437,14 @@ export default Storybook.story('SeerProjectSettings', story => {
               isDisabled={false}
               onChange={value => {
                 setLastAgent(value);
-                mutate({
-                  query: '',
-                  selectedIds,
-                  agentOption: value,
-                });
+                mutate({query: '', selectedIds, agentOption: value});
               }}
             />
             <StoppingPointDropdownMenu
               isDisabled={false}
               onChange={value => {
                 setLastStoppingPoint(value);
-                mutate({
-                  query: '',
-                  selectedIds,
-                  stoppingPoint: value,
-                });
+                mutate({query: '', selectedIds, stoppingPoint: value});
               }}
             />
           </Flex>

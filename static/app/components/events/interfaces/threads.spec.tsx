@@ -12,7 +12,6 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
-import {Threads} from 'sentry/components/events/interfaces/threads';
 import {stackTraceDisplayOptionLabels} from 'sentry/components/events/traceEventDataSection';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -21,16 +20,14 @@ import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import type {StacktraceType} from 'sentry/types/stacktrace';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 
+import {Threads} from './threads';
+
 describe('Threads', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture();
   const integration = GitHubIntegrationFixture();
   const repo = RepositoryFixture({integrationId: integration.id});
-  const config = RepositoryProjectPathConfigFixture({
-    project,
-    repo,
-    integration,
-  });
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -38,21 +35,14 @@ describe('Threads', () => {
       url: '/organizations/org-slug/sentry-app-components/',
       body: [],
     });
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
-      body: {
-        config,
-        sourceUrl: 'https://something.io',
-        integrations: [integration],
-      },
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -91,9 +81,7 @@ describe('Threads', () => {
     };
 
     beforeEach(() => {
-      Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue('')},
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
     });
 
     it('copies a thread without an exception entry', async () => {
@@ -348,11 +336,7 @@ describe('Threads', () => {
           entries: {
             0: {
               data: {
-                values: {
-                  1: {
-                    value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}},
-                  },
-                },
+                values: {1: {value: {'': {rem: [['project:0', 's', 0, 0]], len: 43}}}},
               },
             },
           },
@@ -441,6 +425,111 @@ describe('Threads', () => {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         'a: Raw failure\n    at a.b.c(a.java:3)'
       );
+    });
+  });
+
+  describe('thread selector', () => {
+    const stacktrace: StacktraceType = {
+      frames: [FrameFixture({function: 'run'})],
+      framesOmitted: null,
+      registers: {},
+      hasSystemFrames: false,
+    };
+
+    function renderThreads(threads: Thread[]) {
+      const data = {values: threads};
+      const event = EventFixture({
+        projectID: project.id,
+        platform: 'python',
+        entries: [{type: EntryType.THREADS, data}],
+      });
+      render(
+        <Threads
+          event={event}
+          data={data}
+          projectSlug={project.slug}
+          group={undefined}
+          groupingCurrentLevel={0}
+        />
+      );
+    }
+
+    function getOptionNames() {
+      return screen.getAllByRole('option').map(option => option.textContent);
+    }
+
+    const threads: Thread[] = [
+      {
+        id: 1,
+        name: 'main',
+        crashed: true,
+        current: true,
+        state: 'RUNNABLE',
+        stacktrace,
+        rawStacktrace: null,
+      },
+      ...[
+        {id: 2, name: 'charlie', state: 'WAITING'},
+        {id: 3, name: 'alpha', state: 'BLOCKED'},
+        {id: 4, name: 'bravo', state: 'NEW'},
+      ].map(thread => ({
+        ...thread,
+        crashed: false,
+        current: false,
+        stacktrace,
+        rawStacktrace: null,
+      })),
+    ];
+
+    it('sorts threads by the clicked column header, keeping the active thread first', async () => {
+      renderThreads(threads);
+
+      await userEvent.click(screen.getByRole('button', {name: 'Thread #1: main'}));
+      const table = screen.getByRole('table', {name: 'Sort threads'});
+      const idOrder = getOptionNames();
+      await userEvent.click(within(table).getByRole('button', {name: 'Name'}));
+      const nameAscendingOrder = getOptionNames();
+      const nameAscendingSort = within(table)
+        .getAllByRole('columnheader')
+        .map(header => header.getAttribute('aria-sort'));
+      await userEvent.click(within(table).getByRole('button', {name: 'Name'}));
+
+      expect(idOrder).toEqual([
+        '#1mainrunRunnable',
+        '#2charlierunWaiting',
+        '#3alpharunBlocked',
+        '#4bravorunNew',
+      ]);
+      expect(nameAscendingOrder).toEqual([
+        '#1mainrunRunnable',
+        '#3alpharunBlocked',
+        '#4bravorunNew',
+        '#2charlierunWaiting',
+      ]);
+      expect(nameAscendingSort).toEqual([null, null, 'ascending', null, null]);
+      expect(getOptionNames()).toEqual([
+        '#1mainrunRunnable',
+        '#2charlierunWaiting',
+        '#4bravorunNew',
+        '#3alpharunBlocked',
+      ]);
+      expect(within(table).getByRole('columnheader', {name: 'Name'})).toHaveAttribute(
+        'aria-sort',
+        'descending'
+      );
+    });
+
+    it('omits the state column when no thread has a known state', async () => {
+      renderThreads(threads.map(thread => ({...thread, state: undefined})));
+
+      await userEvent.click(screen.getByRole('button', {name: 'Thread #1: main'}));
+
+      expect(
+        within(screen.getByRole('table', {name: 'Sort threads'}))
+          .getAllByRole('columnheader')
+          .map(header => header.textContent)
+      ).toEqual(['', 'ID', 'Name', 'Label']);
+      expect(getOptionNames()[0]).toBe('#1mainrun');
     });
   });
 
@@ -629,9 +718,7 @@ describe('Threads', () => {
       };
 
       it('renders', async () => {
-        render(<Threads {...props} />, {
-          organization,
-        });
+        render(<Threads {...props} />, {organization});
 
         // Title
         expect(
@@ -735,7 +822,6 @@ describe('Threads', () => {
 
       it('renders suspect commits', async () => {
         const user = UserFixture();
-        user.options.prefersIssueDetailsStreamlinedUI = true;
         ConfigStore.set('user', user);
         const group = GroupFixture();
         const committers = [
@@ -755,13 +841,9 @@ describe('Threads', () => {
         MockApiClient.addMockResponse({
           method: 'GET',
           url: `/projects/${organization.slug}/${project.slug}/events/${event.id}/committers/`,
-          body: {
-            committers,
-          },
+          body: {committers},
         });
-        render(<Threads {...props} group={group} />, {
-          organization,
-        });
+        render(<Threads {...props} group={group} />, {organization});
         expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
 
         // Suspect commits
@@ -1400,11 +1482,7 @@ describe('Threads', () => {
                     },
                   ],
                   framesOmitted: null,
-                  registers: {
-                    cpsr: '0x60000000',
-                    fp: '0x16fd79870',
-                    lr: '0x10008c5ac',
-                  },
+                  registers: {cpsr: '0x60000000', fp: '0x16fd79870', lr: '0x10008c5ac'},
                   hasSystemFrames: true,
                 },
                 rawStacktrace: null,
@@ -1457,15 +1535,7 @@ describe('Threads', () => {
           rawStacktrace: null,
           state: 'WaitingPerformingGc',
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
 
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
@@ -1667,15 +1737,7 @@ describe('Threads', () => {
           },
           rawStacktrace: null,
         };
-        threadsEntry.values = [
-          {
-            ...thread,
-          },
-          {
-            ...thread,
-            id: 1,
-          },
-        ];
+        threadsEntry.values = [{...thread}, {...thread, id: 1}];
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
         // Title
@@ -1749,7 +1811,7 @@ describe('Threads', () => {
         // (crashed) thread id so the report is sorted with that thread first.
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=${activeThreadId}&download=1`
+          `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=false&thread_id=${activeThreadId}&download=1`
         );
 
         // Click on minified option
@@ -1761,7 +1823,7 @@ describe('Threads', () => {
         // Download button should now have minified=true
         expect(screen.getByRole('button', {name: 'Download'})).toHaveAttribute(
           'href',
-          `/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
+          `/api/0/projects/${organization.slug}/${project.slug}/events/${event.id}/apple-crash-report?minified=true&thread_id=${activeThreadId}&download=1`
         );
       });
     });

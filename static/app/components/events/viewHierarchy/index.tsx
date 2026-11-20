@@ -4,8 +4,6 @@ import styled from '@emotion/styled';
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {EmptyStateWarning} from 'sentry/components/emptyStateWarning';
-import {Node} from 'sentry/components/events/viewHierarchy/node';
-import {Wireframe} from 'sentry/components/events/viewHierarchy/wireframe';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
 import type {UseVirtualizedTreeProps} from 'sentry/utils/profiling/hooks/useVirtualizedTree/useVirtualizedTree';
@@ -14,7 +12,9 @@ import type {VirtualizedTreeRenderedRow} from 'sentry/utils/profiling/hooks/useV
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {DetailsPanel} from './detailsPanel';
+import {Node} from './node';
 import {RenderingSystem} from './renderingSystem';
+import {Wireframe} from './wireframe';
 
 function getNodeLabel({
   node,
@@ -37,10 +37,7 @@ function onScrollToNode(
     // When a user keyboard navigates to a node that's rendered in the "overscroll"
     const lastCell = node.ref?.lastChild as HTMLElement | null | undefined;
     if (lastCell) {
-      lastCell.scrollIntoView({
-        block: 'nearest',
-        inline: 'nearest',
-      });
+      lastCell.scrollIntoView({block: 'nearest', inline: 'nearest'});
     }
   } else if (coordinates) {
     // When a user clicks on a wireframe node that's not rendered in the "overscroll"
@@ -48,14 +45,10 @@ function onScrollToNode(
     const left = coordinates.depth * 16;
     if (Array.isArray(scrollContainer)) {
       scrollContainer.forEach(container => {
-        container.scrollBy({
-          left,
-        });
+        container.scrollBy({left});
       });
     } else if (scrollContainer) {
-      scrollContainer.scrollBy({
-        left,
-      });
+      scrollContainer.scrollBy({left});
     }
   }
 }

@@ -4,7 +4,8 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {fetchReplayClicks} from 'sentry/utils/replays/fetchReplayClicks';
-import {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
+
+import {useInitialTimeOffsetMs} from './useInitialTimeOffsetMs';
 
 jest.mock('sentry/utils/replays/fetchReplayClicks');
 
@@ -19,9 +20,7 @@ const FIVE_PAST_MS = String(new Date(FIVE_PAST_FORMATTED).getTime());
 const FIVE_PAST_SEC = String(new Date(FIVE_PAST_FORMATTED).getTime() / 1000);
 const initialRouterConfig = {
   route: '/organizations/:orgSlug/replays/',
-  location: {
-    pathname: '/organizations/test-org/replays/',
-  },
+  location: {pathname: '/organizations/test-org/replays/'},
 };
 describe('useInitialTimeOffsetMs', () => {
   beforeEach(() => {
@@ -94,10 +93,7 @@ describe('useInitialTimeOffsetMs', () => {
           },
           initialRouterConfig: {
             ...initialRouterConfig,
-            location: {
-              ...initialRouterConfig.location,
-              query: {event_t: input},
-            },
+            location: {...initialRouterConfig.location, query: {event_t: input}},
           },
         });
 
@@ -157,10 +153,7 @@ describe('useInitialTimeOffsetMs', () => {
           ...initialRouterConfig,
           location: {
             ...initialRouterConfig.location,
-            query: {
-              event_t: FIVE_PAST_FORMATTED,
-              query: 'click.tag:button',
-            },
+            query: {event_t: FIVE_PAST_FORMATTED, query: 'click.tag:button'},
           },
         },
       });
@@ -209,21 +202,14 @@ describe('useInitialTimeOffsetMs', () => {
         },
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {query: 'click.tag:button'},
-          },
+          location: {...initialRouterConfig.location, query: {query: 'click.tag:button'}},
         },
       });
 
       // Expecting 5 minutes difference, in ms
       await waitFor(() =>
         expect(result.current).toStrictEqual({
-          highlight: {
-            annotation: undefined,
-            nodeIds: [7],
-            spotlight: true,
-          },
+          highlight: {annotation: undefined, nodeIds: [7], spotlight: true},
           offsetMs: 5 * 60 * 1000,
         })
       );
@@ -246,19 +232,12 @@ describe('useInitialTimeOffsetMs', () => {
         },
         initialRouterConfig: {
           ...initialRouterConfig,
-          location: {
-            ...initialRouterConfig.location,
-            query: {query: 'click.tag:button'},
-          },
+          location: {...initialRouterConfig.location, query: {query: 'click.tag:button'}},
         },
       });
 
       await waitFor(() => expect(MockFetchReplayClicks).toHaveBeenCalledTimes(0));
-      await waitFor(() =>
-        expect(result.current).toStrictEqual({
-          offsetMs: 0,
-        })
-      );
+      await waitFor(() => expect(result.current).toStrictEqual({offsetMs: 0}));
 
       rerender({
         orgSlug: organization.slug,
@@ -269,11 +248,7 @@ describe('useInitialTimeOffsetMs', () => {
 
       await waitFor(() =>
         expect(result.current).toStrictEqual({
-          highlight: {
-            annotation: undefined,
-            nodeIds: [7],
-            spotlight: true,
-          },
+          highlight: {annotation: undefined, nodeIds: [7], spotlight: true},
           offsetMs: 5 * 60 * 1000,
         })
       );

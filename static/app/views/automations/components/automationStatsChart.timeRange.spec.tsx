@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutomationStatsChart} from 'sentry/views/automations/components/automationStatsChart';
+import {AutomationStatsChart} from './automationStatsChart';
 
 let mockChartOptions: EChartsOption | undefined;
 
@@ -51,8 +51,6 @@ describe('AutomationStatsChart time range', () => {
     );
 
     expect(await screen.findByText('1')).toBeInTheDocument();
-    expect(mockChartOptions).toMatchObject({
-      xAxis: {type: 'time', min: start, max: end},
-    });
+    expect(mockChartOptions).toMatchObject({xAxis: {type: 'time', min: start, max: end}});
   });
 });

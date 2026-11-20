@@ -3,7 +3,7 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectAlertSettings from 'sentry/views/settings/projectAlerts/settings';
+import ProjectAlertSettings from './settings';
 
 describe('ProjectAlertSettings', () => {
   // 12 minutes
@@ -11,15 +11,10 @@ describe('ProjectAlertSettings', () => {
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
 
-  const project = DetailedProjectFixture({
-    digestsMinDelay,
-    digestsMaxDelay,
-  });
+  const project = DetailedProjectFixture({digestsMinDelay, digestsMaxDelay});
   const {organization} = initializeOrg({
     projects: [project],
-    router: {
-      params: {projectId: project.slug},
-    },
+    router: {params: {projectId: project.slug}},
   });
 
   it('renders', async () => {

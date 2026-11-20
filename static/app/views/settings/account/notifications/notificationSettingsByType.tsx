@@ -1,26 +1,31 @@
 import {Fragment, useEffect} from 'react';
 import {
+  useQuery,
   mutationOptions,
   type UseMutationOptions,
   useMutation,
   useQueryClient,
 } from '@tanstack/react-query';
 import {z} from 'zod';
+import {useStore} from 'zustand';
 
 import {AutoSaveForm, FieldGroup} from '@sentry/scraps/form';
+import {Flex} from '@sentry/scraps/layout';
+import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {fetchMutation, setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
+import {fetchMutation} from 'sentry/utils/queryClient';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
@@ -34,6 +39,7 @@ import type {
 import {SUPPORTED_PROVIDERS} from './constants';
 import {
   ACCOUNT_NOTIFICATION_FIELDS,
+  INBOX_FIELDS,
   NOTIFICATION_SETTING_FIELDS,
   QUOTA_FIELDS,
 } from './fields';
@@ -49,6 +55,7 @@ type Props = {
 
 const typeMappedChildren: Record<string, string[]> = {
   quota: QUOTA_FIELDS.map(field => field.name),
+  inbox: INBOX_FIELDS.map(field => field.name),
 };
 
 // Ideally, we could just use SUPPORTED_PROVIDERS here, but 'msteams' is not widely tested.
@@ -62,14 +69,6 @@ const getQueryParams = (notificationType: string) => {
   }
   return {type: notificationType};
 };
-
-const notificationOptionsQueryKey = (notificationType: string) =>
-  [
-    getApiUrl('/users/$userId/notification-options/', {
-      path: {userId: 'me'},
-    }),
-    {query: getQueryParams(notificationType)},
-  ] as const;
 
 /**
  * Converts legacy tuple choices `[value, label]` to options `{value, label}` for Select.
@@ -131,46 +130,87 @@ function DefaultNotificationField({
   );
 }
 
+/**
+ * Warns that Slack notifications fall back to email for organizations where the
+ * user hasn't linked their Slack account.
+ */
+function UnlinkedSlackAlerts({
+  providers,
+  unlinkedSlackOrgs,
+  unlinkedSlackStagingOrgs,
+}: {
+  providers: string[];
+  unlinkedSlackOrgs: OrganizationSummary[];
+  unlinkedSlackStagingOrgs: OrganizationSummary[];
+}) {
+  return (
+    <Fragment>
+      {providers.includes('slack') && unlinkedSlackOrgs.length > 0 ? (
+        <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+      ) : null}
+      {providers.includes('slack_staging') && unlinkedSlackStagingOrgs.length > 0 ? (
+        <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
+      ) : null}
+    </Fragment>
+  );
+}
+
+/**
+ * Label for the delivery method dropdown, e.g. "Email, Slack", or "None" when
+ * nothing is selected.
+ */
+function getProviderTriggerLabel(
+  providerChoices: Array<{label: string; value: string}>,
+  selectedProviders: string[]
+): string {
+  const labels = providerChoices
+    .filter(choice => selectedProviders.includes(choice.value))
+    .map(choice => choice.label);
+
+  if (labels.length === 0) {
+    return t('None');
+  }
+  return labels.join(', ');
+}
+
 export function NotificationSettingsByType({notificationType}: Props) {
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
   const queryClient = useQueryClient();
-  const {data: notificationOptions = [], status: notificationOptionStatus} = useApiQuery<
-    NotificationOptionsObject[]
-  >(notificationOptionsQueryKey(notificationType), {
-    staleTime: 30_000,
-  });
+  const notificationOptions = apiOptions.as<NotificationOptionsObject[]>()(
+    '/users/$userId/notification-options/',
+    {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
+  );
+  const providerOptions = apiOptions.as<NotificationProvidersObject[]>()(
+    '/users/$userId/notification-providers/',
+    {path: {userId: 'me'}, query: getQueryParams(notificationType), staleTime: 30_000}
+  );
+  const {data: notificationOptionData = [], status: notificationOptionStatus} =
+    useQuery(notificationOptions);
   const {data: notificationProviders = [], status: notificationProviderStatus} =
-    useApiQuery<NotificationProvidersObject[]>(
-      [
-        getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
-        {query: getQueryParams(notificationType)},
-      ],
-      {staleTime: 30_000}
-    );
-  const {data: allIdentities = [], status: identitiesStatus} = useApiQuery<Identity[]>(
-    [getApiUrl('/users/$userId/identities/', {path: {userId: 'me'}})],
-    {staleTime: 30_000}
+    useQuery(providerOptions);
+  const {data: allIdentities = [], status: identitiesStatus} = useQuery(
+    apiOptions.as<Identity[]>()('/users/$userId/identities/', {
+      path: {userId: 'me'},
+      staleTime: 30_000,
+    })
   );
   const identities = allIdentities.filter(identity =>
     ALLOWED_PROVIDERS.has(identity?.identityProvider?.type as SupportedProviders)
   );
 
-  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} =
-    useApiQuery<Array<OrganizationIntegration | null>>(
-      [
-        getApiUrl('/users/$userId/organization-integrations/', {path: {userId: 'me'}}),
-        {query: {provider: [...ALLOWED_PROVIDERS]}},
-      ],
-      {staleTime: 30_000}
-    );
+  const {data: allOrgIntegrations = [], status: organizationIntegrationStatus} = useQuery(
+    apiOptions.as<Array<OrganizationIntegration | null>>()(
+      '/users/$userId/organization-integrations/',
+      {path: {userId: 'me'}, query: {provider: [...ALLOWED_PROVIDERS]}, staleTime: 30_000}
+    )
+  );
   const organizationIntegrations = allOrgIntegrations.filter(
     (orgIntegration): orgIntegration is OrganizationIntegration =>
       ALLOWED_PROVIDERS.has(orgIntegration?.provider.key as SupportedProviders)
   );
-  const {data: defaultSettings, status: defaultSettingsStatus} =
-    useApiQuery<DefaultSettings>([getApiUrl('/notification-defaults/')], {
-      staleTime: 30_000,
-    });
+  const {data: defaultSettings, status: defaultSettingsStatus} = useQuery(
+    apiOptions.as<DefaultSettings>()('/notification-defaults/', {staleTime: 30_000})
+  );
 
   useEffect(() => {
     trackAnalytics('notification_settings.tuning_page_viewed', {
@@ -188,7 +228,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
   };
 
   const getInitialTopOptionData = (): Record<string, string> => {
-    const matchedOption = notificationOptions.find(
+    const matchedOption = notificationOptionData.find(
       option => option.type === notificationType && option.scopeType === 'user'
     );
     // if no match, fall back to the
@@ -207,17 +247,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
     const childTypes = typeMappedChildren[notificationType] || [];
     const childTypesDefaults = Object.fromEntries(
       childTypes.map(childType => {
-        const childMatchedOption = notificationOptions.find(
+        const childMatchedOption = notificationOptionData.find(
           option => option.type === childType && option.scopeType === 'user'
         );
         return [childType, childMatchedOption ? childMatchedOption.value : defaultValue];
       })
     );
 
-    return {
-      [notificationType]: defaultValue,
-      ...childTypesDefaults,
-    };
+    return {[notificationType]: defaultValue, ...childTypesDefaults};
   };
 
   const getLinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
@@ -281,14 +318,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       }),
     onSuccess: (_, id) => {
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions => {
-          return currentNotificationOptions?.filter(
-            option => option.id.toString() !== id.toString()
-          );
-        }
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.filter(
+                option => option.id.toString() !== id.toString()
+              ),
+            }
+          : response
       );
     },
   });
@@ -302,14 +340,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
         data,
       }),
     onSuccess: notificationOption => {
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions => [
-          ...(currentNotificationOptions ?? []),
-          notificationOption,
-        ]
-      );
+      queryClient.setQueryData(notificationOptions.queryKey, response => ({
+        ...response,
+        headers: response?.headers ?? {},
+        json: [...(response?.json ?? []), notificationOption],
+      }));
     },
   });
 
@@ -323,21 +358,20 @@ export function NotificationSettingsByType({notificationType}: Props) {
       }),
     onSuccess: notificationOption => {
       // Replace the item in state
-      setApiQueryData<NotificationOptionsObject[]>(
-        queryClient,
-        notificationOptionsQueryKey(notificationType),
-        currentNotificationOptions =>
-          currentNotificationOptions?.map(option => {
-            if (option.id === notificationOption.id) {
-              return notificationOption;
+      queryClient.setQueryData(notificationOptions.queryKey, response =>
+        response?.json
+          ? {
+              ...response,
+              json: response.json.map(option =>
+                option.id === notificationOption.id ? notificationOption : option
+              ),
             }
-            return option;
-          })
+          : response
       );
-      addSuccessMessage(t('Updated notification setting'));
+      toast.success(t('Updated notification setting'));
     },
     onError: () => {
-      addErrorMessage(t('Unable to update notification setting'));
+      toast.error(t('Unable to update notification setting'));
     },
   });
 
@@ -369,9 +403,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       mutationFn: (data: Record<string, string>) =>
         fetchMutation<NotificationOptionsObject>({
           method: 'PUT',
-          url: getApiUrl('/users/$userId/notification-options/', {
-            path: {userId: 'me'},
-          }),
+          url: getApiUrl('/users/$userId/notification-options/', {path: {userId: 'me'}}),
           data: {
             type: fieldName,
             scopeType: 'user',
@@ -381,20 +413,15 @@ export function NotificationSettingsByType({notificationType}: Props) {
         }),
       onSuccess: notificationOption => {
         trackTuningUpdated('general');
-        setApiQueryData<NotificationOptionsObject[]>(
-          queryClient,
-          notificationOptionsQueryKey(notificationType),
-          currentOptions => {
-            const existing = currentOptions ?? [];
-            const idx = existing.findIndex(opt => opt.id === notificationOption.id);
-            if (idx >= 0) {
-              return existing.map(opt =>
+        queryClient.setQueryData(notificationOptions.queryKey, response => {
+          const existing = response?.json ?? [];
+          const json = existing.some(opt => opt.id === notificationOption.id)
+            ? existing.map(opt =>
                 opt.id === notificationOption.id ? notificationOption : opt
-              );
-            }
-            return [...existing, notificationOption];
-          }
-        );
+              )
+            : [...existing, notificationOption];
+          return {...response, headers: response?.headers ?? {}, json};
+        });
       },
     });
 
@@ -405,14 +432,14 @@ export function NotificationSettingsByType({notificationType}: Props) {
     .map(([value, label]) => ({value, label}));
 
   const providerSchema = z.object({provider: z.array(z.string()).min(1)});
+  // Inbox items always show up in the Inbox, so email and Slack are both optional.
+  const inboxProviderSchema = z.object({provider: z.array(z.string())});
 
   const providerMutationOptions = mutationOptions({
     mutationFn: (data: {provider: string[]}) =>
       fetchMutation({
         method: 'PUT',
-        url: getApiUrl('/users/$userId/notification-providers/', {
-          path: {userId: 'me'},
-        }),
+        url: getApiUrl('/users/$userId/notification-providers/', {path: {userId: 'me'}}),
         data: {
           type: notificationType,
           scopeType: 'user',
@@ -421,16 +448,88 @@ export function NotificationSettingsByType({notificationType}: Props) {
         },
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/users/$userId/notification-providers/', {
-            path: {userId: 'me'},
-          }),
-          {query: getQueryParams(notificationType)},
-        ],
-      });
+      queryClient.invalidateQueries({queryKey: providerOptions.queryKey});
     },
   });
+
+  if (notificationType === 'inbox') {
+    // Inbox settings only allow user scope, so unlike the other types there are no
+    // org or project overrides.
+    return (
+      <Fragment>
+        <SentryDocumentTitle title={t('Inbox Notifications')} />
+        <SettingsPageHeader title={title} />
+        {description && <TextBlock>{description}</TextBlock>}
+        <FieldGroup>
+          {INBOX_FIELDS.map(field => {
+            // Toggles save the same always/never values as the other settings.
+            const schema = z.object({
+              [field.name]: z.boolean().transform(on => (on ? 'always' : 'never')),
+            });
+            return (
+              <AutoSaveForm
+                key={field.name}
+                name={field.name}
+                schema={schema}
+                initialValue={initialTopOptionData[field.name] !== 'never'}
+                mutationOptions={optionMutationOptions(field.name)}
+              >
+                {fieldApi => (
+                  <fieldApi.Layout.Row
+                    label={<Text bold>{field.label}</Text>}
+                    hintText={field.help}
+                  >
+                    <Flex justify="end">
+                      <fieldApi.Switch
+                        checked={fieldApi.state.value}
+                        onChange={fieldApi.handleChange}
+                      />
+                    </Flex>
+                  </fieldApi.Layout.Row>
+                )}
+              </AutoSaveForm>
+            );
+          })}
+        </FieldGroup>
+        <FieldGroup>
+          <AutoSaveForm
+            name="provider"
+            schema={inboxProviderSchema}
+            initialValue={initialProviders}
+            mutationOptions={providerMutationOptions}
+          >
+            {field => (
+              <Fragment>
+                <UnlinkedSlackAlerts
+                  providers={field.state.value}
+                  unlinkedSlackOrgs={unlinkedSlackOrgs}
+                  unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
+                />
+                <field.Layout.Row
+                  label={<Text bold>{t('Send notifications to')}</Text>}
+                  hintText={t('Where notifications are delivered')}
+                >
+                  <Flex justify="end">
+                    <field.CompactSelect
+                      multiple
+                      value={field.state.value}
+                      onChange={field.handleChange}
+                      options={providerChoices}
+                      trigger={triggerProps => (
+                        <OverlayTrigger.Button {...triggerProps} style={{width: 'auto'}}>
+                          {getProviderTriggerLabel(providerChoices, field.state.value)}
+                        </OverlayTrigger.Button>
+                      )}
+                    />
+                  </Flex>
+                </field.Layout.Row>
+              </Fragment>
+            )}
+          </AutoSaveForm>
+        </FieldGroup>
+      </Fragment>
+    );
+  }
 
   return (
     <Fragment>
@@ -487,14 +586,11 @@ export function NotificationSettingsByType({notificationType}: Props) {
           >
             {field => (
               <Fragment>
-                {(field.state.value ?? initialProviders).includes('slack') &&
-                unlinkedSlackOrgs.length > 0 ? (
-                  <UnlinkedAlert organizations={unlinkedSlackOrgs} />
-                ) : null}
-                {(field.state.value ?? initialProviders).includes('slack_staging') &&
-                unlinkedSlackStagingOrgs.length > 0 ? (
-                  <UnlinkedAlert organizations={unlinkedSlackStagingOrgs} />
-                ) : null}
+                <UnlinkedSlackAlerts
+                  providers={field.state.value ?? initialProviders}
+                  unlinkedSlackOrgs={unlinkedSlackOrgs}
+                  unlinkedSlackStagingOrgs={unlinkedSlackStagingOrgs}
+                />
                 <field.Layout.Row
                   label={t('Delivery Method')}
                   hintText={t('Where personal notifications will be sent.')}
@@ -514,7 +610,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       {notificationType === 'reports' ? (
         <WeeklyReportProjectExclusions
           organizations={organizations}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}
           handleEditNotificationOption={option =>
@@ -524,7 +620,7 @@ export function NotificationSettingsByType({notificationType}: Props) {
       ) : (
         <NotificationSettingsByEntity
           notificationType={notificationType}
-          notificationOptions={notificationOptions}
+          notificationOptions={notificationOptionData}
           organizations={organizations}
           handleRemoveNotificationOption={id => removeNotificationMutation.mutate(id)}
           handleAddNotificationOption={option => addNotificationMutation.mutate(option)}

@@ -72,7 +72,8 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
     @property
     def org_id(self) -> int:
-        return self.context["organization_id"]
+        org_id = self.context["organization_id"]
+        return org_id
 
     def validate_source_url(self, source_url: str) -> str:
         # URLs copied from a provider's UI can be percent-encoded, but stack trace
@@ -131,6 +132,7 @@ class PathMappingSerializer(CamelSnakeSerializer[dict[str, str]]):
 
         # store the repo we found
         self.repo = matching_repos[0]
+        assert self.repo.integration_id is not None
         self.integration = matching_integrations[self.repo.integration_id]
         return source_url
 

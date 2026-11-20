@@ -2,9 +2,7 @@ import type {AlertProps} from '@sentry/scraps/alert';
 
 import type {CodeSnippetTab} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 
-type BaseBlock<T extends string> = {
-  type: T;
-};
+type BaseBlock<T extends string> = {type: T};
 
 /**
  * Renders the Alert component
@@ -22,9 +20,7 @@ type AlertBlock = BaseBlock<'alert'> & {
 // The value of the tab is omitted and inferred from the label in the renderer
 type CodeTabWithoutValue = Omit<CodeSnippetTab, 'value'>;
 type SingleCodeBlock = BaseBlock<'code'> & Omit<CodeTabWithoutValue, 'label'>;
-type MultipleCodeBlock = BaseBlock<'code'> & {
-  tabs: CodeTabWithoutValue[];
-};
+type MultipleCodeBlock = BaseBlock<'code'> & {tabs: CodeTabWithoutValue[]};
 /**
  * Code blocks can either render a single code snippet or multiple code snippets in a tabbed interface.
  */
@@ -53,16 +49,12 @@ type TextBlock = BaseBlock<'text'> & {
 /**
  * Subheader blocks are used to render a subheader.
  */
-type SubHeaderBlock = BaseBlock<'subheader'> & {
-  text: React.ReactNode;
-};
+type SubHeaderBlock = BaseBlock<'subheader'> & {text: React.ReactNode};
 
 /**
  * List blocks are used to render a list of items.
  */
-type ListBlock = BaseBlock<'list'> & {
-  items: React.ReactNode[];
-};
+type ListBlock = BaseBlock<'list'> & {items: React.ReactNode[]};
 
 /**
  * Custom blocks can be used to render any content that is not covered by the other block types.

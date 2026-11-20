@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Callable, Iterator, Mapping, Sequence
+from contextlib import contextmanager
 from datetime import datetime
 from re import Match
 from typing import Any, Union, cast
@@ -28,6 +29,7 @@ from snuba_sdk import (
     Query,
     Request,
 )
+from snuba_sdk.expressions import InvalidExpressionError
 
 from sentry.api import event_search
 from sentry.discover.arithmetic import (
@@ -58,6 +60,7 @@ from sentry.search.events.types import (
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.query_sources import QuerySource
 from sentry.users.services.user.service import user_service
+from sentry.utils import metrics
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -81,6 +84,23 @@ DATASET_TO_ENTITY_MAP: Mapping[Dataset, EntityKey] = {
 }
 
 
+@contextmanager
+def invalid_expression_as_search_query(description: str) -> Iterator[None]:
+    """Convert snuba-sdk expression validation errors raised while resolving user
+    input into InvalidSearchQuery, so the API returns a 400 instead of a 500.
+
+    :param description: Identifies the user input being resolved, e.g. 'field "count()"'.
+    """
+    try:
+        yield
+    except InvalidExpressionError as error:
+        metrics.incr(
+            "search.events.builder.invalid_expression",
+            tags={"error_type": type(error).__name__},
+        )
+        raise InvalidSearchQuery(f"Invalid {description}: {error}") from error
+
+
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
@@ -93,13 +113,13 @@ class BaseQueryBuilder:
     uuid_fields: set[str] = set()
     span_id_fields: set[str] = set()
 
-    def get_middle(self):
+    def get_middle(self) -> datetime:
         """Get the middle for comparison functions"""
         if self.start is None or self.end is None:
             raise InvalidSearchQuery("Need both start & end to use percent_change")
         return self.start + (self.end - self.start) / 2
 
-    def first_half_condition(self):
+    def first_half_condition(self) -> Function:
         """Create the first half condition for percent_change functions"""
         return Function(
             "less",
@@ -109,7 +129,7 @@ class BaseQueryBuilder:
             ],
         )
 
-    def second_half_condition(self):
+    def second_half_condition(self) -> Function:
         """Create the second half condition for percent_change functions"""
         return Function(
             "greaterOrEquals",
@@ -137,7 +157,7 @@ class BaseQueryBuilder:
             projects = []
 
         if "organization_id" in params and isinstance(params["organization_id"], int):
-            organization = Organization.objects.filter(id=params["organization_id"]).first()
+            organization = Organization.objects.get_or_none(id=params["organization_id"])
         else:
             organization = projects[0].organization if projects else None
 
@@ -164,7 +184,7 @@ class BaseQueryBuilder:
                 environments = []  # type: ignore[unreachable]
 
         user_id = params.get("user_id")
-        user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
+        user = user_service.get_user(user_id=user_id) if user_id is not None else None
         teams = (
             Team.objects.filter(id__in=params["team_id"])
             if "team_id" in params and isinstance(params["team_id"], list)
@@ -442,15 +462,16 @@ class BaseQueryBuilder:
         sentry_sdk.set_tag("query.has_or_condition", self.has_or_condition)
         sentry_sdk.set_attribute("query.has_or_condition", self.has_or_condition)
 
-        if any(
-            isinstance(term, event_search.ParenExpression)
-            or event_search.SearchBoolean.is_operator(term)
-            for term in parsed_terms
-        ):
-            where, having = self.resolve_boolean_conditions(parsed_terms)
-        else:
-            where = self.resolve_where(parsed_terms)
-            having = self.resolve_having(parsed_terms)
+        with invalid_expression_as_search_query("query"):
+            if any(
+                isinstance(term, event_search.ParenExpression)
+                or event_search.SearchBoolean.is_operator(term)
+                for term in parsed_terms
+            ):
+                where, having = self.resolve_boolean_conditions(parsed_terms)
+            else:
+                where = self.resolve_where(parsed_terms)
+                having = self.resolve_having(parsed_terms)
 
         sentry_sdk.set_tag("query.has_having_conditions", len(having) > 0)
         sentry_sdk.set_attribute("query.has_having_conditions", len(having) > 0)
@@ -659,9 +680,10 @@ class BaseQueryBuilder:
                 ),
             )
             for index, parsed_equation in enumerate(parsed_equations):
-                resolved_equation = self.resolve_equation(
-                    parsed_equation.equation, f"equation[{index}]"
-                )
+                with invalid_expression_as_search_query(f'equation "{equations[index]}"'):
+                    resolved_equation = self.resolve_equation(
+                        parsed_equation.equation, f"equation[{index}]"
+                    )
                 self.equation_alias_map[equations[index]] = resolved_equation
                 resolved_columns.append(resolved_equation)
                 if parsed_equation.contains_functions:
@@ -682,7 +704,8 @@ class BaseQueryBuilder:
                 continue
             # need to make sure the column is resolved with the appropriate alias
             # because the resolved snuba name may be different
-            resolved_column = self.resolve_column(column, alias=True)
+            with invalid_expression_as_search_query(f'field "{column}"'):
+                resolved_column = self.resolve_column(column, alias=True)
 
             if resolved_column not in self.columns:
                 resolved_columns.append(resolved_column)
@@ -885,7 +908,8 @@ class BaseQueryBuilder:
                     resolved_orderby = self.equation_alias_map[strip_equation(bare_orderby)]
                     bare_orderby = resolved_orderby.alias
                 else:
-                    resolved_orderby = self.resolve_column(bare_orderby)
+                    with invalid_expression_as_search_query(f'orderby "{orderby}"'):
+                        resolved_orderby = self.resolve_column(bare_orderby)
             except (NotImplementedError, IncompatibleMetricsQuery):
                 resolved_orderby = None
 
@@ -959,7 +983,7 @@ class BaseQueryBuilder:
         self.validate_aggregate_arguments()
         if self.aggregates:
             groupby_columns = (
-                [self.resolve_column(column) for column in groupby_columns]
+                [self.resolve_groupby_column(column) for column in groupby_columns]
                 if groupby_columns
                 else []
             )
@@ -976,6 +1000,10 @@ class BaseQueryBuilder:
             ]
         else:
             return []
+
+    def resolve_groupby_column(self, column: str) -> SelectType:
+        with invalid_expression_as_search_query(f'groupby "{column}"'):
+            return self.resolve_column(column)
 
     @property
     def flattened_having(self) -> list[Condition]:
@@ -1218,7 +1246,7 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
-    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 
@@ -1228,7 +1256,7 @@ class BaseQueryBuilder:
             if not value.is_event_id():
                 raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
 
-    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter) -> None:
         name = search_filter.key.name
         value = search_filter.value
 

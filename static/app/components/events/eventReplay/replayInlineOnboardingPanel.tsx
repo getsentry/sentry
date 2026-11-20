@@ -18,10 +18,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type OnboardingCTAProps = {
-  platform: PlatformKey;
-  projectId: string;
-};
+type OnboardingCTAProps = {platform: PlatformKey; projectId: string};
 
 export default function ReplayInlineOnboardingPanel({
   platform,
@@ -146,7 +143,7 @@ const CloseDropdownMenu = styled(DropdownMenu)`
   z-index: 1;
 `;
 
-const Background = styled('div')<{image: any}>`
+const Background = styled('div')<{image: string}>`
   display: flex;
   justify-self: flex-end;
   position: absolute;

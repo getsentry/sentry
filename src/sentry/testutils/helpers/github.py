@@ -7,14 +7,13 @@ from __future__ import annotations
 from collections.abc import Collection, Generator, Mapping
 from contextlib import contextmanager
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, cast
 from uuid import uuid4
 
 import orjson
 from django.http.response import HttpResponseBase
 from django.test import override_settings
 
-from sentry import options
 from sentry.integrations.github.webhook import GitHubIntegrationsWebhookEndpoint
 from sentry.integrations.github.webhook_types import GithubWebhookType
 from sentry.integrations.models.integration import Integration
@@ -59,7 +58,6 @@ class GitHubWebhookTestCase(APITestCase):
         super().setUp()
         self.github_webhook_url = "/extensions/github/webhook/"
         self.github_webhook_secret = "b3002c3e321d4b7880360d397db2ccfd"
-        options.set("github-app.webhook-secret", self.github_webhook_secret)
 
     def create_github_integration(
         self,
@@ -133,11 +131,14 @@ class GitHubWebhookTestCase(APITestCase):
 
         # The DRF APIClient stubs can misinterpret **extra headers as a positional arg
         client: Any = self.client
-        return client.post(
-            self.github_webhook_url,
-            data=event_data,
-            content_type="application/json",
-            **headers,
+        return cast(
+            "HttpResponseBase",
+            client.post(
+                self.github_webhook_url,
+                data=event_data,
+                content_type="application/json",
+                **headers,
+            ),
         )
 
 

@@ -8,10 +8,6 @@ import type {
 import type {Location} from 'history';
 import moment, {type MomentInput} from 'moment-timezone';
 
-import {CHART_ZOOM_MERGE_OPTIONS} from 'sentry/components/charts/chartZoomConfig';
-import {dataZoomInside} from 'sentry/components/charts/components/dataZoomInside';
-import {getToolBox} from 'sentry/components/charts/components/toolBox';
-import {activateZoomAreaSelect} from 'sentry/components/charts/utils';
 import {updateDateTime} from 'sentry/components/pageFilters/actions';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -26,14 +22,15 @@ import {useLocation} from 'sentry/utils/useLocation';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {useNavigate} from 'sentry/utils/useNavigate';
 
+import {dataZoomInside} from './components/dataZoomInside';
+import {getToolBox} from './components/toolBox';
+import {CHART_ZOOM_MERGE_OPTIONS} from './chartZoomConfig';
+import {activateZoomAreaSelect} from './utils';
+
 const getDate = (date: MomentInput) =>
   date ? moment.utc(date).format(moment.HTML5_FMT.DATETIME_LOCAL_SECONDS) : null;
 
-type Period = {
-  end: DateString;
-  period: string | null;
-  start: DateString;
-};
+type Period = {end: DateString; period: string | null; start: DateString};
 
 type ZoomPropKeys =
   | 'period'
@@ -156,11 +153,7 @@ class ChartZoom extends Component<Props> {
     //
     // Parent container can use this to change into a loading state before
     // URL parameters are changed
-    onZoom?.({
-      period,
-      start: startFormatted,
-      end: endFormatted,
-    });
+    onZoom?.({period, start: startFormatted, end: endFormatted});
 
     if (usePageDate) {
       const newQuery = {
@@ -215,9 +208,7 @@ class ChartZoom extends Component<Props> {
       this.isCancellingZoom = true;
 
       // "restore" removes the current chart zoom selection
-      this.chart.dispatchAction({
-        type: 'restore',
-      });
+      this.chart.dispatchAction({type: 'restore'});
     }
   };
 
@@ -322,13 +313,7 @@ class ChartZoom extends Component<Props> {
     const end = _end ? getUtcToLocalDateObject(_end) : undefined;
 
     if (disabled) {
-      return children({
-        utc,
-        start,
-        end,
-        ...CHART_ZOOM_MERGE_OPTIONS,
-        ...props,
-      });
+      return children({utc, start, end, ...CHART_ZOOM_MERGE_OPTIONS, ...props});
     }
     const renderProps = {
       ...props,
@@ -337,23 +322,14 @@ class ChartZoom extends Component<Props> {
       utc,
       start,
       end,
-      dataZoom: dataZoomInside({
-        xAxisIndex,
-      }),
+      dataZoom: dataZoomInside({xAxisIndex}),
       showTimeInTooltip: true,
       toolBox: getToolBox(
         {},
         {
           dataZoom: {
-            title: {
-              zoom: '',
-              back: '',
-            },
-            iconStyle: {
-              borderWidth: 0,
-              color: 'transparent',
-              opacity: 0,
-            },
+            title: {zoom: '', back: ''},
+            iconStyle: {borderWidth: 0, color: 'transparent', opacity: 0},
           },
         }
       ),

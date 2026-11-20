@@ -1,3 +1,4 @@
+from typing import Any, cast
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -18,6 +19,10 @@ SENTRY_APP_ALERT_ACTION = "sentry.rules.actions.notify_event_sentry_app.NotifyEv
 
 class NotifyEventSentryAppActionTest(RuleTestCase):
     rule_cls = NotifyEventSentryAppAction
+
+    def get_rule(self, **kwargs: Any) -> NotifyEventSentryAppAction:
+        return cast(NotifyEventSentryAppAction, super().get_rule(**kwargs))
+
     schema_data = [
         {"name": "title", "value": "Squid Game"},
         {"name": "summary", "value": "circle triangle square"},
@@ -28,7 +33,7 @@ class NotifyEventSentryAppActionTest(RuleTestCase):
         self.schema = {"elements": [self.create_alert_rule_action_schema()]}
 
     def test_applies_correctly_for_sentry_apps(self) -> None:
-        event = self.get_event()
+        event = self.get_group_event()
 
         self.app = self.create_sentry_app(
             organization=event.organization,

@@ -3,21 +3,17 @@ import {DetailedProjectFixture} from 'sentry-fixture/project';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import ProjectLogs from 'sentry/views/settings/project/projectLogs';
+import ProjectLogs from './projectLogs';
 
 describe('ProjectLogs', () => {
   const {organization} = initializeOrg({
     organization: {features: ['explore-automatic-json-expansion-ui']},
   });
   const project = DetailedProjectFixture({
-    options: {
-      'sentry:relay_automatic_json_expansion': false,
-    },
+    options: {'sentry:relay_automatic_json_expansion': false},
   });
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/${project.slug}/logs/`,
-    },
+    location: {pathname: `/settings/projects/${project.slug}/logs/`},
     route: '/settings/projects/:projectId/logs/',
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
@@ -85,9 +81,7 @@ describe('ProjectLogs', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:relay_automatic_json_expansion': true},
-          },
+          data: {options: {'sentry:relay_automatic_json_expansion': true}},
         })
       )
     );

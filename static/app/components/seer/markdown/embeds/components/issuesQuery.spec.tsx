@@ -26,11 +26,7 @@ describe('issues query embed', () => {
   });
 
   it('uses a generic label when Seer supplies no title', () => {
-    renderEmbed({
-      name: 'issuesQuery',
-      data: {query: 'is:unresolved'},
-      level: 'inline',
-    });
+    renderEmbed({name: 'issuesQuery', data: {query: 'is:unresolved'}, level: 'inline'});
     expect(screen.getByRole('link', {name: 'Issue search'})).toBeInTheDocument();
   });
 
@@ -40,10 +36,7 @@ describe('issues query embed', () => {
       shortId: 'JAVASCRIPT-991',
       title: 'Checkout request failed',
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     const issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [issue],

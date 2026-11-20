@@ -6,10 +6,8 @@ import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {redirectToProject} from 'sentry/actionCreators/redirectToProject';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {
-  ProjectRouteContext,
-  ProjectRouteProvider,
-} from 'sentry/views/projects/projectRouteContext';
+
+import {ProjectRouteContext, ProjectRouteProvider} from './projectRouteContext';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/actionCreators/redirectToProject', () => ({
@@ -28,10 +26,7 @@ describe('ProjectRouteProvider', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.reset();
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/users/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/users/`, body: []});
   });
 
   it('displays error on 404s', async () => {
@@ -143,9 +138,7 @@ describe('ProjectRouteProvider', () => {
 
     render(
       <ProjectRouteProvider projectSlug={project.slug}>{null}</ProjectRouteProvider>,
-      {
-        organization: org,
-      }
+      {organization: org}
     );
 
     await waitFor(() => {

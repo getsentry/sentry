@@ -9,7 +9,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ExternalTeam} from 'sentry/types/integrations';
-import TeamNotificationSettings from 'sentry/views/settings/organizationTeams/teamNotifications';
+
+import TeamNotificationSettings from './teamNotifications';
 
 const EXTERNAL_NAME = 'marcos';
 const EXAMPLE_EXTERNAL_TEAM: ExternalTeam = {
@@ -19,17 +20,10 @@ const EXAMPLE_EXTERNAL_TEAM: ExternalTeam = {
   provider: 'slack',
   teamId: '1',
 };
-const EXAMPLE_INTEGRATION = {
-  id: '1',
-  provider: {
-    key: 'slack',
-  },
-};
+const EXAMPLE_INTEGRATION = {id: '1', provider: {key: 'slack'}};
 
 describe('TeamNotificationSettings', () => {
-  const teamWithExternalTeam = TeamFixture({
-    externalTeams: [EXAMPLE_EXTERNAL_TEAM],
-  });
+  const teamWithExternalTeam = TeamFixture({externalTeams: [EXAMPLE_EXTERNAL_TEAM]});
   const teamWithoutExternalTeam = TeamFixture();
   const organization = OrganizationFixture();
 
@@ -55,10 +49,7 @@ describe('TeamNotificationSettings', () => {
       body: [],
     });
 
-    render(<TeamNotificationSettings />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<TeamNotificationSettings />, {organization, initialRouterConfig});
 
     expect(
       await screen.findByText('No Notification Integrations have been installed yet.')
@@ -76,10 +67,7 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<TeamNotificationSettings />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('No teams have been linked yet.')).toBeInTheDocument();
   });
@@ -95,10 +83,7 @@ describe('TeamNotificationSettings', () => {
       body: [EXAMPLE_INTEGRATION],
     });
 
-    render(<TeamNotificationSettings />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<TeamNotificationSettings />, {organization, initialRouterConfig});
 
     const input = await screen.findByRole('textbox', {
       name: 'Unlink this channel in slack with `/slack unlink team`',
@@ -126,10 +111,7 @@ describe('TeamNotificationSettings', () => {
       method: 'DELETE',
     });
 
-    render(<TeamNotificationSettings />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<TeamNotificationSettings />, {organization, initialRouterConfig});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Unlink'}));
 

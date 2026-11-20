@@ -15,47 +15,36 @@ import {
 
 import {IssueAlertActionType} from 'sentry/types/alerts';
 import type {OrganizationIntegration} from 'sentry/types/integrations';
+
 import {
   IssueAlertNotificationOptions,
   useCreateNotificationAction,
   useScmNotificationAction,
-} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
+} from './issueAlertNotificationOptions';
 import {
   buildIntegrationAction,
   buildNotificationSelection,
   getChannelTarget,
   type IssueAlertNotificationProps,
   MultipleCheckboxOptions,
-} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+} from './messagingIntegrationTypes';
 
 describe('buildIntegrationAction', () => {
   it.each([
     [
       'slack',
       '#alerts',
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: '15',
-        channel: '#alerts',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: '15', channel: '#alerts'},
     ],
     [
       'discord',
       '123456789',
-      {
-        id: IssueAlertActionType.DISCORD,
-        server: '15',
-        channel_id: '123456789',
-      },
+      {id: IssueAlertActionType.DISCORD, server: '15', channel_id: '123456789'},
     ],
     [
       'msteams',
       'General',
-      {
-        id: IssueAlertActionType.MS_TEAMS,
-        team: '15',
-        channel: 'General',
-      },
+      {id: IssueAlertActionType.MS_TEAMS, team: '15', channel: 'General'},
     ],
   ])('serializes a %s destination', (provider, channel, expectedAction) => {
     expect(buildIntegrationAction({provider, integrationId: '15', channel})).toEqual(
@@ -119,10 +108,7 @@ describe('MessagingIntegrationAlertRule', () => {
 
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: {
-      label: 'channel',
-      value: 'channel',
-    },
+    channel: {label: 'channel', value: 'channel'},
     integration: undefined,
     provider: 'slack',
     providersToIntegrations: {},
@@ -351,11 +337,7 @@ describe('useCreateNotificationAction', () => {
     addIntegrationsResponse([]);
 
     const defaultActions = [
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: slackIntegration.id,
-        channel: '#eng',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: slackIntegration.id, channel: '#eng'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -403,11 +385,7 @@ describe('useCreateNotificationAction', () => {
         targetType: 'IssueOwners',
         fallthroughType: 'ActiveMembers',
       },
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: slackIntegration.id,
-        channel: '#eng',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: slackIntegration.id, channel: '#eng'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -435,11 +413,7 @@ describe('useCreateNotificationAction', () => {
     addIntegrationsResponse([slackIntegration, secondSlack]);
 
     const defaultActions = [
-      {
-        id: IssueAlertActionType.SLACK,
-        workspace: secondSlack.id,
-        channel: '#team',
-      },
+      {id: IssueAlertActionType.SLACK, workspace: secondSlack.id, channel: '#team'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -473,11 +447,7 @@ describe('useCreateNotificationAction', () => {
 
     // Stable reference; see comment in the preceding test.
     const defaultActions = [
-      {
-        id: IssueAlertActionType.DISCORD,
-        server: discordIntegration.id,
-        channel_id: '2',
-      },
+      {id: IssueAlertActionType.DISCORD, server: discordIntegration.id, channel_id: '2'},
     ];
 
     const {result} = renderHookWithProviders(
@@ -682,11 +652,7 @@ describe('buildNotificationSelection', () => {
   it('returns undefined when provider and integration are set but channel is absent', () => {
     const integration = OrganizationIntegrationsFixture({id: '5'});
     expect(
-      buildNotificationSelection({
-        provider: 'slack',
-        integration,
-        channel: undefined,
-      })
+      buildNotificationSelection({provider: 'slack', integration, channel: undefined})
     ).toBeUndefined();
   });
 

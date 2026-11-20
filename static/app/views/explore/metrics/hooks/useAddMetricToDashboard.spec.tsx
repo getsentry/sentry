@@ -7,11 +7,15 @@ import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 import {openAddToDashboardModal} from 'sentry/actionCreators/modal';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
-import {useAddMetricToDashboard} from 'sentry/views/explore/metrics/hooks/useAddMetricToDashboard';
 import type {BaseMetricQuery} from 'sentry/views/explore/metrics/metricQuery';
 import {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
-import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
+import {
+  VisualizeEquation,
+  VisualizeFunction,
+} from 'sentry/views/explore/queryParams/visualize';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
+
+import {useAddMetricToDashboard} from './useAddMetricToDashboard';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -34,6 +38,64 @@ describe('useAddMetricToDashboard', () => {
     jest.clearAllMocks();
   });
 
+  it('keeps each metric widget paired with its transformations when saving all metrics', () => {
+    const queryParams = new ReadableQueryParams({
+      extrapolate: true,
+      mode: Mode.AGGREGATE,
+      query: '',
+      cursor: '',
+      fields: [],
+      sortBys: [],
+      aggregateCursor: '',
+      aggregateFields: [new VisualizeFunction('avg(value,metric.a,counter,none)')],
+      aggregateSortBys: [],
+    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, context);
+
+    act(() => {
+      result.current.addToDashboard([
+        {metric: {name: 'metric.a', type: 'counter'}, queryParams},
+        {
+          metric: {name: 'metric.b', type: 'counter'},
+          queryParams: queryParams.replace({
+            aggregateFields: [
+              new VisualizeEquation('equation|avg(value,metric.b,counter,none) * 2', {
+                transformations: ['fill(zero)', 'smooth(sma,3)'],
+              }),
+            ],
+          }),
+        },
+      ]);
+    });
+
+    expect(openAddToDashboardModal).toHaveBeenCalledWith(
+      expect.objectContaining({
+        widgets: [
+          expect.objectContaining({
+            queries: [
+              {
+                name: '',
+                aggregates: ['avg(value,metric.a,counter,none)'],
+                columns: [],
+                fields: [],
+                conditions: '',
+                orderby: '',
+              },
+            ],
+          }),
+          expect.objectContaining({
+            queries: [
+              expect.objectContaining({
+                aggregates: ['equation|avg(value,metric.b,counter,none) * 2'],
+                transformations: {0: ['fill(zero)', 'smooth(sma,3)']},
+              }),
+            ],
+          }),
+        ],
+      })
+    );
+  });
+
   it('opens the dashboard modal with the trace metrics widget configuration', () => {
     const yAxis = 'avg(value,metric.a,counter,none)';
     const visualize = new VisualizeFunction(yAxis, {chartType: ChartType.BAR});
@@ -52,9 +114,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -89,7 +149,10 @@ describe('useAddMetricToDashboard', () => {
     const yAxis1 = 'p50(value,metric.a,counter,none)';
     const yAxis2 = 'p75(value,metric.a,counter,none)';
     const visualize1 = new VisualizeFunction(yAxis1, {chartType: ChartType.BAR});
-    const visualize2 = new VisualizeFunction(yAxis2, {chartType: ChartType.LINE});
+    const visualize2 = new VisualizeFunction(yAxis2, {
+      chartType: ChartType.LINE,
+      transformations: ['fill(locf)', 'smooth(sma,5)'],
+    });
     const metricQuery: BaseMetricQuery = {
       metric: {name: 'metric.a', type: 'counter'},
       queryParams: new ReadableQueryParams({
@@ -105,9 +168,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -125,6 +186,7 @@ describe('useAddMetricToDashboard', () => {
             queries: [
               {
                 aggregates: [yAxis1, yAxis2],
+                transformations: {1: ['fill(locf)', 'smooth(sma,5)']},
                 columns: ['project'],
                 fields: ['project'],
                 conditions: 'release:1.2.3',
@@ -159,9 +221,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);
@@ -210,9 +270,7 @@ describe('useAddMetricToDashboard', () => {
       }),
     };
 
-    const {result} = renderHookWithProviders(useAddMetricToDashboard, {
-      ...context,
-    });
+    const {result} = renderHookWithProviders(useAddMetricToDashboard, {...context});
 
     act(() => {
       result.current.addToDashboard(metricQuery);

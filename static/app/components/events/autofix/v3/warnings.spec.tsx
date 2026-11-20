@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import {AutofixWarnings} from 'sentry/components/events/autofix/v3/warnings';
+import {AutofixWarnings} from './warnings';
 
 describe('AutofixWarnings', () => {
   const organization = OrganizationFixture();
@@ -12,14 +12,8 @@ describe('AutofixWarnings', () => {
       <AutofixWarnings
         groupId="1"
         warnings={[
-          {
-            warning_type: 'github_app_permissions',
-            repo_name: 'getsentry/sentry',
-          },
-          {
-            warning_type: 'github_app_permissions',
-            repo_name: 'getsentry/seer',
-          },
+          {warning_type: 'github_app_permissions', repo_name: 'getsentry/sentry'},
+          {warning_type: 'github_app_permissions', repo_name: 'getsentry/seer'},
         ]}
       />,
       {organization}

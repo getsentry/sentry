@@ -2,9 +2,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AnalyticsArea, useAnalyticsArea} from 'sentry/components/analyticsArea';
 import type {Organization} from 'sentry/types/organization';
 import * as analytics from 'sentry/utils/analytics';
+
+import {AnalyticsArea, useAnalyticsArea} from './analyticsArea';
 
 function TestButton({org}: {org: Organization}) {
   const area = useAnalyticsArea();
@@ -13,10 +14,7 @@ function TestButton({org}: {org: Organization}) {
     <button
       data-test-id="my-button"
       onClick={() => {
-        analytics.trackAnalytics('button-clicked', {
-          organization: org,
-          area,
-        });
+        analytics.trackAnalytics('button-clicked', {organization: org, area});
       }}
     />
   );

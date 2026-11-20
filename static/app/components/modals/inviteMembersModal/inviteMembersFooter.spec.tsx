@@ -3,11 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  defaultInviteProps,
-  InviteMembersContext,
-} from 'sentry/components/modals/inviteMembersModal/inviteMembersContext';
-import {InviteMembersFooter} from 'sentry/components/modals/inviteMembersModal/inviteMembersFooter';
+import {defaultInviteProps, InviteMembersContext} from './inviteMembersContext';
+import {InviteMembersFooter} from './inviteMembersFooter';
 
 describe('InviteRowControlNew', () => {
   const renderComponent = (props: any) => {
@@ -51,10 +48,7 @@ describe('InviteRowControlNew', () => {
   it('displays correct status message for sent invites', () => {
     renderComponent({
       complete: true,
-      inviteStatus: {
-        'moo-deng': {sent: true},
-        'moo-waan': {sent: true},
-      },
+      inviteStatus: {'moo-deng': {sent: true}, 'moo-waan': {sent: true}},
     });
     expect(screen.getAllByRole('alert')).toHaveLength(1);
     expect(

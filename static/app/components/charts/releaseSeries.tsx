@@ -4,9 +4,10 @@ import type {Query} from 'history';
 import memoize from 'lodash/memoize';
 import partition from 'lodash/partition';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {formatDateTime} from '@sentry/scraps/dateTime';
+import {toast} from '@sentry/scraps/toast';
+
 import type {Client} from 'sentry/api';
-import {markLine as createMarkLine} from 'sentry/components/charts/components/markLine';
 import {t} from 'sentry/locale';
 import type {ResponseMeta} from 'sentry/types/api';
 import type {DateString} from 'sentry/types/core';
@@ -14,7 +15,7 @@ import type {Series} from 'sentry/types/echarts';
 import type {Organization} from 'sentry/types/organization';
 import {escape} from 'sentry/utils';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {getFormat, getFormattedDate, getUtcDateString} from 'sentry/utils/dates';
+import {getUtcDateString} from 'sentry/utils/dates';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -23,10 +24,9 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathnames';
 
-type ReleaseMetaBasic = {
-  date: string;
-  version: string;
-};
+import {markLine as createMarkLine} from './components/markLine';
+
+type ReleaseMetaBasic = {date: string; version: string};
 
 type ReleaseConditions = {
   end: DateString;
@@ -60,11 +60,7 @@ function getOrganizationReleases(
     getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
-    {
-      includeAllArgs: true,
-      method: 'GET',
-      query,
-    }
+    {includeAllArgs: true, method: 'GET', query}
   ) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
@@ -93,10 +89,7 @@ interface UseReleaseSeriesProps {
   utc?: boolean | null;
 }
 
-type ReleaseSeriesState = {
-  releaseSeries: Series[];
-  releases: ReleaseMetaBasic[] | null;
-};
+type ReleaseSeriesState = {releaseSeries: Series[]; releases: ReleaseMetaBasic[] | null};
 
 function buildReleaseSeries({
   releases,
@@ -116,23 +109,14 @@ function buildReleaseSeries({
   function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
     const markLine = createMarkLine({
       animation: false,
-      lineStyle: {
-        color,
-        opacity: 0.3,
-        type: 'solid',
-        ...lineStyle,
-      },
-      label: {
-        show: false,
-      },
+      lineStyle: {color, opacity: 0.3, type: 'solid', ...lineStyle},
+      label: {show: false},
       data: items.map(release => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
         onClick: () => onReleaseClick(release.version),
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
+        label: {formatter: () => formatVersion(release.version, true)},
       })),
       tooltip: tooltip || {
         trigger: 'item',
@@ -141,11 +125,11 @@ function buildReleaseSeries({
           if (!data) {
             return '';
           }
-          const time = getFormattedDate(
-            data.value,
-            getFormat({timeZone: true, year: true}),
-            {local: !utc}
-          );
+          const time = formatDateTime(data.value, {
+            year: 'always',
+            showTimezone: true,
+            timezone: utc ? 'UTC' : undefined,
+          });
           const version = escape(formatVersion(data.name, true));
           return [
             '<div class="tooltip-series">',
@@ -162,13 +146,7 @@ function buildReleaseSeries({
       },
     });
 
-    return {
-      id: 'release-lines',
-      seriesName: 'Releases',
-      color,
-      data: [],
-      markLine,
-    };
+    return {id: 'release-lines', seriesName: 'Releases', color, data: [], markLine};
   }
 
   if (!emphasizeReleases?.length) {
@@ -323,7 +301,7 @@ export function useReleaseSeries({
             hasMore = false;
           }
         } catch {
-          addErrorMessage(t('Error fetching releases'));
+          toast.error(t('Error fetching releases'));
           hasMore = false;
         }
       }

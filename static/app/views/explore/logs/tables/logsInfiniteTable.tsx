@@ -13,10 +13,10 @@ import * as Sentry from '@sentry/react';
 import type {Virtualizer} from '@tanstack/react-virtual';
 
 import {Button} from '@sentry/scraps/button';
-import {useClockDisplay} from '@sentry/scraps/datetime';
+import {useClock} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {FileSize} from 'sentry/components/fileSize';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {JumpButtons} from 'sentry/components/replays/jumpButtons';
@@ -63,11 +63,6 @@ import {
   LogTableBody,
   LogTableHeadCell,
 } from 'sentry/views/explore/logs/styles';
-import {calculateLogsTableMinWidth} from 'sentry/views/explore/logs/tables/calculateLogsTableMinWidth';
-import {LogsEmptyResults} from 'sentry/views/explore/logs/tables/logsEmptyResults';
-import {LogsRateLimitError} from 'sentry/views/explore/logs/tables/logsRateLimitError';
-import {LogRowContent} from 'sentry/views/explore/logs/tables/logsTableRow';
-import {useLogsTableColumnWidths} from 'sentry/views/explore/logs/tables/useLogsTableColumnWidths';
 import {
   OurLogKnownFieldKey,
   type OurLogsResponseItem,
@@ -95,28 +90,27 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {EmptyStateText} from 'sentry/views/explore/tables/tracesTable/styles';
 
+import {calculateLogsTableMinWidth} from './calculateLogsTableMinWidth';
+import {LogsEmptyResults} from './logsEmptyResults';
+import {LogsRateLimitError} from './logsRateLimitError';
+import {LogRowContent} from './logsTableRow';
+import {useLogsTableColumnWidths} from './useLogsTableColumnWidths';
+
+/**
+ * This sentinel value means the pseudo row sits after every loaded row.
+ */
+const SECOND_TO_LAST_ROW_SENTINEL = -2;
+
 type LogsTableProps = {
   analyticsPageSource: LogsAnalyticsPageSource;
-  additionalData?: {
-    event?: Event;
-    scrollToDisabled?: boolean;
-  };
+  additionalData?: {event?: Event; scrollToDisabled?: boolean};
   booleanAttributes?: TagCollection;
   embedded?: boolean;
-  embeddedOptions?: {
-    openWithExpandedIds?: string[];
-    replay?: ReplayEmbeddedTableOptions;
-  };
-  embeddedStyling?: {
-    disableBodyPadding?: boolean;
-    showVerticalScrollbar?: boolean;
-  };
+  embeddedOptions?: {openWithExpandedIds?: string[]; replay?: ReplayEmbeddedTableOptions};
+  embeddedStyling?: {disableBodyPadding?: boolean; showVerticalScrollbar?: boolean};
   emptyRenderer?: () => React.ReactNode;
   injectedErrorRows?: ErrorLogRowItem[];
-  localOnlyItemFilters?: {
-    filterText: string;
-    filteredItems: OurLogsResponseItem[];
-  };
+  localOnlyItemFilters?: {filterText: string; filteredItems: OurLogsResponseItem[]};
   numberAttributes?: TagCollection;
   showCellActions?: boolean;
   showExploreConnectedSpansLink?: boolean;
@@ -161,6 +155,7 @@ export function LogsInfiniteTable({
     refetch,
     fetchNextPage,
     fetchPreviousPage,
+    canFetchNextPage,
     isFetchingNextPage,
     isFetchingPreviousPage,
     lastPageLength,
@@ -174,11 +169,7 @@ export function LogsInfiniteTable({
     clearAnchor,
   } = useLogsPageDataQueryResult();
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToLogsMeta({
-        meta: rawMeta,
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToLogsMeta({meta: rawMeta, validatedFieldTypes}),
     [rawMeta, validatedFieldTypes]
   );
 
@@ -207,7 +198,7 @@ export function LogsInfiniteTable({
       row =>
         isRegularLogResponseItem(row) && getLogRowTimestampMillis(row) < eventTimestamp
     );
-    return index === -1 ? -2 : index; // If the event is older than all the data, add it to the end with a sentinel value of -2. This causes the useEffect to not continously add it.
+    return index === -1 ? SECOND_TO_LAST_ROW_SENTINEL : index; // If the event is older than all the data, add it to the end with a sentinel value of SECOND_TO_LAST_ROW_SENTINEL. This causes the useEffect to not continously add it.
   }, [additionalData, baseData, isPending, isError]);
 
   const data = useMemo(() => {
@@ -223,7 +214,8 @@ export function LogsInfiniteTable({
       withEvent = baseData || [];
     } else {
       withEvent = [...baseData];
-      const newSelectedIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
+      const newSelectedIndex =
+        pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
       withEvent.splice(
         newSelectedIndex,
         0,
@@ -252,8 +244,8 @@ export function LogsInfiniteTable({
   const isEmptyWithoutInjectedErrors = isEmpty && !hasInjectedErrorRows;
 
   // Widest timestamps: "Dec 28, 10:58:58.888 PM" (12h), "Dec 28, 22:58:58.888" (24h).
-  const clockDisplay = useClockDisplay();
-  const timestampWidth = clockDisplay === '24' ? 20 : 23;
+  const clock = useClock();
+  const timestampWidth = clock === '24' ? 20 : 23;
 
   // Calculate quantized start and end times for replay links
   const {logStart, logEnd} = useMemo(() => {
@@ -362,28 +354,27 @@ export function LogsInfiniteTable({
 
   const handleScrollToRow = useCallback(
     (index: number) => {
-      virtualizer.scrollToIndex(index, {
-        behavior: 'smooth',
-        align: 'center',
-      });
+      virtualizer.scrollToIndex(index, {behavior: 'smooth', align: 'center'});
     },
     [virtualizer]
   );
 
-  // The -2 sentinel means the pseudo row sits after every loaded row. Reading the
-  // row count from an effect event keeps it out of the effect deps, so scrolling
+  // Reading the row count from an effect event keeps it out of the effect deps, so scrolling
   // does not repeat each time the infinite table loads another page.
   const scrollToPseudoRow = useEffectEvent(() => {
-    const scrollToIndex = pseudoRowIndex === -2 ? baseData.length : pseudoRowIndex;
-    virtualizer.scrollToIndex(scrollToIndex, {
-      behavior: 'smooth',
-      align: 'center',
-    });
+    const scrollToIndex =
+      pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL ? baseData.length : pseudoRowIndex;
+    virtualizer.scrollToIndex(scrollToIndex, {behavior: 'smooth', align: 'center'});
   });
+
+  // Scrolling to the end would load another page and move the event's row again.
+  const isPseudoRowPastLoadedPages =
+    pseudoRowIndex === SECOND_TO_LAST_ROW_SENTINEL && canFetchNextPage;
 
   useEffect(() => {
     if (
       pseudoRowIndex === -1 ||
+      isPseudoRowPastLoadedPages ||
       !tableBodyRef?.current ||
       additionalData?.scrollToDisabled
     ) {
@@ -391,7 +382,13 @@ export function LogsInfiniteTable({
     }
     const timeoutId = setTimeout(() => scrollToPseudoRow(), 100);
     return () => clearTimeout(timeoutId);
-  }, [pseudoRowIndex, virtualizer, tableBodyRef, additionalData?.scrollToDisabled]);
+  }, [
+    pseudoRowIndex,
+    isPseudoRowPastLoadedPages,
+    virtualizer,
+    tableBodyRef,
+    additionalData?.scrollToDisabled,
+  ]);
 
   const hasReplay = !!embeddedOptions?.replay;
 
@@ -469,10 +466,7 @@ export function LogsInfiniteTable({
 
   useEffect(() => {
     if (hasReplay) {
-      onRowsRendered({
-        startIndex: firstItemIndex ?? 0,
-        stopIndex: lastItemIndex ?? 0,
-      });
+      onRowsRendered({startIndex: firstItemIndex ?? 0, stopIndex: lastItemIndex ?? 0});
     }
   }, [hasReplay, firstItemIndex, lastItemIndex, onRowsRendered]);
 
@@ -524,7 +518,7 @@ export function LogsInfiniteTable({
         log_id: anchorId,
         organization,
       });
-      addErrorMessage(t('This log is not in the current results'));
+      toast.error(t('This log is not in the current results'));
       clearAnchor();
       return;
     }
@@ -822,9 +816,7 @@ function LogsTableHeader({
 }: Pick<
   LogsTableProps,
   'numberAttributes' | 'stringAttributes' | 'booleanAttributes' | 'validatedFieldTypes'
-> & {
-  isFrozen: boolean;
-}) {
+> & {isFrozen: boolean}) {
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
   const setSortBys = useSetQueryParamsSortBys();
@@ -974,9 +966,7 @@ function fieldValueTypeToColumnType(fieldType?: FieldValueType): ColumnType | un
   return fieldType;
 }
 
-const StyledLoadingIndicator = styled(LoadingIndicator)<{
-  margin: string;
-}>`
+const StyledLoadingIndicator = styled(LoadingIndicator)<{margin: string}>`
   ${p => p.margin && `margin: ${p.margin}`};
 `;
 
@@ -1018,9 +1008,7 @@ function BackToTopButton({
     <Button
       onClick={() => {
         setIsFunctionScrolling(true);
-        virtualizer.scrollToOffset(0, {
-          behavior: 'smooth',
-        });
+        virtualizer.scrollToOffset(0, {behavior: 'smooth'});
       }}
       aria-label="Back to top"
     >

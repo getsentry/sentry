@@ -11,7 +11,7 @@ import {IconWarning} from '@sentry/icons/warning';
 import {Alert} from '@sentry/scraps/alert';
 import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import type {ContentVariant} from '@sentry/scraps/theme';
@@ -552,9 +552,7 @@ function IconButton({
   );
 }
 
-const CardHeaderRow = styled('div')<{
-  $showBottomBorder?: boolean;
-}>`
+const CardHeaderRow = styled('div')<{$showBottomBorder?: boolean}>`
   display: flex;
   flex-direction: column;
   gap: ${p => p.theme.space['2xs']};

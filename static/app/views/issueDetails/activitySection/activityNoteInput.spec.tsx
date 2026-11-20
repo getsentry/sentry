@@ -1,7 +1,8 @@
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import {ActivityNoteInput} from 'sentry/views/issueDetails/activitySection/activityNoteInput';
+
+import {ActivityNoteInput} from './activityNoteInput';
 
 function getEditor() {
   const editor = screen.getByRole('combobox', {name: 'Add a comment'});
@@ -13,10 +14,7 @@ function getEditor() {
 describe('ActivityNoteInput', () => {
   beforeEach(() => {
     localStorage.clear();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
   });
 
   it('loads and saves a draft', async () => {

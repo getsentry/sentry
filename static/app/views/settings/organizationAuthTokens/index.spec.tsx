@@ -10,7 +10,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {OrgAuthToken} from 'sentry/types/user';
 import OrganizationAuthTokensIndex from 'sentry/views/settings/organizationAuthTokens';
@@ -112,11 +113,7 @@ describe('OrganizationAuthTokensIndex', () => {
       },
     ];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: tokens,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
     render(<OrganizationAuthTokensIndex />, {organization});
 
@@ -151,11 +148,7 @@ describe('OrganizationAuthTokensIndex', () => {
   it('shows empty state', async () => {
     const tokens: OrgAuthToken[] = [];
 
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'GET',
-      body: tokens,
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
     render(<OrganizationAuthTokensIndex />, {organization});
 
@@ -170,7 +163,7 @@ describe('OrganizationAuthTokensIndex', () => {
 
   describe('revoking', () => {
     it('allows to revoke tokens', async () => {
-      jest.spyOn(indicators, 'addSuccessMessage');
+      jest.spyOn(toast, 'success');
 
       const tokens: OrgAuthToken[] = [
         {
@@ -196,11 +189,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}2/`,
@@ -224,7 +213,7 @@ describe('OrganizationAuthTokensIndex', () => {
       expect(screen.queryByText('My Token 2')).not.toBeInTheDocument();
       expect(screen.getByText('My Token 3')).toBeInTheDocument();
 
-      expect(indicators.addSuccessMessage).toHaveBeenCalledWith(
+      expect(toast.success).toHaveBeenCalledWith(
         'Revoked auth token for the organization.'
       );
 
@@ -232,7 +221,7 @@ describe('OrganizationAuthTokensIndex', () => {
     });
 
     it('handles API error when revoking token', async () => {
-      jest.spyOn(indicators, 'addErrorMessage');
+      jest.spyOn(toast, 'error');
 
       const tokens: OrgAuthToken[] = [
         {
@@ -244,11 +233,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       const deleteMock = MockApiClient.addMockResponse({
         url: `${ENDPOINT}1/`,
@@ -269,7 +254,7 @@ describe('OrganizationAuthTokensIndex', () => {
 
       expect(screen.getByText('My Token 1')).toBeInTheDocument();
 
-      expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+      expect(toast.error).toHaveBeenCalledWith(
         'Failed to revoke the auth token for the organization.'
       );
 
@@ -277,9 +262,7 @@ describe('OrganizationAuthTokensIndex', () => {
     });
 
     it('does not allow to revoke without permission', async () => {
-      const org = OrganizationFixture({
-        access: ['org:read'],
-      });
+      const org = OrganizationFixture({access: ['org:read']});
 
       const tokens: OrgAuthToken[] = [
         {
@@ -291,11 +274,7 @@ describe('OrganizationAuthTokensIndex', () => {
         },
       ];
 
-      MockApiClient.addMockResponse({
-        url: ENDPOINT,
-        method: 'GET',
-        body: tokens,
-      });
+      MockApiClient.addMockResponse({url: ENDPOINT, method: 'GET', body: tokens});
 
       render(<OrganizationAuthTokensIndex />, {organization: org});
 

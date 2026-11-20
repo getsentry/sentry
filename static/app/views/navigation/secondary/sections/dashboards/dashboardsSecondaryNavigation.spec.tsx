@@ -4,8 +4,9 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import type {Organization} from 'sentry/types/organization';
-import {DashboardsSecondaryNavigation} from 'sentry/views/navigation/secondary/sections/dashboards/dashboardsSecondaryNavigation';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
+
+import {DashboardsSecondaryNavigation} from './dashboardsSecondaryNavigation';
 
 describe('DashboardsSecondaryNavigation', () => {
   let organization: Organization;
@@ -23,14 +24,8 @@ describe('DashboardsSecondaryNavigation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/dashboards/`,
       body: [
-        DashboardListItemFixture({
-          id: '9999',
-          title: 'Dashboard 9999',
-        }),
-        DashboardListItemFixture({
-          id: '1',
-          title: 'Dashboard 1',
-        }),
+        DashboardListItemFixture({id: '9999', title: 'Dashboard 9999'}),
+        DashboardListItemFixture({id: '1', title: 'Dashboard 1'}),
       ],
       match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });

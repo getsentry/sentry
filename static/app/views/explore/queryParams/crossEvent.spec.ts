@@ -1,4 +1,4 @@
-import {getCrossEvents} from 'sentry/views/explore/queryParams/crossEvent';
+import {getCrossEvents} from './crossEvent';
 
 describe('getCrossEvents', () => {
   it('returns undefined when the param is missing', () => {
@@ -22,11 +22,7 @@ describe('getCrossEvents', () => {
       {query: 'a', type: 'logs'},
       {query: 1, type: 'spans'},
       null,
-      {
-        metric: {name: 'm', type: 'counter', unit: null},
-        query: 'b',
-        type: 'metrics',
-      },
+      {metric: {name: 'm', type: 'counter', unit: null}, query: 'b', type: 'metrics'},
       {metric: {name: 'm'}, query: 'c', type: 'metrics'},
       {metric: {name: 'm', type: 'counter', unit: 1}, query: 'd', type: 'metrics'},
       {query: 'e', type: 1},

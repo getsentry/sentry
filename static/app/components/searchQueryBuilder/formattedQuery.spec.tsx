@@ -2,19 +2,12 @@ import {act, render, screen} from 'sentry-test/reactTestingLibrary';
 import {triggerResizeObservers} from 'sentry-test/resizeObserver';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {
-  FormattedQuery,
-  type FormattedQueryProps,
-} from 'sentry/components/searchQueryBuilder/formattedQuery';
 import type {TagCollection} from 'sentry/types/group';
 import {getFieldDefinition} from 'sentry/utils/fields';
 
-const FILTER_KEYS: TagCollection = {
-  lastSeen: {
-    key: 'lastSeen',
-    name: 'Last Seen',
-  },
-};
+import {FormattedQuery, type FormattedQueryProps} from './formattedQuery';
+
+const FILTER_KEYS: TagCollection = {lastSeen: {key: 'lastSeen', name: 'Last Seen'}};
 
 let mockAllowRegexOperators = false;
 
@@ -24,15 +17,11 @@ jest.mock('sentry/components/searchQueryBuilder/context', () => ({
     filterKeys: {},
     getFieldDefinition: () => null,
   }),
-  useSearchQueryBuilderLayout: () => ({
-    size: 'normal',
-  }),
+  useSearchQueryBuilderLayout: () => ({size: 'normal'}),
 }));
 
 describe('FormattedQuery', () => {
-  const defaultProps: Partial<FormattedQueryProps> = {
-    filterKeys: FILTER_KEYS,
-  };
+  const defaultProps: Partial<FormattedQueryProps> = {filterKeys: FILTER_KEYS};
 
   beforeEach(() => {
     mockAllowRegexOperators = false;
@@ -120,6 +109,15 @@ describe('FormattedQuery', () => {
 
     expect(
       screen.getByText(textWithMarkupMatcher('lastSeen is after Jan 1, 2024'))
+    ).toBeInTheDocument();
+  });
+
+  it('interprets offset-free search timestamps as UTC', () => {
+    render(<FormattedQuery {...defaultProps} query="lastSeen:>2024-01-01T12:30:00" />);
+    expect(
+      screen.getByText(
+        textWithMarkupMatcher('lastSeen is after Jan 1, 2024 12:30 PM UTC')
+      )
     ).toBeInTheDocument();
   });
 

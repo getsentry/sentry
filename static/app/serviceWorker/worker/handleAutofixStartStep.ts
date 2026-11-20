@@ -1,6 +1,7 @@
-import {workerFetch} from 'sentry/serviceWorker/worker/fetch';
-import {showNotification} from 'sentry/serviceWorker/worker/showNotification';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+
+import {workerFetch} from './fetch';
+import {showNotification} from './showNotification';
 
 // Clone of sentry/components/events/autofix/useExplorerAutofix
 type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes' | 'pr_iteration';
@@ -8,29 +9,14 @@ type AutofixExplorerStep = 'root_cause' | 'solution' | 'code_changes' | 'pr_iter
 export interface AutofixStartStepData {
   issueId: string;
   notification: {
-    body: {
-      error: string;
-      success: string;
-    };
-    navigateTo: {
-      pathname: string;
-      query?: Record<string, string>;
-    };
-    project: {
-      avatar: string;
-    };
-    title: {
-      error: string;
-      success: string;
-    };
+    body: {error: string; success: string};
+    navigateTo: {pathname: string; query?: Record<string, string>};
+    project: {avatar: string};
+    title: {error: string; success: string};
   };
   organizationIdOrSlug: string;
   step: AutofixExplorerStep;
-  stepOptions: {
-    insertIndex?: number;
-    runId?: number | string;
-    userContext?: string;
-  };
+  stepOptions: {insertIndex?: number; runId?: number | string; userContext?: string};
 }
 
 /**

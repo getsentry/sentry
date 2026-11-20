@@ -6,9 +6,7 @@ import {AutoSaveForm} from '@sentry/scraps/form';
 
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
-const testSchema = z.object({
-  testField: z.string(),
-});
+const testSchema = z.object({testField: z.string()});
 
 function createRequestError(responseJSON?: Record<string, unknown>): RequestError {
   const error = new RequestError('POST', '/test/', new Error('test'));

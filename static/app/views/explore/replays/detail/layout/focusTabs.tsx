@@ -4,7 +4,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {useOrganizationSeerSetup} from 'sentry/components/events/autofix/useOrganizationSeerSetup';
 import {t, tct} from 'sentry/locale';
@@ -30,70 +30,67 @@ function getReplayTabs({
   organization: Organization;
   project?: Project | null;
   replayRecord?: ReplayRecord | null;
-}): Record<TabKey, ReactNode> {
+}): Array<{key: TabKey; label: ReactNode}> {
   const hasAiSummary =
     organization.features.includes('replay-ai-summaries') && areAiFeaturesAllowed;
   const hasMobileSummary = organization.features.includes('replay-ai-summaries-mobile');
   const hasLogs = hasLogsOnReplays(organization, project, replayRecord);
 
-  return {
-    [TabKey.AI]:
-      hasAiSummary && (!isVideoReplay || hasMobileSummary) ? (
-        <Flex align="center" gap="sm">
-          <InfoText
-            variant="inherit"
-            title={tct(
-              'Powered by generative AI. Learn more about our [link:AI privacy principles].',
-              {
-                link: (
-                  <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
-                ),
-              }
-            )}
-          >
-            {t('AI Summary')}
-          </InfoText>
-          <FeatureBadge type="new" />
-        </Flex>
-      ) : null,
-    [TabKey.BREADCRUMBS]: t('Activity'),
-    [TabKey.CONSOLE]: t('Console'),
-    [TabKey.LOGS]: hasLogs ? t('Logs') : null,
-    [TabKey.NETWORK]: t('Network'),
-    [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: t('Trace'),
+  return [
+    {
+      key: TabKey.AI,
+      label:
+        hasAiSummary && (!isVideoReplay || hasMobileSummary) ? (
+          <Flex align="center" gap="sm">
+            <InfoText
+              variant="inherit"
+              title={tct(
+                'Powered by generative AI. Learn more about our [link:AI privacy principles].',
+                {
+                  link: (
+                    <ExternalLink href="https://docs.sentry.io/product/ai-in-sentry/ai-privacy-and-security/" />
+                  ),
+                }
+              )}
+            >
+              {t('AI Summary')}
+            </InfoText>
+            <FeatureBadge type="new" />
+          </Flex>
+        ) : null,
+    },
+    {key: TabKey.BREADCRUMBS, label: t('Activity')},
+    {key: TabKey.CONSOLE, label: t('Console')},
+    {key: TabKey.LOGS, label: hasLogs ? t('Logs') : null},
+    {key: TabKey.NETWORK, label: t('Network')},
+    {key: TabKey.ERRORS, label: t('Errors')},
+    {key: TabKey.TRACE, label: t('Trace')},
     // For video replays, we hide the memory tab (not applicable for mobile)
-    [TabKey.MEMORY]: isVideoReplay ? null : t('Memory'),
-    [TabKey.TAGS]: t('Tags'),
-    [TabKey.PLAYLIST]: t('Playlist'),
-  };
+    {key: TabKey.MEMORY, label: isVideoReplay ? null : t('Memory')},
+    {key: TabKey.TAGS, label: t('Tags')},
+    {key: TabKey.PLAYLIST, label: t('Playlist')},
+  ];
 }
 
-type Props = {
-  isVideoReplay: boolean;
-};
+type Props = {isVideoReplay: boolean};
 
 export function FocusTabs({isVideoReplay}: Props) {
   const organization = useOrganization();
   const {areAiFeaturesAllowed} = useOrganizationSeerSetup();
-  const {getActiveTab, setActiveTab} = useActiveReplayTab({
-    isVideoReplay,
-  });
+  const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
   const replay = useReplayReader();
   const replayRecord = replay?.getReplay();
 
   const project = useProjectFromId({project_id: replayRecord?.project_id});
 
-  const tabs = Object.entries(
-    getReplayTabs({
-      isVideoReplay,
-      organization,
-      areAiFeaturesAllowed,
-      replayRecord,
-      project,
-    })
-  ).filter(([_, v]) => v !== null);
+  const tabs = getReplayTabs({
+    isVideoReplay,
+    organization,
+    areAiFeaturesAllowed,
+    replayRecord,
+    project,
+  }).filter(({label}) => label !== null);
 
   useEffect(() => {
     const hasAiSummary =
@@ -103,9 +100,7 @@ export function FocusTabs({isVideoReplay}: Props) {
     const isAiTabAvailable = hasAiSummary && (!isVideoReplay || hasMobileSummary);
 
     if (isAiTabAvailable) {
-      trackAnalytics('replay.ai_tab_shown', {
-        organization,
-      });
+      trackAnalytics('replay.ai_tab_shown', {organization});
     }
   }, [organization, areAiFeaturesAllowed, isVideoReplay]);
 
@@ -124,17 +119,19 @@ export function FocusTabs({isVideoReplay}: Props) {
           });
         }}
       >
-        <TabList>
-          {tabs.map(([tab, label]) => (
-            <TabList.Item
-              key={tab}
-              textValue={tab}
-              data-test-id={`replay-details-${tab}-btn`}
-            >
-              {label}
-            </TabList.Item>
-          ))}
-        </TabList>
+        {({TabList}) => (
+          <TabList>
+            {tabs.map(({key: tab, label}) => (
+              <TabList.Item
+                key={tab}
+                textValue={tab}
+                data-test-id={`replay-details-${tab}-btn`}
+              >
+                {label}
+              </TabList.Item>
+            ))}
+          </TabList>
+        )}
       </Tabs>
     </Stack>
   );

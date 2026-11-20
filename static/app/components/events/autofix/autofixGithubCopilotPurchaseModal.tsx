@@ -3,9 +3,9 @@ import {Fragment} from 'react';
 import {Button, LinkButton} from '@sentry/scraps/button';
 import {Grid} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t, tct} from 'sentry/locale';
 
 const GITHUB_COPILOT_URL = 'https://github.com/features/copilot';
@@ -25,9 +25,7 @@ export function AutofixGithubCopilotPurchaseModal({
         <Text as="p">
           {tct(
             'Your GitHub account does not have an active GitHub Copilot license. To use Copilot as a coding agent, you will need an active [link:Copilot subscription].',
-            {
-              link: <ExternalLink href={GITHUB_COPILOT_URL} />,
-            }
+            {link: <ExternalLink href={GITHUB_COPILOT_URL} />}
           )}
         </Text>
       </Body>

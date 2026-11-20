@@ -5,15 +5,13 @@ import type {
   LinkedDashboard,
 } from 'sentry/views/dashboards/types';
 import {DashboardFilterKeys, WidgetType} from 'sentry/views/dashboards/types';
-import {getLinkedDashboardUrl} from 'sentry/views/dashboards/utils/getLinkedDashboardUrl';
+
+import {getLinkedDashboardUrl} from './getLinkedDashboardUrl';
 
 describe('getLinkedDashboardUrl', () => {
   const organizationSlug = 'test-org';
 
-  const linkedDashboard: LinkedDashboard = {
-    dashboardId: '123',
-    field: 'browser.name',
-  };
+  const linkedDashboard: LinkedDashboard = {dashboardId: '123', field: 'browser.name'};
 
   it('returns undefined for invalid dashboard ID', () => {
     const result = getLinkedDashboardUrl({
@@ -154,9 +152,7 @@ describe('getLinkedDashboardUrl', () => {
       organizationSlug,
       field: 'browser.name',
       value: 'Chrome',
-      locationQuery: {
-        project: '1',
-      },
+      locationQuery: {project: '1'},
       projectIdOverride: '999',
     });
 

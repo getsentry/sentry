@@ -7,21 +7,17 @@ import {SimpleGroupFixture} from 'sentry-fixture/group';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import {DetectorDetailsOpenPeriodIssues} from 'sentry/views/detectors/components/details/common/openPeriodIssues';
+
+import {DetectorDetailsOpenPeriodIssues} from './openPeriodIssues';
 
 describe('DetectorDetailsOpenPeriodIssues', () => {
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   it('renders latest issue with one open period', async () => {
     const detector = MetricDetectorFixture({
-      latestGroup: SimpleGroupFixture({
-        id: '1234',
-      }),
+      latestGroup: SimpleGroupFixture({id: '1234'}),
       dataSources: [
         SnubaQueryDataSourceFixture({
           queryObj: {

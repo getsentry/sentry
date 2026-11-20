@@ -9,15 +9,17 @@ import {
 } from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
 import {getAxisRange} from 'sentry/views/dashboards/utils/axisRange';
+import {parseAsTransformations} from 'sentry/views/dashboards/utils/transformations';
 import {
   type WidgetBuilderStateParams,
   type WidgetBuilderStateQueryParams,
 } from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderState';
+
 import {
   serializeFields,
   serializeLinkedDashboards,
   serializeThresholds,
-} from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
+} from './serialization';
 
 function stringifyFields(
   query: WidgetQuery,
@@ -87,9 +89,13 @@ export function convertWidgetToQueryParams(
     field,
     yAxis,
     ...(widget.queries.some(q =>
-      Object.values(q.transformations ?? {}).some(pipeline => pipeline.length)
+      Object.values(q.transformations ?? {}).some(
+        axisTransformations => axisTransformations.length
+      )
     ) && {
-      transformations: JSON.stringify(widget.queries.map(q => q.transformations ?? {})),
+      transformations: parseAsTransformations.serialize(
+        widget.queries.map(q => q.transformations ?? {})
+      ),
     }),
     query,
     sort,

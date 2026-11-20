@@ -13,9 +13,7 @@ import {defined} from 'sentry/utils/defined';
 import {useAutomationListDetectors} from 'sentry/views/automations/hooks/useAutomationListDetectors';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
 
-type AutomationListConnectedDetectorsProps = {
-  detectorIds: string[];
-};
+type AutomationListConnectedDetectorsProps = {detectorIds: string[]};
 
 const MAX_DISPLAYED_DETECTORS = 5;
 
@@ -103,7 +101,6 @@ const ConnectedDetectors = styled('div')`
 const HovercardRow = styled('div')`
   position: relative;
   display: flex;
-  justify-content: center;
   padding: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   min-height: 64px;
 

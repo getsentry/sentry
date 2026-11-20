@@ -4,8 +4,9 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {CreateSampleEventButton} from 'sentry/components/onboarding/createSampleEventButton';
 import {trackAnalytics} from 'sentry/utils/analytics';
+
+import {CreateSampleEventButton} from './createSampleEventButton';
 
 jest.mock('sentry/utils/analytics');
 
@@ -50,10 +51,7 @@ describe('CreateSampleEventButton', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-          query: expect.objectContaining({
-            project: project.id,
-            referrer: 'sample-error',
-          }),
+          query: expect.objectContaining({project: project.id, referrer: 'sample-error'}),
         })
       )
     );
@@ -166,10 +164,7 @@ describe('CreateSampleEventButton', () => {
       expect(router.location).toEqual(
         expect.objectContaining({
           pathname: `/organizations/${org.slug}/issues/${groupID}/`,
-          query: expect.objectContaining({
-            project: project.id,
-            referrer: 'sample-error',
-          }),
+          query: expect.objectContaining({project: project.id, referrer: 'sample-error'}),
         })
       )
     );

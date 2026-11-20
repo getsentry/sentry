@@ -6,13 +6,11 @@ import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import {
-  shouldTriggerHighAccuracy,
-  useExploreTimeseries,
-} from 'sentry/views/explore/hooks/useExploreTimeseries';
-import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {VisualizeFunction} from 'sentry/views/explore/queryParams/visualize';
 import {SpansQueryParamsProvider} from 'sentry/views/explore/spans/spansQueryParamsProvider';
+
+import {shouldTriggerHighAccuracy, useExploreTimeseries} from './useExploreTimeseries';
+import {SAMPLING_MODE} from './useProgressiveQuery';
 
 function Wrapper({children}: {children: ReactNode}) {
   return <SpansQueryParamsProvider>{children}</SpansQueryParamsProvider>;
@@ -22,10 +20,6 @@ describe('useExploreTimeseries', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
     jest.clearAllMocks();
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('keeps transformations aligned after sorting and deduplicating axes', async () => {
@@ -73,16 +67,8 @@ describe('useExploreTimeseries', () => {
           {
             ...mockTimeSeries,
             yAxis: 'count(span.duration)',
-            values: [
-              {
-                ...mockTimeSeries.values[0]!,
-                value: 0,
-              },
-            ],
-            meta: {
-              ...mockTimeSeries.meta,
-              dataScanned: 'partial',
-            },
+            values: [{...mockTimeSeries.values[0]!, value: 0}],
+            meta: {...mockTimeSeries.meta, dataScanned: 'partial'},
           },
         ],
       },
@@ -103,14 +89,8 @@ describe('useExploreTimeseries', () => {
       method: 'GET',
     });
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
-      {
-        additionalWrapper: Wrapper,
-      }
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
+      {additionalWrapper: Wrapper}
     );
 
     expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -153,19 +133,13 @@ describe('useExploreTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
           location: {
             pathname: '/organizations/org-slug/explore/traces/',
-            query: {
-              extrapolate: '0',
-            },
+            query: {extrapolate: '0'},
           },
         },
       }
@@ -203,9 +177,7 @@ describe('useExploreTimeseries', () => {
     await waitFor(() => expect(mockRequest).toHaveBeenCalled());
     expect(mockRequest).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({query}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query})})
     );
   });
 
@@ -216,11 +188,7 @@ describe('useExploreTimeseries', () => {
     });
 
     renderHookWithProviders(
-      () =>
-        useExploreTimeseries({
-          query: 'test value',
-          enabled: true,
-        }),
+      () => useExploreTimeseries({query: 'test value', enabled: true}),
       {
         additionalWrapper: Wrapper,
         initialRouterConfig: {
@@ -244,11 +212,15 @@ describe('useExploreTimeseries', () => {
 });
 
 describe('shouldTriggerHighAccuracy', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   it.each([
     {sampleCount: 0, expected: true},
     {sampleCount: 4, expected: false},
   ])(
-    'uses the visible pipeline sample count ($sampleCount)',
+    'uses the sample count after visible transformations ($sampleCount)',
     ({sampleCount, expected}) => {
       const transformed = TimeSeriesFixture({
         yAxis: 'count(span.duration)',

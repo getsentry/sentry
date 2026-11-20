@@ -5,10 +5,11 @@ import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {Config} from 'sentry/types/system';
-import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
-import {useParams} from 'sentry/utils/useParams';
-import {useRoutes} from 'sentry/utils/useRoutes';
-import {withDomainRedirect} from 'sentry/utils/withDomainRedirect';
+
+import {testableWindowLocation} from './testableWindowLocation';
+import {useParams} from './useParams';
+import {useRoutes} from './useRoutes';
+import {withDomainRedirect} from './withDomainRedirect';
 
 jest.unmock('sentry/utils/recreateRoute');
 jest.mock('sentry/utils/useRoutes');
@@ -70,10 +71,7 @@ describe('withDomainRedirect', () => {
     const WrappedComponent = withDomainRedirect(MyComponent);
     render(<WrappedComponent />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -82,17 +80,12 @@ describe('withDomainRedirect', () => {
   });
 
   it('redirects to sentryUrl on org slug mistmatch', () => {
-    const organization = OrganizationFixture({
-      slug: 'bobs-bagels',
-    });
+    const organization = OrganizationFixture({slug: 'bobs-bagels'});
     const WrappedComponent = withDomainRedirect(MyComponent);
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -111,10 +104,7 @@ describe('withDomainRedirect', () => {
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -128,9 +118,7 @@ describe('withDomainRedirect', () => {
 
   it('redirect when :orgId is present in the routes', async () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples'});
     jest.mocked(useRoutes).mockReturnValue(projectRoutes);
 
     const WrappedComponent = withDomainRedirect(MyComponent);
@@ -154,9 +142,7 @@ describe('withDomainRedirect', () => {
 
   it('does not redirect when :orgId is not present in the routes', () => {
     ConfigStore.set('features', new Set(['system:multi-region']));
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples'});
 
     jest.mocked(useRoutes).mockReturnValue([]);
 
@@ -164,9 +150,7 @@ describe('withDomainRedirect', () => {
     const {router} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/notifications/reports/',
-        },
+        location: {pathname: '/settings/account/notifications/reports/'},
         route: '/settings/account/notifications/reports/',
       },
     });
@@ -177,9 +161,7 @@ describe('withDomainRedirect', () => {
   });
 
   it('updates path when :orgId is present in the routes and there is no subdomain', async () => {
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples'});
     ConfigStore.set('customerDomain', {
       organizationUrl: 'https://sentry.io',
       sentryUrl: 'https://sentry.io',

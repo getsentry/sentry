@@ -1,6 +1,5 @@
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 
 export type CodingAgentIntegration = {
   id: string | null;
@@ -11,19 +10,18 @@ export type CodingAgentIntegration = {
 };
 
 export function organizationIntegrationsCodingAgents(organization: Organization) {
-  return apiOptions.as<{
-    integrations: CodingAgentIntegration[];
-  }>()('/organizations/$organizationIdOrSlug/integrations/coding-agents/', {
-    path: {organizationIdOrSlug: organization.slug},
-    staleTime: 5 * 60 * 1000,
-  });
+  return apiOptions.as<{integrations: CodingAgentIntegration[]}>()(
+    '/organizations/$organizationIdOrSlug/integrations/coding-agents/',
+    {path: {organizationIdOrSlug: organization.slug}, staleTime: 5 * 60 * 1000}
+  );
 }
 
-export function needsGitHubAuth(error: RequestError): boolean {
-  const detail = error.responseJSON?.detail;
-  return (
-    typeof detail === 'string' &&
-    detail.toLowerCase().includes('github') &&
-    detail.toLowerCase().includes('authorization')
-  );
+export function needsGitHubAuth(e: unknown): boolean {
+  const error = e as {responseJSON?: {detail?: unknown}} | null | undefined;
+  const detail = error?.responseJSON?.detail;
+  if (typeof detail !== 'string') {
+    return false;
+  }
+  const lowerDetail = detail.toLowerCase();
+  return lowerDetail.includes('github') && lowerDetail.includes('authorization');
 }

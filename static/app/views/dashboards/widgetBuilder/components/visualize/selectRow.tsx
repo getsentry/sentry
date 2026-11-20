@@ -24,16 +24,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {usesTimeSeriesData} from 'sentry/views/dashboards/utils';
-import {buildTraceItemColumnOptions} from 'sentry/views/dashboards/widgetBuilder/components/visualize/traceItemColumnOptions';
-import {
-  AggregateCompactSelect,
-  getAggregateValueKey,
-  getColumnOptions,
-  NONE,
-  parseAggregateFromValueKey,
-  PrimarySelectRow,
-  ColumnCompactSelect,
-} from 'sentry/views/dashboards/widgetBuilder/components/visualize/utils';
 import {BuilderStateAction} from 'sentry/views/dashboards/widgetBuilder/constants';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {useWidgetBuilderTraceItemConfig} from 'sentry/views/dashboards/widgetBuilder/hooks/useWidgetBuilderTraceItemConfig';
@@ -52,6 +42,17 @@ import {
 } from 'sentry/views/explore/utils/conditionalAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {sortSearchedAttributes} from 'sentry/views/explore/utils/sortSearchedAttributes';
+
+import {buildTraceItemColumnOptions} from './traceItemColumnOptions';
+import {
+  AggregateCompactSelect,
+  getAggregateValueKey,
+  getColumnOptions,
+  NONE,
+  parseAggregateFromValueKey,
+  PrimarySelectRow,
+  ColumnCompactSelect,
+} from './utils';
 
 type AggregateFunction = [
   AggregationKeyWithAlias,
@@ -210,10 +211,7 @@ export function SelectRow({
 
   const parsedFunction = useMemo(() => {
     if (conditionalAggregate) {
-      return {
-        name: conditionalAggregate.name,
-        arguments: conditionalAggregate.arguments,
-      };
+      return {name: conditionalAggregate.name, arguments: conditionalAggregate.arguments};
     }
     return parseFunction(fieldString);
   }, [conditionalAggregate, fieldString]);
@@ -235,12 +233,7 @@ export function SelectRow({
       field.kind === FieldValueKind.FUNCTION
     ) {
       if (field.function[0] === AggregationKey.COUNT) {
-        const options = [
-          {
-            label: t('logs'),
-            value: 'message',
-          },
-        ];
+        const options = [{label: t('logs'), value: 'message'}];
         return [true, options];
       }
     }
@@ -368,10 +361,7 @@ export function SelectRow({
     ) {
       return [
         ...columnOptionsWithSearched,
-        {
-          label: prettifyTagKey(columnValue),
-          value: columnValue,
-        },
+        {label: prettifyTagKey(columnValue), value: columnValue},
       ];
     }
     return columnOptionsWithSearched;
@@ -423,10 +413,7 @@ export function SelectRow({
         }),
         field.alias
       );
-      dispatch({
-        type: updateAction,
-        payload: newFields,
-      });
+      dispatch({type: updateAction, payload: newFields});
       setError?.({...error, queries: []});
     },
     [dispatch, error, field, fields, index, parsedFunction, setError, updateAction]
@@ -466,10 +453,7 @@ export function SelectRow({
     const newFields = cloneDeep(fields);
     newFields[index] = {kind: FieldValueKind.FIELD, field: firstColumn.value};
     hasAutoSelectedFirstColumn.current = true;
-    dispatch({
-      type: updateAction,
-      payload: newFields,
-    });
+    dispatch({type: updateAction, payload: newFields});
     setError?.({...error, queries: []});
   }, [
     autoSelectFirstColumn,
@@ -574,10 +558,7 @@ export function SelectRow({
                 // set the field to a field value. Otherwise, set the field to the first valid column.
                 const validColumnFields = getColumnOptions(
                   state.dataset ?? WidgetType.ERRORS,
-                  {
-                    kind: FieldValueKind.FIELD,
-                    field: '',
-                  },
+                  {kind: FieldValueKind.FIELD, field: ''},
                   fieldOptions,
                   // If no column filter method is provided, show all options
                   columnFilterMethod ?? (() => true)
@@ -592,10 +573,7 @@ export function SelectRow({
                   functionArgInValidColumnFields?.value ??
                   validColumnFields?.[0]?.value ??
                   '';
-                newFields[index] = {
-                  kind: FieldValueKind.FIELD,
-                  field: validColumn,
-                };
+                newFields[index] = {kind: FieldValueKind.FIELD, field: validColumn};
 
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,
@@ -699,10 +677,7 @@ export function SelectRow({
                   ];
                   const newColumnOptions = getColumnOptions(
                     state.dataset ?? WidgetType.ERRORS,
-                    {
-                      kind: FieldValueKind.FUNCTION,
-                      function: newFunction,
-                    },
+                    {kind: FieldValueKind.FUNCTION, function: newFunction},
                     fieldOptions,
                     // If no aggregate filter method is provided, show all options
                     datasetConfig.filterAggregateParams ?? (() => true)
@@ -768,10 +743,7 @@ export function SelectRow({
                   );
                 }
               }
-              dispatch({
-                type: updateAction,
-                payload: newFields,
-              });
+              dispatch({type: updateAction, payload: newFields});
               setError?.({...error, queries: []});
             }}
             trigger={triggerProps => (
@@ -840,10 +812,7 @@ export function SelectRow({
                 if (currentField.kind === FieldValueKind.FIELD) {
                   currentField.field = newField.value as string;
                 }
-                dispatch({
-                  type: updateAction,
-                  payload: newFields,
-                });
+                dispatch({type: updateAction, payload: newFields});
                 setError?.({...error, queries: []});
                 trackAnalytics('dashboards_views.widget_builder.change', {
                   builder_version: WidgetBuilderVersion.SLIDEOUT,

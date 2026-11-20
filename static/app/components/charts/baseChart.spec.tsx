@@ -3,7 +3,7 @@ import {ThemeFixture} from 'sentry-fixture/theme';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {BaseChart} from 'sentry/components/charts/baseChart';
+import {BaseChart} from './baseChart';
 
 const theme = ThemeFixture();
 
@@ -32,14 +32,8 @@ describe('BaseChart', () => {
         colors={['#444674', '#d6567f', '#f2b712']}
         previousPeriod={[
           {seriesName: 'count()', data: [{value: 123, name: Date.now()}]},
-          {
-            seriesName: 'count_unique(user)',
-            data: [{value: 123, name: Date.now()}],
-          },
-          {
-            seriesName: 'failure_count()',
-            data: [{value: 123, name: Date.now()}],
-          },
+          {seriesName: 'count_unique(user)', data: [{value: 123, name: Date.now()}]},
+          {seriesName: 'failure_count()', data: [{value: 123, name: Date.now()}]},
         ]}
       />
     );

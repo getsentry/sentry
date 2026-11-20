@@ -1,29 +1,30 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import type {TableColumnConfig} from '@sentry/scraps/table';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
 import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
-import {OrganizationFeatureFlagsAuditLogTable} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsAuditLogTable';
-import {OrganizationFeatureFlagsProviderRow} from 'sentry/views/settings/featureFlags/changeTracking/organizationFeatureFlagsProviderRow';
+
+import {OrganizationFeatureFlagsAuditLogTable} from './organizationFeatureFlagsAuditLogTable';
+import {OrganizationFeatureFlagsProviderRow} from './organizationFeatureFlagsProviderRow';
 
 export type Secret = {
   createdAt: string;
@@ -35,20 +36,15 @@ export type Secret = {
 
 type FetchSecretResponse = {data: Secret[]};
 
-type FetchSecretParameters = {
-  orgSlug: string;
-};
+type FetchSecretParameters = {orgSlug: string};
 
-type RemoveSecretQueryVariables = {
-  id: number;
-};
+type RemoveSecretQueryVariables = {id: number};
 
-export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ] as const;
+export const makeFetchSecretOptions = ({orgSlug}: FetchSecretParameters) =>
+  apiOptions.as<FetchSecretResponse>()(
+    '/organizations/$organizationIdOrSlug/flags/signing-secrets/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
+  );
 
 function SecretList({
   secretList,
@@ -110,12 +106,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     isError,
     data: secretList,
     refetch: refetchSecretList,
-  } = useApiQuery<FetchSecretResponse>(
-    makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(makeFetchSecretOptions({orgSlug: organization.slug}));
 
   const {mutate: handleRemoveSecret, isPending: isRemoving} = useMutation<
     unknown,
@@ -128,28 +119,29 @@ function OrganizationFeatureFlagsChangeTracking() {
           '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
           {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
 
     onSuccess: (_data, {id}) => {
-      addSuccessMessage(
-        t('Removed the provider and signing secret for the organization.')
-      );
+      toast.success(t('Removed the provider and signing secret for the organization.'));
 
-      setApiQueryData<FetchSecretResponse>(
-        queryClient,
-        makeFetchSecretQueryKey({orgSlug: organization.slug}),
+      queryClient.setQueryData(
+        makeFetchSecretOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          return {data: oldData?.data.filter(oldSecret => oldSecret.id !== id) ?? []};
+          return {
+            ...oldData,
+            headers: oldData?.headers ?? {},
+            json: {
+              data: oldData?.json.data.filter(oldSecret => oldSecret.id !== id) ?? [],
+            },
+          };
         }
       );
     },
     onError: error => {
       const message = t('Failed to remove the provider or signing secret.');
       handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
+      toast.error(message);
     },
   });
 

@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import {DisabledAlert} from './disabledAlert';
@@ -56,9 +57,7 @@ describe('DisabledAlert', () => {
       body: {...detector, enabled: true},
     });
 
-    render(<DisabledAlert detector={detector} message="Test message" />, {
-      organization,
-    });
+    render(<DisabledAlert detector={detector} message="Test message" />, {organization});
 
     const enableButton = await screen.findByRole('button', {name: 'Enable'});
     expect(enableButton).toBeEnabled();
@@ -68,10 +67,7 @@ describe('DisabledAlert', () => {
     await waitFor(() => {
       expect(updateRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {detectorId: '123', enabled: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {detectorId: '123', enabled: true}})
       );
     });
   });
@@ -82,7 +78,7 @@ describe('DisabledAlert', () => {
       enabled: false,
       projectId: project.id,
     });
-    const mockAddErrorMessage = jest.spyOn(indicators, 'addErrorMessage');
+    const mockAddErrorMessage = jest.spyOn(toast, 'error');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/detectors/123/',
@@ -93,9 +89,7 @@ describe('DisabledAlert', () => {
       },
     });
 
-    render(<DisabledAlert detector={detector} message="Test message" />, {
-      organization,
-    });
+    render(<DisabledAlert detector={detector} message="Test message" />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
 

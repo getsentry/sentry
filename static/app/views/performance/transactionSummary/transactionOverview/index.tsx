@@ -1,14 +1,12 @@
 import {useEffect, useMemo} from 'react';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
   useMEPDataContext,
@@ -38,26 +36,14 @@ function TransactionOverview() {
   useEffect(() => {
     loadOrganizationTags(api, organization.slug, selection, addAlert);
     addRoutePerformanceContext(selection);
-    trackAnalytics('performance_views.transaction_summary.view', {
-      organization,
-    });
+    trackAnalytics('performance_views.transaction_summary.view', {organization});
   }, [selection, organization, api, addAlert]);
 
   return (
     <MEPSettingProvider>
-      <EAPCardinalityLoadingWrapper />
+      <EAPOverviewContentWrapper />
     </MEPSettingProvider>
   );
-}
-
-function EAPCardinalityLoadingWrapper() {
-  const mepCardinalityContext = useMetricsCardinalityContext();
-
-  if (mepCardinalityContext?.isLoading) {
-    return <LoadingContainer isLoading />;
-  }
-
-  return <EAPOverviewContentWrapper />;
 }
 
 function EAPOverviewContentWrapper() {
@@ -83,9 +69,7 @@ function EAPOverviewContentWrapper() {
     transactionThreshold,
     transactionThresholdMetric,
     referrer: 'api.insights.transaction-summary',
-    options: {
-      refetchOnWindowFocus: false,
-    },
+    options: {refetchOnWindowFocus: false},
   });
 
   // Count has to be total indexed events count because it's only used
@@ -148,10 +132,7 @@ function getEAPTotalsEventView(
   eventView: EventView
 ): EventView {
   const totalsColumns: QueryFieldValue[] = [
-    {
-      kind: 'function',
-      function: ['p95', '', undefined, undefined],
-    },
+    {kind: 'function', function: ['p95', '', undefined, undefined]},
   ];
 
   return eventView.withColumns(totalsColumns);

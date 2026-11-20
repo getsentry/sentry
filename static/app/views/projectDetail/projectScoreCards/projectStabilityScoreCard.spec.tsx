@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {SessionFieldWithOperation} from 'sentry/types/organization';
-import {ProjectStabilityScoreCard} from 'sentry/views/projectDetail/projectScoreCards/projectStabilityScoreCard';
+
+import {ProjectStabilityScoreCard} from './projectStabilityScoreCard';
 
 describe('ProjectDetail > ProjectStability', () => {
   const organization = OrganizationFixture();
@@ -11,12 +12,7 @@ describe('ProjectDetail > ProjectStability', () => {
   const selection = {
     projects: [1],
     environments: [],
-    datetime: {
-      start: null,
-      end: null,
-      period: '14d',
-      utc: null,
-    },
+    datetime: {start: null, end: null, period: '14d', utc: null},
   };
 
   afterEach(() => {
@@ -27,13 +23,7 @@ describe('ProjectDetail > ProjectStability', () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
-        groups: [
-          {
-            totals: {
-              [SessionFieldWithOperation.CRASH_FREE_RATE_USERS]: 0.99,
-            },
-          },
-        ],
+        groups: [{totals: {[SessionFieldWithOperation.CRASH_FREE_RATE_USERS]: 0.99}}],
       },
       status: 200,
     });
@@ -71,13 +61,7 @@ describe('ProjectDetail > ProjectStability', () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
       body: {
-        groups: [
-          {
-            totals: {
-              [SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS]: 0.99,
-            },
-          },
-        ],
+        groups: [{totals: {[SessionFieldWithOperation.CRASH_FREE_RATE_SESSIONS]: 0.99}}],
       },
       status: 200,
     });
@@ -114,9 +98,7 @@ describe('ProjectDetail > ProjectStability', () => {
   it('renders without sessions', async () => {
     const endpointMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sessions/`,
-      body: {
-        detail: 'test error',
-      },
+      body: {detail: 'test error'},
       status: 404,
     });
 

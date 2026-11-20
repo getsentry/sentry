@@ -2,12 +2,11 @@ import {lazy} from 'react';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {LazyLoad} from 'sentry/components/lazyLoad';
 import {ROOT_ELEMENT} from 'sentry/constants';
 
-type TestProps = {
-  testProp?: boolean;
-};
+import {LazyLoad} from './lazyLoad';
+
+type TestProps = {testProp?: boolean};
 
 function FooComponent() {
   return <div>my foo component</div>;

@@ -8,9 +8,7 @@ import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
 import {MetricAlertQuotaMessage} from './metricAlertQuotaMessage';
 
-jest.mock('getsentry/actionCreators/modal', () => ({
-  openUpsellModal: jest.fn(),
-}));
+jest.mock('getsentry/actionCreators/modal', () => ({openUpsellModal: jest.fn()}));
 
 describe('MetricAlertQuotaMessage', () => {
   const organization = OrganizationFixture({
@@ -25,18 +23,14 @@ describe('MetricAlertQuotaMessage', () => {
     const subscription = SubscriptionFixture({
       organization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
+        ...SubscriptionFixture({organization}).planDetails,
         metricDetectorLimit: -1,
       },
     });
 
     SubscriptionStore.set(organization.slug, subscription);
 
-    const {container} = render(<MetricAlertQuotaMessage />, {
-      organization,
-    });
+    const {container} = render(<MetricAlertQuotaMessage />, {organization});
 
     await waitFor(() => {
       expect(container).toBeEmptyDOMElement();
@@ -47,9 +41,7 @@ describe('MetricAlertQuotaMessage', () => {
     const subscription = SubscriptionFixture({
       organization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
+        ...SubscriptionFixture({organization}).planDetails,
         metricDetectorLimit: 10,
       },
     });
@@ -79,9 +71,7 @@ describe('MetricAlertQuotaMessage', () => {
     const subscription = SubscriptionFixture({
       organization,
       planDetails: {
-        ...SubscriptionFixture({
-          organization,
-        }).planDetails,
+        ...SubscriptionFixture({organization}).planDetails,
         metricDetectorLimit: 10,
       },
     });

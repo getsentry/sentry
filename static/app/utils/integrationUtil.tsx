@@ -9,7 +9,6 @@ import {IconPerforce} from '@sentry/icons/perforce';
 import {IconSentry} from '@sentry/icons/sentry';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import {IconVsts} from '@sentry/icons/vsts';
-import * as qs from 'query-string';
 
 import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
@@ -30,10 +29,12 @@ import type {
 } from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Overrides} from 'sentry/types/overrides';
-import {trackAnalytics} from 'sentry/utils/analytics';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {capitalize} from 'sentry/utils/string/capitalize';
 import {POPULARITY_WEIGHT} from 'sentry/views/settings/organizationIntegrations/constants';
+
+import {capitalize} from './string/capitalize';
+import * as qs from './url/qs';
+import {trackAnalytics} from './analytics';
+import {isActiveSuperuser} from './isActiveSuperuser';
 
 /**
  * TODO: remove alias once all usages are updated
@@ -63,10 +64,7 @@ const generateIntegrationFeatures = (p: any) =>
   });
 
 const defaultFeatureGateComponents: ReturnType<Overrides['integrations:feature-gates']> =
-  {
-    IntegrationFeatures: generateIntegrationFeatures,
-    FeatureList: generateFeaturesList,
-  };
+  {IntegrationFeatures: generateIntegrationFeatures, FeatureList: generateFeaturesList};
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
@@ -405,16 +403,8 @@ export function sortIntegrations({
   return list.toSorted((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     // sort by whether installed first
     const diffWeight =
-      getInstallValue({
-        integration: b,
-        integrationInstalls,
-        sentryAppInstalls,
-      }) -
-      getInstallValue({
-        integration: a,
-        integrationInstalls,
-        sentryAppInstalls,
-      });
+      getInstallValue({integration: b, integrationInstalls, sentryAppInstalls}) -
+      getInstallValue({integration: a, integrationInstalls, sentryAppInstalls});
     if (diffWeight !== 0) {
       return diffWeight;
     }

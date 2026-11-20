@@ -4,19 +4,17 @@ import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary'
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
-  useMultiQueryTableAggregateMode,
-  useMultiQueryTableSampleMode,
-} from 'sentry/views/explore/multiQueryMode/hooks/useMultiQueryTable';
 import {useReadQueriesFromLocation} from 'sentry/views/explore/multiQueryMode/locationUtils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 
+import {
+  useMultiQueryTableAggregateMode,
+  useMultiQueryTableSampleMode,
+} from './useMultiQueryTable';
+
 jest.mock('sentry/views/explore/multiQueryMode/locationUtils', () => {
   const actual = jest.requireActual('sentry/views/explore/multiQueryMode/locationUtils');
-  return {
-    ...actual,
-    useReadQueriesFromLocation: jest.fn(),
-  };
+  return {...actual, useReadQueriesFromLocation: jest.fn()};
 });
 
 describe('useMultiQueryTable', () => {
@@ -26,12 +24,7 @@ describe('useMultiQueryTable', () => {
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
-        datetime: {
-          period: '14d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+        datetime: {period: '14d', start: null, end: null, utc: false},
         projects: [2],
       })
     );
@@ -44,25 +37,21 @@ describe('useMultiQueryTable', () => {
   ])(
     'triggers the high accuracy request when there is no data and a partial scan for %s mode',
     async (_mode, hook) => {
-      jest.mocked(useReadQueriesFromLocation).mockReturnValue([
-        {
-          query: 'test value',
-          groupBys: [],
-          sortBys: [],
-          yAxes: [],
-          chartType: ChartType.LINE,
-          fields: [],
-        },
-      ]);
+      jest
+        .mocked(useReadQueriesFromLocation)
+        .mockReturnValue([
+          {
+            query: 'test value',
+            groupBys: [],
+            sortBys: [],
+            yAxes: [],
+            chartType: ChartType.LINE,
+            fields: [],
+          },
+        ]);
       mockNormalRequestUrl = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events/',
-        body: {
-          data: [],
-          meta: {
-            dataScanned: 'partial',
-            fields: {},
-          },
-        },
+        body: {data: [], meta: {dataScanned: 'partial', fields: {}}},
         method: 'GET',
         match: [
           function (_url: string, options: Record<string, any>) {
@@ -87,12 +76,7 @@ describe('useMultiQueryTable', () => {
           sortBys: [],
           yAxes: [],
         },
-        initialRouterConfig: {
-          location: {
-            pathname: '/mock-pathname/',
-            query: {},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/mock-pathname/', query: {}}},
       });
 
       expect(mockNormalRequestUrl).toHaveBeenCalledTimes(1);
@@ -111,11 +95,7 @@ describe('useMultiQueryTable', () => {
       });
       expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'test value',
-          }),
-        })
+        expect.objectContaining({query: expect.objectContaining({query: 'test value'})})
       );
       expect(mockHighAccuracyRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/events/',

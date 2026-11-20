@@ -5,11 +5,11 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
@@ -34,10 +34,7 @@ type BillingConfig = {
   reason_codes: Record<string, string>;
 };
 
-type Props = {
-  onSuccess: () => void;
-  organization: Organization;
-};
+type Props = {onSuccess: () => void; organization: Organization};
 
 type ModalProps = Props & ModalRenderProps;
 
@@ -48,9 +45,7 @@ const formSchema = z.object({
     .refine(value => value !== null, 'Please select a data category.'),
 });
 
-const defaultValues: z.input<typeof formSchema> = {
-  dataCategory: null,
-};
+const defaultValues: z.input<typeof formSchema> = {dataCategory: null};
 
 function DeleteBillingMetricHistoryModal({
   onSuccess,
@@ -63,9 +58,7 @@ function DeleteBillingMetricHistoryModal({
   const orgSlug = organization.slug;
 
   const {data: billingConfig = null, isPending: isLoadingBillingConfig} = useQuery(
-    apiOptions.as<BillingConfig>()('/billing-config/', {
-      staleTime: Infinity,
-    })
+    apiOptions.as<BillingConfig>()('/billing-config/', {staleTime: Infinity})
   );
 
   const mutation = useMutation({
@@ -73,15 +66,13 @@ function DeleteBillingMetricHistoryModal({
       fetchMutation({
         url: getApiUrl(
           `/customers/$organizationIdOrSlug/delete-billing-metric-history/`,
-          {
-            path: {organizationIdOrSlug: orgSlug},
-          }
+          {path: {organizationIdOrSlug: orgSlug}}
         ),
         method: 'POST',
         data: {data_category: dataCategory},
       }),
     onSuccess: () => {
-      addSuccessMessage('Successfully deleted billing metric history.');
+      toast.success('Successfully deleted billing metric history.');
       closeModal();
       onSuccess();
     },
@@ -90,7 +81,7 @@ function DeleteBillingMetricHistoryModal({
         error instanceof RequestError && typeof error.responseJSON?.detail === 'string'
           ? error.responseJSON.detail
           : 'Unable to delete billing metric history.';
-      addErrorMessage(errorMsg);
+      toast.error(errorMsg);
     },
   });
 
@@ -118,10 +109,7 @@ function DeleteBillingMetricHistoryModal({
   const dataCategoryOptions = Object.entries(billingConfig.category_info).map(
     ([key, value]) => {
       const billingMetric = Number(key);
-      return {
-        value: billingMetric,
-        label: `${value.display_name} (${billingMetric})`,
-      };
+      return {value: billingMetric, label: `${value.display_name} (${billingMetric})`};
     }
   );
 

@@ -3,7 +3,8 @@ import {useQuery} from '@tanstack/react-query';
 import type {Group} from 'sentry/types/group';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useEnvironmentsFromUrl} from 'sentry/views/issueDetails/utils';
+
+import {useEnvironmentsFromUrl} from './utils';
 
 type GroupApiOptionsParameters = {
   environments: string[];
@@ -40,9 +41,7 @@ export function groupQueryKey(params: GroupQueryKeyParameters) {
 
 interface UseGroupOptions {
   groupId: string;
-  options?: {
-    enabled?: boolean;
-  };
+  options?: {enabled?: boolean};
 }
 
 /**

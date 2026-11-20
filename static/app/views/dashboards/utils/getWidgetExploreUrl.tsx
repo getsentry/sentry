@@ -15,14 +15,17 @@ import {
 import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
   eventViewFromWidget,
   getWidgetInterval,
 } from 'sentry/views/dashboards/utils';
-import {withGlobalFilterFallback} from 'sentry/views/dashboards/utils/withGlobalFilterFallback';
 import {getReferrer} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import type {TabularRow} from 'sentry/views/dashboards/widgets/common/types';
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
@@ -32,6 +35,8 @@ import {TraceItemDataset} from 'sentry/views/explore/types';
 import {getExploreMultiQueryUrl, getExploreUrl} from 'sentry/views/explore/utils';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {withGlobalFilterFallback} from './withGlobalFilterFallback';
 
 function getTraceItemDatasetFromWidgetType(widgetType?: WidgetType): TraceItemDataset {
   switch (widgetType) {
@@ -53,7 +58,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
     selection: PageFilters,
     organization: Organization,
     preferMode?: Mode,
-    referrer?: string
+    referrer?: string,
+    queryPriority?: DashboardQueryPriority
   ) => {
     return _getWidgetExploreUrl(
       widget,
@@ -63,7 +69,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
       preferMode,
       undefined,
       traceItemDataset,
-      referrer
+      referrer,
+      queryPriority
     );
   };
 }
@@ -76,7 +83,8 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
       selection: PageFilters,
       organization: Organization,
       preferMode?: Mode,
-      referrer?: string
+      referrer?: string,
+      queryPriority?: DashboardQueryPriority
     ) => string | null)
   | undefined
 > = {
@@ -111,7 +119,8 @@ export function getWidgetExploreUrl(
   selection: PageFilters,
   organization: Organization,
   preferMode?: Mode,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ): string | null {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
@@ -122,7 +131,8 @@ export function getWidgetExploreUrl(
       selection,
       organization,
       traceItemDataset,
-      referrer
+      referrer,
+      queryPriority
     );
   }
 
@@ -135,7 +145,8 @@ export function getWidgetExploreUrl(
       selection,
       organization,
       preferMode,
-      referrer
+      referrer,
+      queryPriority
     );
   }
 
@@ -147,7 +158,8 @@ export function getWidgetExploreUrl(
     preferMode,
     undefined,
     traceItemDataset,
-    referrer
+    referrer,
+    queryPriority
   );
 }
 
@@ -210,7 +222,8 @@ function _getWidgetExploreUrl(
   preferMode?: Mode,
   overrideQuery?: MutableSearch,
   traceItemDataset?: TraceItemDataset,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ) {
   if (!widget.queries[0]) {
     return null;
@@ -319,10 +332,7 @@ function _getWidgetExploreUrl(
   }
 
   const visualize = [
-    {
-      chartType,
-      yAxes: locationQueryParams.yAxes,
-    },
+    {chartType, yAxes: locationQueryParams.yAxes},
     // Explore widgets do not allow sorting by arbitrary aggregates
     // so dashboard widgets need to inject another visualize to plot the sort
     // and it available for sorting the main chart
@@ -334,10 +344,7 @@ function _getWidgetExploreUrl(
 
   const queryParams = {
     // Page filters should propagate
-    selection: {
-      ...selection,
-      datetime,
-    },
+    selection: {...selection, datetime},
     organization,
     mode: exploreMode,
     visualize,
@@ -355,6 +362,7 @@ function _getWidgetExploreUrl(
     interval:
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget, selection.datetime),
+    queryPriority,
     referrer,
   };
 
@@ -383,6 +391,7 @@ function _getWidgetExploreUrl(
       aggregateFields: logsAggregateFields,
       interval: queryParams.interval,
       mode: queryParams.mode,
+      queryPriority: queryParams.queryPriority,
       referrer: queryParams.referrer,
     });
   }
@@ -401,7 +410,8 @@ function _getWidgetExploreUrlForMultipleQueries(
   selection: PageFilters,
   organization: Organization,
   _traceItemDataset: TraceItemDataset,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ): string | null {
   if (!widgetTypeSupportsExploreMultiQuery(widget.widgetType)) {
     return null;
@@ -415,10 +425,7 @@ function _getWidgetExploreUrlForMultipleQueries(
     utc: decodeBoolean(locationQueryParams.utc) ?? null,
   };
 
-  const currentSelection = {
-    ...selection,
-    datetime,
-  };
+  const currentSelection = {...selection, datetime};
 
   return getExploreMultiQueryUrl({
     organization,
@@ -444,6 +451,7 @@ function _getWidgetExploreUrlForMultipleQueries(
       ),
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
+    queryPriority,
     referrer,
   });
 }
@@ -453,7 +461,8 @@ export function getWidgetTableRowExploreUrlFunction(
   widget: Widget,
   organization: Organization,
   dashboardFilters?: DashboardFilters,
-  selectedQueryIndex = 0
+  selectedQueryIndex = 0,
+  queryPriority?: DashboardQueryPriority
 ) {
   return (dataRow: TabularRow) => {
     let fields: string[] = [];
@@ -485,7 +494,8 @@ export function getWidgetTableRowExploreUrlFunction(
       Mode.SAMPLES,
       query,
       undefined,
-      `${getReferrer(widget.displayType)}.row`
+      `${getReferrer(widget.displayType)}.row`,
+      queryPriority
     );
   };
 }

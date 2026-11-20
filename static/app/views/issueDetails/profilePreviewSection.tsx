@@ -29,8 +29,9 @@ import {
   ProfilesProvider,
   useProfiles,
 } from 'sentry/views/explore/profiling/profilesProvider';
-import {SectionKey} from 'sentry/views/issueDetails/context';
-import {FoldSection} from 'sentry/views/issueDetails/foldSection';
+
+import {SectionKey} from './context';
+import {FoldSection} from './foldSection';
 
 export function ProfilePreviewSection({
   event,
@@ -232,11 +233,7 @@ function getProfileMetaForEvent(event: Event) {
     return null;
   }
 
-  return {
-    profiler_id: profilerId,
-    start: timeWindow.start,
-    end: timeWindow.end,
-  };
+  return {profiler_id: profilerId, start: timeWindow.start, end: timeWindow.end};
 }
 
 function getProfileTimeWindow(event: Event): {end: string; start: string} | null {

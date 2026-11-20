@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const metricIssueConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -15,10 +16,7 @@ export const metricIssueConfig: IssueCategoryConfigMapping = {
       share: {enabled: true},
     },
     defaultTimePeriod: {sinceFirstSeen: false},
-    customCopy: {
-      resolution: t('Back to baseline'),
-      eventUnits: t('Open Periods'),
-    },
+    customCopy: {resolution: t('Back to baseline'), eventUnits: t('Open Periods')},
     detector: {
       enabled: true,
       title: t('Metric Alert Detector'),

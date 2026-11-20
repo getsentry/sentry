@@ -12,9 +12,10 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {IssueCategory, IssueType} from 'sentry/types/group';
 import {CheckInStatus} from 'sentry/views/insights/crons/types';
 import {statusToText} from 'sentry/views/insights/crons/utils';
-import {IssueDetailsContext} from 'sentry/views/issueDetails/context';
-import {IssueCronCheckTimeline} from 'sentry/views/issueDetails/issueCronCheckTimeline';
-import {useIssueTimeWindowConfig} from 'sentry/views/issueDetails/useIssueTimeWindowConfig';
+
+import {IssueDetailsContext} from './context';
+import {IssueCronCheckTimeline} from './issueCronCheckTimeline';
+import {useIssueTimeWindowConfig} from './useIssueTimeWindowConfig';
 
 const startTime = new Date('2025-01-01T11:00:00Z');
 
@@ -43,21 +44,12 @@ const mockBucket: StatsBucket<CheckInStatus> = {
 describe('IssueCronCheckTimeline', () => {
   const cronAlertId = '123';
   const organization = OrganizationFixture();
-  const project = ProjectFixture({
-    environments: ['dev', 'prod'],
-  });
+  const project = ProjectFixture({environments: ['dev', 'prod']});
   const group = GroupFixture({
     issueCategory: IssueCategory.CRON,
     issueType: IssueType.MONITOR_CHECK_IN_FAILURE,
   });
-  const event = EventFixture({
-    tags: [
-      {
-        key: 'monitor.id',
-        value: cronAlertId,
-      },
-    ],
-  });
+  const event = EventFixture({tags: [{key: 'monitor.id', value: cronAlertId}]});
 
   beforeEach(() => {
     GroupStore.init();
@@ -82,14 +74,8 @@ describe('IssueCronCheckTimeline', () => {
   it('renders the cron check timeline with a legend and data', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitors-stats/`,
-      query: {
-        monitor: [cronAlertId],
-        project: project.slug,
-        environment: 'dev',
-      },
-      body: {
-        [cronAlertId]: [[startTime.getTime() / 1000, {dev: mockBucket}]],
-      },
+      query: {monitor: [cronAlertId], project: project.slug, environment: 'dev'},
+      body: {[cronAlertId]: [[startTime.getTime() / 1000, {dev: mockBucket}]]},
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
 
@@ -126,14 +112,8 @@ describe('IssueCronCheckTimeline', () => {
     };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitors-stats/`,
-      query: {
-        monitor: [cronAlertId],
-        project: project.slug,
-        environment: 'dev',
-      },
-      body: {
-        [cronAlertId]: [[startTime.getTime() / 1000, {dev: newBucket}]],
-      },
+      query: {monitor: [cronAlertId], project: project.slug, environment: 'dev'},
+      body: {[cronAlertId]: [[startTime.getTime() / 1000, {dev: newBucket}]]},
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
     expect(await screen.findByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
@@ -176,14 +156,8 @@ describe('IssueCronCheckTimeline', () => {
     };
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitors-stats/`,
-      query: {
-        monitor: [cronAlertId],
-        project: project.slug,
-        environment: [],
-      },
-      body: {
-        [cronAlertId]: [[startTime.getTime() / 1000, envBucketMapping]],
-      },
+      query: {monitor: [cronAlertId], project: project.slug, environment: []},
+      body: {[cronAlertId]: [[startTime.getTime() / 1000, envBucketMapping]]},
     });
     render(<IssueCronCheckTimeline group={group} />, {organization});
     expect(await screen.findByText(statusToText[CheckInStatus.OK])).toBeInTheDocument();
@@ -226,6 +200,7 @@ describe('IssueCronCheckTimeline', () => {
           detectorDetails: {},
           isSidebarOpen: true,
           navScrollMargin: 0,
+          scrollContext: 'page',
           eventCount: 0,
           eventNavigationHeight: 0,
           dispatch,

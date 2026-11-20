@@ -13,9 +13,6 @@ import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
-import {getOperatorInfo} from 'sentry/components/searchQueryBuilder/tokens/filter/getOperatorInfo';
-import {UnstyledButton} from 'sentry/components/searchQueryBuilder/tokens/filter/unstyledButton';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
 import {recentSearchTypeToLabel} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
@@ -27,6 +24,10 @@ import {getKeyName, isRegexOperator} from 'sentry/components/searchSyntax/utils'
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {getOperatorInfo} from './getOperatorInfo';
+import {UnstyledButton} from './unstyledButton';
+import {useFilterButtonProps} from './useFilterButtonProps';
 
 interface FilterOperatorProps {
   item: Node<ParseResultToken>;
@@ -140,12 +141,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: focusValue
-            ? {
-                itemKey: `${item.key}`,
-                part: 'value',
-              }
-            : undefined,
+          focusOverride: focusValue ? {itemKey: `${item.key}`, part: 'value'} : undefined,
           shouldCommitQuery: !focusValue,
         });
         initialOpSettingRef.current = false;
@@ -159,9 +155,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   );
 }
 
-const OpButton = styled(UnstyledButton, {
-  shouldForwardProp: isPropValid,
-})<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})<{
+  onlyOperator?: boolean;
+}>`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;

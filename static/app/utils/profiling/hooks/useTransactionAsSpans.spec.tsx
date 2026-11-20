@@ -4,7 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useTransactionAsSpans} from 'sentry/utils/profiling/hooks/useTransactionAsSpans';
+import {useTransactionAsSpans} from './useTransactionAsSpans';
 
 const ORG_SLUG = OrganizationFixture().slug;
 
@@ -34,11 +34,7 @@ describe('useTransaction', () => {
     });
 
     renderHookWithProviders(() =>
-      useTransactionAsSpans({
-        projectIds: [1],
-        transactionEventId: 'abc',
-        enabled: false,
-      })
+      useTransactionAsSpans({projectIds: [1], transactionEventId: 'abc', enabled: false})
     );
 
     expect(request).not.toHaveBeenCalled();
@@ -95,10 +91,7 @@ describe('useTransaction', () => {
   it('returns undefined transactionSpan when no row is flagged as transaction', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${ORG_SLUG}/events/`,
-      body: {
-        meta: {fields: {}},
-        data: [{span_id: 'child-only', is_transaction: false}],
-      },
+      body: {meta: {fields: {}}, data: [{span_id: 'child-only', is_transaction: false}]},
     });
 
     const {result} = renderHookWithProviders(() =>
@@ -207,11 +200,7 @@ describe('useTransaction', () => {
     });
 
     renderHookWithProviders(() =>
-      useTransactionAsSpans({
-        projectIds: [1],
-        transactionEventId: 'abc',
-        enabled: true,
-      })
+      useTransactionAsSpans({projectIds: [1], transactionEventId: 'abc', enabled: true})
     );
 
     expect(request).not.toHaveBeenCalled();
@@ -266,10 +255,7 @@ describe('useTransaction', () => {
   it('logs the missing transaction span error exactly once per successful response', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${ORG_SLUG}/events/`,
-      body: {
-        meta: {fields: {}},
-        data: [{span_id: 'child-1', is_transaction: false}],
-      },
+      body: {meta: {fields: {}}, data: [{span_id: 'child-1', is_transaction: false}]},
     });
 
     const errorSpy = jest.spyOn(Sentry.logger, 'error').mockImplementation(() => {});
@@ -298,10 +284,7 @@ describe('useTransaction', () => {
   it('does not re-log on incidental re-renders with the same inputs', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${ORG_SLUG}/events/`,
-      body: {
-        meta: {fields: {}},
-        data: [{span_id: 'child-1', is_transaction: false}],
-      },
+      body: {meta: {fields: {}}, data: [{span_id: 'child-1', is_transaction: false}]},
     });
 
     const errorSpy = jest.spyOn(Sentry.logger, 'error').mockImplementation(() => {});

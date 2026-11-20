@@ -23,24 +23,20 @@ import {
   DetectorPriorityLevel,
 } from 'sentry/types/workflowEngine/dataConditions';
 import {Dataset, EventTypes} from 'sentry/views/alerts/rules/metric/types';
-import AllMonitors from 'sentry/views/detectors/list/allMonitors';
 import {
   LLM_CONTEXT_MAX_ROWS,
   useLLMContext,
 } from 'sentry/views/seerExplorer/contexts/llmContext';
 
+import AllMonitors from './allMonitors';
+
 describe('DetectorsList', () => {
-  const organization = OrganizationFixture({
-    access: ['org:write'],
-  });
+  const organization = OrganizationFixture({access: ['org:write']});
 
   beforeEach(() => {
     ProjectsStore.reset();
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
@@ -64,10 +60,7 @@ describe('DetectorsList', () => {
           name: 'Detector 1',
           owner: null,
           type: 'metric_issue',
-          config: {
-            detectionType: 'percent',
-            comparisonDelta: 10,
-          },
+          config: {detectionType: 'percent', comparisonDelta: 10},
           conditionGroup: {
             id: '1',
             logicType: DataConditionGroupLogicType.ALL,
@@ -161,20 +154,13 @@ describe('DetectorsList', () => {
 
     expect(mockDetectorsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [1]})})
     );
   });
 
   it('allows project-scoped alert writers to create monitors', async () => {
     ProjectsStore.loadInitialData([
-      ProjectFixture({
-        id: '1',
-        access: ['project:read', 'alerts:write'],
-      }),
+      ProjectFixture({id: '1', access: ['project:read', 'alerts:write']}),
     ]);
 
     render(<AllMonitors />, {
@@ -243,6 +229,28 @@ describe('DetectorsList', () => {
       expect(mockDetectorsRequestAssignee).toHaveBeenCalled();
     });
 
+    it('pushes the query without the cursor when searching', async () => {
+      const {router} = render(<AllMonitors />, {
+        organization,
+        initialRouterConfig: {
+          location: {pathname: '/monitors/', query: {cursor: '0:25:0', sort: 'name'}},
+        },
+      });
+      await screen.findByText('Detector 1');
+
+      await userEvent.type(
+        await screen.findByRole('combobox', {name: 'Add a search term'}),
+        'assignee:test@example.com{enter}'
+      );
+      await waitFor(() =>
+        expect(router.location.query).toEqual({
+          query: 'assignee:test@example.com',
+          sort: 'name',
+        })
+      );
+      expect(router.historyAction).toBe('PUSH');
+    });
+
     it('can sort the table', async () => {
       const mockDetectorsRequest = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
@@ -255,9 +263,7 @@ describe('DetectorsList', () => {
       expect(mockDetectorsRequest).toHaveBeenCalledWith(
         expect.anything(),
         expect.objectContaining({
-          query: expect.objectContaining({
-            sortBy: '-latestGroup',
-          }),
+          query: expect.objectContaining({sortBy: '-latestGroup'}),
         })
       );
 
@@ -271,11 +277,7 @@ describe('DetectorsList', () => {
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sortBy: 'name',
-            }),
-          })
+          expect.objectContaining({query: expect.objectContaining({sortBy: 'name'})})
         );
       });
       expect(router.location.query.sort).toBe('name');
@@ -290,11 +292,7 @@ describe('DetectorsList', () => {
       await waitFor(() => {
         expect(mockDetectorsRequest).toHaveBeenLastCalledWith(
           expect.anything(),
-          expect.objectContaining({
-            query: expect.objectContaining({
-              sortBy: '-name',
-            }),
-          })
+          expect.objectContaining({query: expect.objectContaining({sortBy: '-name'})})
         );
       });
       expect(router.location.query.sort).toBe('-name');
@@ -310,7 +308,6 @@ describe('DetectorsList', () => {
     function renderAndReadNode() {
       let getLLMContext: ReturnType<typeof useLLMContext>['getLLMContext'] | undefined;
       function Component() {
-        // oxlint-disable-next-line react/globals -- Test captures the hook result in an outer variable to assert on it.
         ({getLLMContext} = useLLMContext());
         return <AllMonitors />;
       }
@@ -380,10 +377,7 @@ describe('DetectorsList', () => {
   describe('bulk actions', () => {
     beforeEach(() => {
       MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/members/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/users/1/',
         body: UserFixture(),
@@ -585,11 +579,7 @@ describe('DetectorsList', () => {
     it('can not delete system-created detectors', async () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
-        body: [
-          ErrorDetectorFixture({
-            name: 'System Created Detector',
-          }),
-        ],
+        body: [ErrorDetectorFixture({name: 'System Created Detector'})],
       });
       render(<AllMonitors />, {organization});
       await screen.findByText('System Created Detector');
@@ -625,9 +615,7 @@ describe('DetectorsList', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/detectors/',
         body: filteredDetectors,
-        headers: {
-          'X-Hits': '10',
-        },
+        headers: {'X-Hits': '10'},
         match: [
           MockApiClient.matchQuery({
             query: '!type:issue_stream assignee:test@example.com',
@@ -679,9 +667,7 @@ describe('DetectorsList', () => {
     });
 
     it('disables action buttons when user does not have permissions', async () => {
-      const noPermsOrganization = OrganizationFixture({
-        access: [],
-      });
+      const noPermsOrganization = OrganizationFixture({access: []});
       render(<AllMonitors />, {organization: noPermsOrganization});
       renderGlobalModal();
 

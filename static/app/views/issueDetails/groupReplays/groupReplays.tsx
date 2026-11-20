@@ -43,15 +43,13 @@ import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestEr
 import {useCleanQueryParamsOnRouteLeave} from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
-import {GroupReplaysPlayer} from 'sentry/views/issueDetails/groupReplays/groupReplaysPlayer';
+import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 
+import {GroupReplaysPlayer} from './groupReplaysPlayer';
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
-type Props = {
-  group: Group;
-};
+type Props = {group: Group};
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
@@ -113,9 +111,7 @@ function GroupReplaysContent({group}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
 
   if (fetchError) {
     return (
@@ -258,7 +254,7 @@ function GroupReplaysTable({
   );
   const {index: selectedReplayIndex} = useSelectedReplayIndex();
 
-  const {groupId} = useParams<{groupId: string}>();
+  const groupId = useGroupId();
   useCleanQueryParamsOnRouteLeave({
     fieldsToClean: ['selected_replay_index'],
     shouldClean: newLocation => newLocation.pathname.includes(`/issues/${groupId}/`),

@@ -1,10 +1,6 @@
-import {
-  bulkDelete,
-  bulkUpdate,
-  mergeGroups,
-  paramsToQueryArgs,
-} from 'sentry/actionCreators/group';
 import {GroupStore} from 'sentry/stores/groupStore';
+
+import {bulkDelete, bulkUpdate, mergeGroups, paramsToQueryArgs} from './group';
 
 describe('group', () => {
   it('skips bulk actions without a request when itemIds is empty', async () => {
@@ -47,9 +43,7 @@ describe('group', () => {
     });
 
     it('should extract query property if no itemIds', () => {
-      const invalidArgs: any = {
-        foo: 'bar',
-      };
+      const invalidArgs: any = {foo: 'bar'};
 
       expect(paramsToQueryArgs({query: 'is:unresolved', ...invalidArgs})).toEqual({
         query: 'is:unresolved',
@@ -67,10 +61,7 @@ describe('group', () => {
 
     it('should keep environment when query is provided', () => {
       expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: 'production',
-        })
+        paramsToQueryArgs({query: 'is:unresolved', environment: 'production'})
       ).toEqual({query: 'is:unresolved', environment: 'production'});
     });
 
@@ -112,35 +103,24 @@ describe('group', () => {
     });
 
     it('should exclude environment when it is null/undefined', () => {
-      expect(
-        paramsToQueryArgs({
-          query: 'is:unresolved',
-          environment: null,
-        })
-      ).toEqual({query: 'is:unresolved'});
+      expect(paramsToQueryArgs({query: 'is:unresolved', environment: null})).toEqual({
+        query: 'is:unresolved',
+      });
     });
 
     it('should handle non-empty projects', () => {
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: [1],
-        })
-      ).toEqual({id: ['1', '2', '3'], project: [1]});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: [1]})).toEqual({
+        id: ['1', '2', '3'],
+        project: [1],
+      });
 
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: [],
-        })
-      ).toEqual({id: ['1', '2', '3']});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: []})).toEqual({
+        id: ['1', '2', '3'],
+      });
 
-      expect(
-        paramsToQueryArgs({
-          itemIds: ['1', '2', '3'],
-          project: null,
-        })
-      ).toEqual({id: ['1', '2', '3']});
+      expect(paramsToQueryArgs({itemIds: ['1', '2', '3'], project: null})).toEqual({
+        id: ['1', '2', '3'],
+      });
     });
   });
 
@@ -212,10 +192,7 @@ describe('group', () => {
     });
 
     it('should normalize string assignedTo to Actor object for optimistic update', async () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
@@ -230,10 +207,7 @@ describe('group', () => {
     });
 
     it('should normalize empty assignedTo string to null for optimistic update', async () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       await bulkUpdate(new MockApiClient(), {
         orgId: '1337',
@@ -248,10 +222,7 @@ describe('group', () => {
     });
 
     it('should normalize team assignedTo string for optimistic update', async () => {
-      MockApiClient.addMockResponse({
-        url: '/projects/1337/1337/issues/',
-        method: 'PUT',
-      });
+      MockApiClient.addMockResponse({url: '/projects/1337/1337/issues/', method: 'PUT'});
 
       await bulkUpdate(new MockApiClient(), {
         orgId: '1337',

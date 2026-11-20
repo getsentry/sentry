@@ -3,7 +3,7 @@ import {MembersFixture} from 'sentry-fixture/members';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {OwnerInput} from 'sentry/views/settings/project/projectOwnership/ownerInput';
+import {OwnerInput} from './ownerInput';
 
 describe('Project Ownership Input', () => {
   const {organization, project} = initializeOrg();
@@ -72,9 +72,7 @@ describe('Project Ownership Input', () => {
     expect(put).toHaveBeenCalledWith(
       `/projects/${organization.slug}/${project.slug}/ownership/`,
       expect.objectContaining({
-        data: {
-          raw: 'url:src @dummy@example.com' + '\n' + 'path:file.js bob@example.com',
-        },
+        data: {raw: 'url:src @dummy@example.com' + '\n' + 'path:file.js bob@example.com'},
       })
     );
   });

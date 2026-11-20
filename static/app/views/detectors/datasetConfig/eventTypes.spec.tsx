@@ -1,6 +1,6 @@
-import {DetectorErrorsConfig} from 'sentry/views/detectors/datasetConfig/errors';
-import {parseEventTypesFromQuery} from 'sentry/views/detectors/datasetConfig/eventTypes';
-import {DetectorTransactionsConfig} from 'sentry/views/detectors/datasetConfig/transactions';
+import {DetectorErrorsConfig} from './errors';
+import {parseEventTypesFromQuery} from './eventTypes';
+import {DetectorTransactionsConfig} from './transactions';
 
 describe('eventTypes.parseEventTypesFromQuery', () => {
   it('extracts list and cleans query (errors)', () => {

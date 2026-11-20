@@ -10,7 +10,7 @@ import {
   waitForElementToBeRemoved,
 } from 'sentry-test/reactTestingLibrary';
 
-import {TeamMiseryWrapper as TeamMisery} from 'sentry/views/organizationStats/teamInsights/teamMisery';
+import {TeamMiseryWrapper as TeamMisery} from './teamMisery';
 
 describe('TeamMisery', () => {
   const {routerProps} = initializeOrg();
@@ -46,16 +46,8 @@ describe('TeamMisery', () => {
       body: {
         meta,
         data: [
-          {
-            transaction: '/apple/cart',
-            'user_misery()': 0.5,
-            ...extraData,
-          },
-          {
-            transaction: '/apple/checkout',
-            'user_misery()': 0.1,
-            ...extraData,
-          },
+          {transaction: '/apple/cart', 'user_misery()': 0.5, ...extraData},
+          {transaction: '/apple/checkout', 'user_misery()': 0.1, ...extraData},
           ...noChange,
         ],
       },
@@ -66,16 +58,8 @@ describe('TeamMisery', () => {
       body: {
         meta,
         data: [
-          {
-            transaction: '/apple/cart',
-            'user_misery()': 0.25,
-            ...extraData,
-          },
-          {
-            transaction: '/apple/checkout',
-            'user_misery()': 0.2,
-            ...extraData,
-          },
+          {transaction: '/apple/cart', 'user_misery()': 0.25, ...extraData},
+          {transaction: '/apple/checkout', 'user_misery()': 0.2, ...extraData},
           ...noChange,
         ],
       },

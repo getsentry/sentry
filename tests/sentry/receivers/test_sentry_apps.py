@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Mapping
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import SentryAppInstallationStatus
@@ -40,8 +42,8 @@ class TestIssueWorkflowNotifications(APITestCase):
 
         self.login_as(self.user)
 
-    def update_issue(self, _data=None):
-        data = {"status": "resolved"}
+    def update_issue(self, _data: Mapping[str, object] | None = None) -> None:
+        data: dict[str, object] = {"status": "resolved"}
         data.update(_data or {})
         self.client.put(self.url, data=data, format="json")
 
@@ -334,7 +336,7 @@ class TestComments(APITestCase):
     def test_comment_updated(self, delay: MagicMock) -> None:
         note = self.create_comment(self.issue, self.project, self.user)
         url = f"/api/0/issues/{self.issue.id}/notes/{note.id}/"
-        data = {"text": "goodbye cruel world"}
+        data: dict[str, Any] = {"text": "goodbye cruel world"}
         self.client.put(url, data=data, format="json")
         data = {
             "comment_id": note.id,

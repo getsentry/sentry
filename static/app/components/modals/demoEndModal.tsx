@@ -4,9 +4,9 @@ import styled from '@emotion/styled';
 import {IconClose} from '@sentry/icons/close';
 
 import {Button, LinkButton} from '@sentry/scraps/button';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 
 import {fetchGuides} from 'sentry/actionCreators/guides';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ModalTask} from 'sentry/components/onboardingWizard/modalTask';
 import {t} from 'sentry/locale';
 import {
@@ -67,12 +67,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
         };
 
       default:
-        return {
-          cardTitle: '',
-          body: '',
-          guides: [''],
-          path: '',
-        };
+        return {cardTitle: '', body: '', guides: [''], path: ''};
     }
   }, [org.slug, tour]);
 
@@ -81,9 +76,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
   }, [path, navigate]);
 
   function handleRestart() {
-    trackAnalytics('growth.end_modal_restart_tours', {
-      organization: null,
-    });
+    trackAnalytics('growth.end_modal_restart_tours', {organization: null});
 
     closeModal?.();
 
@@ -95,9 +88,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
   const handleMoreTours = () => {
     closeModal?.();
     OnboardingDrawerStore.toggle(OnboardingDrawerKey.ONBOARDING_WIZARD);
-    trackAnalytics('growth.end_modal_more_tours', {
-      organization: null,
-    });
+    trackAnalytics('growth.end_modal_more_tours', {organization: null});
   };
 
   return (
@@ -105,9 +96,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
       <CloseButton
         size="zero"
         onClick={() => {
-          trackAnalytics('growth.end_modal_close', {
-            organization: null,
-          });
+          trackAnalytics('growth.end_modal_close', {organization: null});
           if (closeModal) {
             closeModal();
           }
@@ -125,9 +114,7 @@ export default function DemoEndingModal({tour, closeModal, CloseButton}: Props) 
           external
           href="https://sentry.io/signup/"
           onClick={() => {
-            trackAnalytics('growth.end_modal_signup', {
-              organization: null,
-            });
+            trackAnalytics('growth.end_modal_signup', {organization: null});
           }}
         >
           {t('Sign up for Sentry')}

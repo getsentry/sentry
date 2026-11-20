@@ -9,8 +9,9 @@ import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {processInitQueue} from 'sentry/bootstrap/processInitQueue';
 import {SentryInitRenderReactComponent} from 'sentry/types/system';
+
+import {processInitQueue} from './processInitQueue';
 
 describe('processInitQueue', () => {
   describe('renderReact', () => {
@@ -20,10 +21,7 @@ describe('processInitQueue', () => {
           component: SentryInitRenderReactComponent.SETUP_WIZARD,
           container: '#setup-wizard-container',
           name: 'renderReact',
-          props: {
-            enableProjectSelection: true,
-            hash: '1',
-          },
+          props: {enableProjectSelection: true, hash: '1'},
         },
       ];
 
@@ -53,13 +51,7 @@ describe('processInitQueue', () => {
 
       MockApiClient.addMockResponse({
         url: '/organizations/organization-1/projects/',
-        body: [
-          ProjectFixture({
-            id: '1',
-            slug: 'project-1',
-            name: 'Project 1',
-          }),
-        ],
+        body: [ProjectFixture({id: '1', slug: 'project-1', name: 'Project 1'})],
       });
 
       MockApiClient.addMockResponse({

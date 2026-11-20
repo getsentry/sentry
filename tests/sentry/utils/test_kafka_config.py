@@ -1,4 +1,5 @@
 import os
+from collections.abc import Iterator
 
 import pytest
 from django.conf import settings
@@ -13,7 +14,7 @@ from sentry.utils.kafka_config import (
 
 
 @pytest.fixture(autouse=True)
-def kafka_clusters():
+def kafka_clusters() -> Iterator[None]:
     with override_settings(
         KAFKA_CLUSTERS={
             "default": {

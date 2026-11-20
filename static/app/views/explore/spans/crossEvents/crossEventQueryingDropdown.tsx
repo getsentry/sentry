@@ -15,11 +15,9 @@ import {
   useSetQueryParamsCrossEvents,
 } from 'sentry/views/explore/queryParams/context';
 import {isCrossEventType} from 'sentry/views/explore/queryParams/crossEvent';
-import {useCrossEventDatasetAvailability} from 'sentry/views/explore/spans/crossEvents/useCrossEventDatasetAvailability';
-import {
-  getCrossEventDropdownItems,
-  makeCrossEvent,
-} from 'sentry/views/explore/spans/crossEvents/utils';
+
+import {useCrossEventDatasetAvailability} from './useCrossEventDatasetAvailability';
+import {getCrossEventDropdownItems, makeCrossEvent} from './utils';
 
 export function CrossEventQueryingDropdown() {
   const organization = useOrganization();
@@ -32,10 +30,7 @@ export function CrossEventQueryingDropdown() {
       return;
     }
 
-    trackAnalytics('trace.explorer.cross_event_added', {
-      organization,
-      type: key,
-    });
+    trackAnalytics('trace.explorer.cross_event_added', {organization, type: key});
 
     if (!crossEvents || crossEvents.length === 0) {
       setCrossEvents([makeCrossEvent(key)]);

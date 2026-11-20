@@ -11,11 +11,14 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
-import type {ConversationStats} from 'sentry/views/explore/conversations/hooks/useConversation';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import type {ConversationStats} from './hooks/useConversation';
 import ConversationDetailPage from './conversationDetail';
 import {CONVERSATIONS_SIDEBAR_LABEL} from './settings';
+
+jest.mock('sentry/utils/analytics');
 
 const CONVERSATION_ID = 'conv-1';
 
@@ -101,10 +104,7 @@ function mockApis(
     url: '/organizations/org-slug/trace-items/attributes/',
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/projects/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
   return request;
 }
 
@@ -158,6 +158,23 @@ describe('ConversationDetailPage span default selection', () => {
 
     // Timeline should open on its first span.
     await waitFor(() => expect(detailPane()).toBeInTheDocument());
+  });
+
+  it('tracks switching between the transcript and timeline tabs', async () => {
+    renderPage();
+    expect(await screen.findByText('First answer')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Timeline'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'transcript', toTab: 'timeline'})
+    );
+
+    await userEvent.click(screen.getByRole('tab', {name: 'Transcript'}));
+    expect(trackAnalytics).toHaveBeenCalledWith(
+      'conversations.detail.tab-switch',
+      expect.objectContaining({fromTab: 'timeline', toTab: 'transcript'})
+    );
   });
 
   it('shows the export transcript button only on the transcript tab', async () => {
@@ -238,9 +255,7 @@ describe('ConversationDetailPage breadcrumbs', () => {
     const topBar = screen.getByRole('banner');
 
     expect(
-      await within(topBar).findByRole('link', {
-        name: CONVERSATIONS_SIDEBAR_LABEL,
-      })
+      await within(topBar).findByRole('link', {name: CONVERSATIONS_SIDEBAR_LABEL})
     ).toBeInTheDocument();
     // The conversation id is the top-bar identifier, owned by the TopBar title
     // slot, alongside the copy affordance.
@@ -565,10 +580,7 @@ describe('ConversationDetailPage time window', () => {
       body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
     });
 
-    renderPage([], {
-      start: '2026-09-24T08:06:04.000Z',
-      end: '2026-09-25T10:29:16.000Z',
-    });
+    renderPage([], {start: '2026-09-24T08:06:04.000Z', end: '2026-09-25T10:29:16.000Z'});
 
     await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
     for (const [, options] of conversationRequest.mock.calls) {
@@ -593,10 +605,7 @@ describe('ConversationDetailPage time window', () => {
         body: {conversationId: CONVERSATION_ID, title: null, spans: CONVERSATION_BODY},
       });
 
-      renderPage([], {
-        start: '2026-09-24T08:06:04',
-        end: '2026-09-25T10:29:16',
-      });
+      renderPage([], {start: '2026-09-24T08:06:04', end: '2026-09-25T10:29:16'});
 
       await waitFor(() => expect(conversationRequest).toHaveBeenCalled());
       for (const [, options] of conversationRequest.mock.calls) {

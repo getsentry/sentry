@@ -9,14 +9,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {
-  getPlatform,
-  getPlatformViewConfig,
-} from 'sentry/components/events/viewHierarchy/utils';
 import type {Project} from 'sentry/types/project';
 
 import type {ViewHierarchyData} from './index';
 import {ViewHierarchy} from './index';
+import {getPlatform, getPlatformViewConfig} from './utils';
 
 // Mocks for useVirtualizedTree hook
 class ResizeObserver {
@@ -47,13 +44,7 @@ const DEFAULT_MOCK_DATA = {
           width: 3,
           height: 4,
           identifier: 'nested',
-          children: [
-            {
-              ...DEFAULT_VALUES,
-              type: 'Text',
-              children: [],
-            },
-          ],
+          children: [{...DEFAULT_VALUES, type: 'Text', children: []}],
         },
       ],
     },
@@ -66,10 +57,7 @@ function getMockData(project?: Project) {
     project: project ?? ProjectFixture(),
   });
   const platformViewConfig = getPlatformViewConfig(platform);
-  return {
-    platform,
-    ...platformViewConfig,
-  };
+  return {platform, ...platformViewConfig};
 }
 
 describe('View Hierarchy', () => {
@@ -183,13 +171,7 @@ describe('View Hierarchy', () => {
             {
               ...DEFAULT_VALUES,
               type: 'Second Window',
-              children: [
-                {
-                  ...DEFAULT_VALUES,
-                  type: 'Second Window Child',
-                  children: [],
-                },
-              ],
+              children: [{...DEFAULT_VALUES, type: 'Second Window Child', children: []}],
             },
           ],
         }}
@@ -307,10 +289,7 @@ describe('View Hierarchy', () => {
     const mockData = getMockData();
     render(
       <ViewHierarchy
-        viewHierarchy={{
-          ...DEFAULT_MOCK_DATA,
-          rendering_system: 'flutter',
-        }}
+        viewHierarchy={{...DEFAULT_MOCK_DATA, rendering_system: 'flutter'}}
         emptyMessage={mockData.emptyMessage}
         nodeField={mockData.nodeField}
         showWireframe={mockData.showWireframe}
@@ -338,13 +317,7 @@ describe('View Hierarchy', () => {
                     name: 'SentryConfigurationScript',
                     class: 'SentryConfiguration',
                     script: 'res://example_configuration.gd',
-                    children: [
-                      {
-                        name: 'Header - Output',
-                        class: 'Label',
-                        children: [],
-                      },
-                    ],
+                    children: [{name: 'Header - Output', class: 'Label', children: []}],
                   },
                 ],
               },

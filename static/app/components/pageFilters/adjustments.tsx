@@ -21,9 +21,7 @@ type ProjectsAdjustment =
       reason: PageFilterAdjustmentReason.SINGLE_PROJECT_AUTO_SELECTED;
     };
 
-type EnvironmentsAdjustment = {
-  reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS;
-};
+type EnvironmentsAdjustment = {reason: PageFilterAdjustmentReason.INVALID_ENVIRONMENTS};
 
 type DatetimeAdjustment = {
   days: number;

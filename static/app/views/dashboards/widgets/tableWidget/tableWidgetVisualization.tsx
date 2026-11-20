@@ -1,6 +1,13 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconStar} from '@sentry/icons/star';
+import {
+  createLoader,
+  createSerializer,
+  parseAsNativeArrayOf,
+  parseAsString,
+  useQueryState,
+} from 'nuqs';
 
 import {Flex} from '@sentry/scraps/layout';
 import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
@@ -22,7 +29,7 @@ import {
   stripEquationPrefix,
 } from 'sentry/utils/discover/fields';
 import {FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
-import {decodeSorts, encodeSort} from 'sentry/utils/queryString';
+import {parseAsSort} from 'sentry/utils/url/parseAsSort';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -151,6 +158,11 @@ export const FRAMELESS_STYLES = {
  */
 const STARRED_COLUMN_WIDTH = 'max-content';
 
+const tableUrlParsers = {sort: parseAsSort, width: parseAsNativeArrayOf(parseAsString)};
+
+const loadTableUrlParams = createLoader(tableUrlParsers);
+const serializeTableUrlParams = createSerializer(tableUrlParsers);
+
 function isStarredColumn(key: string, aliases?: Record<string, string>): boolean {
   return key === SpanFields.IS_STARRED_TRANSACTION && !aliases?.[key];
 }
@@ -197,6 +209,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const navigate = useNavigate();
+  const [, setLocationWidths] = useQueryState('width', tableUrlParsers.width);
 
   const getGenericRenderer: FieldRendererGetter = (field, _dataRow, meta) => {
     // NOTE: `alias` is set to `false` here because in almost all endpoints, we don't alias field names anymore. In the past, fields like `"p75(duration)"` would be aliased to `"p75_duration"`, but we don't do that much anymore, so we can safely assume that the field name is the same as the alias.
@@ -210,32 +223,20 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
   ): RenderFunctionBaggage => {
     const unit = meta.units?.[field] as string | undefined;
 
-    return {
-      organization,
-      theme,
-      location,
-      navigate,
-      unit,
-      projects,
-    };
+    return {organization, theme, location, navigate, unit, projects};
   };
 
   const {data, meta} = tableData;
-  const locationSort = decodeSorts(location?.query?.sort)[0];
+  const {sort: locationSort, width: locationWidths} = loadTableUrlParams(location.search);
   const numColumns = columns?.length ?? Object.keys(meta.fields).length;
 
   let widths = Array.from<number>({length: numColumns}).fill(COL_WIDTH_UNDEFINED);
-  const locationWidths = location.query?.width;
   // If at least one column has the width key and that key is defined, take that over url widths
   if (columns?.some(column => defined(column.width))) {
     widths = columns.map(column =>
       defined(column.width) ? column.width : COL_WIDTH_UNDEFINED
     );
-  } else if (
-    resizable &&
-    Array.isArray(locationWidths) &&
-    locationWidths.length === numColumns
-  ) {
+  } else if (resizable && locationWidths.length === numColumns) {
     widths = locationWidths.map(width => {
       const val = parseInt(width, 10);
       return isNaN(val) ? COL_WIDTH_UNDEFINED : val;
@@ -244,10 +245,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
 
   // Fallback to extracting fields from the tableData if no columns are provided
   const columnOrder: TabularColumn[] =
-    columns?.map((column, index) => ({
-      ...column,
-      width: widths[index],
-    })) ??
+    columns?.map((column, index) => ({...column, width: widths[index]})) ??
     Object.keys(meta.fields).map((key, index) => ({
       key,
       width: widths[index],
@@ -290,7 +288,10 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
                 }
               : undefined,
             to: column.sortable
-              ? {...location, query: {...location.query, sort: encodeSort(nextSort)}}
+              ? serializeTableUrlParams(
+                  `${location.pathname}${location.search}${location.hash}`,
+                  {sort: nextSort}
+                )
               : undefined,
           };
         },
@@ -319,22 +320,14 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           const column = columnOrder[columnIndex]!;
           const cellAllowedActions =
             typeof allowedCellActions === 'function'
-              ? allowedCellActions({
-                  column,
-                  dataRow,
-                  columnIndex,
-                  rowIndex,
-                })
+              ? allowedCellActions({column, dataRow, columnIndex, rowIndex})
               : allowedCellActions;
           const formattedColumn = {
             key: column.key,
             name: column.key,
             isSortable: !!column.sortable,
             type: column.type ?? FieldValueType.NEVER,
-            column: {
-              field: column.key,
-              kind: 'field',
-            } as Column,
+            column: {field: column.key, kind: 'field'} as Column,
           };
 
           return (
@@ -371,16 +364,7 @@ export function TableWidgetVisualization(props: TableWidgetVisualizationProps) {
           }
 
           // Default is to fallback to location query
-          navigate(
-            {
-              pathname: location.pathname,
-              query: {
-                ...location.query,
-                width: widths,
-              },
-            },
-            {replace: true}
-          );
+          setLocationWidths(widths.map(String), {history: 'replace'});
         },
       }}
       stickyHeader={scrollable}

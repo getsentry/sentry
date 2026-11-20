@@ -2,7 +2,7 @@ import {ApiApplicationFixture} from 'sentry-fixture/apiApplication';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AccountAuthorizations from 'sentry/views/settings/account/accountAuthorizations';
+import AccountAuthorizations from './accountAuthorizations';
 
 describe('AccountAuthorizations', () => {
   beforeEach(() => {
@@ -10,11 +10,7 @@ describe('AccountAuthorizations', () => {
   });
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: '/api-authorizations/',
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/api-authorizations/', method: 'GET', body: []});
 
     render(<AccountAuthorizations />);
     expect(
@@ -55,10 +51,7 @@ describe('AccountAuthorizations', () => {
 
     expect(deleteMock).toHaveBeenCalledWith(
       '/api-authorizations/',
-      expect.objectContaining({
-        method: 'DELETE',
-        data: {authorization: 'delete_shrimp'},
-      })
+      expect.objectContaining({method: 'DELETE', data: {authorization: 'delete_shrimp'}})
     );
 
     await waitFor(() =>

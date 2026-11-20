@@ -7,25 +7,21 @@ import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingL
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {ReleasesSortOption} from 'sentry/constants/releases';
-import {ReleasesSelectControl} from 'sentry/views/dashboards/releasesSelectControl';
-import type {DashboardFilters} from 'sentry/views/dashboards/types';
+
+import {ReleasesSelectControl} from './releasesSelectControl';
+import type {DashboardFilters} from './types';
 
 jest.unmock('@tanstack/react-pacer');
 
 function renderReleasesSelect({
   handleChangeFilter,
-}: {
-  handleChangeFilter?: (activeFilters: DashboardFilters) => void;
-} = {}) {
+}: {handleChangeFilter?: (activeFilters: DashboardFilters) => void} = {}) {
   const organization = OrganizationFixture();
 
   // Initialize PageFiltersStore
   PageFiltersStore.init();
   PageFiltersStore.onInitializeUrlState(
-    PageFiltersFixture({
-      projects: [1],
-      environments: ['production'],
-    })
+    PageFiltersFixture({projects: [1], environments: ['production']})
   );
 
   // Mock releases API
@@ -56,9 +52,7 @@ function renderReleasesSelect({
   // Mock events API for event counts
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/events/`,
-    body: {
-      data: [],
-    },
+    body: {data: []},
   });
 
   render(
@@ -110,10 +104,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     // Mock initial releases
@@ -173,10 +164,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     const initialMock = MockApiClient.addMockResponse({
@@ -269,10 +257,7 @@ describe('Dashboards > ReleasesSelectControl', () => {
     // Initialize PageFiltersStore
     PageFiltersStore.init();
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        projects: [1],
-        environments: ['production'],
-      })
+      PageFiltersFixture({projects: [1], environments: ['production']})
     );
 
     MockApiClient.addMockResponse({

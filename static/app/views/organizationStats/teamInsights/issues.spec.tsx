@@ -12,12 +12,11 @@ import type {Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
-import TeamStatsIssues from 'sentry/views/organizationStats/teamInsights/issues';
+
+import TeamStatsIssues from './issues';
 
 jest.mock('sentry/utils/localStorage');
-jest.mock('sentry/utils/isActiveSuperuser', () => ({
-  isActiveSuperuser: jest.fn(),
-}));
+jest.mock('sentry/utils/isActiveSuperuser', () => ({isActiveSuperuser: jest.fn()}));
 
 describe('TeamStatsIssues', () => {
   const env1 = 'prod';
@@ -108,15 +107,11 @@ describe('TeamStatsIssues', () => {
     };
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team1.slug}/all-unresolved-issues/`,
-      body: {
-        2: unresolvedStats,
-      },
+      body: {2: unresolvedStats},
     });
     MockApiClient.addMockResponse({
       url: `/teams/org-slug/${team2.slug}/all-unresolved-issues/`,
-      body: {
-        3: unresolvedStats,
-      },
+      body: {3: unresolvedStats},
     });
   });
 
@@ -216,10 +211,7 @@ describe('TeamStatsIssues', () => {
   });
 
   it('shows users with no teams the join team button', () => {
-    createWrapper({
-      projects: [{...project1, isMember: false}],
-      teams: [],
-    });
+    createWrapper({projects: [{...project1, isMember: false}], teams: []});
 
     expect(screen.getByText('Join a Team')).toBeInTheDocument();
   });

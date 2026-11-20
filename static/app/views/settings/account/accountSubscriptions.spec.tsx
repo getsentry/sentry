@@ -2,7 +2,7 @@ import {SubscriptionsFixture} from 'sentry-fixture/subscriptions';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import AccountSubscriptions from 'sentry/views/settings/account/accountSubscriptions';
+import AccountSubscriptions from './accountSubscriptions';
 
 const ENDPOINT = '/users/me/subscriptions/';
 
@@ -12,22 +12,13 @@ describe('AccountSubscriptions', () => {
   });
 
   it('renders empty', () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, body: []});
     render(<AccountSubscriptions />);
   });
 
   it('renders list and can toggle', async () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: SubscriptionsFixture(),
-    });
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, body: SubscriptionsFixture()});
+    const mock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'PUT'});
     render(<AccountSubscriptions />);
 
     expect(mock).not.toHaveBeenCalled();
@@ -42,10 +33,7 @@ describe('AccountSubscriptions', () => {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: expect.objectContaining({
-          listId: 2,
-          subscribed: false,
-        }),
+        data: expect.objectContaining({listId: 2, subscribed: false}),
       })
     );
   });
@@ -58,10 +46,7 @@ describe('AccountSubscriptions', () => {
         ...SubscriptionsFixture().map(x => ({...x, email: 'b@2.com'})),
       ],
     });
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'PUT'});
     render(<AccountSubscriptions />);
 
     // wait for the mock GET Request to resolve
@@ -76,10 +61,7 @@ describe('AccountSubscriptions', () => {
       ENDPOINT,
       expect.objectContaining({
         method: 'PUT',
-        data: expect.objectContaining({
-          listId: 1,
-          subscribed: true,
-        }),
+        data: expect.objectContaining({listId: 1, subscribed: true}),
       })
     );
   });

@@ -4,10 +4,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import * as pipelineModal from 'sentry/components/pipeline/modal';
-import {useAddIntegration} from 'sentry/utils/integrations/useAddIntegration';
 import * as integrationUtil from 'sentry/utils/integrationUtil';
+
+import {useAddIntegration} from './useAddIntegration';
 
 describe('useAddIntegration', () => {
   const provider = GitHubIntegrationProviderFixture();
@@ -40,10 +42,7 @@ describe('useAddIntegration', () => {
       onError: expect.any(Function),
       onClose: expect.any(Function),
     });
-    expect(result.current.state).toEqual({
-      status: 'installing',
-      providerKey: 'github',
-    });
+    expect(result.current.state).toEqual({status: 'installing', providerKey: 'github'});
   });
 
   it('passes urlParams as initialData to the pipeline modal', () => {
@@ -63,9 +62,7 @@ describe('useAddIntegration', () => {
     );
 
     expect(openPipelineModalSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialData: {installation_id: '12345'},
-      })
+      expect.objectContaining({initialData: {installation_id: '12345'}})
     );
   });
 
@@ -87,7 +84,7 @@ describe('useAddIntegration', () => {
   });
 
   it('calls onInstall and shows a success message on completion', () => {
-    const successSpy = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
     const onInstall = jest.fn();
 
     let onComplete: ((data: typeof integration) => void) | undefined;
@@ -98,11 +95,7 @@ describe('useAddIntegration', () => {
     const {result} = renderHookWithProviders(() => useAddIntegration());
 
     act(() =>
-      result.current.startFlow({
-        provider,
-        organization: OrganizationFixture(),
-        onInstall,
-      })
+      result.current.startFlow({provider, organization: OrganizationFixture(), onInstall})
     );
 
     act(() => onComplete?.(integration));
@@ -117,7 +110,7 @@ describe('useAddIntegration', () => {
   });
 
   it('suppresses the success message when requested', () => {
-    const successSpy = jest.spyOn(indicators, 'addSuccessMessage');
+    const successSpy = jest.spyOn(toast, 'success');
     const onInstall = jest.fn();
 
     let onComplete: ((data: typeof integration) => void) | undefined;
@@ -165,10 +158,7 @@ describe('useAddIntegration', () => {
     });
 
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(result.current.state).toEqual({
-      status: 'cancelled',
-      providerKey: 'github',
-    });
+    expect(result.current.state).toEqual({status: 'cancelled', providerKey: 'github'});
   });
 
   it('does not report cancellation when completion closes the modal', () => {

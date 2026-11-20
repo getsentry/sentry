@@ -17,9 +17,7 @@ type Props = AdminConfirmRenderProps & {
   startEnterpriseTrial?: boolean;
 };
 
-type State = {
-  trialDays: number;
-};
+type State = {trialDays: number};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
@@ -45,10 +43,7 @@ export class TrialSubscriptionAction extends Component<Props, State> {
     //
     // The trial plan is resolved server-side: new enterprise trials always
     // start on the latest tier.
-    const data = {
-      trialDays,
-      ...(startEnterpriseTrial && {startEnterpriseTrial}),
-    };
+    const data = {trialDays, ...(startEnterpriseTrial && {startEnterpriseTrial})};
 
     onConfirm?.(data);
   };

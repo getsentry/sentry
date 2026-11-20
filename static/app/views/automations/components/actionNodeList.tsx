@@ -16,17 +16,15 @@ import {
 } from 'sentry/types/workflowEngine/actions';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {
-  ActionNodeContext,
-  useActionNodeContext,
-} from 'sentry/views/automations/components/actionNodeContext';
-import {actionNodesMap} from 'sentry/views/automations/components/actionNodes';
-import {useAutomationBuilderContext} from 'sentry/views/automations/components/automationBuilderContext';
-import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
-import {AutomationBuilderRow} from 'sentry/views/automations/components/automationBuilderRow';
 import {useAvailableActionsQuery} from 'sentry/views/automations/hooks';
 import {useConnectedDetectors} from 'sentry/views/automations/hooks/useConnectedDetectors';
 import {getIncompatibleActionWarnings} from 'sentry/views/automations/utils/getIncompatibleActionWarning';
+
+import {ActionNodeContext, useActionNodeContext} from './actionNodeContext';
+import {actionNodesMap} from './actionNodes';
+import {useAutomationBuilderContext} from './automationBuilderContext';
+import {useAutomationBuilderErrorContext} from './automationBuilderErrorContext';
+import {AutomationBuilderRow} from './automationBuilderRow';
 
 interface ActionNodeListProps {
   actions: Action[];
@@ -85,10 +83,7 @@ export function ActionNodeList({
       }
       const label =
         actionNodesMap.get(action.type)?.label || action.sentryApp?.name || action.type;
-      const newAction = {
-        value: action,
-        label,
-      };
+      const newAction = {value: action, label};
 
       if (action.handlerGroup === ActionGroup.NOTIFICATION) {
         notificationActions.push(newAction);
@@ -110,11 +105,7 @@ export function ActionNodeList({
         label: t('Ticket Creation'),
         options: ticketCreationActions,
       },
-      {
-        key: ActionGroup.OTHER,
-        label: t('Other Integrations'),
-        options: otherActions,
-      },
+      {key: ActionGroup.OTHER, label: t('Other Integrations'), options: otherActions},
     ];
   }, [availableActions]);
 

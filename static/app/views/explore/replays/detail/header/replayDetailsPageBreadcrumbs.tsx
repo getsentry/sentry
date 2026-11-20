@@ -4,7 +4,7 @@ import {IconRefresh} from '@sentry/icons/refresh';
 
 import {Button} from '@sentry/scraps/button';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {useLiveRefresh} from 'sentry/components/replays/replayLiveIndicator';
 import {t} from 'sentry/locale';
@@ -16,9 +16,10 @@ import {useReplayPlaylist} from 'sentry/utils/replays/playback/providers/replayP
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
-import {useReplayMenuItems} from 'sentry/views/explore/replays/detail/header/useReplayMenuItems';
 import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {TopBar} from 'sentry/views/navigation/topBar';
+
+import {useReplayMenuItems} from './useReplayMenuItems';
 
 interface Props {
   readerResult: ReturnType<typeof useLoadReplayReader>;
@@ -29,9 +30,7 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
   const organization = useOrganization();
   const location = useLocation();
   const eventView = EventView.fromLocation(location);
-  const project = useProjectFromId({
-    project_id: replayRecord?.project_id ?? undefined,
-  });
+  const project = useProjectFromId({project_id: replayRecord?.project_id ?? undefined});
 
   const {replays, currentReplayIndex} = useReplayPlaylist();
   const {shouldShowRefreshButton, doRefresh} = useLiveRefresh({
@@ -70,7 +69,9 @@ export function ReplayDetailsPageBreadcrumbs({readerResult}: Props) {
         type: 'page-title',
         label: replayRecord?.id ? getShortEventId(replayRecord.id) : t('Unknown Replay'),
         leadingGraphic: project ? (
-          <ProjectBadge disableLink project={project} avatarSize={16} hideName />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

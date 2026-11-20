@@ -16,19 +16,6 @@ import {
 import type {EventsTimeSeriesResponse} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {WIDGET_BUILDER_ATTRIBUTE_STALE_TIME} from 'sentry/views/dashboards/constants';
-import {
-  type DatasetConfig,
-  type SearchBarData,
-  type SearchBarDataProviderProps,
-  type WidgetBuilderSearchBarProps,
-} from 'sentry/views/dashboards/datasetConfig/base';
-import {
-  getTableSortOptions,
-  getTimeseriesSortOptions,
-} from 'sentry/views/dashboards/datasetConfig/events';
-import {formatTraceMetricsFunction} from 'sentry/views/dashboards/datasetConfig/formatTraceMetricsFunction';
-import {combineBaseFieldsWithTags} from 'sentry/views/dashboards/datasetConfig/utils/combineBaseFieldsWithEapTags';
-import {traceMetricsResponseTransforms} from 'sentry/views/dashboards/datasetConfig/utils/traceMetricsResponseTransforms';
 import {DisplayType, type WidgetQuery} from 'sentry/views/dashboards/types';
 import {useWidgetBuilderContext} from 'sentry/views/dashboards/widgetBuilder/contexts/useWidgetBuilderContext';
 import {
@@ -49,8 +36,24 @@ import {
 } from 'sentry/views/explore/components/traceItemSearchQueryBuilder';
 import {useTraceMetricItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {HiddenTraceMetricSearchFields} from 'sentry/views/explore/metrics/constants';
+import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 import {createTraceMetricFilter} from 'sentry/views/explore/metrics/utils';
 import {TraceItemDataset} from 'sentry/views/explore/types';
+
+import {combineBaseFieldsWithTags} from './utils/combineBaseFieldsWithEapTags';
+import {traceMetricsResponseTransforms} from './utils/traceMetricsResponseTransforms';
+import {
+  type DatasetConfig,
+  type SearchBarData,
+  type SearchBarDataProviderProps,
+  type WidgetBuilderSearchBarProps,
+} from './base';
+import {
+  getTableSortOptions,
+  getTimeseriesSortOptions,
+  renderTraceAsLinkable,
+} from './events';
+import {formatTraceMetricsFunction} from './formatTraceMetricsFunction';
 
 // This is a placeholder that currently signals that no metric is selected
 // When the metrics are loaded up, the first metric is selected and this will be filled out
@@ -99,28 +102,19 @@ function TraceMetricsSearchBar({
     );
   const {attributes: numberAttributes, secondaryAliases: numberSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'number',
       HiddenTraceMetricSearchFields
     );
   const {attributes: booleanAttributes, secondaryAliases: booleanSecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]),
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0])},
       'boolean',
       HiddenTraceMetricSearchFields
     );
   const {attributes: arrayAttributes, secondaryAliases: arraySecondaryAliases} =
     useTraceMetricItemAttributes(
-      {
-        query: attributeQuery,
-        enabled: defined(traceMetrics[0]) && supportsArrays,
-      },
+      {query: attributeQuery, enabled: defined(traceMetrics[0]) && supportsArrays},
       'array',
       HiddenTraceMetricSearchFields
     );
@@ -312,16 +306,10 @@ export const TraceMetricsConfig: DatasetConfig<
   getTableSortOptions: (organization, widgetQuery) =>
     getTableSortOptions(organization, widgetQuery).map(({value, label}) => {
       if (isEquationAlias(value)) {
-        return {
-          label: `ƒ${getEquationAliasIndex(value) + 1}`,
-          value,
-        };
+        return {label: `ƒ${getEquationAliasIndex(value) + 1}`, value};
       }
 
-      return {
-        label,
-        value,
-      };
+      return {label, value};
     }),
   getGroupByFieldOptions,
   supportedDisplayTypes: [
@@ -338,6 +326,9 @@ export const TraceMetricsConfig: DatasetConfig<
   useHeatmapQuery: useTraceMetricsHeatmapQuery,
   ...traceMetricsResponseTransforms,
   getCustomFieldRenderer: (field, meta, widget, _organization, dashboardFilters) => {
+    if (field === TraceMetricKnownFieldKey.TRACE) {
+      return renderTraceAsLinkable(widget);
+    }
     return getFieldRenderer(field, meta, false, widget, dashboardFilters);
   },
   getFieldHeaderMap: widgetQuery => {

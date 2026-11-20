@@ -1,21 +1,17 @@
 import {t} from 'sentry/locale';
 import {DisplayType, SlideoutId, WidgetType} from 'sentry/views/dashboards/types';
 import {type PrebuiltDashboard} from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {DETAILS_DASHBOARD_TITLE} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/settings';
-import {
-  ISSUE_TYPES,
-  WEB_VITALS_NAVIGATION_TYPE_FILTER,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/webVitals/webVitals';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import {ModuleName, SpanFields} from 'sentry/views/insights/types';
+
+import {DETAILS_DASHBOARD_TITLE} from './settings';
+import {ISSUE_TYPES, WEB_VITALS_NAVIGATION_TYPE_FILTER} from './webVitals';
 
 export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
-  filters: {
-    globalFilter: [WEB_VITALS_NAVIGATION_TYPE_FILTER],
-  },
+  filters: {globalFilter: [WEB_VITALS_NAVIGATION_TYPE_FILTER]},
   widgets: [
     {
       id: 'score-breakdown-chart',
@@ -48,13 +44,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        y: 0,
-        w: 5,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 0, w: 5, h: 2, x: 0, minH: 2},
     },
     {
       id: 'score-breakdown-wheel',
@@ -99,13 +89,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        y: 0,
-        w: 1,
-        h: 2,
-        x: 5,
-        minH: 2,
-      },
+      layout: {y: 0, w: 1, h: 2, x: 5, minH: 2},
     },
     {
       id: 'lcp-p75-meter',
@@ -127,20 +111,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.LCP_SUMMARY,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 1200,
-          max2: 2400,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 1200, max2: 2400}, unit: null},
+      layout: {y: 2, w: 1, h: 1, x: 0, minH: 1},
     },
     {
       id: 'inp-p75-meter',
@@ -162,20 +134,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.INP_SUMMARY,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 500,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 2,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 200, max2: 500}, unit: null},
+      layout: {y: 2, w: 1, h: 1, x: 1, minH: 1},
     },
     {
       id: 'cls-p75-meter',
@@ -197,20 +157,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.CLS_SUMMARY,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 0.1,
-          max2: 0.25,
-        },
-        unit: null,
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 0,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 0.1, max2: 0.25}, unit: null},
+      layout: {y: 3, w: 1, h: 1, x: 0, minH: 1},
     },
     {
       id: 'ttfb-p75-meter',
@@ -232,20 +180,8 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           slideOutId: SlideoutId.TTFB_SUMMARY,
         },
       ],
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 400,
-        },
-        unit: 'millisecond',
-      },
-      layout: {
-        y: 3,
-        w: 1,
-        h: 1,
-        x: 1,
-        minH: 1,
-      },
+      thresholds: {max_values: {max1: 200, max2: 400}, unit: 'millisecond'},
+      layout: {y: 3, w: 1, h: 1, x: 1, minH: 1},
     },
     {
       id: 'issues-table',
@@ -264,13 +200,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: 'date',
         },
       ],
-      layout: {
-        y: 2,
-        w: 3,
-        h: 2,
-        x: 2,
-        minH: 2,
-      },
+      layout: {y: 2, w: 3, h: 2, x: 2, minH: 2},
     },
     {
       id: 'lcp-samples-table',
@@ -307,13 +237,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-timestamp',
         },
       ],
-      layout: {
-        y: 6,
-        w: 5,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 6, w: 5, h: 2, x: 0, minH: 2},
     },
     {
       id: 'inp-samples-table',
@@ -347,13 +271,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-timestamp',
         },
       ],
-      layout: {
-        y: 8,
-        w: 5,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 8, w: 5, h: 2, x: 0, minH: 2},
     },
     {
       id: 'cls-samples-table',
@@ -387,13 +305,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '-timestamp',
         },
       ],
-      layout: {
-        y: 10,
-        w: 5,
-        h: 2,
-        x: 0,
-        minH: 2,
-      },
+      layout: {y: 10, w: 5, h: 2, x: 0, minH: 2},
     },
     {
       id: 'pageloads-chart',
@@ -411,13 +323,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        y: 2,
-        w: 1,
-        h: 2,
-        x: 5,
-        minH: 2,
-      },
+      layout: {y: 2, w: 1, h: 2, x: 5, minH: 2},
     },
     {
       id: 'interactions-chart',
@@ -436,13 +342,7 @@ export const WEB_VITALS_DETAILS_PREBUILT_CONFIG: PrebuiltDashboard = {
           orderby: '',
         },
       ],
-      layout: {
-        y: 4,
-        w: 1,
-        h: 2,
-        x: 5,
-        minH: 2,
-      },
+      layout: {y: 4, w: 1, h: 2, x: 5, minH: 2},
     },
   ],
   onboarding: {type: 'module', moduleName: ModuleName.VITAL},

@@ -10,8 +10,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackAssignedTo} from 'sentry/components/feedback/feedbackItem/feedbackAssignedTo';
-import {useFeedbackActions} from 'sentry/components/feedback/feedbackItem/useFeedbackActions';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -19,6 +17,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useOrganization} from 'sentry/utils/useOrganization';
+
+import {FeedbackAssignedTo} from './feedbackAssignedTo';
+import {useFeedbackActions} from './useFeedbackActions';
 
 interface Props {
   eventData: Event | undefined;
@@ -67,9 +68,7 @@ export function FeedbackActions({
         : []),
     ].join('\n');
 
-    trackAnalytics('feedback.feedback-item-copy-as-markdown', {
-      organization,
-    });
+    trackAnalytics('feedback.feedback-item-copy-as-markdown', {organization});
 
     copy(markdown, {
       successMessage: t('Copied feedback'),

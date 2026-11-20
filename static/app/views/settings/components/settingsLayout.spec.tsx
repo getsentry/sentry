@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
+import {SettingsLayout} from './settingsLayout';
 
 describe('SettingsLayout', () => {
   beforeEach(() => {
@@ -15,14 +15,9 @@ describe('SettingsLayout', () => {
       url: '/organizations/org-slug/',
       method: 'DELETE',
       statusCode: 401,
-      body: {
-        sudoRequired: true,
-      },
+      body: {sudoRequired: true},
     });
-    MockApiClient.addMockResponse({
-      url: '/authenticators/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/authenticators/', body: []});
   });
 
   it('renders', () => {

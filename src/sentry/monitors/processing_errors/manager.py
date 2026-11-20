@@ -58,7 +58,12 @@ def _get_entity_identifier_from_error(
     error: CheckinProcessingError,
     monitor: Monitor | None = None,
 ) -> str:
-    if monitor is None:
+    # The consumer only reports MONITOR_NOT_FOUND after its own lookup missed
+    monitor_missing = any(
+        process_error["type"] == ProcessingErrorType.MONITOR_NOT_FOUND
+        for process_error in error.errors
+    )
+    if monitor is None and not monitor_missing:
         # Attempt to get the monitor from the checkin info if we failed to retrieve it during ingestion
         try:
             monitor = Monitor.objects.get(
@@ -126,7 +131,7 @@ def _delete_for_entity_by_type(entity_identifier: str, type: ProcessingErrorType
     pipeline.execute()
 
 
-def store_error(error: CheckinProcessingError, monitor: Monitor | None):
+def store_error(error: CheckinProcessingError, monitor: Monitor | None) -> None:
     entity_identifier = _get_entity_identifier_from_error(error, monitor)
     error_set_key = build_set_identifier(entity_identifier)
     error_key = build_error_identifier(error.id)
@@ -149,7 +154,7 @@ def store_error(error: CheckinProcessingError, monitor: Monitor | None):
         pipeline.execute()
 
 
-def delete_error(project: Project, uuid: uuid.UUID):
+def delete_error(project: Project, uuid: uuid.UUID) -> None:
     error_identifier = build_error_identifier(uuid)
     redis = _get_cluster()
     raw_error = redis.get(error_identifier)
@@ -164,11 +169,11 @@ def delete_error(project: Project, uuid: uuid.UUID):
     _delete_for_entity(entity_identifier, uuid)
 
 
-def delete_errors_for_monitor_by_type(monitor: Monitor, type: ProcessingErrorType):
+def delete_errors_for_monitor_by_type(monitor: Monitor, type: ProcessingErrorType) -> None:
     _delete_for_entity_by_type(build_monitor_identifier(monitor), type)
 
 
-def delete_errors_for_project_by_type(project: Project, type: ProcessingErrorType):
+def delete_errors_for_project_by_type(project: Project, type: ProcessingErrorType) -> None:
     _delete_for_entity_by_type(build_project_identifier(project.id), type)
 
 
@@ -184,6 +189,7 @@ def get_errors_for_projects(projects: list[Project]) -> list[CheckinProcessingEr
 # carries the same signal as the full stream at a fraction of the cost.
 THROTTLED_SAMPLE_RATES = {
     ProcessingErrorType.MONITOR_ENVIRONMENT_RATELIMITED: 0.01,
+    ProcessingErrorType.MONITOR_OVER_QUOTA: 0.01,
     ProcessingErrorType.ORGANIZATION_KILLSWITCH_ENABLED: 0.0,
 }
 
@@ -201,7 +207,7 @@ def _store_sample_rate(error: ProcessingErrorsException) -> float:
     )
 
 
-def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException):
+def handle_processing_errors(item: CheckinItem, error: ProcessingErrorsException) -> None:
     sample_rate = _store_sample_rate(error)
     if not sample_rate or random.random() >= sample_rate:
         metrics.incr(

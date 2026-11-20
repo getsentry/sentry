@@ -1,4 +1,4 @@
-import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
+import {parseFilterValueDuration} from './parser';
 
 describe('parseFilterValueDuration', () => {
   it('parses duration values', () => {

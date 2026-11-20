@@ -39,9 +39,7 @@ describe('BillingPlatformMigrationAlert', () => {
       hasMigratedToBillingPlatform: true,
     });
 
-    render(<BillingPlatformMigrationAlert subscription={subscription} />, {
-      organization,
-    });
+    render(<BillingPlatformMigrationAlert subscription={subscription} />, {organization});
 
     expect(
       screen.getByText('This organization is migrated to the billing platform.')
@@ -54,9 +52,7 @@ describe('BillingPlatformMigrationAlert', () => {
       hasMigratedToBillingPlatform: false,
     });
 
-    render(<BillingPlatformMigrationAlert subscription={subscription} />, {
-      organization,
-    });
+    render(<BillingPlatformMigrationAlert subscription={subscription} />, {organization});
 
     expect(
       screen.queryByText('This organization is migrated to the billing platform.')
@@ -70,9 +66,7 @@ describe('BillingPlatformMigrationAlert', () => {
       hasMigratedToBillingPlatform: true,
     });
 
-    render(<BillingPlatformMigrationAlert subscription={subscription} />, {
-      organization,
-    });
+    render(<BillingPlatformMigrationAlert subscription={subscription} />, {organization});
 
     expect(
       screen.queryByText('This organization is migrated to the billing platform.')
@@ -85,9 +79,7 @@ describe('BillingPlatformMigrationAlert', () => {
       hasMigratedToBillingPlatform: true,
     });
 
-    render(<BillingPlatformMigrationAlert subscription={subscription} />, {
-      organization,
-    });
+    render(<BillingPlatformMigrationAlert subscription={subscription} />, {organization});
 
     expect(
       screen.getByText('This organization is migrated to the billing platform.')

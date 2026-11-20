@@ -1,5 +1,6 @@
 import logging
 
+from django.db import router, transaction
 from django.utils import timezone
 
 from sentry.api.helpers.oauth_authorize.request import AuthorizationRequest
@@ -10,6 +11,7 @@ from sentry.api.helpers.oauth_consent import (
     persist_authorization,
     resolve_organization,
 )
+from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.utils import metrics
@@ -83,13 +85,32 @@ def issue_authorization_code(
 def issue_implicit_token(
     authorization: AuthorizationRequest, user_id: int, organization_id: int | None
 ) -> str:
-    token = ApiToken.objects.create(
-        application=authorization.application,
-        user_id=user_id,
-        refresh_token=None,
-        scope_list=authorization.scopes,
-        scoping_organization_id=organization_id,
-    )
+    token: ApiToken | None = None
+    try:
+        # This transaction is required to bind the token to a variable
+        # when replication fails. The outbox_context is just to flag
+        # that this is an outbox-producing operation.
+        with outbox_context(transaction.atomic(router.db_for_write(ApiToken))):
+            token = ApiToken.objects.create(
+                application=authorization.application,
+                user_id=user_id,
+                refresh_token=None,
+                scope_list=authorization.scopes,
+                scoping_organization_id=organization_id,
+            )
+    except (OutboxDatabaseError, OutboxFlushError):
+        if token is None:
+            raise
+
+        # Guard against replication fanout failures. The token has been
+        # minted, and its outbox has been committed alongside it,
+        # guaranteeing that it will eventually be valid in all regions.
+        logger.warning(
+            "approve.token.outbox-flush-failure",
+            extra={"token_id": token.id, "user_id": user_id},
+            exc_info=True,
+        )
+
     logger.info(
         "approve.token",
         extra={

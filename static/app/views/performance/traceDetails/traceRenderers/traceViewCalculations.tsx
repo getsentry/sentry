@@ -1,8 +1,9 @@
 import {mat3, vec2} from 'gl-matrix';
 
 import {clamp} from 'sentry/utils/number/clamp';
-import {TraceTimeCompression} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceTimeCompression} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 
 export type CompressedView = {left: number; right: number; width: number};
 export type SpanMatrix = [number, number, number, number, number, number];
@@ -134,10 +135,7 @@ export class NormalTraceViewCalculations implements TraceViewCalculations {
     const mat = context.view.getSpanToPxForSpace([x, width]);
     const offsetInConfigSpace = 74 * mat[0];
 
-    return {
-      x: x - offsetInConfigSpace,
-      width: width + offsetInConfigSpace * 2,
-    };
+    return {x: x - offsetInConfigSpace, width: width + offsetInConfigSpace * 2};
   }
 
   getConfigSpaceCursor(
@@ -289,10 +287,7 @@ export class CompressedTraceViewCalculations implements TraceViewCalculations {
       compressedEnd + paddingCompressedMs
     );
 
-    return {
-      x: paddedStart - context.view.to_origin,
-      width: paddedEnd - paddedStart,
-    };
+    return {x: paddedStart - context.view.to_origin, width: paddedEnd - paddedStart};
   }
 
   getConfigSpaceCursor(

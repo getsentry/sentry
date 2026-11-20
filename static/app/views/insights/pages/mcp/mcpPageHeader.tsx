@@ -4,16 +4,11 @@ import {
   DomainViewHeader,
   type Props as HeaderProps,
 } from 'sentry/views/insights/pages/domainViewHeader';
-import {
-  MCP_LANDING_SUB_PATH,
-  MCP_SIDEBAR_LABEL,
-  MODULES,
-} from 'sentry/views/insights/pages/mcp/settings';
 import {DOMAIN_VIEW_BASE_URL} from 'sentry/views/insights/pages/settings';
 
-type Props = {
-  module?: HeaderProps['selectedModule'];
-};
+import {MCP_LANDING_SUB_PATH, MCP_SIDEBAR_LABEL, MODULES} from './settings';
+
+type Props = {module?: HeaderProps['selectedModule']};
 
 export function MCPPageHeader({module}: Props) {
   const organization = useOrganization();

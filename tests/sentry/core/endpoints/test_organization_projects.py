@@ -1,8 +1,11 @@
+from typing import Any
+
 import pytest
 from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.apikey import ApiKey
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -17,7 +20,7 @@ class OrganizationProjectsTestBase(APITestCase):
     endpoint = "sentry-api-0-organization-projects"
 
     @staticmethod
-    def check_valid_response(response, expected_projects):
+    def check_valid_response(response: Any, expected_projects: list[Project]) -> None:
         assert [project.id for project in expected_projects] == [
             int(project_resp["id"]) for project_resp in response.data
         ]
@@ -113,6 +116,32 @@ class OrganizationProjectsTestBase(APITestCase):
 
         assert response.status_code == 200, response.content
         assert teamless.id in [int(project["id"]) for project in response.data]
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_is_member_of_no_projects(self) -> None:
+        project = self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["org:read", "project:read"],
+            project_ids=[project.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            {"query": "is_member:1"},
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
 
 
 class OrganizationProjectsTest(OrganizationProjectsTestBase):
@@ -347,6 +376,18 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.check_valid_response(response, sorted_projects)
         assert "latestDeploy" not in response.data[0]
 
+    def test_collapse_documented_values(self) -> None:
+        project = self.create_project(teams=[self.team], name="bar", slug="bar")
+
+        response = self.get_success_response(self.organization.slug)
+        assert "latestDeploys" in response.data[0]
+
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"collapse": ["latestDeploys", "unusedFeatures"]}
+        )
+        self.check_valid_response(response, [project])
+        assert "latestDeploys" not in response.data[0]
+
     def test_user_projects(self) -> None:
         self.foo_user = self.create_user("foo@example.com")
         self.login_as(user=self.foo_user)
@@ -373,6 +414,9 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         self.project2 = self.create_project(slug="project-2", name="project 2", teams=[self.team])
         self.project1.update_option("quotas:spike-protection-disabled", True)
         self.project1.update_option("sentry:token", 1)
+        self.project1.update_option(
+            "sentry:symbol_sources", '[{"type":"s3","secret_key":"source-secret"}]'
+        )
         self.project1.update_option("sentry:random", "hi")
 
         response = self.get_success_response(self.organization.slug, qs_params={"options": "true"})
@@ -382,13 +426,17 @@ class OrganizationProjectsTest(OrganizationProjectsTestBase):
         response = self.get_success_response(
             self.organization.slug,
             qs_params={
-                "options": ["quotas:spike-protection-disabled", "sentry:token", "sentry:random"]
+                "options": [
+                    "quotas:spike-protection-disabled",
+                    "sentry:token",
+                    "sentry:symbol_sources",
+                    "sentry:random",
+                ]
             },
         )
 
         assert response.data[0]["options"] == {
             "quotas:spike-protection-disabled": True,
-            "sentry:token": 1,
         }
         assert not response.data[1].get("options")
 
@@ -437,3 +485,26 @@ class OrganizationProjectsCountTest(APITestCase):
 
         response = self.get_success_response(self.organization.slug, qs_params={"get_counts": "1"})
         assert response.data == {"allProjects": 6, "myProjects": 4}
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_has_no_projects_of_its_own(self) -> None:
+        project = self.create_project(teams=[self.team])
+        service_account = self.create_service_account(
+            organization=self.organization, scope_list=["org:read"], project_ids=[project.id]
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data == {"allProjects": 1, "myProjects": 0}

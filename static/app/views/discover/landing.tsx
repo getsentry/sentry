@@ -10,7 +10,7 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {SelectValue} from '@sentry/scraps/select';
 import {Switch} from '@sentry/scraps/switch';
 
-import Feature from 'sentry/components/acl/feature';
+import {Feature} from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -27,10 +27,10 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {makeDiscoverPathname} from 'sentry/views/discover/pathnames';
-import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
+import {getSavedQueryWithDataset} from './savedQuery/utils';
+import {makeDiscoverPathname} from './pathnames';
 import {QueryList} from './queryList';
 import {getPrebuiltQueries} from './utils';
 
@@ -117,11 +117,7 @@ const useDiscoverLandingQuery = (renderPrebuilt: boolean) => {
   return useQuery({
     ...apiOptions.as<SavedQuery[]>()(
       '/organizations/$organizationIdOrSlug/discover/saved/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: queryParams,
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, query: queryParams, staleTime: 0}
     ),
     select: selectJsonWithHeaders,
   });
@@ -151,20 +147,13 @@ function DiscoverLanding() {
   const savedQueries = savedQueriesResponse?.json ?? [];
   const savedQueriesPageLinks = savedQueriesResponse?.headers.Link;
 
-  const to = makeDiscoverPathname({
-    path: '/homepage/',
-    organization,
-  });
+  const to = makeDiscoverPathname({path: '/homepage/', organization});
 
   const handleSortChange = (value: string) => {
     trackAnalytics('discover_v2.change_sort', {organization, sort: value});
     navigate({
       pathname: location.pathname,
-      query: {
-        ...location.query,
-        cursor: undefined,
-        sort: value,
-      },
+      query: {...location.query, cursor: undefined, sort: value},
     });
   };
 
@@ -191,20 +180,13 @@ function DiscoverLanding() {
             name="breadcrumbs"
             title={{type: 'page-title', label: t('Saved Queries')}}
             items={[
-              {
-                type: 'link',
-                label: t('Errors'),
-                to: getDiscoverLandingUrl(organization),
-              },
+              {type: 'link', label: t('Errors'), to: getDiscoverLandingUrl(organization)},
             ]}
           />
           <Layout.Body>
             <Layout.Main width="full">
               <Grid
-                columns={{
-                  zero: 'auto',
-                  xl: 'auto max-content min-content max-content',
-                }}
+                columns={{zero: 'auto', xl: 'auto max-content min-content max-content'}}
                 gap="xl"
                 align="center"
                 marginBottom="xl"
@@ -238,9 +220,7 @@ function DiscoverLanding() {
                   to={to}
                   variant="primary"
                   onClick={() => {
-                    trackAnalytics('discover_v2.build_new_query', {
-                      organization,
-                    });
+                    trackAnalytics('discover_v2.build_new_query', {organization});
                   }}
                 >
                   {t('Build a new query')}

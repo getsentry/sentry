@@ -20,11 +20,12 @@ import {
   applyDashboardFiltersToWidget,
   getReferrer,
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 
 const DEFAULT_SORT = IssueSortOptions.DATE;
 const DEFAULT_EXPAND = ['owners'];
@@ -33,11 +34,7 @@ type IssuesTableResponse = Group[];
 
 export type IssuesSeriesResponse = {
   timeSeries: TimeSeries[];
-  meta?: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
+  meta?: {dataset: string; end: number; start: number};
 };
 
 const EMPTY_ARRAY: any[] = [];
@@ -75,10 +72,7 @@ export function useIssuesSeriesQuery(
         widgetInterval
       );
 
-      requestData.queryExtras = {
-        ...requestData.queryExtras,
-        category: 'issue',
-      };
+      requestData.queryExtras = {...requestData.queryExtras, category: 'issue'};
 
       const {
         organization: _org,
@@ -142,11 +136,7 @@ export function useIssuesSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -167,12 +157,7 @@ export function useIssuesSeriesQuery(
       timeseriesResults.push(...transformedResult);
     });
 
-    return {
-      loading: false,
-      errorMessage: undefined,
-      timeseriesResults,
-      rawData,
-    };
+    return {loading: false, errorMessage: undefined, timeseriesResults, rawData};
   })();
 
   return transformedData;
@@ -261,11 +246,7 @@ export function useIssuesTableQuery(
 
   if (!allHaveData || isFetching) {
     const loading = isFetching || !errorMessage;
-    return {
-      loading,
-      errorMessage,
-      rawData: EMPTY_ARRAY,
-    };
+    return {loading, errorMessage, rawData: EMPTY_ARRAY};
   }
 
   const tableResults: any[] = [];

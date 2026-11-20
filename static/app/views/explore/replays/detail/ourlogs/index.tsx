@@ -34,8 +34,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 import {NoRowRenderer} from 'sentry/views/explore/replays/detail/noRowRenderer';
-import {OurLogFilters} from 'sentry/views/explore/replays/detail/ourlogs/ourlogFilters';
-import {ourlogsAsFrames} from 'sentry/views/explore/replays/detail/ourlogs/ourlogsAsFrames';
+
+import {OurLogFilters} from './ourlogFilters';
+import {ourlogsAsFrames} from './ourlogsAsFrames';
 
 export function OurLogs() {
   const replay = useReplayReader();
@@ -187,10 +188,7 @@ function OurLogsContent({replayId, startTimestampMs}: OurLogsContentProps) {
             booleanAttributes={booleanAttributes}
             embedded
             embeddedOptions={embeddedOptions}
-            localOnlyItemFilters={{
-              filteredItems: logItems,
-              filterText,
-            }}
+            localOnlyItemFilters={{filteredItems: logItems, filterText}}
             embeddedStyling={{disableBodyPadding: true, showVerticalScrollbar: false}}
             emptyRenderer={() => (
               <NoRowRenderer

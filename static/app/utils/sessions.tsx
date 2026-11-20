@@ -17,12 +17,13 @@ import type {
 } from 'sentry/types/organization';
 import {SessionStatus} from 'sentry/types/organization';
 import {percent} from 'sentry/utils';
-import {defined} from 'sentry/utils/defined';
 import {
   getCrashFreePercent,
   getSessionStatusPercent,
 } from 'sentry/views/explore/releases/utils';
 import {sessionTerm} from 'sentry/views/explore/releases/utils/sessionTerm';
+
+import {defined} from './defined';
 
 /**
  * If the time window is less than or equal 10, seconds will be displayed on the graphs
@@ -110,10 +111,7 @@ export function getCrashFreeRateSeries(
         return null;
       }
 
-      return {
-        name: interval,
-        value: getCrashFreePercent(100 - crashedSessionsPercent),
-      };
+      return {name: interval, value: getCrashFreePercent(100 - crashedSessionsPercent)};
     })
   );
 }
@@ -144,10 +142,7 @@ export function getSessionStatusRateSeries(
         return null;
       }
 
-      return {
-        name: interval,
-        value: getSessionStatusPercent(statusSessionsPercent),
-      };
+      return {name: interval, value: getSessionStatusPercent(statusSessionsPercent)};
     })
   );
 }
@@ -170,10 +165,7 @@ export function getAdoptionSeries(
 
     const intervalAdoption = percent(intervalReleaseSessions, intervalTotalSessions);
 
-    return {
-      name: interval,
-      value: Math.round(intervalAdoption),
-    };
+    return {name: interval, value: Math.round(intervalAdoption)};
   });
 }
 
@@ -195,73 +187,41 @@ export function initSessionsChart(theme: Theme) {
       seriesName: sessionTerm.healthy,
       data: [],
       color: theme.colors.green400,
-      areaStyle: {
-        color: theme.colors.green400,
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
+      areaStyle: {color: theme.colors.green400, opacity: 1},
+      lineStyle: {opacity: 0, width: 0.4},
     },
     [SessionStatus.ERRORED]: {
       seriesName: sessionTerm.errored,
       data: [],
       color: colors[12],
-      areaStyle: {
-        color: colors[12],
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
+      areaStyle: {color: colors[12], opacity: 1},
+      lineStyle: {opacity: 0, width: 0.4},
     },
     [SessionStatus.UNHANDLED]: {
       seriesName: sessionTerm.unhandled,
       data: [],
       color: colors[13],
-      areaStyle: {
-        color: colors[13],
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
+      areaStyle: {color: colors[13], opacity: 1},
+      lineStyle: {opacity: 0, width: 0.4},
     },
     [SessionStatus.ABNORMAL]: {
       seriesName: sessionTerm.abnormal,
       data: [],
       color: colors[15],
-      areaStyle: {
-        color: colors[15],
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
+      areaStyle: {color: colors[15], opacity: 1},
+      lineStyle: {opacity: 0, width: 0.4},
     },
     [SessionStatus.CRASHED]: {
       seriesName: sessionTerm.crashed,
       data: [],
       color: theme.colors.red400,
-      areaStyle: {
-        color: theme.colors.red400,
-        opacity: 1,
-      },
-      lineStyle: {
-        opacity: 0,
-        width: 0.4,
-      },
+      areaStyle: {color: theme.colors.red400, opacity: 1},
+      lineStyle: {opacity: 0, width: 0.4},
     },
   };
 }
 
-type GetSessionsIntervalOptions = {
-  dailyInterval?: boolean;
-};
+type GetSessionsIntervalOptions = {dailyInterval?: boolean};
 
 export function getSessionsInterval(
   datetimeObj: DateTimeObject,

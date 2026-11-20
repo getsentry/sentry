@@ -21,13 +21,6 @@ import type {
   TokenAttribute,
   TokenFunction,
 } from 'sentry/components/arithmeticBuilder/token';
-import {DeleteButton} from 'sentry/components/arithmeticBuilder/token/deleteButton';
-import {
-  ArgumentGridCell,
-  ArgumentGridRow,
-  useFunctionArgumentInput,
-  type FunctionArgumentInputProps,
-} from 'sentry/components/arithmeticBuilder/token/useFunctionArgumentInput';
 import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
 import {itemIsSection} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import {useGridList} from 'sentry/components/tokenizedInput/grid/useGridList';
@@ -37,6 +30,14 @@ import {InputBox} from 'sentry/components/tokenizedInput/token/inputBox';
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {FieldKind, FieldValueType, prettifyTagKey} from 'sentry/utils/fields';
+
+import {DeleteButton} from './deleteButton';
+import {
+  ArgumentGridCell,
+  ArgumentGridRow,
+  useFunctionArgumentInput,
+  type FunctionArgumentInputProps,
+} from './useFunctionArgumentInput';
 
 function resolveArgumentDisplayLabel(
   parameterDefinition:
@@ -153,10 +154,7 @@ function ArgumentsGrid({
 
   const [args, setArguments] = useState(
     functionToken.attributes.map((attr, index) => {
-      return {
-        label: resolveArgumentLabel(index, attr.attribute),
-        value: attr.text,
-      };
+      return {label: resolveArgumentLabel(index, attr.attribute), value: attr.text};
     })
   );
 
@@ -259,11 +257,7 @@ function ArgumentsGridList({
     },
   });
 
-  const {gridProps} = useGridList({
-    props,
-    state,
-    ref,
-  });
+  const {gridProps} = useGridList({props, state, ref});
 
   // Shrink to fit beside the function name; do not grow to the full chip width
   // (that painted long filters over the name).

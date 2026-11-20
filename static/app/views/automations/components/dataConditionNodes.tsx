@@ -5,16 +5,17 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
+
 import {
   AgeComparisonDetails,
   AgeComparisonNode,
   validateAgeComparisonCondition,
-} from 'sentry/views/automations/components/actionFilters/ageComparison';
+} from './actionFilters/ageComparison';
 import {
   AssignedToDetails,
   AssignedToNode,
   validateAssignedToCondition,
-} from 'sentry/views/automations/components/actionFilters/assignedTo';
+} from './actionFilters/assignedTo';
 import {
   AgeComparison,
   Attribute,
@@ -25,74 +26,70 @@ import {
   Priority,
   TargetType,
   TimeUnit,
-} from 'sentry/views/automations/components/actionFilters/constants';
+} from './actionFilters/constants';
 import {
   EventAttributeDetails,
   EventAttributeNode,
   validateEventAttributeCondition,
-} from 'sentry/views/automations/components/actionFilters/eventAttribute';
+} from './actionFilters/eventAttribute';
 import {
   EventFrequencyCountDetails,
   EventFrequencyNode,
   EventFrequencyPercentDetails,
   validateEventFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventFrequency';
+} from './actionFilters/eventFrequency';
 import {
   EventUniqueUserFrequencyCountDetails,
   EventUniqueUserFrequencyNode,
   EventUniqueUserFrequencyPercentDetails,
   validateEventUniqueUserFrequencyCondition,
-} from 'sentry/views/automations/components/actionFilters/eventUniqueUserFrequency';
+} from './actionFilters/eventUniqueUserFrequency';
 import {
   IssueCategoryDetails,
   IssueCategoryNode,
   validateIssueCategoryCondition,
-} from 'sentry/views/automations/components/actionFilters/issueCategory';
+} from './actionFilters/issueCategory';
 import {
   IssueOccurrencesDetails,
   IssueOccurrencesNode,
   validateIssueOccurrencesCondition,
-} from 'sentry/views/automations/components/actionFilters/issueOccurrences';
+} from './actionFilters/issueOccurrences';
 import {
   IssuePriorityDetails,
   IssuePriorityNode,
   validateIssuePriorityCondition,
-} from 'sentry/views/automations/components/actionFilters/issuePriority';
-import {IssuePriorityDeescalating} from 'sentry/views/automations/components/actionFilters/issuePriorityDeescalating';
+} from './actionFilters/issuePriority';
+import {IssuePriorityDeescalating} from './actionFilters/issuePriorityDeescalating';
 import {
   IssueTypeDetails,
   IssueTypeNode,
   validateIssueTypeCondition,
-} from 'sentry/views/automations/components/actionFilters/issueType';
+} from './actionFilters/issueType';
 import {
   LatestAdoptedReleaseDetails,
   LatestAdoptedReleaseNode,
   validateLatestAdoptedReleaseCondition,
-} from 'sentry/views/automations/components/actionFilters/latestAdoptedRelease';
-import {LatestReleaseNode} from 'sentry/views/automations/components/actionFilters/latestRelease';
-import {
-  LevelDetails,
-  LevelNode,
-  validateLevelCondition,
-} from 'sentry/views/automations/components/actionFilters/level';
+} from './actionFilters/latestAdoptedRelease';
+import {LatestReleaseNode} from './actionFilters/latestRelease';
+import {LevelDetails, LevelNode, validateLevelCondition} from './actionFilters/level';
 import {
   PercentSessionsCountDetails,
   PercentSessionsNode,
   PercentSessionsPercentDetails,
   validatePercentSessionsCondition,
-} from 'sentry/views/automations/components/actionFilters/percentSessions';
+} from './actionFilters/percentSessions';
 import {
   SeerActivityTriggerDetails,
   SeerActivityTriggerNode,
   validateSeerActivityTriggerCondition,
-} from 'sentry/views/automations/components/actionFilters/seerActivityTrigger';
+} from './actionFilters/seerActivityTrigger';
 import {
   TaggedEventDetails,
   TaggedEventNode,
   validateTaggedEventCondition,
-} from 'sentry/views/automations/components/actionFilters/taggedEvent';
-import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
-import type {DataConditionNodeComponentProps} from 'sentry/views/automations/components/dataConditionNodeContext';
+} from './actionFilters/taggedEvent';
+import type {ValidateDataConditionProps} from './automationFormData';
+import type {DataConditionNodeComponentProps} from './dataConditionNodeContext';
 
 type DataConditionNode = {
   label: string;
@@ -106,52 +103,31 @@ type DataConditionNode = {
 export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNode>([
   [
     DataConditionType.FIRST_SEEN_EVENT,
-    {
-      label: t('A new issue is created'),
-      validate: undefined,
-    },
+    {label: t('A new issue is created'), validate: undefined},
   ],
   [
     DataConditionType.ISSUE_RESOLVED_TRIGGER,
-    {
-      label: t('An issue is resolved'),
-      validate: undefined,
-    },
+    {label: t('An issue is resolved'), validate: undefined},
   ],
   [
     DataConditionType.EVERY_EVENT,
-    {
-      label: t('An event or issue activity is captured'),
-      validate: undefined,
-    },
+    {label: t('An event or issue activity is captured'), validate: undefined},
   ],
   [
     DataConditionType.REGRESSION_EVENT,
-    {
-      label: t('A resolved issue regresses'),
-      validate: undefined,
-    },
+    {label: t('A resolved issue regresses'), validate: undefined},
   ],
   [
     DataConditionType.REAPPEARED_EVENT,
-    {
-      label: t('An issue escalates'),
-      validate: undefined,
-    },
+    {label: t('An issue escalates'), validate: undefined},
   ],
   [
     DataConditionType.NEW_HIGH_PRIORITY_ISSUE,
-    {
-      label: t('Sentry marks a new issue as high priority'),
-      validate: undefined,
-    },
+    {label: t('Sentry marks a new issue as high priority'), validate: undefined},
   ],
   [
     DataConditionType.EXISTING_HIGH_PRIORITY_ISSUE,
-    {
-      label: t('Sentry marks an existing issue as high priority'),
-      validate: undefined,
-    },
+    {label: t('Sentry marks an existing issue as high priority'), validate: undefined},
   ],
   [
     DataConditionType.SEER_ACTIVITY_TRIGGER,
@@ -266,10 +242,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Event attribute'),
       dataCondition: EventAttributeNode,
       details: EventAttributeDetails,
-      defaultComparison: {
-        attribute: Attribute.MESSAGE,
-        match: MatchType.CONTAINS,
-      },
+      defaultComparison: {attribute: Attribute.MESSAGE, match: MatchType.CONTAINS},
       validate: validateEventAttributeCondition,
       warningMessage: OccurenceBasedMonitorsWarning,
     },
@@ -280,9 +253,7 @@ export const dataConditionNodesMap = new Map<DataConditionType, DataConditionNod
       label: t('Tagged event'),
       dataCondition: TaggedEventNode,
       details: TaggedEventDetails,
-      defaultComparison: {
-        match: MatchType.CONTAINS,
-      },
+      defaultComparison: {match: MatchType.CONTAINS},
       validate: validateTaggedEventCondition,
     },
   ],

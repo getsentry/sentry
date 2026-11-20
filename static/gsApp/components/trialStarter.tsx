@@ -47,10 +47,7 @@ function TrialStarter(props: Props) {
     }
 
     try {
-      await api.requestPromise(url, {
-        method: 'PUT',
-        data,
-      });
+      await api.requestPromise(url, {method: 'PUT', data});
     } catch (err) {
       props.onTrialFailed?.(err as Error);
       setTrialStarting(false);

@@ -16,8 +16,9 @@ import type {Action} from 'sentry/types/workflowEngine/actions';
 import {ActionGroup, ActionType} from 'sentry/types/workflowEngine/actions';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {ActionNodeContext} from 'sentry/views/automations/components/actionNodeContext';
-import {TicketActionSettingsButton} from 'sentry/views/automations/components/actions/ticketActionSettingsButton';
 import {AutomationFormProvider} from 'sentry/views/automations/components/forms/context';
+
+import {TicketActionSettingsButton} from './ticketActionSettingsButton';
 
 function renderComponent({
   action,
@@ -58,11 +59,7 @@ function mockIntegrationConfig(integrationId: string, fieldNames: string[] = [])
   return MockApiClient.addMockResponse({
     url: `/organizations/org-slug/integrations/${integrationId}/`,
     body: {
-      createIssueConfig: fieldNames.map(name => ({
-        name,
-        label: name,
-        type: 'string',
-      })),
+      createIssueConfig: fieldNames.map(name => ({name, label: name, type: 'string'})),
     },
   });
 }
@@ -165,10 +162,7 @@ describe('TicketActionSettingsButton', () => {
       id: '42',
       type: ActionType.JIRA,
       integrationId: 'int-1',
-      data: {
-        additional_fields: {project: 'DIRECT'},
-        dynamic_form_fields: [],
-      },
+      data: {additional_fields: {project: 'DIRECT'}, dynamic_form_fields: []},
     });
 
     const automation = AutomationFixture({

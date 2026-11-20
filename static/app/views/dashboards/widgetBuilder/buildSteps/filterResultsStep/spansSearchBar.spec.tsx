@@ -4,7 +4,8 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import type {TagValue} from 'sentry/types/group';
-import {SpansSearchBar} from 'sentry/views/dashboards/widgetBuilder/buildSteps/filterResultsStep/spansSearchBar';
+
+import {SpansSearchBar} from './spansSearchBar';
 
 // The endpoint seems to just return these fields, but the original TagValue type
 // has extra fields related to user information that we don't seem to need.
@@ -117,9 +118,7 @@ describe('SpansSearchBar', () => {
       />
     );
 
-    const searchInput = await screen.findByRole('combobox', {
-      name: 'Add a search term',
-    });
+    const searchInput = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:', {delay: null});
     await userEvent.keyboard('function', {delay: null});
@@ -144,9 +143,7 @@ describe('SpansSearchBar', () => {
       />
     );
 
-    const searchInput = await screen.findByRole('combobox', {
-      name: 'Add a search term',
-    });
+    const searchInput = await screen.findByRole('combobox', {name: 'Add a search term'});
     await userEvent.click(searchInput);
     await userEvent.type(searchInput, 'span.op:', {delay: null});
     await userEvent.keyboard('{enter}', {delay: null});

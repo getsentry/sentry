@@ -3,7 +3,8 @@ from __future__ import annotations
 import logging
 from collections import defaultdict
 from collections.abc import Sequence
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
+from typing import TypedDict
 
 from google.protobuf.timestamp_pb2 import Timestamp
 from sentry_protos.billing.v1.data_category_pb2 import DataCategory as ProtoDataCategory
@@ -52,10 +53,23 @@ _QUERY_LIMIT = 10000
 _BILLABLE_OUTCOMES = [Outcome.ACCEPTED, Outcome.FILTERED, Outcome.RATE_LIMITED]
 
 
+class _OutcomeRow(TypedDict):
+    category: int
+    time: str
+    max_ts: str
+    total: int
+    accepted: int
+    dropped: int
+    filtered: int
+    over_quota: int
+    spike_protection: int
+    dynamic_sampling: int
+
+
 def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     org_id = request.organization_id
     start = _timestamp_to_datetime(request.start)
-    end = _inclusive_end_to_exclusive(request.end)
+    end = _timestamp_to_datetime(request.end)
     # Proto categories use different int values from Relay/ClickHouse
     # (e.g., proto ATTACHMENT=3 vs Relay ATTACHMENT=4). Convert before querying.
     categories = [proto_to_sentry_category(c) for c in request.categories]
@@ -78,7 +92,7 @@ def query_outcomes_usage(request: GetUsageRequest) -> GetUsageResponse:
     return _build_response(rows, _latest_usage_timestamp(rows))
 
 
-def _latest_usage_timestamp(rows: list[dict]) -> datetime | None:
+def _latest_usage_timestamp(rows: Sequence[_OutcomeRow]) -> datetime | None:
     last_usage_ts: datetime | None = None
     for row in rows:
         row_max = row.get("max_ts")
@@ -139,7 +153,7 @@ def _build_query(
     )
 
 
-def _build_response(rows: list[dict], last_usage_ts: datetime | None) -> GetUsageResponse:
+def _build_response(rows: list[_OutcomeRow], last_usage_ts: datetime | None) -> GetUsageResponse:
     # Two-level accumulator: days_map[day_str][category_id] -> category usage.
     # Each row already contains all 7 sumIf-aggregated fields from ClickHouse.
     #
@@ -220,7 +234,7 @@ def _usage_aggregates(total_outcomes: Sequence[int] | None) -> list[Function]:
     ]
 
 
-def _category_usage_from_row(row: dict) -> CategoryUsage | None:
+def _category_usage_from_row(row: _OutcomeRow) -> CategoryUsage | None:
     category = sentry_to_proto_category(int(row["category"]))
     if category == ProtoDataCategory.DATA_CATEGORY_UNKNOWN:
         # Sentry category has no proto mapping; skipping prevents it
@@ -294,11 +308,6 @@ def _over_quota_condition() -> Function:
 
 def _timestamp_to_datetime(ts: Timestamp) -> datetime:
     return ts.ToDatetime(tzinfo=timezone.utc)
-
-
-def _inclusive_end_to_exclusive(ts: Timestamp) -> datetime:
-    """Convert the API's inclusive end day to Snuba's exclusive boundary."""
-    return _timestamp_to_datetime(ts) + timedelta(days=1)
 
 
 def _parse_day(value: str) -> Date:

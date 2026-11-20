@@ -6,12 +6,13 @@ import {usePersistedLogsPageParams} from 'sentry/views/explore/contexts/logs/log
 import {Mode} from 'sentry/views/explore/contexts/pageParamsContext/mode';
 import {useLogItemAttributes} from 'sentry/views/explore/hooks/useTraceItemAttributes';
 import {useValidatedExploreColumns} from 'sentry/views/explore/hooks/useValidatedExploreColumns';
-import {HiddenLogSearchFields} from 'sentry/views/explore/logs/constants';
-import {useValidateLogsTab} from 'sentry/views/explore/logs/useValidateLogsTab';
 import {
   useQueryParamsMode,
   useSetQueryParamsFields,
 } from 'sentry/views/explore/queryParams/context';
+
+import {HiddenLogSearchFields} from './constants';
+import {useValidateLogsTab} from './useValidateLogsTab';
 
 export function useValidatedLogsTabColumns() {
   const organization = useOrganization();
@@ -68,10 +69,7 @@ export function useValidatedLogsTabColumns() {
 
   const onColumnsChange = useCallback(
     (newFields: string[]) => {
-      setPersistentParams(prev => ({
-        ...prev,
-        fields: newFields,
-      }));
+      setPersistentParams(prev => ({...prev, fields: newFields}));
       setFields(newFields);
     },
     [setFields, setPersistentParams]

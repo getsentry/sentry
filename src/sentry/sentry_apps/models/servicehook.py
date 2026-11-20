@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import hmac
 import secrets
 from functools import cached_property
 from hashlib import sha256
-from typing import Any, ClassVar, Self
+from typing import TYPE_CHECKING, Any, ClassVar, Self
 from uuid import uuid4
 
 from django.contrib.postgres.fields.array import ArrayField
@@ -25,6 +27,9 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.db.models.manager.base import BaseManager
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryApp
+
+if TYPE_CHECKING:
+    from sentry.models.project import Project
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -84,7 +89,7 @@ class ServiceHook(Model):
     __repr__ = sane_repr("guid", "project_id")
 
     @property
-    def created_by_sentry_app(self):
+    def created_by_sentry_app(self) -> int | bool | None:
         return self.application_id and bool(self.sentry_app)
 
     @cached_property
@@ -94,7 +99,7 @@ class ServiceHook(Model):
         else:
             return app_service.get_by_application_id(application_id=self.application_id)
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: object, **kwargs: object) -> None:
         super().__init__(*args, **kwargs)
         if self.guid is None:
             self.guid = uuid4().hex
@@ -102,15 +107,15 @@ class ServiceHook(Model):
     def __str__(self) -> str:
         return str(self.guid)
 
-    def build_signature(self, body):
+    def build_signature(self, body: str) -> str:
         return hmac.new(
             key=self.secret.encode("utf-8"), msg=body.encode("utf-8"), digestmod=sha256
         ).hexdigest()
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, str]:
         return {"url": self.url}
 
-    def add_project(self, project_or_project_id):
+    def add_project(self, project_or_project_id: Project | int) -> None:
         """
         Add a project to the service hook.
         """

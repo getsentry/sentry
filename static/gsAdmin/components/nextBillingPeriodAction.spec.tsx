@@ -8,7 +8,7 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import {closeModal} from '@sentry/scraps/modal';
 
 import {triggerEndPeriodEarlyModal} from 'admin/components/nextBillingPeriodAction';
 
@@ -17,15 +17,11 @@ describe('NextBillingPeriodAction', () => {
   const subscription = SubscriptionFixture({organization});
   const onSuccess = jest.fn();
 
-  const modalProps = {
-    orgId: organization.slug,
-    onSuccess,
-    subscription,
-  };
+  const modalProps = {orgId: organization.slug, onSuccess, subscription};
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     jest.clearAllMocks();
   });
 
@@ -46,10 +42,7 @@ describe('NextBillingPeriodAction', () => {
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {endPeriodEarly: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {endPeriodEarly: true}})
       );
     });
 

@@ -31,10 +31,7 @@ export function getUploadSourceMapsStep({
   docsFlow,
   isSelfHosted,
   description,
-}: DocsParams & {
-  description?: React.ReactNode;
-  guideLink?: string;
-}): OnboardingStep {
+}: DocsParams & {description?: React.ReactNode; guideLink?: string}): OnboardingStep {
   function trackEvent(eventName: string) {
     trackAnalytics(eventName, {
       project_id: project.id,
@@ -54,9 +51,7 @@ export function getUploadSourceMapsStep({
           description ??
           tct(
             'Automatically upload your source maps to enable readable stack traces for Errors. If you prefer to manually set up source maps, please follow [guideLink:this guide].',
-            {
-              guideLink: <ExternalLink href={guideLink} />,
-            }
+            {guideLink: <ExternalLink href={guideLink} />}
           ),
       },
       {
@@ -73,11 +68,7 @@ export function getUploadSourceMapsStep({
               )
             }
           >
-            {getSourceMapsWizardSnippet({
-              isSelfHosted,
-              organization,
-              project,
-            })}
+            {getSourceMapsWizardSnippet({isSelfHosted, organization, project})}
           </OnboardingCodeSnippet>
         ),
       },
@@ -206,10 +197,7 @@ export function getDataCollectionStep({
         type: 'text',
         text: tct(
           "To send less data, turn off the categories you don't need in the [code:dataCollection] option. For the full list of categories and their defaults, see [link:the dataCollection options].",
-          {
-            code: <code />,
-            link: <ExternalLink href={docsLink} />,
-          }
+          {code: <code />, link: <ExternalLink href={docsLink} />}
         ),
       },
       {
@@ -256,16 +244,7 @@ export function getAISetupStep({sdkName}: {sdkName?: string}): OnboardingStep {
           'If you want your AI coding assistant to help you set up Sentry, copy this prompt and paste it into your agent:'
         ),
       },
-      {
-        type: 'code',
-        tabs: [
-          {
-            label: 'Prompt',
-            language: 'text',
-            code: prompt,
-          },
-        ],
-      },
+      {type: 'code', tabs: [{label: 'Prompt', language: 'text', code: prompt}]},
     ],
   };
 }

@@ -22,20 +22,23 @@ import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {getAvailableEnvironments} from 'sentry/components/pageFilters/environment/getAvailableEnvironments';
-import {ProjectPageFilterTrigger} from 'sentry/components/pageFilters/project/projectPageFilterTrigger';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {useStagedCompactSelect} from 'sentry/components/pageFilters/useStagedCompactSelect';
 import {BookmarkStar} from 'sentry/components/projects/bookmarkStar';
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import type {SettingsEntryPoint} from 'sentry/utils/analytics/settingsAnalyticsEvents';
 import {getRouteStringFromRoutes} from 'sentry/utils/getRouteStringFromRoutes';
+import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
+
+import {ProjectPageFilterTrigger} from './projectPageFilterTrigger';
 
 /**
  * Maximum number of projects that can be selected at a time (due to server limits). This
@@ -99,11 +102,7 @@ export function ProjectPageFilter({
   );
 
   const committedSelectionIntent = useMemo(
-    () =>
-      urlSelectionToIntent({
-        projects,
-        urlSelection: urlProjectSelection,
-      }),
+    () => urlSelectionToIntent({projects, urlSelection: urlProjectSelection}),
     [urlProjectSelection, projects]
   );
 
@@ -119,10 +118,7 @@ export function ProjectPageFilter({
   const [stagedValue, setStagedValue] = useState(committedSelectionIntent.ids);
 
   const options = useMemo<Array<SelectOption<number>>>(() => {
-    const optionSelectionIntent = selectionToIntent({
-      projects,
-      selection: stagedValue,
-    });
+    const optionSelectionIntent = selectionToIntent({projects, selection: stagedValue});
 
     const getProjectItem = (project: Project) => {
       return {
@@ -180,10 +176,8 @@ export function ProjectPageFilter({
                     aria-label={t('Open Project Details')}
                     tooltipProps={{title: t('Open Project Details'), delay: 400}}
                     to={
-                      makeProjectsPathname({
-                        path: `/${project.slug}/`,
-                        organization,
-                      }) + `?project=${project.id}`
+                      makeProjectsPathname({path: `/${project.slug}/`, organization}) +
+                      `?project=${project.id}`
                     }
                   />
                   <LinkButton
@@ -193,6 +187,11 @@ export function ProjectPageFilter({
                     tooltipProps={{title: t('Open Project Settings'), delay: 400}}
                     aria-label={t('Open Project Settings')}
                     to={`/settings/${organization.slug}/projects/${project.slug}/`}
+                    analyticsEventKey="settings.entry_point_clicked"
+                    analyticsEventName="Settings: Entry Point Clicked"
+                    analyticsParams={{
+                      entry_point: 'project_page_filter' satisfies SettingsEntryPoint,
+                    }}
                   />
                 </Fragment>
               ) : null}
@@ -312,10 +311,7 @@ export function ProjectPageFilter({
                     }
                     if (optionSelectionIntent.kind === 'my') {
                       // Deselect My Projects
-                      dispatchRef.current?.({
-                        type: 'set staged',
-                        value: [],
-                      });
+                      dispatchRef.current?.({type: 'set staged', value: []});
                       return;
                     }
                     // For 'custom' or 'none': select My Projects
@@ -379,24 +375,15 @@ export function ProjectPageFilter({
         ? memberProjectIds(projects)
         : urlProjectSelection;
 
-    const listSort = (project: Project) =>
-      bookmarkedSnapshotRef.current
-        ? [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !bookmarkedSnapshotRef.current.has(project.id),
-            !project.isMember,
-            project.slug,
-          ]
-        : [
-            !lastSelected.includes(parseInt(project.id, 10)),
-            !project.isMember,
-            project.slug,
-          ];
-
+    // sortBy is stable, so selected projects move to the top and keep their
+    // relative order.
     const projectItems = sortBy(
-      [...memberProjectList, ...nonMemberProjectList],
-      // oxlint-disable-next-line react/refs
-      listSort
+      sortProjectsByBookmarkAndMembership(
+        [...memberProjectList, ...nonMemberProjectList],
+        // oxlint-disable-next-line react/refs
+        bookmarkedSnapshotRef.current
+      ),
+      project => !lastSelected.includes(parseInt(project.id, 10))
     ).map(getProjectItem);
 
     return [...specialItems, ...projectItems];
@@ -407,10 +394,7 @@ export function ProjectPageFilter({
 
   // Selection staging and commit behavior
   const selectionLimitExceeded = useMemo(() => {
-    const stagedSelectionIntent = selectionToIntent({
-      projects,
-      selection: stagedValue,
-    });
+    const stagedSelectionIntent = selectionToIntent({projects, selection: stagedValue});
 
     if (stagedSelectionIntent.kind === 'my') {
       return false;
@@ -444,10 +428,7 @@ export function ProjectPageFilter({
   };
 
   const onReplace = () => {
-    trackAnalytics('projectselector.direct_selection', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.direct_selection', {path: routePath, organization});
   };
 
   const commitSelection = (newValue: number[]) => {
@@ -536,17 +517,11 @@ export function ProjectPageFilter({
     clearDraftSelectionState();
     commitSelection(memberProjectIds(projects));
 
-    trackAnalytics('projectselector.clear', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.clear', {path: routePath, organization});
   };
 
   const handleCancel = () => {
-    trackAnalytics('projectselector.cancel', {
-      path: routePath,
-      organization,
-    });
+    trackAnalytics('projectselector.cancel', {path: routePath, organization});
     clearDraftSelectionState();
   };
 
@@ -581,10 +556,7 @@ export function ProjectPageFilter({
         <MenuComponents.Alert variant="warning">
           {tct(
             "You've selected [count] projects, but only up to [limit] can be selected at a time. Select All Projects to view all projects.",
-            {
-              limit: SELECTION_COUNT_LIMIT,
-              count: stagedSelect.value.length,
-            }
+            {limit: SELECTION_COUNT_LIMIT, count: stagedSelect.value.length}
           )}
         </MenuComponents.Alert>
       )}
@@ -759,10 +731,7 @@ function urlSelectionToIntent({
     return {kind: 'my', ids: memberProjectIds(projects)};
   }
 
-  return selectionToIntent({
-    projects,
-    selection: urlSelection,
-  });
+  return selectionToIntent({projects, selection: urlSelection});
 }
 
 /**

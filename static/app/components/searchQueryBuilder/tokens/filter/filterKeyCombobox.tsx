@@ -9,7 +9,6 @@ import {
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
-import {getFilterValueType} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import type {SearchKeyItem} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/types';
 import {useSortedFilterKeyItems} from 'sentry/components/searchQueryBuilder/tokens/useSortedFilterKeyItems';
 import {
@@ -24,6 +23,8 @@ import type {
 import {getKeyLabel, getKeyName} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
+
+import {getFilterValueType} from './utils';
 
 type KeyComboboxProps = {
   item: Node<ParseResultToken>;
@@ -69,11 +70,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         // getInitialFilterText adds — so don't swap the key in place.
         newFieldDef?.kind !== FieldKind.ARRAY
       ) {
-        dispatch({
-          type: 'UPDATE_FILTER_KEY',
-          token,
-          key: keyName,
-        });
+        dispatch({type: 'UPDATE_FILTER_KEY', token, key: keyName});
         onCommit();
         return;
       }
@@ -82,10 +79,7 @@ export function FilterKeyCombobox({token, onCommit, item}: KeyComboboxProps) {
         type: 'REPLACE_TOKENS_WITH_TEXT_ON_SELECT',
         tokens: [token],
         text: getInitialFilterText(keyName, newFieldDef),
-        focusOverride: {
-          itemKey: item.key.toString(),
-          part: 'value',
-        },
+        focusOverride: {itemKey: item.key.toString(), part: 'value'},
       });
 
       onCommit();

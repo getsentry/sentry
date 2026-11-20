@@ -11,6 +11,7 @@ from sentry.issues.endpoints.bases.group import GroupAiEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
 from sentry.seer.agent.client import SeerAgentClient
+from sentry.seer.autofix.feature.models import FEATURE_ID, SINGLE_RUN_FEATURE_ID
 from sentry.seer.models import SeerApiError, SeerPermissionError
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -48,12 +49,17 @@ class GroupAutofixReposEndpoint(GroupAiEndpoint):
                 status=status.HTTP_403_FORBIDDEN,
             )
 
-        run = client.latest_run(group_id=group.id)
+        assert group.id is not None
+        run = client.latest_run(group_id=group.id, sources=(FEATURE_ID, SINGLE_RUN_FEATURE_ID))
         if run is None:
             return Response({"repos": []}, status=status.HTTP_200_OK)
 
+        run_state_id = run.run.seer_run_state_id
+        if run_state_id is None:
+            return Response({"repos": []}, status=status.HTTP_200_OK)
+
         try:
-            response = client.get_repos(run.run.seer_run_state_id)
+            response = client.get_repos(run_state_id)
         except Exception:
             return Response(
                 {"detail": "Failed to reach Seer"},

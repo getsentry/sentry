@@ -6,8 +6,9 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {makeDetailedProjectQueryKey} from 'sentry/utils/project/useDetailedProject';
-import {useUpdateProject} from 'sentry/utils/project/useUpdateProject';
+
+import {makeDetailedProjectQueryKey} from './useDetailedProject';
+import {useUpdateProject} from './useUpdateProject';
 
 describe('useUpdateProject', () => {
   const organization = {slug: 'org-slug'};
@@ -52,10 +53,7 @@ describe('useUpdateProject', () => {
 
     expect(mock).toHaveBeenCalledWith(
       projectEndpoint,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {name: 'Updated Project'},
-      })
+      expect.objectContaining({method: 'PUT', data: {name: 'Updated Project'}})
     );
     expect(queryClient.getQueryData(queryKey)?.json).toMatchObject({
       name: 'Updated Project',
@@ -78,13 +76,7 @@ describe('useUpdateProject', () => {
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
-      body: {
-        ...project,
-        options: {
-          ...project.options,
-          'sentry:new-option': false,
-        },
-      },
+      body: {...project, options: {...project.options, 'sentry:new-option': false}},
     });
 
     const {result} = renderHookWithProviders(() => useUpdateProject(project), {
@@ -108,10 +100,7 @@ describe('useUpdateProject', () => {
 
     await waitFor(() =>
       expect(queryClient.getQueryData(queryKey)?.json).toMatchObject({
-        options: {
-          'sentry:existing-option': true,
-          'sentry:new-option': false,
-        },
+        options: {'sentry:existing-option': true, 'sentry:new-option': false},
       })
     );
   });

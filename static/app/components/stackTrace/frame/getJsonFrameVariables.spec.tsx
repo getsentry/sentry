@@ -1,5 +1,5 @@
-import {getFrameVariableCopyText} from 'sentry/components/stackTrace/frame/getFrameVariableCopyText';
-import {getJsonFrameVariables} from 'sentry/components/stackTrace/frame/getJsonFrameVariables';
+import {getFrameVariableCopyText} from './getFrameVariableCopyText';
+import {getJsonFrameVariables} from './getJsonFrameVariables';
 
 it('sorts variables and preserves scalar kinds and nested annotations without type labels', () => {
   const removedMeta = {rem: [['!config', 'x']]};
@@ -20,12 +20,7 @@ it('sorts variables and preserves scalar kinds and nested annotations without ty
   expect(variables).toStrictEqual([
     {name: 'count', kind: 'number', value: '42', meta: undefined},
     {name: 'empty', kind: 'null', meta: undefined},
-    {
-      name: 'enabled',
-      kind: 'boolean',
-      value: 'true',
-      meta: undefined,
-    },
+    {name: 'enabled', kind: 'boolean', value: 'true', meta: undefined},
     {
       name: 'items',
       kind: 'array',

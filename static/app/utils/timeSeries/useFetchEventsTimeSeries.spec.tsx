@@ -15,12 +15,7 @@ describe('useFetchEventsTimeSeries', () => {
   beforeEach(() => {
     PageFiltersStore.onInitializeUrlState(
       PageFiltersFixture({
-        datetime: {
-          period: '10d',
-          start: null,
-          end: null,
-          utc: false,
-        },
+        datetime: {period: '10d', start: null, end: null, utc: false},
         environments: ['prod'],
         projects: [42],
       })
@@ -28,7 +23,6 @@ describe('useFetchEventsTimeSeries', () => {
   });
 
   afterEach(() => {
-    PageFiltersStore.reset();
     jest.resetAllMocks();
   });
 
@@ -40,13 +34,7 @@ describe('useFetchEventsTimeSeries', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useFetchEventsTimeSeries(
-        DiscoverDatasets.SPANS,
-        {
-          yAxis: 'epm()',
-        },
-        REFERRER
-      )
+      useFetchEventsTimeSeries(DiscoverDatasets.SPANS, {yAxis: 'epm()'}, REFERRER)
     );
 
     await waitFor(() => expect(result.current.isPending).toBe(false));
@@ -54,10 +42,7 @@ describe('useFetchEventsTimeSeries', () => {
     expect(request).toHaveBeenCalledTimes(1);
     expect(request).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.anything(),
-      })
+      expect.objectContaining({method: 'GET', query: expect.anything()})
     );
   });
 
@@ -71,10 +56,7 @@ describe('useFetchEventsTimeSeries', () => {
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
-        {
-          yAxis: ['epm()'],
-          enabled: false,
-        },
+        {yAxis: ['epm()'], enabled: false},
         REFERRER
       )
     );
@@ -116,10 +98,7 @@ describe('useFetchEventsTimeSeries', () => {
       renderHookWithProviders(() =>
         useFetchEventsTimeSeries(
           DiscoverDatasets.SPANS,
-          {
-            yAxis: ['epm()'],
-            enabled: false,
-          },
+          {yAxis: ['epm()'], enabled: false},
           ''
         )
       );
@@ -136,10 +115,7 @@ describe('useFetchEventsTimeSeries', () => {
     const {result} = renderHookWithProviders(() =>
       useFetchEventsTimeSeries(
         DiscoverDatasets.SPANS,
-        {
-          yAxis: 'p50(span.duration)',
-          query: new MutableSearch('span.op:db*'),
-        },
+        {yAxis: 'p50(span.duration)', query: new MutableSearch('span.op:db*')},
         REFERRER
       )
     );
@@ -185,12 +161,7 @@ describe('useFetchEventsTimeSeries', () => {
           pageFilters: {
             environments: ['dev'],
             projects: [420],
-            datetime: {
-              start: '2020-01-01',
-              end: '2020-01-02',
-              period: null,
-              utc: true,
-            },
+            datetime: {start: '2020-01-01', end: '2020-01-02', period: null, utc: true},
           },
         },
         REFERRER
@@ -237,10 +208,7 @@ describe('useFetchEventsTimeSeries', () => {
           yAxis: 'p50(span.duration)',
           topEvents: 5,
           groupBy: ['span.category', 'transaction'],
-          sort: {
-            field: 'p50(span.duration)',
-            kind: 'desc',
-          },
+          sort: {field: 'p50(span.duration)', kind: 'desc'},
         },
         REFERRER
       )

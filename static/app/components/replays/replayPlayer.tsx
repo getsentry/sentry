@@ -4,16 +4,13 @@ import {useResizeObserver} from '@react-aria/utils';
 
 import {NegativeSpaceContainer} from 'sentry/components/container/negativeSpaceContainer';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
-import {BufferingOverlay} from 'sentry/components/replays/player/bufferingOverlay';
-import {FastForwardBadge} from 'sentry/components/replays/player/fastForwardBadge';
-import {
-  baseReplayerCss,
-  sentryReplayerCss,
-} from 'sentry/components/replays/player/styles';
-import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayPlayerSize} from 'sentry/utils/replays/playback/providers/replayPlayerSizeContext';
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 
+import {BufferingOverlay} from './player/bufferingOverlay';
+import {FastForwardBadge} from './player/fastForwardBadge';
+import {baseReplayerCss, sentryReplayerCss} from './player/styles';
+import {useReplayContext} from './replayContext';
 import {UnmaskAlert} from './unmaskAlert';
 
 interface Props {
@@ -67,10 +64,7 @@ function BasePlayerRoot({
   const windowEl = useRef<HTMLDivElement>(null);
   const viewEl = useRef<HTMLDivElement>(null);
 
-  const [windowDimensions, setWindowDimensions] = useState({
-    width: 0,
-    height: 0,
-  });
+  const [windowDimensions, setWindowDimensions] = useState({width: 0, height: 0});
 
   // Sets the parent element where the player
   // instance will use as root (i.e. where it will

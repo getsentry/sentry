@@ -46,10 +46,7 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
     JSON.stringify({
       name: 'root',
       private: true,
-      scripts: {
-        'lint:js:root': 'node record.mjs',
-        'lint:css:root': 'node record.mjs',
-      },
+      scripts: {'lint:js:root': 'node record.mjs', 'lint:css:root': 'node record.mjs'},
     })
   );
   for (const name of ['icons', 'scraps', 'unmigrated']) {
@@ -60,10 +57,7 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
         scripts:
           name === 'unmigrated'
             ? {}
-            : {
-                'lint:js': 'node ../../record.mjs',
-                'lint:css': 'node ../../record.mjs',
-              },
+            : {'lint:js': 'node ../../record.mjs', 'lint:css': 'node ../../record.mjs'},
       })
     );
   }
@@ -311,12 +305,7 @@ test('native package fixes reduce only checked suppression counts', t => {
   const project = 'packages/icons';
   write(
     `${project}/package.json`,
-    JSON.stringify({
-      name: 'icons',
-      scripts: {
-        'lint:js': 'oxlint',
-      },
-    })
+    JSON.stringify({name: 'icons', scripts: {'lint:js': 'oxlint'}})
   );
   write(
     `${project}/.oxlintrc.json`,
@@ -326,10 +315,7 @@ test('native package fixes reduce only checked suppression counts', t => {
   write(`${project}/source.js`, 'debugger;\n');
   const original =
     JSON.stringify(
-      {
-        'other.js': {'no-debugger': {count: 1}},
-        'source.js': {'no-debugger': {count: 1}},
-      },
+      {'other.js': {'no-debugger': {count: 1}}, 'source.js': {'no-debugger': {count: 1}}},
       null,
       2
     ) + '\n';

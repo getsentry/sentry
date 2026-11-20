@@ -1,5 +1,4 @@
-import type {ApiResult} from 'sentry/types/api';
-
+import type {ApiResult} from './api';
 import type {ParntershipAgreementType} from './overrides';
 import type {User} from './user';
 
@@ -42,9 +41,7 @@ declare global {
      */
     __onSentryInit:
       | OnSentryInitConfiguration[]
-      | {
-          push: (config: OnSentryInitConfiguration) => void;
-        };
+      | {push: (config: OnSentryInitConfiguration) => void};
 
     /**
      * Used to open tooltips for testing purposes.
@@ -137,10 +134,7 @@ export interface Config {
   enableAnalytics: boolean;
   features: Set<string>;
   gravatarBaseUrl: string;
-  initialTrace: {
-    baggage: string;
-    sentry_trace: string;
-  };
+  initialTrace: {baggage: string; sentry_trace: string};
   invitesEnabled: boolean;
   isAuthenticated: boolean;
 
@@ -194,29 +188,16 @@ export interface Config {
    * @deprecated
    */
   user: User;
-  userIdentity: {
-    email: string;
-    id: string;
-    ip_address: string;
-    isStaff: boolean;
-  };
+  userIdentity: {email: string; id: string; ip_address: string; isStaff: boolean};
   validateSUForm: boolean;
-  version: {
-    build: string;
-    current: string;
-    latest: string;
-    upgradeAvailable: boolean;
-  };
+  version: {build: string; current: string; latest: string; upgradeAvailable: boolean};
   intercomAppId?: string;
   partnershipAgreementPrompt?: {
     agreements: ParntershipAgreementType[];
     partnerDisplayName: string;
   } | null;
   shouldShowBeaconConsentPrompt?: boolean;
-  statuspage?: {
-    api_host: string;
-    id: string;
-  };
+  statuspage?: {api_host: string; id: string};
 }
 
 export interface Broadcast {

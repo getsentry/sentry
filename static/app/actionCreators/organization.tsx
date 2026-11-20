@@ -1,7 +1,7 @@
 import * as Sentry from '@sentry/react';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {setActiveOrganization} from 'sentry/actionCreators/organizations';
+import {toast} from '@sentry/scraps/toast';
+
 import {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -18,15 +18,14 @@ import {
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 
+import {setActiveOrganization} from './organizations';
+
 async function fetchOrg(api: Client, slug: string): Promise<Organization> {
   const [org] = await api.requestPromise(
     getApiUrl('/organizations/$organizationIdOrSlug/', {
       path: {organizationIdOrSlug: slug},
     }),
-    {
-      includeAllArgs: true,
-      query: {detailed: 0, include_feature_flags: 1},
-    }
+    {includeAllArgs: true, query: {detailed: 0, include_feature_flags: 1}}
   );
 
   if (!org) {
@@ -64,10 +63,7 @@ async function fetchProjectsAndTeams(
     }),
     {
       includeAllArgs: true,
-      query: {
-        all_projects: 1,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
     }
   );
 
@@ -129,7 +125,7 @@ export async function fetchOrganizationDetails(api: Client, slug: string): Promi
         const errMessage = getErrorMessage(err);
 
         if (errMessage) {
-          addErrorMessage(errMessage);
+          toast.error(errMessage);
           // eslint-disable-next-line @typescript-eslint/only-throw-error
           throw errMessage;
         }

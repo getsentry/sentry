@@ -1,47 +1,40 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from datetime import date
-from typing import Any
+from collections.abc import Callable
+from typing import Any, cast
 from urllib.parse import parse_qsl, urlparse, urlunparse
 
 from django.conf import settings
-from django.contrib.auth.models import AnonymousUser
 from django.http import Http404, HttpRequest, HttpResponse
 from django.http.response import HttpResponseBase
 from django.shortcuts import get_object_or_404
+from rest_framework.response import Response
 
 from sentry.api.base import allow_cors_options
 from sentry.api.endpoints.setup_wizard import SETUP_WIZARD_CACHE_KEY, SETUP_WIZARD_CACHE_TIMEOUT
-from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project import STATUS_LABELS
-from sentry.api.utils import generate_locality_url
 from sentry.cache import default_cache
 from sentry.demo_mode.utils import is_demo_user
-from sentry.models.apitoken import ApiToken
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.projects.services.project.model import RpcProject
 from sentry.projects.services.project.service import project_service
-from sentry.projects.services.project_key.model import RpcProjectKey
-from sentry.projects.services.project_key.service import project_key_service
-from sentry.types.cell import CellResolutionError, get_locality_name_for_cell
-from sentry.types.token import AuthTokenType
-from sentry.users.models.user import User
-from sentry.users.services.user.model import RpcUser
 from sentry.utils import auth, json
 from sentry.utils.http import absolute_uri
-from sentry.utils.security.orgauthtoken_token import (
-    SystemUrlPrefixMissingException,
-    generate_token,
-    hash_token,
-)
+from sentry.utils.setup_wizard import get_cache_data, serialize_org_mapping
 from sentry.utils.urls import add_params_to_url
 from sentry.web.client_config import get_client_config
 from sentry.web.frontend.base import BaseView, control_silo_view
 from sentry.web.helpers import render_to_response
+
+
+def _allow_cors_options(
+    view: Callable[..., HttpResponseBase],
+) -> Callable[..., HttpResponseBase]:
+    return cast(
+        "Callable[..., HttpResponseBase]",
+        allow_cors_options(cast("Callable[..., Response]", view)),
+    )
 
 
 @control_silo_view
@@ -64,8 +57,8 @@ class SetupWizardView(BaseView):
             return self.redirect(add_params_to_url(redirect_to, request.GET))
         return super().handle_auth_required(request, *args, **kwargs)
 
-    @allow_cors_options
-    def get(self, request: HttpRequest, wizard_hash) -> HttpResponseBase:
+    @_allow_cors_options
+    def get(self, request: HttpRequest, wizard_hash: str) -> HttpResponseBase:
         """
         This opens a page where with an active session fill stuff into the cache
         Redirects to organization whenever cache has been deleted
@@ -98,9 +91,9 @@ class SetupWizardView(BaseView):
         ).order_by("-date_created")
 
         # {'us': {'org_ids': [...], 'projects': [...], 'keys': [...]}}
-        region_data_map: dict[str, dict[str, list[str]]] = defaultdict(lambda: defaultdict(list))
+        region_data_map: dict[str, dict[str, list[int]]] = defaultdict(lambda: defaultdict(list))
 
-        org_mappings_map = {}
+        org_mappings_map: dict[int, dict[str, object]] = {}
         for mapping in org_mappings:
             region_data_map[mapping.cell_name]["org_ids"].append(mapping.organization_id)
             serialized_mapping = serialize_org_mapping(mapping)
@@ -129,8 +122,8 @@ class SetupWizardView(BaseView):
 
         return render_to_response("sentry/setup-wizard.html", context, request)
 
-    @allow_cors_options
-    def post(self, request: HttpRequest, wizard_hash=None) -> HttpResponse:
+    @_allow_cors_options
+    def post(self, request: HttpRequest, wizard_hash: str | None = None) -> HttpResponse:
         """
         This updates the cache content for a specific hash
         """
@@ -184,103 +177,10 @@ class SetupWizardView(BaseView):
         default_cache.set(key, cache_data, SETUP_WIZARD_CACHE_TIMEOUT)
         return HttpResponse(status=200, content="{}", content_type="application/json")
 
-    @allow_cors_options
-    def options(self, request, *args, **kwargs):
+    @_allow_cors_options
+    def options(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().options(request, *args, **kwargs)
 
-    @allow_cors_options
-    def dispatch(self, request, *args, **kwargs):
+    @_allow_cors_options
+    def dispatch(self, request: HttpRequest, *args: Any, **kwargs: Any) -> HttpResponseBase:
         return super().dispatch(request, *args, **kwargs)
-
-
-def serialize_org_mapping(mapping: OrganizationMapping):
-    status = OrganizationStatus(mapping.status)
-    return {
-        "id": mapping.organization_id,
-        "name": mapping.name,
-        "slug": mapping.slug,
-        "region": mapping.cell_name,
-        "status": {"id": status.name.lower(), "name": status.label},
-    }
-
-
-def serialize_project_key(project_key: RpcProjectKey):
-    return {
-        "dsn": {"public": project_key.dsn_public},
-        "isActive": project_key.is_active,
-    }
-
-
-def serialize_project(project: RpcProject, organization: dict, keys: list[dict]):
-    return {
-        "slug": project.slug,
-        "id": project.id,
-        "name": project.name,
-        "platform": project.platform,
-        "status": STATUS_LABELS.get(project.status, "unknown"),
-        "organization": organization,
-        "keys": keys,
-    }
-
-
-def get_cache_data(
-    mapping: OrganizationMapping, project: RpcProject, user: User | AnonymousUser | RpcUser
-):
-    project_key = project_key_service.get_default_project_key(
-        organization_id=mapping.organization_id,
-        project_id=project.id,
-    )
-    if project_key is None:
-        raise Http404()
-
-    enriched_project = serialize_project(
-        project=project,
-        # The wizard only reads the a few fields so serializing the mapping should work fine
-        organization=serialize_org_mapping(mapping),
-        keys=[serialize_project_key(project_key)],
-    )
-
-    serialized_token = get_org_token(mapping, user)
-
-    return {"apiKeys": serialized_token, "projects": [enriched_project]}
-
-
-def get_token(mappings: list[OrganizationMapping], user: RpcUser):
-    can_use_org_tokens = len(mappings) == 1
-
-    # If only one org, try to generate an org auth token
-    if can_use_org_tokens:
-        mapping = mappings[0]
-        token = get_org_token(mapping=mapping, user=user)
-
-        if token is not None:
-            return token
-
-    # Otherwise, generate a user token
-    token = ApiToken.objects.create(
-        user_id=user.id,
-        scope_list=["project:releases"],
-        token_type=AuthTokenType.USER,
-        expires_at=None,
-    )
-    return serialize(token)
-
-
-def get_org_token(mapping: OrganizationMapping, user: User | RpcUser | AnonymousUser):
-    try:
-        token_str = generate_token(
-            mapping.slug, generate_locality_url(get_locality_name_for_cell(mapping.cell_name))
-        )
-    except (SystemUrlPrefixMissingException, CellResolutionError):
-        return None
-
-    token_hashed = hash_token(token_str)
-    token = OrgAuthToken.objects.create(
-        name=f"Generated by Sentry Wizard on {date.today()}",
-        organization_id=mapping.organization_id,
-        scope_list=["org:ci"],
-        created_by_id=user.id,
-        token_last_characters=token_str[-4:],
-        token_hashed=token_hashed,
-    )
-    return serialize(token, user, token=token_str)

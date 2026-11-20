@@ -1,8 +1,9 @@
 import {useCallback} from 'react';
 import {useQueryClient} from '@tanstack/react-query';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {createDashboard, fetchDashboard} from 'sentry/actionCreators/dashboards';
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -71,9 +72,9 @@ export function useDuplicateDashboard({onSuccess}: UseDuplicateDashboardProps) {
           view_type: viewType,
         });
         onSuccess?.(copiedDashboard);
-        addSuccessMessage(t('Dashboard duplicated'));
+        toast.success(t('Dashboard duplicated'));
       } catch (e) {
-        addErrorMessage(t('Error duplicating Dashboard'));
+        toast.error(t('Error duplicating Dashboard'));
       }
     },
     [api, queryClient, organization, onSuccess]
@@ -98,16 +99,14 @@ function copySavedFilters(target: DashboardDetails, source: DashboardDetails): v
     target.filters?.globalFilter ?? [],
     sourceFilters.globalFilter ?? []
   );
-  target.filters = {
-    ...sourceFilters,
-    globalFilter: mergedGlobalFilter,
-  };
+  target.filters = {...sourceFilters, globalFilter: mergedGlobalFilter};
   target.projects = source.projects;
   target.environment = source.environment;
   target.period = source.period;
   target.start = source.start;
   target.end = source.end;
   target.utc = source.utc;
+  target.queryPriority = source.queryPriority;
 }
 
 /**

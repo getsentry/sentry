@@ -5,10 +5,6 @@ import type {NewQuery} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {EventView, type EventData} from 'sentry/utils/discover/eventView';
 import {
-  useProgressiveQuery,
-  type RPCQueryExtras,
-} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {
   useQueryParamsCursor,
   useQueryParamsExtrapolate,
   useQueryParamsFields,
@@ -16,6 +12,9 @@ import {
 } from 'sentry/views/explore/queryParams/context';
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
+
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
+import {useProgressiveQuery, type RPCQueryExtras} from './useProgressiveQuery';
 
 interface UseExploreSpansTableOptions {
   enabled: boolean;
@@ -63,6 +62,7 @@ export function useExploreSpansTable({
   const dataset = useSpansDataset();
   const fields = useQueryParamsFields();
   const sortBys = useQueryParamsSortBys();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const fieldsKey = JSON.stringify(fields);
   const identityKey = useMemo(
@@ -74,12 +74,23 @@ export function useExploreSpansTable({
         limit,
         query,
         queryExtras,
+        samplingMode,
         selection.datetime,
         selection.environments,
         selection.projects,
         sortBys,
       ]),
-    [cursor, dataset, extrapolate, limit, query, queryExtras, selection, sortBys]
+    [
+      cursor,
+      dataset,
+      extrapolate,
+      limit,
+      query,
+      queryExtras,
+      samplingMode,
+      selection,
+      sortBys,
+    ]
   );
   const [requestState, setRequestState] = useState<SpanSamplesRequestState>({
     lastResolved: null,
@@ -124,7 +135,7 @@ export function useExploreSpansTable({
     queryHookImplementation: useExploreSpansTableImp, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
       cursor: visibleSamples ? '' : undefined,
-      enabled,
+      enabled: enabled && querySpeedReady,
       limit,
       query: constrainedQuery,
       queryExtras,
@@ -132,6 +143,7 @@ export function useExploreSpansTable({
     queryOptions: {
       canTriggerHighAccuracy,
       disableExtrapolation: !extrapolate,
+      samplingMode,
     },
   });
 
@@ -192,10 +204,7 @@ export function useExploreSpansTable({
     return {
       ...spansTableResult,
       requestIdentityKey: visibleSamples.identityKey,
-      result: {
-        ...spansTableResult.result,
-        pageLinks: visibleSamples.pageLinks,
-      },
+      result: {...spansTableResult.result, pageLinks: visibleSamples.pageLinks},
     };
   }, [identityKey, spansTableResult, visibleSamples]);
 }
@@ -250,7 +259,6 @@ function useExploreSpansTableImp({
     limit,
     referrer: 'api.explore.spans-samples-table',
     allowAggregateConditions: false,
-    trackResponseAnalytics: false,
     queryExtras,
   });
 

@@ -13,8 +13,8 @@ import type {ButtonProps} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
 import type {SelectValue} from '@sentry/scraps/select';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {Client} from 'sentry/api';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -177,11 +177,7 @@ function buildAsyncSelectQuery(
   query: string,
   dynamicFieldValues?: Record<string, unknown>
 ): Record<string, unknown> {
-  return {
-    ...dynamicFieldValues,
-    field: fieldName,
-    query,
-  };
+  return {...dynamicFieldValues, field: fieldName, query};
 }
 
 function hasFieldValue(value: unknown): boolean {
@@ -238,9 +234,7 @@ export function BackendJsonSubmitForm({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onSubmit: validationSchema,
-    },
+    validators: {onSubmit: validationSchema},
     onSubmit: async ({value}) => {
       try {
         await onSubmit(getSubmitValues(fields, value));
@@ -270,7 +264,7 @@ export function BackendJsonSubmitForm({
             nonFieldError ??
             (typeof detail === 'string' ? detail : detail?.message) ??
             getFirstError(fieldError);
-          addErrorMessage(message ?? t('An error occurred while submitting'));
+          toast.error(message ?? t('An error occurred while submitting'));
         }
       }
     },
@@ -291,9 +285,7 @@ export function BackendJsonSubmitForm({
         field,
         currentValue,
         defaultValues[field.name],
-        {
-          validateChoices: !hasAsyncChoices,
-        }
+        {validateChoices: !hasAsyncChoices}
       );
       if (!Object.is(reconciledValue, currentValue)) {
         form.setFieldValue(field.name, reconciledValue);
@@ -628,10 +620,7 @@ export function BackendJsonSubmitForm({
                               onLabelAdd={(key, label) => {
                                 setChoiceMapperLabels(prev => ({
                                   ...prev,
-                                  [field.name]: {
-                                    ...prev[field.name],
-                                    [key]: label,
-                                  },
+                                  [field.name]: {...prev[field.name], [key]: label},
                                 }));
                               }}
                               onChange={handleChange}

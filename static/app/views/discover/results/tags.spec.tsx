@@ -12,7 +12,8 @@ import {
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {Tags} from 'sentry/views/discover/results/tags';
+
+import {Tags} from './tags';
 
 // There seem to be no types for this, but it's essentially what is passed to the
 // EventView constructor
@@ -45,19 +46,14 @@ describe('Tags', () => {
   });
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/discover/results/',
-    },
+    location: {pathname: '/organizations/org-slug/discover/results/'},
   };
 
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/events-facets/`,
       body: [
-        {
-          key: 'release',
-          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
-        },
+        {key: 'release', topValues: [{count: 30, value: '123abcd', name: '123abcd'}]},
         {
           key: 'environment',
           topValues: [
@@ -100,9 +96,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     // component is in loading state
@@ -139,9 +133,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     expect(await screen.findByText('No tags found')).toBeInTheDocument();
@@ -176,9 +168,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     // component has loaded
@@ -213,9 +203,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     await waitForElementToBeRemoved(
@@ -249,9 +237,7 @@ describe('Tags', () => {
       />,
       {
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/discover/homepage/',
-          },
+          location: {pathname: '/organizations/org-slug/discover/homepage/'},
         },
       }
     );
@@ -282,10 +268,7 @@ describe('Tags', () => {
           '<http://localhost/api/0new /organizations()/org-slug/events-facets/?cursor=0:10:0>; rel="next"; results="true"; cursor="0:10:0"',
       },
       body: [
-        {
-          key: 'release',
-          topValues: [{count: 30, value: '123abcd', name: '123abcd'}],
-        },
+        {key: 'release', topValues: [{count: 30, value: '123abcd', name: '123abcd'}]},
       ],
     });
 
@@ -316,9 +299,7 @@ describe('Tags', () => {
         generateUrl={generateUrl}
         confirmedQuery={false}
       />,
-      {
-        initialRouterConfig,
-      }
+      {initialRouterConfig}
     );
 
     await waitForElementToBeRemoved(

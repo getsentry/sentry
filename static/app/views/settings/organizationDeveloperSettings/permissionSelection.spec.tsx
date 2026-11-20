@@ -2,7 +2,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {selectEvent} from 'sentry-test/selectEvent';
 
 import type {Permissions} from 'sentry/types/integrations';
-import {PermissionSelection} from 'sentry/views/settings/organizationDeveloperSettings/permissionSelection';
+
+import {PermissionSelection} from './permissionSelection';
 
 const defaultPermissions: Permissions = {
   Event: 'no-access',

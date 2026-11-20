@@ -15,20 +15,6 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FRAME_TOOLTIP_MAX_WIDTH} from 'sentry/components/events/interfaces/frame/defaultTitle';
-import {OpenInContextLine} from 'sentry/components/events/interfaces/frame/openInContextLine';
-import {StacktraceLink} from 'sentry/components/events/interfaces/frame/stacktraceLink';
-import {
-  getLeadHint,
-  hasAssembly,
-  hasContextRegisters,
-  hasContextSource,
-  hasContextVars,
-  isExpandable,
-  trimPackage,
-} from 'sentry/components/events/interfaces/frame/utils';
-import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {formatAddress, parseAddress} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
@@ -49,7 +35,21 @@ import {getFoldSectionKey} from 'sentry/views/issueDetails/foldSection';
 import {useOptionalDebugMetaSearch} from './debugMeta/debugMetaSearchContext';
 import {combineStatus} from './debugMeta/utils';
 import {Context} from './frame/context';
+import {FRAME_TOOLTIP_MAX_WIDTH} from './frame/defaultTitle';
+import {OpenInContextLine} from './frame/openInContextLine';
+import {StacktraceLink} from './frame/stacktraceLink';
+import {
+  getLeadHint,
+  hasAssembly,
+  hasContextRegisters,
+  hasContextSource,
+  hasContextVars,
+  isExpandable,
+  trimPackage,
+} from './frame/utils';
+import {useStacktraceContext} from './stackTraceContext';
 import {SymbolicatorStatus} from './types';
+import {formatAddress, getImageName, parseAddress} from './utils';
 
 type Props = {
   emptySourceNotation: boolean;
@@ -195,17 +195,11 @@ export function NativeFrame({
 
   function getFunctionName() {
     if (functionNameHiddenDetails && fullFunctionName && frame.rawFunction) {
-      return {
-        value: frame.rawFunction,
-        meta: frameMeta?.rawFunction?.[''],
-      };
+      return {value: frame.rawFunction, meta: frameMeta?.rawFunction?.['']};
     }
 
     if (frame.function) {
-      return {
-        value: frame.function,
-        meta: frameMeta?.function?.[''],
-      };
+      return {value: frame.function, meta: frameMeta?.function?.['']};
     }
 
     return;
@@ -280,6 +274,7 @@ export function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const packageName = frame.package ?? getImageName(image);
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -293,10 +288,7 @@ export function NativeFrame({
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
-            row={{
-              zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
-              xl: '1',
-            }}
+            row={{zero: hiddenFrameCount ? '1 / 5' : '1 / 4', xl: '1'}}
             width="14px"
           >
             {status === 'error' ? (
@@ -333,7 +325,7 @@ export function NativeFrame({
             )}
             <InfoText
               title={
-                frame.package ??
+                packageName ??
                 (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
@@ -345,8 +337,8 @@ export function NativeFrame({
               variant="inherit"
             >
               <Container as="span" paddingRight="2xs">
-                {frame.package
-                  ? trimPackage(frame.package)
+                {packageName
+                  ? trimPackage(packageName)
                   : isDartAsyncSuspensionFrame
                     ? t('Dart async')
                     : `<${t('unknown')}>`}
@@ -374,10 +366,7 @@ export function NativeFrame({
           </Flex>
           <Container
             alignSelf="center"
-            column={{
-              zero: '2 / 5',
-              xl: '4',
-            }}
+            column={{zero: '2 / 5', xl: '4'}}
             minWidth="0"
             row={{zero: '3', xl: '1'}}
           >
@@ -421,10 +410,7 @@ export function NativeFrame({
           </Container>
           {hiddenFrameCount ? (
             <Flex
-              column={{
-                zero: '2 / 4',
-                xl: '6',
-              }}
+              column={{zero: '2 / 4', xl: '6'}}
               justify="end"
               minWidth="0"
               row={{zero: '4', xl: '1'}}
@@ -450,15 +436,7 @@ export function NativeFrame({
               </Button>
             </Flex>
           ) : null}
-          <Flex
-            align="center"
-            column={{
-              zero: '3',
-              xl: '7',
-            }}
-            gap="sm"
-            justify="end"
-          >
+          <Flex align="center" column={{zero: '3', xl: '7'}} gap="sm" justify="end">
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink

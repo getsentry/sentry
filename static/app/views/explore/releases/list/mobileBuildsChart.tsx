@@ -107,10 +107,7 @@ export function MobileBuildsChart({
             ? mainMetric.install_size_bytes
             : mainMetric.download_size_bytes;
 
-        data.push({
-          name: timestamp,
-          value: sizeValue,
-        });
+        data.push({name: timestamp, value: sizeValue});
         indexMap.set(data.length - 1, build);
       });
 
@@ -123,9 +120,7 @@ export function MobileBuildsChart({
         symbol: 'circle',
         showSymbol: true,
         symbolSize: 6,
-        emphasis: {
-          focus: 'series',
-        } as const satisfies LineSeriesOption['emphasis'],
+        emphasis: {focus: 'series'} as const satisfies LineSeriesOption['emphasis'],
       };
     });
 
@@ -159,10 +154,7 @@ export function MobileBuildsChart({
         return;
       }
 
-      const path = getSizeBuildPath({
-        organizationSlug,
-        baseArtifactId: build.id,
-      });
+      const path = getSizeBuildPath({organizationSlug, baseArtifactId: build.id});
 
       if (path) {
         navigate(path);
@@ -211,25 +203,17 @@ export function MobileBuildsChart({
             height={200}
             grid={{left: '10px', right: '10px', top: '30px', bottom: '0px'}}
             series={series}
-            legend={{
-              show: true,
-              top: 0,
-              left: 0,
-            }}
+            legend={{show: true, top: 0, left: 0}}
             yAxis={{
               type: 'value',
-              axisLabel: {
-                formatter: (value: number) => formatBytesBase10(value),
-              },
+              axisLabel: {formatter: (value: number) => formatBytesBase10(value)},
             }}
             xAxis={{
               show: true,
               min: minTime,
               max: maxTime,
               type: 'time',
-              axisLabel: {
-                formatter: (value: number) => moment(value).format('MMM D'),
-              },
+              axisLabel: {formatter: (value: number) => moment(value).format('MMM D')},
             }}
             tooltip={{
               trigger: 'axis',

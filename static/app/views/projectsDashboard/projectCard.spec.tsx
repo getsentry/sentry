@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, within} from 'sentry-test/reactTestingLibrary';
 
 import {type ProjectStats} from 'sentry/types/project';
-import {ProjectCard} from 'sentry/views/projectsDashboard/projectCard';
+
+import {ProjectCard} from './projectCard';
 
 function addProjectStatsResponse({
   latestDeploys,
@@ -21,14 +22,7 @@ function addProjectStatsResponse({
 } = {}) {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
-    body: [
-      {
-        ...project,
-        latestDeploys,
-        stats,
-        transactionStats,
-      },
-    ],
+    body: [{...project, latestDeploys, stats, transactionStats: transactionStats ?? []}],
   });
 }
 
@@ -60,22 +54,11 @@ describe('ProjectCard', () => {
   });
 
   it('renders latest 2 deploys', async () => {
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({platform: 'javascript'});
     const latestDeploys = {
-      beta: {
-        dateFinished: '2018-05-10T20:56:40.092Z',
-        version: '123456',
-      },
-      staging: {
-        dateFinished: '2018-05-08T20:56:40.092Z',
-        version: '789789',
-      },
-      production: {
-        dateFinished: '2018-05-09T20:56:40.092Z',
-        version: '123123',
-      },
+      beta: {dateFinished: '2018-05-10T20:56:40.092Z', version: '123456'},
+      staging: {dateFinished: '2018-05-08T20:56:40.092Z', version: '789789'},
+      production: {dateFinished: '2018-05-09T20:56:40.092Z', version: '123123'},
     };
 
     addProjectStatsResponse({
@@ -125,9 +108,7 @@ describe('ProjectCard', () => {
   });
 
   it('renders header link for errors', async () => {
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const project = ProjectFixture({platform: 'javascript'});
     addProjectStatsResponse({
       project,
       stats: [
@@ -141,15 +122,12 @@ describe('ProjectCard', () => {
     expect(await screen.findByTestId('project-errors')).toBeInTheDocument();
     expect(await screen.findByText('Errors: 6')).toBeInTheDocument();
 
-    // No transactions as the feature isn't set.
-    expect(screen.queryByTestId('project-transactions')).not.toBeInTheDocument();
+    expect(screen.getByTestId('project-transactions')).toBeInTheDocument();
   });
 
   it('renders header link for transactions', async () => {
-    const organization = OrganizationFixture({features: ['performance-view']});
-    const project = ProjectFixture({
-      platform: 'javascript',
-    });
+    const organization = OrganizationFixture();
+    const project = ProjectFixture({platform: 'javascript'});
     addProjectStatsResponse({
       organization,
       project,

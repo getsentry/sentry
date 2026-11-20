@@ -2,7 +2,6 @@ import type {Location} from 'history';
 
 import type {LinkProps} from '@sentry/scraps/link';
 
-import type {Crumb} from 'sentry/components/breadcrumbs';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -13,16 +12,12 @@ import {transactionSummaryRouteWithQuery} from './transactionSummary/utils';
 type TabCrumbProps = {
   location: Location;
   organization: Organization;
-  transaction?: {
-    name: string;
-    project: string;
-  };
+  transaction?: {name: string; project: string};
   view?: DomainView;
 };
 
 /**
- * A parent crumb of the transaction summary. Labels are plain strings so the
- * same list can feed the legacy `Breadcrumbs` and the typed `BreadcrumbList`.
+ * A parent crumb of the transaction summary, mapped to `BreadcrumbList` link items.
  */
 export interface TransactionSummaryParentCrumb {
   label: string;
@@ -65,9 +60,3 @@ export function getTransactionSummaryParentCrumbs({
     },
   ];
 }
-
-export const getTabCrumbs = (props: TabCrumbProps): Crumb[] =>
-  getTransactionSummaryParentCrumbs(props).map(crumb => ({
-    ...crumb,
-    preservePageFilters: true,
-  }));

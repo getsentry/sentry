@@ -3,8 +3,9 @@ import type {UseInfiniteQueryResult} from '@tanstack/react-query';
 
 import {Client} from 'sentry/api';
 import type {ResponseMeta} from 'sentry/types/api';
-import type {ApiQueryKey, InfiniteApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
+
+import type {ApiQueryKey, InfiniteApiQueryKey} from './apiQueryKey';
 
 export const QUERY_API_CLIENT = new Client();
 
@@ -79,10 +80,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
-    query: {
-      ...options?.query,
-      cursor: pageParam?.cursor ?? options?.query?.cursor,
-    },
+    query: {...options?.query, cursor: pageParam?.cursor ?? options?.query?.cursor},
     headers: options?.headers,
   });
 

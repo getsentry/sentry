@@ -17,12 +17,7 @@ describe('CronsBillingBanner', () => {
     // TODO(davidenwang): Add monitorSeats to all test fixtures
     if (plan) {
       plan.planCategories.monitorSeats = [
-        {
-          events: 1,
-          unitPrice: 0,
-          price: 0,
-          onDemandPrice: 78,
-        },
+        {events: 1, unitPrice: 0, price: 0, onDemandPrice: 78},
       ];
     }
     MockApiClient.addMockResponse({
@@ -74,10 +69,7 @@ describe('CronsBillingBanner', () => {
     const now = moment();
     const lastTrialEnd = now.subtract(5, 'days').toISOString();
     const organization = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      organization,
-      lastTrialEnd,
-    });
+    const subscription = SubscriptionFixture({organization, lastTrialEnd});
 
     const mockApiCall = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/monitor-count/`,

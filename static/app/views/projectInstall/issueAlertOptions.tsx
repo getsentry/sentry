@@ -12,8 +12,9 @@ import {
   INTERVAL_CHOICES,
   Interval,
 } from 'sentry/views/automations/components/actionFilters/constants';
-import {IssueAlertNotificationOptions} from 'sentry/views/projectInstall/issueAlertNotificationOptions';
-import {type IssueAlertNotificationProps} from 'sentry/views/projectInstall/messagingIntegrationTypes';
+
+import {IssueAlertNotificationOptions} from './issueAlertNotificationOptions';
+import {type IssueAlertNotificationProps} from './messagingIntegrationTypes';
 
 enum MetricValues {
   ERRORS = 0,
@@ -102,13 +103,7 @@ export function getRequestDataFragment({
     shouldCreateCustomRule: alertSetting === RuleAction.CUSTOMIZED_ALERTS,
     conditions:
       interval.length > 0 && threshold.length > 0
-        ? [
-            {
-              interval,
-              id: metricValueToConditionType(metric),
-              value: threshold,
-            },
-          ]
+        ? [{interval, id: metricValueToConditionType(metric), value: threshold}]
         : [],
     actions: [
       {

@@ -4,7 +4,8 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import {hydrateErrors} from 'sentry/utils/replays/hydrateErrors';
-import {useSortErrors} from 'sentry/views/explore/replays/detail/errorList/useSortErrors';
+
+import {useSortErrors} from './useSortErrors';
 
 const {
   errorFrames: [ERROR_1_JS_RANGEERROR, ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED],
@@ -52,9 +53,7 @@ describe('useSortErrors', () => {
   ];
 
   it('should the list by timestamp by default', () => {
-    const {result} = renderHookWithProviders(useSortErrors, {
-      initialProps: {items},
-    });
+    const {result} = renderHookWithProviders(useSortErrors, {initialProps: {items}});
 
     expect(result.current.sortConfig).toStrictEqual({
       by: 'timestamp',

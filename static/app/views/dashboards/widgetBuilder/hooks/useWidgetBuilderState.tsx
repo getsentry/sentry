@@ -1,6 +1,13 @@
 import {useCallback, useEffect, useMemo, useRef, type RefObject} from 'react';
 import partition from 'lodash/partition';
-import {createMultiParser, createParser, parseAsNativeArrayOf, parseAsString} from 'nuqs';
+import {
+  createMultiParser,
+  createParser,
+  parseAsJson,
+  parseAsNativeArrayOf,
+  parseAsString,
+} from 'nuqs';
+import {z} from 'zod';
 
 import {defined} from 'sentry/utils/defined';
 import {
@@ -30,18 +37,20 @@ import {
 } from 'sentry/views/dashboards/utils';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {
-  deserializeTransformations,
+  parseAsTransformations,
   remapTransformations,
   type QueryTransformations,
 } from 'sentry/views/dashboards/utils/transformations';
-import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
+import {
+  parseAsThresholds,
+  type ThresholdsConfig,
+} from 'sentry/views/dashboards/widgetBuilder/buildSteps/thresholdsStep/thresholds';
 import {
   MAX_NUM_Y_AXES,
   WIDGET_BUILDER_SESSION_STORAGE_KEY_MAP,
   type WidgetBuilderStateLocalParams,
   BuilderStateAction,
 } from 'sentry/views/dashboards/widgetBuilder/constants';
-import {useSeededQueryState} from 'sentry/views/dashboards/widgetBuilder/hooks/useSeededQueryState';
 import {
   DISABLED_SORT,
   TAG_SORT_DENY_LIST,
@@ -51,17 +60,19 @@ import {
   getResultsLimit,
 } from 'sentry/views/dashboards/widgetBuilder/utils';
 import {extractTraceMetricFromColumn} from 'sentry/views/dashboards/widgetBuilder/utils/buildTraceMetricAggregate';
+import {deserializeLinkedDashboards} from 'sentry/views/dashboards/widgetBuilder/utils/linkedDashboards';
 import {
   serializeFields,
   serializeLinkedDashboards,
   serializeSorts,
   normalizeSortField,
-  serializeThresholds,
 } from 'sentry/views/dashboards/widgetBuilder/utils/serialization';
 import type {DefaultDetailWidgetFields} from 'sentry/views/dashboards/widgets/detailsWidget/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {doesMetricSupportHeatMapVisualization} from 'sentry/views/explore/metrics/constants';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {useSeededQueryState} from './useSeededQueryState';
 
 export {
   MAX_NUM_Y_AXES,
@@ -136,32 +147,20 @@ type WidgetAction =
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
-  | {
-      payload: LegendType | undefined;
-      type: typeof BuilderStateAction.SET_LEGEND_TYPE;
-    }
+  | {payload: LegendType | undefined; type: typeof BuilderStateAction.SET_LEGEND_TYPE}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     }
-  | {
-      payload: string;
-      type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS;
-    }
-  | {
-      payload: Column[];
-      type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
-    }
+  | {payload: string; type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS}
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE}
   | {
       payload: number; // index of the field to delete within the visible fields list
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
     }
-  | {
-      payload: AxisRange | undefined;
-      type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    }
+  | {payload: AxisRange | undefined; type: typeof BuilderStateAction.SET_AXIS_RANGE}
   | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   /**
@@ -588,12 +587,7 @@ export function useWidgetBuilderState(): {
                         },
                       ]
                     : []
-                  : [
-                      {
-                        kind: 'desc',
-                        field: generateFieldAsString(newFields[0]!),
-                      },
-                    ],
+                  : [{kind: 'desc', field: generateFieldAsString(newFields[0]!)}],
                 options
               );
             }
@@ -753,6 +747,19 @@ export function useWidgetBuilderState(): {
             }
             setYAxis(nextAggregates, options);
 
+            // Aggregates past the y-axis cap were dropped above, so a sort on
+            // one of them (e.g. a table's `equation[N]`) would point at nothing.
+            const nextTimeseriesSort = getUpdatedTimeseriesSort(
+              nextAggregates,
+              yAxis,
+              columnsWithoutAlias,
+              dataset,
+              sort
+            );
+            if (nextTimeseriesSort) {
+              setSort(nextTimeseriesSort, options);
+            }
+
             // Reset the limit to a valid value, bias towards the current limit or
             // default if possible
             const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
@@ -821,10 +828,7 @@ export function useWidgetBuilderState(): {
 
             // Add aggregate from dataset config
             if (config.defaultField) {
-              categoricalBarFields.push({
-                ...config.defaultField,
-                alias: undefined,
-              });
+              categoricalBarFields.push({...config.defaultField, alias: undefined});
             }
             setFields(categoricalBarFields, options);
 
@@ -987,15 +991,7 @@ export function useWidgetBuilderState(): {
 
             // Only update sort if we have a valid field to sort by
             if (sortField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: sortField,
-                  },
-                ],
-                options
-              );
+              setSort([{kind: 'desc', field: sortField}], options);
             }
           }
 
@@ -1019,8 +1015,8 @@ export function useWidgetBuilderState(): {
                 : (action.sourceIndices?.[index] ?? index)
             );
             setTransformations(
-              transformations.map(pipelines =>
-                remapTransformations(pipelines, sourceIndices)
+              transformations.map(queryTransformations =>
+                remapTransformations(queryTransformations, sourceIndices)
               ),
               options
             );
@@ -1050,16 +1046,16 @@ export function useWidgetBuilderState(): {
           setTransformations(action.payload, options);
           break;
         case BuilderStateAction.SET_AGGREGATE_TRANSFORMATIONS: {
-          const {index, transformations: pipeline} = action.payload;
+          const {index, transformations: aggregateTransformations} = action.payload;
           setTransformations(
             (query?.length ? query : ['']).map((_, queryIndex) => {
-              const pipelines = {...transformations?.[queryIndex]};
-              if (pipeline.length) {
-                pipelines[index] = [...pipeline];
+              const queryTransformations = {...transformations?.[queryIndex]};
+              if (aggregateTransformations.length) {
+                queryTransformations[index] = [...aggregateTransformations];
               } else {
-                delete pipelines[index];
+                delete queryTransformations[index];
               }
-              return pipelines;
+              return queryTransformations;
             }),
             options
           );
@@ -1139,7 +1135,8 @@ export function useWidgetBuilderState(): {
         case BuilderStateAction.SET_STATE:
           setTransformations(
             action.payload.transformations
-              ? (deserializeTransformations(action.payload.transformations) ?? undefined)
+              ? (parseAsTransformations.parse(action.payload.transformations) ??
+                  undefined)
               : undefined,
             options
           );
@@ -1292,8 +1289,8 @@ export function useWidgetBuilderState(): {
                 yAxis?.flatMap((_, index) => (index === deleteIndex ? [] : [index])) ??
                 [];
               setTransformations(
-                transformations.map(pipelines =>
-                  remapTransformations(pipelines, sourceIndices)
+                transformations.map(queryTransformations =>
+                  remapTransformations(queryTransformations, sourceIndices)
                 ),
                 options
               );
@@ -1398,10 +1395,7 @@ export function useWidgetBuilderState(): {
     ]
   );
 
-  return {
-    state,
-    dispatch,
-  };
+  return {state, dispatch};
 }
 
 /**
@@ -1429,34 +1423,16 @@ function deserializeDataset(value: string): WidgetType {
   return WidgetType.ERRORS;
 }
 
+const parseAsAliasedField = parseAsJson(
+  z.object({field: z.string(), alias: z.string().optional().catch(undefined)})
+);
+
 /**
  * Takes fields from the query params in list form and converts
  * them into a list of fields and functions
  */
 function deserializeFields(fields: string[]): Column[] {
-  return fields.map(stringifiedField => {
-    try {
-      const {field, alias} = JSON.parse(stringifiedField);
-      return explodeField({field, alias});
-    } catch (error) {
-      return explodeField({field: stringifiedField, alias: undefined});
-    }
-  });
-}
-
-function deserializeLinkedDashboards(linkedDashboards: string[]): LinkedDashboard[] {
-  return linkedDashboards
-    .map(linkedDashboard => {
-      const maybeLinkedDashboard = JSON.parse(linkedDashboard);
-      if (maybeLinkedDashboard.dashboardId && maybeLinkedDashboard.field) {
-        return {
-          dashboardId: maybeLinkedDashboard.dashboardId,
-          field: maybeLinkedDashboard.field,
-        } satisfies LinkedDashboard;
-      }
-      return;
-    })
-    .filter(defined);
+  return fields.map(field => explodeField(parseAsAliasedField.parse(field) ?? {field}));
 }
 
 function deserializeSorts(dataset?: WidgetType) {
@@ -1466,10 +1442,7 @@ function deserializeSorts(dataset?: WidgetType) {
         dataset === WidgetType.ISSUE &&
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
-        return {
-          field: normalizeSortField(sort.field),
-          kind: 'desc',
-        };
+        return {field: normalizeSortField(sort.field), kind: 'desc'};
       }
       return {...sort, field: normalizeSortField(sort.field)};
     });
@@ -1508,14 +1481,6 @@ function deserializeQuery(queries: string[]): string[] {
   return queries;
 }
 
-function deserializeThresholds(value: string): ThresholdsConfig | undefined {
-  if (value === '') {
-    return undefined;
-  }
-
-  return JSON.parse(value);
-}
-
 /**
  * nuqs parsers for every builder field that lives in the URL. Each one wraps the
  * (de)serializers above so the URL encoding stays in one place.
@@ -1544,11 +1509,6 @@ const parseAsColumns = createMultiParser({
   eq: bothEmpty,
 }).withDefault([]);
 
-const parseAsTransformations = createParser({
-  parse: deserializeTransformations,
-  serialize: (value: QueryTransformations[]) => JSON.stringify(value),
-});
-
 const parseAsQueries = createMultiParser({
   parse: (values: readonly string[]) => deserializeQuery([...values]),
   serialize: (queries: string[]) => queries,
@@ -1557,7 +1517,7 @@ const parseAsQueries = createMultiParser({
 const parseAsStringList = parseAsNativeArrayOf(parseAsString).withDefault([]);
 
 const parseAsLinkedDashboards = createMultiParser({
-  parse: (values: readonly string[]) => deserializeLinkedDashboards([...values]),
+  parse: deserializeLinkedDashboards,
   serialize: serializeLinkedDashboards,
   eq: bothEmpty,
 }).withDefault([]);
@@ -1573,10 +1533,7 @@ function parseAsWidgetSorts(datasetRef: RefObject<WidgetType | undefined>) {
 
 // No default here, unlike the other scalars: clearing the limit is meaningful
 // (a table has none), and a default would keep resurrecting it.
-const parseAsLimit = createParser({
-  parse: deserializeLimit,
-  serialize: String,
-});
+const parseAsLimit = createParser({parse: deserializeLimit, serialize: String});
 
 const parseAsSelectedAggregate = createParser({
   parse: (value: string) => deserializeSelectedAggregate(value) ?? null,
@@ -1586,11 +1543,6 @@ const parseAsSelectedAggregate = createParser({
 const parseAsLegendType = createParser({
   parse: (value: string) => deserializeLegendType(value) ?? null,
   serialize: (value: LegendType) => value,
-});
-
-const parseAsThresholds = createParser<ThresholdsConfig | null>({
-  parse: (value: string) => deserializeThresholds(value) ?? null,
-  serialize: serializeThresholds,
 });
 
 const parseAsAxisRange = createParser({

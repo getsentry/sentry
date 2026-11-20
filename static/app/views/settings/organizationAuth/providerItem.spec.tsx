@@ -4,7 +4,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {descopeFeatureName} from 'sentry/utils';
-import {ProviderItem} from 'sentry/views/settings/organizationAuth/providerItem';
+
+import {ProviderItem} from './providerItem';
 
 describe('ProviderItem', () => {
   const provider = AuthProvidersFixture()[0]!;
@@ -13,9 +14,7 @@ describe('ProviderItem', () => {
   });
 
   it('renders', () => {
-    render(<ProviderItem active={false} provider={provider} />, {
-      organization: org,
-    });
+    render(<ProviderItem active={false} provider={provider} />, {organization: org});
 
     expect(
       screen.getByText('Enable your organization to sign in with Dummy.')

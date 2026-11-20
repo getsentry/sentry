@@ -60,9 +60,7 @@ export function AdminSearchCombobox<TQueryData, TResult, TQueryKey extends Query
   const [inputValue, setInputValue] = useState('');
   const normalizedInput = inputValue.trim();
   const hasInput = normalizedInput.length > 0;
-  const [debouncedQuery] = useDebouncedValue(normalizedInput, {
-    wait: SEARCH_DEBOUNCE_MS,
-  });
+  const [debouncedQuery] = useDebouncedValue(normalizedInput, {wait: SEARCH_DEBOUNCE_MS});
 
   const options = queryOptions(debouncedQuery);
   const query = useQuery({

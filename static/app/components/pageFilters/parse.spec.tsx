@@ -1,7 +1,4 @@
-import {
-  normalizeDateTimeParams,
-  parseStatsPeriod,
-} from 'sentry/components/pageFilters/parse';
+import {normalizeDateTimeParams, parseStatsPeriod} from './parse';
 
 describe('normalizeDateTimeParams', () => {
   it('should return default statsPeriod if it is not provided or is invalid', () => {
@@ -84,22 +81,14 @@ describe('normalizeDateTimeParams', () => {
     expect(normalizeDateTimeParams({start: '2019-10-01T00:00:00'})).toEqual({
       statsPeriod: '14d',
     });
-    expect(normalizeDateTimeParams({start: null})).toEqual({
-      statsPeriod: '14d',
-    });
-    expect(normalizeDateTimeParams({start: undefined})).toEqual({
-      statsPeriod: '14d',
-    });
+    expect(normalizeDateTimeParams({start: null})).toEqual({statsPeriod: '14d'});
+    expect(normalizeDateTimeParams({start: undefined})).toEqual({statsPeriod: '14d'});
 
     expect(normalizeDateTimeParams({end: '2019-10-01T00:00:00'})).toEqual({
       statsPeriod: '14d',
     });
-    expect(normalizeDateTimeParams({end: null})).toEqual({
-      statsPeriod: '14d',
-    });
-    expect(normalizeDateTimeParams({end: undefined})).toEqual({
-      statsPeriod: '14d',
-    });
+    expect(normalizeDateTimeParams({end: null})).toEqual({statsPeriod: '14d'});
+    expect(normalizeDateTimeParams({end: undefined})).toEqual({statsPeriod: '14d'});
 
     expect(normalizeDateTimeParams({start: undefined, end: undefined})).toEqual({
       statsPeriod: '14d',
@@ -114,12 +103,9 @@ describe('normalizeDateTimeParams', () => {
       statsPeriod: '14d',
     });
 
-    expect(
-      normalizeDateTimeParams({
-        start: ['invalid'],
-        end: ['invalid'],
-      })
-    ).toEqual({statsPeriod: '14d'});
+    expect(normalizeDateTimeParams({start: ['invalid'], end: ['invalid']})).toEqual({
+      statsPeriod: '14d',
+    });
 
     expect(
       normalizeDateTimeParams({
@@ -168,9 +154,7 @@ describe('normalizeDateTimeParams', () => {
         utc: 'false',
         statsPeriod: '14d',
       })
-    ).toEqual({
-      statsPeriod: '90d',
-    });
+    ).toEqual({statsPeriod: '90d'});
   });
 
   it('does not return default statsPeriod if `allowEmptyPeriod` option is passed', () => {

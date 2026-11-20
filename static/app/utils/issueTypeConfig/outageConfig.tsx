@@ -1,7 +1,8 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types/group';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const outageConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -15,18 +16,12 @@ export const outageConfig: IssueCategoryConfigMapping = {
   [IssueType.MONITOR_CHECK_IN_FAILURE]: {
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {
-        enabled: false,
-        disabledReason: t('Not yet supported for cron issues'),
-      },
+      delete: {enabled: false, disabledReason: t('Not yet supported for cron issues')},
       deleteAndDiscard: {
         enabled: false,
         disabledReason: t('Not yet supported for cron issues'),
       },
-      merge: {
-        enabled: false,
-        disabledReason: t('Not yet supported for cron issues'),
-      },
+      merge: {enabled: false, disabledReason: t('Not yet supported for cron issues')},
       ignore: {enabled: true},
       resolve: {enabled: false},
       resolveInRelease: {enabled: false},
@@ -79,10 +74,7 @@ export const outageConfig: IssueCategoryConfigMapping = {
       title: t('Uptime Monitor'),
       ctaText: t('View monitor details'),
     },
-    customCopy: {
-      eventUnits: t('Events'),
-      resolution: t('Resolved'),
-    },
+    customCopy: {eventUnits: t('Events'), resolution: t('Resolved')},
     pages: {
       landingPage: Tab.EVENTS,
       events: {enabled: true},

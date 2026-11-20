@@ -2,7 +2,8 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {useExploreSuggestedAttribute} from 'sentry/views/explore/hooks/useExploreSuggestedAttribute';
+
+import {useExploreSuggestedAttribute} from './useExploreSuggestedAttribute';
 
 const arrayAttributes: TagCollection = {
   // Tag array: stored under its backend key form, displayed as `csv_headers`.
@@ -12,11 +13,7 @@ const arrayAttributes: TagCollection = {
     kind: FieldKind.ARRAY,
   },
   // Non-tag array: stored under its plain name.
-  'some.array': {
-    key: 'some.array',
-    name: 'some.array',
-    kind: FieldKind.ARRAY,
-  },
+  'some.array': {key: 'some.array', name: 'some.array', kind: FieldKind.ARRAY},
 };
 
 function setup() {

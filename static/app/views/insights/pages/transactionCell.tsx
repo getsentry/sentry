@@ -1,15 +1,15 @@
-import * as qs from 'query-string';
-
 import {Link} from '@sentry/scraps/link';
 
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {OverflowEllipsisTextContainer} from 'sentry/views/insights/common/components/textAlign';
-import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
 import {SpanFields} from 'sentry/views/insights/types';
 import {generateTransactionSummaryRoute} from 'sentry/views/performance/transactionSummary/utils';
+
+import {useDomainViewFilters} from './useFilters';
 
 interface Props {
   project?: string;
@@ -34,10 +34,7 @@ export function TransactionCell({project, transaction, transactionMethod}: Props
     return NULL_DESCRIPTION;
   }
 
-  const pathname = generateTransactionSummaryRoute({
-    organization,
-    view,
-  });
+  const pathname = generateTransactionSummaryRoute({organization, view});
 
   const query = {
     project: projectId,

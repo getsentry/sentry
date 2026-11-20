@@ -6,8 +6,9 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import type {Tag} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
-import {AttributeField} from 'sentry/views/settings/components/dataScrubbing/modals/form/attributeField';
 import {AllowedDataScrubbingDatasets} from 'sentry/views/settings/components/dataScrubbing/types';
+
+import {AttributeField} from './attributeField';
 
 const defaultFieldProps = {
   'aria-describedby': 'source-hint',
@@ -21,31 +22,11 @@ const defaultFieldProps = {
 describe('AttributeField', () => {
   const {organization} = initializeOrg();
   const mockAttributeKeys: Tag[] = [
-    {
-      key: 'user.email',
-      name: 'user.email',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'user.id',
-      name: 'user.id',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'custom.field',
-      name: 'custom.field',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'request.method',
-      name: 'request.method',
-      kind: FieldKind.TAG,
-    },
-    {
-      key: 'response.status',
-      name: 'response.status',
-      kind: FieldKind.TAG,
-    },
+    {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+    {key: 'user.id', name: 'user.id', kind: FieldKind.TAG},
+    {key: 'custom.field', name: 'custom.field', kind: FieldKind.TAG},
+    {key: 'request.method', name: 'request.method', kind: FieldKind.TAG},
+    {key: 'response.status', name: 'response.status', kind: FieldKind.TAG},
   ];
 
   beforeEach(() => {
@@ -57,12 +38,7 @@ describe('AttributeField', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -325,11 +301,7 @@ describe('AttributeField', () => {
     const value = '';
     const manyAttributes: Tag[] = [];
     for (let i = 0; i < 100; i++) {
-      manyAttributes.push({
-        key: `attr${i}`,
-        name: `attr${i}`,
-        kind: FieldKind.TAG,
-      });
+      manyAttributes.push({key: `attr${i}`, name: `attr${i}`, kind: FieldKind.TAG});
     }
 
     mockTraceItemAttributeKeysApi(organization.slug, manyAttributes);
@@ -359,36 +331,20 @@ describe('AttributeField', () => {
   it('filters out tag-based attributes using elideTagBasedAttributes', async () => {
     const value = '';
     const attributesWithTags: Tag[] = [
-      {
-        key: 'user.email',
-        name: 'user.email',
-        kind: FieldKind.TAG,
-      },
+      {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
       {
         key: 'tags[environment,string]',
         name: 'tags[environment,string]',
         kind: FieldKind.TAG,
       },
-      {
-        key: 'tags[id,string]',
-        name: 'tags[id,string]',
-        kind: FieldKind.TAG,
-      },
-      {
-        key: 'tags[message,string]',
-        name: 'tags[message,string]',
-        kind: FieldKind.TAG,
-      },
+      {key: 'tags[id,string]', name: 'tags[id,string]', kind: FieldKind.TAG},
+      {key: 'tags[message,string]', name: 'tags[message,string]', kind: FieldKind.TAG},
       {
         key: 'tags[project_id,string]',
         name: 'tags[project_id,string]',
         kind: FieldKind.TAG,
       },
-      {
-        key: 'custom.field',
-        name: 'custom.field',
-        kind: FieldKind.TAG,
-      },
+      {key: 'custom.field', name: 'custom.field', kind: FieldKind.TAG},
     ];
 
     MockApiClient.clearMockResponses();
@@ -419,5 +375,29 @@ describe('AttributeField', () => {
 
     // Should not contain any tags
     expect(suggestionTexts).toEqual(['message', 'user.email', 'custom.field']);
+  });
+
+  it('does not duplicate the static message field for logs', async () => {
+    MockApiClient.clearMockResponses();
+    mockTraceItemAttributeKeysApi(organization.slug, [
+      {key: 'user.email', name: 'user.email', kind: FieldKind.TAG},
+      {key: 'message', name: 'message', kind: FieldKind.TAG},
+    ]);
+
+    render(
+      <AttributeField
+        fieldProps={defaultFieldProps}
+        dataset={AllowedDataScrubbingDatasets.LOGS}
+        onChange={jest.fn()}
+        value=""
+      />,
+      {organization}
+    );
+
+    await userEvent.click(await screen.findByPlaceholderText('Select or type attribute'));
+    await screen.findByText('user.email');
+
+    const suggestionTexts = screen.getAllByRole('listitem').map(item => item.textContent);
+    expect(suggestionTexts).toEqual(['message', 'user.email']);
   });
 });

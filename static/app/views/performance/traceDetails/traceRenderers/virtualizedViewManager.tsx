@@ -1,8 +1,9 @@
 import type {Theme} from '@emotion/react';
 import {mat3} from 'gl-matrix';
-import * as qs from 'query-string';
+import {createSerializer, parseAsString} from 'nuqs';
 
-import {getDuration} from 'sentry/utils/duration/getDuration';
+import {getDuration} from '@sentry/scraps/duration';
+
 import {clamp} from 'sentry/utils/number/clamp';
 import {
   cancelAnimationTimeout,
@@ -25,14 +26,13 @@ import {
 } from 'sentry/views/performance/traceDetails/traceIssueUtils';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
-import {TraceRowWidthMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceRowWidthMeasurer';
-import {TraceTextMeasurer} from 'sentry/views/performance/traceDetails/traceRenderers/traceTextMeasurer';
-import {
-  COLLAPSED_GAP_WIDTH_PX,
-  TraceTimeCompression,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceTimeCompressionGap} from 'sentry/views/performance/traceDetails/traceRenderers/traceTimeCompression';
-import type {TraceView} from 'sentry/views/performance/traceDetails/traceRenderers/traceView';
+
+import {TraceRowWidthMeasurer} from './traceRowWidthMeasurer';
+import type {TraceScheduler} from './traceScheduler';
+import {TraceTextMeasurer} from './traceTextMeasurer';
+import {COLLAPSED_GAP_WIDTH_PX, TraceTimeCompression} from './traceTimeCompression';
+import type {TraceTimeCompressionGap} from './traceTimeCompression';
+import type {TraceView} from './traceView';
 import {
   CompressedTraceViewCalculations,
   NormalTraceViewCalculations,
@@ -41,13 +41,13 @@ import {
   type TraceIconEdge,
   type TraceViewCalculationContext,
   type TraceViewCalculations,
-} from 'sentry/views/performance/traceDetails/traceRenderers/traceViewCalculations';
-
-import type {TraceScheduler} from './traceScheduler';
+} from './traceViewCalculations';
 
 const DIVIDER_WIDTH = 6;
 const COLLAPSED_GAP_MARKER_CLEARANCE_PX = 8;
 const VITAL_ZOOM_PADDING_RATIO = 0.05;
+
+const serializeFovQueryParam = createSerializer({fov: parseAsString});
 
 export type TraceTimeCompressionManagerOptions = {
   enabled: boolean;
@@ -81,10 +81,7 @@ type ViewColumn = {
   width: number;
 };
 
-type VerticalIndicator = {
-  ref: HTMLElement | null;
-  timestamp: number | undefined;
-};
+type VerticalIndicator = {ref: HTMLElement | null; timestamp: number | undefined};
 type SpanTextPlacement = [inside: number, textTransform: number];
 
 /**
@@ -141,12 +138,7 @@ export class VirtualizedViewManager {
     {kind: 'error' | 'autogroup'; ref: HTMLElement; space: [number, number]} | undefined
   > = [];
   span_arrows: Array<
-    | {
-        position: 0 | 1;
-        ref: HTMLElement;
-        space: [number, number];
-        visible: boolean;
-      }
+    | {position: 0 | 1; ref: HTMLElement; space: [number, number]; visible: boolean}
     | undefined
   > = [];
   span_text: Array<
@@ -192,27 +184,14 @@ export class VirtualizedViewManager {
   timeCompressionOptions: TraceTimeCompressionManagerOptions | null = null;
 
   constructor(
-    columns: {
-      list: Pick<ViewColumn, 'width'>;
-      span_list: Pick<ViewColumn, 'width'>;
-    },
+    columns: {list: Pick<ViewColumn, 'width'>; span_list: Pick<ViewColumn, 'width'>},
     trace_scheduler: TraceScheduler,
     trace_view: TraceView,
     theme: Theme
   ) {
     this.columns = {
-      attribute: {
-        width: 0,
-        column_nodes: [],
-        column_refs: [],
-        translate: [0, 0],
-      },
-      list: {
-        ...columns.list,
-        column_nodes: [],
-        column_refs: [],
-        translate: [0, 0],
-      },
+      attribute: {width: 0, column_nodes: [], column_refs: [], translate: [0, 0]},
+      list: {...columns.list, column_nodes: [], column_refs: [], translate: [0, 0]},
       span_list: {
         ...columns.span_list,
         column_nodes: [],
@@ -359,9 +338,7 @@ export class VirtualizedViewManager {
     document.body.style.userSelect = 'none';
 
     document.addEventListener('mouseup', this.onDividerMouseUp, {passive: true});
-    document.addEventListener('mousemove', this.onDividerMouseMove, {
-      passive: true,
-    });
+    document.addEventListener('mousemove', this.onDividerMouseMove, {passive: true});
   }
 
   onDividerMouseUp(event: MouseEvent) {
@@ -429,10 +406,7 @@ export class VirtualizedViewManager {
       width: this.view.trace_view.width,
     });
 
-    this.scheduler.dispatch('divider resize', {
-      list,
-      span_list,
-    });
+    this.scheduler.dispatch('divider resize', {list, span_list});
     this.previousDividerClientVec = [event.clientX, event.clientY];
   }
 
@@ -798,12 +772,7 @@ export class VirtualizedViewManager {
     this.activeVital = vital;
   }
 
-  onZoomIntoSpace(
-    space: [number, number],
-    options: {
-      padding?: boolean;
-    } = {}
-  ) {
+  onZoomIntoSpace(space: [number, number], options: {padding?: boolean} = {}) {
     this.activeVital = null;
 
     let final_x = space[0] - this.view.to_origin;
@@ -848,17 +817,11 @@ export class VirtualizedViewManager {
       if (progress <= 1) {
         const x = start_x + distance_x * eased;
         const width = start_width - distance_width * eased;
-        this.scheduler.dispatch('set trace view', {
-          x,
-          width,
-        });
+        this.scheduler.dispatch('set trace view', {x, width});
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
-        this.scheduler.dispatch('set trace view', {
-          x: final_x,
-          width: final_width,
-        });
+        this.scheduler.dispatch('set trace view', {x: final_x, width: final_width});
       }
     };
 
@@ -953,13 +916,9 @@ export class VirtualizedViewManager {
 
     this.timers.onFovChange = requestAnimationTimeout(() => {
       this.navigate?.(
-        {
-          pathname: location.pathname,
-          query: {
-            ...qs.parse(location.search),
-            fov: `${view.trace_view.x},${view.trace_view.width}`,
-          },
-        },
+        serializeFovQueryParam(location.pathname + location.search, {
+          fov: `${view.trace_view.x},${view.trace_view.width}`,
+        }),
         {replace: true}
       );
       this.timers.onFovChange = null;
@@ -1169,11 +1128,7 @@ export class VirtualizedViewManager {
     const left = this.time_compression.toCompressedOffset(start);
     const right = this.time_compression.toCompressedOffset(end);
 
-    return {
-      left,
-      right,
-      width: Math.max(right - left, Number.EPSILON),
-    };
+    return {left, right, width: Math.max(right - left, Number.EPSILON)};
   }
 
   getConfigSpaceCursor(cursor: {x: number; y: number}): [number, number] {
@@ -1721,10 +1676,7 @@ export class VirtualizedViewManager {
       options.list ?? this.activeDividerView?.list ?? this.columns.list.width;
     const span_list_width = options.span_list ?? this.currentSpanListWidth;
 
-    this.drawContainers(this.container, {
-      list_width,
-      span_list_width,
-    });
+    this.drawContainers(this.container, {list_width, span_list_width});
 
     // 60px error margin. ~52px is roughly the width of 500.00ms, we add a bit more, to be safe.
     const error_margin = 60 * this.getConfigSpacePerPx();
@@ -2004,7 +1956,7 @@ export class VirtualizedViewManager {
     ref.style.opacity = '1';
     ref.style.transform = `translateX(${placement}px)`;
     const label = ref.children[0] as HTMLElement | undefined;
-    const duration = getDuration(interval / 1000, 2, true);
+    const duration = getDuration(interval / 1000, {precision: 2, style: 'short'});
 
     if (label && label?.textContent !== duration) {
       label.textContent = duration;

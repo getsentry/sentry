@@ -1,11 +1,12 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {TransactionsList} from 'sentry/components/discover/transactionsList';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+
+import {TransactionsList} from './transactionsList';
 
 function WrapperComponent(props: any) {
   return (
@@ -34,10 +35,7 @@ describe('TransactionsList', () => {
   };
 
   beforeEach(() => {
-    location = {
-      pathname: '/',
-      query: {},
-    };
+    location = {pathname: '/', query: {}};
   });
 
   describe('Basic', () => {
@@ -53,11 +51,7 @@ describe('TransactionsList', () => {
         projects: [project.id],
       });
       options = [
-        {
-          sort: {kind: 'asc', field: 'transaction'},
-          value: 'name',
-          label: 'Transactions',
-        },
+        {sort: {kind: 'asc', field: 'transaction'}, value: 'name', label: 'Transactions'},
         {
           sort: {kind: 'desc', field: 'count'},
           value: 'count',
@@ -160,29 +154,48 @@ describe('TransactionsList', () => {
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
-      expect(
-        screen.getByRole('button', {
-          name: 'Open in Explore',
-        })
-      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Open in Explore'})).toBeInTheDocument();
 
       expect(screen.getAllByRole('columnheader')).toHaveLength(2);
       expect(
         screen.getByRole('button', {name: 'Filter Transactions'})
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
 
       const gridCells = screen.getAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
 
-    it('links "Open in Explore" to Explore > Traces', async () => {
-      initialize({
-        organization: {
-          features: ['discover-basic'],
-        },
+    it('keeps custom cursor keys and the app location when paginating', async () => {
+      const paginationLocation = {
+        pathname: '/transactions/',
+        query: {environment: ['production', 'staging'], query: 'transaction:checkout'},
+      };
+      const {router} = render(
+        <WrapperComponent
+          location={paginationLocation}
+          organization={organization}
+          eventView={eventView}
+          selected={options[0]}
+          options={options}
+          handleDropdownChange={handleDropdownChange}
+        />,
+        {initialRouterConfig: {location: paginationLocation}}
+      );
+      await screen.findByTestId('transactions-table');
+      await userEvent.click(await screen.findByRole('button', {name: 'Next'}));
+      await waitFor(() => {
+        expect(router.location.query).toEqual({
+          ...paginationLocation.query,
+          transactionCursor: '0:20:0',
+        });
       });
+      expect(router.location.pathname).toBe('/transactions/');
+    });
+
+    it('links "Open in Explore" to Explore > Traces', async () => {
+      initialize({organization: {features: ['discover-basic']}});
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/`,
         body: {
@@ -268,9 +281,7 @@ describe('TransactionsList', () => {
       ]);
 
       expect(
-        screen.queryByRole('button', {
-          name: 'Open in Explore',
-        })
+        screen.queryByRole('button', {name: 'Open in Explore'})
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('button', {name: 'Previous'})).toBeInTheDocument();
@@ -353,9 +364,7 @@ describe('TransactionsList', () => {
       const gridCells = await screen.findAllByTestId('grid-cell');
       expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
 
-      const filterDropdown = screen.getByRole('button', {
-        name: 'Filter Transactions',
-      });
+      const filterDropdown = screen.getByRole('button', {name: 'Filter Transactions'});
       expect(filterDropdown).toBeInTheDocument();
       await userEvent.click(filterDropdown);
 
@@ -416,41 +425,6 @@ describe('TransactionsList', () => {
         'href',
         '/org-slug?count%28%29=1000&transaction=%2Fb'
       );
-    });
-
-    it('handles forceLoading correctly', async () => {
-      const component = render(
-        <WrapperComponent
-          api={null}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          forceLoading
-        />
-      );
-
-      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
-
-      component.rerender(
-        <WrapperComponent
-          api={null}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
-
-      expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
-      const gridCells = await screen.findAllByTestId('grid-cell');
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-
-      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
     });
   });
 });

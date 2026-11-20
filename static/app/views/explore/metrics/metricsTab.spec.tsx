@@ -7,6 +7,8 @@ import {
 
 import {
   render,
+  renderGlobalModal,
+  renderHookWithProviders,
   screen,
   userEvent,
   waitFor,
@@ -20,16 +22,16 @@ import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {decodeList} from 'sentry/utils/queryString';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
-  defaultMetricQuery,
-  encodeMetricQueryParams,
-} from 'sentry/views/explore/metrics/metricQuery';
-import {MetricsTabContent} from 'sentry/views/explore/metrics/metricsTab';
-import {MultiMetricsQueryParamsProvider} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
-import {
   VisualizeEquation,
   VisualizeFunction,
 } from 'sentry/views/explore/queryParams/visualize';
 import type {EventValidationData} from 'sentry/views/explore/utils/validateEventParamsOptions';
+import type {LLMContextSnapshot} from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {usePageContextCapture} from 'sentry/views/seerExplorer/hooks/usePageContextCapture';
+
+import {defaultMetricQuery, encodeMetricQueryParams} from './metricQuery';
+import {MetricsTabContent} from './metricsTab';
+import {MultiMetricsQueryParamsProvider} from './multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
 const trackAnalyticsMock = jest.mocked(trackAnalytics);
@@ -97,6 +99,15 @@ describe('MetricsTabContent', () => {
     return <MultiMetricsQueryParamsProvider>{children}</MultiMetricsQueryParamsProvider>;
   }
 
+  function PageContextWrapper({children}: {children: React.ReactNode}) {
+    return (
+      <ProviderWrapper>
+        <MetricsTabContent datePageFilterProps={datePageFilterProps} />
+        {children}
+      </ProviderWrapper>
+    );
+  }
+
   const initialRouterConfig = {
     location: initialLocation,
     route: '/organizations/:orgId/explore/metrics/',
@@ -150,22 +161,14 @@ describe('MetricsTabContent', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.explore.metric-timeseries',
-        }),
-      ],
+      body: {timeSeries: [TimeSeriesFixture()]},
+      match: [MockApiClient.matchQuery({referrer: 'api.explore.metric-timeseries'})],
     });
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-timeseries/`,
       method: 'GET',
-      body: {
-        timeSeries: [TimeSeriesFixture()],
-      },
+      body: {timeSeries: [TimeSeriesFixture()]},
     });
 
     MockApiClient.addMockResponse({
@@ -196,6 +199,60 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/stats_v2/`,
       method: 'GET',
       body: {},
+    });
+  });
+
+  it('captures per-axis transformations and the default chart interval', async () => {
+    const visualizes = [
+      {
+        yAxes: ['p50(value,bar,distribution,none)'],
+        transformations: ['fill(zero)', 'smooth(sma,5)'],
+      },
+      {yAxes: ['p50(value,bar,distribution,none)'], transformations: ['fill(locf)']},
+      {yAxes: ['p50(value,bar,distribution,none)']},
+    ];
+    const {result} = renderHookWithProviders(usePageContextCapture, {
+      organization,
+      additionalWrapper: PageContextWrapper,
+      initialRouterConfig: {
+        ...initialRouterConfig,
+        location: {
+          ...initialLocation,
+          query: {
+            ...initialLocation.query,
+            metric: [
+              JSON.stringify({
+                metric: {name: 'bar', type: 'distribution'},
+                query: 'host:api',
+                aggregateFields: visualizes,
+              }),
+            ],
+          },
+        },
+      },
+    });
+
+    await waitFor(() => {
+      const captured = result.current({
+        route: '/explore/metrics/',
+        allowStructured: true,
+      });
+      expect(captured.isStructured).toBe(true);
+      const snapshot: LLMContextSnapshot = JSON.parse(captured.screenshot!);
+      expect(
+        snapshot.nodes.find(node => node.nodeType === 'metrics-explorer')?.data
+      ).toEqual(
+        expect.objectContaining({
+          metricQueries: [
+            expect.objectContaining({metric: 'bar', query: 'host:api', visualizes}),
+          ],
+          interval: '1h',
+          projectIds: [project.id],
+          projectSlugs: [project.slug],
+          projectSelectionMode: 'explicit',
+          currentSelectedDateRange: {period: '14d', start: null, end: null, utc: null},
+        })
+      );
     });
   });
 
@@ -285,7 +342,8 @@ describe('MetricsTabContent', () => {
     });
   });
 
-  it('disables saving when a later metric row has transformations', async () => {
+  it('allows query saves when a later metric row has transformations', async () => {
+    renderGlobalModal({organization, additionalWrapper: ProviderWrapper});
     render(<MetricsTabContent datePageFilterProps={datePageFilterProps} />, {
       additionalWrapper: ProviderWrapper,
       organization,
@@ -312,9 +370,19 @@ describe('MetricsTabContent', () => {
       },
     });
 
-    expect(screen.getByRole('button', {name: 'Save as'})).toHaveAttribute(
+    await userEvent.click(screen.getByRole('button', {name: 'Save as'}));
+    expect(screen.getByRole('menuitemradio', {name: 'New Query'})).toBeEnabled();
+    expect(screen.getByRole('menuitem', {name: 'Dashboard widget'})).not.toHaveAttribute(
       'aria-disabled',
       'true'
+    );
+    expect(screen.getByRole('menuitemradio', {name: 'Monitor for'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'New Query'}));
+    await waitFor(() =>
+      expect(screen.getByPlaceholderText('Enter a name for your new query')).toBeVisible()
     );
     expect(
       await within(screen.getAllByTestId('metric-toolbar')[1]!).findByRole('button', {
@@ -330,10 +398,7 @@ describe('MetricsTabContent', () => {
         <ProviderWrapper>
           <MetricsTabContent datePageFilterProps={datePageFilterProps} />
         </ProviderWrapper>,
-        {
-          initialRouterConfig,
-          organization,
-        }
+        {initialRouterConfig, organization}
       );
 
       expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
@@ -520,10 +585,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
     expect(await screen.findAllByTestId('metric-panel')).toHaveLength(1);
 
@@ -604,10 +666,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -765,10 +824,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig: initialRouterConfigWithGroupBy,
-        organization,
-      }
+      {initialRouterConfig: initialRouterConfigWithGroupBy, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -806,10 +862,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -905,10 +958,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig: noMetricRouterConfig,
-        organization,
-      }
+      {initialRouterConfig: noMetricRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -950,16 +1000,8 @@ describe('MetricsTabContent', () => {
       url: `/organizations/${organization.slug}/trace-items/attributes/`,
       method: 'GET',
       body: [
-        {
-          attributeType: 'string',
-          key: 'test.region',
-          name: 'test.region',
-        },
-        {
-          attributeType: 'string',
-          key: 'test.service',
-          name: 'test.service',
-        },
+        {attributeType: 'string', key: 'test.region', name: 'test.region'},
+        {attributeType: 'string', key: 'test.service', name: 'test.service'},
       ],
       match: [MockApiClient.matchQuery({attributeType: ['string', 'number', 'boolean']})],
     });
@@ -968,10 +1010,7 @@ describe('MetricsTabContent', () => {
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
       </ProviderWrapper>,
-      {
-        initialRouterConfig,
-        organization,
-      }
+      {initialRouterConfig, organization}
     );
 
     const toolbars = screen.getAllByTestId('metric-toolbar');
@@ -1008,9 +1047,7 @@ describe('MetricsTabContent', () => {
   });
 
   it('renders aggregate and equation panels in separate sections', async () => {
-    const orgWithFeatures = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithFeatures = OrganizationFixture({features: ['tracemetrics-enabled']});
     MockApiClient.addMockResponse({
       url: `/organizations/${orgWithFeatures.slug}/events/`,
       method: 'GET',
@@ -1073,9 +1110,7 @@ describe('MetricsTabContent', () => {
       aggregateSortBys: [],
       mode: 'aggregate',
     });
-    const orgWithFeature = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithFeature = OrganizationFixture({features: ['tracemetrics-enabled']});
     render(
       <ProviderWrapper>
         <MetricsTabContent datePageFilterProps={datePageFilterProps} />
@@ -1100,9 +1135,7 @@ describe('MetricsTabContent', () => {
     expect(screen.getAllByText('Add Equation').length).toBeGreaterThan(0);
 
     // Only 2 entries (cap is 3) -> both buttons are enabled
-    for (const button of screen.getAllByRole('button', {
-      name: 'Add Metric',
-    })) {
+    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
       expect(button).toBeEnabled();
     }
     for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -1111,9 +1144,7 @@ describe('MetricsTabContent', () => {
 
     // Add an entry, 3 entries (at cap) -> both buttons are disabled
     await userEvent.click(screen.getAllByRole('button', {name: 'Add Metric'})[0]!);
-    for (const button of screen.getAllByRole('button', {
-      name: 'Add Metric',
-    })) {
+    for (const button of screen.getAllByRole('button', {name: 'Add Metric'})) {
       expect(button).toBeDisabled();
     }
     for (const button of screen.getAllByRole('button', {name: 'Add Equation'})) {
@@ -1122,9 +1153,7 @@ describe('MetricsTabContent', () => {
   });
 
   it('disables delete button for metrics referenced by an equation', async () => {
-    const orgWithEquations = OrganizationFixture({
-      features: ['tracemetrics-enabled'],
-    });
+    const orgWithEquations = OrganizationFixture({features: ['tracemetrics-enabled']});
 
     const metricA = JSON.stringify({
       metric: {name: 'metricA', type: 'distribution', unit: 'none'},

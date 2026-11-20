@@ -4,11 +4,12 @@ import {useDatePageFilterProps} from 'sentry/utils/useDatePageFilterProps';
 import {useMaxPickableDays} from 'sentry/utils/useMaxPickableDays';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {DomainOverviewPageProviders} from 'sentry/views/insights/pages/domainOverviewPageProviders';
-import {Am1FrontendOverviewPage} from 'sentry/views/insights/pages/frontend/am1OverviewPage';
-import {PlatformizedFrontendOverviewPage} from 'sentry/views/insights/pages/frontend/platformizedFrontendOverviewPage';
 import {useIsNextJsInsightsAvailable} from 'sentry/views/insights/pages/platform/nextjs/features';
 import {PlatformizedNextJsOverviewPage} from 'sentry/views/insights/pages/platform/nextjs/platformizedNextJsOverviewPage';
 import {useOverviewPageTrackPageload} from 'sentry/views/insights/pages/useOverviewPageTrackAnalytics';
+
+import {Am1FrontendOverviewPage} from './am1OverviewPage';
+import {PlatformizedFrontendOverviewPage} from './platformizedFrontendOverviewPage';
 
 interface FrontendOverviewPageProps {
   datePageFilterProps: DatePageFilterProps;
@@ -32,9 +33,7 @@ function FrontendOverviewPage({datePageFilterProps}: FrontendOverviewPageProps) 
 }
 
 function FrontendOverviewPageWithProviders() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   return (

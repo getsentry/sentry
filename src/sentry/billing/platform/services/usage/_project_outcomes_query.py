@@ -19,8 +19,8 @@ from sentry.billing.platform.services.usage._outcomes_query import (
     _QUERY_LIMIT,
     _build_query,
     _category_usage_from_row,
-    _inclusive_end_to_exclusive,
     _latest_usage_timestamp,
+    _OutcomeRow,
     _parse_day,
     _timestamp_to_datetime,
 )
@@ -33,13 +33,17 @@ logger = logging.getLogger(__name__)
 _REFERRER = Referrer.BILLING_USAGE_SERVICE_CLICKHOUSE.value
 
 
+class _ProjectOutcomeRow(_OutcomeRow):
+    project_id: int
+
+
 class ProjectUsageQueryTruncatedError(RuntimeError):
     """Raised when ClickHouse may have omitted project usage rows."""
 
 
 def query_project_outcomes_usage(request: GetUsageByProjectRequest) -> GetUsageByProjectResponse:
     start = _timestamp_to_datetime(request.start)
-    end = _inclusive_end_to_exclusive(request.end)
+    end = _timestamp_to_datetime(request.end)
 
     categories = [proto_to_sentry_category(category) for category in request.categories]
     snuba_request = _build_project_query(
@@ -82,7 +86,7 @@ def _build_project_query(
 
 
 def _build_project_response(
-    rows: list[dict], last_usage_ts: datetime | None
+    rows: list[_ProjectOutcomeRow], last_usage_ts: datetime | None
 ) -> GetUsageByProjectResponse:
     projects: defaultdict[int, defaultdict[str, dict[int, CategoryUsage]]] = defaultdict(
         lambda: defaultdict(dict)

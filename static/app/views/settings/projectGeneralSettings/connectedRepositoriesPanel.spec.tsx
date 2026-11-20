@@ -16,7 +16,8 @@ import {
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import {mockElementSize} from 'sentry/utils/fixtures/virtualization';
-import {ConnectedRepositoriesPanel} from 'sentry/views/settings/projectGeneralSettings/connectedRepositoriesPanel';
+
+import {ConnectedRepositoriesPanel} from './connectedRepositoriesPanel';
 
 mockElementSize();
 
@@ -38,11 +39,7 @@ describe('ConnectedRepositoriesPanel', () => {
   });
 
   it('shows a loading spinner while the request is in flight', () => {
-    MockApiClient.addMockResponse({
-      url: repoUrl,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: repoUrl, method: 'GET', body: []});
 
     renderPanel();
 
@@ -50,11 +47,7 @@ describe('ConnectedRepositoriesPanel', () => {
   });
 
   it('shows empty state when no repositories are connected', async () => {
-    MockApiClient.addMockResponse({
-      url: repoUrl,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: repoUrl, method: 'GET', body: []});
 
     renderPanel();
 
@@ -341,11 +334,7 @@ describe('ConnectedRepositoriesPanel', () => {
 
   it('opens the connect repository modal when the button is clicked', async () => {
     const integration = GitHubIntegrationFixture();
-    MockApiClient.addMockResponse({
-      url: repoUrl,
-      method: 'GET',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: repoUrl, method: 'GET', body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
       method: 'GET',

@@ -1,6 +1,6 @@
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
+import {useCaseInsensitivity} from './hooks';
 
 describe('useCaseSensitivity', () => {
   it('should return the correct case sensitivity', () => {
@@ -11,11 +11,7 @@ describe('useCaseSensitivity', () => {
 
     const {result: caseSensitivityFalse} = renderHookWithProviders(
       () => useCaseInsensitivity(),
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: {}},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: {}}}}
     );
     expect(caseSensitivityFalse.current[0]).toBeNull();
 

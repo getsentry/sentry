@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, TypedDict
+from typing import Annotated, Any, TypedDict
 
 import sentry_sdk
 from django.core.exceptions import ValidationError
@@ -14,6 +14,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
+from sentry.apidocs.descriptions import ApiDescription
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.response_types import ValidationErrorResponse, as_validation_errors
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -40,11 +41,16 @@ class ChannelValidateSerializer(serializers.Serializer):
 class DetailOptionalResponse(TypedDict, total=False):
     """Use a total=False base because postponed NotRequired annotations become required in OpenAPI."""
 
-    detail: str
+    detail: Annotated[
+        str,
+        ApiDescription("Why the channel couldn't be validated, such as an unsupported provider"),
+    ]
 
 
 class IntegrationChannelValidationResponse(DetailOptionalResponse):
-    valid: bool
+    valid: Annotated[
+        bool, ApiDescription("Whether the channel exists in the integration's workspace")
+    ]
 
 
 @extend_schema(tags=["Integration"])

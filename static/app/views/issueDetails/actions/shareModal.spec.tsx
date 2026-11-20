@@ -5,9 +5,11 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {GroupStore} from 'sentry/stores/groupStore';
-import {ShareIssueModal} from 'sentry/views/issueDetails/actions/shareModal';
+
+import {ShareIssueModal} from './shareModal';
 
 describe('ShareIssueModal', () => {
   const project = ProjectFixture();
@@ -16,14 +18,9 @@ describe('ShareIssueModal', () => {
 
   beforeEach(() => {
     GroupStore.init();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
   afterEach(() => {
-    GroupStore.reset();
     MockApiClient.clearMockResponses();
     jest.clearAllMocks();
   });

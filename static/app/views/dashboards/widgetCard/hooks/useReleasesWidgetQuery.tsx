@@ -17,13 +17,13 @@ import type {WidgetTimeSeries} from 'sentry/views/dashboards/utils/transformTime
 import {useWidgetQueryQueue} from 'sentry/views/dashboards/utils/widgetQueryQueue';
 import type {HookWidgetQueryResult} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {applyDashboardFiltersToWidget} from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
-import {combineWidgetJsonQueryResults} from 'sentry/views/dashboards/widgetCard/hooks/utils/combineWidgetQueryResults';
-import {getWidgetStaleTime} from 'sentry/views/dashboards/widgetCard/hooks/utils/getStaleTime';
-import {useCustomReleaseSorting} from 'sentry/views/dashboards/widgetCard/hooks/utils/useCustomReleaseSorting';
 import {transformMultipleWidgetSeriesToTimeSeries} from 'sentry/views/dashboards/widgetCard/transformWidgetSeriesToTimeSeries';
 import {getRetryDelay} from 'sentry/views/insights/common/utils/retryHandlers';
 
+import {combineWidgetJsonQueryResults} from './utils/combineWidgetQueryResults';
+import {getWidgetStaleTime} from './utils/getStaleTime';
 import {getReleasesRequestData} from './utils/releases';
+import {useCustomReleaseSorting} from './utils/useCustomReleaseSorting';
 
 const EMPTY_ARRAY: any[] = [];
 
@@ -126,11 +126,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     if (releaseSorting.errorMessage) {
@@ -154,11 +150,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -198,10 +190,7 @@ export function useReleasesSeriesQuery(params: WidgetQueryParams): HookWidgetQue
     };
   })();
 
-  return {
-    ...transformedData,
-    timeseriesInterval: queryRequests[0]?.interval,
-  };
+  return {...transformedData, timeseriesInterval: queryRequests[0]?.interval};
 }
 
 export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQueryResult {
@@ -290,11 +279,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
   const transformedData = (() => {
     if (validationError) {
-      return {
-        loading: false,
-        errorMessage: validationError,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading: false, errorMessage: validationError, rawData: EMPTY_ARRAY};
     }
 
     if (releaseSorting.errorMessage) {
@@ -318,11 +303,7 @@ export function useReleasesTableQuery(params: WidgetQueryParams): HookWidgetQuer
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

@@ -1,3 +1,5 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {Button} from '@sentry/scraps/button';
 import {Container} from '@sentry/scraps/layout';
 
@@ -7,10 +9,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {getPeriod} from 'sentry/utils/duration/getPeriod';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {BigNumberWidgetVisualization} from 'sentry/views/dashboards/widgets/bigNumberWidget/bigNumberWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {MissingReleasesButtons} from 'sentry/views/projectDetail/missingFeatureButtons/missingReleasesButtons';
@@ -33,26 +34,19 @@ const useReleaseCount = (props: Props) => {
     {shouldDoublePeriod: true}
   ).statsPeriod;
 
-  const commonQuery = {
-    environment: environments,
-    project: projects[0],
-    query,
-  };
+  const commonQuery = {environment: environments, project: projects[0], query};
 
-  const currentQuery = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const currentQuery = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
-        query: {
-          ...commonQuery,
-          ...normalizeDateTimeParams(datetime),
-        },
-      },
-    ],
-    {staleTime: Infinity, enabled: isEnabled}
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...commonQuery, ...normalizeDateTimeParams(datetime)},
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isEnabled,
+  });
 
   const isPreviousPeriodEnabled = shouldFetchPreviousPeriod({
     start: datetime.start,
@@ -60,24 +54,21 @@ const useReleaseCount = (props: Props) => {
     period: datetime.period,
   });
 
-  const previousQuery = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const previousQuery = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
+        path: {organizationIdOrSlug: organization.slug},
         query: {
           ...commonQuery,
           statsPeriodStart: doubledPeriod,
           statsPeriodEnd: period ?? DEFAULT_STATS_PERIOD,
         },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isPreviousPeriodEnabled,
-    }
-  );
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isEnabled && isPreviousPeriodEnabled,
+  });
 
   const allReleases = [...(currentQuery.data ?? []), ...(previousQuery.data ?? [])];
 
@@ -88,24 +79,17 @@ const useReleaseCount = (props: Props) => {
     !previousQuery.error &&
     allReleases.length === 0;
 
-  const allTimeQuery = useApiQuery<Release[]>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
+  const allTimeQuery = useQuery({
+    ...apiOptions.as<Release[]>()(
+      '/organizations/$organizationIdOrSlug/releases/stats/',
       {
-        query: {
-          ...commonQuery,
-          statsPeriod: '90d',
-          per_page: 1,
-        },
-      },
-    ],
-    {
-      staleTime: Infinity,
-      enabled: isEnabled && isAllTimePeriodEnabled,
-    }
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...commonQuery, statsPeriod: '90d', per_page: 1},
+        staleTime: Infinity,
+      }
+    ),
+    enabled: isEnabled && isAllTimePeriodEnabled,
+  });
 
   return {
     data: currentQuery.data,

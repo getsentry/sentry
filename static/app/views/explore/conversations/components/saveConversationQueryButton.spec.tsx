@@ -3,7 +3,8 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as modal from 'sentry/actionCreators/modal';
-import {SaveConversationQueryButton} from 'sentry/views/explore/conversations/components/saveConversationQueryButton';
+
+import {SaveConversationQueryButton} from './saveConversationQueryButton';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -42,10 +43,7 @@ describe('SaveConversationQueryButton', () => {
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({
-          dataset: 'ai_conversations',
-          errorsOnly: true,
-        }),
+        data: expect.objectContaining({dataset: 'ai_conversations', errorsOnly: true}),
       })
     );
   });
@@ -55,9 +53,7 @@ describe('SaveConversationQueryButton', () => {
 
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({errorsOnly: undefined}),
-      })
+      expect.objectContaining({data: expect.objectContaining({errorsOnly: undefined})})
     );
   });
 });

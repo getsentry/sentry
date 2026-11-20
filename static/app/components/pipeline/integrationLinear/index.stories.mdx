@@ -1,0 +1,45 @@
+---
+title: Linear Installation
+description: Authorize Seer to read and write a Linear workspace.
+category: forms
+source: sentry/components/pipeline/integrationLinear
+---
+
+import {linearIntegrationPipeline} from 'sentry/components/pipeline/integrationLinear';
+import * as Storybook from 'sentry/stories';
+
+export const LinearOAuthLoginStep = linearIntegrationPipeline.steps[0].component;
+
+The Linear pipeline opens an authorization popup for the Sentry app. A Linear workspace admin approves read and write access for the organization. Sentry checks workspace access before completing installation and renews tokens automatically for background investigations. Seer reaches Linear through its read-only MCP endpoint.
+
+## Authorization
+
+This demo renders the authorization step with its button disabled. It does not open a popup or make API requests.
+
+<Storybook.Demo>
+  <LinearOAuthLoginStep
+    advance={() => {}}
+    advanceError={null}
+    isAdvancing={false}
+    isInitializing={false}
+    stepData={{}}
+    stepIndex={0}
+    totalSteps={1}
+  />
+</Storybook.Demo>
+
+```jsx
+<LinearOAuthLoginStep
+  advance={advance}
+  advanceError={null}
+  isAdvancing={false}
+  isInitializing={false}
+  stepData={{oauthUrl: 'https://linear.app/oauth/authorize?...'}}
+  stepIndex={0}
+  totalSteps={1}
+/>
+```
+
+## Accessibility
+
+The authorization button has an accessible label and is disabled until the authorization URL is ready. Cancellation and connection failures are announced with alerts. If the browser blocks the popup, the step explains how to retry.

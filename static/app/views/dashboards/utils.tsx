@@ -3,7 +3,8 @@ import cloneDeep from 'lodash/cloneDeep';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
-import * as qs from 'query-string';
+import {parseAsJson} from 'nuqs';
+import {z} from 'zod';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
 import type {Fidelity} from 'sentry/components/charts/utils';
@@ -31,22 +32,26 @@ import {
 import {DURATION_UNITS} from 'sentry/utils/discover/fieldUnits';
 import {DisplayModes, type SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
+import {FieldKind} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
-import {DEFAULT_STATS_PERIOD} from 'sentry/views/dashboards/data';
+
+import {DEFAULT_STATS_PERIOD} from './data';
 import type {
   DashboardDetails,
   DashboardFilters,
+  GlobalFilter,
   Widget,
   WidgetQuery,
-} from 'sentry/views/dashboards/types';
+} from './types';
 import {
   DashboardFilterKeys,
   DisplayType,
   WIDGET_TYPE_TO_SAVED_QUERY_DATASET,
   WidgetType,
-} from 'sentry/views/dashboards/types';
+} from './types';
 
 type ValidationError = {
   [key: string]: string | string[] | ValidationError[] | ValidationError;
@@ -109,10 +114,7 @@ export function getThresholdUnitSelectOptions(
   }
 
   if (dataType === 'size') {
-    return Object.values(ABYTE_UNITS).map(unit => ({
-      label: unit,
-      value: unit,
-    }));
+    return Object.values(ABYTE_UNITS).map(unit => ({label: unit, value: unit}));
   }
 
   return [];
@@ -389,9 +391,7 @@ export function hasUnsavedFilterChanges(
     end: normalizeDateTimeString(initialDashboard.end),
     utc: initialDashboard.utc,
   };
-  let currentFilters = {
-    ...getCurrentPageFilters(location),
-  } as unknown as Filters;
+  let currentFilters = {...getCurrentPageFilters(location)} as unknown as Filters;
   currentFilters = {
     ...currentFilters,
     projects: new Set(currentFilters.projects),
@@ -446,13 +446,7 @@ export function resetPageFilters(
   location: Location,
   navigate: ReactRouter3Navigate
 ) {
-  navigate(
-    {
-      ...location,
-      query: getSavedPageFilters(dashboard),
-    },
-    {replace: true}
-  );
+  navigate({...location, query: getSavedPageFilters(dashboard)}, {replace: true});
 }
 
 export function getCurrentPageFilters(
@@ -492,6 +486,23 @@ export function getMergedDashboardFilters(
   return {...savedFilters, ...getDashboardFiltersFromURL(location)};
 }
 
+const globalFilterSchema = z.looseObject({
+  dataset: z.enum(WidgetType),
+  tag: z.looseObject({
+    key: z.string(),
+    name: z.string(),
+    kind: z.enum(FieldKind).optional(),
+  }),
+  value: z.string(),
+  isTemporary: z.boolean().optional(),
+}) satisfies z.ZodType<GlobalFilter>;
+
+const parseAsUnknownJson = parseAsJson(z.unknown());
+
+function isGlobalFilter(value: unknown): value is GlobalFilter {
+  return globalFilterSchema.safeParse(value).success;
+}
+
 export function getDashboardFiltersFromURL(location: Location): DashboardFilters | null {
   const dashboardFilters: DashboardFilters = {};
   Object.values(DashboardFilterKeys).forEach(key => {
@@ -499,16 +510,9 @@ export function getDashboardFiltersFromURL(location: Location): DashboardFilters
       const queryFilters = decodeList(location.query?.[key]);
 
       if (key === DashboardFilterKeys.GLOBAL_FILTER) {
-        // Global filters are stored as JSON strings
         dashboardFilters[key] = queryFilters
-          .map(filter => {
-            try {
-              return JSON.parse(filter);
-            } catch (error) {
-              return null;
-            }
-          })
-          .filter(filter => filter !== null);
+          .map(filter => parseAsUnknownJson.parse(filter))
+          .filter(isGlobalFilter);
       } else {
         dashboardFilters[key] = queryFilters;
       }

@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {useQuery} from '@tanstack/react-query';
 import upperFirst from 'lodash/upperFirst';
 import moment from 'moment-timezone';
 
@@ -13,10 +14,9 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {DataCategory} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getLocalities} from 'sentry/utils/cells';
 import {defined} from 'sentry/utils/defined';
-import {useApiQuery} from 'sentry/utils/queryClient';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {openAdminConfirmModal} from 'admin/components/adminConfirmationModal';
@@ -65,10 +65,7 @@ import {titleCase} from 'getsentry/utils/titleCase';
 
 type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
-type SubscriptionSummaryProps = {
-  customer: Subscription;
-  onAction: CustomerUpdateAction;
-};
+type SubscriptionSummaryProps = {customer: Subscription; onAction: CustomerUpdateAction};
 
 function SoftCapTypeDetail({
   categories,
@@ -168,9 +165,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   );
 }
 
-type ReservedDataProps = {
-  customer: Subscription;
-};
+type ReservedDataProps = {customer: Subscription};
 
 function ReservedData({customer}: ReservedDataProps) {
   const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
@@ -412,9 +407,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   );
 }
 
-type OnDemandSummaryProps = {
-  customer: Subscription;
-};
+type OnDemandSummaryProps = {customer: Subscription};
 
 function OnDemandSummary({customer}: OnDemandSummaryProps) {
   const onDemandPeriod = `${moment(customer.onDemandPeriodStart).format('ll')} › ${moment(
@@ -440,10 +433,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({
-                    plan: customer.planDetails,
-                    category,
-                  })}: `}
+                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
                   {`${displayPriceWithCents({
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
@@ -565,19 +555,13 @@ function SampleRateRow({
 function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
-  const {data, isPending, isError} = useApiQuery<{
-    eapEffectiveSampleRate: number | null;
-  }>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
-        path: {organizationIdOrSlug: organization.slug},
-      }),
-    ],
-    {
-      staleTime: Infinity,
-      enabled: dynamicSamplingEnabled,
-    }
-  );
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<{eapEffectiveSampleRate: number | null}>()(
+      '/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: Infinity}
+    ),
+    enabled: dynamicSamplingEnabled,
+  });
 
   if (!dynamicSamplingEnabled) {
     return (
@@ -815,9 +799,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 
   const updateCustomerStatus = (action: string) => {
-    const data = {
-      [action]: true,
-    };
+    const data = {[action]: true};
 
     runAction(data);
   };
@@ -1118,11 +1100,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-type ThresholdLabelProps = {
-  children: React.ReactNode;
-  label: string;
-  positive: boolean;
-};
+type ThresholdLabelProps = {children: React.ReactNode; label: string; positive: boolean};
 
 function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (

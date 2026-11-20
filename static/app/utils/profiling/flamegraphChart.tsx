@@ -1,13 +1,12 @@
-import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
-
 import {colorComponentsToRGBA} from './colors/utils';
+import type {ColorChannels} from './flamegraph/flamegraphTheme';
+import type {ProfilingFormatterUnit} from './units/units';
 import {
   assertValidProfilingUnit,
   makeFormatter,
   makeTimelineFormatter,
 } from './units/units';
+import {Rect} from './speedscope';
 
 interface Series {
   fillColor: string;
@@ -49,13 +48,7 @@ export class FlamegraphChart {
   timelineFormatter: (value: number) => string;
   series: Series[];
   status: 'no metrics' | 'empty metrics' | 'insufficient data' | 'ok' = 'no metrics';
-  domains: {
-    x: [number, number];
-    y: [number, number];
-  } = {
-    x: [0, 0],
-    y: [0, 0],
-  };
+  domains: {x: [number, number]; y: [number, number]} = {x: [0, 0], y: [0, 0]};
 
   static MIN_RENDERABLE_POINTS = 2;
   static Empty = new FlamegraphChart(Rect.empty(), [], [[0, 0, 0, 0]]);

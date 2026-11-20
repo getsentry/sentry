@@ -2,14 +2,21 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {readStorageValue} from 'sentry/utils/useSessionStorage';
-import {OrganizationDropdown} from 'sentry/views/navigation/primary/organizationDropdown';
+
+import {OrganizationDropdown} from './organizationDropdown';
 
 describe('OrganizationDropdown', () => {
   const organization = OrganizationFixture({
@@ -17,11 +24,8 @@ describe('OrganizationDropdown', () => {
   });
 
   beforeEach(() => {
-    ConfigStore.set('user', UserFixture());
-  });
-
-  afterEach(() => {
     ProjectsStore.reset();
+    ConfigStore.set('user', UserFixture());
   });
 
   it('displays org info and links', async () => {
@@ -47,10 +51,7 @@ describe('OrganizationDropdown', () => {
 
   it('shows the shared header in the settings v3 menu', async () => {
     render(<OrganizationDropdown />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: ['settings-v3'],
-      }),
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
@@ -95,31 +96,6 @@ describe('OrganizationDropdown', () => {
     );
   });
 
-  it('keeps the settings v3 menus bounded with a long project slug', async () => {
-    const slug = 'a-very-long-project-slug-that-should-not-widen-the-menu';
-    ProjectsStore.loadInitialData([
-      ProjectFixture({id: '1', slug, isBookmarked: true, isMember: true}),
-    ]);
-    render(<OrganizationDropdown />, {
-      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
-    });
-
-    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
-
-    expect(
-      screen.getByRole('menuitemradio', {name: slug}).closest('[data-overlay]')
-    ).toHaveStyle({
-      maxWidth: 'min(258px, 100%)',
-    });
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
-    const projectItems = screen.getAllByRole('menuitemradio', {name: slug});
-    expect(projectItems).toHaveLength(2);
-    expect(projectItems[1]?.closest('[data-overlay]')).toHaveStyle({
-      maxWidth: 'min(258px, 100%)',
-      maxHeight: '240px',
-    });
-  });
-
   it('filters projects in the settings v3 All Projects submenu', async () => {
     ProjectsStore.loadInitialData([
       ProjectFixture({id: '1', slug: 'javascript', isMember: true, isBookmarked: true}),
@@ -134,26 +110,29 @@ describe('OrganizationDropdown', () => {
       'href',
       `/settings/${organization.slug}/`
     );
-    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'View All Projects'}));
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
 
-    const search = screen.getByRole('textbox', {name: 'Search'});
-    expect(search).toHaveFocus();
-    expect(within(search.parentElement!).getByRole('img')).toBeInTheDocument();
+    const search = await screen.findByRole('searchbox', {name: 'Search'});
+    await waitFor(() => expect(search).toHaveFocus());
     await userEvent.type(search, 'python');
-    expect(screen.getByRole('menuitemradio', {name: 'python'})).toHaveAttribute(
+    const submenu = within(screen.getByRole('menu', {name: 'View All Projects'}));
+    expect(
+      submenu.queryByRole('menuitemradio', {name: 'javascript'})
+    ).not.toBeInTheDocument();
+    expect(submenu.getByRole('menuitemradio', {name: 'python'})).toHaveAttribute(
       'href',
       `/settings/${organization.slug}/projects/python/`
     );
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'python'}));
+    await userEvent.click(submenu.getByRole('menuitemradio', {name: 'python'}));
     expect(router.location.pathname).toBe(
       `/settings/${organization.slug}/projects/python/`
     );
   });
 
-  it('shows the first five bookmarked projects in settings order', async () => {
+  it('shows the first five projects alphabetically when none are starred', async () => {
     ProjectsStore.loadInitialData(
       ['project-z', 'project-f', 'project-b', 'project-e', 'project-a', 'project-c'].map(
-        (slug, index) => ProjectFixture({id: String(index), slug, isBookmarked: true})
+        (slug, index) => ProjectFixture({id: String(index), slug, isMember: true})
       )
     );
     render(<OrganizationDropdown />, {
@@ -170,6 +149,174 @@ describe('OrganizationDropdown', () => {
     expect(
       screen.queryByRole('menuitemradio', {name: 'project-z'})
     ).not.toBeInTheDocument();
+  });
+
+  it('lists starred projects first, then member projects, then the rest', async () => {
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'project-a', isMember: true}),
+      ProjectFixture({id: '2', slug: 'project-b', isMember: false}),
+      ProjectFixture({id: '3', slug: 'project-c', isMember: true}),
+      ProjectFixture({id: '4', slug: 'project-y', isMember: true, isBookmarked: true}),
+      ProjectFixture({id: '5', slug: 'project-x', isMember: false, isBookmarked: true}),
+      ProjectFixture({id: '6', slug: 'project-d', isMember: true}),
+    ]);
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(
+      screen
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent)
+    ).toEqual(['project-y', 'project-x', 'project-a', 'project-c', 'project-d']);
+  });
+
+  it('shows the first five starred projects when more are starred', async () => {
+    ProjectsStore.loadInitialData(
+      ['project-z', 'project-f', 'project-b', 'project-e', 'project-a', 'project-c'].map(
+        (slug, index) =>
+          ProjectFixture({id: String(index), slug, isMember: true, isBookmarked: true})
+      )
+    );
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(
+      screen
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent)
+    ).toEqual(['project-a', 'project-b', 'project-c', 'project-e', 'project-f']);
+  });
+
+  it('keeps the project order while starring from the open menu', async () => {
+    const projects = [
+      ProjectFixture({id: '1', slug: 'project-a', isMember: true}),
+      ProjectFixture({id: '2', slug: 'project-b', isMember: true}),
+    ];
+    ProjectsStore.loadInitialData(projects);
+    const projectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-b/`,
+      method: 'PUT',
+      body: {...projects[1], isBookmarked: true},
+    });
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    const toggle = screen.getByRole('button', {name: 'Toggle organization menu'});
+    await userEvent.click(toggle);
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'project-b'}));
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Enter}');
+    expect(projectMock).toHaveBeenCalled();
+    await screen.findByRole('button', {name: 'Remove Bookmark'});
+
+    expect(
+      screen
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent)
+    ).toEqual(['project-a', 'project-b']);
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(toggle);
+
+    expect(
+      screen
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent)
+    ).toEqual(['project-b', 'project-a']);
+  });
+
+  it('keeps the All Projects order while starring from the open submenu', async () => {
+    const projects = [
+      ProjectFixture({id: '1', slug: 'project-a', isMember: true}),
+      ProjectFixture({id: '2', slug: 'project-b', isMember: true}),
+    ];
+    ProjectsStore.loadInitialData(projects);
+    const projectMock = MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/project-b/`,
+      method: 'PUT',
+      body: {...projects[1], isBookmarked: true},
+    });
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    const toggle = screen.getByRole('button', {name: 'Toggle organization menu'});
+    await userEvent.click(toggle);
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+    await screen.findByRole('searchbox', {name: 'Search'});
+    const getSubmenu = () =>
+      within(
+        screen
+          .getByRole('searchbox', {name: 'Search'})
+          .closest<HTMLElement>('[data-overlay]')!
+      );
+    const getSubmenuOrder = () =>
+      getSubmenu()
+        .getAllByRole('menuitemradio', {name: /^project-/})
+        .map(item => item.textContent);
+
+    expect(getSubmenuOrder()).toEqual(['project-a', 'project-b']);
+    await userEvent.hover(getSubmenu().getByRole('menuitemradio', {name: 'project-b'}));
+    await userEvent.keyboard('{ArrowRight}');
+    await userEvent.keyboard('{Enter}');
+    expect(projectMock).toHaveBeenCalled();
+    await getSubmenu().findByRole('button', {name: 'Remove Bookmark'});
+
+    expect(getSubmenuOrder()).toEqual(['project-a', 'project-b']);
+
+    await userEvent.keyboard('{Escape}');
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(toggle);
+    await userEvent.hover(screen.getByRole('menuitem', {name: 'View All Projects'}));
+    await screen.findByRole('searchbox', {name: 'Search'});
+
+    expect(getSubmenuOrder()).toEqual(['project-b', 'project-a']);
+  });
+
+  it('shows the star as busy while the bookmark request is in flight', async () => {
+    const project = ProjectFixture({id: '1', slug: 'javascript', isMember: true});
+    ProjectsStore.loadInitialData([project]);
+    let resolveRequest!: () => void;
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      method: 'PUT',
+      body: {...project, isBookmarked: true},
+      asyncDelay: new Promise<void>(resolve => {
+        resolveRequest = resolve;
+      }),
+    });
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    await userEvent.hover(screen.getByRole('menuitemradio', {name: 'javascript'}));
+    await userEvent.keyboard('{ArrowRight}');
+    expect(screen.getByRole('button', {name: 'Bookmark'})).not.toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+    await userEvent.keyboard('{Enter}');
+
+    expect(screen.getByRole('button', {name: 'Remove Bookmark'})).toHaveAttribute(
+      'aria-busy',
+      'true'
+    );
+
+    resolveRequest();
+    await waitFor(() =>
+      expect(screen.getByRole('button', {name: 'Remove Bookmark'})).not.toHaveAttribute(
+        'aria-busy',
+        'true'
+      )
+    );
   });
 
   it('bookmarks a project without navigating away from the settings v3 menu', async () => {
@@ -194,7 +341,6 @@ describe('OrganizationDropdown', () => {
     await userEvent.hover(row);
     await userEvent.keyboard('{ArrowRight}');
     const bookmark = screen.getByRole('button', {name: 'Remove Bookmark'});
-    expect(row).not.toContainElement(bookmark);
     expect(bookmark).toHaveFocus();
     await userEvent.keyboard('{Enter}');
 
@@ -202,9 +348,62 @@ describe('OrganizationDropdown', () => {
     expect(router.location.pathname).not.toBe(
       `/settings/${organization.slug}/projects/${project.slug}/`
     );
+    expect(screen.getByRole('menuitem', {name: 'View All Projects'})).toBeInTheDocument();
+  });
+
+  it('moves between the settings v3 menu and its submenus with arrow keys', async () => {
+    OrganizationsStore.addOrReplace(
+      OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})
+    );
+    ProjectsStore.loadInitialData([
+      ProjectFixture({id: '1', slug: 'javascript', isMember: true}),
+    ]);
+    render(<OrganizationDropdown />, {
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+    const switchItem = screen.getByRole('menuitem', {name: 'Switch'});
+    // The pointer resting on the trigger must not reopen a submenu that the
+    // keyboard closed.
+    await userEvent.hover(switchItem);
+    await waitFor(() => expect(switchItem).toHaveAttribute('aria-expanded', 'true'));
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitemradio', {name: /Org 1/})).toHaveFocus()
+    );
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.queryByRole('menuitemradio', {name: /Org 1/})).not.toBeInTheDocument();
+    expect(switchItem).toHaveFocus();
+    expect(switchItem).toHaveAttribute('aria-expanded', 'false');
+
+    await userEvent.keyboard('{ArrowRight}');
+    await waitFor(() =>
+      expect(screen.getByRole('menuitemradio', {name: /Org 1/})).toHaveFocus()
+    );
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(switchItem).toHaveFocus();
+
+    const viewAllProjects = screen.getByRole('menuitem', {name: 'View All Projects'});
+    // Switch, then the javascript quick-access project, then View All Projects
+    await userEvent.keyboard('{ArrowDown}{ArrowDown}');
+    expect(viewAllProjects).toHaveFocus();
+    await userEvent.keyboard('{ArrowRight}');
+    const search = await screen.findByRole('searchbox', {name: 'Search'});
+    await waitFor(() => expect(search).toHaveFocus());
+    await userEvent.keyboard('{ArrowDown}');
+    const project = within(search.closest<HTMLElement>('[data-overlay]')!).getByRole(
+      'menuitemradio',
+      {name: 'javascript'}
+    );
+    expect(project).toHaveFocus();
+    await userEvent.keyboard('{ArrowLeft}');
+    expect(screen.queryByRole('searchbox', {name: 'Search'})).not.toBeInTheDocument();
+    expect(viewAllProjects).toHaveFocus();
     expect(
-      screen.getByRole('menuitemradio', {name: 'View All Projects'})
-    ).toBeInTheDocument();
+      screen.getByRole('button', {name: 'Toggle organization menu'})
+    ).toHaveAttribute('aria-expanded', 'true');
   });
 
   it('can switch orgs', async () => {

@@ -8,37 +8,32 @@ import {COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {NewQuery, SavedQuery} from 'sentry/types/organization';
 import type {Config} from 'sentry/types/system';
-import type {MetaType} from 'sentry/utils/discover/eventView';
+import {AggregationKey} from 'sentry/utils/fields';
+import * as qs from 'sentry/utils/url/qs';
+import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
+import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+
+import type {MetaType} from './eventView';
 import {
   EventView,
   isAPIPayloadSimilar,
   pickRelevantLocationQueryStrings,
-} from 'sentry/utils/discover/eventView';
-import type {Column} from 'sentry/utils/discover/fields';
+} from './eventView';
+import type {Column} from './fields';
 import {
   CHART_AXIS_OPTIONS,
   DiscoverDatasets,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
   SavedQueryDatasets,
-} from 'sentry/utils/discover/types';
-import {AggregationKey} from 'sentry/utils/fields';
-import {SpanOperationBreakdownFilter} from 'sentry/views/performance/transactionSummary/filter';
-import {EventsDisplayFilterName} from 'sentry/views/performance/transactionSummary/transactionEvents/utils';
+} from './types';
 
-const generateFields = (fields: string[]) =>
-  fields.map(field => ({
-    field,
-  }));
+const locationFromSearch = (search: string) => LocationFixture({query: qs.parse(search)});
+
+const generateFields = (fields: string[]) => fields.map(field => ({field}));
 
 const generateSorts = (sorts: string[]) =>
-  sorts.map(
-    sortName =>
-      ({
-        field: sortName,
-        kind: 'desc',
-      }) as const
-  );
+  sorts.map(sortName => ({field: sortName, kind: 'desc'}) as const);
 
 const REQUIRED_CONSTRUCTOR_PROPS = {
   createdBy: undefined,
@@ -194,9 +189,7 @@ describe('EventView.fromLocation()', () => {
   });
 
   it('generates event view when there are no query strings', () => {
-    const location = LocationFixture({
-      query: {},
-    });
+    const location = LocationFixture({query: {}});
 
     const eventView = EventView.fromLocation(location);
 
@@ -213,6 +206,103 @@ describe('EventView.fromLocation()', () => {
       environment: [],
       yAxis: void 0,
     });
+  });
+
+  it('treats params as absent when they are blank or have no value', () => {
+    const blank = EventView.fromLocation(
+      locationFromSearch(
+        '?id=&name=&field=&widths=&sort=&query=&team=&project=&environment=&yAxis=&display=&topEvents=&interval=&dataset='
+      )
+    );
+    const valueless = EventView.fromLocation(
+      locationFromSearch(
+        '?id&name&field&widths&sort&query&team&project&environment&yAxis&display&topEvents&interval&dataset'
+      )
+    );
+
+    const expected = {
+      id: undefined,
+      name: undefined,
+      fields: [],
+      sorts: [],
+      query: '',
+      team: [],
+      project: [],
+      environment: [],
+      yAxis: undefined,
+      display: undefined,
+      topEvents: undefined,
+      interval: undefined,
+      dataset: undefined,
+    };
+    expect(blank).toMatchObject(expected);
+    expect(valueless).toMatchObject(expected);
+  });
+
+  it('reads the first value of scalar params and every value of list params when keys are repeated', () => {
+    const eventView = EventView.fromLocation(
+      locationFromSearch(
+        '?id=1&id=2&name=a&name=b&field=title&field=count()&widths=10&widths=20&sort=title&sort=-count&query=x&query=y&team=myteams&team=3&project=1&project=2&environment=a&environment=b&yAxis=p50&yAxis=p95&display=top5&display=daily&topEvents=5&topEvents=6&interval=1h&interval=2h&dataset=discover&dataset=errors'
+      )
+    );
+
+    expect(eventView).toMatchObject({
+      id: '1',
+      name: 'a',
+      fields: [
+        {field: 'title', width: 10},
+        {field: 'count()', width: 20},
+      ],
+      sorts: [{field: 'title', kind: 'asc'}],
+      query: 'x',
+      team: ['myteams', 3],
+      project: [1, 2],
+      environment: ['a', 'b'],
+      yAxis: 'p50',
+      display: 'top5',
+      topEvents: '5',
+      interval: '1h',
+      dataset: DiscoverDatasets.DISCOVER,
+    });
+  });
+
+  it('keeps blank values aligned when repeated list params contain blanks', () => {
+    const eventView = EventView.fromLocation(
+      locationFromSearch(
+        '?field=&field=title&field=id&widths=10&widths=&widths=x&sort=&sort=-id&team=&team=nope&team=4&project=&project=5&environment=&environment=%20prod%20&environment=%20'
+      )
+    );
+
+    expect(eventView).toMatchObject({
+      fields: [
+        {field: 'title', width: 0},
+        {field: 'id', width: COL_WIDTH_UNDEFINED},
+      ],
+      sorts: [{field: 'id', kind: 'desc'}],
+      team: [4],
+      project: [NaN, 5],
+      environment: ['prod'],
+    });
+  });
+
+  it('ignores a lone blank width when fields are set', () => {
+    const eventView = EventView.fromLocation(locationFromSearch('?field=title&widths='));
+
+    expect(eventView.fields).toEqual([{field: 'title', width: COL_WIDTH_UNDEFINED}]);
+  });
+
+  it('treats a repeated scalar param as absent when its first value is blank', () => {
+    const eventView = EventView.fromLocation(locationFromSearch('?name=&name=foo'));
+
+    expect(eventView.name).toBeUndefined();
+  });
+
+  it('reads the first query value and trims it when the query param is repeated', () => {
+    const blankFirst = EventView.fromLocation(locationFromSearch('?query=&query=b'));
+    const padded = EventView.fromLocation(locationFromSearch('?query=%20a%20&query=b'));
+
+    expect(blankFirst.query).toBe('');
+    expect(padded.query).toBe('a');
   });
 });
 
@@ -259,10 +349,7 @@ describe('EventView.fromSavedQuery()', () => {
       dataset: DiscoverDatasets.DISCOVER,
     });
 
-    const eventView2 = EventView.fromSavedQuery({
-      ...saved,
-      range: undefined,
-    });
+    const eventView2 = EventView.fromSavedQuery({...saved, range: undefined});
     expect(eventView2).toMatchObject({
       id: saved.id,
       name: saved.name,
@@ -371,10 +458,7 @@ describe('EventView.fromSavedQuery()', () => {
 
     expect(eventView.isEqualTo(eventView3)).toBe(true);
 
-    const eventView4 = EventView.fromSavedQuery({
-      ...saved,
-      end: '2019-10-23T19:27:04Z',
-    });
+    const eventView4 = EventView.fromSavedQuery({...saved, end: '2019-10-23T19:27:04Z'});
 
     expect(eventView.isEqualTo(eventView4)).toBe(true);
   });
@@ -396,17 +480,11 @@ describe('EventView.fromSavedQuery()', () => {
 
     const eventView = EventView.fromSavedQuery(saved);
 
-    const eventView2 = EventView.fromSavedQuery({
-      ...saved,
-      start: '',
-    });
+    const eventView2 = EventView.fromSavedQuery({...saved, start: ''});
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
-    const eventView3 = EventView.fromSavedQuery({
-      ...saved,
-      end: '',
-    });
+    const eventView3 = EventView.fromSavedQuery({...saved, end: ''});
 
     expect(eventView.isEqualTo(eventView3)).toBe(false);
 
@@ -431,10 +509,7 @@ describe('EventView.fromSavedQuery()', () => {
 
     const eventView = EventView.fromSavedQuery(saved);
 
-    const eventView2 = EventView.fromSavedQuery({
-      ...saved,
-      yAxis: ['count()'],
-    });
+    const eventView2 = EventView.fromSavedQuery({...saved, yAxis: ['count()']});
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
   });
@@ -547,12 +622,7 @@ describe('EventView.fromNewQueryWithPageFilters()', () => {
 
   it('merges page filter values', () => {
     const pageFilters = PageFiltersFixture({
-      datetime: {
-        period: '3d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '3d', start: null, end: null, utc: null},
       projects: [42],
       environments: ['prod'],
     });
@@ -587,11 +657,7 @@ describe('EventView.fromNewQueryWithLocation()', () => {
   };
 
   it('maps basic properties of a prebuilt query', () => {
-    const location = LocationFixture({
-      query: {
-        statsPeriod: '99d',
-      },
-    });
+    const location = LocationFixture({query: {statsPeriod: '99d'}});
 
     const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
 
@@ -619,11 +685,7 @@ describe('EventView.fromNewQueryWithLocation()', () => {
 
   it('merges global selection values', () => {
     const location = LocationFixture({
-      query: {
-        statsPeriod: '99d',
-        project: ['456'],
-        environment: ['prod'],
-      },
+      query: {statsPeriod: '99d', project: ['456'], environment: ['prod']},
     });
 
     const eventView = EventView.fromNewQueryWithLocation(prebuiltQuery, location);
@@ -651,11 +713,7 @@ describe('EventView.fromNewQueryWithLocation()', () => {
 
   it('new query takes precedence over global selection values', () => {
     const location = LocationFixture({
-      query: {
-        statsPeriod: '99d',
-        project: ['456'],
-        environment: ['prod'],
-      },
+      query: {statsPeriod: '99d', project: ['456'], environment: ['prod']},
     });
 
     const prebuiltQuery2: NewQuery = {
@@ -726,6 +784,51 @@ describe('EventView.fromNewQueryWithLocation()', () => {
       statsPeriod: undefined,
       environment: ['staging'],
       yAxis: undefined,
+    });
+  });
+
+  it('falls back to the default period when page filter params are blank', () => {
+    const eventView = EventView.fromNewQueryWithLocation(
+      prebuiltQuery,
+      locationFromSearch('?start=&end=&statsPeriod=&project=&environment=')
+    );
+
+    expect(eventView).toMatchObject({
+      project: [],
+      environment: [],
+      start: undefined,
+      end: undefined,
+      statsPeriod: '14d',
+    });
+  });
+
+  it('reads the first page filter value and every list value when keys are repeated', () => {
+    const eventView = EventView.fromNewQueryWithLocation(
+      prebuiltQuery,
+      locationFromSearch(
+        '?statsPeriod=7d&statsPeriod=30d&project=1&project=&project=2&environment=%20a%20&environment=&environment=b'
+      )
+    );
+
+    expect(eventView).toMatchObject({
+      project: [1, NaN, 2],
+      environment: ['a', 'b'],
+      statsPeriod: '7d',
+    });
+  });
+
+  it('reads the first start and end when keys are repeated', () => {
+    const eventView = EventView.fromNewQueryWithLocation(
+      prebuiltQuery,
+      locationFromSearch(
+        '?start=2019-10-01T00:00:00&start=2019-11-01T00:00:00&end=2019-10-02T00:00:00&end='
+      )
+    );
+
+    expect(eventView).toMatchObject({
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      statsPeriod: undefined,
     });
   });
 });
@@ -830,11 +933,7 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
     };
 
     const location = LocationFixture({
-      query: {
-        id: '42',
-        statsPeriod: '7d',
-        project: ['3'],
-      },
+      query: {id: '42', statsPeriod: '7d', project: ['3']},
     });
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
@@ -875,12 +974,7 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
       yAxis: ['count()'],
     };
 
-    const location = LocationFixture({
-      query: {
-        id: '5',
-        project: ['1'],
-      },
-    });
+    const location = LocationFixture({query: {id: '5', project: ['1']}});
 
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
@@ -918,12 +1012,7 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
       version: 2,
     };
 
-    const location = LocationFixture({
-      query: {
-        id: '42',
-        statsPeriod: '7d',
-      },
-    });
+    const location = LocationFixture({query: {id: '42', statsPeriod: '7d'}});
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     expect(eventView).toMatchObject({
@@ -944,13 +1033,7 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
       display: 'previous',
     });
 
-    const location2 = LocationFixture({
-      query: {
-        id: '42',
-        statsPeriod: '7d',
-        query: '',
-      },
-    });
+    const location2 = LocationFixture({query: {id: '42', statsPeriod: '7d', query: ''}});
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView2).toMatchObject({
@@ -998,33 +1081,21 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     const location2 = LocationFixture({
-      query: {
-        id: '3',
-        start: '2019-10-20T21:02:51Z',
-        end: '2019-10-23T19:27:04Z',
-      },
+      query: {id: '3', start: '2019-10-20T21:02:51Z', end: '2019-10-23T19:27:04Z'},
     });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(true);
 
     const location3 = LocationFixture({
-      query: {
-        id: '3',
-        start: '2019-10-20T21:02:51Z',
-        end: '2019-10-23T19:27:04+0000',
-      },
+      query: {id: '3', start: '2019-10-20T21:02:51Z', end: '2019-10-23T19:27:04+0000'},
     });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
     expect(eventView.isEqualTo(eventView3)).toBe(true);
 
     const location4 = LocationFixture({
-      query: {
-        id: '3',
-        start: '2019-10-20T21:02:51+0000',
-        end: '2019-10-23T19:27:04Z',
-      },
+      query: {id: '3', start: '2019-10-20T21:02:51+0000', end: '2019-10-23T19:27:04Z'},
     });
     const eventView4 = EventView.fromSavedQueryOrLocation(saved, location4);
 
@@ -1057,22 +1128,14 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
     const eventView = EventView.fromSavedQueryOrLocation(saved, location);
 
     const location2 = LocationFixture({
-      query: {
-        id: '3',
-        end: '2019-10-23T19:27:04+0000',
-        start: '',
-      },
+      query: {id: '3', end: '2019-10-23T19:27:04+0000', start: ''},
     });
     const eventView2 = EventView.fromSavedQueryOrLocation(saved, location2);
 
     expect(eventView.isEqualTo(eventView2)).toBe(false);
 
     const location3 = LocationFixture({
-      query: {
-        id: '3',
-        end: '',
-        start: '2019-10-20T21:02:51+0000',
-      },
+      query: {id: '3', end: '', start: '2019-10-20T21:02:51+0000'},
     });
     const eventView3 = EventView.fromSavedQueryOrLocation(saved, location3);
 
@@ -1145,6 +1208,151 @@ describe('EventView.fromSavedQueryOrLocation()', () => {
     );
 
     expect(eventView.team).toEqual(['myteams', 1]);
+  });
+
+  describe('with a saved query', () => {
+    const saved: SavedQuery = {
+      id: '42',
+      name: 'saved name',
+      fields: ['title', 'count()'],
+      widths: ['111'],
+      query: 'event.type:error',
+      projects: [123],
+      range: '7d',
+      orderby: '-count',
+      environment: ['staging'],
+      yAxis: ['count()'],
+      display: 'top5',
+      topEvents: '3',
+      interval: '1h',
+      dataset: DiscoverDatasets.ERRORS,
+      dateUpdated: '2019-10-30T06:13:17.632096Z',
+      dateCreated: '2019-10-30T06:13:17.632078Z',
+      version: 2,
+    };
+
+    it('uses the saved query when location params are blank', () => {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch(
+          '?id=&name=&field=&widths=&sort=&yAxis=&display=&topEvents=&interval=&dataset=&start=&end=&statsPeriod=&utc='
+        )
+      );
+
+      expect(eventView).toMatchObject({
+        id: '42',
+        name: 'saved name',
+        fields: [
+          {field: 'title', width: 111},
+          {field: 'count()', width: COL_WIDTH_UNDEFINED},
+        ],
+        sorts: [{field: 'count', kind: 'desc'}],
+        query: 'event.type:error',
+        yAxis: 'count()',
+        display: 'top5',
+        topEvents: '3',
+        interval: '1h',
+        dataset: DiscoverDatasets.ERRORS,
+        statsPeriod: '7d',
+        team: [],
+        project: [],
+        environment: [],
+      });
+    });
+
+    it('defaults topEvents when neither the location nor the saved query sets it', () => {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        {...saved, topEvents: undefined},
+        locationFromSearch('?topEvents=')
+      );
+
+      expect(eventView.topEvents).toBe('5');
+    });
+
+    it('clears the saved query when the query param is present but blank', () => {
+      const blank = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?query=')
+      );
+      const valueless = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?query')
+      );
+      const absent = EventView.fromSavedQueryOrLocation(saved, locationFromSearch(''));
+
+      expect(blank.query).toBe('');
+      expect(valueless.query).toBe('');
+      expect(absent.query).toBe('event.type:error');
+    });
+
+    it('overrides the saved query with the first location value when params are repeated', () => {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch(
+          '?id=7&id=8&name=a&name=b&field=title&field=p50()&widths=10&widths=20&sort=title&sort=-p50&query=%20x%20&query=y&yAxis=p50()&yAxis=p95()&display=daily&display=top5&topEvents=9&topEvents=10&interval=5m&interval=1d&dataset=transactions&dataset=errors&team=myteams&team=&team=2&project=&project=1&environment=%20prod%20&environment='
+        )
+      );
+
+      expect(eventView).toMatchObject({
+        id: '7',
+        name: 'a',
+        fields: [
+          {field: 'title', width: 10},
+          {field: 'p50()', width: 20},
+        ],
+        sorts: [{field: 'title', kind: 'asc'}],
+        query: 'x',
+        yAxis: 'p50()',
+        display: 'daily',
+        topEvents: '9',
+        interval: '5m',
+        dataset: DiscoverDatasets.TRANSACTIONS,
+        team: ['myteams', 2],
+        project: [NaN, 1],
+        environment: ['prod'],
+      });
+    });
+
+    it('uses location datetime params when only utc is set', () => {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?utc=true')
+      );
+
+      expect(eventView).toMatchObject({
+        statsPeriod: '14d',
+        start: undefined,
+        end: undefined,
+      });
+    });
+
+    it('uses the first location datetime value when keys are repeated', () => {
+      const eventView = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?statsPeriod=24h&statsPeriod=30d')
+      );
+
+      expect(eventView.statsPeriod).toBe('24h');
+    });
+
+    it('uses location datetime params when a repeated key has a blank first value', () => {
+      const period = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?statsPeriod=&statsPeriod=24h')
+      );
+      const utc = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?utc=&utc=true')
+      );
+      const start = EventView.fromSavedQueryOrLocation(
+        saved,
+        locationFromSearch('?start=&start=')
+      );
+
+      expect(period.statsPeriod).toBe('24h');
+      expect(utc.statsPeriod).toBe('14d');
+      expect(start.statsPeriod).toBe('14d');
+    });
   });
 });
 
@@ -1285,11 +1493,7 @@ describe('EventView.getEventsAPIPayload()', () => {
       query: 'event.type:csp',
     });
 
-    const location = LocationFixture({
-      query: {
-        query: 'TypeError',
-      },
-    });
+    const location = LocationFixture({query: {query: 'TypeError'}});
     expect(eventView.getEventsAPIPayload(location).query).toBe('event.type:csp');
   });
 
@@ -1301,9 +1505,7 @@ describe('EventView.getEventsAPIPayload()', () => {
       query: 'event.type:csp',
     });
 
-    const location = LocationFixture({
-      query: {},
-    });
+    const location = LocationFixture({query: {}});
 
     expect(eventView.getEventsAPIPayload(location).sort).toBe('-title');
   });
@@ -1316,9 +1518,7 @@ describe('EventView.getEventsAPIPayload()', () => {
       query: 'event.type:csp',
     });
 
-    const location = LocationFixture({
-      query: {},
-    });
+    const location = LocationFixture({query: {}});
 
     expect(eventView.getEventsAPIPayload(location).sort).toBe('-count');
   });
@@ -1427,12 +1627,7 @@ describe('EventView.getEventsAPIPayload()', () => {
     });
 
     const location = LocationFixture({
-      query: {
-        start: '',
-        utc: 'true',
-        statsPeriod: 'invalid',
-        cursor: 'some cursor',
-      },
+      query: {start: '', utc: 'true', statsPeriod: 'invalid', cursor: 'some cursor'},
     });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -1448,12 +1643,7 @@ describe('EventView.getEventsAPIPayload()', () => {
     });
 
     const location2 = LocationFixture({
-      query: {
-        end: '',
-        utc: 'true',
-        statsPeriod: 'invalid',
-        cursor: 'some cursor',
-      },
+      query: {end: '', utc: 'true', statsPeriod: 'invalid', cursor: 'some cursor'},
     });
 
     expect(eventView.getEventsAPIPayload(location2)).toEqual({
@@ -1571,10 +1761,7 @@ describe('EventView.getEventsAPIPayload()', () => {
 
     // the date selection in the query string should be applied as expected
 
-    eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      ...initialState,
-    });
+    eventView = new EventView({...REQUIRED_CONSTRUCTOR_PROPS, ...initialState});
 
     location = LocationFixture({
       query: {
@@ -1591,11 +1778,7 @@ describe('EventView.getEventsAPIPayload()', () => {
     });
 
     location = LocationFixture({
-      query: {
-        period: '30d',
-        start: '2020-10-01T00:00:00',
-        end: '2020-10-02T00:00:00',
-      },
+      query: {period: '30d', start: '2020-10-01T00:00:00', end: '2020-10-02T00:00:00'},
     });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -1604,10 +1787,7 @@ describe('EventView.getEventsAPIPayload()', () => {
     });
 
     location = LocationFixture({
-      query: {
-        start: '2020-10-01T00:00:00',
-        end: '2020-10-02T00:00:00',
-      },
+      query: {start: '2020-10-01T00:00:00', end: '2020-10-02T00:00:00'},
     });
 
     expect(eventView.getEventsAPIPayload(location)).toEqual({
@@ -1615,6 +1795,40 @@ describe('EventView.getEventsAPIPayload()', () => {
       start: '2020-10-01T00:00:00.000',
       end: '2020-10-02T00:00:00.000',
     });
+  });
+});
+
+describe('EventView.normalizeDateSelection()', () => {
+  const eventView = new EventView(REQUIRED_CONSTRUCTOR_PROPS);
+
+  it('reads the first legacy period param when the event view has no dates', () => {
+    const selection = eventView.normalizeDateSelection(
+      locationFromSearch('?period=7d&period=30d')
+    );
+
+    expect(selection).toEqual({statsPeriod: '7d'});
+  });
+
+  it('reads utc when the location has absolute dates', () => {
+    const selection = eventView.normalizeDateSelection(
+      locationFromSearch(
+        '?start=2019-10-01T00:00:00&end=2019-10-02T00:00:00&utc=true&utc=false'
+      )
+    );
+
+    expect(selection).toEqual({
+      start: '2019-10-01T00:00:00.000',
+      end: '2019-10-02T00:00:00.000',
+      utc: 'true',
+    });
+  });
+
+  it('defaults the period when period and utc are blank', () => {
+    const selection = eventView.normalizeDateSelection(
+      locationFromSearch('?period=&utc=')
+    );
+
+    expect(selection).toEqual({statsPeriod: '14d'});
   });
 });
 
@@ -1665,9 +1879,7 @@ describe('EventView.toNewQuery()', () => {
   });
 
   it('omits query when query is an empty string', () => {
-    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
-      ...state,
-    };
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {...state};
 
     modifiedState.query = '';
 
@@ -1696,9 +1908,7 @@ describe('EventView.toNewQuery()', () => {
   });
 
   it('omits query when query is not defined', () => {
-    const modifiedState: ConstructorParameters<typeof EventView>[0] = {
-      ...state,
-    };
+    const modifiedState: ConstructorParameters<typeof EventView>[0] = {...state};
 
     modifiedState.query = '';
 
@@ -1820,17 +2030,11 @@ describe('EventView.numOfColumns()', () => {
 
 describe('EventView.getDays()', () => {
   it('returns the right number of days for statsPeriod', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      statsPeriod: '14d',
-    });
+    const eventView = new EventView({...REQUIRED_CONSTRUCTOR_PROPS, statsPeriod: '14d'});
 
     expect(eventView.getDays()).toBe(14);
 
-    const eventView2 = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-      statsPeriod: '12h',
-    });
+    const eventView2 = new EventView({...REQUIRED_CONSTRUCTOR_PROPS, statsPeriod: '12h'});
 
     expect(eventView2.getDays()).toBe(0.5);
   });
@@ -2015,18 +2219,12 @@ describe('EventView.withNewColumn()', () => {
 
   it('adds a field', () => {
     const eventView = new EventView(state);
-    const newColumn: Column = {
-      kind: 'field',
-      field: 'title',
-    };
+    const newColumn: Column = {kind: 'field', field: 'title'};
     const eventView2 = eventView.withNewColumn(newColumn);
     expect(eventView2 !== eventView).toBeTruthy();
     expect(eventView).toMatchObject(state);
 
-    const nextState = {
-      ...state,
-      fields: [...state.fields, {field: 'title'}],
-    };
+    const nextState = {...state, fields: [...state.fields, {field: 'title'}]};
     expect(eventView2).toMatchObject(nextState);
   });
 
@@ -2041,10 +2239,7 @@ describe('EventView.withNewColumn()', () => {
     expect(eventView2 !== eventView).toBeTruthy();
     expect(eventView).toMatchObject(state);
 
-    const nextState = {
-      ...state,
-      fields: [...state.fields, {field: 'count()'}],
-    };
+    const nextState = {...state, fields: [...state.fields, {field: 'count()'}]};
     expect(eventView2).toMatchObject(nextState);
   });
 
@@ -2122,10 +2317,7 @@ describe('EventView.withUpdatedColumn()', () => {
     environment: ['staging'],
   };
 
-  const meta: MetaType = {
-    count: 'integer',
-    title: 'string',
-  };
+  const meta: MetaType = {count: 'integer', title: 'string'};
 
   it('update a column with no changes', () => {
     const eventView = new EventView(state);
@@ -2144,20 +2336,14 @@ describe('EventView.withUpdatedColumn()', () => {
   it('update a column to a field', () => {
     const eventView = new EventView(state);
 
-    const newColumn: Column = {
-      kind: 'field',
-      field: 'title',
-    };
+    const newColumn: Column = {kind: 'field', field: 'title'};
 
     const eventView2 = eventView.withUpdatedColumn(1, newColumn, meta);
 
     expect(eventView2 !== eventView).toBeTruthy();
     expect(eventView).toMatchObject(state);
 
-    const nextState = {
-      ...state,
-      fields: [state.fields[0], {field: 'title'}],
-    };
+    const nextState = {...state, fields: [state.fields[0], {field: 'title'}]};
 
     expect(eventView2).toMatchObject(nextState);
   });
@@ -2175,10 +2361,7 @@ describe('EventView.withUpdatedColumn()', () => {
     expect(eventView2 !== eventView).toBeTruthy();
     expect(eventView).toMatchObject(state);
 
-    const nextState = {
-      ...state,
-      fields: [state.fields[0], {field: 'count()'}],
-    };
+    const nextState = {...state, fields: [state.fields[0], {field: 'count()'}]};
     expect(eventView2).toMatchObject(nextState);
   });
 
@@ -2221,10 +2404,7 @@ describe('EventView.withUpdatedColumn()', () => {
     it('the sorted column is the only sorted column', () => {
       const eventView = new EventView(state);
 
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'title',
-      };
+      const newColumn: Column = {kind: 'field', field: 'title'};
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
@@ -2247,10 +2427,7 @@ describe('EventView.withUpdatedColumn()', () => {
 
       const eventView = new EventView(modifiedState);
 
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'title',
-      };
+      const newColumn: Column = {kind: 'field', field: 'title'};
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
@@ -2276,10 +2453,7 @@ describe('EventView.withUpdatedColumn()', () => {
         fields: [{field: 'title'}, state.fields[1]],
       };
 
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'title',
-      };
+      const newColumn: Column = {kind: 'field', field: 'title'};
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, {});
       expect(eventView2).toMatchObject(expected);
@@ -2299,10 +2473,7 @@ describe('EventView.withUpdatedColumn()', () => {
       const eventView = new EventView(modifiedState);
 
       // this column is expected to be non-sortable
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'issue',
-      };
+      const newColumn: Column = {kind: 'field', field: 'issue'};
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
@@ -2328,10 +2499,7 @@ describe('EventView.withUpdatedColumn()', () => {
       const eventView = new EventView(modifiedState);
 
       // this column is expected to be non-sortable
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'issue',
-      };
+      const newColumn: Column = {kind: 'field', field: 'issue'};
 
       const eventView2 = eventView.withUpdatedColumn(0, newColumn, meta);
 
@@ -2339,11 +2507,7 @@ describe('EventView.withUpdatedColumn()', () => {
 
       expect(eventView).toMatchObject(modifiedState);
 
-      const nextState = {
-        ...state,
-        sorts: [],
-        fields: [{field: 'issue'}],
-      };
+      const nextState = {...state, sorts: [], fields: [{field: 'issue'}]};
 
       expect(eventView2).toMatchObject(nextState);
     });
@@ -2365,10 +2529,7 @@ describe('EventView.withDeletedColumn()', () => {
     environment: ['staging'],
   };
 
-  const meta: MetaType = {
-    count: 'integer',
-    title: 'string',
-  };
+  const meta: MetaType = {count: 'integer', title: 'string'};
 
   it('returns itself when attempting to delete the last remaining column', () => {
     const modifiedState: ConstructorParameters<typeof EventView>[0] = {
@@ -2463,10 +2624,7 @@ describe('EventView.withDeletedColumn()', () => {
       expect(eventView2 !== eventView).toBeTruthy();
       expect(eventView).toMatchObject(modifiedState);
 
-      const nextState = {
-        ...state,
-        fields: [state.fields[1], state.fields[0]],
-      };
+      const nextState = {...state, fields: [state.fields[1], state.fields[0]]};
 
       expect(eventView2).toMatchObject(nextState);
     });
@@ -2510,12 +2668,7 @@ describe('EventView.getSorts()', () => {
       project: [],
     });
 
-    expect(eventView.getSorts()).toEqual([
-      {
-        key: AggregationKey.COUNT,
-        order: 'desc',
-      },
-    ]);
+    expect(eventView.getSorts()).toEqual([{key: AggregationKey.COUNT, order: 'desc'}]);
   });
 });
 
@@ -2555,30 +2708,21 @@ describe('EventView.sortForField()', () => {
   const meta: MetaType = {count: 'integer'};
 
   it('returns the sort when selected field is sorted', () => {
-    const field = {
-      field: 'count()',
-    };
+    const field = {field: 'count()'};
 
     const actual = eventView.sortForField(field, meta);
 
-    expect(actual).toEqual({
-      field: AggregationKey.COUNT,
-      kind: 'desc',
-    });
+    expect(actual).toEqual({field: AggregationKey.COUNT, kind: 'desc'});
   });
 
   it('returns undefined when selected field is not sorted', () => {
-    const field = {
-      field: 'issue',
-    };
+    const field = {field: 'issue'};
 
     expect(eventView.sortForField(field, meta)).toBeUndefined();
   });
 
   it('returns undefined when no meta is provided', () => {
-    const field = {
-      field: 'issue',
-    };
+    const field = {field: 'issue'};
 
     expect(eventView.sortForField(field, undefined)).toBeUndefined();
   });
@@ -2621,10 +2765,7 @@ describe('EventView.sortOnField()', () => {
 
     expect(eventView2 !== eventView).toBe(true);
 
-    const nextState = {
-      ...state,
-      sorts: [{field: AggregationKey.COUNT, kind: 'asc'}],
-    };
+    const nextState = {...state, sorts: [{field: AggregationKey.COUNT, kind: 'asc'}]};
 
     expect(eventView2).toMatchObject(nextState);
   });
@@ -2685,10 +2826,7 @@ describe('EventView.sortOnField()', () => {
 
     expect(eventView2 !== eventView).toBe(true);
 
-    const nextState = {
-      ...modifiedState,
-      sorts: [{field: 'title', kind: 'desc'}],
-    };
+    const nextState = {...modifiedState, sorts: [{field: 'title', kind: 'desc'}]};
 
     expect(eventView2).toMatchObject(nextState);
 
@@ -3061,9 +3199,7 @@ describe('EventView.getPerformanceTransactionEventsViewUrlTarget()', () => {
 
 describe('EventView.getPageFilters()', () => {
   it('return default global selection', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-    });
+    const eventView = new EventView({...REQUIRED_CONSTRUCTOR_PROPS});
 
     expect(eventView.getPageFilters()).toMatchObject({
       projects: [],
@@ -3110,9 +3246,7 @@ describe('EventView.getPageFilters()', () => {
 
 describe('EventView.getPageFiltersQuery()', () => {
   it('return default global selection query', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-    });
+    const eventView = new EventView({...REQUIRED_CONSTRUCTOR_PROPS});
 
     expect(eventView.getPageFiltersQuery()).toMatchObject({
       project: [],
@@ -3152,9 +3286,7 @@ describe('EventView.getPageFiltersQuery()', () => {
 
 describe('EventView.generateBlankQueryStringObject()', () => {
   it('should return blank values', () => {
-    const eventView = new EventView({
-      ...REQUIRED_CONSTRUCTOR_PROPS,
-    });
+    const eventView = new EventView({...REQUIRED_CONSTRUCTOR_PROPS});
 
     expect(eventView.generateBlankQueryStringObject()).toEqual({
       id: undefined,
@@ -3185,10 +3317,7 @@ describe('EventView.getYAxisOptions()', () => {
   };
 
   function generateYaxis(value: any) {
-    return {
-      value,
-      label: value,
-    };
+    return {value, label: value};
   }
 
   it('should return default options', () => {
@@ -3316,9 +3445,7 @@ describe('EventView.getDisplayOptions()', () => {
   });
 
   it('should disable top 5 period/daily if no aggregates present', () => {
-    const eventView = new EventView({
-      ...state,
-    });
+    const eventView = new EventView({...state});
 
     const options = eventView.getDisplayOptions();
     expect(options[2]!.value).toBe('top5');
@@ -3340,18 +3467,13 @@ describe('EventView.getDisplayMode()', () => {
   };
 
   it('should have default', () => {
-    const eventView = new EventView({
-      ...state,
-    });
+    const eventView = new EventView({...state});
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DEFAULT);
   });
 
   it('should return current mode when not disabled', () => {
-    const eventView = new EventView({
-      ...state,
-      display: DisplayModes.DAILY,
-    });
+    const eventView = new EventView({...state, display: DisplayModes.DAILY});
     const displayMode = eventView.getDisplayMode();
     expect(displayMode).toEqual(DisplayModes.DAILY);
   });
@@ -3483,10 +3605,7 @@ describe('isAPIPayloadSimilar', () => {
     environment: ['staging'],
   };
 
-  const meta: MetaType = {
-    count: 'integer',
-    title: 'string',
-  };
+  const meta: MetaType = {count: 'integer', title: 'string'};
 
   describe('getEventsAPIPayload', () => {
     it('is not similar when relevant query string keys are present in the Location object', () => {
@@ -3514,11 +3633,7 @@ describe('isAPIPayloadSimilar', () => {
 
     it('is similar when irrelevant query string keys are present in the Location object', () => {
       const thisEventView = new EventView(state);
-      const location = LocationFixture({
-        query: {
-          bestCountry: 'canada',
-        },
-      });
+      const location = LocationFixture({query: {bestCountry: 'canada'}});
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
       const otherLocation = LocationFixture();
@@ -3584,10 +3699,7 @@ describe('isAPIPayloadSimilar', () => {
       const location = LocationFixture();
       const thisAPIPayload = thisEventView.getEventsAPIPayload(location);
 
-      const newColumn: Column = {
-        kind: 'field',
-        field: 'title',
-      };
+      const newColumn: Column = {kind: 'field', field: 'title'};
 
       const otherEventView = thisEventView.withUpdatedColumn(0, newColumn, meta);
       const otherLocation = LocationFixture();

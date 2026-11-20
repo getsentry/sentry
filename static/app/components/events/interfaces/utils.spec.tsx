@@ -1,15 +1,16 @@
 import {EventFixture} from 'sentry-fixture/event';
 
+import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
+import {FILTER_MASK} from 'sentry/constants';
+import {EntryType} from 'sentry/types/event';
+
 import {
   getCurlCommand,
   getCurrentThread,
   getThreadById,
   stringifyQueryList,
   userContextToActor,
-} from 'sentry/components/events/interfaces/utils';
-import {MetaProxy, withMeta} from 'sentry/components/events/meta/metaProxy';
-import {FILTER_MASK} from 'sentry/constants';
-import {EntryType} from 'sentry/types/event';
+} from './utils';
 
 describe('components/interfaces/utils', () => {
   describe('getCurlCommand()', () => {
@@ -30,9 +31,7 @@ describe('components/interfaces/utils', () => {
             ],
             ['Content-Type', 'application/json'],
           ],
-          env: {
-            ENV: 'prod',
-          },
+          env: {ENV: 'prod'},
           fragment: '',
           query: [['foo', 'bar']],
           data: '{"hello": "world"}',
@@ -57,9 +56,7 @@ describe('components/interfaces/utils', () => {
             ['Referer', 'http://example.com'],
             ['Accept-Encoding', 'gzip'],
           ],
-          env: {
-            ENV: 'prod',
-          },
+          env: {ENV: 'prod'},
           fragment: '',
           query: [['foo', 'bar']],
           data: '{"hello": "world"}',
@@ -81,9 +78,7 @@ describe('components/interfaces/utils', () => {
           apiTarget: null,
           url: 'http://example.com/foo',
           headers: [],
-          env: {
-            ENV: 'prod',
-          },
+          env: {ENV: 'prod'},
           fragment: '',
           query: [['foo', 'bar']],
           method: 'GET',
@@ -96,9 +91,7 @@ describe('components/interfaces/utils', () => {
           apiTarget: null,
           url: 'http://example.com/foo',
           headers: [],
-          env: {
-            ENV: 'prod',
-          },
+          env: {ENV: 'prod'},
           inferredContentType: null,
           fragment: '',
           data: {},
@@ -165,9 +158,7 @@ describe('components/interfaces/utils', () => {
             ],
             ['Content-Type', 'application/json'],
           ],
-          env: {
-            ENV: 'prod',
-          },
+          env: {ENV: 'prod'},
           fragment: '',
           query: [],
           data: '{"a":"b\\"c"}',
@@ -217,11 +208,7 @@ describe('components/interfaces/utils', () => {
         fragment: '',
         cookies: [],
         inferredContentType: null,
-        env: {
-          SERVER_NAME: 'sentry',
-          SERVER_PORT: '443',
-          REMOTE_ADDR: '127.0.0.1',
-        },
+        env: {SERVER_NAME: 'sentry', SERVER_PORT: '443', REMOTE_ADDR: '127.0.0.1'},
         headers: [
           ['Accept-Language', 'en'],
           ['Referer', 'http://example.com'],
@@ -259,11 +246,7 @@ describe('components/interfaces/utils', () => {
       expect(result).not.toHaveProperty('email');
     });
     it('should remove boolean values', () => {
-      const result = userContextToActor({
-        ...rawData,
-        name: true,
-        email: false,
-      });
+      const result = userContextToActor({...rawData, name: true, email: false});
       expect(result).not.toHaveProperty('name');
       expect(result).not.toHaveProperty('email');
     });

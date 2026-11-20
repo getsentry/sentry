@@ -5,17 +5,15 @@ import {
 } from 'sentry/components/searchQueryBuilder/askSeerCombobox/useSeerComboBoxSetup';
 import type {PageFilterDatetime} from 'sentry/types/core';
 import type {Sort} from 'sentry/utils/discover/fields';
-import type {
-  AggregateField,
-  WritableAggregateField,
-} from 'sentry/views/explore/queryParams/aggregateField';
-import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
-import {Mode} from 'sentry/views/explore/queryParams/mode';
+
+import type {AggregateField, WritableAggregateField} from './queryParams/aggregateField';
+import {isGroupBy} from './queryParams/groupBy';
+import {Mode} from './queryParams/mode';
 import {
   type BaseVisualize,
   isVisualize,
   serializeVisualizes,
-} from 'sentry/views/explore/queryParams/visualize';
+} from './queryParams/visualize';
 
 type SeerVisualization = AskSeerSearchQuery['visualizations'][number];
 
@@ -40,10 +38,7 @@ function getSeerExploreMode(result: AskSeerSearchQuery): Mode {
 function getSeerVisualizes(
   visualizations: readonly SeerVisualization[]
 ): BaseVisualize[] {
-  return visualizations.map(({chartType, yAxes}) => ({
-    chartType,
-    yAxes,
-  }));
+  return visualizations.map(({chartType, yAxes}) => ({chartType, yAxes}));
 }
 
 /**

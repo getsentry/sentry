@@ -6,37 +6,30 @@ import {renderHook} from 'sentry-test/reactTestingLibrary';
 import {updateProjects} from 'sentry/components/pageFilters/actions';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useDefaultToAllProjects} from 'sentry/views/insights/common/utils/useDefaultToAllProjects';
+
+import {useDefaultToAllProjects} from './useDefaultToAllProjects';
 
 jest.mock('sentry/components/pageFilters/actions');
 
 const pageFilterSelection = PageFiltersFixture({
   projects: [],
-  datetime: {
-    period: '14d',
-    start: null,
-    end: null,
-    utc: false,
-  },
+  datetime: {period: '14d', start: null, end: null, utc: false},
 });
 
 describe('useDefaultToAllProjects', () => {
   beforeEach(() => {
+    ProjectsStore.reset();
     PageFiltersStore.onInitializeUrlState(pageFilterSelection);
   });
 
   afterEach(() => {
     jest.clearAllMocks();
-    PageFiltersStore.reset();
-    ProjectsStore.reset();
   });
   it('should default to all projects when no projects are selected and user has no team projects', () => {
     const nonMemberProject = ProjectFixture({isMember: false});
     ProjectsStore.loadInitialData([nonMemberProject]);
     renderHook(useDefaultToAllProjects);
-    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, undefined, {
-      save: true,
-    });
+    expect(updateProjects).toHaveBeenCalledWith([-1], undefined, undefined, {save: true});
   });
 
   it('should not update projects when there are no projects selected and user has team projects', () => {
@@ -47,10 +40,7 @@ describe('useDefaultToAllProjects', () => {
 
   it('should not update projects when there are projects selected', () => {
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        ...pageFilterSelection,
-        projects: [1, 2],
-      })
+      PageFiltersFixture({...pageFilterSelection, projects: [1, 2]})
     );
     renderHook(useDefaultToAllProjects);
     expect(updateProjects).not.toHaveBeenCalled();

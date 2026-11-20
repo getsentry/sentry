@@ -1,17 +1,13 @@
+import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
 import {Grid} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
 import type {Meta} from 'sentry/types/group';
 import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
-type Props = {
-  isHexadecimal: boolean;
-  meta: Meta | undefined;
-  value: string | number;
-};
+type Props = {isHexadecimal: boolean; meta: Meta | undefined; value: string | number};
 
 function formatRegisterValue(value: string | number, isHexadecimal: boolean) {
   const parsed = typeof value === 'string' ? parseInt(value, 16) : value;

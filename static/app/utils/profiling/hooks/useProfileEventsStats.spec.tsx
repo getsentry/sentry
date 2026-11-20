@@ -3,7 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
+import {useProfileEventsStats} from './useProfileEventsStats';
 
 describe('useProfileEvents', () => {
   const organization = OrganizationFixture();
@@ -20,21 +20,13 @@ describe('useProfileEvents', () => {
 
     const {result} = renderHookWithProviders(useProfileEventsStats, {
       organization,
-      initialProps: {
-        dataset: 'profiles' as const,
-        yAxes: [],
-        referrer: '',
-      },
+      initialProps: {dataset: 'profiles' as const, yAxes: [], referrer: ''},
     });
 
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [],
-      meta: {
-        dataset: 'discover',
-        end: 0,
-        start: 0,
-      },
+      meta: {dataset: 'discover', end: 0, start: 0},
       timestamps: [],
     });
   });
@@ -51,10 +43,7 @@ describe('useProfileEvents', () => {
         ],
         start: 0,
         end: 10,
-        meta: {
-          fields: {count: 'integer'},
-          units: {count: null},
-        },
+        meta: {fields: {count: 'integer'}, units: {count: null}},
       },
       match: [
         MockApiClient.matchQuery({
@@ -77,11 +66,7 @@ describe('useProfileEvents', () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [{axis: 'count()', values: [1, 2]}],
-      meta: {
-        dataset: 'discover',
-        start: 0,
-        end: 10,
-      },
+      meta: {dataset: 'discover', start: 0, end: 10},
       timestamps: [0, 5],
     });
   });
@@ -141,11 +126,7 @@ describe('useProfileEvents', () => {
         {axis: 'count()', values: [1, 2]},
         {axis: 'p99()', values: [3, 4]},
       ],
-      meta: {
-        dataset: 'discover',
-        start: 0,
-        end: 10,
-      },
+      meta: {dataset: 'discover', start: 0, end: 10},
       timestamps: [0, 5],
     });
   });
@@ -164,10 +145,7 @@ describe('useProfileEvents', () => {
         ],
         start: 0,
         end: 10,
-        meta: {
-          fields: {count: 'integer'},
-          units: {count: null},
-        },
+        meta: {fields: {count: 'integer'}, units: {count: null}},
       },
       match: [
         MockApiClient.matchQuery({
@@ -190,11 +168,7 @@ describe('useProfileEvents', () => {
     await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({
       data: [{axis: 'count()', values: [1, 2]}],
-      meta: {
-        dataset: 'discover',
-        start: 0,
-        end: 10,
-      },
+      meta: {dataset: 'discover', start: 0, end: 10},
       timestamps: [0, 5],
     });
   });

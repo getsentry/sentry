@@ -15,11 +15,12 @@ from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_kafka
 from sentry.testutils.thread_leaks.pytest import thread_leak_allowlist
+from sentry.utils.outcomes import Outcome
 
 pytestmark = [requires_kafka]
 
 
-def create_trusted_relay_signature(secret_key: SecretKey) -> str | bytes:
+def create_trusted_relay_signature(secret_key: SecretKey) -> str:
     """
     Mimics how the trusted relay signature is built so we can test communication.
     """
@@ -208,7 +209,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
     # cases, which *did* have their silo mode changed.
     def test_project_config_compression(self) -> None:
         # Populate redis cache with compressed config:
-        invalidate_project_config(public_key=self.projectkey, trigger="test")
+        invalidate_project_config(public_key=self.projectkey.public_key, trigger="test")
 
         # Disable project config endpoint, to make sure Relay gets its data
         # from redis:
@@ -233,7 +234,7 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
 
         signature = create_trusted_relay_signature(secret_key)
 
-        event = self.post_and_try_retrieve_event(
+        event = self.post_and_retrieve_event(
             event_data,
             headers={
                 "x-sentry-auth": self.auth_header,
@@ -243,7 +244,6 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             },
         )
 
-        assert event is not None
         assert event.message == "should be accepted with signature"
 
     def test_not_trusted_relay(self) -> None:
@@ -278,8 +278,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="invalid_signature"
+        )
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -312,8 +313,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(event_data, headers=headers)
-        assert event is None
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="invalid_signature"
+        )
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -343,11 +345,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="invalid_signature"
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -376,11 +376,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="missing_signature"
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(
@@ -410,11 +408,9 @@ class SentryRemoteTest(RelayStoreHelper, TransactionTestCase):
             "x-sentry-relay-id": relay_id,
         }
 
-        event = self.post_and_try_retrieve_event(
-            event_data,
-            headers=headers,
+        self.post_and_assert_rejected(
+            event_data, headers=headers, outcome=Outcome.INVALID, reason="missing_signature"
         )
-        assert event is None
 
         url = self.get_relay_store_url(self.project.id)
         resp = requests.post(

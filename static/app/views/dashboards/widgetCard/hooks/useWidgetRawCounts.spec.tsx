@@ -16,12 +16,7 @@ describe('useWidgetRawCounts', () => {
     const selection = PageFiltersFixture({
       projects: [2],
       environments: ['prod'],
-      datetime: {
-        start: null,
-        end: null,
-        period: '7d',
-        utc: null,
-      },
+      datetime: {start: null, end: null, period: '7d', utc: null},
     });
     const widget = WidgetFixture({
       widgetType: WidgetType.SPANS,
@@ -73,9 +68,7 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -140,9 +133,7 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -211,9 +202,108 @@ describe('useWidgetRawCounts', () => {
       ],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
+  it('does not filter the trace metrics count by unit when aggregates have a dash unit', async () => {
+    const selection = PageFiltersFixture({projects: [2], environments: ['prod']});
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: [
+            'p50(value,my_metric,distribution,-)',
+            'p95(value,my_metric,distribution,-)',
+          ],
+          fields: [
+            'p50(value,my_metric,distribution,-)',
+            'p95(value,my_metric,distribution,-)',
+          ],
+          columns: [],
+          conditions: 'environment:prod',
+          orderby: '',
+        },
+      ],
     });
+    const query = '( metric.name:my_metric metric.type:distribution )';
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query,
+          disableAggregateExtrapolation: '1',
+        }),
+      ],
+    });
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query,
+          extrapolationMode: 'serverOnly',
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
+
+    await waitFor(() => expect(normalRequest).toHaveBeenCalled());
+    await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
+  });
+
+  it('reads the trace metric after the condition argument of _if aggregates', async () => {
+    const selection = PageFiltersFixture({projects: [2], environments: ['prod']});
+    const widget = WidgetFixture({
+      widgetType: WidgetType.TRACEMETRICS,
+      queries: [
+        {
+          name: '',
+          aggregates: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          fields: ['sum_if(`status:error`,value,metricA,counter,millisecond)'],
+          columns: [],
+          conditions: '',
+          orderby: '',
+        },
+      ],
+    });
+
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 11}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
+          disableAggregateExtrapolation: '1',
+        }),
+      ],
+    });
+    const totalCountRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: [{'count(value)': 13}]},
+      match: [
+        MockApiClient.matchQuery({
+          sampling: 'NORMAL',
+          dataset: 'tracemetrics',
+          query: '( metric.name:metricA metric.type:counter metric.unit:millisecond )',
+          extrapolationMode: 'serverOnly',
+        }),
+      ],
+    });
+
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).toHaveBeenCalled());
     await waitFor(() => expect(totalCountRequest).toHaveBeenCalled());
@@ -237,9 +327,7 @@ describe('useWidgetRawCounts', () => {
       match: [MockApiClient.matchQuery({sampling: 'HIGHEST_ACCURACY', dataset: 'spans'})],
     });
 
-    renderHookWithProviders(useWidgetRawCounts, {
-      initialProps: {selection, widget},
-    });
+    renderHookWithProviders(useWidgetRawCounts, {initialProps: {selection, widget}});
 
     await waitFor(() => expect(normalRequest).not.toHaveBeenCalled());
     await waitFor(() => expect(highAccuracyRequest).not.toHaveBeenCalled());

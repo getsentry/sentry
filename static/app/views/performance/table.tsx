@@ -6,9 +6,9 @@ import {Flex} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Pagination} from '@sentry/scraps/pagination';
+import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {GuideAnchor} from 'sentry/components/assistant/guideAnchor';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ColumnLabel} from 'sentry/components/tables/columnLabel';
@@ -21,6 +21,7 @@ import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery'
 import {DiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import type {EventView} from 'sentry/utils/discover/eventView';
 import {getAggregateAlias} from 'sentry/utils/discover/fields';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {MEPConsumer} from 'sentry/utils/performance/contexts/useMEPSettingContext';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -34,11 +35,12 @@ import {
   type RenderCellOptions,
 } from 'sentry/views/discover/table/useEventViewTable';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {getLandingDisplayFromParam} from 'sentry/views/performance/landing/utils';
 
+import {getLandingDisplayFromParam} from './landing/utils';
 import {getMEPQueryParams} from './landing/widgets/utils';
-import TransactionThresholdModal, {
+import {
   modalCss,
+  TransactionThresholdModal,
 } from './transactionSummary/transactionThresholdModal';
 import {
   normalizeSearchConditionsWithTransactionName,
@@ -53,10 +55,7 @@ import {
   UNPARAMETERIZED_TRANSACTION,
 } from './utils';
 
-type ColumnTitle = {
-  title: string | ReactNode;
-  tooltip?: string | ReactNode;
-};
+type ColumnTitle = {title: string | ReactNode; tooltip?: string | ReactNode};
 
 const COLUMN_TITLES_OPTIONAL_TOOLTIP = COLUMN_TITLES.map(title => {
   return {title};
@@ -111,10 +110,7 @@ function TrackHasDataAnalytics({
   return children;
 }
 
-type TransactionData = {
-  name: string;
-  threshold: number;
-};
+type TransactionData = {name: string; threshold: number};
 
 export function Table({
   columnTitles = COLUMN_TITLES_OPTIONAL_TOOLTIP,
@@ -136,9 +132,7 @@ export function Table({
 
   useEffect(() => {
     if (!tableMetricSet) {
-      trackAnalytics('performance_views.landing.table.seen', {
-        organization,
-      });
+      trackAnalytics('performance_views.landing.table.seen', {organization});
       // oxlint-disable-next-line react/set-state-in-effect
       setTableMetricSet(true);
     }
@@ -186,10 +180,7 @@ export function Table({
     dataRow: TableDataRow
   ) => {
     return (action: Actions, value: string | number) => {
-      trackAnalytics('performance_views.overview.cellaction', {
-        organization,
-        action,
-      });
+      trackAnalytics('performance_views.overview.cellaction', {organization, action});
 
       if (action === Actions.EDIT_THRESHOLD) {
         const project_threshold = dataRow.project_threshold_config!;
@@ -215,15 +206,10 @@ export function Table({
                   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
                   metric !== project_threshold[0]
                 ) {
-                  setTransactionData({
-                    name: transactionName,
-                    threshold,
-                  });
+                  setTransactionData({name: transactionName, threshold});
                 }
-                addSuccessMessage(
-                  tct('[transactionName] updated successfully', {
-                    transactionName,
-                  })
+                toast.success(
+                  tct('[transactionName] updated successfully', {transactionName})
                 );
               }}
             />
@@ -286,10 +272,7 @@ export function Table({
       const {isInDomainView, view} = domainViewFilters ?? {};
 
       const target = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
+        ? createUnnamedTransactionsDiscoverTarget({organization, location})
         : transactionSummaryRouteWithQuery({
             organization,
             transaction: String(dataRow.transaction) || '',
@@ -412,10 +395,7 @@ export function Table({
 
   function getSortedEventView() {
     return eventView.withSorts([
-      {
-        field: 'team_key_transaction',
-        kind: 'desc',
-      },
+      {field: 'team_key_transaction', kind: 'desc'},
       ...eventView.sorts,
     ]);
   }
@@ -498,8 +478,10 @@ export function Table({
                       />
                     </VisuallyCompleteWithData>
                     <Pagination
-                      pageLinks={pageLinks}
-                      paginationAnalyticsEvent={paginationAnalyticsEvent}
+                      {...getPaginationProps(pageLinks)}
+                      onPageChange={(_cursor, delta) =>
+                        paginationAnalyticsEvent(delta === -1 ? 'Previous' : 'Next')
+                      }
                     />
                   </TrackHasDataAnalytics>
                 );

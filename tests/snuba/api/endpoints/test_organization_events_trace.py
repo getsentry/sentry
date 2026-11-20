@@ -9,9 +9,7 @@ from tests.snuba.api.endpoints.test_organization_events import OrganizationEvent
 
 class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, TraceTestCase):
     url_name: str
-    FEATURES = [
-        "organizations:performance-view",
-    ]
+    FEATURES = []
 
     def setUp(self) -> None:
         """
@@ -40,7 +38,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsEndpointTestBase, Tr
             },
         )
 
-    def load_trace(self):
+    def load_trace(self) -> None:
         self.root_event = self.create_event(
             trace_id=self.trace_id,
             transaction="root",

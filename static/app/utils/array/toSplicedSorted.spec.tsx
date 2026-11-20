@@ -1,4 +1,4 @@
-import {toSplicedSorted} from 'sentry/utils/array/toSplicedSorted';
+import {toSplicedSorted} from './toSplicedSorted';
 
 const comparator = (a: string, b: string) => a.localeCompare(b);
 

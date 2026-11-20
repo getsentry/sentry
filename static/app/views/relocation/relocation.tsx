@@ -84,11 +84,7 @@ export function RelocationOnboarding() {
   const [publicKeysState, setPublicKeysState] = useState(LoadingState.FETCHING);
   const [relocationState, setRelocationState] = useSessionStorage(
     'relocationOnboarding',
-    {
-      orgSlugs: '',
-      localityName: '',
-      promoCode: '',
-    }
+    {orgSlugs: '', localityName: '', promoCode: ''}
   );
   const localityOptions = getSignupLocalities();
 
@@ -96,10 +92,7 @@ export function RelocationOnboarding() {
     setExistingRelocationState(LoadingState.FETCHING);
     return Promise.all(
       localityOptions.map(option => {
-        return api.requestPromise('/relocations/', {
-          method: 'GET',
-          host: option.url,
-        });
+        return api.requestPromise('/relocations/', {method: 'GET', host: option.url});
       })
     )
       .then(responses => {
@@ -152,10 +145,7 @@ export function RelocationOnboarding() {
     setPublicKeysState(LoadingState.FETCHING);
     return Promise.all(
       localityOptions.map(option =>
-        api.requestPromise('/publickeys/relocations/', {
-          method: 'GET',
-          host: option.url,
-        })
+        api.requestPromise('/publickeys/relocations/', {method: 'GET', host: option.url})
       )
     )
       .then(responses => {
@@ -233,9 +223,7 @@ export function RelocationOnboarding() {
           visible: {
             opacity: 1,
             transition: {delay: 1},
-            transitionEnd: {
-              visibility: 'visible',
-            },
+            transitionEnd: {visibility: 'visible'},
           },
         }}
       >
@@ -382,9 +370,7 @@ const OnboardingStep = styled((props: React.ComponentProps<typeof motion.div>) =
     animate="animate"
     exit="exit"
     variants={{animate: {}}}
-    transition={{
-      staggerChildren: 0.2,
-    }}
+    transition={{staggerChildren: 0.2}}
     {...props}
   />
 ))`

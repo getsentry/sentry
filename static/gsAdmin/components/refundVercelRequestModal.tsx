@@ -4,26 +4,20 @@ import {z} from 'zod';
 import {Button} from '@sentry/scraps/button';
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {openModal} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import {openModal} from 'sentry/actionCreators/modal';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
-  onSuccess: () => void;
-  subscription: Subscription;
-};
+type Props = {onSuccess: () => void; subscription: Subscription};
 
-type RefundVercelApiRequest = {
-  guid: string;
-  reason: string;
-};
+type RefundVercelApiRequest = {guid: string; reason: string};
 
 const schema = z.object({
   guid: z.string().trim().min(1, 'Invoice GUID is required'),
@@ -52,12 +46,12 @@ function RefundVercelRequestModal({
         data,
       }),
     onSuccess: () => {
-      addSuccessMessage('Sent request to Vercel API.');
+      toast.success('Sent request to Vercel API.');
       closeModal();
       onSuccess();
     },
     onError: error => {
-      addErrorMessage(
+      toast.error(
         error instanceof RequestError ? error.responseText : 'Unable to request refund.'
       );
     },

@@ -1,9 +1,6 @@
 import {createContext, useCallback, useContext, useMemo, useState} from 'react';
 
-import type {
-  PreviewCheckError,
-  PreviewCheckResult,
-} from 'sentry/views/detectors/components/uptime/types';
+import type {PreviewCheckError, PreviewCheckResult} from './types';
 
 type PreviewCheckResultState = {
   data: PreviewCheckResult | null;
@@ -21,10 +18,7 @@ const PreviewCheckResultContext = createContext<PreviewCheckResultContextValue |
 );
 
 export function PreviewCheckResultProvider({children}: {children: React.ReactNode}) {
-  const [state, setState] = useState<PreviewCheckResultState>({
-    data: null,
-    error: null,
-  });
+  const [state, setState] = useState<PreviewCheckResultState>({data: null, error: null});
 
   const setPreviewCheckData = useCallback(
     (data: PreviewCheckResult | null) => setState({data, error: null}),

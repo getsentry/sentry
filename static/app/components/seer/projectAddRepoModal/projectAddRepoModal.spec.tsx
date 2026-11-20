@@ -10,10 +10,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ProjectAddRepoModal} from 'sentry/components/seer/projectAddRepoModal/projectAddRepoModal';
+import {openModal} from '@sentry/scraps/modal';
+
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+
+import {ProjectAddRepoModal} from './projectAddRepoModal';
 
 describe('ProjectAddRepoModal', () => {
   const organization = OrganizationFixture();
@@ -48,9 +50,7 @@ describe('ProjectAddRepoModal', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
       method: 'GET',
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
   }
 
@@ -61,7 +61,6 @@ describe('ProjectAddRepoModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   function openAddRepoModal(org = organization) {
@@ -169,5 +168,39 @@ describe('ProjectAddRepoModal', () => {
       expect.anything(),
       expect.objectContaining({data: expect.objectContaining({integrationId: '123'})})
     );
+  });
+
+  it('tells token-billed orgs that Seer uses linked repositories', async () => {
+    openAddRepoModal(OrganizationFixture({features: ['token-billed-seer-enabled']}));
+
+    expect(
+      await screen.findByText(/Seer uses the repositories linked to your project/)
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Autofix requires you to attach/)).not.toBeInTheDocument();
+  });
+
+  it('starts with Auto-Iterate on PRs off for token-billed orgs', async () => {
+    openAddRepoModal(OrganizationFixture({features: ['token-billed-seer-enabled']}));
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).not.toBeChecked();
+  });
+
+  it('starts with Auto-Iterate on PRs on for other orgs', async () => {
+    openAddRepoModal();
+
+    expect(
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeChecked();
+  });
+
+  it('tells other orgs to attach repositories for Autofix', async () => {
+    openAddRepoModal();
+
+    expect(await screen.findByText(/Autofix requires you to attach/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Seer uses the repositories linked to your project/)
+    ).not.toBeInTheDocument();
   });
 });

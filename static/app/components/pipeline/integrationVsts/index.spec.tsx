@@ -64,10 +64,7 @@ describe('VstsOAuthLoginStep', () => {
       },
     });
 
-    expect(advance).toHaveBeenCalledWith({
-      code: 'auth-code-123',
-      state: 'state-xyz',
-    });
+    expect(advance).toHaveBeenCalledWith({code: 'auth-code-123', state: 'state-xyz'});
   });
 
   it('disables authorize button when isInitializing', () => {
@@ -95,9 +92,7 @@ describe('VstsAccountSelectionStep', () => {
     render(
       <VstsAccountSelectionStep
         {...makeStepProps({
-          stepData: {
-            accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}],
-          },
+          stepData: {accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}]},
           advance,
         })}
       />
@@ -138,9 +133,7 @@ describe('VstsAccountSelectionStep', () => {
     render(
       <VstsAccountSelectionStep
         {...makeStepProps({
-          stepData: {
-            accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}],
-          },
+          stepData: {accounts: [{accountId: 'acct-1', accountName: 'MyVSTSAccount'}]},
           advance,
         })}
       />

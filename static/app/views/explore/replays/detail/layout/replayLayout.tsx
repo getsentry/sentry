@@ -25,9 +25,10 @@ import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useFullscreen} from 'sentry/utils/window/useFullscreen';
 import {ViewportConstrainedPage} from 'sentry/views/explore/components/viewportConstrainedPage';
-import {FocusArea} from 'sentry/views/explore/replays/detail/layout/focusArea';
-import {FocusTabs} from 'sentry/views/explore/replays/detail/layout/focusTabs';
 import type {ReplayRecord} from 'sentry/views/explore/replays/types';
+
+import {FocusArea} from './focusArea';
+import {FocusTabs} from './focusTabs';
 
 const MIN_CONTENT_WIDTH = 340;
 const MIN_SIDEBAR_WIDTH = 325;
@@ -61,9 +62,7 @@ function ReplayLayoutBody({
   const [layout, setLayout] = useReplayLayout();
 
   const fullscreenRef = useRef(null);
-  const {toggle: toggleFullscreen} = useFullscreen({
-    elementRef: fullscreenRef,
-  });
+  const {toggle: toggleFullscreen} = useFullscreen({elementRef: fullscreenRef});
 
   const measureRef = useRef<HTMLDivElement>(null);
   const {width, height} = useDimensions({elementRef: measureRef});

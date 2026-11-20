@@ -24,9 +24,7 @@ describe('ProjectDetail', () => {
   const project = projects[0]!;
 
   const initialRouterConfig: RouterConfig = {
-    location: {
-      pathname: `/organizations/${organization.slug}/projects/${project.slug}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/projects/${project.slug}/`},
     route: '/organizations/:orgId/projects/:projectId/',
   };
 
@@ -76,10 +74,6 @@ describe('ProjectDetail', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     ProjectsStore.init();
-  });
-
-  afterEach(() => {
-    ProjectsStore.reset();
   });
 
   it('Render an error if project not found', async () => {

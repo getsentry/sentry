@@ -10,10 +10,8 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import type {EventViewOptions} from 'sentry/utils/discover/eventView';
 import {EventView} from 'sentry/utils/discover/eventView';
-import {
-  getCustomEventsFieldRenderer,
-  transformEventsResponseToTable,
-} from 'sentry/views/dashboards/datasetConfig/events';
+
+import {getCustomEventsFieldRenderer, transformEventsResponseToTable} from './events';
 
 const theme = ThemeFixture();
 
@@ -23,13 +21,9 @@ describe('transformEventsResponseToTable', () => {
       data: [{'p75(measurements.inp)': null}],
       meta: {
         'p75(measurements.inp)': 'duration',
-        units: {
-          'p75(measurements.inp)': 'millisecond',
-        },
+        units: {'p75(measurements.inp)': 'millisecond'},
         dataset: 'errors',
-        fields: {
-          'p75(measurements.inp)': 'duration',
-        },
+        fields: {'p75(measurements.inp)': 'duration'},
       },
       title: 'A Query',
     } as unknown as TableData;
@@ -38,13 +32,9 @@ describe('transformEventsResponseToTable', () => {
 
     expect(transformEventsResponseToTable(rawData, widgetQuery).meta).toEqual({
       'p75(measurements.inp)': 'duration',
-      units: {
-        'p75(measurements.inp)': 'millisecond',
-      },
+      units: {'p75(measurements.inp)': 'millisecond'},
       dataset: 'errors',
-      fields: {
-        'p75(measurements.inp)': 'duration',
-      },
+      fields: {'p75(measurements.inp)': 'duration'},
     });
   });
 });
@@ -81,10 +71,7 @@ describe('getCustomFieldRenderer', () => {
           navigate: jest.fn(),
           location,
           theme,
-          eventView: new EventView({
-            ...baseEventViewOptions,
-            fields: [{field: 'trace'}],
-          }),
+          eventView: new EventView({...baseEventViewOptions, fields: [{field: 'trace'}]}),
         }
       ) as React.ReactElement<any, any>
     );
@@ -92,10 +79,7 @@ describe('getCustomFieldRenderer', () => {
     expect(router.location.pathname).toBe(
       '/organizations/org-slug/dashboards/trace/abcd/'
     );
-    expect(router.location.query).toEqual({
-      source: 'dashboards',
-      statsPeriod: '14d',
-    });
+    expect(router.location.query).toEqual({source: 'dashboards', statsPeriod: '14d'});
   });
 
   it('links event ids to event details', async () => {
@@ -166,9 +150,7 @@ describe('getCustomFieldRenderer', () => {
       '/organizations/org-slug/explore/errors/results/'
     );
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        query: 'event.type:transaction transaction.source:"url"',
-      })
+      expect.objectContaining({query: 'event.type:transaction transaction.source:"url"'})
     );
   });
 });

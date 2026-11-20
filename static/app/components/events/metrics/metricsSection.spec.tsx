@@ -11,7 +11,7 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {MetricsSection} from 'sentry/components/events/metrics/metricsSection';
+import {MetricsSection} from './metricsSection';
 
 jest.mock('sentry/components/lazyRender', () => ({
   LazyRender: ({children}: {children: React.ReactNode}) => children,
@@ -22,9 +22,7 @@ import {TraceMetricKnownFieldKey} from 'sentry/views/explore/metrics/types';
 
 const TRACE_ID = '00000000000000000000000000000000';
 
-const organization = OrganizationFixture({
-  features: ['tracemetrics-enabled'],
-});
+const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
 
 const project = ProjectFixture();
 const group = GroupFixture();
@@ -55,18 +53,10 @@ describe('MetricsSection', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
-    MockApiClient.addMockResponse({
-      url: '/projects/',
-      body: [project],
-    });
+    MockApiClient.addMockResponse({url: '/projects/', body: [project]});
 
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -147,9 +137,7 @@ describe('MetricsSection', () => {
         ],
       },
     });
-    render(<MetricsSection event={event} project={project} group={group} />, {
-      organization,
-    });
+    render(<MetricsSection event={event} />, {organization});
     await userEvent.click(
       await screen.findByRole('button', {name: 'Toggle trace details'})
     );
@@ -158,25 +146,17 @@ describe('MetricsSection', () => {
   });
 
   it('renders empty when no trace id', () => {
-    const eventWithoutTrace = EventFixture({
-      contexts: {},
-    });
+    const eventWithoutTrace = EventFixture({contexts: {}});
 
-    render(<MetricsSection event={eventWithoutTrace} project={project} group={group} />, {
-      organization,
-    });
+    render(<MetricsSection event={eventWithoutTrace} />, {organization});
 
     expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
   });
 
   it('does not render when feature flag is disabled', () => {
-    const orgWithoutFeature = OrganizationFixture({
-      features: [],
-    });
+    const orgWithoutFeature = OrganizationFixture({features: []});
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
-      organization: orgWithoutFeature,
-    });
+    render(<MetricsSection event={event} />, {organization: orgWithoutFeature});
 
     expect(screen.queryByText(/Metrics/)).not.toBeInTheDocument();
   });
@@ -184,15 +164,10 @@ describe('MetricsSection', () => {
   it('renders empty when no metrics data', async () => {
     const mockRequestEmpty = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-        meta: {},
-      },
+      body: {data: [], meta: {}},
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
-      organization,
-    });
+    render(<MetricsSection event={event} />, {organization});
 
     await waitFor(() => {
       expect(mockRequestEmpty).toHaveBeenCalledTimes(1);
@@ -203,14 +178,12 @@ describe('MetricsSection', () => {
   });
 
   it('renders metrics section with data', async () => {
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });
@@ -251,9 +224,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
-      organization,
-    });
+    render(<MetricsSection event={event} />, {organization});
 
     await waitFor(() => {
       expect(mockRequestWithManyMetrics).toHaveBeenCalledTimes(1);
@@ -291,14 +262,12 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
+    render(<MetricsSection event={event} />, {
       organization,
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/issues/${group.id}/`,
-          query: {
-            project: project.id,
-          },
+          query: {project: project.id},
         },
       },
     });
@@ -352,9 +321,7 @@ describe('MetricsSection', () => {
       },
     });
 
-    render(<MetricsSection event={event} project={project} group={group} />, {
-      organization,
-    });
+    render(<MetricsSection event={event} />, {organization});
 
     await waitFor(() => {
       expect(mockRequestWithFewMetrics).toHaveBeenCalledTimes(1);

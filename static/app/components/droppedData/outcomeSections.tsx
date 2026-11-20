@@ -1,5 +1,5 @@
-import {outcomeLabel} from 'sentry/components/droppedData/outcomes';
-import type {OutcomeRow} from 'sentry/components/droppedData/types';
+import {outcomeLabel} from './outcomes';
+import type {OutcomeRow} from './types';
 
 export interface ReasonRow {
   events: number;
@@ -42,6 +42,15 @@ export function filterDroppedEventsByScope(
   scope: DroppedDataScope
 ): OutcomeRow[] {
   return scope === 'all' ? droppedEvents : droppedEvents.filter(isUnintentional);
+}
+
+export function unexpectedDroppedShare(
+  droppedEvents: OutcomeRow[],
+  acceptedEvents: OutcomeRow[]
+): number {
+  const dropped = sumCounts(filterDroppedEventsByScope(droppedEvents, 'unexpected'));
+  const totalEvents = dropped + sumCounts(acceptedEvents);
+  return totalEvents === 0 ? 0 : dropped / totalEvents;
 }
 
 export function droppedEventsToOutcomeSections(

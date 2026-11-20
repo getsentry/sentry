@@ -21,7 +21,8 @@ import {
   ProjectRouteProvider,
 } from 'sentry/views/projects/projectRouteContext';
 import {SettingsLayout} from 'sentry/views/settings/components/settingsLayout';
-import {ProjectSettingsCommandPaletteActions} from 'sentry/views/settings/project/projectSettingsCommandPaletteActions';
+
+import {ProjectSettingsCommandPaletteActions} from './projectSettingsCommandPaletteActions';
 
 interface ProjectSettingsOutletContext {
   project: DetailedProject;
@@ -48,10 +49,7 @@ function ProjectSettingsLayoutContent({
   project,
 }: ProjectSettingsLayoutContentProps) {
   // set analytics params for route based analytics
-  useRouteAnalyticsParams({
-    project_id: project.id,
-    project_platform: project.platform,
-  });
+  useRouteAnalyticsParams({project_id: project.id, project_platform: project.platform});
 
   return (
     <SettingsLayout>

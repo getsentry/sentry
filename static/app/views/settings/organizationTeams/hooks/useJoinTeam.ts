@@ -1,6 +1,7 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organizations';
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
 import {t} from 'sentry/locale';
@@ -20,19 +21,14 @@ export function useJoinTeam({organization, team}: UseJoinTeamOptions) {
 
   return useMutation({
     mutationFn: () => {
-      return joinTeamPromise(api, {
-        orgId: organization.slug,
-        teamId: team.slug,
-      });
+      return joinTeamPromise(api, {orgId: organization.slug, teamId: team.slug});
     },
     onSuccess: () => {
-      addSuccessMessage(t('You have joined %s', `#${team.slug}`));
-      fetchOrganizationDetails(api, organization.slug, {
-        loadProjects: true,
-      });
+      toast.success(t('You have joined %s', `#${team.slug}`));
+      fetchOrganizationDetails(api, organization.slug, {loadProjects: true});
     },
     onError: () => {
-      addErrorMessage(t('Unable to join %s', `#${team.slug}`));
+      toast.error(t('Unable to join %s', `#${team.slug}`));
     },
   });
 }

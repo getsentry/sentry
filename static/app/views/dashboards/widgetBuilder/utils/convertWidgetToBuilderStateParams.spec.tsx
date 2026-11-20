@@ -1,9 +1,10 @@
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+
 import {
   convertWidgetToBuilderState,
   convertWidgetToQueryParams,
-} from 'sentry/views/dashboards/widgetBuilder/utils/convertWidgetToBuilderStateParams';
-import {getDefaultWidget} from 'sentry/views/dashboards/widgetBuilder/utils/getDefaultWidget';
+} from './convertWidgetToBuilderStateParams';
+import {getDefaultWidget} from './getDefaultWidget';
 
 describe('convertWidgetToBuilderStateParams', () => {
   it('should not pass along yAxis when converting a table to builder params', () => {
@@ -110,13 +111,7 @@ describe('convertWidgetToBuilderStateParams', () => {
   it('includes the thresholds in the builder params', () => {
     const widget = {
       ...getDefaultWidget(WidgetType.TRANSACTIONS),
-      thresholds: {
-        max_values: {
-          max1: 200,
-          max2: 300,
-        },
-        unit: 'milliseconds',
-      },
+      thresholds: {max_values: {max1: 200, max2: 300}, unit: 'milliseconds'},
     };
     const params = convertWidgetToQueryParams(widget);
     expect(params.thresholds).toBe(
@@ -125,10 +120,7 @@ describe('convertWidgetToBuilderStateParams', () => {
   });
 
   it('defaults axisRange to auto when widget axisRange is null', () => {
-    const widget = {
-      ...getDefaultWidget(WidgetType.ERRORS),
-      axisRange: null,
-    };
+    const widget = {...getDefaultWidget(WidgetType.ERRORS), axisRange: null};
 
     const params = convertWidgetToQueryParams(
       widget as unknown as Parameters<typeof convertWidgetToQueryParams>[0]
@@ -137,10 +129,7 @@ describe('convertWidgetToBuilderStateParams', () => {
   });
 
   it('defaults axisRange to auto when widget axisRange is invalid', () => {
-    const widget = {
-      ...getDefaultWidget(WidgetType.ERRORS),
-      axisRange: 'invalid',
-    };
+    const widget = {...getDefaultWidget(WidgetType.ERRORS), axisRange: 'invalid'};
 
     const params = convertWidgetToQueryParams(
       widget as unknown as Parameters<typeof convertWidgetToQueryParams>[0]

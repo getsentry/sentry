@@ -3,7 +3,6 @@ import {IconSpan} from '@sentry/icons/span';
 
 import {Container} from '@sentry/scraps/layout';
 
-import {SeerEmbedBlock} from 'sentry/components/seer/markdown/embeds/components/seerEmbedBlock';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {t} from 'sentry/locale';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
@@ -23,16 +22,13 @@ import {useTraceEventView} from 'sentry/views/performance/traceDetails/useTraceE
 import type {TraceViewQueryParams} from 'sentry/views/performance/traceDetails/useTraceQueryParams';
 import type {UseTraceScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
 
+import {SeerEmbedBlock} from './seerEmbedBlock';
 import {getTraceHref} from './traceLink';
 
 const TRACE_EMBED_PREFERENCES = {
   ...DEFAULT_TRACE_VIEW_PREFERENCES,
   compressed_timeline: false,
-  drawer: {
-    ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
-    layoutOptions: [],
-    minimized: true,
-  },
+  drawer: {...DEFAULT_TRACE_VIEW_PREFERENCES.drawer, layoutOptions: [], minimized: true},
   layout: 'drawer bottom',
 } satisfies TracePreferencesState;
 

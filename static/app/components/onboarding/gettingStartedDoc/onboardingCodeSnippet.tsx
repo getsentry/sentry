@@ -1,12 +1,13 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import {createPortal} from 'react-dom';
 
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 
-import {AuthTokenGenerator} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
-import {useRegisteredTabSelection} from 'sentry/components/onboarding/gettingStartedDoc/selectedCodeTabContext';
 import {PACKAGE_LOADING_PLACEHOLDER} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 import {useFormattedCode} from 'sentry/utils/useFormattedCode';
+
+import {AuthTokenGenerator} from './authTokenGenerator';
+import {useRegisteredTabSelection} from './selectedCodeTabContext';
 
 interface OnboardingCodeSnippetProps extends Omit<
   React.ComponentProps<typeof CodeBlock>,

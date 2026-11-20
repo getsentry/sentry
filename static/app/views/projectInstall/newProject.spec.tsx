@@ -2,7 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
-import NewProject from 'sentry/views/projectInstall/newProject';
+import NewProject from './newProject';
 
 jest.mock('sentry/views/projectInstall/createProject', () => ({
   CreateProject: () => <div>Legacy project creation</div>,
@@ -22,9 +22,7 @@ describe('NewProject', () => {
 
   it('renders the SCM flow when SCM project creation is enabled', () => {
     render(<NewProject />, {
-      organization: OrganizationFixture({
-        features: ['onboarding-scm-project-creation'],
-      }),
+      organization: OrganizationFixture({features: ['onboarding-scm-project-creation']}),
     });
 
     expect(screen.getByText('SCM project creation')).toBeInTheDocument();

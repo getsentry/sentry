@@ -4,13 +4,14 @@ import {Placeholder} from 'sentry/components/placeholder';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 import type {VirtualizedViewManager} from 'sentry/views/performance/traceDetails/traceRenderers/virtualizedViewManager';
+
 import {
   TRACE_COUNT_FORMATTER,
   TRACE_RIGHT_COLUMN_EVEN_CLASSNAME,
   TRACE_RIGHT_COLUMN_ODD_CLASSNAME,
   TraceChildrenButton,
   TraceRowConnectors,
-} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
+} from './traceRow';
 
 function randomBetween(min: number, max: number) {
   return Math.floor(Math.random() * (max - min + 1) + min);
@@ -65,9 +66,7 @@ export function TraceLoadingRow(props: {
             className="Placeholder"
             height="12px"
             width={randomBetween(20, 80) + '%'}
-            style={{
-              transition: 'all 30s ease-out',
-            }}
+            style={{transition: 'all 30s ease-out'}}
           />
         </div>
       </div>
@@ -77,9 +76,7 @@ export function TraceLoadingRow(props: {
             ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
             : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME
         }
-        style={{
-          width: props.manager.columns.span_list.width * 100 + '%',
-        }}
+        style={{width: props.manager.columns.span_list.width * 100 + '%'}}
       >
         <Placeholder
           className="Placeholder"

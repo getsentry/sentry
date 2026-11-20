@@ -3,9 +3,10 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AddIntegrationRow} from 'sentry/components/messagingIntegrations/addIntegrationRow';
 import * as pipelineModal from 'sentry/components/pipeline/modal';
 import {IntegrationContext} from 'sentry/views/settings/organizationIntegrations/integrationContext';
+
+import {AddIntegrationRow} from './addIntegrationRow';
 
 jest.mock('sentry/actionCreators/modal');
 
@@ -24,10 +25,7 @@ describe('AddIntegrationRow', () => {
         provider,
         type: 'first_party',
         installStatus: 'Not Installed',
-        analyticsParams: {
-          view: 'onboarding',
-          already_installed: false,
-        },
+        analyticsParams: {view: 'onboarding', already_installed: false},
       }}
     >
       <AddIntegrationRow onClick={jest.fn()} />

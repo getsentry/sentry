@@ -6,13 +6,14 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
+
 import {
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
   getMutateSeerProjectsSettingsOptions,
   getSeerProjectSettingsQueryOptions,
-} from 'sentry/utils/seer/seerProjectSettings';
-import type {AgentIntegration, SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+} from './seerProjectSettings';
+import type {AgentIntegration, SeerProjectSettingResponse} from './types';
 
 const organization = OrganizationFixture({slug: 'org-slug'});
 const project = {slug: 'project-slug'};
@@ -50,15 +51,9 @@ describe('getMutateSeerProjectSettingsOptions', () => {
   function renderMutationHook({agents}: {agents?: AgentIntegration[]} = {}) {
     const queryClient = makeTestQueryClient();
 
-    const queryKey = getSeerProjectSettingsQueryOptions({
-      organization,
-      project,
-    }).queryKey;
+    const queryKey = getSeerProjectSettingsQueryOptions({organization, project}).queryKey;
 
-    queryClient.setQueryData(queryKey, {
-      headers: {},
-      json: makeResponseFixture(),
-    });
+    queryClient.setQueryData(queryKey, {headers: {}, json: makeResponseFixture()});
 
     const hook = renderHookWithProviders(
       () =>
@@ -202,10 +197,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       expect(mock).toHaveBeenCalledWith(
         settingsUrl,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {automationTuning: 'off'},
-        })
+        expect.objectContaining({method: 'PUT', data: {automationTuning: 'off'}})
       );
     });
 
@@ -309,9 +301,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         }),
       });
 
-      const {result, queryClient, queryKey} = renderMutationHook({
-        agents: knownAgents,
-      });
+      const {result, queryClient, queryKey} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
         await result.current.mutateAsync({
@@ -373,10 +363,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(queryKey);
-        expect(cached?.json).toMatchObject({
-          agent: 'seer',
-          integrationId: undefined,
-        });
+        expect(cached?.json).toMatchObject({agent: 'seer', integrationId: undefined});
       });
     });
 
@@ -410,9 +397,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
         body: {detail: 'Internal Error'},
       });
 
-      const {result, queryClient, queryKey} = renderMutationHook({
-        agents: knownAgents,
-      });
+      const {result, queryClient, queryKey} = renderMutationHook({agents: knownAgents});
 
       await act(async () => {
         try {
@@ -426,10 +411,7 @@ describe('getMutateSeerProjectSettingsOptions', () => {
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(queryKey);
-        expect(cached?.json).toMatchObject({
-          agent: 'seer',
-          integrationId: null,
-        });
+        expect(cached?.json).toMatchObject({agent: 'seer', integrationId: null});
       });
     });
   });
@@ -443,10 +425,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
   const bulkUrl = `/organizations/${organization.slug}/seer/projects/`;
 
   function makeInfiniteData(items: SeerProjectSettingResponse[]) {
-    return {
-      pages: [{headers: {}, json: items}],
-      pageParams: [undefined],
-    };
+    return {pages: [{headers: {}, json: items}], pageParams: [undefined]};
   }
 
   const defaultProjectsById = new Map([
@@ -511,10 +490,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       const {result} = renderBulkMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({
-          agentOption: 'seer',
-          selectedIds: ['1', '2'],
-        });
+        await result.current.mutateAsync({agentOption: 'seer', selectedIds: ['1', '2']});
       });
 
       expect(mock).toHaveBeenCalledWith(
@@ -591,10 +567,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       const {result} = renderBulkMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({
-          stoppingPoint: 'off',
-          selectedIds: ['1'],
-        });
+        await result.current.mutateAsync({stoppingPoint: 'off', selectedIds: ['1']});
       });
 
       expect(mock).toHaveBeenCalledWith(
@@ -616,21 +589,14 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       const {result} = renderBulkMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({
-          stoppingPoint: 'open_pr',
-          selectedIds: ['1'],
-        });
+        await result.current.mutateAsync({stoppingPoint: 'open_pr', selectedIds: ['1']});
       });
 
       expect(mock).toHaveBeenCalledWith(
         bulkUrl,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            stoppingPoint: 'open_pr',
-            automationTuning: 'medium',
-            query: 'id:[1]',
-          },
+          data: {stoppingPoint: 'open_pr', automationTuning: 'medium', query: 'id:[1]'},
         })
       );
     });
@@ -663,10 +629,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
           agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
           integrationId: '456',
         });
-        expect(items?.[1]).toMatchObject({
-          projectId: '2',
-          agent: 'seer',
-        });
+        expect(items?.[1]).toMatchObject({projectId: '2', agent: 'seer'});
         expect(items?.[2]).toMatchObject({
           projectId: '3',
           agent: CodingAgentProvider.CLAUDE_CODE_AGENT,
@@ -778,19 +741,13 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
       const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook();
 
       await act(async () => {
-        await result.current.mutateAsync({
-          stoppingPoint: 'off',
-          selectedIds: ['1'],
-        });
+        await result.current.mutateAsync({stoppingPoint: 'off', selectedIds: ['1']});
       });
 
       await waitFor(() => {
         const cached = queryClient.getQueryData(infiniteQueryKey);
         const item = cached?.pages[0]?.json?.[0];
-        expect(item).toMatchObject({
-          projectId: '1',
-          automationTuning: 'off',
-        });
+        expect(item).toMatchObject({projectId: '1', automationTuning: 'off'});
       });
     });
   });
@@ -820,10 +777,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await waitFor(() => {
         expect(invalidateSpy).toHaveBeenCalledWith(
-          expect.objectContaining({
-            queryKey: [infiniteQueryKey[0]],
-            exact: false,
-          })
+          expect.objectContaining({queryKey: [infiniteQueryKey[0]], exact: false})
         );
       });
     });

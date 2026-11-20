@@ -7,23 +7,19 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {openModal} from 'sentry/actionCreators/modal';
-import {ModalStore} from 'sentry/stores/modalStore';
+import {openModal, closeModal} from '@sentry/scraps/modal';
 
 import {MergeAccountsModal} from './mergeAccounts';
 
 describe('MergeAccountsModal', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    ModalStore.reset();
+    closeModal();
     MockApiClient.addMockResponse({url: '/users/', body: []});
   });
 
   it('requires an account before submitting', async () => {
-    MockApiClient.addMockResponse({
-      url: '/users/1/merge-accounts/',
-      body: {users: []},
-    });
+    MockApiClient.addMockResponse({url: '/users/1/merge-accounts/', body: {users: []}});
     const mergeRequest = MockApiClient.addMockResponse({
       url: '/users/1/merge-accounts/',
       method: 'POST',
@@ -41,10 +37,7 @@ describe('MergeAccountsModal', () => {
 
   it('shows users before searching', async () => {
     const account = UserFixture({id: '2', username: 'other@example.com'});
-    MockApiClient.addMockResponse({
-      url: '/users/1/merge-accounts/',
-      body: {users: []},
-    });
+    MockApiClient.addMockResponse({url: '/users/1/merge-accounts/', body: {users: []}});
     MockApiClient.addMockResponse({url: '/users/', body: [account]});
 
     openModal(deps => <MergeAccountsModal {...deps} userId="1" onAction={jest.fn()} />);
@@ -96,10 +89,7 @@ describe('MergeAccountsModal', () => {
       url: '/users/1/merge-accounts/',
       body: {users: [suggestedAccount]},
     });
-    MockApiClient.addMockResponse({
-      url: '/users/',
-      body: [searchedAccount],
-    });
+    MockApiClient.addMockResponse({url: '/users/', body: [searchedAccount]});
     const mergeRequest = MockApiClient.addMockResponse({
       url: '/users/1/merge-accounts/',
       method: 'POST',

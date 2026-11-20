@@ -14,10 +14,8 @@ import type {Sort} from 'sentry/utils/discover/fields';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {encodeSort} from 'sentry/utils/queryString';
-import {
-  isPreferredAgentProvider,
-  parseAgentOption,
-} from 'sentry/utils/seer/preferredAgent';
+
+import {isPreferredAgentProvider, parseAgentOption} from './preferredAgent';
 import type {
   PreferredAgentProvider,
   SeerProjectSettingResponse,
@@ -25,7 +23,7 @@ import type {
   SeerBulkProjectSettingUpdatePayload,
   AutofixAgentSelectOption,
   AgentIntegration,
-} from 'sentry/utils/seer/types';
+} from './types';
 
 export const seerProjectSettingsSchema = z.object({
   agentOption: z.custom<AutofixAgentSelectOption>(value => {
@@ -131,10 +129,7 @@ export function getMutateSeerProjectSettingsOptions({
         url,
         data: {
           ...rest,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         },
@@ -148,10 +143,7 @@ export function getMutateSeerProjectSettingsOptions({
       const [infiniteUrl] = infiniteQueryKey;
 
       await queryClient.cancelQueries({queryKey});
-      await queryClient.cancelQueries({
-        queryKey: [infiniteUrl],
-        exact: false,
-      });
+      await queryClient.cancelQueries({queryKey: [infiniteUrl], exact: false});
 
       const previousData = queryClient.getQueryData(queryKey);
 
@@ -209,10 +201,7 @@ export function getMutateSeerProjectSettingsOptions({
     onError: (_error, _data, context) => {
       queryClient.setQueryData(queryKey, context?.previousData);
       if (context?.infiniteUrl) {
-        queryClient.invalidateQueries({
-          queryKey: [context.infiniteUrl],
-          exact: false,
-        });
+        queryClient.invalidateQueries({queryKey: [context.infiniteUrl], exact: false});
       }
     },
     onSettled: () => {
@@ -285,10 +274,7 @@ export function getMutateSeerProjectsSettingsOptions({
         data: {
           ...rest,
           query: selectedIds === 'all' ? query : `id:[${selectedIds.join(',')}]`,
-          ...(!isOff &&
-            stoppingPoint !== undefined && {
-              stoppingPoint,
-            }),
+          ...(!isOff && stoppingPoint !== undefined && {stoppingPoint}),
           ...agentObj,
           ...(tuning !== undefined && {automationTuning: tuning}),
         } satisfies SeerBulkProjectSettingUpdatePayload,

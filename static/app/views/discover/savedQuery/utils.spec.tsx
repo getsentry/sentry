@@ -2,12 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {EventView} from 'sentry/utils/discover/eventView';
 import {getAllViews} from 'sentry/views/discover/results/data';
+
 import {
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateQuery,
   handleUpdateQueryName,
-} from 'sentry/views/discover/savedQuery/utils';
+} from './utils';
 
 describe('SavedQueries API helpers', () => {
   const api = new MockApiClient();
@@ -39,9 +40,7 @@ describe('SavedQueries API helpers', () => {
       const response = await handleCreateQuery(api, organization, errorsView, yAxis);
       expect(mockCall).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({yAxis}),
-        })
+        expect.objectContaining({data: expect.objectContaining({yAxis})})
       );
       expect(response).toEqual({data: {}, fromBody: {}});
     });
@@ -60,9 +59,7 @@ describe('SavedQueries API helpers', () => {
       const response = await handleUpdateQuery(api, organization, errorsView, yAxis);
       expect(mockCall).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({yAxis}),
-        })
+        expect.objectContaining({data: expect.objectContaining({yAxis})})
       );
       expect(response).toEqual({data: {}, fromBody: {}});
     });

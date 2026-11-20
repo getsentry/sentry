@@ -11,8 +11,9 @@ import {
 } from '@sentry/scraps/modal';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {CreateIssueViewModal} from 'sentry/views/issueList/issueViews/createIssueViewModal';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
+
+import {CreateIssueViewModal} from './createIssueViewModal';
 
 describe('CreateIssueViewModal', () => {
   const defaultProps = {
@@ -23,12 +24,7 @@ describe('CreateIssueViewModal', () => {
     closeModal: jest.fn(),
     projects: [2],
     environments: ['env2'],
-    timeFilters: {
-      period: '30d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    timeFilters: {period: '30d', start: null, end: null, utc: null},
     query: 'is:unresolved foo',
     querySort: IssueSortOptions.TRENDS,
     starred: false,
@@ -51,10 +47,7 @@ describe('CreateIssueViewModal', () => {
       body: [],
       method: 'POST',
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issue-view-title/generate/',
       method: 'POST',
@@ -68,20 +61,13 @@ describe('CreateIssueViewModal', () => {
         name: 'foo',
         projects: [2],
         environments: ['env2'],
-        timeFilters: {
-          period: '30d',
-          start: null,
-          end: null,
-          utc: null,
-        },
+        timeFilters: {period: '30d', start: null, end: null, utc: null},
       }),
     });
 
     const {router} = render(<CreateIssueViewModal {...defaultProps} />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/issues/views/',
-        },
+        location: {pathname: '/organizations/org-slug/issues/views/'},
       },
     });
 
@@ -103,12 +89,7 @@ describe('CreateIssueViewModal', () => {
           name: 'foo',
           projects: [2],
           environments: ['env2'],
-          timeFilters: {
-            period: '30d',
-            start: null,
-            end: null,
-            utc: null,
-          },
+          timeFilters: {period: '30d', start: null, end: null, utc: null},
           query: 'is:unresolved foo',
           querySort: IssueSortOptions.TRENDS,
           starred: true,
@@ -182,10 +163,7 @@ describe('CreateIssueViewModal', () => {
       await waitFor(() => {
         expect(mockGenerateTitle).toHaveBeenCalledWith(
           '/organizations/org-slug/issue-view-title/generate/',
-          expect.objectContaining({
-            method: 'POST',
-            data: {query: 'is:unresolved foo'},
-          })
+          expect.objectContaining({method: 'POST', data: {query: 'is:unresolved foo'}})
         );
       });
 

@@ -5,7 +5,8 @@ import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import type {ProjectKey} from 'sentry/types/project';
-import {KeyRateLimitsForm} from 'sentry/views/settings/project/projectKeys/details/keyRateLimitsForm';
+
+import {KeyRateLimitsForm} from './keyRateLimitsForm';
 
 describe('KeyRateLimitsForm', () => {
   const org = OrganizationFixture();
@@ -37,10 +38,7 @@ describe('KeyRateLimitsForm', () => {
   }
 
   it('submits when save is clicked with valid count and window', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     const {putMock} = renderForm(keyWithRateLimit);
 
     const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
@@ -52,9 +50,7 @@ describe('KeyRateLimitsForm', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${org.slug}/${project.slug}/keys/${baseKey.id}/`,
-        expect.objectContaining({
-          data: {rateLimit: {count: 10, window: 60}},
-        })
+        expect.objectContaining({data: {rateLimit: {count: 10, window: 60}}})
       );
     });
   });
@@ -85,10 +81,7 @@ describe('KeyRateLimitsForm', () => {
   });
 
   it('submits null when both count and window are cleared', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     const {putMock} = renderForm(keyWithRateLimit);
 
     const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
@@ -105,18 +98,13 @@ describe('KeyRateLimitsForm', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${org.slug}/${project.slug}/keys/${baseKey.id}/`,
-        expect.objectContaining({
-          data: {rateLimit: null},
-        })
+        expect.objectContaining({data: {rateLimit: null}})
       );
     });
   });
 
   it('resets form to initial values when reset is clicked', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     renderForm(keyWithRateLimit);
 
     const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
@@ -129,10 +117,7 @@ describe('KeyRateLimitsForm', () => {
   });
 
   it('disables reset button when form has not changed', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     renderForm(keyWithRateLimit);
 
     await screen.findByRole('spinbutton', {name: 'Count'});
@@ -141,10 +126,7 @@ describe('KeyRateLimitsForm', () => {
   });
 
   it('calls updateData on successful save', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     const {putMock, updateData} = renderForm(keyWithRateLimit);
 
     const countInput = await screen.findByRole('spinbutton', {name: 'Count'});
@@ -163,10 +145,7 @@ describe('KeyRateLimitsForm', () => {
   });
 
   it('submits when slider is moved and count is set', async () => {
-    const keyWithRateLimit: ProjectKey = {
-      ...baseKey,
-      rateLimit: {count: 5, window: 60},
-    };
+    const keyWithRateLimit: ProjectKey = {...baseKey, rateLimit: {count: 5, window: 60}};
     const {putMock} = renderForm(keyWithRateLimit);
 
     const slider = screen.getByRole('slider');
@@ -180,9 +159,7 @@ describe('KeyRateLimitsForm', () => {
     await waitFor(() => {
       expect(putMock).toHaveBeenCalledWith(
         `/projects/${org.slug}/${project.slug}/keys/${baseKey.id}/`,
-        expect.objectContaining({
-          data: {rateLimit: {count: 5, window: 300}},
-        })
+        expect.objectContaining({data: {rateLimit: {count: 5, window: 300}}})
       );
     });
   });

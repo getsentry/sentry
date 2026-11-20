@@ -1,5 +1,6 @@
-import {Duration} from 'sentry/components/duration';
 import {defined} from 'sentry/utils/defined';
+
+import {Duration} from './duration';
 
 interface DurationProps {
   abbreviation?: boolean;

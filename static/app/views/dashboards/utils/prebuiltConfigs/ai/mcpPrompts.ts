@@ -5,13 +5,11 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  MCP_PROMPTS_DASHBOARD_DESCRIPTION,
-  MCP_PROMPTS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {SpanFields, SpanFunction} from 'sentry/views/insights/types';
+
+import {MCP_PROMPTS_DASHBOARD_DESCRIPTION, MCP_PROMPTS_DASHBOARD_TITLE} from './settings';
 
 const MCP_PROMPT_FILTER = `${SpanFields.SPAN_OP}:mcp.server has:${SpanFields.GEN_AI_PROMPT_NAME}`;
 
@@ -119,13 +117,7 @@ const PROMPTS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -137,11 +129,7 @@ export const MCP_PROMPTS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'gen_ai.prompt.name',
-          name: 'gen_ai.prompt.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'gen_ai.prompt.name', name: 'gen_ai.prompt.name', kind: FieldKind.TAG},
         value: '',
       },
     ],

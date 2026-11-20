@@ -8,6 +8,7 @@ import {Flex} from '@sentry/scraps/layout';
 import {t} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {DataForwarderDeleteConfirm} from 'sentry/views/settings/organizationDataForwarding/components/dataForwarderDeleteConfirm';
+
 import {
   baseDataForwarderSchema,
   baseFormEditDefaults,
@@ -15,12 +16,12 @@ import {
   buildProjectOptions,
   EnablementFields,
   ProjectConfigFields,
-} from 'sentry/views/settings/organizationDataForwarding/util/forms';
+} from './forms';
 import {
   DataForwarderProviderSlug,
   type DataForwarder,
   type DataForwarderPayload,
-} from 'sentry/views/settings/organizationDataForwarding/util/types';
+} from './types';
 
 const splunkSchema = baseDataForwarderSchema.extend({
   instance_url: z.string().min(1, t('Instance URL is required')),
@@ -29,12 +30,7 @@ const splunkSchema = baseDataForwarderSchema.extend({
   source: z.string().min(1, t('Source is required')),
 });
 
-const splunkDefaults = {
-  instance_url: '',
-  token: '',
-  index: '',
-  source: '',
-};
+const splunkDefaults = {instance_url: '', token: '', index: '', source: ''};
 
 function buildSplunkConfig(
   fields: Omit<
@@ -180,10 +176,7 @@ export function SplunkSetupForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />
@@ -247,10 +240,7 @@ export function SplunkEditForm({
       />
       <ProjectConfigFields
         form={form}
-        fields={{
-          enroll_new_projects: 'enroll_new_projects',
-          project_ids: 'project_ids',
-        }}
+        fields={{enroll_new_projects: 'enroll_new_projects', project_ids: 'project_ids'}}
         disabled={disabled}
         projectOptions={projectOptions}
       />

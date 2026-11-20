@@ -37,10 +37,7 @@ describe('useFetchRecentSearches', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useFetchRecentSearches({
-          savedSearchType: SavedSearchType.TRACEMETRIC,
-          namespace,
-        }),
+        useFetchRecentSearches({savedSearchType: SavedSearchType.TRACEMETRIC, namespace}),
       {organization}
     );
 

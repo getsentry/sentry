@@ -7,11 +7,12 @@ import {Observer} from 'mobx-react-lite';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
+import {Confirm} from '@sentry/scraps/confirm';
+import {getDuration} from '@sentry/scraps/duration';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 
-import {Confirm} from 'sentry/components/confirm';
 import {FieldWrapper} from 'sentry/components/forms/fieldGroup/fieldWrapper';
 import {BooleanField} from 'sentry/components/forms/fields/booleanField';
 import {HiddenField} from 'sentry/components/forms/fields/hiddenField';
@@ -31,21 +32,17 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
-import type {
-  UptimeAssertion,
-  UptimeRule,
-} from 'sentry/views/detectors/components/uptime/types';
 
 import {createEmptyAssertionRoot, UptimeAssertionsField} from './assertions/field';
 import {createMapFormErrors} from './formErrors';
 import {HTTPSnippet} from './httpSnippet';
 import {PreviewCheckResultProvider, usePreviewCheckResult} from './previewCheckContext';
 import {TestUptimeMonitorButton} from './testUptimeMonitorButton';
+import type {UptimeAssertion, UptimeRule} from './types';
 import {UptimeHeadersField} from './uptimeHeadersField';
 import {useUptimeAssertionFeatures} from './useUptimeAssertionFeatures';
 
@@ -371,7 +368,9 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
               tickValues={[1_000, 10_000, 20_000, 30_000, 40_000, 50_000, 60_000]}
               defaultValue={DEFAULT_TIMEOUT_MS}
               showTickLabels
-              formatLabel={value => getDuration((value || 0) / 1000, 2, true)}
+              formatLabel={value =>
+                getDuration((value || 0) / 1000, {precision: 2, style: 'short'})
+              }
               flexibleControlStateSize
               required
             />
@@ -534,10 +533,7 @@ function UptimeAlertFormContent({handleDelete, rule}: Props) {
             inline={false}
             flexibleControlStateSize
             stacked
-            style={{
-              padding: 0,
-              border: 'none',
-            }}
+            style={{padding: 0, border: 'none'}}
           />
           <HiddenField name="timeoutMs" defaultValue={10000} />
         </FormRow>

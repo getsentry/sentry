@@ -4,7 +4,8 @@ import {
   InvestigationHypothesisFixture,
   InvestigationVerificationStepFixture,
 } from 'sentry/views/investigations/fixtures';
-import {HypothesisCard} from 'sentry/views/investigations/hypotheses/hypothesisCard';
+
+import {HypothesisCard} from './hypothesisCard';
 
 describe('HypothesisCard', () => {
   it.each(['pending', 'investigating'] as const)(
@@ -172,12 +173,7 @@ describe('HypothesisCard', () => {
       {...first, status: 'completed', result: 'Latency compared.'},
     ];
     rerender(
-      <HypothesisCard
-        hypothesis={{
-          ...hypothesis,
-          verificationSteps: updatedSteps,
-        }}
-      />
+      <HypothesisCard hypothesis={{...hypothesis, verificationSteps: updatedSteps}} />
     );
 
     expect(steps.getAllByRole('listitem', {current: 'step'})).toHaveLength(1);
@@ -250,11 +246,7 @@ describe('HypothesisCard', () => {
               result: null,
               objective: 'Check the incident window.',
               method: 'Compare error counts.',
-              error: {
-                code: 'timeout',
-                message: 'The query timed out.',
-                retryable: true,
-              },
+              error: {code: 'timeout', message: 'The query timed out.', retryable: true},
             }),
           ],
         })}

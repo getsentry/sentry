@@ -4,7 +4,8 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useEventWaiter} from 'sentry/utils/useEventWaiter';
+
+import {useEventWaiter} from './useEventWaiter';
 
 describe('useEventWaiter', () => {
   beforeEach(() => {
@@ -25,12 +26,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -94,12 +90,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -119,12 +110,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -145,12 +131,7 @@ describe('useEventWaiter', () => {
 
     const {result} = renderHookWithProviders(
       () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-          disabled: true,
-        }),
+        useEventWaiter({eventType: 'error', organization: org, project, disabled: true}),
       {organization: org}
     );
 
@@ -172,12 +153,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -217,20 +193,11 @@ describe('useEventWaiter', () => {
       MockApiClient.addMockResponse({
         url: `/projects/${org.slug}/${project.slug}/`,
         method: 'GET',
-        body: ProjectFixture({
-          id: project.id,
-          slug: project.slug,
-          [field]: true,
-        }),
+        body: ProjectFixture({id: project.id, slug: project.slug, [field]: true}),
       });
 
       const {result} = renderHookWithProviders(
-        () =>
-          useEventWaiter({
-            eventType,
-            organization: org,
-            project,
-          }),
+        () => useEventWaiter({eventType, organization: org, project}),
         {organization: org}
       );
 
@@ -254,11 +221,7 @@ describe('useEventWaiter', () => {
     MockApiClient.addMockResponse({
       url: `/projects/${org.slug}/${project.slug}/`,
       method: 'GET',
-      body: ProjectFixture({
-        id: project.id,
-        slug: project.slug,
-        firstEvent,
-      }),
+      body: ProjectFixture({id: project.id, slug: project.slug, firstEvent}),
     });
 
     MockApiClient.addMockResponse({
@@ -268,12 +231,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'error',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'error', organization: org, project}),
       {organization: org}
     );
 
@@ -304,12 +262,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 
@@ -338,12 +291,7 @@ describe('useEventWaiter', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () =>
-        useEventWaiter({
-          eventType: 'transaction',
-          organization: org,
-          project,
-        }),
+      () => useEventWaiter({eventType: 'transaction', organization: org, project}),
       {organization: org}
     );
 

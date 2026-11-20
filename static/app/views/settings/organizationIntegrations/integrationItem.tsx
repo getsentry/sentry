@@ -8,12 +8,10 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {t, tct} from 'sentry/locale';
 import type {Integration} from 'sentry/types/integrations';
 import {getIntegrationNoun} from 'sentry/utils/integrationUtil';
-import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/integrationIcon';
 
-type Props = {
-  integration: Integration;
-  requiresUpgrade?: boolean | undefined;
-};
+import {IntegrationIcon} from './integrationIcon';
+
+type Props = {integration: Integration; requiresUpgrade?: boolean | undefined};
 
 export function IntegrationItem({integration, requiresUpgrade}: Props) {
   return (

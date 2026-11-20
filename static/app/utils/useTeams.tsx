@@ -1,17 +1,18 @@
 import {useCallback, useEffect, useMemo, useState} from 'react';
 import uniqBy from 'lodash/uniqBy';
+import {useStore} from 'zustand';
 
 import {fetchUserTeams} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
-import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
-import {useApi} from 'sentry/utils/useApi';
+
+import {getApiUrl} from './api/getApiUrl';
+import type {RequestError} from './requestError/requestError';
+import {isActiveSuperuser} from './isActiveSuperuser';
+import {parseLinkHeader} from './parseLinkHeader';
+import {useApi} from './useApi';
 
 type State = {
   /**
@@ -100,11 +101,7 @@ async function fetchTeams(
   orgId: string,
   {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
-  const query: {
-    cursor?: typeof cursor;
-    per_page?: number;
-    query?: string;
-  } = {};
+  const query: {cursor?: typeof cursor; per_page?: number; query?: string} = {};
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
@@ -130,10 +127,7 @@ async function fetchTeams(
     getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -170,8 +164,8 @@ async function fetchTeams(
  */
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
-  const {organization} = useLegacyStore(OrganizationStore);
-  const store = useLegacyStore(TeamStore);
+  const organization = useStore(OrganizationStore, state => state.organization);
+  const store = useStore(TeamStore);
 
   const orgId = organization?.slug;
 

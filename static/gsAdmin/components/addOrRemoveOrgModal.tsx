@@ -3,10 +3,10 @@ import {z} from 'zod';
 
 import {defaultFormOptions, useScrapsForm} from '@sentry/scraps/form';
 import {Stack} from '@sentry/scraps/layout';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Heading, Text} from '@sentry/scraps/text';
+import {toast} from '@sentry/scraps/toast';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {ORG_ROLES} from 'sentry/constants';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -17,14 +17,9 @@ interface AddOrRemoveOrgModalProps extends ModalRenderProps {
   userId: string;
 }
 
-type AddToOrgFormValues = {
-  organizationSlug: string;
-  role: string;
-};
+type AddToOrgFormValues = {organizationSlug: string; role: string};
 
-type RemoveFromOrgFormValues = {
-  organizationSlug: string;
-};
+type RemoveFromOrgFormValues = {organizationSlug: string};
 
 const addToOrgSchema = z.object({
   organizationSlug: z.string().trim().min(1, 'Organization slug is required'),
@@ -58,7 +53,7 @@ function AddToOrgModal({
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Unable to add member');
+      toast.error(typeof detail === 'string' ? detail : 'Unable to add member');
     },
   });
 
@@ -94,10 +89,7 @@ function AddToOrgModal({
                 <field.Select
                   value={field.state.value}
                   onChange={field.handleChange}
-                  options={ORG_ROLES.map(role => ({
-                    value: role.id,
-                    label: role.name,
-                  }))}
+                  options={ORG_ROLES.map(role => ({value: role.id, label: role.name}))}
                   placeholder="Choose a role"
                 />
               </field.Layout.Stack>
@@ -135,7 +127,7 @@ function RemoveFromOrgModal({
     onError: error => {
       const detail =
         error instanceof RequestError ? error.responseJSON?.detail : undefined;
-      addErrorMessage(typeof detail === 'string' ? detail : 'Unable to remove member');
+      toast.error(typeof detail === 'string' ? detail : 'Unable to remove member');
     },
   });
 

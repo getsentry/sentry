@@ -1,19 +1,16 @@
 import type {ReactNode} from 'react';
 
 import {DataConditionGroupLogicType} from 'sentry/types/workflowEngine/dataConditions';
-import {AutomationBuilderConflictContext} from 'sentry/views/automations/components/automationBuilderConflictContext';
+
+import {AutomationBuilderConflictContext} from './automationBuilderConflictContext';
 import {
   AutomationBuilderContext,
   type AutomationBuilderState,
-} from 'sentry/views/automations/components/automationBuilderContext';
-import {AutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
+} from './automationBuilderContext';
+import {AutomationBuilderErrorContext} from './automationBuilderErrorContext';
 
 const defaultBuilderState: AutomationBuilderState = {
-  triggers: {
-    id: 'triggers',
-    conditions: [],
-    logicType: DataConditionGroupLogicType.ANY,
-  },
+  triggers: {id: 'triggers', conditions: [], logicType: DataConditionGroupLogicType.ANY},
   actionFilters: [],
 };
 
@@ -73,10 +70,7 @@ export function AutomationBuilderTestProvider({
       >
         <AutomationBuilderConflictContext.Provider
           value={
-            conflictContext ?? {
-              conflictingConditionGroups: {},
-              conflictReason: null,
-            }
+            conflictContext ?? {conflictingConditionGroups: {}, conflictReason: null}
           }
         >
           {children}

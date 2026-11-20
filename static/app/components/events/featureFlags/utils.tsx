@@ -23,22 +23,10 @@ const getOrderByLabel = (sort: string) => {
 };
 
 export const ORDER_BY_OPTIONS = [
-  {
-    label: getOrderByLabel(OrderBy.NEWEST),
-    value: OrderBy.NEWEST,
-  },
-  {
-    label: getOrderByLabel(OrderBy.OLDEST),
-    value: OrderBy.OLDEST,
-  },
-  {
-    label: getOrderByLabel(OrderBy.A_TO_Z),
-    value: OrderBy.A_TO_Z,
-  },
-  {
-    label: getOrderByLabel(OrderBy.Z_TO_A),
-    value: OrderBy.Z_TO_A,
-  },
+  {label: getOrderByLabel(OrderBy.NEWEST), value: OrderBy.NEWEST},
+  {label: getOrderByLabel(OrderBy.OLDEST), value: OrderBy.OLDEST},
+  {label: getOrderByLabel(OrderBy.A_TO_Z), value: OrderBy.A_TO_Z},
+  {label: getOrderByLabel(OrderBy.Z_TO_A), value: OrderBy.Z_TO_A},
 ];
 
 export const enum FlagControlOptions {
@@ -71,7 +59,7 @@ export const sortedFlags = ({
   }
 };
 
-// Supported Feature Flag Providers. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+// Supported Feature Flag Providers. Ordered by display order in the feature flag onboarding drawer. We prefer Generic to be last.
 export enum WebhookProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   STATSIG = 'Statsig',
@@ -79,7 +67,7 @@ export enum WebhookProviderEnum {
   GENERIC = 'Generic',
 }
 
-// Supported Feature Flag SDKs. Ordered by display order in FeatureFlagOnboardingDrawer. We prefer Generic to be last.
+// Supported Feature Flag SDKs. Ordered by display order in the feature flag onboarding drawer. We prefer Generic to be last.
 export enum SdkProviderEnum {
   LAUNCHDARKLY = 'LaunchDarkly',
   OPENFEATURE = 'OpenFeature',

@@ -5,14 +5,15 @@ import type {
   PrebuiltDashboard,
   PrebuiltWidget,
 } from 'sentry/views/dashboards/utils/prebuiltConfigs';
-import {
-  AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION,
-  AI_AGENTS_TOOLS_DASHBOARD_TITLE,
-} from 'sentry/views/dashboards/utils/prebuiltConfigs/ai/settings';
 import {WIDGET_COLUMN_LABELS} from 'sentry/views/dashboards/utils/prebuiltConfigs/settings';
 import {spaceWidgetsEquallyOnRow} from 'sentry/views/dashboards/utils/prebuiltConfigs/utils/spaceWidgetsEquallyOnRow';
 import {getToolSpansFilter} from 'sentry/views/insights/pages/agents/utils/query';
 import {SpanFields} from 'sentry/views/insights/types';
+
+import {
+  AI_AGENTS_TOOLS_DASHBOARD_DESCRIPTION,
+  AI_AGENTS_TOOLS_DASHBOARD_TITLE,
+} from './settings';
 
 const TOOL_SPANS_FILTER = getToolSpansFilter();
 
@@ -100,13 +101,7 @@ const TOOLS_TABLE: PrebuiltWidget = {
       orderby: '-count()',
     },
   ],
-  layout: {
-    x: 0,
-    y: 3,
-    w: 6,
-    h: 4,
-    minH: 2,
-  },
+  layout: {x: 0, y: 3, w: 6, h: 4, minH: 2},
 };
 
 export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -118,11 +113,7 @@ export const AI_AGENTS_TOOLS_PREBUILT_CONFIG: PrebuiltDashboard = {
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'gen_ai.tool.name',
-          name: 'gen_ai.tool.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'gen_ai.tool.name', name: 'gen_ai.tool.name', kind: FieldKind.TAG},
         value: '',
       },
     ],

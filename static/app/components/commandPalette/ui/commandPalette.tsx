@@ -27,21 +27,10 @@ import {Image} from '@sentry/scraps/image';
 import {InputGroup} from '@sentry/scraps/input';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import type {ListItemProps} from '@sentry/scraps/menu';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Text} from '@sentry/scraps/text';
 import type {Theme} from '@sentry/scraps/theme';
 
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
-import type {CMDKActionData} from 'sentry/components/commandPalette/ui/cmdk';
-import {CMDKCollection} from 'sentry/components/commandPalette/ui/cmdk';
-import type {CollectionTreeNode} from 'sentry/components/commandPalette/ui/collection';
-import {
-  useCommandPaletteDispatch,
-  useCommandPaletteState,
-} from 'sentry/components/commandPalette/ui/commandPaletteStateContext';
-import {
-  getLocationHref,
-  isExternalLocation,
-} from 'sentry/components/commandPalette/ui/locationUtils';
 import {useCommandPaletteAnalytics} from 'sentry/components/commandPalette/useCommandPaletteAnalytics';
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -51,6 +40,15 @@ import {fzf} from 'sentry/utils/search/fzf';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useNavigate} from 'sentry/utils/useNavigate';
+
+import type {CMDKActionData} from './cmdk';
+import {CMDKCollection} from './cmdk';
+import type {CollectionTreeNode} from './collection';
+import {
+  useCommandPaletteDispatch,
+  useCommandPaletteState,
+} from './commandPaletteStateContext';
+import {getLocationHref, isExternalLocation} from './locationUtils';
 const MotionButton = motion.create(Button);
 const MotionIconSearch = motion.create(IconSearch);
 const MotionContainer = motion.create(Container);
@@ -68,11 +66,7 @@ function makeLeadingItemAnimation(theme: Theme, instant = false) {
     initial: {scale: 0.95, opacity: 0},
     animate: {scale: 1, opacity: 1},
     exit: {scale: 0.95, opacity: 0, transition: theme.motion.framer.exit.fast},
-    enter: {
-      scale: 1,
-      opacity: 1,
-      transition: theme.motion.framer.enter.slow,
-    },
+    enter: {scale: 1, opacity: 1, transition: theme.motion.framer.enter.slow},
   };
 }
 
@@ -113,7 +107,6 @@ export function CommandPalette({
     () => state.input.current?.closest('[role="document"]') as HTMLElement | null,
     // The dependency is the ref object while React Compiler infers the `.current`
     // read inside the callback. Refs are stable, so the memoization already holds.
-    // oxlint-disable-next-line react/preserve-manual-memoization
     [state.input]
   );
 
@@ -384,10 +377,7 @@ export function CommandPalette({
     disallowTypeAhead: true,
   });
   const collectionKeyDown = collectionProps.onKeyDown;
-  const mergedCollectionProps = {
-    ...collectionProps,
-    onKeyDown: undefined,
-  };
+  const mergedCollectionProps = {...collectionProps, onKeyDown: undefined};
   // oxlint-disable-next-line react/refs
   const inputCollectionProps = mergeProps(mergedCollectionProps, {
     onChange: (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -422,9 +412,7 @@ export function CommandPalette({
         e.preventDefault();
         dispatch({type: 'trigger action'});
         closeModal?.();
-        openSeerExplorer({
-          initialQuery: state.query.trim() || undefined,
-        });
+        openSeerExplorer({initialQuery: state.query.trim() || undefined});
         return;
       }
 
@@ -464,12 +452,7 @@ export function CommandPalette({
   }) as React.ComponentProps<typeof StyledInputGroupInput>;
 
   const onActionSelection = useCallback(
-    (
-      key: string | number | null,
-      options?: {
-        modifierKeys?: {shiftKey: boolean};
-      }
-    ) => {
+    (key: string | number | null, options?: {modifierKeys?: {shiftKey: boolean}}) => {
       const action = actions.find(a => a.key === key);
       if (!action) {
         return;
@@ -626,7 +609,7 @@ export function CommandPalette({
                 <StyledInputGroupInput
                   seerEnabled={seerExplorerEnabled}
                   autoFocus
-                  data-1p-ignore
+                  type="search"
                   ref={state.input}
                   value={state.query}
                   aria-label={t('Search commands')}
@@ -701,9 +684,7 @@ export function CommandPalette({
               mouseLeftResultsRef.current = true;
             }}
             onAction={key => {
-              onActionSelection(key, {
-                modifierKeys: modifierKeysRef.current,
-              });
+              onActionSelection(key, {modifierKeys: modifierKeysRef.current});
             }}
           />
         </ResultsList>
@@ -1076,19 +1057,12 @@ function makeSeeMoreAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatIt
     limit: node.limit,
     ref: node.ref,
     keywords: node.keywords,
-    display: {
-      details: node.display.details,
-      label: t('See all'),
-    },
+    display: {details: node.display.details, label: t('See all')},
   };
 }
 
 function makeSectionAction(node: CollectionTreeNode<CMDKActionData>): CMDKFlatItem {
-  return {
-    ...node,
-    key: `${node.key}:header`,
-    listItemType: 'section',
-  };
+  return {...node, key: `${node.key}:header`, listItemType: 'section'};
 }
 
 function getSourceAction(
@@ -1256,11 +1230,7 @@ function CommandPaletteNoResults() {
         <Container paddingTop="xl">
           <FeedbackButton
             variant="primary"
-            feedbackOptions={{
-              tags: {
-                'feedback.source': 'command_palette',
-              },
-            }}
+            feedbackOptions={{tags: {'feedback.source': 'command_palette'}}}
           />
         </Container>
       </Stack>

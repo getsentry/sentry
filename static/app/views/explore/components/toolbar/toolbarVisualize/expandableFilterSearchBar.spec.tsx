@@ -4,7 +4,8 @@ import {ArithmeticBuilder} from 'sentry/components/arithmeticBuilder';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {SavedSearchType} from 'sentry/types/group';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
-import {ExpandableFilterSearchBar} from 'sentry/views/explore/components/toolbar/toolbarVisualize/expandableFilterSearchBar';
+
+import {ExpandableFilterSearchBar} from './expandableFilterSearchBar';
 
 /**
  * Collapsing is deferred by two frames so it happens after the menu close and focus
@@ -21,9 +22,7 @@ async function flushAnimationFrames() {
 function SearchBarStub({
   children,
   ...inputProps
-}: {
-  children?: React.ReactNode;
-} & React.ComponentProps<'input'>) {
+}: {children?: React.ReactNode} & React.ComponentProps<'input'>) {
   return (
     <ExpandableFilterSearchBar>
       <div data-test-id="search-query-builder">
@@ -39,9 +38,7 @@ function SearchBarStub({
 function EquationBuilderStub({
   children,
   ...inputProps
-}: {
-  children?: React.ReactNode;
-} & React.ComponentProps<'input'>) {
+}: {children?: React.ReactNode} & React.ComponentProps<'input'>) {
   return (
     <ExpandableFilterSearchBar>
       <div data-test-id="arithmetic-builder">

@@ -11,11 +11,15 @@ import {
   useSetLogsAutoRefresh,
 } from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {LogsPageDataProvider} from 'sentry/views/explore/contexts/logs/logsPageData';
-import {LOGS_FIELDS_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
+import {
+  LOGS_ANCHOR_TIMESTAMP_KEY,
+  LOGS_FIELDS_KEY,
+} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {LOGS_SORT_BYS_KEY} from 'sentry/views/explore/contexts/logs/sortBys';
 import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
-import {AutorefreshToggle} from 'sentry/views/explore/logs/logsAutoRefresh';
-import {LogsQueryParamsProvider} from 'sentry/views/explore/logs/logsQueryParamsProvider';
+
+import {AutorefreshToggle} from './logsAutoRefresh';
+import {LogsQueryParamsProvider} from './logsQueryParamsProvider';
 
 function SetAutoRefreshButton({state}: {state: AutoRefreshState}) {
   const setAutoRefresh = useSetLogsAutoRefresh();
@@ -207,10 +211,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
         ...routerConfig,
         location: {
           ...routerConfig.location,
-          query: {
-            ...routerConfig.location.query,
-            mode: 'aggregate',
-          },
+          query: {...routerConfig.location.query, mode: 'aggregate'},
         },
       },
       organization,
@@ -371,10 +372,7 @@ describe('LogsAutoRefresh Integration Tests', () => {
       headers: {
         Link: '<http://localhost/api/0/organizations/test-org/events/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", <http://localhost/api/0/organizations/test-org/events/?cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"',
       },
-      body: {
-        data: baseFixtures.slice(0, 1),
-        meta: {fields: {}},
-      },
+      body: {data: baseFixtures.slice(0, 1), meta: {fields: {}}},
     });
     setupTotalPayloadMock();
 
@@ -496,5 +494,25 @@ describe('LogsAutoRefresh Integration Tests', () => {
       ).toHaveLength(2);
     });
     expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('paused');
+  });
+
+  it('drops the log anchor from the URL when auto-refresh is enabled', async () => {
+    const {router} = renderWithProviders(<SetAutoRefreshButton state="enabled" />, {
+      initialRouterConfig: {
+        ...routerConfig,
+        location: {
+          ...routerConfig.location,
+          query: {...routerConfig.location.query, [LOGS_ANCHOR_TIMESTAMP_KEY]: '5000'},
+        },
+      },
+      organization,
+    });
+
+    await userEvent.click(screen.getByRole('button', {name: 'set-auto-refresh-enabled'}));
+    await waitFor(() => {
+      expect(router.location.query[LOGS_AUTO_REFRESH_KEY]).toBe('enabled');
+    });
+
+    expect(router.location.query[LOGS_ANCHOR_TIMESTAMP_KEY]).toBeUndefined();
   });
 });

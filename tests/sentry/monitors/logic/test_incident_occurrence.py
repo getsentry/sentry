@@ -19,7 +19,6 @@ from sentry.monitors.logic.incident_occurrence import (
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvironment,
     MonitorIncident,
     MonitorStatus,
@@ -31,7 +30,7 @@ from sentry.testutils.cases import TestCase
 
 
 class IncidentOccurrenceTestCase(TestCase):
-    def build_occurrence_test_data(self):
+    def build_occurrence_test_data(self) -> None:
         self.monitor = Monitor.objects.create(
             name="test monitor",
             organization_id=self.organization.id,
@@ -49,7 +48,7 @@ class IncidentOccurrenceTestCase(TestCase):
             status=MonitorStatus.ERROR,
         )
 
-        self.successful_checkin = MonitorCheckIn.objects.create(
+        self.successful_checkin = self.create_monitor_checkin(
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.OK,
         )
@@ -57,13 +56,13 @@ class IncidentOccurrenceTestCase(TestCase):
         self.last_checkin = timezone.now()
         self.trace_id = uuid.uuid4()
 
-        self.timeout_checkin = MonitorCheckIn.objects.create(
+        self.timeout_checkin = self.create_monitor_checkin(
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.TIMEOUT,
             trace_id=uuid.uuid4(),
             date_added=self.last_checkin - timedelta(minutes=1),
         )
-        self.failed_checkin = MonitorCheckIn.objects.create(
+        self.failed_checkin = self.create_monitor_checkin(
             monitor_environment=self.monitor_environment,
             status=CheckInStatus.ERROR,
             trace_id=self.trace_id,
@@ -74,6 +73,7 @@ class IncidentOccurrenceTestCase(TestCase):
             monitor_environment=self.monitor_environment,
             starting_checkin=self.failed_checkin,
             starting_timestamp=self.last_checkin,
+            last_successful_timestamp=self.successful_checkin.date_added,
             grouphash="abcd",
         )
 
@@ -158,6 +158,42 @@ class IncidentOccurrenceTestCase(TestCase):
                 },
             },
         ) == dict(event)
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_last_successful_timestamp(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        stored = self.successful_checkin.date_added - timedelta(hours=1)
+        self.incident.update(last_successful_timestamp=stored)
+
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].name == "Last successful check-in"
+        assert evidence[2].value == stored.isoformat()
+
+    @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
+    def test_send_incident_occurrence_never_successful(
+        self, mock_produce_occurrence_to_kafka: mock.MagicMock
+    ) -> None:
+        self.build_occurrence_test_data()
+        self.incident.update(last_successful_timestamp=None)
+
+        send_incident_occurrence(
+            self.failed_checkin,
+            [self.timeout_checkin, self.failed_checkin],
+            self.incident,
+            self.last_checkin,
+        )
+
+        evidence = mock_produce_occurrence_to_kafka.call_args.kwargs["occurrence"].evidence_display
+        assert evidence[2].value == "Never"
 
     @mock.patch("sentry.monitors.logic.incident_occurrence.produce_occurrence_to_kafka")
     def test_send_incident_occurrence_detector(
@@ -250,15 +286,15 @@ class IncidentOccurrenceTestCase(TestCase):
             monitor=monitor,
             environment_id=self.environment.id,
         )
-        timeout_checkin = MonitorCheckIn.objects.create(
+        timeout_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.TIMEOUT,
         )
-        error_checkin = MonitorCheckIn.objects.create(
+        error_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
         )
-        miss_checkin = MonitorCheckIn.objects.create(
+        miss_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.MISSED,
         )
@@ -294,7 +330,7 @@ class IncidentOccurrenceTestCase(TestCase):
         last_checkin = timezone.now()
         trace_id = uuid.uuid4()
 
-        failed_checkin = MonitorCheckIn.objects.create(
+        failed_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             trace_id=trace_id,
@@ -363,16 +399,16 @@ class IncidentOccurrenceTestCase(TestCase):
     @mock.patch("sentry.monitors.logic.incident_occurrence.queue_incident_occurrence")
     def test_dispatch_incident_occurrence(
         self,
-        mock_queue_incident_occurrence,
-        mock_send_incident_occurrence,
-    ):
+        mock_queue_incident_occurrence: mock.MagicMock,
+        mock_send_incident_occurrence: mock.MagicMock,
+    ) -> None:
         monitor = self.create_monitor()
         monitor_environment = MonitorEnvironment.objects.create(
             monitor=monitor,
             environment_id=self.environment.id,
             status=MonitorStatus.ERROR,
         )
-        failed_checkin = MonitorCheckIn.objects.create(
+        failed_checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             status=CheckInStatus.ERROR,
             date_added=timezone.now(),

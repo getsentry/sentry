@@ -9,7 +9,8 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {ReplayDetailsProviders} from 'sentry/views/explore/replays/detail/body/replayDetailsProviders';
+
+import {ReplayDetailsProviders} from './replayDetailsProviders';
 
 jest.mock('@sentry/rrweb', () => ({
   ...jest.requireActual('@sentry/rrweb'),
@@ -106,11 +107,7 @@ describe('ReplayDetailsProviders', () => {
       await screen.findByText('children');
       expect(Replayer).toHaveBeenCalledTimes(1);
 
-      const nextReplay = makeReader({
-        attachments,
-        fetching,
-        replayId: 'other-replay-id',
-      });
+      const nextReplay = makeReader({attachments, fetching, replayId: 'other-replay-id'});
       rerender(
         <ReplayDetailsProviders replay={nextReplay} projectSlug={project.slug}>
           <TestPlayer />

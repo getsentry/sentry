@@ -5,9 +5,11 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as indicators from 'sentry/actionCreators/indicator';
+import {toast} from '@sentry/scraps/toast';
+
 import type {OrgAuthToken} from 'sentry/types/user';
-import OrganizationAuthTokensNewAuthToken from 'sentry/views/settings/organizationAuthTokens/newAuthToken';
+
+import OrganizationAuthTokensNewAuthToken from './newAuthToken';
 
 describe('OrganizationAuthTokensNewAuthToken', () => {
   const ENDPOINT = '/organizations/org-slug/org-auth-tokens/';
@@ -40,23 +42,19 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 
   it('handles API errors when creating token', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: 'Test API error occurred.',
-      },
+      body: {detail: 'Test API error occurred.'},
       statusCode: 400,
     });
 
@@ -67,29 +65,25 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'Failed to create a new organization token.'
     );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 
   it('handles missing_system_url_prefix API error when creating token', async () => {
-    jest.spyOn(indicators, 'addErrorMessage');
+    jest.spyOn(toast, 'error');
 
     render(<OrganizationAuthTokensNewAuthToken />);
 
     const mock = MockApiClient.addMockResponse({
       url: ENDPOINT,
       method: 'POST',
-      body: {
-        detail: {message: 'test message', code: 'missing_system_url_prefix'},
-      },
+      body: {detail: {message: 'test message', code: 'missing_system_url_prefix'}},
       statusCode: 400,
     });
 
@@ -100,15 +94,13 @@ describe('OrganizationAuthTokensNewAuthToken', () => {
 
     expect(screen.queryByLabelText('Generated token')).not.toBeInTheDocument();
 
-    expect(indicators.addErrorMessage).toHaveBeenCalledWith(
+    expect(toast.error).toHaveBeenCalledWith(
       'You have to configure `system.url-prefix` in your Sentry instance in order to generate tokens.'
     );
 
     expect(mock).toHaveBeenCalledWith(
       ENDPOINT,
-      expect.objectContaining({
-        data: {name: 'My Token'},
-      })
+      expect.objectContaining({data: {name: 'My Token'}})
     );
   });
 });

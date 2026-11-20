@@ -4,7 +4,6 @@ import type {Placement} from '@floating-ui/react-dom';
 import type {HTMLMotionProps, MotionProps, MotionStyle} from 'framer-motion';
 import {motion, useIsPresent} from 'framer-motion';
 
-import {defined} from '@sentry/scraps/defined';
 import type {OverlayArrowProps} from '@sentry/scraps/overlayArrow';
 import {OverlayArrow} from '@sentry/scraps/overlayArrow';
 import {PanelProvider} from '@sentry/scraps/panelProvider';
@@ -39,19 +38,8 @@ export interface OverlayProps
 const overlayAnimation: MotionProps = {
   transition: {duration: 0.2},
   initial: {opacity: 0},
-  animate: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      type: 'spring',
-      duration: 0.2,
-    },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: {type: 'spring', delay: 0.1},
-  },
+  animate: {opacity: 1, scale: 1, transition: {type: 'spring', duration: 0.2}},
+  exit: {opacity: 0, scale: 0.95, transition: {type: 'spring', delay: 0.1}},
 };
 
 /**
@@ -104,10 +92,7 @@ export function Overlay({
     !isTestEnv && animated
       ? {
           ...overlayAnimation,
-          style: {
-            ...style,
-            ...computeOriginFromArrow(placement, originPoint),
-          },
+          style: {...style, ...computeOriginFromArrow(placement, originPoint)},
         }
       : {style};
 
@@ -119,15 +104,13 @@ export function Overlay({
       ref={ref}
       placement={placement}
     >
-      {defined(arrowProps) && <OverlayArrow {...arrowProps} />}
+      {arrowProps != null && <OverlayArrow {...arrowProps} />}
       <PanelProvider>{children}</PanelProvider>
     </OverlayInner>
   );
 }
 
-const OverlayInner = styled(motion.div)<{
-  placement?: OverlayProps['placement'];
-}>`
+const OverlayInner = styled(motion.div)<{placement?: OverlayProps['placement']}>`
   position: relative;
   background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};

@@ -55,6 +55,7 @@ class BindRecordsTestCase(TestCase):
 
     @property
     def group_mapping(self) -> dict[int, Group]:
+        assert self.event.group is not None
         return {self.event.group.id: self.event.group}
 
     @property

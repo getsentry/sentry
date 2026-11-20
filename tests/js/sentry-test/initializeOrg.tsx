@@ -77,10 +77,5 @@ export function initializeOrg<RouterParams = {orgId: string; projectId: string}>
     location: router.location,
   };
 
-  return {
-    organization,
-    project: project!,
-    projects,
-    routerProps,
-  };
+  return {organization, project: project!, projects, routerProps};
 }

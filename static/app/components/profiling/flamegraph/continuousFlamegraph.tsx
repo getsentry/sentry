@@ -10,17 +10,8 @@ import {
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
-import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {FlamegraphContextMenu} from 'sentry/components/profiling/flamegraph/flamegraphContextMenu';
-import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
-import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
-import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
-import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import type {FlamegraphViewSelectMenuProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
-import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
-import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
-import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
+import {toast} from '@sentry/scraps/toast';
+
 import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils/defined';
 import {
@@ -74,11 +65,21 @@ import {SpanFields} from 'sentry/views/insights/types';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
+import {FlamegraphOptionsMenu} from './flamegraphToolbar/flamegraphOptionsMenu';
+import {FlamegraphSearch} from './flamegraphToolbar/flamegraphSearch';
+import type {FlamegraphThreadSelectorProps} from './flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphThreadSelector} from './flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphToolbar} from './flamegraphToolbar/flamegraphToolbar';
+import type {FlamegraphViewSelectMenuProps} from './flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphViewSelectMenu} from './flamegraphToolbar/flamegraphViewSelectMenu';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 import {FlamegraphChart} from './flamegraphChart';
+import {FlamegraphContextMenu} from './flamegraphContextMenu';
 import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
+import {FlamegraphZoomView} from './flamegraphZoomView';
+import {FlamegraphZoomViewMinimap} from './flamegraphZoomViewMinimap';
 
 const PROFILE_TYPE = 'continuous profile' as const;
 
@@ -155,10 +156,7 @@ function convertContinuousProfileMeasurementsToUIFrames(
     return undefined;
   }
 
-  const measurements: UIFrameMeasurements = {
-    unit: measurement.unit,
-    values: [],
-  };
+  const measurements: UIFrameMeasurements = {unit: measurement.unit, values: []};
 
   for (let i = 0; i < measurement.values.length; i++) {
     const value = measurement.values[i]!;
@@ -166,10 +164,7 @@ function convertContinuousProfileMeasurementsToUIFrames(
 
     const elapsedNanoseconds = next.elapsed_since_start_ns - value.elapsed_since_start_ns;
 
-    measurements.values.push({
-      elapsed: elapsedNanoseconds / 1e9,
-      value: value.value,
-    });
+    measurements.values.push({elapsed: elapsedNanoseconds / 1e9, value: value.value});
   }
 
   return measurements;
@@ -761,9 +756,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -806,9 +799,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -851,9 +842,7 @@ export function ContinuousFlamegraph(): ReactElement {
       // the total range is rendered and perfectly aligned from top to bottom.
       newView.setConfigView(
         flamegraphView.configView.withHeight(newView.configView.height),
-        {
-          width: {min: 1},
-        }
+        {width: {min: 1}}
       );
 
       return newView;
@@ -1271,20 +1260,12 @@ export function ContinuousFlamegraph(): ReactElement {
 
     const renderer = initializeFlamegraphRenderer(
       [FlamegraphRendererWebGL, FlamegraphRenderer2D],
-      [
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
-      ]
+      [flamegraphCanvasRef, flamegraph, flamegraphTheme, {colorCoding, draw_border: true}]
     );
 
     if (renderer === null) {
       Sentry.captureException('Failed to initialize a flamegraph renderer');
-      addErrorMessage('Failed to initialize renderer');
+      toast.error('Failed to initialize renderer');
       return null;
     }
 
@@ -1391,28 +1372,18 @@ export function ContinuousFlamegraph(): ReactElement {
 
           // if we find the frame on the active thread, it always takes priority
           if (newScore > 0 && currentProfile.threadId === threadID) {
-            return {
-              frame,
-              threadId: currentProfile.threadId,
-              isActiveThread: true,
-            };
+            return {frame, threadId: currentProfile.threadId, isActiveThread: true};
           }
 
           return newScore <= oldScore
             ? prevCandidate
-            : {
-                frame,
-                threadId: currentProfile.threadId,
-              };
+            : {frame, threadId: currentProfile.threadId};
         },
         null
       );
 
       if (defined(candidate)) {
-        dispatch({
-          type: 'set thread id',
-          payload: candidate.threadId,
-        });
+        dispatch({type: 'set thread id', payload: candidate.threadId});
         return;
       }
     }
@@ -1420,10 +1391,7 @@ export function ContinuousFlamegraph(): ReactElement {
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, highlightFrames, flamegraphProfiles.threadId, dispatch, sorting]);
 
@@ -1635,9 +1603,5 @@ function formatProfileSeriesMeasurement({
       elapsed: offset,
     });
   }
-  return {
-    name,
-    unit: unit ?? measurement?.unit,
-    values,
-  };
+  return {name, unit: unit ?? measurement?.unit, values};
 }

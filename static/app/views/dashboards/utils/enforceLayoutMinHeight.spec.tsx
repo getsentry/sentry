@@ -1,7 +1,8 @@
 import {WidgetFixture} from 'sentry-fixture/widget';
 
 import {DisplayType} from 'sentry/views/dashboards/types';
-import {enforceLayoutMinHeight} from 'sentry/views/dashboards/utils/enforceLayoutMinHeight';
+
+import {enforceLayoutMinHeight} from './enforceLayoutMinHeight';
 
 describe('enforceLayoutMinHeight', () => {
   it('expands undersized widgets and compacts widgets affected directly and indirectly', () => {
@@ -13,10 +14,7 @@ describe('enforceLayoutMinHeight', () => {
     // y=3: I I . . . .
     // E=expanded, S=same-columns, A=separate-columns, P=partial-overlap, I=indirectly-below
     const widgets = [
-      WidgetFixture({
-        id: 'expanded',
-        layout: {x: 0, y: 0, w: 2, h: 1, minH: 1},
-      }),
+      WidgetFixture({id: 'expanded', layout: {x: 0, y: 0, w: 2, h: 1, minH: 1}}),
       // Directly below the expanded widget in the same columns.
       WidgetFixture({
         id: 'same-columns',
@@ -78,14 +76,8 @@ describe('enforceLayoutMinHeight', () => {
     // y=3: I I . . . .
     // E=expanded-left, B=expanded-right, S=same-columns, A=separate-columns, P=partial-overlap, I=indirectly-below
     const widgets = [
-      WidgetFixture({
-        id: 'expanded-left',
-        layout: {x: 0, y: 0, w: 2, h: 1, minH: 1},
-      }),
-      WidgetFixture({
-        id: 'expanded-right',
-        layout: {x: 2, y: 1, w: 2, h: 1, minH: 1},
-      }),
+      WidgetFixture({id: 'expanded-left', layout: {x: 0, y: 0, w: 2, h: 1, minH: 1}}),
+      WidgetFixture({id: 'expanded-right', layout: {x: 2, y: 1, w: 2, h: 1, minH: 1}}),
       // Directly below the expanded-left widget in the same columns.
       WidgetFixture({
         id: 'same-columns',
@@ -152,14 +144,8 @@ describe('enforceLayoutMinHeight', () => {
     // y=4: I I . . . .
     // E=expanded-left, B=expanded-right, S=same-columns, A=separate-columns, P=partial-overlap, I=indirectly-below
     const widgets = [
-      WidgetFixture({
-        id: 'expanded-left',
-        layout: {x: 0, y: 0, w: 2, h: 1, minH: 1},
-      }),
-      WidgetFixture({
-        id: 'expanded-right',
-        layout: {x: 1, y: 2, w: 2, h: 1, minH: 1},
-      }),
+      WidgetFixture({id: 'expanded-left', layout: {x: 0, y: 0, w: 2, h: 1, minH: 1}}),
+      WidgetFixture({id: 'expanded-right', layout: {x: 1, y: 2, w: 2, h: 1, minH: 1}}),
       // Directly below the expanded-left widget in the same columns, shifts one down after expanded-left adjustment
       WidgetFixture({
         id: 'same-columns',

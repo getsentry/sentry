@@ -77,11 +77,7 @@ export function TransactionSearchQueryBuilder({
   const filterKeySections = useMemo(
     () => [
       ...ALL_INSIGHTS_FILTER_KEY_SECTIONS,
-      {
-        value: 'custom_fields',
-        label: 'Custom Tags',
-        children: Object.keys(tags),
-      },
+      {value: 'custom_fields', label: 'Custom Tags', children: Object.keys(tags)},
     ],
     [tags]
   );

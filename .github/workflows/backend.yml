@@ -6,7 +6,12 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened, labeled]
+  merge_group:
+    types: [checks_requested]
   workflow_dispatch:
+
+permissions:
+  contents: read
 
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
@@ -23,7 +28,7 @@ env:
 jobs:
   files-changed:
     name: detect what files changed
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     permissions:
       contents: read
@@ -31,6 +36,7 @@ jobs:
     # Map a step output to a job output
     outputs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
+      api_client: ${{ steps.changes.outputs.api_client }}
       backend: ${{ steps.changes.outputs.backend_all_without_acceptance }}
       backend_dependencies: ${{ steps.changes.outputs.backend_dependencies }}
       backend_api_urls: ${{ steps.changes.outputs.backend_api_urls }}
@@ -41,6 +47,8 @@ jobs:
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -53,28 +61,114 @@ jobs:
     if: needs.files-changed.outputs.api_docs == 'true'
     needs: files-changed
     name: api docs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    env:
+      DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
-
-      - uses: ./.github/actions/setup-node-pnpm
+        with:
+          persist-credentials: false
 
       - name: Setup sentry python env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
-          mode: default
+          skip-devservices: 'true'
+
+      # Only the pytest step needs devservices (~60s to pull and get healthy in
+      # default mode), so bring them up while node is set up and the specs build.
+      - name: Start devservices in the background
+        env:
+          ENABLE_AUTORUN_MIGRATION_SEARCH_ISSUES: '1'
+          DEVSERVICES_WORKDIR: .
+          DEVSERVICES_LOCKFILE: uv.lock
+          DEVSERVICES_MODE: default
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          sentry init
+          python3 .github/actions/setup-sentry/devservices-bg.py start
+
+      - uses: $/.github/actions/setup-node-pnpm
+
+      - name: Build and validate API docs
+        run: make validate-api-docs
+
+      - name: Build the RPC method schema
+        run: make build-rpc-schema
+
+      - name: Wait for devservices
+        run: python3 .github/actions/setup-sentry/devservices-bg.py wait
 
       - name: Run API docs tests
-        run: |
-          make test-api-docs
+        run: python3 -b -m pytest tests/apidocs --reuse-db
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
+
+  # Builds, typechecks and tests the @sentry/api client against this commit's
+  # API spec, so a spec change that breaks the client cannot merge. It builds
+  # the spec itself instead of waiting for api-docs, which would put both jobs
+  # end to end on the critical path.
+  api-client:
+    if: needs.files-changed.outputs.api_client == 'true'
+    needs: files-changed
+    name: api client
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    timeout-minutes: 20
+    env:
+      SENTRY_API_TARBALL: ${{ github.workspace }}/.artifacts/sentry-api.tgz
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Setup sentry python env
+        uses: $/.github/actions/setup-sentry
+        with:
+          skip-devservices: 'true'
+
+      - uses: $/.github/actions/setup-node-pnpm
+
+      - name: Configure sentry
+        run: sentry init
+
+      - name: Build the API spec
+        run: make build-api-docs build-rpc-schema
+
+      - name: Build
+        run: pnpm --filter @sentry/api run build
+
+      - name: Typecheck
+        run: pnpm --filter @sentry/api run typecheck
+
+      - name: Lint
+        run: pnpm --filter @sentry/api run lint:js
+
+      - name: Test
+        run: pnpm --filter @sentry/api run test:vitest
+
+      # Install the packed package into clean projects on the oldest supported
+      # Node.js (engines.node) and on Bun, and use it there.
+      - name: Pack
+        run: pnpm --filter @sentry/api pack --out "$SENTRY_API_TARBALL"
+
+      - name: Check for exports removed since the latest release
+        run: node static/packages/api/test/consumers/exports.mjs "$SENTRY_API_TARBALL"
+
+      - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
+        with:
+          node-version: '22'
+
+      - name: Check the packed package on Node.js 22
+        run: node static/packages/api/test/consumers/check.mjs "$SENTRY_API_TARBALL"
+
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version: '1.3.14'
+
+      - name: Check the packed package on Bun
+        run: bun static/packages/api/test/consumers/check.mjs "$SENTRY_API_TARBALL"
 
   # Selective testing - only on PRs, determine which tests to run based on coverage data.
   # This job is skipped on push-to-master where the full suite runs instead.
@@ -86,7 +180,7 @@ jobs:
       github.event.pull_request.head.repo.full_name == github.repository
     needs: files-changed
     name: select tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     permissions:
       contents: read
@@ -97,6 +191,8 @@ jobs:
       test-item-count: ${{ steps.compute-tests.outputs.test-item-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Get changed files
         id: changed
@@ -120,21 +216,7 @@ jobs:
 
       - name: Download coverage database
         id: download-coverage
-        run: |
-          mkdir -p .artifacts/coverage
-
-          GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
-          echo "Fetching coverage DB from: $GCS_PATH"
-          gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
-
-          if ! gcloud storage cp "$GCS_PATH" \
-            .artifacts/coverage/.coverage.combined 2>/dev/null; then
-            echo "Warning: Failed to download coverage from GCS, will run full test suite"
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-          else
-            ls -lh .artifacts/coverage/.coverage.combined
-            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
-          fi
+        run: .github/workflows/scripts/download-coverage-db.sh
 
       - name: Compute selected tests
         id: compute-tests
@@ -169,7 +251,7 @@ jobs:
       needs.files-changed.outputs.backend == 'true'
     needs: [files-changed, select-tests]
     name: calculate test shards
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 5
     outputs:
       shard-count: ${{ steps.static-shards.outputs.shard-count || steps.calculate-shards.outputs.shard-count }}
@@ -186,11 +268,21 @@ jobs:
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
+        with:
+          persist-credentials: false
+
+      - name: Download selected tests artifact
+        if: needs.select-tests.outputs.has-selected-tests == 'true'
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        with:
+          name: selected-tests-${{ github.run_id }}
+          path: .artifacts/
 
       - name: Calculate test shards
         id: calculate-shards
         if: needs.select-tests.outputs.has-selected-tests == 'true'
         env:
+          SELECTED_TESTS_FILE: .artifacts/selected-tests.txt
           SELECTED_TEST_ITEM_COUNT: ${{ needs.select-tests.outputs.test-item-count }}
         run: |
           python3 .github/workflows/scripts/calculate-backend-test-shards.py
@@ -203,7 +295,8 @@ jobs:
       needs.files-changed.outputs.backend == 'true' && needs.calculate-shards.outputs.shard-count != '0'
     needs: [files-changed, select-tests, calculate-shards]
     name: backend test
-    runs-on: ubuntu-24.04
+    # Arm runners on pull requests only; master stays on amd64 for now.
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-26.04' }}
     timeout-minutes: 60
     permissions:
       contents: read
@@ -224,10 +317,15 @@ jobs:
       TEST_GROUP_STRATEGY: roundrobin
       PYTHONHASHSEED: '0'
       XDIST_PER_WORKER_SNUBA: '1'
-      XDIST_WORKERS: ${{ github.event_name == 'pull_request' && '2' || '3' }}
+      XDIST_WORKERS: '4'
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
+
+      - name: Start resource monitor
+        run: python3 .github/workflows/scripts/monitor-resources.py --start
 
       # Overlaps the per-worker ClickHouse bootstrap with devservices up.
       - name: Start per-worker Snuba bootstrap in the background
@@ -237,7 +335,7 @@ jobs:
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --start
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: backend-ci
@@ -247,42 +345,38 @@ jobs:
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
       # eliminates TCP loopback overhead and saves ~36s per shard.
       - name: Reconnect postgres via Unix socket
-        run: |
-          mkdir -p /tmp/pg-sock
-          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
-          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
-          docker run -d --name postgres-postgres-1 \
-            --network devservices --label orchestrator=devservices \
-            -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
-            -v /tmp/pg-sock:/var/run/postgresql \
-            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
-            "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1
-          # docker run -d returns 0 even if postgres dies right after — bound the
-          # wait so a crashing postgres surfaces fast instead of hitting the job
-          # timeout silently.
-          for _ in $(seq 1 120); do
-            [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] && break
-            sleep 0.5
-          done
-          if [ ! -S "/tmp/pg-sock/.s.PGSQL.5432" ]; then
-            echo "::error::postgres unix socket did not appear after 60s"
-            docker logs postgres-postgres-1 2>&1 | tail -30 || true
-            exit 1
-          fi
-          echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
+        run: .github/workflows/scripts/reconnect-postgres-socket.sh
 
       - name: Download odiff binary
-        run: |
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 package/raw_binaries/odiff-linux-x64
-          sudo install -m 755 odiff-linux-x64 /usr/local/bin/odiff
-          rm odiff-linux-x64
+        run: .github/workflows/scripts/install-odiff.sh
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
         run: python3 .github/workflows/scripts/bootstrap-snuba.py --wait
+
+      # sentry-shared-kafka's healthcheck runs `kafka-topics --list` every 5s, which starts
+      # a JVM each time: about 0.25 of the runner's 4 cores during tests. Everything that
+      # waits on Kafka's health is done by now, so answer that exact command with a TCP
+      # probe instead (kafka-topics-healthcheck.sh).
+      - name: Make the Kafka healthcheck cheap
+        continue-on-error: true
+        run: |
+          real=$(docker exec kafka-kafka-1 sh -c 'command -v kafka-topics')
+          docker exec -u 0 kafka-kafka-1 mv "$real" "$real.real"
+          docker cp .github/workflows/scripts/kafka-topics-healthcheck.sh "kafka-kafka-1:$real"
+          time docker exec kafka-kafka-1 kafka-topics --bootstrap-server 127.0.0.1:9092 --list
+
+      # To profile pytest and its xdist workers (adds ~0.4 cores of overhead), uncomment
+      # this step, run the test command through
+      # .github/workflows/scripts/profile-backend-tests.sh, and add .artifacts/py-spy.txt
+      # to the resource usage upload.
+      # - name: Install py-spy
+      #   run: |
+      #     uv tool install py-spy==0.4.1
+      #     echo "PY_SPY=$(uv tool dir --bin)/py-spy" >> "$GITHUB_ENV"
+      #     echo "PY_SPY_OUTPUT=$PWD/.artifacts/py-spy.txt" >> "$GITHUB_ENV"
+      #     # py-spy attaches to the running pytest controller, which isn't its child.
+      #     sudo sysctl -w kernel.yama.ptrace_scope=0
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -291,22 +385,26 @@ jobs:
           name: selected-tests-${{ github.run_id }}
           path: .artifacts/
 
+      - name: Attribute resource usage to the tests from here
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --phase tests
+
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-        run: |
-          if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout -k 30 1200 make test-python-ci || {
-              rc=$?
-              if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-              fi
-              exit "$rc"
-            }
-          else
-            make test-python-ci
-          fi
+        run: .github/workflows/scripts/run-backend-tests.sh
+
+      - name: Stop resource monitor
+        if: always()
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/monitor-resources.py --stop
+
+      # bootstrap-snuba.py turns off ClickHouse's query log for the per-worker
+      # databases, so they should log no queries.
+      - name: ClickHouse queries logged
+        if: ${{ !cancelled() && env.XDIST_PER_WORKER_SNUBA == '1' }}
+        continue-on-error: true
+        run: python3 .github/workflows/scripts/bootstrap-snuba.py --query-log
 
       # pytest-selected.py balances full-run shards with these. See
       # .github/workflows/scripts/backend-test-durations.py to refresh them.
@@ -327,6 +425,17 @@ jobs:
           path: .artifacts/test-durations.json
           retention-days: 30
 
+      - name: Upload resource usage
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: backend-resource-usage-${{ github.run_id }}-${{ matrix.instance }}
+          path: |
+            .artifacts/resource-usage.jsonl
+            .artifacts/resource-usage-summary.json
+          retention-days: 30
+
       - name: Report failures
         if: ${{ !cancelled() && github.event_name == 'pull_request' }}
         continue-on-error: true
@@ -341,17 +450,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-              echo "--- snuba-gw${i} logs ---"
-              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
-            done
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   backend-migration-tests:
     if: >-
@@ -363,7 +462,7 @@ jobs:
       )
     needs: files-changed
     name: backend migration tests
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 30
     permissions:
       contents: read
@@ -371,13 +470,17 @@ jobs:
       pull-requests: write
     env:
       MIGRATION_DB_DIR: .artifacts/migration-test-db
+      # v1 dumps hold rows that tests left in seer_workflowtriggerbinding.
+      MIGRATION_DB_CACHE_PREFIX: migration-test-db-v2-
       SAVE_MIGRATION_DB: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -389,19 +492,20 @@ jobs:
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ env.MIGRATION_DB_DIR }}
-          key: migration-test-db-v1-${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
-          restore-keys: migration-test-db-v1-
+          key: ${{ env.MIGRATION_DB_CACHE_PREFIX }}${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
+          restore-keys: ${{ env.MIGRATION_DB_CACHE_PREFIX }}
 
       - name: Load migrated test databases
         run: .github/workflows/scripts/migration-test-db.py restore "$MIGRATION_DB_DIR"
 
-      - name: run tests
-        run: |
-          make test-migrations-ci
-
+      # Dump before the tests run, so the cache never holds rows that tests leave behind.
       - name: Dump migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
         run: .github/workflows/scripts/migration-test-db.py save "$MIGRATION_DB_DIR"
+
+      - name: run tests
+        run: |
+          make test-migrations-ci
 
       - name: Save migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
@@ -424,22 +528,21 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: cli test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -454,16 +557,13 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
     needs: files-changed
     name: requirements check
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 3
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -474,10 +574,12 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
 
       - uses: getsentry/action-setup-venv@5a80476d175edf56cb205b08bc58986fa99d1725 # v3.2.0
         with:
@@ -493,7 +595,7 @@ jobs:
           fi
 
       - name: apply any requirements changes
-        if: steps.token.outcome == 'success' && github.ref != 'refs/heads/master' && always()
+        if: steps.token.outcome == 'success' && github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -503,7 +605,7 @@ jobs:
     if: needs.files-changed.outputs.backend_api_urls == 'true'
     needs: files-changed
     name: api url typescript generation
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 10
     steps:
       - uses: getsentry/action-github-app-token@5c1e90706fe007857338ac1bfbd7a4177db2f789 # v4.0.0
@@ -513,9 +615,11 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: backend-ci
 
@@ -524,7 +628,7 @@ jobs:
           python3 -m tools.api_urls_to_typescript
 
       - name: Apply any file changes
-        if: github.ref != 'refs/heads/master' && always()
+        if: github.event_name == 'pull_request' && always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
           github-token: ${{ steps.token.outputs.token }}
@@ -534,14 +638,16 @@ jobs:
     if: needs.files-changed.outputs.migration_lockfile == 'true'
     needs: files-changed
     name: check migration
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
 
     steps:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
@@ -555,16 +661,13 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: monolith-dbs test
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     permissions:
       contents: read
@@ -573,15 +676,20 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         id: setup
         with:
           mode: migrations
+          early-devservices: 'true'
 
+      # The backup tests are mostly waiting on postgres, so 4 workers cut ~4m to ~1.5m.
       - name: Run test
         run: |
+          export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n 4 --dist=load"
           make test-monolith-dbs
 
       - name: Report failures
@@ -598,23 +706,22 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
     needs: files-changed
     name: backend typing
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
-          version: '0.13.5'
+          version: '0.13.7'
           # we just cache the venv-dir directly in action-setup-venv
           enable-cache: false
 
@@ -623,10 +730,11 @@ jobs:
           cache-dependency-path: uv.lock
           install-cmd: uv sync --frozen --active
 
+      - name: install sentry
+        run: uv pip install --no-deps -e .
+
       - name: setup sentry (lite)
-        run: |
-          python3 -m tools.fast_editable --path .
-          sentry init
+        run: sentry init
 
       - run: PYTHONWARNINGS=error::RuntimeWarning mypy
         id: run
@@ -667,7 +775,7 @@ jobs:
           steps.token.outcome == 'success' &&
           steps.run.outcome == 'success' &&
           steps.regen-blocklist.outcome == 'success' &&
-          github.ref != 'refs/heads/master' &&
+          github.event_name == 'pull_request' &&
           always()
         uses: getsentry/action-github-commit@31f6706ca1a7b9ad6d22c1b07bf3a92eabb05632 # v2.0.0
         with:
@@ -680,6 +788,7 @@ jobs:
   backend-required-check:
     needs:
       [
+        api-client,
         api-docs,
         backend-test,
         backend-migration-tests,
@@ -694,7 +803,8 @@ jobs:
     name: Backend
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
-    runs-on: ubuntu-24.04
+    runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    permissions: {}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

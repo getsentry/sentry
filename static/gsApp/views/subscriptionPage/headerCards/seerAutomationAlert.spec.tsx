@@ -65,10 +65,7 @@ describe('SeerAutomationAlert', () => {
 
   it('calls dismiss when close button is clicked', async () => {
     const dismiss = jest.fn();
-    mockUseDismissAlert.mockImplementation(() => ({
-      dismiss,
-      isDismissed: false,
-    }));
+    mockUseDismissAlert.mockImplementation(() => ({dismiss, isDismissed: false}));
 
     render(<SeerAutomationAlert organization={defaultOrganization} />, {
       initialRouterConfig: baseRouterConfig,
@@ -112,10 +109,7 @@ describe('SeerAutomationAlert', () => {
       {
         initialRouterConfig: {
           ...baseRouterConfig,
-          location: {
-            ...baseRouterConfig.location,
-            query: {},
-          },
+          location: {...baseRouterConfig.location, query: {}},
         },
       }
     );

@@ -3,9 +3,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
-import {useRole} from 'sentry/components/acl/useRole';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
+
+import {useRole} from './useRole';
 
 describe('useRole', () => {
   const organization = OrganizationFixture({
@@ -32,10 +33,7 @@ describe('useRole', () => {
   });
 
   it('has an insufficient role', () => {
-    const org = OrganizationFixture({
-      ...organization,
-      orgRole: 'member',
-    });
+    const org = OrganizationFixture({...organization, orgRole: 'member'});
     OrganizationStore.onUpdate(org, {replace: true});
     const {result} = renderHookWithProviders(() => useRole({role: 'attachmentsRole'}), {
       organization: org,

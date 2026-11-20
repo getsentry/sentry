@@ -10,10 +10,12 @@ import {
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
 
-import {ModalStore} from 'sentry/stores/modalStore';
+import * as modalActions from '@sentry/scraps/modal';
+
 import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 import AccountSecurity from 'sentry/views/settings/account/accountSecurity';
-import AccountSecurityWrapper from 'sentry/views/settings/account/accountSecurity/accountSecurityWrapper';
+
+import AccountSecurityWrapper from './accountSecurityWrapper';
 
 const ENDPOINT = '/users/me/authenticators/';
 const ORG_ENDPOINT = '/organizations/';
@@ -22,10 +24,7 @@ const AUTH_ENDPOINT = '/auth/';
 
 describe('AccountSecurity', () => {
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: OrganizationsFixture(),
-    });
+    MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: AccountEmailsFixture(),
@@ -35,25 +34,15 @@ describe('AccountSecurity', () => {
   function renderComponent() {
     return render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
   }
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ENDPOINT, body: []});
 
     renderComponent();
 
@@ -82,12 +71,7 @@ describe('AccountSecurity', () => {
   it('can delete enrolled authenticator', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [
-        AuthenticatorsFixture().Totp({
-          authId: '15',
-          configureButton: 'Info',
-        }),
-      ],
+      body: [AuthenticatorsFixture().Totp({authId: '15', configureButton: 'Info'})],
     });
 
     const deleteMock = MockApiClient.addMockResponse({
@@ -133,10 +117,7 @@ describe('AccountSecurity', () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
       body: [
-        AuthenticatorsFixture().Totp({
-          authId: '15',
-          configureButton: 'Info',
-        }),
+        AuthenticatorsFixture().Totp({authId: '15', configureButton: 'Info'}),
         AuthenticatorsFixture().U2f(),
       ],
     });
@@ -168,12 +149,7 @@ describe('AccountSecurity', () => {
   it('can not remove last 2fa method when org requires 2fa', async () => {
     MockApiClient.addMockResponse({
       url: ENDPOINT,
-      body: [
-        AuthenticatorsFixture().Totp({
-          authId: '15',
-          configureButton: 'Info',
-        }),
-      ],
+      body: [AuthenticatorsFixture().Totp({authId: '15', configureButton: 'Info'})],
     });
     MockApiClient.addMockResponse({
       url: ORG_ENDPOINT,
@@ -212,24 +188,40 @@ describe('AccountSecurity', () => {
     });
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
-      body: [
-        {
-          email: 'primary@example.com',
-          isPrimary: true,
-          isVerified: false,
-        },
-      ],
+      body: [{email: 'primary@example.com', isPrimary: true, isVerified: false}],
     });
 
     renderComponent();
 
-    const openEmailModalFunc = jest.spyOn(ModalStore, 'openModal');
+    const openEmailModalFunc = jest.spyOn(modalActions, 'openModal');
 
     expect(
       await screen.findByRole('status', {name: 'Authentication Method Inactive'})
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Add'}));
+
+    await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
+  });
+
+  it('cannot enroll when only a secondary email is verified', async () => {
+    MockApiClient.addMockResponse({
+      url: ENDPOINT,
+      body: [AuthenticatorsFixture().Totp({isEnrolled: false})],
+    });
+    MockApiClient.addMockResponse({
+      url: ACCOUNT_EMAILS_ENDPOINT,
+      body: [
+        {email: 'primary@example.com', isPrimary: true, isVerified: false},
+        {email: 'secondary@example.com', isPrimary: false, isVerified: true},
+      ],
+    });
+
+    renderComponent();
+
+    const openEmailModalFunc = jest.spyOn(modalActions, 'openModal');
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Add'}));
 
     await waitFor(() => expect(openEmailModalFunc).toHaveBeenCalled());
   });
@@ -314,10 +306,7 @@ describe('AccountSecurity', () => {
     });
 
     const url = '/users/me/password/';
-    const mock = MockApiClient.addMockResponse({
-      url,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url, method: 'PUT'});
 
     renderComponent();
 
@@ -348,10 +337,7 @@ describe('AccountSecurity', () => {
       body: [AuthenticatorsFixture().Recovery({isEnrolled: false})],
     });
     const url = '/users/me/password/';
-    const mock = MockApiClient.addMockResponse({
-      url,
-      method: 'PUT',
-    });
+    const mock = MockApiClient.addMockResponse({url, method: 'PUT'});
 
     renderComponent();
 

@@ -8,7 +8,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
-import UpgradeOrTrialButton from 'getsentry/components/upgradeOrTrialButton';
+import {UpgradeOrTrialButton} from 'getsentry/components/upgradeOrTrialButton';
 import {withSubscription} from 'getsentry/components/withSubscription';
 import type {Subscription} from 'getsentry/types';
 
@@ -50,12 +50,7 @@ function DateRangeQueryLimitFooter({description, source, subscription}: Props) {
         {!canTrial && (
           <Button
             size={BUTTON_SIZE}
-            onClick={() =>
-              openUpsellModal({
-                organization,
-                source,
-              })
-            }
+            onClick={() => openUpsellModal({organization, source})}
           >
             {t('Learn More')}
           </Button>

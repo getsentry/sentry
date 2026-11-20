@@ -7,6 +7,7 @@ from rest_framework.response import Response
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import (
     OrganizationEndpoint,
@@ -36,13 +37,17 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
     """
     In the UI, we have a prompt to derive code mappings from the stacktrace filename.
     This endpoint is used to get the possible code mappings for it.
+
+    It only serves the UI, so it accepts browser sessions and refuses API tokens.
     """
 
     owner = ApiOwner.ISSUES
+    max_acceptable_duration = 10.0
     publish_status = {
-        "GET": ApiPublishStatus.EXPERIMENTAL,
-        "POST": ApiPublishStatus.EXPERIMENTAL,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
+    authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
     def get(self, request: Request, organization: Organization) -> Response:

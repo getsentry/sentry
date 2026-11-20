@@ -2,15 +2,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import {useLogsTotalPayload} from 'sentry/views/explore/logs/useLogsTotalPayload';
+import {useLogsTotalPayload} from './useLogsTotalPayload';
 
 describe('useLogsTotalPayload', () => {
   it('returns undefined when disabled', () => {
     const {result} = renderHookWithProviders(
       () => useLogsTotalPayload({enabled: false}),
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(result.current).toBeUndefined();

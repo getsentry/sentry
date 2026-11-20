@@ -1,6 +1,5 @@
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {getWebVitalScoresFromTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/getWebVitalScoresFromTableDataRow';
 import {Referrer} from 'sentry/views/insights/browser/webVitals/referrers';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
@@ -16,6 +15,8 @@ import {
   type SpanProperty,
   type SubregionCode,
 } from 'sentry/views/insights/types';
+
+import {getWebVitalScoresFromTableDataRow} from './getWebVitalScoresFromTableDataRow';
 
 type Props = {
   browserTypes?: BrowserType[];
@@ -95,10 +96,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   );
 
   const tableData: Array<
-    (typeof data)[0] & {
-      'avg(measurements.score.total)': number;
-    } & Opportunity &
-      Score
+    (typeof data)[0] & {'avg(measurements.score.total)': number} & Opportunity & Score
   > = data.map(row => {
     // Map back performance score key so we don't have to handle both keys in the UI
     const finalRow = {
@@ -126,9 +124,5 @@ export const useTransactionWebVitalsScoresQuery = ({
     };
   });
 
-  return {
-    data: tableData,
-    isPending,
-    ...rest,
-  };
+  return {data: tableData, isPending, ...rest};
 };

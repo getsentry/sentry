@@ -11,8 +11,9 @@ import sentry_sdk
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 from django.core.cache import cache
-from django.http import HttpHeaders
-from django.urls import resolve
+from django.http import HttpHeaders, HttpRequest
+from django.urls import Resolver404, resolve
+from django.utils import timezone
 from django.utils.crypto import constant_time_compare
 from django.utils.encoding import force_str
 from jwt import MissingRequiredClaimError, PyJWTError
@@ -48,7 +49,9 @@ from sentry.seer import agent_token
 from sentry.sentry_apps.models.sentry_app import SentryApp
 from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.util import GrantTypes
-from sentry.service_accounts.auth import authenticate_service_account
+from sentry.service_accounts.auth import authenticate_service_account, resolve_service_account
+from sentry.service_accounts.models import ServiceAccountToken, ServiceAccountTokenReplica
+from sentry.service_accounts.tokens import SERVICE_ACCOUNT_TOKEN_PREFIX
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.superuser import from_viewer_context_superuser
 from sentry.users.models.user import User
@@ -99,7 +102,7 @@ class AuthenticationSiloLimit(SiloLimit):
         )
 
 
-def is_internal_relay(request, public_key):
+def is_internal_relay(request: HttpRequest, public_key: str) -> bool:
     """
     Checks if the relay is trusted (authorized for all project configs)
     """
@@ -128,7 +131,7 @@ def is_internal_relay(request, public_key):
     return False
 
 
-def is_static_relay(request):
+def is_static_relay(request: HttpRequest) -> bool:
     """
     Checks if the request comes from a statically configured relay
 
@@ -136,7 +139,7 @@ def is_static_relay(request):
     """
     relay_id = get_header_relay_id(request)
     static_relays = settings.SENTRY_RELAY_STATIC_AUTH
-    relay_info = static_relays.get(relay_id)
+    relay_info = static_relays.get(relay_id) if relay_id is not None else None
 
     if relay_info is not None:
         metrics.incr(
@@ -179,7 +182,7 @@ def relay_from_id(request: Request, relay_id: str) -> tuple[Relay | None, bool]:
             return None, False  # no Relay found
 
 
-def update_token_access_record(auth: object):
+def update_token_access_record(auth: object) -> None:
     """
     Perform updates to token models for security purposes (i.e. 'date_last_used')
     """
@@ -196,7 +199,7 @@ class QuietBasicAuthentication(BasicAuthentication):
         user: int | User | RpcUser | None | AnonymousUser,
         request_auth: Any,
         entity_id_tag: str | None = None,
-        **tags,
+        **tags: Any,
     ) -> tuple[RpcUser | AnonymousUser, AuthenticatedToken | None]:
         if isinstance(user, int):
             user = user_service.get_user(user_id=user)
@@ -231,7 +234,7 @@ class StandardAuthentication(QuietBasicAuthentication):
     def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
         raise NotImplementedError
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         auth = get_authorization_header(request).split()
 
         if not self.accepts_auth(auth):
@@ -249,7 +252,7 @@ class StandardAuthentication(QuietBasicAuthentication):
 
 @AuthenticationSiloLimit(SiloMode.CELL)
 class RelayAuthentication(BasicAuthentication):
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[AnonymousUser, None]:
         relay_id = get_header_relay_id(request)
         relay_sig = get_header_relay_signature(request)
         if not relay_id:
@@ -259,7 +262,7 @@ class RelayAuthentication(BasicAuthentication):
         return self.authenticate_credentials(relay_id, relay_sig, request)
 
     def authenticate_credentials(
-        self, relay_id: str, relay_sig: str, request=None
+        self, relay_id: str, relay_sig: str, request: Request | None = None
     ) -> tuple[AnonymousUser, None]:
         sentry_sdk.get_isolation_scope().set_tag("relay_id", relay_id)
         sentry_sdk.get_isolation_scope().set_attribute("relay_id", relay_id)
@@ -294,7 +297,9 @@ class ApiKeyAuthentication(QuietBasicAuthentication):
     def accepts_auth(self, auth: list[bytes]) -> bool:
         return bool(auth) and auth[0].lower() == self.token_name
 
-    def authenticate_credentials(self, userid, password, request=None):
+    def authenticate_credentials(
+        self, userid: str, password: str | None, request: HttpRequest | None = None
+    ) -> Any:
         # We don't use request, but it needs to be passed through to DRF 3.7+.
         if password:
             return None
@@ -325,7 +330,7 @@ class SessionNoAuthTokenAuthentication(SessionAuthentication):
     Rejects any token-based authentication (Bearer, Basic, etc.).
     """
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         # Check if there's any authorization header - if so, reject it
         auth = get_authorization_header(request)
         if auth:
@@ -346,7 +351,7 @@ class ClientIdSecretAuthentication(QuietBasicAuthentication):
     For example, the request to exchange a Grant Code for an Api Token.
     """
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         if not request.data:
             raise AuthenticationFailed("Invalid request")
 
@@ -435,7 +440,7 @@ class JWTClientSecretAuthentication(QuietBasicAuthentication):
         jti_digest = hashlib.sha256(jti.encode()).hexdigest()
         return f"jwt_client_secret:{sentry_app_id}:{jti_digest}"
 
-    def authenticate(self, request: Request):
+    def authenticate(self, request: Request) -> tuple[Any, Any] | None:
         if not request.data:
             raise AuthenticationFailed("Invalid request")
 
@@ -560,7 +565,7 @@ class UserAuthTokenAuthentication(StandardAuthentication):
             return True
 
         token_str = force_str(auth[1])
-        if token_str.startswith(SENTRY_ORG_AUTH_TOKEN_PREFIX):
+        if token_str.startswith((SENTRY_ORG_AUTH_TOKEN_PREFIX, SERVICE_ACCOUNT_TOKEN_PREFIX)):
             return False
 
         return not agent_token.is_agent_token_string(token_str)
@@ -780,6 +785,81 @@ class OrgAuthTokenAuthentication(StandardAuthentication):
             api_token_type=self.token_name,
             api_token_is_org_token=True,
         )
+
+
+@AuthenticationSiloLimit(SiloMode.CONTROL, SiloMode.CELL)
+class ServiceAccountTokenAuthentication(StandardAuthentication):
+    """
+    Authenticates a service account token. The request acts as the token's service account,
+    never as the person who created the token, with the token's scopes capped by the
+    account's current scopes.
+    """
+
+    token_name = b"bearer"
+
+    def accepts_auth(self, auth: list[bytes]) -> bool:
+        if not super().accepts_auth(auth) or len(auth) != 2:
+            return False
+        return force_str(auth[1]).startswith(SERVICE_ACCOUNT_TOKEN_PREFIX)
+
+    def authenticate_token(self, request: Request, token_str: str) -> tuple[Any, Any]:
+        token_hashed = hash_token(token_str)
+
+        token: ServiceAccountToken | ServiceAccountTokenReplica
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            try:
+                token = ServiceAccountToken.objects.get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountToken.DoesNotExist:
+                raise AuthenticationFailed("Invalid service account token")
+            token_id = token.id
+            service_account_id = token.service_account_id
+        else:
+            try:
+                token = ServiceAccountTokenReplica.objects.select_related("service_account").get(
+                    token_hashed=token_hashed, date_deactivated__isnull=True
+                )
+            except ServiceAccountTokenReplica.DoesNotExist:
+                raise AuthenticationFailed("Invalid service account token")
+            token_id = token.token_id
+            service_account_id = token.service_account.service_account_id
+
+        if token.date_expires is not None and token.date_expires <= timezone.now():
+            raise AuthenticationFailed("Token expired")
+
+        resolved = resolve_service_account(service_account_id, token.organization_id)
+        if resolved is None:
+            raise AuthenticationFailed("Invalid service account token")
+        principal, account_auth = resolved
+
+        # Access already denies other orgs, but failing here gives a clear 401 and covers
+        # endpoints that never build access.
+        self._check_organization_url(request, token.organization_id)
+
+        scope = sentry_sdk.get_isolation_scope()
+        scope.set_tag("api_token_type", self.token_name)
+        scope.set_attribute("api_token_type", self.token_name.decode())
+        scope.set_tag("service_account_token_id", token_id)
+        scope.set_attribute("service_account_token_id", token_id)
+
+        # Token scopes are fixed at creation, so narrowing the account narrows the token,
+        # but widening the account doesn't widen it.
+        scopes = sorted(set(token.scope_list) & set(account_auth.scopes))
+        return principal, account_auth.copy(update={"scopes": scopes})
+
+    def _check_organization_url(self, request: Request, organization_id: int) -> None:
+        try:
+            target = resolve(request.path_info).kwargs.get("organization_id_or_slug")
+        except Resolver404:
+            return
+        if target is None or str(target) == str(organization_id):
+            return
+        org_context = organization_service.get_organization_by_id(
+            id=organization_id, include_projects=False, include_teams=False
+        )
+        if org_context is None or org_context.organization.slug != target:
+            raise AuthenticationFailed("Unauthorized organization access.")
 
 
 @AuthenticationSiloLimit(SiloMode.CELL)

@@ -1,9 +1,11 @@
 from inspect import signature
+from typing import Any
 from unittest.mock import ANY, MagicMock, patch
 
 import orjson
 import pytest
 from scm.helpers import iter_all_pages
+from scm.types import BuildConclusion, CheckSuiteAction
 
 from sentry.scm.types import CheckSuiteEvent
 from sentry.seer.agent.client_models import MemoryBlock, Message, RepoPRState, SeerRunState
@@ -40,8 +42,10 @@ from sentry.seer.autofix.pr_iteration.listeners.check_suite import (
     pr_iteration_from_check_suite_listener,
     process_check_suite_event,
 )
+from sentry.seer.autofix.pr_iteration.nudge import NudgeKind
 from sentry.seer.autofix.pr_iteration.queue import QueuedAutofixFeedback
 from sentry.seer.models import SeerUnavailableError
+from sentry.seer.models.run import SeerRunPrIteration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.viewer_context import Actor, ActorType, ViewerContext, get_viewer_context
@@ -50,11 +54,12 @@ CHECK_PATH = "sentry.seer.autofix.pr_iteration.listeners.check_suite"
 CHECK_SUITE_SOURCE_PATH = "sentry.seer.autofix.pr_iteration.feedback_sources.check_suite"
 CHECK_SUITES_PATH = "sentry.seer.autofix.pr_iteration.check_suites"
 PR_STATE_PATH = "sentry.seer.autofix.pr_iteration.pr_state"
+NUDGE_PATH = "sentry.seer.autofix.pr_iteration.nudge"
 
 OWN_REPO_ID = 123
 
 
-def own_repo_pr(pr_id: int) -> dict:
+def own_repo_pr(pr_id: int) -> dict[str, Any]:
     """A ``pull_requests`` entry as GitHub sends it: based in the suite's own repo.
 
     GitHub always carries ``base.repo``, so a fixture without it is not a payload
@@ -70,10 +75,10 @@ INSPECT_PATH = f"{CHECK_SUITES_PATH}.inspect_check_suite_head"
 
 
 def check_suite_event(
-    raw: dict | None = None,
+    raw: dict[str, Any] | None = None,
     *,
-    action="completed",
-    conclusion="failure",
+    action: CheckSuiteAction = "completed",
+    conclusion: BuildConclusion = "failure",
     installation_id: int | None = None,
 ) -> CheckSuiteEvent:
     return CheckSuiteEvent(
@@ -103,11 +108,15 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         self.create_seer_run(organization=self.organization, seer_run_state_id=67890)
 
     def _event(
-        self, raw: dict | None = None, *, action="completed", conclusion="failure"
+        self,
+        raw: dict[str, Any] | None = None,
+        *,
+        action: CheckSuiteAction = "completed",
+        conclusion: BuildConclusion = "failure",
     ) -> CheckSuiteEvent:
         return check_suite_event(raw, action=action, conclusion=conclusion)
 
-    def _raw(self, *, pull_requests: list[dict] | None = None) -> dict:
+    def _raw(self, *, pull_requests: list[dict[str, Any]] | None = None) -> dict[str, Any]:
         return {
             "check_suite": {
                 "id": 1,
@@ -489,6 +498,160 @@ class PrIterationFromCheckSuiteListenerTest(TestCase):
         mock_external_head.assert_called_once()
         mock_enqueue.assert_not_called()
         mock_trigger_consume.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_not_queued_when_opt_in_and_the_project_has_pr_iteration_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_not_called()
+        mock_trigger_consume.assert_not_called()
+        # Nothing will run this suite, so no iteration row waits for it.
+        assert not SeerRunPrIteration.objects.filter(seer_run__seer_run_state_id=67890).exists()
+
+    @patch(f"{NUDGE_PATH}.queue_not_requested_nudge")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_nudges_when_opt_in_skips_a_failing_suite(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_nudge: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        state = self._agent_state()
+        state.repo_pr_states["owner/repo"].pr_number = 7
+        mock_get_state.return_value = state
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+        raw["repository"]["full_name"] = "owner/repo"
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_not_called()
+        mock_nudge.assert_called_once_with(
+            run_id=67890,
+            organization_id=self.organization.id,
+            repository_id=2,
+            pr_number=7,
+            kind=NudgeKind.CI,
+        )
+
+    @patch(f"{NUDGE_PATH}.queue_not_requested_nudge")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_no_nudge_without_the_flag_when_the_project_has_pr_iteration_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_nudge: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        state = self._agent_state()
+        state.repo_pr_states["owner/repo"].pr_number = 7
+        mock_get_state.return_value = state
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+        raw["repository"]["full_name"] = "owner/repo"
+
+        process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_nudge.assert_not_called()
+
+    @patch(f"{NUDGE_PATH}.queue_not_requested_nudge")
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_no_nudge_when_the_suite_is_queued(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+        mock_nudge: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        state = self._agent_state()
+        state.repo_pr_states["owner/repo"].pr_number = 7
+        mock_get_state.return_value = state
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+        raw["repository"]["full_name"] = "owner/repo"
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_nudge.assert_not_called()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_queued_when_opt_in_and_the_project_has_pr_iteration_on(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        self.project.update_option("sentry:seer_pr_iteration", True)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        with self.feature("organizations:token-billed-seer-enabled"):
+            process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
+
+    @patch(TRIGGER_CONSUME_PATH)
+    @patch(f"{CHECK_PATH}.enqueue_autofix_feedback")
+    @patch(f"{CHECK_SUITES_PATH}.get_agent_state_from_pr_id")
+    @patch(f"{CHECK_SUITES_PATH}.resolve_check_suite_repositories")
+    def test_still_queued_without_the_flag_when_the_project_has_pr_iteration_off(
+        self,
+        mock_resolve: MagicMock,
+        mock_get_state: MagicMock,
+        mock_enqueue: MagicMock,
+        mock_trigger_consume: MagicMock,
+    ) -> None:
+        # Without the flag the trigger and the drain hold it back, as before.
+        self.project.update_option("sentry:seer_pr_iteration", False)
+        mock_resolve.return_value = [MagicMock(organization_id=self.organization.id, id=2)]
+        mock_get_state.return_value = self._agent_state()
+        raw = self._raw(pull_requests=[own_repo_pr(555)])
+
+        process_check_suite_event(self._event(raw))
+
+        mock_enqueue.assert_called_once()
+        mock_trigger_consume.assert_called_once()
 
     @patch(f"{CHECK_SUITES_PATH}.sentry_sdk.capture_exception")
     @patch(TRIGGER_CONSUME_PATH)
@@ -1008,7 +1171,7 @@ class ShouldDeferPrIterationTest(TestCase):
             organization=self.organization, seer_run_state_id=67890, user_id=self.user.id
         )
 
-    def _resolved(self, *, blocks: list | None = None) -> ResolvedGreenCheckSuite:
+    def _resolved(self, *, blocks: list[MemoryBlock] | None = None) -> ResolvedGreenCheckSuite:
         run_state = SeerRunState(
             run_id=67890,
             blocks=blocks or [],
@@ -1104,7 +1267,7 @@ class ShouldDeferPrIterationTest(TestCase):
 
 class ResolveCheckSuiteAutofixRunTest(TestCase):
     def _event(
-        self, *, pull_requests: list[dict], repository_id: int | None = None
+        self, *, pull_requests: list[dict[str, Any]], repository_id: int | None = None
     ) -> GithubCheckSuiteEvent:
         return GithubCheckSuiteEvent.parse_obj(
             {
@@ -1456,7 +1619,7 @@ class CheckSuiteHardCapTest(TestCase):
 class SweepCheckRunsCostTest(TestCase):
     """The sweep's GitHub cost is the thing we budget for, so pin it down."""
 
-    def _page(self, runs: list[dict]) -> dict:
+    def _page(self, runs: list[dict[str, Any]]) -> dict[str, Any]:
         return {
             "data": runs,
             "type": "github",
@@ -1464,7 +1627,9 @@ class SweepCheckRunsCostTest(TestCase):
             "meta": {"next_cursor": "2"},
         }
 
-    def _run(self, *, status: str = "completed", conclusion: str | None = "success") -> dict:
+    def _run(
+        self, *, status: str = "completed", conclusion: str | None = "success"
+    ) -> dict[str, Any]:
         return {"id": 1, "name": "test", "status": status, "conclusion": conclusion}
 
     @patch(f"{CHECK_SUITES_PATH}.ListCheckRunsForRefProtocol", object)
@@ -1544,7 +1709,7 @@ class SweepCheckRunsCostTest(TestCase):
         )
 
 
-def _live_pr_result(head_sha: str = "abc") -> dict:
+def _live_pr_result(head_sha: str = "abc") -> dict[str, Any]:
     return {
         "data": {"state": "open", "merged": False, "head": {"sha": head_sha}},
         "raw": {"headers": None, "data": {}},

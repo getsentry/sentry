@@ -1,10 +1,12 @@
 import logging
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, cast
 
+from django.conf import settings
 from django.core.exceptions import PermissionDenied
 from requests.exceptions import RequestException
 
-from sentry import http, options
+from sentry import http
 from sentry.constants import ObjectStatus
 from sentry.identity.oauth2 import OAuth2Provider
 from sentry.integrations.types import (
@@ -18,7 +20,7 @@ from sentry.organizations.services.organization import organization_service
 logger = logging.getLogger(__name__)
 
 
-def get_user_info(access_token):
+def get_user_info(access_token: str) -> dict[str, object]:
     from sentry.integrations.github.constants import GITHUB_API_ACCEPT_HEADER
 
     with http.build_session() as session:
@@ -27,10 +29,11 @@ def get_user_info(access_token):
             headers={"Accept": GITHUB_API_ACCEPT_HEADER, "Authorization": f"token {access_token}"},
         )
         resp.raise_for_status()
-    return resp.json()
+    data = resp.json()
+    return data
 
 
-def get_verified_primary_email(emails: list[dict[str, Any]]) -> str | None:
+def get_verified_primary_email(emails: list[Any]) -> str | None:
     """Return the verified primary email from GitHub email records, else None."""
     verified_primary = [
         e["email"]
@@ -80,15 +83,17 @@ class GitHubIdentityProvider(OAuth2Provider):
 
     oauth_scopes = ()
 
-    def get_oauth_client_id(self):
-        return options.get("github-app.client-id")
+    def get_oauth_client_id(self) -> str:
+        client_id = settings.SENTRY_GITHUB_APP_CLIENT_ID
+        return client_id
 
-    def get_oauth_client_secret(self):
-        return options.get("github-app.client-secret")
+    def get_oauth_client_secret(self) -> str:
+        client_secret = settings.SENTRY_GITHUB_APP_CLIENT_SECRET
+        return client_secret
 
-    def build_identity(self, data):
-        data = data["data"]
-        access_token = data.get("access_token")
+    def build_identity(self, data: Mapping[str, object]) -> Mapping[str, object]:
+        identity_data = cast(Mapping[str, object], data["data"])
+        access_token = cast(str | None, identity_data.get("access_token"))
         if not access_token:
             raise PermissionDenied()
         user = get_user_info(access_token)
@@ -102,7 +107,7 @@ class GitHubIdentityProvider(OAuth2Provider):
             "name": user["name"],
             "company": user["company"],
             "scopes": [],  # GitHub apps do not have user scopes
-            "data": self.get_oauth_data(data),
+            "data": self.get_oauth_data(identity_data),
         }
 
     def post_link_identity(self, identity: dict[str, Any], user_id: int) -> None:

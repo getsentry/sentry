@@ -3,22 +3,15 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tag} from '@sentry/scraps/badge';
+import {getDuration} from '@sentry/scraps/duration';
 import {InfoText} from '@sentry/scraps/info';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 import {Text} from '@sentry/scraps/text';
 
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
-import {getDuration} from 'sentry/utils/duration/getDuration';
-import {
-  calculateRelativeTiming,
-  getCompressedTimeBounds,
-  getNodeTimeBounds,
-  type TraceBounds,
-} from 'sentry/views/insights/pages/agents/components/aiSpanList';
-import {AiSpanStatusIcon} from 'sentry/views/insights/pages/agents/components/aiSpanStatusIcon';
-import {LLMCosts} from 'sentry/views/insights/pages/agents/components/llmCosts';
 import {
   type ColorByOpType,
   getToolInputPreview,
@@ -47,6 +40,16 @@ import {GenAiOperationType} from 'sentry/views/insights/pages/agents/utils/query
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
+
+import {
+  calculateRelativeTiming,
+  getCompressedTimeBounds,
+  getNodeTimeBounds,
+  type TraceBounds,
+} from './aiSpanList';
+import {AiSpanStatusIcon} from './aiSpanStatusIcon';
+import {LLMCosts} from './llmCosts';
+import {ScrubbedText} from './scrubbedText';
 
 interface SpanPresentation {
   color: string;
@@ -89,7 +92,6 @@ export function AiSpanTimeline({
         }
         visited.add(parent);
         if (getIsAiAgentNode(parent)) {
-          // oxlint-disable-next-line react/todo
           indent++;
         }
         return false;
@@ -232,13 +234,14 @@ const TimelineRow = memo(function TimelineRowImpl({
               <Flex flex="1" minWidth="0">
                 {secondary && (
                   <InfoText
-                    title={secondary}
+                    title={stripAnnotations(secondary)}
                     mode="overflowOnly"
                     maxWidth={500}
                     size="sm"
                     variant="muted"
                   >
-                    {secondary}
+                    {/* Tool input previews mark scrubbed values in the conversation view. */}
+                    <ScrubbedText>{secondary}</ScrubbedText>
                   </InfoText>
                 )}
               </Flex>
@@ -266,7 +269,7 @@ const TimelineRow = memo(function TimelineRowImpl({
                   align="right"
                   tabular
                 >
-                  {getDuration(duration, 2, true, true)}
+                  {getDuration(duration, {precision: 2, style: 'narrow'})}
                 </Text>
               </Flex>
             </Flex>
@@ -384,47 +387,22 @@ function getSpanPresentation(
         getStringAttr(node, SpanFields.GEN_AI_REQUEST_MODEL) ||
         getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL) ||
         '';
-      return {
-        color,
-        isTool: false,
-        title: name || op,
-        secondary: model,
-      };
+      return {color, isTool: false, title: name || op, secondary: model};
     }
     case GenAiOperationType.AI_CLIENT: {
       const responseModel = getStringAttr(node, SpanFields.GEN_AI_RESPONSE_MODEL);
       const title = responseModel || description || op;
-      return {
-        color,
-        isTool: false,
-        title,
-        secondary: title === op ? '' : op,
-      };
+      return {color, isTool: false, title, secondary: title === op ? '' : op};
     }
     case GenAiOperationType.TOOL: {
       const toolName = getStringAttr(node, SpanFields.GEN_AI_TOOL_NAME);
       const inputPreview = getToolInputPreview(node);
-      return {
-        color,
-        isTool: true,
-        title: toolName || op,
-        secondary: inputPreview || '',
-      };
+      return {color, isTool: true, title: toolName || op, secondary: inputPreview || ''};
     }
     case GenAiOperationType.HANDOFF:
-      return {
-        color,
-        isTool: false,
-        title: op,
-        secondary: description || '',
-      };
+      return {color, isTool: false, title: op, secondary: description || ''};
     default:
-      return {
-        color,
-        isTool: false,
-        title: op,
-        secondary: description || '',
-      };
+      return {color, isTool: false, title: op, secondary: description || ''};
   }
 }
 
@@ -438,9 +416,7 @@ const EllipsisTag = styled(Tag)`
   }
 `;
 
-const RowContainer = styled('button')<{
-  indent: number;
-}>`
+const RowContainer = styled('button')<{indent: number}>`
   width: 100%;
   border: none;
   font: inherit;

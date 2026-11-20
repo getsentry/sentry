@@ -2277,20 +2277,13 @@ const FIELD_DEFINITION_OVERRIDES: Record<string, Partial<FieldDefinition>> = {
   [FieldKey.PROFILER_ID]: {allowWildcard: false},
   [FieldKey.DEVICE_CLASS]: {allowWildcard: false},
   [FieldKey.RELEASE]: {allowWildcard: false},
-  [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
-    kind: FieldKind.MEASUREMENT,
-  },
+  [SpanHttpField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {kind: FieldKind.MEASUREMENT},
   [SpanHttpField.HTTP_RESPONSE_CONTENT_LENGTH]: {kind: FieldKind.MEASUREMENT},
   [SpanHttpField.HTTP_RESPONSE_TRANSFER_SIZE]: {kind: FieldKind.MEASUREMENT},
   [SpanFields.GEN_AI_COST_INPUT_TOKENS]: {valueType: FieldValueType.CURRENCY},
-  [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: {
-    valueType: FieldValueType.CURRENCY,
-  },
+  [SpanFields.GEN_AI_COST_OUTPUT_TOKENS]: {valueType: FieldValueType.CURRENCY},
   [SpanFields.GEN_AI_COST_TOTAL_TOKENS]: {valueType: FieldValueType.CURRENCY},
-  [OurLogKnownFieldKey.REPLAY_ID]: {
-    kind: FieldKind.TAG,
-    allowWildcard: false,
-  },
+  [OurLogKnownFieldKey.REPLAY_ID]: {kind: FieldKind.TAG, allowWildcard: false},
 };
 
 const EVENT_FIELD_DEFINITIONS = applyAttributeSearchFieldOverrides(
@@ -3364,6 +3357,10 @@ function _getFieldFromMappings(
 
       if (kind === FieldKind.BOOLEAN) {
         return {kind: FieldKind.FIELD, valueType: FieldValueType.BOOLEAN};
+      }
+
+      if (kind === FieldKind.ARRAY) {
+        return {kind: FieldKind.ARRAY, valueType: FieldValueType.STRING};
       }
 
       return null;

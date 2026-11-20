@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.organization_member import OrganizationMemberWithTeamsSerializer
 from sentry.core.endpoints.organization_member_index import OrganizationMemberRequestSerializer
 from sentry.core.endpoints.organization_member_utils import (
+    TeamAssignment,
     get_allowed_org_roles,
     save_team_assignments,
 )
@@ -22,7 +23,12 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.users.models.user import User
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.audit import get_api_key_for_audit_log
+
+
+class _AuthenticatedRequest(Request):
+    user: User
 
 
 class ApproveInviteRequestSerializer(serializers.Serializer[dict[str, Any]]):
@@ -60,7 +66,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def _get_member(
         self,
-        request_user: User,
+        request_user: User | RpcUser,
         organization: Organization,
         member_id: int | Literal["me"],
         invite_status: InviteStatus | None = None,
@@ -87,7 +93,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def put(
         self,
-        request: Request,
+        request: _AuthenticatedRequest,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:
@@ -129,6 +135,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
         result = serializer.validated_data
+        team_assignments: tuple[TeamAssignment, ...] | None = result.get("teamRoles")
 
         if result.get("orgRole"):
             member.role = result["orgRole"]
@@ -140,8 +147,8 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
         # Do not set team-roles when inviting members
         if "teamRoles" in result or "teams" in result:
             teams = (
-                [team for team, _ in result.get("teamRoles")]
-                if "teamRoles" in result and result["teamRoles"]
+                [assignment.team for assignment in team_assignments]
+                if team_assignments
                 else result.get("teams")
             )
             save_team_assignments(member, teams)
@@ -180,7 +187,7 @@ class OrganizationInviteRequestDetailsEndpoint(OrganizationMemberEndpoint):
 
     def delete(
         self,
-        request: Request,
+        request: _AuthenticatedRequest,
         organization: Organization,
         member: OrganizationMember,
     ) -> Response:

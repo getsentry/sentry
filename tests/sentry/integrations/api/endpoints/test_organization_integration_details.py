@@ -1,3 +1,4 @@
+from time import time
 from unittest.mock import MagicMock, patch
 
 import responses
@@ -16,11 +17,8 @@ from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import before_now
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.users.models.identity import Identity
-
-EXPLICIT_MAPPING_REMOVALS_FEATURE = "organizations:jira-explicit-mapping-removals"
 
 
 class OrganizationIntegrationDetailsTest(APITestCase):
@@ -107,7 +105,6 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             data={"provider": self.integration.provider, "name": "config"},
         ).exists()
 
-    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_config_records_project_mapping_changes(self) -> None:
         jira = self.create_provider_integration(provider="jira", name="Example Jira")
         jira.add_organization(self.organization, self.user)
@@ -141,7 +138,6 @@ class OrganizationIntegrationDetailsPostTest(OrganizationIntegrationDetailsTest)
             "(0 added, 0 updated, 2 removed)"
         )
 
-    @with_feature(EXPLICIT_MAPPING_REMOVALS_FEATURE)
     def test_update_config_omitting_project_mappings_records_nothing(self) -> None:
         """
         A payload that omits stored mappings changes nothing, so there is nothing to record --
@@ -242,6 +238,41 @@ class OrganizationIntegrationDetailsDeleteTest(OrganizationIntegrationDetailsTes
         assert ScheduledDeletion.objects.filter(
             model_name="OrganizationIntegration", object_id=org_integration.id
         )
+
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_repeat_delete_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 1
+
+        org_integration = OrganizationIntegration.objects.get(
+            integration=self.integration, organization_id=self.organization.id
+        )
+        assert org_integration.status == ObjectStatus.PENDING_DELETION
+        assert (
+            ScheduledDeletion.objects.filter(
+                model_name="OrganizationIntegration", object_id=org_integration.id
+            ).count()
+            == 1
+        )
+        assert (
+            AuditLogEntry.objects.filter(
+                event=audit_log.get_event_id("INTEGRATION_REMOVE"),
+                organization_id=self.organization.id,
+            ).count()
+            == 1
+        )
+
+    @patch.object(GitlabIntegration, "uninstall")
+    def test_delete_in_progress_skips_uninstall(self, mock_uninstall: MagicMock) -> None:
+        OrganizationIntegration.objects.filter(
+            integration=self.integration, organization_id=self.organization.id
+        ).update(status=ObjectStatus.DELETION_IN_PROGRESS)
+
+        self.get_success_response(self.organization.slug, self.integration.id)
+        assert mock_uninstall.call_count == 0
 
 
 @control_silo_test
@@ -370,14 +401,98 @@ class IssueOrganizationIntegrationDetailsGetTest(APITestCase):
         assert data["configData"] is None
         assert data["externalId"] == self.integration.external_id
         assert data["organizationId"] == self.organization.id
+        organization_integration = self.organization_integration
+        assert organization_integration is not None
         assert (
-            data["organizationIntegrationStatus"]
-            == self.organization_integration.get_status_display()
+            data["organizationIntegrationStatus"] == organization_integration.get_status_display()
         )
-        assert data["gracePeriodEnd"] == self.organization_integration.grace_period_end
+        assert data["gracePeriodEnd"] == organization_integration.grace_period_end
 
         jira_request_urls = [call.request.url for call in responses.calls]
         assert len(jira_request_urls) == 2
         assert "/rest/api/2/project/search" in jira_request_urls[0]
         assert "/rest/api/2/issue/createmeta" in jira_request_urls[1]
         assert all("/rest/api/2/statuses/search" not in url for url in jira_request_urls)
+
+    @responses.activate
+    def test_create_issue_config_jira_unreachable_returns_detail(self) -> None:
+        responses.add(
+            responses.GET, "https://example.atlassian.net/rest/api/2/project/search", status=503
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+
+        assert response.data["detail"].startswith("Could not fetch project list from Jira.")
+
+    def test_create_issue_config_unsupported_integration(self) -> None:
+        integration = self.create_integration(
+            organization=self.organization,
+            external_id="opsgenie:1",
+            provider="opsgenie",
+            name="Opsgenie",
+            metadata={"base_url": "https://api.opsgenie.com/", "domain_name": "test-app"},
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+
+        assert response.data == {"detail": "This integration doesn't support creating issues."}
+
+
+@control_silo_test
+class AzureDevOpsBrokenAuthGetTest(APITestCase):
+    endpoint = "sentry-api-0-organization-integration-details"
+    projects_url = "https://fabrikam-fiber-inc.visualstudio.com/_apis/projects"
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.login_as(self.user)
+        self.integration = self.create_provider_integration(
+            provider="vsts",
+            external_id="vsts_external_id",
+            name="fabrikam-fiber-inc",
+            metadata={"domain_name": "https://fabrikam-fiber-inc.visualstudio.com/"},
+        )
+        self.identity = Identity.objects.create(
+            idp=self.create_identity_provider(type="vsts"),
+            user=self.user,
+            external_id="vsts",
+            data={"access_token": "123456789", "expires": time() + 1234567},
+        )
+        self.integration.add_organization(self.organization, self.user, self.identity.id)
+
+    def assert_create_returns_generic_error(self) -> None:
+        response = self.get_error_response(
+            self.organization.slug,
+            self.integration.id,
+            qs_params={"action": "create"},
+            status_code=400,
+        )
+        assert response.data["detail"].startswith("Couldn't load the issue form")
+
+    @responses.activate
+    def test_create_issue_config_unauthorized(self) -> None:
+        responses.add(responses.GET, self.projects_url, status=401, json={})
+        self.assert_create_returns_generic_error()
+
+    def test_create_issue_config_missing_identity(self) -> None:
+        self.identity.delete()
+        self.assert_create_returns_generic_error()
+
+    def test_settings_with_missing_identity_returns_base_fields(self) -> None:
+        self.identity.delete()
+
+        response = self.get_success_response(self.organization.slug, self.integration.id)
+
+        assert response.data["id"] == str(self.integration.id)
+        assert response.data["externalId"] == "vsts_external_id"
+        assert "configOrganization" not in response.data

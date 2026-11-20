@@ -3,7 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Alert} from '@sentry/scraps/alert';
-import {CodeBlock} from '@sentry/scraps/code';
+import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {Heading, Prose} from '@sentry/scraps/text';
@@ -18,9 +18,10 @@ import {
   getTraceNodeAttribute,
 } from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getAiInstrumentationDocsLink} from 'sentry/views/insights/pages/agents/utils/docsLinks';
-import {hasAIInputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiInput';
-import {hasAIOutputAttribute} from 'sentry/views/performance/traceDetails/traceDrawer/details/span/eapSections/aiOutput';
 import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
+
+import {hasAIInputAttribute} from './aiInput';
+import {hasAIOutputAttribute} from './aiOutput';
 
 type SupportedSDKLanguage = 'javascript' | 'python';
 
@@ -63,10 +64,7 @@ function getInstrumentationType(
   return 'manual';
 }
 
-const contentComponents = {
-  python: PythonContent,
-  javascript: JavaScriptContent,
-} as const;
+const contentComponents = {python: PythonContent, javascript: JavaScriptContent} as const;
 
 export function AIIOAlert({
   node,
@@ -77,9 +75,7 @@ export function AIIOAlert({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: 'genai-io-alert-dismissed',
-  });
+  const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
   const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
   const hasData =
@@ -154,9 +150,7 @@ function PythonContent({
       <Prose>
         {tct(
           'Simply enable [code:send_default_pii] in your Sentry init call to start capturing it:',
-          {
-            code: <StyledCode />,
-          }
+          {code: <StyledCode />}
         )}
       </Prose>
       <CodeBlock dark language="python" linesToHighlight={[3]} css={codeSnippetStyles}>
@@ -205,9 +199,7 @@ function JavaScriptContent({
       <Prose>
         {tct(
           'Simply set [code:recordInputs] and [code:recordOutputs] to [code:true] when initializing the SDK integration:',
-          {
-            code: <StyledCode />,
-          }
+          {code: <StyledCode />}
         )}
       </Prose>
       <CodeBlock

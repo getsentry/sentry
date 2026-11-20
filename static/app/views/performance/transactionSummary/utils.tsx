@@ -15,7 +15,8 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import type {DomainView} from 'sentry/views/insights/pages/useFilters';
 import {TraceViewSources} from 'sentry/views/performance/traceDetails/traceHeader/traceViewSources';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/traceUrl';
-import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
+
+import {getTransactionSummaryBaseUrl} from './pathnames';
 
 export {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/pathnames';
 
@@ -90,11 +91,7 @@ export function transactionSummaryRouteWithQuery({
   subPath?: string;
   view?: DomainView;
 }) {
-  const pathname = generateTransactionSummaryRoute({
-    organization,
-    subPath,
-    view,
-  });
+  const pathname = generateTransactionSummaryRoute({organization, subPath, view});
 
   let searchFilter: typeof query.query;
   if (typeof query.query === 'string') {
@@ -218,13 +215,8 @@ export function generateReplayLink(matches: UIMatch[]) {
 
     if (!tableRow.timestamp) {
       return {
-        pathname: makeReplaysPathname({
-          path: `/${replayId}/`,
-          organization,
-        }),
-        query: {
-          referrer,
-        },
+        pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+        query: {referrer},
       };
     }
 
@@ -234,14 +226,8 @@ export function generateReplayLink(matches: UIMatch[]) {
       : undefined;
 
     return {
-      pathname: makeReplaysPathname({
-        path: `/${replayId}/`,
-        organization,
-      }),
-      query: {
-        event_t: transactionStartTimestamp,
-        referrer,
-      },
+      pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
+      query: {event_t: transactionStartTimestamp, referrer},
     };
   };
 }

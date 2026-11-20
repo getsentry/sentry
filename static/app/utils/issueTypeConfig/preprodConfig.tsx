@@ -1,6 +1,7 @@
 import {t} from 'sentry/locale';
-import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 import {Tab} from 'sentry/views/issueDetails/types';
+
+import type {IssueCategoryConfigMapping} from './types';
 
 export const preprodConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
@@ -11,17 +12,12 @@ export const preprodConfig: IssueCategoryConfigMapping = {
     },
     actions: {
       archiveUntilOccurrence: {enabled: true},
-      delete: {
-        enabled: true,
-      },
+      delete: {enabled: true},
       deleteAndDiscard: {
         enabled: false,
         disabledReason: t('Not supported for preprod issues'),
       },
-      merge: {
-        enabled: false,
-        disabledReason: t('Not supported for preprod issues'),
-      },
+      merge: {enabled: false, disabledReason: t('Not supported for preprod issues')},
       ignore: {enabled: true},
       resolve: {enabled: true},
       resolveInRelease: {enabled: true},

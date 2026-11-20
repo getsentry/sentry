@@ -9,7 +9,6 @@ import {Badge} from '@sentry/scraps/badge';
 import {
   CompositeSelect,
   TriggerLabel,
-  type SelectKey,
   type SelectOption,
 } from '@sentry/scraps/compactSelect';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -19,6 +18,7 @@ import {defined} from 'sentry/utils/defined';
 import {EQUATION_PREFIX} from 'sentry/utils/discover/fields';
 import {ALLOWED_EXPLORE_VISUALIZE_AGGREGATES, FieldKind} from 'sentry/utils/fields';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {optionFromTag} from 'sentry/views/explore/components/attributeOption';
 import {ConditionalAggregateFilterBar} from 'sentry/views/explore/components/conditionalAggregateFilterBar';
 import {
   ToolbarFooter,
@@ -59,9 +59,13 @@ import {
 } from 'sentry/views/explore/queryParams/visualize';
 import {stripNamePrefix} from 'sentry/views/explore/savedFormulas/formulaBuilder/draft';
 import {
+  canUseSpansHeatMap,
+  isSpansHeatMap,
+  SPANS_HEAT_MAP_Y_AXES,
+} from 'sentry/views/explore/spans/charts/spansHeatMap';
+import {
   SHARED_CHART_AGGREGATE_REGIONS,
   SHARED_CHART_AGGREGATES,
-  hasMultiAggregateCharts,
 } from 'sentry/views/explore/spans/sharedChartAggregates';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {
@@ -75,6 +79,7 @@ import {
   getFormulaColumnFunction,
 } from 'sentry/views/explore/utils/formulaAggregate';
 import {getFunctionLabel} from 'sentry/views/explore/utils/getFunctionLabel';
+import {HEATMAP_AGGREGATE} from 'sentry/views/explore/utils/heatMapAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 
 interface ToolbarVisualizeProps {
@@ -252,7 +257,7 @@ function ToolbarVisualizeItem({
     [visualizes]
   );
 
-  const fieldOptions = useVisualizeFields({
+  const visualizeFieldOptions = useVisualizeFields({
     numberTags,
     stringTags,
     booleanTags,
@@ -262,6 +267,9 @@ function ToolbarVisualizeItem({
         : parsedFunction,
     traceItemType: TraceItemDataset.SPANS,
   });
+  const fieldOptions = isSpansHeatMap(visualize, organization)
+    ? HEAT_MAP_FIELD_OPTIONS
+    : visualizeFieldOptions;
 
   const filter = parsedFunction?.filter ?? '';
 
@@ -290,11 +298,14 @@ function ToolbarVisualizeItem({
         aggregates.length > 1 ? (visualize.chartGroup ?? createChartGroup()) : null;
       onReplace(
         aggregates.map(aggregate => {
-          const yAxis = updateVisualizeAggregate({
-            newAggregate: aggregate,
-            oldAggregate: previous?.name,
-            oldArguments: previous?.arguments,
-          });
+          const yAxis =
+            aggregate === HEATMAP_AGGREGATE
+              ? getHeatMapYAxis(previous?.arguments)
+              : updateVisualizeAggregate({
+                  newAggregate: aggregate,
+                  oldAggregate: previous?.name,
+                  oldArguments: previous?.arguments,
+                });
           return visualize.replace({
             yAxis: supportsConditionalAggregateFilter(aggregate)
               ? applyConditionalFilter(yAxis, filter)
@@ -348,16 +359,6 @@ function ToolbarVisualizeItem({
     [onReplace, visualizes]
   );
 
-  const onChangeAggregate = useCallback(
-    (option: SelectOption<SelectKey>) => {
-      if (typeof option.value === 'string') {
-        onChangeAggregates([option.value]);
-      }
-    },
-    [onChangeAggregates]
-  );
-
-  const multiAggregateCharts = hasMultiAggregateCharts(organization);
   const showFilterSearchBar = supportsConditionalAggregateFilter(
     parsedFunction?.name ?? ''
   );
@@ -366,17 +367,13 @@ function ToolbarVisualizeItem({
     <ToolbarVisualizeDropdown
       dragColumnId={dragColumnId}
       aggregateSelect={
-        multiAggregateCharts ? (
-          <AggregateMultiSelect
-            formulas={formulas}
-            maxAggregates={maxAggregates}
-            onChange={onChangeAggregates}
-            value={selectedAggregates}
-          />
-        ) : undefined
+        <AggregateMultiSelect
+          formulas={formulas}
+          maxAggregates={maxAggregates}
+          onChange={onChangeAggregates}
+          value={selectedAggregates}
+        />
       }
-      aggregateOptions={AGGREGATE_OPTIONS}
-      onChangeAggregate={onChangeAggregate}
       fieldOptions={fieldOptions}
       formulaDefaultColumn={DEFAULT_VISUALIZATION_FIELD}
       formulas={formulas}
@@ -402,16 +399,24 @@ function ToolbarVisualizeItem({
   );
 }
 
-const AGGREGATE_OPTIONS: Array<SelectOption<string>> =
-  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.map(aggregate => ({
-    label: aggregate,
-    value: aggregate,
-    textValue: aggregate,
-  }));
-
-const SINGLE_SELECT_AGGREGATES = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
-  aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)
+const HEAT_MAP_FIELD_OPTIONS = SPANS_HEAT_MAP_Y_AXES.map(field =>
+  optionFromTag(
+    {key: field, name: field, kind: FieldKind.MEASUREMENT},
+    TraceItemDataset.SPANS
+  )
 );
+
+function getHeatMapYAxis(previousArguments: string[] | undefined): string {
+  const attribute =
+    SPANS_HEAT_MAP_Y_AXES.find(yAxis => yAxis === previousArguments?.[0]) ??
+    DEFAULT_VISUALIZATION_FIELD;
+  return `${HEATMAP_AGGREGATE}(${attribute})`;
+}
+
+const SINGLE_SELECT_AGGREGATES: readonly string[] =
+  ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.filter(
+    aggregate => !SHARED_CHART_AGGREGATES.includes(aggregate)
+  );
 
 interface AggregateMultiSelectProps {
   formulas: readonly SavedFormula[];
@@ -426,11 +431,15 @@ function AggregateMultiSelect({
   onChange,
   value,
 }: AggregateMultiSelectProps) {
+  const organization = useOrganization();
+  const singleSelectAggregates = canUseSpansHeatMap(organization)
+    ? [...SINGLE_SELECT_AGGREGATES, HEATMAP_AGGREGATE]
+    : SINGLE_SELECT_AGGREGATES;
   const selected = new Set(value);
   const multiSelectValue = SHARED_CHART_AGGREGATES.filter(aggregate =>
     selected.has(aggregate)
   );
-  const singleSelectValue = SINGLE_SELECT_AGGREGATES.find(aggregate =>
+  const singleSelectValue = singleSelectAggregates.find(aggregate =>
     selected.has(aggregate)
   );
   const selectedFormula = formulas.find(formula => selected.has(formula.name));
@@ -458,6 +467,8 @@ function AggregateMultiSelect({
   return (
     <AggregateCompositeSelect
       fullWidth={defined(selectedFormula)}
+      menuTitle={t('Visualize')}
+      search
       menuHeaderTrailingItems={
         isDefaultSelection
           ? undefined
@@ -513,7 +524,7 @@ function AggregateMultiSelect({
         <CompositeSelect.Region
           key="other"
           label={t('Other')}
-          options={SINGLE_SELECT_AGGREGATES.map(toOption)}
+          options={singleSelectAggregates.map(toOption)}
           value={singleSelectValue}
           onChange={option => onChange([option.value])}
         />,
@@ -526,7 +537,6 @@ function AggregateMultiSelect({
                   label: stripNamePrefix(formula.name),
                   value: formula.name,
                   textValue: formula.name,
-                  details: formula.description,
                   disabled:
                     buildFormulaYAxis(formula, DEFAULT_VISUALIZATION_FIELD) === null,
                   trailingItems: <TypeBadge kind={FieldKind.FUNCTION} />,

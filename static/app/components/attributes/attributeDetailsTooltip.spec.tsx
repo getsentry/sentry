@@ -2,9 +2,10 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
-import {AttributeDetailsTooltip} from 'sentry/components/attributes/attributeDetailsTooltip';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {FieldValueType} from 'sentry/utils/fields';
+
+import {AttributeDetailsTooltip} from './attributeDetailsTooltip';
 
 describe('AttributeDetailsTooltip', () => {
   beforeEach(() => {
@@ -67,14 +68,26 @@ describe('AttributeDetailsTooltip', () => {
     expect(screen.getByText('Added by Sentry')).toBeInTheDocument();
   });
 
+  it('renders Markdown in the description', async () => {
+    render(
+      <AttributeDetailsTooltip attributeKey="db.system" fieldDefinitionType="span" />
+    );
+
+    await userEvent.hover(screen.getByText('db.system'));
+
+    expect(await screen.findByRole('link', {name: 'OpenTelemetry docs'})).toHaveAttribute(
+      'href',
+      'https://github.com/open-telemetry/semantic-conventions/blob/main/docs/database/database-spans.md#notes-and-well-known-identifiers-for-dbsystem'
+    );
+    expect(screen.queryByText(/\]\(https:/)).not.toBeInTheDocument();
+  });
+
   it('renders the name underlined so it reads as something to hover', () => {
     render(
       <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
     );
 
-    expect(screen.getByText('logger.name')).toHaveStyle({
-      textDecorationStyle: 'dotted',
-    });
+    expect(screen.getByText('logger.name')).toHaveStyle({textDecorationStyle: 'dotted'});
   });
 
   it('renders only the children inline when they are given', async () => {
