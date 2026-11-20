@@ -2746,9 +2746,7 @@ class Factories:
             "result_attribute": "result",
             "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
-            "natural_language_prompt": "Is the user frustrated?",
-            "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
+            "prebuilt_classifier_key": "conversation_user_frustration",
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 

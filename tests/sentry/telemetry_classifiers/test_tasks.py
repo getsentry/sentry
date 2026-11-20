@@ -16,6 +16,7 @@ from sentry.telemetry_classifiers.tasks import (
 )
 from sentry.telemetry_classifiers.types import (
     Dataset,
+    TelemetryClassifierOutputType,
     TelemetryClassifierStatus,
     TelemetryInput,
 )
@@ -247,7 +248,13 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
 
     def test_skips_classifiers_that_cant_run(self) -> None:
         # Custom classifiers can't run yet.
-        classifier = self.create_telemetry_classifier(project=self.project)
+        classifier = self.create_telemetry_classifier(
+            project=self.project,
+            prebuilt_classifier_key=None,
+            natural_language_prompt="Is the user frustrated?",
+            compiled_prompt="Return yes when the user is frustrated.",
+            output_type=TelemetryClassifierOutputType.BINARY,
+        )
 
         classify_entity(classifier_id=classifier.id, entity_id="conversation")
 
