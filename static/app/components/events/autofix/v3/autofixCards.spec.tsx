@@ -113,9 +113,10 @@ function makeToolUseBlock(
 function makeUserBlock(
   id: string,
   content: string,
-  timestamp: string
+  timestamp: string,
+  metadata?: Record<string, string>
 ): AutofixSection['blocks'][number] {
-  return {id, timestamp, message: {role: 'user', content}};
+  return {id, timestamp, message: {role: 'user', content, metadata}};
 }
 
 function makePatch(repoName: string, path: string): ExplorerFilePatch {
@@ -367,10 +368,19 @@ describe('ArtifactCard', () => {
       expect(screen.queryByText('Thinking...')).not.toBeInTheDocument();
     });
 
-    it("ends a response at the user's message while root cause is still running", () => {
+    it("ends a response at the user's message while a single run's root cause is still running", () => {
       render(
         <RootCauseCard
-          autofix={mockAutofix}
+          autofix={{
+            ...mockAutofix,
+            runState: {
+              run_id: 123,
+              blocks: [],
+              status: 'processing',
+              updated_at: '2026-01-01T00:00:00Z',
+              feature_id: 'autofix_single_run',
+            },
+          }}
           groupId="1"
           section={makeSection(
             'root_cause',
@@ -381,12 +391,13 @@ describe('ArtifactCard', () => {
                 'block-1',
                 'Reading the cache module.',
                 '2026-01-01T00:00:00Z',
-                {step: 'root_cause'}
+                {step: 'single_run'}
               ),
               makeUserBlock(
                 'user-1',
                 'Also check the retry path.',
-                '2026-01-01T00:00:05Z'
+                '2026-01-01T00:00:05Z',
+                {step: 'single_run'}
               ),
               {
                 ...makeToolUseBlock(
@@ -2833,6 +2844,9 @@ describe('out of credits', () => {
     updated_at: '2026-01-01T00:00:00Z',
   };
 
+  // Only single runs take replies inside a step.
+  const singleRunStoppedState = {...stoppedRunState, feature_id: 'autofix_single_run'};
+
   const rootCauseSection = makeOutOfCreditsSection('root_cause', [
     makeBlock('block-1', 'The cache key omits the org slug.', {step: 'root_cause'}),
     seerErrorBlock,
@@ -2953,20 +2967,25 @@ describe('out of credits', () => {
       expect(screen.getByText('5.0s')).toBeInTheDocument();
     });
 
-    it("ends the timer at the user's message when root cause stopped right after it", () => {
+    it("ends the timer at the user's message when a single run's root cause stopped right after it", () => {
       mockCreditCheck('autofix_root_cause', false);
       render(
         <RootCauseCard
-          autofix={{...mockAutofix, runState: stoppedRunState}}
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
           groupId="1"
           section={makeOutOfCreditsSection('root_cause', [
             makeToolUseBlock(
               'block-1',
               'Reading the cache module.',
               '2026-01-01T00:00:00Z',
-              {step: 'root_cause'}
+              {step: 'single_run'}
             ),
-            makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:05Z'),
+            makeUserBlock(
+              'user-1',
+              'Also check the retry path.',
+              '2026-01-01T00:00:05Z',
+              {step: 'single_run'}
+            ),
             {...seerErrorBlock, timestamp: '2026-01-01T00:00:10Z'},
           ])}
         />,
@@ -2976,20 +2995,25 @@ describe('out of credits', () => {
       expect(screen.getByText('5.0s')).toBeInTheDocument();
     });
 
-    it('ends each response at the block after it when root cause stopped', () => {
+    it("ends each response at the block after it when a single run's root cause stopped", () => {
       mockCreditCheck('autofix_root_cause', false);
       render(
         <RootCauseCard
-          autofix={{...mockAutofix, runState: stoppedRunState}}
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
           groupId="1"
           section={makeOutOfCreditsSection('root_cause', [
             makeToolUseBlock(
               'block-1',
               'Reading the cache module.',
               '2026-01-01T00:00:00Z',
-              {step: 'root_cause'}
+              {step: 'single_run'}
             ),
-            makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:05Z'),
+            makeUserBlock(
+              'user-1',
+              'Also check the retry path.',
+              '2026-01-01T00:00:05Z',
+              {step: 'single_run'}
+            ),
             makeToolUseBlock(
               'block-2',
               'Searching for the cache key.',
@@ -3016,24 +3040,26 @@ describe('out of credits', () => {
       }
     });
 
-    it('ends a response at a hidden earlier error block when root cause stopped', () => {
+    it("ends a response at a hidden earlier error block when a single run's root cause stopped", () => {
       mockCreditCheck('autofix_root_cause', false);
       render(
         <RootCauseCard
-          autofix={{...mockAutofix, runState: stoppedRunState}}
+          autofix={{...mockAutofix, runState: singleRunStoppedState}}
           groupId="1"
           section={makeOutOfCreditsSection('root_cause', [
             makeToolUseBlock(
               'block-1',
               'Reading the cache module.',
               '2026-01-01T00:00:00Z',
-              {step: 'root_cause'}
+              {step: 'single_run'}
             ),
             {
               ...makeBlock('error-0', 'Sorry, I encountered an unexpected error.'),
               timestamp: '2026-01-01T00:00:05Z',
             },
-            makeUserBlock('user-1', 'Try again.', '2026-01-01T00:00:10Z'),
+            makeUserBlock('user-1', 'Try again.', '2026-01-01T00:00:10Z', {
+              step: 'single_run',
+            }),
             makeToolUseBlock(
               'block-2',
               'Searching for the cache key.',

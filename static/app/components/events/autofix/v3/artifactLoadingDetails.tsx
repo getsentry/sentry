@@ -95,8 +95,8 @@ function StepResponses({
         latestTodos={latestTodos}
         readOnly
         showThinking
-        // The timestamp of the user message or Seer's error block that ended the
-        // segment. None while the segment is still running.
+        // The timestamp of the block after the segment: the user's next message or, in a
+        // stopped step, Seer's error block. None when nothing follows, as while it runs.
         endedAt={nextBlock?.timestamp}
       />
     );
