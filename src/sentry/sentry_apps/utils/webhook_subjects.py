@@ -42,6 +42,7 @@ _SUBJECT_BY_RESOURCE: Mapping[SentryAppResourceType, SubjectSpec] = {
     SentryAppResourceType.INSTALLATION: SubjectSpec("installation", [("installation", "uuid")]),
     SentryAppResourceType.SEER: SubjectSpec("autofix_run", [("run_id",), ("sentry_run_id",)]),
     SentryAppResourceType.PREPROD_ARTIFACT: SubjectSpec("preprod_artifact", [("buildId",)]),
+    SentryAppResourceType.ALERT: SubjectSpec("workflow", [("alert", "id")]),
 }
 
 # Overrides for event types in case an event (seer.X) needs a diff. subject

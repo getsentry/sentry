@@ -36,6 +36,7 @@ from sentry.workflow_engine.processors.evaluations.workflow import (
     WorkflowEvaluationResult,
 )
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.tasks.alert_webhooks import enqueue_alert_triggered_webhooks
 from sentry.workflow_engine.types import ConditionError, WorkflowEventData, WorkflowId
 from sentry.workflow_engine.utils import log_context, scopedstats
 from sentry.workflow_engine.utils.metrics import metrics_incr
@@ -658,6 +659,7 @@ def process_workflows(
             is_delayed=False,
             start_timestamp=event_start_time,
         )
+        enqueue_alert_triggered_webhooks(fire_histories, event_data)
 
         # Create mapping: workflow_id -> notification_uuid for propagation
         workflow_uuid_map: dict[WorkflowId, str] = {}
