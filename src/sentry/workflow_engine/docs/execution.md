@@ -248,13 +248,25 @@ expected to degrade safely.
 
 ### 2. Resolve environment and workflows
 
-The processor resolves the event environment, then
-[`get_workflows_by_detectors`](../caches/workflow.py) loads workflows connected to any
-selected detector. Eligible workflows must be enabled and either global
-(`environment=None`) or connected to the event's environment.
+The processor resolves the event environment, then [`select_workflows`](../processors/workflow.py)
+selects candidates by source. `GroupEvent` uses only detector-linked workflows. `Activity`
+also includes the organization's enabled `inbox` workflows when the backend flag
+`organizations:workflow-engine-activity-workflows` is enabled. The union is evaluated once
+per workflow, including workflows found through both paths. Assignment and mention matching
+belongs to workflow conditions, not candidate selection.
 
-The workflow cache is keyed by detector and environment. Relationship receivers
-invalidate it after committed changes.
+The routing flag defaults off and is independent of Inbox recording and UI flags. Producers
+and cutover code should use `is_activity_workflow_enabled()` for the same routing decision.
+Turning it off preserves existing detector-linked Activity processing.
+
+Eligible workflows must be enabled and either global (`environment=None`) or connected to
+the event's environment. `get_activity_workflows()` accepts explicit organization context
+without an issue or project, providing the selection extension point for investigation
+events. Concrete investigation routing and detector provisioning are separate work;
+evaluation still requires a detector.
+
+The detector workflow cache is keyed by detector and environment. The activity workflow
+cache is keyed by organization. Receivers invalidate them after committed changes.
 
 ### 3. Evaluate WHEN conditions
 

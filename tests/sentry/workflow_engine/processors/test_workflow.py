@@ -6,6 +6,7 @@ from uuid import uuid4
 import pytest
 from django.utils import timezone
 
+from sentry import features
 from sentry.eventstream.base import GroupState
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.grouptype import MetricIssue
@@ -22,7 +23,8 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
-from sentry.workflow_engine.models import Action, DataConditionGroup
+from sentry.workflow_engine.features import is_activity_workflow_enabled
+from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
 from sentry.workflow_engine.processors.contexts.workflow_event_context import WorkflowEventContext
@@ -42,8 +44,10 @@ from sentry.workflow_engine.processors.workflow import (
     enqueue_workflows,
     evaluate_workflow_triggers,
     evaluate_workflows_action_filters,
+    get_activity_workflows,
     get_environment_by_event,
     process_workflows,
+    select_workflows,
 )
 from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.tasks.workflows import process_workflows_event
@@ -682,6 +686,207 @@ class TestProcessWorkflows(BaseWorkflowTest):
         result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert all_projects_workflow.id in result.evaluations
         assert all_projects_workflow.id in _triggered_workflow_ids(result)
+
+
+class TestActivityWorkflowSelection(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.detector = self.create_detector(type=ErrorGroupType.slug)
+        self.alert = self.create_workflow()
+        self.create_detector_workflow(detector=self.detector, workflow=self.alert)
+        triggers = self.create_data_condition_group()
+        self.create_data_condition(
+            condition_group=triggers,
+            type=Condition.ACTIVITY_TYPE_IN,
+            comparison=["issue.assigned"],
+            condition_result=True,
+        )
+        self.inbox = self.create_workflow(type=Workflow.Type.INBOX, when_condition_group=triggers)
+        self.activity = self.create_group_activity(
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id), "assigneeType": "user"},
+        )
+        self.event_data = WorkflowEventData(event=self.activity, group=self.group)
+
+    def test_flag_defaults_off_and_is_backend_only(self) -> None:
+        assert not is_activity_workflow_enabled(self.organization)
+        assert (
+            "organizations:workflow-engine-activity-workflows"
+            not in features.default_manager.exposed_features
+        )
+        with patch(
+            "sentry.workflow_engine.processors.workflow.get_activity_workflows_by_organization"
+        ) as lookup:
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        lookup.assert_not_called()
+        assert result.evaluated_workflow_ids() == {self.alert.id}
+
+    def test_group_event_keeps_type_agnostic_detector_lookup(self) -> None:
+        group, _, event = self.create_group_event()
+        hidden = self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
+        self.create_detector_workflow(detector=self.detector, workflow=hidden)
+        with (
+            self.feature("organizations:workflow-engine-activity-workflows"),
+            patch(
+                "sentry.workflow_engine.processors.workflow.get_activity_workflows_by_organization"
+            ) as lookup,
+        ):
+            result = process_workflows(
+                DelayedWorkflowClient(),
+                WorkflowEventData(event=event, group=group),
+                FROZEN_TIME,
+                detector=self.detector,
+            )
+        lookup.assert_not_called()
+        assert result.evaluated_workflow_ids() == {self.alert.id, hidden.id}
+
+    def test_activity_unions_only_enabled_organization_inbox_workflows(self) -> None:
+        second_inbox = self.create_workflow(type=Workflow.Type.INBOX)
+        self.create_workflow(type=Workflow.Type.INBOX, enabled=False)
+        self.create_workflow(type=Workflow.Type.ALERT)
+        self.create_workflow(type=Workflow.Type.SEER_INVESTIGATION)
+        self.create_workflow(type=Workflow.Type.INBOX, organization=self.create_organization())
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        assert result.evaluated_workflow_ids() == {self.alert.id, self.inbox.id, second_inbox.id}
+        assert _triggered_workflow_ids(result) == {self.alert.id, self.inbox.id, second_inbox.id}
+
+    def test_candidate_overlap_evaluates_and_fires_once(self) -> None:
+        self.create_detector_workflow(detector=self.detector, workflow=self.inbox)
+        issue_stream = self.create_detector(type=IssueStreamGroupType.slug)
+        self.create_detector_workflow(detector=issue_stream, workflow=self.inbox)
+        _, action = self.create_workflow_action(self.inbox)
+        with (
+            self.feature("organizations:workflow-engine-activity-workflows"),
+            patch.object(
+                Workflow,
+                "evaluate_trigger_conditions",
+                autospec=True,
+                side_effect=Workflow.evaluate_trigger_conditions,
+            ) as evaluate,
+            patch("sentry.workflow_engine.processors.action.fire_actions") as fire,
+        ):
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        assert result.evaluated_workflow_ids() == {self.alert.id, self.inbox.id}
+        assert [call.args[0].id for call in evaluate.call_args_list].count(self.inbox.id) == 1
+        history = WorkflowFireHistory.objects.get(workflow=self.inbox)
+        assert history.event_id == str(self.activity.id)
+        fire.assert_called_once()
+        assert list(fire.call_args.args[0]) == [action]
+        assert fire.call_args.kwargs["workflow_uuid_map"] == {
+            self.inbox.id: str(history.notification_uuid)
+        }
+
+    def test_flag_off_preserves_linked_inbox_workflows(self) -> None:
+        self.create_detector_workflow(detector=self.detector, workflow=self.inbox)
+        with self.feature({"organizations:workflow-engine-activity-workflows": False}):
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        assert result.evaluated_workflow_ids() == {self.alert.id, self.inbox.id}
+
+    def test_activity_selection_does_not_require_detector_links(self) -> None:
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            assert select_workflows(self.event_data, [], None) == {self.inbox}
+
+    def test_lookup_does_not_match_activity_kinds(self) -> None:
+        for activity_type, data in (
+            (ActivityType.NOTE, {}),
+            (ActivityType.NOTE, {"mentions": [str(self.user.id)]}),
+            (ActivityType.SET_RESOLVED, {}),
+            (ActivityType.SEER_PR_READY_FOR_REVIEW, {}),
+        ):
+            activity = self.create_group_activity(
+                group=self.group, type=activity_type.value, data=data
+            )
+            event_data = WorkflowEventData(event=activity, group=self.group)
+            with self.feature("organizations:workflow-engine-activity-workflows"):
+                assert select_workflows(event_data, {self.detector}, None) == {
+                    self.alert,
+                    self.inbox,
+                }
+                result, _, _ = _evaluate_workflows(
+                    {self.inbox}, event_data, FROZEN_TIME, detector=self.detector
+                )
+            assert result.evaluated_workflow_ids() == {self.inbox.id}
+            assert not result.evaluations[self.inbox.id].triggered
+
+    def test_route_is_independent_of_inbox_recording_and_ui(self) -> None:
+        with self.feature(
+            {
+                "organizations:workflow-engine-activity-workflows": False,
+                "organizations:universal-inbox": True,
+                "organizations:universal-inbox-recording": True,
+            }
+        ):
+            assert select_workflows(self.event_data, {self.detector}, None) == {self.alert}
+        with self.feature(
+            {
+                "organizations:workflow-engine-activity-workflows": True,
+                "organizations:universal-inbox": False,
+                "organizations:universal-inbox-recording": False,
+            }
+        ):
+            assert select_workflows(self.event_data, {self.detector}, None) == {
+                self.alert,
+                self.inbox,
+            }
+        # Disabling the gate takes effect even though the candidate cache is warm.
+        with self.feature({"organizations:workflow-engine-activity-workflows": False}):
+            assert select_workflows(self.event_data, {self.detector}, None) == {self.alert}
+
+    def test_filters_cross_organization_detector_candidates(self) -> None:
+        foreign = self.create_workflow(
+            type=Workflow.Type.INBOX, organization=self.create_organization()
+        )
+        self.create_detector_workflow(detector=self.detector, workflow=foreign)
+        with self.feature("organizations:workflow-engine-activity-workflows"):
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, FROZEN_TIME, detector=self.detector
+            )
+        assert result.evaluated_workflow_ids() == {self.alert.id, self.inbox.id}
+
+    def test_groupless_selection_extension_preserves_detector_evaluation(self) -> None:
+        source = OrganizationEvent(organization_id=self.organization.id, event_id=uuid4())
+        event_data = WorkflowEventData(event=source, organization=self.organization)
+        detector = self.create_all_projects_detector(self.organization)
+        unconditional = self.create_workflow(type=Workflow.Type.INBOX)
+        action_group, _ = self.create_workflow_action(unconditional)
+        with (
+            self.feature("organizations:workflow-engine-activity-workflows"),
+            patch(
+                "sentry.workflow_engine.processors.workflow.get_workflows_by_detectors"
+            ) as lookup,
+        ):
+            # Concrete investigation dispatch lands with its schema; the explicit
+            # organization lookup is available without routing arbitrary sources.
+            assert select_workflows(event_data, {detector}, None) == set()
+            candidates = get_activity_workflows(event_data, None)
+            assert candidates == {self.inbox, unconditional}
+            result, action_groups, _ = _evaluate_workflows(
+                candidates, event_data, FROZEN_TIME, detector=detector
+            )
+        lookup.assert_not_called()
+        assert result.evaluated_workflow_ids() == {self.inbox.id, unconditional.id}
+        assert action_groups == {action_group}
+        assert result.detector_id == detector.id
+        assert result.group_id is None
+        assert result.project_id is None
+        with self.feature({"organizations:workflow-engine-activity-workflows": False}):
+            assert get_activity_workflows(event_data, None) == set()
+
+    def test_groupless_selection_validates_organization(self) -> None:
+        source = OrganizationEvent(organization_id=self.create_organization().id, event_id=uuid4())
+        with pytest.raises(ValueError, match="same organization"):
+            get_activity_workflows(
+                WorkflowEventData(event=source, organization=self.organization), None
+            )
 
 
 class TestEvaluateWorkflowTriggers(BaseWorkflowTest):
