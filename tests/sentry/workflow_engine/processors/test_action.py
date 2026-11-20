@@ -29,6 +29,7 @@ from sentry.workflow_engine.processors.action import (
 )
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.registry import action_handler_registry
 from sentry.workflow_engine.types import ActionHandler, FeatureGate, WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
@@ -451,7 +452,7 @@ class TestInboxActionFrequency(BaseWorkflowTest):
         )
         shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
         unsupported_group, _ = self.create_workflow_action(self.inbox)
-        with patch.object(self.inbox_action.get_handler(), "supports_group_less", True):
+        with patch.dict(action_handler_registry.registrations, {Action.Type.EMAIL: ActionHandler}):
             actions, attribution, workflows = filter_recently_fired_workflow_actions(
                 {self.inbox_group, shared_group, unsupported_group}, event_data
             )
