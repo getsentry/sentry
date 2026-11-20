@@ -828,9 +828,7 @@ class ArtifactBundlePostAssembler:
                         file=self.assemble_result.bundle,
                         storage_path=None,
                         checksum=None,
-                        content_type=None,
                         file_size=None,
-                        date_created=None,
                         artifact_count=self.archive.artifact_count,
                         date_added=date_added,
                         # If you upload a bundle which already exists, we track this as a modification since our goal
