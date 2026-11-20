@@ -57,7 +57,7 @@ import {
   type RovingTabIndexUserActions,
 } from './traceState/traceRovingTabIndex';
 import {useTraceState, useTraceStateDispatch} from './traceState/traceStateProvider';
-import {CLOCK_DRIFT_ICON_GAP_PX, CLOCK_DRIFT_ICON_SIZE_PX} from './clockDriftIndicators';
+import {CLOCK_DRIFT_ICON_GAP_PX} from './clockDriftIndicators';
 import {CollapsedGapMarkers} from './collapsedGapMarkers';
 import {
   TracePinnedAttributeCell,
@@ -1635,34 +1635,36 @@ const TraceStylingWrapper = styled('div')`
     }
   }
 
+  /*
+   * The label and its clock drift icon are centered on the middle of the row, the same line the
+   * span bar is centered on. The label spans the full height of the row and centers its content,
+   * so neither depends on font metrics or pixel rounding.
+   */
   .TraceBarDuration {
-    display: inline-block;
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: ${CLOCK_DRIFT_ICON_GAP_PX}px;
     transform-origin: left center;
     font-size: ${p => p.theme.font.size.xs};
+    line-height: 1;
     color: ${p => p.theme.tokens.content.secondary};
     white-space: nowrap;
     font-variant-numeric: tabular-nums;
-    position: absolute;
   }
 
   /*
-   * Marks the timing of a span that was shifted to correct for clock drift. The icon sits in the
-   * label's padding, so the label keeps the same height and text position as all other labels.
+   * Trims the text's box to the height of its digits, so centering the box centers the digits.
+   * Without this, the box includes space for descenders that durations don't have, and the digits
+   * sit above the center.
    */
-  .TraceBarDuration.WithClockDriftIcon {
-    padding-left: ${CLOCK_DRIFT_ICON_SIZE_PX + CLOCK_DRIFT_ICON_GAP_PX}px;
+  .TraceBarDurationText {
+    text-box: trim-both cap alphabetic;
   }
 
   .TraceClockDriftIcon {
-    position: absolute;
-    left: 0;
-    /*
-     * Rubik's digits sit above the middle of the line box, leaving room for descenders that
-     * durations don't have. Centering on the line box puts the icon ~2px below the digits, so we
-     * lift it to the digits' center instead (measured in Chromium at 1x and 2x).
-     */
-    top: calc(50% - 0.16em);
-    transform: translateY(-50%);
     display: flex;
   }
 

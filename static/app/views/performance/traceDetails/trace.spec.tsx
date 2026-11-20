@@ -1376,7 +1376,30 @@ describe('trace view', () => {
   });
 
   describe('clock drift correction', () => {
-    it('shows and hides the clock drift icon when toggling the preference', async () => {
+    const organization = OrganizationFixture({
+      features: ['trace-waterfall-clock-drift-correction'],
+    });
+
+    beforeEach(() => {
+      // Trace preferences persist in local storage, don't let a toggled preference leak
+      localStorage.clear();
+    });
+
+    // The correction is off by default, store it as turned on
+    function storeClockDriftCorrectionPreference() {
+      localStorage.setItem(
+        'trace-waterfall-preferences',
+        JSON.stringify({
+          drawer_layout: 'drawer right',
+          missing_instrumentation: false,
+          autogroup: {parent: true, sibling: true},
+          compressed_timeline: true,
+          clock_drift_correction: true,
+        })
+      );
+    }
+
+    function mockClockDriftTrace() {
       mockPerformanceSubscriptionDetailsResponse();
       mockProjectDetailsResponse();
       mockTraceResponse({
@@ -1401,6 +1424,18 @@ describe('trace view', () => {
                 // Recorded 2s before the browser sent the request
                 start_timestamp: 8,
                 end_timestamp: 8.2,
+                children: [
+                  makeEAPSpan({
+                    event_id: 'server-query',
+                    op: 'db',
+                    description: 'SELECT * FROM projects',
+                    project_id: 2,
+                    sdk_name: 'sentry.python.django',
+                    parent_span_id: 'server-request',
+                    start_timestamp: 8.05,
+                    end_timestamp: 8.1,
+                  }),
+                ],
               }),
             ],
           }),
@@ -1412,7 +1447,7 @@ describe('trace view', () => {
           logsCount: 0,
           metricsCount: 0,
           performanceIssuesCount: 0,
-          spansCount: 2,
+          spansCount: 3,
           spansCountMap: {},
         },
       });
@@ -1429,6 +1464,26 @@ describe('trace view', () => {
         },
       });
       MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project_slug/trace-items/server-request/',
+        body: {
+          itemId: 'server-request',
+          links: null,
+          meta: {},
+          timestamp: new Date(8e3).toISOString(),
+          attributes: [],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project_slug/trace-items/server-query/',
+        body: {
+          itemId: 'server-query',
+          links: null,
+          meta: {},
+          timestamp: new Date(8.1e3).toISOString(),
+          attributes: [],
+        },
+      });
+      MockApiClient.addMockResponse({
         url: '/organizations/org-slug/logs/',
         body: {data: []},
       });
@@ -1436,22 +1491,59 @@ describe('trace view', () => {
         url: '/organizations/org-slug/dashboards/',
         body: [],
       });
+    }
 
-      render(<TraceView />, {initialRouterConfig});
+    it('is off by default and can be toggled', async () => {
+      mockClockDriftTrace();
+
+      render(<TraceView />, {initialRouterConfig, organization});
 
       expect(await screen.findByText('server request')).toBeInTheDocument();
-      expect(screen.getByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+      expect(screen.queryByTestId('trace-clock-drift-icon')).not.toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Trace Preferences'}));
+      await userEvent.click(screen.getByRole('option', {name: /Clock Drift Correction/}));
+
+      expect(await screen.findByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+
       await userEvent.click(screen.getByRole('option', {name: /Clock Drift Correction/}));
 
       await waitFor(() => {
         expect(screen.queryByTestId('trace-clock-drift-icon')).not.toBeInTheDocument();
       });
+    });
 
-      await userEvent.click(screen.getByRole('option', {name: /Clock Drift Correction/}));
+    it('is not available without the feature', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
 
-      expect(await screen.findByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+      render(<TraceView />, {
+        initialRouterConfig,
+        organization: OrganizationFixture({features: []}),
+      });
+
+      expect(await screen.findByText('server request')).toBeInTheDocument();
+      expect(screen.queryByTestId('trace-clock-drift-icon')).not.toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Trace Preferences'}));
+
+      expect(
+        screen.queryByRole('option', {name: /Clock Drift Correction/})
+      ).not.toBeInTheDocument();
+    });
+
+    it('explains the shift when hovering the duration label of a span that moved along with its parent', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      // The child has no icon, its label still explains the shift
+      await userEvent.hover(await screen.findByText('50.00ms'));
+
+      expect(
+        await screen.findByText('Shifted by +2.00s to correct for clock drift')
+      ).toBeInTheDocument();
     });
   });
 

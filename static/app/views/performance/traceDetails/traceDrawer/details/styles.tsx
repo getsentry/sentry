@@ -224,10 +224,7 @@ function Highlights({
                   {comparison.deltaText}
                 </HiglightsDurationComparison>
               ) : null}
-              <ClockDriftTag
-                offsetMs={node.clockDriftOffsetMs}
-                clientOp={node.clockDriftCorrection?.clientNode.op}
-              />
+              <ClockDriftTag offsetMs={node.clockDriftOffsetMs} />
             </Flex>
           </Stack>
           <Stack gap="lg">
