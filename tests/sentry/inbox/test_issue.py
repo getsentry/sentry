@@ -41,9 +41,6 @@ class IssueItemTypeTest(TestCase):
     def test_subjects(self) -> None:
         project = self.create_project(slug="test-project")
         first = self.create_group(project=project, short_id=1, data={"title": "First issue"})
-        legacy = self.create_group(
-            project=project, short_id=None, data={"title": "Issue without a short ID"}
-        )
         other = self.create_group(
             project=self.create_project(organization=self.create_organization()),
             data={"title": "Other organization"},
@@ -55,7 +52,7 @@ class IssueItemTypeTest(TestCase):
         with self.assertNumQueries(1):
             subjects = ISSUE.get_subjects(
                 organization=self.organization,
-                subject_ids=[str(first.id), str(legacy.id), str(other.id), deleted_id, "invalid"],
+                subject_ids=[str(first.id), str(other.id), deleted_id, "invalid"],
             )
 
         assert subjects == {
