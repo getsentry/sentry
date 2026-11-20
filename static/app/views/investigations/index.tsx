@@ -158,16 +158,8 @@ function InvestigationActions({
   return (
     <DropdownMenu
       items={[
-        {
-          key: 'copy-link',
-          label: t('Copy link'),
-          onAction: onCopy,
-        },
-        {
-          key: 'duplicate',
-          label: t('Duplicate'),
-          onAction: onDuplicate,
-        },
+        {key: 'copy-link', label: t('Copy link'), onAction: onCopy},
+        {key: 'duplicate', label: t('Duplicate'), onAction: onDuplicate},
         {
           key: 'delete',
           label: t('Delete'),
@@ -280,10 +272,7 @@ export function InvestigationsPage() {
   });
 
   function handleSearch(nextQuery: string) {
-    setQueryParams({
-      query: nextQuery || null,
-      cursor: null,
-    });
+    setQueryParams({query: nextQuery || null, cursor: null});
   }
 
   const renderBodyCell = (

@@ -62,11 +62,7 @@ describe('ExploreToolbar', () => {
   let validateMock: jest.Mock;
 
   beforeEach(() => {
-    const project = ProjectFixture({
-      id: '1',
-      slug: 'proj-slug',
-      organization,
-    });
+    const project = ProjectFixture({id: '1', slug: 'proj-slug', organization});
 
     ProjectsStore.loadInitialData([project]);
 
@@ -112,20 +108,11 @@ describe('ExploreToolbar', () => {
         dataset: [],
         environment: [],
         field: [
-          {
-            attrType: 'number',
-            error: null,
-            name: 'custom.measurement',
-            valid: true,
-          },
+          {attrType: 'number', error: null, name: 'custom.measurement', valid: true},
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: true,
       },
     });
@@ -518,9 +505,7 @@ describe('ExploreToolbar', () => {
   });
 
   it('plots aggregates selected together on one chart', async () => {
-    const {router} = render(<ExploreToolbar />, {
-      additionalWrapper: Wrapper,
-    });
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -576,9 +561,7 @@ describe('ExploreToolbar', () => {
   });
 
   it('resets the aggregates when the selection is cleared', async () => {
-    const {router} = render(<ExploreToolbar />, {
-      additionalWrapper: Wrapper,
-    });
+    const {router} = render(<ExploreToolbar />, {additionalWrapper: Wrapper});
 
     const section = screen.getByTestId('section-visualizes');
 
@@ -639,11 +622,7 @@ describe('ExploreToolbar', () => {
     expect(groupBys).toEqual(['project', '']);
 
     const projectColumn = screen.getAllByTestId('editor-column')[1]!;
-    await userEvent.click(
-      within(projectColumn).getByRole('button', {
-        name: '\u2014',
-      })
-    );
+    await userEvent.click(within(projectColumn).getByRole('button', {name: '\u2014'}));
     options = await within(section).findAllByRole('option');
     expect(options.length).toBeGreaterThan(0);
     await userEvent.click(
@@ -765,9 +744,7 @@ describe('ExploreToolbar', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/explore/traces/`,
-          query: {
-            groupBy: 'custom.measurement',
-          },
+          query: {groupBy: 'custom.measurement'},
         },
       },
     });
@@ -802,11 +779,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -858,11 +831,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -875,12 +844,7 @@ describe('ExploreToolbar', () => {
         dataset: [],
         environment: [],
         field: [
-          {
-            attrType: 'string',
-            error: null,
-            name: 'valid.first',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'valid.first', valid: true},
           {
             attrType: null,
             error: 'Invalid attribute',
@@ -890,11 +854,7 @@ describe('ExploreToolbar', () => {
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -950,20 +910,11 @@ describe('ExploreToolbar', () => {
             name: 'invalid.attribute',
             valid: false,
           },
-          {
-            attrType: 'string',
-            error: null,
-            name: 'span.op',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'span.op', valid: true},
         ],
         orderby: [],
         projects: [],
-        query: {
-          error: null,
-          fields: [],
-          valid: true,
-        },
+        query: {error: null, fields: [], valid: true},
         valid: false,
       },
     });
@@ -1175,10 +1126,7 @@ describe('ExploreToolbar', () => {
       additionalWrapper: Wrapper,
       organization: OrganizationFixture({features: ['low-priority-queries']}),
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/',
-          query: {id: '1'},
-        },
+        location: {pathname: '/organizations/org-slug/explore/traces/', query: {id: '1'}},
       },
     });
 
@@ -1212,10 +1160,7 @@ describe('ExploreToolbar', () => {
       additionalWrapper: Wrapper,
       organization: OrganizationFixture({features: ['low-priority-queries']}),
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/org-slug/explore/traces/',
-          query: {id: '1'},
-        },
+        location: {pathname: '/organizations/org-slug/explore/traces/', query: {id: '1'}},
       },
     });
 
@@ -1404,9 +1349,7 @@ describe('ExploreToolbar', () => {
     );
 
     await userEvent.click(
-      within(visualizeSection).getByRole('button', {
-        name: 'Add Chart',
-      })
+      within(visualizeSection).getByRole('button', {name: 'Add Chart'})
     );
 
     const section = screen.getByTestId('section-sort-by');
@@ -1820,12 +1763,7 @@ describe('ExploreToolbar', () => {
             fields: ['count(span.duration)'],
             groupby: ['span.op'],
             orderby: '-count(span.duration)',
-            visualize: [
-              {
-                chartType: 1,
-                yAxes: ['count(span.duration)'],
-              },
-            ],
+            visualize: [{chartType: 1, yAxes: ['count(span.duration)']}],
             mode: 'aggregate',
           },
         ],
@@ -1868,9 +1806,7 @@ describe('ExploreToolbar', () => {
     await userEvent.click(within(section).getByRole('button', {name: 'Desc'}));
     await userEvent.click(within(section).getByRole('option', {name: 'Asc'}));
     expect(router.location.query).toEqual(
-      expect.objectContaining({
-        aggregateSort: 'count(span.duration)',
-      })
+      expect.objectContaining({aggregateSort: 'count(span.duration)'})
     );
 
     // After navigation, the save action should switch to the update state.
@@ -1884,9 +1820,7 @@ describe('ExploreToolbar', () => {
       initialRouterConfig: {
         location: {
           pathname: '/traces/',
-          query: {
-            crossEvents: JSON.stringify([{query: '', type: 'spans'}]),
-          },
+          query: {crossEvents: JSON.stringify([{query: '', type: 'spans'}])},
         },
       },
     });

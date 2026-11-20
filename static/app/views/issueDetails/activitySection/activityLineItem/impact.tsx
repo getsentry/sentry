@@ -48,9 +48,7 @@ export function ActivityLineImpact({
           title={assessed ? t('Impact assessed') : t("Impact wasn't assessed")}
           details={
             assessed
-              ? tct('as [impact]', {
-                  impact: <ImpactChip level={level} score={score} />,
-                })
+              ? tct('as [impact]', {impact: <ImpactChip level={level} score={score} />})
               : undefined
           }
           timestamp={

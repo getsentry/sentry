@@ -17,10 +17,7 @@ import {
   shouldInlineComponentValue,
 } from './utils';
 
-type Props = {
-  component: EventGroupComponent;
-  showNonContributing: boolean;
-};
+type Props = {component: EventGroupComponent; showNonContributing: boolean};
 
 function GroupingComponentChildren({component, showNonContributing}: Props) {
   return (
@@ -156,10 +153,7 @@ export const GroupingHint = styled('small')`
   font-size: 0.8em;
 `;
 
-const GroupingValue = styled('code')<{
-  valueType: string;
-  contributes?: boolean;
-}>`
+const GroupingValue = styled('code')<{valueType: string; contributes?: boolean}>`
   display: inline-block;
   margin: ${p => p.theme.space['2xs']} ${p => p.theme.space.xs}
     ${p => p.theme.space['2xs']} 0;

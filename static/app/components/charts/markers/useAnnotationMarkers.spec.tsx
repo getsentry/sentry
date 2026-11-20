@@ -79,8 +79,6 @@ describe('useAnnotationMarkers', () => {
         {type: 'circle', shape: {cx: 120, cy: 10}},
       ],
     });
-    expect(single).toMatchObject({
-      children: [{shape: {x1: 300}}, {shape: {cx: 300}}],
-    });
+    expect(single).toMatchObject({children: [{shape: {x1: 300}}, {shape: {cx: 300}}]});
   });
 });

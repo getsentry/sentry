@@ -7,10 +7,7 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 
-export type Measurement = {
-  key: string;
-  name: string;
-};
+export type Measurement = {key: string; name: string};
 
 type MeasurementCollection = Record<string, Measurement>;
 
@@ -21,10 +18,7 @@ function measurementsFromDetails(
 ): MeasurementCollection {
   return Object.fromEntries(
     Object.entries(details).map(([key, value]) => {
-      const newValue: Measurement = {
-        name: value.name,
-        key,
-      };
+      const newValue: Measurement = {name: value.name, key};
       return [key, newValue];
     })
   );
@@ -37,13 +31,9 @@ export function getMeasurements() {
   return {...WEB_MEASUREMENTS, ...MOBILE_MEASUREMENTS};
 }
 
-type ChildrenProps = {
-  measurements: MeasurementCollection;
-};
+type ChildrenProps = {measurements: MeasurementCollection};
 
-type Props = {
-  children: (props: ChildrenProps) => React.ReactNode;
-};
+type Props = {children: (props: ChildrenProps) => React.ReactNode};
 
 export function Measurements({children}: Props) {
   const measurements = getMeasurements();

@@ -6,7 +6,7 @@ __all__ = ["FeatureManager"]
 
 import abc
 from collections import defaultdict
-from collections.abc import Iterable, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
@@ -552,7 +552,7 @@ class FeatureManager(RegisteredFeatureManager):
 
     def batch_has_for_organizations(
         self, feature_name: str, organizations: Sequence[Organization]
-    ) -> dict[str, bool] | None:
+    ) -> Mapping[str, bool | None] | None:
         """
         Check the same set of feature flags for multiple organizations at once.
 
@@ -577,7 +577,7 @@ class FeatureManager(RegisteredFeatureManager):
                         feature_name, organizations
                     )
             else:
-                results: dict[str, bool] = {}
+                results: dict[str, bool | None] = {}
                 for organization in organizations:
                     org_key = f"organization:{organization.id}"
                     results[org_key] = self.has(feature_name, organization)

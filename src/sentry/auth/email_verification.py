@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.signing import BadSignature, SignatureExpired
 from django.urls import reverse
 
-from sentry import analytics, options
+from sentry import analytics
 from sentry import ratelimits as ratelimiter
 from sentry.analytics.events.signup_email_verification import SignupEmailVerificationSentEvent
 from sentry.utils.dates import format_duration
@@ -96,7 +96,7 @@ def send_signup_verification_email(
     }
 
     msg = MessageBuilder(
-        subject="{}Confirm Email".format(options.get("mail.subject-prefix")),
+        subject=f"{settings.EMAIL_SUBJECT_PREFIX}Confirm Email",
         template="sentry/emails/confirm_email.txt",
         html_template="sentry/emails/confirm_email.html",
         type="user.confirm_email",

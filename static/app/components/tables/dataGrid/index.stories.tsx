@@ -74,10 +74,7 @@ export default Storybook.story('DataGrid', story => {
         <DataGrid
           data={data}
           columnOrder={columnsWithWidth}
-          grid={{
-            renderHeadCell,
-            renderBodyCell,
-          }}
+          grid={{renderHeadCell, renderBodyCell}}
         />
       </Fragment>
     );
@@ -134,9 +131,7 @@ export default Storybook.story('DataGrid', story => {
   });
 
   story('Column Resize', () => {
-    const queryBasedColumnResize = useQueryBasedColumnResize({
-      columns: columnsWithWidth,
-    });
+    const queryBasedColumnResize = useQueryBasedColumnResize({columns: columnsWithWidth});
 
     return (
       <Fragment>
@@ -154,10 +149,7 @@ export default Storybook.story('DataGrid', story => {
             <DataGrid
               data={data}
               columnOrder={columnsWithWidth}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
             />
           </div>
           <div>
@@ -185,10 +177,7 @@ export default Storybook.story('DataGrid', story => {
     <DataGrid
       data={data}
       columnOrder={columns}
-      grid={{
-        renderHeadCell,
-        renderBodyCell,
-      }}
+      grid={{renderHeadCell, renderBodyCell}}
       height="200px"
       stickyHeader
     />
@@ -207,10 +196,7 @@ export default Storybook.story('DataGrid', story => {
             <DataGrid
               data={data}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               height="200px"
             />
           </div>
@@ -219,10 +205,7 @@ export default Storybook.story('DataGrid', story => {
             <DataGrid
               data={data}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               stickyHeader
               height="200px"
             />
@@ -264,10 +247,7 @@ export default Storybook.story('DataGrid', story => {
             <DataGrid
               data={newData}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
             />
           </div>
           <div style={{width: 400}}>
@@ -275,10 +255,7 @@ export default Storybook.story('DataGrid', story => {
             <DataGrid
               data={newData}
               columnOrder={columns}
-              grid={{
-                renderHeadCell,
-                renderBodyCell,
-              }}
+              grid={{renderHeadCell, renderBodyCell}}
               fit="max-content"
             />
           </div>

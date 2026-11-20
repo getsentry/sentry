@@ -14,21 +14,9 @@ import {FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {ColumnEditorModal} from './columnEditorModal';
 
 const stringTags: TagCollection = {
-  id: {
-    key: 'id',
-    name: 'id',
-    kind: FieldKind.TAG,
-  },
-  project: {
-    key: 'project',
-    name: 'project',
-    kind: FieldKind.TAG,
-  },
-  'span.op': {
-    key: 'span.op',
-    name: 'span.op',
-    kind: FieldKind.TAG,
-  },
+  id: {key: 'id', name: 'id', kind: FieldKind.TAG},
+  project: {key: 'project', name: 'project', kind: FieldKind.TAG},
+  'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
 };
 
 const numberTags: TagCollection = {

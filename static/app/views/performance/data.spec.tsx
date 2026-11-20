@@ -103,11 +103,7 @@ describe('generateGenericPerformanceEventView()', () => {
 
   it('removes unsupported tokens for limited search', () => {
     const result = generateGenericPerformanceEventView(
-      LocationFixture({
-        query: {
-          query: 'tag:value transaction:*auth*',
-        },
-      }),
+      LocationFixture({query: {query: 'tag:value transaction:*auth*'}}),
       true
     );
     expect(result.query).toBe('transaction:*auth*');

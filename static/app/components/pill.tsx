@@ -25,27 +25,15 @@ export const Pill = memo(function PillComponent({
     switch (value) {
       case 'true':
       case true:
-        return {
-          valueType: 'positive',
-          renderValue: 'true',
-        };
+        return {valueType: 'positive', renderValue: 'true'};
       case 'false':
       case false:
-        return {
-          valueType: 'negative',
-          renderValue: 'false',
-        };
+        return {valueType: 'negative', renderValue: 'false'};
       case null:
       case undefined:
-        return {
-          valueType: 'error',
-          renderValue: 'n/a',
-        };
+        return {valueType: 'error', renderValue: 'n/a'};
       default:
-        return {
-          valueType: undefined,
-          renderValue: String(value),
-        };
+        return {valueType: undefined, renderValue: String(value)};
     }
   };
 

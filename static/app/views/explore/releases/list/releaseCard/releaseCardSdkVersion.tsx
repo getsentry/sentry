@@ -8,9 +8,7 @@ import {
   type ReleaseSdkVersion,
 } from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
-type Props = {
-  sdkVersions: ReleaseSdkVersion[];
-};
+type Props = {sdkVersions: ReleaseSdkVersion[]};
 
 export function ReleaseCardSdkVersion({sdkVersions}: Props) {
   const [primary, ...others] = sdkVersions;

@@ -470,6 +470,8 @@ jobs:
       pull-requests: write
     env:
       MIGRATION_DB_DIR: .artifacts/migration-test-db
+      # v1 dumps hold rows that tests left in seer_workflowtriggerbinding.
+      MIGRATION_DB_CACHE_PREFIX: migration-test-db-v2-
       SAVE_MIGRATION_DB: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
@@ -490,19 +492,20 @@ jobs:
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ env.MIGRATION_DB_DIR }}
-          key: migration-test-db-v1-${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
-          restore-keys: migration-test-db-v1-
+          key: ${{ env.MIGRATION_DB_CACHE_PREFIX }}${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
+          restore-keys: ${{ env.MIGRATION_DB_CACHE_PREFIX }}
 
       - name: Load migrated test databases
         run: .github/workflows/scripts/migration-test-db.py restore "$MIGRATION_DB_DIR"
 
-      - name: run tests
-        run: |
-          make test-migrations-ci
-
+      # Dump before the tests run, so the cache never holds rows that tests leave behind.
       - name: Dump migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
         run: .github/workflows/scripts/migration-test-db.py save "$MIGRATION_DB_DIR"
+
+      - name: run tests
+        run: |
+          make test-migrations-ci
 
       - name: Save migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'

@@ -218,10 +218,7 @@ export function SetupReplaysCTA({disabled, primaryAction}: SetupReplaysCTAProps)
       >
         <LinkButton
           data-test-id="create-project-btn"
-          to={makeProjectsPathname({
-            path: '/new/',
-            organization,
-          })}
+          to={makeProjectsPathname({path: '/new/', organization})}
           variant="primary"
           disabled={disabled}
         >

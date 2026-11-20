@@ -55,6 +55,14 @@ export function getServiceAccountProjectIds(
   ].sort((a, b) => Number(a) - Number(b));
 }
 
+export const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
+  'event:read',
+  'member:read',
+  'org:read',
+  'project:read',
+  'team:read',
+];
+
 const RESOURCE_ORDER = [
   'Event',
   'Alerts',
@@ -183,10 +191,7 @@ export function ServiceAccountProjects({
             }))}
             value={value.projectIds.filter(id => !monitorCounts.has(id))}
             onChange={selected =>
-              onChange({
-                ...value,
-                projectIds: selected.map(option => option.value),
-              })
+              onChange({...value, projectIds: selected.map(option => option.value)})
             }
             emptyMessage={t('No other projects to add')}
             trigger={triggerProps => (

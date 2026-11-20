@@ -27,11 +27,13 @@ export function GridFooter(props: React.ComponentProps<typeof motion.div> & Grid
     <Container {...footerChromeProps} containerType="inline-size">
       <MotionGrid
         height="100%"
-        // Below xl the hidden slots leave a single visible child. Flowing in
-        // one column-direction row keeps it on the footer's baseline; explicit
-        // equal tracks would put each child on its own row instead.
-        flow={{zero: 'column', xl: 'row'}}
-        columns={{zero: 'none', xl: 'repeat(3, 1fr)'}}
+        align="center"
+        gap="md"
+        // Equal tracks center the status under the page content, but on narrow
+        // screens they squeeze the buttons, so sizing the side tracks to their
+        // content leaves the middle track whatever width is left.
+        columns={{zero: 'auto 1fr auto', xl: 'repeat(3, 1fr)'}}
+        padding={{zero: '0 md', md: '0 3xl'}}
         {...ONBOARDING_STAGGER}
         {...props}
       />

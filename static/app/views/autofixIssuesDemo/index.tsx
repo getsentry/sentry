@@ -164,9 +164,7 @@ export default function AutofixIssuesDemo() {
               isLoading={isPending}
               data={issues}
               columnOrder={columnOrder}
-              grid={{
-                renderBodyCell,
-              }}
+              grid={{renderBodyCell}}
               emptyMessage={t('No autofix issues found for this organization.')}
             />
             <Pagination {...getPaginationProps(pageLinks)} />

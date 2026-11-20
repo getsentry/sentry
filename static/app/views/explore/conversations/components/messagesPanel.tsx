@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
-import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,7 +12,11 @@ import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+  TurnMetaValue,
+} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
@@ -25,6 +28,7 @@ import {
   callContainsNode,
   type ConversationMessage,
   extractMessagesFromNodes,
+  getConversationSystemPrompt,
   NOT_REPORTED,
   someMessageDeep,
 } from 'sentry/views/explore/conversations/utils/conversationMessages';
@@ -57,6 +61,11 @@ interface MessagesPanelProps {
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
+   * The transcript of `nodes`, for a caller that already built it. Built here
+   * when omitted.
+   */
+  messages?: ConversationMessage[];
+  /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
    */
@@ -72,8 +81,13 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: messagesProp,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => messagesProp ?? extractMessagesFromNodes(nodes),
+    [messagesProp, nodes]
+  );
+  const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
     const map = new Map<string, AITraceSpanNode>();
@@ -105,6 +119,11 @@ export function MessagesPanel({
   return (
     <PanelContainer>
       {hasNotReportedContent && <NotReportedAlert nodes={nodes} />}
+      {systemPrompt && (
+        <MessageRow from="assistant" density="line">
+          <SystemPromptSection systemPrompt={systemPrompt} />
+        </MessageRow>
+      )}
       <TranscriptMessages
         messages={messages}
         nodeMap={nodeMap}
@@ -411,18 +430,12 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
     <TurnMeta
       metric={
         cost === undefined || cost <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
+          <TurnMetaValue>
             <LLMCosts cost={cost} />
-          </Text>
+          </TurnMetaValue>
         )
       }
-      duration={
-        duration === undefined || duration <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, {precision: 2, style: 'short'})}
-          </Text>
-        )
-      }
+      duration={duration}
     />
   );
 }
@@ -461,18 +474,12 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
           <TurnMeta
             metric={
               tokens === undefined || tokens <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
+                <TurnMetaValue>
                   <Count value={tokens} /> {t('tokens')}
-                </Text>
+                </TurnMetaValue>
               )
             }
-            duration={
-              message.duration === undefined || message.duration <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, {precision: 2, style: 'short'})}
-                </Text>
-              )
-            }
+            duration={message.duration}
           />
         }
         onOpenChange={open => {
@@ -685,6 +692,43 @@ function ReasoningSection({
   );
 }
 
+// Collapsed by default: system prompts are long. Memoized since its only prop
+// is a string, so selection changes never re-render the (possibly long) prompt.
+const SystemPromptSection = memo(function SystemPromptSectionImpl({
+  systemPrompt,
+}: {
+  systemPrompt: string;
+}) {
+  const organization = useOrganization();
+
+  return (
+    <CollapsibleChatRow
+      title={isOpen => (
+        <Text size="sm" variant="muted" ellipsis monospace>
+          {t('System prompt')}{' '}
+          {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
+        </Text>
+      )}
+      onOpenChange={open =>
+        trackAnalytics('conversations.detail.expand-system-prompt', {
+          organization,
+          expanded: open,
+        })
+      }
+    >
+      <Flex>
+        <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
+          {/* Rendered like the span's Input tab: a boxed block that keeps the
+           * prompt's line breaks, with a Pretty/Raw toggle. Not clipped, since
+           * expanding the row already asked to see the whole prompt. */}
+          <AIContentRenderer text={systemPrompt} clip={false} autoCollapseLimit={10} />
+        </Container>
+        <Container width={TURN_META_WIDTH} flexShrink={0} />
+      </Flex>
+    </CollapsibleChatRow>
+  );
+});
+
 /**
  * Links to the docs for the conversation's platform, since the transcript was
  * built from placeholders because its inference spans captured no input or
@@ -747,9 +791,7 @@ function EmptyNotice({children}: {children: React.ReactNode}) {
  */
 export function MessagesPanelSkeleton() {
   const theme = useTheme();
-  const invertedPlaceholderStyle = {
-    backgroundColor: theme.tokens.background.primary,
-  };
+  const invertedPlaceholderStyle = {backgroundColor: theme.tokens.background.primary};
 
   return (
     <PanelContainer>

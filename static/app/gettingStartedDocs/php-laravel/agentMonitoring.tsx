@@ -21,10 +21,7 @@ export const agentMonitoring: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Agent monitoring for Laravel uses the [code:laravel/ai] package and [code:sentry/sentry-laravel] version [minVersion] or newer.',
-            {
-              code: <code />,
-              minVersion: <code>{MIN_REQUIRED_VERSION}</code>,
-            }
+            {code: <code />, minVersion: <code>{MIN_REQUIRED_VERSION}</code>}
           ),
         },
         {

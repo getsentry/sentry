@@ -13,16 +13,8 @@ import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
 type DiscordOAuthStepData =
-  | {
-      appDirectoryInstall: true;
-      code: string;
-      guildId: string;
-      state: string;
-    }
-  | {
-      appDirectoryInstall?: false;
-      oauthUrl?: string;
-    };
+  | {appDirectoryInstall: true; code: string; guildId: string; state: string}
+  | {appDirectoryInstall?: false; oauthUrl?: string};
 
 function DiscordOAuthLoginStep({
   stepData,
@@ -48,11 +40,7 @@ function DiscordOAuthLoginStep({
       return;
     }
     hasAutoAdvanced.current = true;
-    advance({
-      code: stepData.code,
-      guildId: stepData.guildId,
-      state: stepData.state,
-    });
+    advance({code: stepData.code, guildId: stepData.guildId, state: stepData.state});
   }, [stepData, advance]);
 
   if (stepData?.appDirectoryInstall) {

@@ -53,18 +53,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -92,18 +86,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     const {container} = render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });
@@ -131,18 +119,12 @@ describe('withDomainRequired', () => {
       },
     });
 
-    const organization = OrganizationFixture({
-      slug: 'albertos-apples',
-      features: [],
-    });
+    const organization = OrganizationFixture({slug: 'albertos-apples', features: []});
     const WrappedComponent = withDomainRequired(MyComponent);
     render(<WrappedComponent />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/albertos-apples/issues/',
-          query: {q: '123'},
-        },
+        location: {pathname: '/organizations/albertos-apples/issues/', query: {q: '123'}},
         route: '/organizations/:orgId/issues/',
       },
     });

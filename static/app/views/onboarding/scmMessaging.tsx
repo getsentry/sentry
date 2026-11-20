@@ -178,9 +178,7 @@ export function ScmMessaging({
             notification: notificationRule ? 'integration' : 'email_only',
           });
         }
-        onComplete(selectedPlatform, {
-          product: selectedFeatures ?? DEFAULT_SCM_FEATURES,
-        });
+        onComplete(selectedPlatform, {product: selectedFeatures ?? DEFAULT_SCM_FEATURES});
       },
     });
   };

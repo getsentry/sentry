@@ -773,6 +773,10 @@ class SeerAgentClient:
         if run is None:
             raise SeerPermissionError(UNKNOWN_RUN_ID_FOR_GROUP)
 
+        user_org_context = collect_user_org_context(
+            self.user, self.organization, request=request, include_projects_and_teams=False
+        )
+
         agent_run_options: dict[str, Any] = {
             "enable_coding": self.enable_coding,
             "enable_code_mode_tools": self.enable_code_mode_tools,
@@ -795,6 +799,7 @@ class SeerAgentClient:
             page_name=page_name,
             page_location=page_location,
             sent_at=sent_at,
+            user_org_context=user_org_context,
             is_interactive=self.is_interactive,
             agent_run_options=agent_run_options,
             proxy_headers=get_proxy_headers() if self.enable_code_mode_tools != "off" else None,
