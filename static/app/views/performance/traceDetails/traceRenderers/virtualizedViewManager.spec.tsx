@@ -456,6 +456,106 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
+  describe('clock drift ghost', () => {
+    function makeManager() {
+      const manager = new VirtualizedViewManager(
+        {list: {width: 0}, span_list: {width: 1}},
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.recomputeSpanToPXMatrix();
+      return manager;
+    }
+
+    function drawGhost(
+      space: [number, number],
+      offsetMs: number,
+      manager = makeManager()
+    ) {
+      const ghost = {
+        ghostRef: document.createElement('div'),
+        connectorRef: document.createElement('div'),
+        offsetMs,
+        space,
+      };
+      manager.registerClockDriftGhost(ghost, 0);
+      return ghost;
+    }
+
+    it('connects the recorded position to the start of a span shifted later', () => {
+      const {ghostRef, connectorRef} = drawGhost([400, 50], 300);
+
+      expect(ghostRef).toHaveStyle({display: ''});
+      expect(ghostRef).toHaveStyle({transform: 'translateX(100px)'});
+      expect(ghostRef).toHaveStyle({width: '50px'});
+      expect(connectorRef).toHaveStyle({display: ''});
+      expect(connectorRef.dataset.direction).toBe('right');
+      expect(connectorRef).toHaveStyle({transform: 'translateX(150px)'});
+      expect(connectorRef).toHaveStyle({width: '250px'});
+    });
+
+    it('connects the recorded position to the end of a span shifted earlier', () => {
+      const {ghostRef, connectorRef} = drawGhost([100, 50], -300);
+
+      expect(ghostRef).toHaveStyle({transform: 'translateX(400px)'});
+      expect(connectorRef.dataset.direction).toBe('left');
+      expect(connectorRef).toHaveStyle({transform: 'translateX(150px)'});
+      expect(connectorRef).toHaveStyle({width: '250px'});
+    });
+
+    it('only shows the recorded position if it is too close for a connector', () => {
+      const {ghostRef, connectorRef} = drawGhost([400, 50], 55);
+
+      expect(ghostRef).toHaveStyle({display: ''});
+      expect(connectorRef).toHaveStyle({display: 'none'});
+    });
+
+    it('connects the left edge of the view if the recorded position is earlier than the view', () => {
+      const {ghostRef, connectorRef} = drawGhost([400, 50], 2000);
+
+      expect(ghostRef).toHaveStyle({display: 'none'});
+      expect(connectorRef).toHaveStyle({display: ''});
+      expect(connectorRef.dataset.direction).toBe('right');
+      expect(connectorRef).toHaveStyle({transform: 'translateX(4px)'});
+      expect(connectorRef).toHaveStyle({width: '396px'});
+    });
+
+    it('connects the right edge of the view if the recorded position is later than the view', () => {
+      const {ghostRef, connectorRef} = drawGhost([100, 50], -5000);
+
+      expect(ghostRef).toHaveStyle({display: 'none'});
+      expect(connectorRef.dataset.direction).toBe('left');
+      expect(connectorRef).toHaveStyle({transform: 'translateX(150px)'});
+      expect(connectorRef).toHaveStyle({width: `${1000 - 4 - 150}px`});
+    });
+
+    it('ends the connector before the duration label of the span', () => {
+      const manager = makeManager();
+      const space: [number, number] = [800, 100];
+      const node = {
+        errors: new Set(),
+        occurrences: new Set(),
+        clockDriftOffsetMs: 700,
+        clockDriftCorrection: {offsetMs: 700},
+        makeBarTextColor: () => '',
+      } as unknown as BaseNode;
+      manager.columns.list.column_nodes[0] = node;
+      manager.registerSpanBarTextRef(document.createElement('div'), '100.00ms', space, 0);
+
+      // The span is in the right half, so its duration label sits left of it
+      const [inside, textX] = manager.computeSpanTextPlacement(node, space, '100.00ms');
+      expect(inside).toBe(0);
+
+      const {connectorRef} = drawGhost(space, 700, manager);
+
+      expect(connectorRef).toHaveStyle({transform: 'translateX(200px)'});
+      expect(connectorRef).toHaveStyle({width: `${textX! - 4 - 200}px`});
+    });
+  });
+
   describe('isTimestampInsideCollapsedGap', () => {
     it('only treats timestamps inside collapsed gaps as hidden timeline intervals', () => {
       const manager = new VirtualizedViewManager(

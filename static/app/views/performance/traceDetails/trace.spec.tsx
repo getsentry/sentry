@@ -1545,6 +1545,54 @@ describe('trace view', () => {
         await screen.findByText('Shifted by +2.00s to correct for clock drift')
       ).toBeInTheDocument();
     });
+
+    it('shows the recorded position only for the selected span', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      const serverRow = await screen.findByText('server request');
+      expect(screen.getByTestId('trace-clock-drift-icon')).toBeInTheDocument();
+      expect(screen.queryByTestId('trace-clock-drift-ghost')).not.toBeInTheDocument();
+
+      await userEvent.click(serverRow);
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
+
+      await userEvent.click(screen.getByText('GET /api/0/projects/'));
+
+      await waitFor(() => {
+        expect(screen.queryByTestId('trace-clock-drift-ghost')).not.toBeInTheDocument();
+      });
+    });
+
+    it('shows the recorded position of a selected span that moved along with its parent', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('SELECT * FROM projects'));
+
+      expect(await screen.findByTestId('trace-clock-drift-ghost')).toBeInTheDocument();
+      // Only the root of the moved subtree is marked in the duration label
+      expect(screen.getAllByTestId('trace-clock-drift-icon')).toHaveLength(1);
+    });
+
+    it('explains the shift when hovering the recorded position', async () => {
+      mockClockDriftTrace();
+      storeClockDriftCorrectionPreference();
+
+      render(<TraceView />, {initialRouterConfig, organization});
+
+      await userEvent.click(await screen.findByText('server request'));
+      await userEvent.hover(await screen.findByTestId('trace-clock-drift-ghost'));
+
+      expect(
+        await screen.findByText('Shifted by +2.00s to correct for clock drift')
+      ).toBeInTheDocument();
+    });
   });
 
   describe('pageload', () => {

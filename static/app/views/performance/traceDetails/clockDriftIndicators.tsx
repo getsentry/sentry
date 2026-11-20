@@ -1,3 +1,4 @@
+import {Fragment, useLayoutEffect, useRef} from 'react';
 import {IconClock} from '@sentry/icons/clock';
 
 import {Tag} from '@sentry/scraps/badge';
@@ -10,6 +11,7 @@ import {
   formatClockDriftOffset,
   type ClockDriftCorrection,
 } from './traceModels/clockDriftCorrection';
+import type {VirtualizedViewManager} from './traceRenderers/virtualizedViewManager';
 
 /**
  * The clock drift icon is part of the span's duration label. The label placement makes room for it,
@@ -22,8 +24,9 @@ export const CLOCK_DRIFT_ICON_GAP_PX = 4;
 // place when the correction is toggled, so the React Compiler would not see a change in the node.
 
 /**
- * Explains the shift of a span in the waterfall. Wraps the duration label of the span. Renders the
- * element as is if the span was not shifted.
+ * Explains the shift of a span in the waterfall. Wraps the elements that show the shift: the
+ * duration label, and the ghost and connector of the selected span. Renders the element as is if
+ * the span was not shifted.
  *
  * The element must be a DOM element, so the tooltip can attach to it without a wrapper that would
  * break its positioning.
@@ -99,5 +102,65 @@ export function ClockDriftTag({offsetMs}: {offsetMs: number}) {
         {tct('Shifted [offset]', {offset: formatClockDriftOffset(offsetMs)})}
       </Tag>
     </Tooltip>
+  );
+}
+
+/**
+ * Shows where the selected span was recorded, before it was shifted to correct for clock drift. The
+ * view manager positions the elements, like it does for span bars.
+ *
+ * Shown for every shifted span, not only the root of a moved subtree, so selecting a child shows
+ * where it was recorded too. Only the selected span gets one, as all spans of a moved subtree are
+ * shifted by the same offset, and a ghost on each would repeat the same arrow.
+ */
+export function ClockDriftGhost({
+  manager,
+  offsetMs,
+  selected,
+  space,
+  virtualizedIndex,
+}: {
+  manager: VirtualizedViewManager;
+  /**
+   * The total offset the span was shifted by. This includes the shifts of all moved subtrees the
+   * span is part of, so subtracting it from the span's space gives where it was recorded.
+   */
+  offsetMs: number;
+  selected: boolean;
+  space: [number, number];
+  virtualizedIndex: number;
+}) {
+  const ghostRef = useRef<HTMLDivElement>(null);
+  const connectorRef = useRef<HTMLDivElement>(null);
+  const visible = selected && offsetMs !== 0;
+
+  useLayoutEffect(() => {
+    if (!visible || !ghostRef.current || !connectorRef.current) {
+      return;
+    }
+    manager.registerClockDriftGhost(
+      {ghostRef: ghostRef.current, connectorRef: connectorRef.current, offsetMs, space},
+      virtualizedIndex
+    );
+    return () => manager.registerClockDriftGhost(null, virtualizedIndex);
+  }, [visible, manager, offsetMs, space, virtualizedIndex]);
+
+  if (!visible) {
+    return null;
+  }
+
+  return (
+    <Fragment>
+      <ClockDriftTooltip offsetMs={offsetMs}>
+        <div
+          ref={ghostRef}
+          className="TraceClockDriftGhost"
+          data-test-id="trace-clock-drift-ghost"
+        />
+      </ClockDriftTooltip>
+      <ClockDriftTooltip offsetMs={offsetMs}>
+        <div ref={connectorRef} className="TraceClockDriftConnector" />
+      </ClockDriftTooltip>
+    </Fragment>
   );
 }

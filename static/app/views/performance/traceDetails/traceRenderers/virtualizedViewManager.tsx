@@ -148,6 +148,11 @@ export class VirtualizedViewManager {
   span_text: Array<
     {ref: HTMLElement; space: [number, number]; text: string} | undefined
   > = [];
+  /**
+   * The recorded position of a span that was shifted to correct for clock drift. Only registered
+   * for the selected row.
+   */
+  clock_drift_ghosts: Array<RegisteredClockDriftGhost | undefined> = [];
 
   row_depth_padding = 22;
 
@@ -517,6 +522,15 @@ export class VirtualizedViewManager {
       this.drawSpanBar(this.span_bars[index]!);
       this.span_bars[index]!.ref.style.backgroundColor = color;
     }
+  }
+
+  registerClockDriftGhost(ghost: RegisteredClockDriftGhost | null, index: number) {
+    if (!ghost) {
+      this.clock_drift_ghosts[index] = undefined;
+      return;
+    }
+    this.clock_drift_ghosts[index] = ghost;
+    this.drawClockDriftGhost(ghost, index);
   }
 
   registerArrowRef(ref: HTMLElement | null, space: [number, number], index: number) {
@@ -1711,6 +1725,10 @@ export class VirtualizedViewManager {
       this.drawSpanArrow(this.span_arrows[i], false, 0);
     }
 
+    this.clock_drift_ghosts.forEach((ghost, index) =>
+      this.drawClockDriftGhost(ghost, index)
+    );
+
     this.drawInvisibleBars();
     this.drawVerticalIndicators();
 
@@ -1871,6 +1889,104 @@ export class VirtualizedViewManager {
       // @ts-expect-error TS(2345): Argument of type 'number' is not assignable to par... Remove this comment to see the full error message
       isNaN(inverseScale) ? 1 : inverseScale
     );
+  }
+
+  /**
+   * Draws the recorded position of a span shifted for clock drift, with a connector to where it is
+   * shown now. If the recorded position is out of view or inside a collapsed gap, where its position
+   * would be meaningless, only the connector is drawn, from the edge of the view it lies beyond.
+   */
+  drawClockDriftGhost(ghost: RegisteredClockDriftGhost | undefined, index: number) {
+    if (!ghost) {
+      return;
+    }
+
+    const recordedStart = ghost.space[0] - ghost.offsetMs;
+    const recordedEnd = recordedStart + ghost.space[1];
+    const width = this.view.trace_physical_space.width;
+    // The span was recorded earlier than it is shown if it was shifted right, and vice versa
+    const movedRight = ghost.offsetMs > 0;
+
+    const left = this.transformXFromTimestamp(recordedStart);
+    const right = this.transformXFromTimestamp(recordedEnd);
+    const [targetLeft, targetRight] = this.getClockDriftTargetBounds(ghost, index);
+
+    const outOfView = right < 0 || left > width;
+    const collapsed =
+      this.isTimestampInsideCollapsedGap(recordedStart) ||
+      this.isTimestampInsideCollapsedGap(recordedEnd);
+
+    if (outOfView || collapsed) {
+      ghost.ghostRef.style.display = 'none';
+      if (movedRight) {
+        this.drawClockDriftConnector(
+          ghost.connectorRef,
+          CLOCK_DRIFT_EDGE_PADDING_PX,
+          targetLeft,
+          'right'
+        );
+      } else {
+        this.drawClockDriftConnector(
+          ghost.connectorRef,
+          targetRight,
+          width - CLOCK_DRIFT_EDGE_PADDING_PX,
+          'left'
+        );
+      }
+      return;
+    }
+
+    ghost.ghostRef.style.display = '';
+    ghost.ghostRef.style.transform = `translateX(${left}px)`;
+    ghost.ghostRef.style.width = `${Math.max(right - left, CLOCK_DRIFT_GHOST_MIN_WIDTH_PX)}px`;
+
+    if (movedRight) {
+      this.drawClockDriftConnector(ghost.connectorRef, right, targetLeft, 'right');
+    } else {
+      this.drawClockDriftConnector(ghost.connectorRef, targetRight, left, 'left');
+    }
+  }
+
+  /**
+   * The horizontal bounds the clock drift connector should point at: the span bar, extended by its
+   * duration label if that sits outside of the bar, so the connector never runs through the label.
+   */
+  private getClockDriftTargetBounds(
+    ghost: RegisteredClockDriftGhost,
+    index: number
+  ): [left: number, right: number] {
+    let left = this.transformXFromTimestamp(ghost.space[0]);
+    let right = this.transformXFromTimestamp(ghost.space[0] + ghost.space[1]);
+
+    const text = this.span_text[index];
+    const node = this.columns.list.column_nodes[index];
+    if (text && node) {
+      const [inside, textX] = this.computeSpanTextPlacement(node, text.space, text.text);
+      if (!inside && textX !== null) {
+        const textWidth =
+          Math.ceil(this.text_measurer.measure(text.text)) + getLabelIconWidthPx(node);
+        left = Math.min(left, textX - CLOCK_DRIFT_CONNECTOR_GAP_PX);
+        right = Math.max(right, textX + textWidth + CLOCK_DRIFT_CONNECTOR_GAP_PX);
+      }
+    }
+
+    return [left, right];
+  }
+
+  private drawClockDriftConnector(
+    connector: HTMLElement,
+    from: number,
+    to: number,
+    direction: 'left' | 'right'
+  ) {
+    if (to - from < CLOCK_DRIFT_CONNECTOR_MIN_WIDTH_PX) {
+      connector.style.display = 'none';
+      return;
+    }
+    connector.style.display = '';
+    connector.dataset.direction = direction;
+    connector.style.transform = `translateX(${from}px)`;
+    connector.style.width = `${to - from}px`;
   }
 
   drawSpanText(span_text: this['span_text'][0], node: BaseNode | undefined) {
@@ -2335,6 +2451,30 @@ export class VirtualizedViewManager {
     }
   }
 }
+
+/**
+ * Space between the edge of the view and a connector starting there.
+ */
+const CLOCK_DRIFT_EDGE_PADDING_PX = 4;
+/**
+ * Space between the connector and the duration label it ends at.
+ */
+const CLOCK_DRIFT_CONNECTOR_GAP_PX = 4;
+const CLOCK_DRIFT_GHOST_MIN_WIDTH_PX = 2;
+/**
+ * Below this, the ghost and the bar are too close for a connector to say anything.
+ */
+const CLOCK_DRIFT_CONNECTOR_MIN_WIDTH_PX = 12;
+
+type RegisteredClockDriftGhost = {
+  connectorRef: HTMLElement;
+  ghostRef: HTMLElement;
+  offsetMs: number;
+  /**
+   * Where the span is shown, after the correction.
+   */
+  space: [number, number];
+};
 
 /**
  * The width of icons rendered inside the duration label, in addition to its text.
