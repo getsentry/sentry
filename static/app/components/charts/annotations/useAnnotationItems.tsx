@@ -18,11 +18,12 @@ export function useAnnotationItems({enabled}: {enabled: boolean}): AnnotationIte
       start: new Date(date).getTime(),
       title: version,
     })),
-    flag: flagLog?.map(({id, createdAt, flag}): AnnotationItem => ({
+    flag: flagLog?.map(({id, action, createdAt, flag}): AnnotationItem => ({
       id: `flag:${id}`,
       kind: 'flag',
       start: new Date(createdAt).getTime(),
       title: flag,
+      action,
     })),
   };
 }

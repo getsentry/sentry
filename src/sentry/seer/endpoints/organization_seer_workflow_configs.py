@@ -257,6 +257,10 @@ class WorkflowConfigUpdateSerializer(WorkflowConfigSerializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
+    # [] selects all environments; omitted leaves them unchanged.
+    environments = serializers.ListField(
+        child=serializers.CharField(max_length=64), required=False, allow_empty=True
+    )
     projectIds = serializers.ListField(
         child=serializers.IntegerField(min_value=ALL_ACCESS_PROJECT_ID),
         required=False,
@@ -638,25 +642,32 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
     def put(self, request: Request, organization: Organization, config_id: str) -> Response:
         """Update a saved Seer automation workflow.
 
-        Only the fields sent are changed. ``projectIds`` replaces the projects the
-        caller can access; selected projects the caller can't access are kept.
+                Only the fields sent are changed. ``projectIds`` replaces the projects the
+                caller can access; selected projects the caller can't access are kept.
 
-        - The same project-access rules apply here AND to the associated projects of ``monitorIds``.
-        - Changing the projects of a config that covers all projects requires global
-          access.
-        - ``monitorIds`` replaces the monitors of a metric automation and is rejected
-          for other strategies.
-        - Set ``slackChannel`` to replace a metric workflow's destination, or null to clear it.
-          Omitting the field preserves it. Like enabling or pausing, writing the destination
-          requires access to every project the config covers.
-        - ``serviceAccount`` replaces the scopes and projects of the automation's service
-          account. Like ``projectIds``, the account's projects the caller can't access are
-          kept, and scopes can't be added while any are.
-        - ``name`` renames the config. It is trimmed and must be non-empty.
+                - The same project-access rules apply here AND to the associated projects of ``monitorIds``.
+                - Changing the projects of a config that covers all projects requires global
+                  access.
+                - ``monitorIds`` replaces the monitors of a metric automation and is rejected
+                  for other strategies.
+        <<<<<<< HEAD
+                - Set ``slackChannel`` to replace a metric workflow's destination, or null to clear it.
+                  Omitting the field preserves it. Like enabling or pausing, writing the destination
+                  requires access to every project the config covers.
+        =======
+                - Enabling or pausing requires access to every project the config covers.
+                - ``environments`` replaces the environments the automation covers; ``[]``
+                  selects all environments. Like enabling, it requires access to every project
+                  the config covers.
+        >>>>>>> origin/master
+                - ``serviceAccount`` replaces the scopes and projects of the automation's service
+                  account. Like ``projectIds``, the account's projects the caller can't access are
+                  kept, and scopes can't be added while any are.
+                - ``name`` renames the config. It is trimmed and must be non-empty.
 
-        An update the caller isn't allowed to make returns a 403. One the automation
-        rejects returns a 400 with a generic detail. Returns the updated config in the
-        same shape as an item in the list endpoint's ``configs``.
+                An update the caller isn't allowed to make returns a 403. One the automation
+                rejects returns a 400 with a generic detail. Returns the updated config in the
+                same shape as an item in the list endpoint's ``configs``.
         """
         if not features.has("organizations:seer-automations", organization, actor=request.user):
             raise NotFound
@@ -681,6 +692,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         project_ids: list[int] | None = serializer.validated_data.get("projectIds")
         monitor_ids: list[int] | None = serializer.validated_data.get("monitorIds")
         name: str | None = serializer.validated_data.get("name")
+        # None means not sent; an empty list selects all environments.
+        environments: list[str] | None = serializer.validated_data.get("environments")
 
         # Checks that depend only on the request run before taking the lock.
         if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
@@ -717,7 +730,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if enabled is not None or channel_supplied:
+                if enabled is not None or environments is not None or channel_supplied:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -733,6 +746,9 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
                 if enabled is not None:
                     update.set_enabled(enabled)
+
+                if environments is not None:
+                    update.set_environments(environments)
 
                 if channel_supplied:
                     update.set_slack_channel(serializer.validated_data["slackChannel"])
