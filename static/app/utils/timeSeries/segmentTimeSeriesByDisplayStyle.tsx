@@ -4,6 +4,8 @@ import type {
   TimeSeriesItem,
 } from 'sentry/views/dashboards/widgets/common/types';
 
+import {isLowConfidenceTimeSeriesItem} from './timeSeriesItemConfidence';
+
 export type TimeSeriesDisplayStyle = 'normal' | 'lowConfidence' | 'incomplete';
 
 /**
@@ -70,7 +72,7 @@ const SEGMENTERS: Record<
   (item: TimeSeriesItem) => TimeSeriesDisplayStyle
 > = {
   completeness: item => (item.incomplete ? 'incomplete' : 'normal'),
-  confidence: item => (item.confidence === 'low' ? 'lowConfidence' : 'normal'),
+  confidence: item => (isLowConfidenceTimeSeriesItem(item) ? 'lowConfidence' : 'normal'),
 };
 
 const STYLE_PRECEDENCE: Record<TimeSeriesDisplayStyle, number> = {

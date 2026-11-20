@@ -166,6 +166,16 @@ describe('ContinuousTimeSeries', () => {
       expect(new Dots(timeSeries).confidence).toBe('low');
     });
 
+    it('counts extrapolated points with null confidence as low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {timestamp: 1, value: 1, sampleRate: 0.5, confidence: 'high'},
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: null},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('mixed');
+    });
+
     it('ignores points without a value', () => {
       const timeSeries = TimeSeriesFixture({
         values: [
