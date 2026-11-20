@@ -279,12 +279,13 @@ class BuildsExportEndpointTest(APITestCase):
         assert _col(rows[1], "artifact_id") == str(middle.id)
 
     def test_excludes_expired_artifacts(self) -> None:
+        # A build is exported until it expires, also after its size analysis has expired.
         self._create_installable_build(
-            app_id="recent.app", date_size_analysis_expires=before_now(days=-1)
+            app_id="recent.app",
+            date_expires=before_now(days=-1),
+            date_size_analysis_expires=before_now(days=1),
         )
-        self._create_installable_build(
-            app_id="expired.app", date_size_analysis_expires=before_now(days=1)
-        )
+        self._create_installable_build(app_id="expired.app", date_expires=before_now(days=1))
 
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 2
