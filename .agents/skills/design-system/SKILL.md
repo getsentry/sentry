@@ -478,9 +478,13 @@ Use these for `gap`, `padding`:
 
 ### Border Tokens (BorderVariant)
 
-Use these for `border` prop:
+Use these for the `border` props. A value is a path into `tokens.border`, matching the theme's token names:
 
-- `"primary"`, `"muted"`, `"accent"`, `"danger"`, `"promotion"`, `"success"`, `"warning"`
+- `"primary"`, `"secondary"`
+- `"<color>.muted"`, `"<color>.moderate"`, `"<color>.vibrant"`, where `<color>` is `neutral`, `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"accent.moderate"`)
+- `"transparent.<color>.<step>"` with the same colors and steps (e.g. `"transparent.neutral.muted"`)
+- `"onVibrant.light"`, `"onVibrant.dark"`
+- `"none"` removes a border, e.g. at a breakpoint or on one side
 
 ### Radius Tokens (RadiusSize)
 

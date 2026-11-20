@@ -5,8 +5,8 @@ import {ThemeProvider, css} from '@emotion/react';
 import {act, render, renderHook, screen} from '@testing-library/react';
 
 import {Container} from '@sentry/scraps/layout';
-import {lightTheme as theme} from '@sentry/scraps/theme';
-import type {BreakpointSize} from '@sentry/scraps/theme';
+import {darkTheme, lightTheme, lightTheme as theme} from '@sentry/scraps/theme';
+import type {BorderToken, BreakpointSize} from '@sentry/scraps/theme';
 
 import {
   getBorder,
@@ -185,6 +185,23 @@ describe('getBorder', () => {
     expect(getBorder('primary', undefined, theme)).toBe(
       `1px solid ${theme.tokens.border.primary}`
     );
+  });
+
+  it.each([lightTheme, darkTheme])('resolves every border token path', t => {
+    const paths: BorderToken[] = [];
+    const collect = (node: Record<string, unknown>, prefix: string) => {
+      for (const [key, value] of Object.entries(node)) {
+        const path = prefix ? `${prefix}.${key}` : key;
+        if (typeof value === 'string') {
+          paths.push(path as BorderToken);
+          expect(getBorder(path as BorderToken, undefined, t)).toBe(`1px solid ${value}`);
+        } else {
+          collect(value as Record<string, unknown>, path);
+        }
+      }
+    };
+    collect(t.tokens.border, '');
+    expect(paths).toHaveLength(40);
   });
 
   it('returns "none" so a border can be turned off responsively', () => {
