@@ -8,7 +8,7 @@ const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
   'primary',
   'secondary',
   'muted',
-  'translucent',
+  'transparent',
   'accent',
   'danger',
   'warning',

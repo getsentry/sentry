@@ -124,12 +124,12 @@ Apply rounded corners using theme radius values:
 
 `borderColor` adds a 1px border in the given color. To border a single side, use `borderTopColor`, `borderBottomColor`, `borderLeftColor` or `borderRightColor`. Use `borderWidth` to change the width. On its own, `borderWidth` draws a `primary` border on all sides.
 
-Use `translucent` for a see-through neutral border.
+Use `transparent` for a see-through neutral border.
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container padding="md" radius="md" borderColor="translucent">
-      Translucent border
+    <Container padding="md" radius="md" borderColor="transparent">
+      Transparent border
     </Container>
     <Container padding="md" radius="md" borderColor="primary" borderWidth="xl">
       2px border
@@ -137,8 +137,8 @@ Use `translucent` for a see-through neutral border.
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container borderColor="translucent" radius="md">
-  Translucent border
+<Container borderColor="transparent" radius="md">
+  Transparent border
 </Container>
 <Container borderColor="primary" borderWidth="xl">
   2px border

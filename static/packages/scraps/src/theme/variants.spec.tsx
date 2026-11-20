@@ -35,7 +35,7 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'primary'
     | 'secondary'
     | 'muted'
-    | 'translucent'
+    | 'transparent'
     | 'none'
   >();
   expectTypeOf<BorderWidth>().toEqualTypeOf<'0' | 'md' | 'lg' | 'xl' | '2xl'>();

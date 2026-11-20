@@ -88,8 +88,8 @@ export type BorderVariant =
   | 'primary'
   | 'secondary'
   | 'muted'
-  /** Translucent neutral border. Maps to `tokens.border.transparent.neutral.muted`. */
-  | 'translucent'
+  /** Transparent neutral border. Maps to `tokens.border.transparent.neutral.muted`. */
+  | 'transparent'
   | 'none';
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)

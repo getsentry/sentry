@@ -229,7 +229,7 @@ function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string 
   if (key === 'muted' || key === 'secondary') {
     return theme.tokens.border.secondary;
   }
-  if (key === 'translucent') {
+  if (key === 'transparent') {
     return theme.tokens.border.transparent.neutral.muted;
   }
   return theme.tokens.border[key].vibrant;
