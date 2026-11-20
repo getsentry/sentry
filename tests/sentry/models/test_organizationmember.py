@@ -614,7 +614,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
 
 
 class OrganizationMemberAsyncReplicationTest(TestCase):
-    """CTRL-112: with the option on, member writes replicate async unless control needs them now."""
+    """With the option on, member writes replicate async unless control needs them now."""
 
     OPTION = "hybridcloud.outbox.organization_member_async_replication.enabled"
 
