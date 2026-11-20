@@ -109,9 +109,10 @@ class SyncArtifactBundlesTest(TestCase):
         assert isinstance(capture_exception.call_args.args[0], FileNotFoundError)
         target = ArtifactBundle.objects.get(organization_id=self.target_org.id)
         assert target.bundle_id == source.bundle_id
-        assert target.storage_path is None
-        assert target.file is not None
-        with target.file.getfile() as target_contents:
+        assert target.file_id is None
+        assert target.storage_path is not None
+        assert target.get_file_size() == source.get_file_size()
+        with target.get_file() as target_contents:
             assert sha1(target_contents.read()).hexdigest() == source.get_checksum()
 
     def test_sync_artifact_bundles_with_differences(self) -> None:
@@ -161,6 +162,26 @@ class SyncArtifactBundlesTest(TestCase):
         )
 
         assert not ArtifactBundle.objects.filter(organization_id=self.target_org.id).exists()
+
+    @requires_objectstore
+    def test_sync_preserves_existing_objectstore_target_outside_lookback(self) -> None:
+        source = self.create_artifact_bundle(org=self.source_org)
+        target = self.create_artifact_bundle(
+            org=self.target_org,
+            bundle_id=source.bundle_id,
+            use_objectstore=True,
+            date_uploaded=self.last_three_days() - timedelta(days=1),
+        )
+        key = target.storage_path
+
+        _sync_artifact_bundles(self.source_org, self.target_org, self.last_three_days())
+
+        stored = ArtifactBundle.objects.get(
+            organization_id=self.target_org.id, bundle_id=source.bundle_id
+        )
+        assert stored.id == target.id
+        assert stored.storage_path == key
+        assert stored.file_id is None
 
     def test_sync_artifact_bundles_only_once(self) -> None:
         (source_artifact_bundle, _, __) = self.set_up_artifact_bundle(
