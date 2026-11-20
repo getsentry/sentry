@@ -724,7 +724,7 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 ## Metadata
 
-The metadata row is a list of properties. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties.
+The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts (label, value or `secondary`) share the space equally and truncate with an ellipsis, while short ones keep their width, so the pipe follows the text that shows. Screen readers still read the whole text. Each item has a `label` saying what it is and a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry whose value is empty is left out, with a warning in development.
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
@@ -1071,6 +1071,76 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 />
 ```
 
+### Lists
+
+`type: 'list'` groups related values under one label, such as the tools a conversation called. Each entry is a text or link metadata item with a `key`. An entry's `label` is optional, so leave it out when the list's label already says what the entry is; a link entry is then named by its value alone. Entries wrap with the rest of the row, with no pipes between them. `maxVisible` (responsive) collapses the rest behind "+N more", which expands the list in place. Entries show in the order you pass them, so filter and sort `items` first to keep the ones that matter in view. A list with no entries renders nothing.
+
+export const tools = [
+  {name: 'search_flights', hasError: false},
+  {name: 'book_hotel', hasError: true},
+  {name: 'get_weather', hasError: false},
+  {name: 'convert_currency', hasError: false},
+  {name: 'translate', hasError: true},
+  {name: 'find_restaurants', hasError: false},
+  {name: 'internal_ping', hasError: false},
+];
+
+<Storybook.Demo resizable direction="column" align="stretch">
+  <EntityHeader
+    title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+    metadata={{
+      label: 'Conversation properties',
+      items: [
+        {label: 'Model', type: 'text', value: 'gpt-5', mode: 'full'},
+        {
+          label: 'Tools',
+          type: 'list',
+          mode: 'full',
+          maxVisible: {zero: 2, md: 4},
+          items: tools
+            .filter(tool => tool.name !== 'internal_ping')
+            .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+            .map(tool => ({
+              key: tool.name,
+              type: 'text',
+              value: tool.name,
+              variant: tool.hasError ? 'danger' : undefined,
+            })),
+        },
+      ],
+    }}
+  />
+</Storybook.Demo>
+
+```jsx
+<EntityHeader
+  title={{type: 'text', label: t('Conversation'), value: conversation.title}}
+  metadata={{
+    label: t('Conversation properties'),
+    items: [
+      {label: t('Model'), type: 'text', value: conversation.model, mode: 'full'},
+      {
+        label: t('Tools'),
+        type: 'list',
+        mode: 'full',
+        // Two entries in a narrow header, four once it reaches `md`.
+        maxVisible: {zero: 2, md: 4},
+        items: tools
+          .filter(tool => tool.name !== 'internal_ping')
+          // Errored tools first, so they survive the cut.
+          .toSorted((a, b) => Number(b.hasError) - Number(a.hasError))
+          .map(tool => ({
+            key: tool.name,
+            type: 'text',
+            value: tool.name,
+            variant: tool.hasError ? 'danger' : undefined,
+          })),
+      },
+    ],
+  }}
+/>
+```
+
 ## Accessibility
 
 - **Title:** an `h2`, named "label, value" ("Replay user, anonymous@example.com"). A link title carries the same name.
@@ -1079,7 +1149,8 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
 - **Tab order:** only halves that link or have a tooltip are tab stops, label first. A tooltip on a link attaches to the link, so it adds no extra stop.
 - **No data:** the dash is hidden from screen readers and "No data" is read instead.
 - **People:** read as text ("Viewed by: Alice Chen, Bob Diaz"). The avatars are decorative and can't be focused.
-- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology.
+- **Metadata:** every key is in the DOM, as hidden text or in a link's name, so a value is never announced unexplained: "Browser, Chrome, Browser version, 144.0.0". Leading graphics are hidden from assistive technology, and the pipes that end properties are decorative and never announced.
+- **Metadata lists:** a nested list named by its `label`. It holds the visible entries and the "+N more" button; activating the button reveals the rest and moves focus to the first of them.
 - **Color:** accent marks a link and an underline marks a tooltip. Links also show a focus ring on keyboard focus, so a keyboard user does not have to rely on color alone.
 - **Loading:** the header sets `aria-busy` while any slot is loading. This is a state, not an announcement.
 

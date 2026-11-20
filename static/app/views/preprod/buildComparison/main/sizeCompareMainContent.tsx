@@ -118,8 +118,8 @@ export function SizeCompareMainContent() {
             ? {
                 organizationIdOrSlug: organization.slug,
                 projectIdOrSlug: projectSlug,
-                headSizeMetricId,
-                baseSizeMetricId,
+                headSizeMetricId: String(headSizeMetricId),
+                baseSizeMetricId: String(baseSizeMetricId),
               }
             : skipToken,
         staleTime: 0,

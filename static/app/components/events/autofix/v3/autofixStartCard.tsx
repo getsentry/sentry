@@ -17,7 +17,6 @@ import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplo
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
-import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSingleRunChat} from './useToggleSingleRunChat';
@@ -96,10 +95,7 @@ export function AutofixStartCard({
     </Button>
   );
 
-  if (
-    !organization.features.includes('autofix-single-run') ||
-    !orgHasNewSeerPlan(organization)
-  ) {
+  if (!organization.features.includes('autofix-single-run')) {
     return (
       <Stack gap="md">
         {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}

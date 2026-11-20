@@ -12,7 +12,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {makeDroppedDataQueryKeyPrefix} from 'sentry/components/droppedData/useDroppedData';
 import * as Layout from 'sentry/components/layouts/thirds';
 import type {DatePageFilterProps} from 'sentry/components/pageFilters/date/datePageFilter';
 import {DatePageFilter} from 'sentry/components/pageFilters/date/datePageFilter';
@@ -26,10 +25,11 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {HOUR} from 'sentry/utils/formatters';
-import {makeEventsTimeSeriesQueryKeyPrefix} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
+import {makeEventsTimeSeriesFilter} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ExploreQuotaExceededAlert} from 'sentry/views/explore/components/exploreQuotaExceededAlert';
@@ -352,11 +352,14 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     await Promise.all([
       tableData.refetch(),
       queryClient.refetchQueries({
-        queryKey: makeEventsTimeSeriesQueryKeyPrefix(organization.slug),
+        ...makeEventsTimeSeriesFilter(organization.slug),
         type: 'active',
       }),
       queryClient.refetchQueries({
-        queryKey: makeDroppedDataQueryKeyPrefix(organization.slug),
+        ...apiOptions.queryFilter(
+          '/organizations/$organizationIdOrSlug/events-dropped/',
+          {path: {organizationIdOrSlug: organization.slug}}
+        ),
         type: 'active',
       }),
     ]);

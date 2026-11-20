@@ -25,7 +25,10 @@ type DroppedDataAnalyticsContext = {
 };
 
 export type ExploreAnalyticsEventParameters = {
-  'explore.chart_context.drawer_opened': DroppedDataAnalyticsContext & {tab: string};
+  'explore.chart_context.drawer_opened': DroppedDataAnalyticsContext & {
+    tab: string;
+    section?: string;
+  };
   'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {tab: string};
   'explore.dropped_data.ask_seer_clicked': DroppedDataAnalyticsContext & {
     outcome: string;

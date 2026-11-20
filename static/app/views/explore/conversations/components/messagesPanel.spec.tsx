@@ -615,6 +615,208 @@ describe('MessagesPanel', () => {
     ).toBeInTheDocument();
   });
 
+  it('shows the system prompt collapsed at the top of the transcript', async () => {
+    // An embedding that runs before the first LLM call renders above its
+    // turns; the system prompt still goes first.
+    const embeddingNode = createMockEmbeddingNode({
+      id: 'embed-1',
+      input: 'find labels',
+      startTimestamp: 500,
+    });
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'You sort emails into labels.'},
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'newsletter',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node, embeddingNode] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const summary = screen.getByText('System prompt', {exact: false});
+    const details = summary.closest('details');
+    expect(details).not.toHaveAttribute('open');
+    // The collapsed row previews the prompt
+    expect(summary).toHaveTextContent('You sort emails into labels.');
+    expect(
+      summary.compareDocumentPosition(screen.getByText('Creating embedding...')) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+
+    await userEvent.click(summary);
+    expect(details).toHaveAttribute('open');
+    expect(mockOnSelectNode).not.toHaveBeenCalled();
+  });
+
+  it('renders XML sections of the system prompt', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {
+            role: 'system',
+            content: 'You are a helper.\n\n<rules>\nBe concise.\n</rules>',
+          },
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hi',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('<rules>')).toBeInTheDocument();
+  });
+
+  it('reads the system prompt from gen_ai.system_instructions', () => {
+    const node = createMockNode({
+      id: 'span-1',
+      attributes: {
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: JSON.stringify([
+          {type: 'text', content: 'Be concise.'},
+        ]),
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Hello there'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Hi',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[node] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'Be concise.'
+    );
+  });
+
+  it('shows only the first system prompt of the conversation', () => {
+    const turn = (id: string, startTimestamp: number, system: string, user: string) =>
+      createMockNode({
+        id,
+        startTimestamp,
+        attributes: {
+          [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+            {role: 'system', content: system},
+            {role: 'user', content: user},
+          ]),
+          [SpanFields.GEN_AI_RESPONSE_TEXT]: `Answer to ${user}`,
+        },
+      });
+
+    render(
+      <MessagesPanel
+        nodes={
+          [
+            turn('span-3', 3000, 'Prompt B', 'Third'),
+            turn('span-1', 1000, 'Prompt A', 'First'),
+            turn('span-2', 2000, 'Prompt A', 'Second'),
+          ] as any
+        }
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    const rows = screen.getAllByText('System prompt', {exact: false});
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toHaveTextContent('Prompt A');
+    expect(screen.queryByText('Prompt B')).not.toBeInTheDocument();
+  });
+
+  it('reads the system prompt from messages on the agent span', () => {
+    const agent = createMockNode({
+      id: 'agent',
+      startTimestamp: 1000,
+      endTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'system', content: 'You sort emails into labels.'},
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_OUTPUT_MESSAGES]: JSON.stringify([
+          {role: 'assistant', content: 'newsletter'},
+        ]),
+      },
+    });
+    const generation = createMockNode({
+      id: 'gen-1',
+      parentId: 'agent',
+      startTimestamp: 1100,
+      endTimestamp: 1900,
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[agent, generation] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'You sort emails into labels.'
+    );
+  });
+
+  it('reads gen_ai.system_instructions from the agent span', () => {
+    const agent = createMockNode({
+      id: 'agent',
+      startTimestamp: 1000,
+      endTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: 'You sort emails into labels.',
+      },
+    });
+    // The LLM call has its own messages, so the agent span's aren't copied.
+    const generation = createMockNode({
+      id: 'gen-1',
+      parentId: 'agent',
+      startTimestamp: 1100,
+      endTimestamp: 1900,
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'newsletter',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[agent, generation] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'You sort emails into labels.'
+    );
+  });
+
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {
     const node = createMockNode({
       id: 'span-1',

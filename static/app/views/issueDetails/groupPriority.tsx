@@ -14,7 +14,7 @@ import {getAnalyticsDataForGroup} from 'sentry/utils/events';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {groupQueryKey} from './useGroup';
+import {groupQueryFilter} from './useGroup';
 
 type GroupDetailsPriorityProps = {
   group: Group;
@@ -58,9 +58,9 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
         failSilently: true,
         project: [group.project.id],
       });
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId: group.id}),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
+      );
       toast.dismiss();
       toast.success(getPriorityUpdateSuccessMessage(nextPriority));
       onChange?.(nextPriority);

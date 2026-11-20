@@ -30,7 +30,10 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {requestErrorToFieldErrors} from 'sentry/utils/requestError/requestErrorToFieldErrors';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {detectorListApiOptions} from 'sentry/views/detectors/hooks';
+import {
+  allDetectorListsQueryKey,
+  detectorListApiOptions,
+} from 'sentry/views/detectors/hooks';
 import type {
   SeerServiceAccountResponse,
   SeerWorkflowConfigResponse,
@@ -45,6 +48,7 @@ import {useCreateConfig, useUpdateConfig} from './hooks/configs';
 import {ConnectMonitorsDrawer} from './connectMonitorsDrawer';
 import {MonitorTable} from './monitorTable';
 import {
+  DEFAULT_SERVICE_ACCOUNT_SCOPES,
   getServiceAccountProjectIds,
   ServiceAccountPermissions,
   ServiceAccountProjects,
@@ -64,14 +68,6 @@ const schema = z.object({
     .array(z.string())
     .min(1, t('Give the service account at least one permission.')),
 });
-
-const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
-  'event:read',
-  'member:read',
-  'org:read',
-  'project:read',
-  'team:read',
-];
 
 export type MetricAutomationFormHandle = {reset: () => void};
 
@@ -208,7 +204,7 @@ export function MetricAutomationForm(props: Props) {
     placeholderData: previous => {
       const known = new Map<string, Detector>();
       for (const [, data] of queryClient.getQueriesData<ApiResponse<Detector[]>>({
-        queryKey: [monitorsQueryOptions.queryKey[0]],
+        queryKey: allDetectorListsQueryKey(organization),
       })) {
         data?.json.forEach(monitor => known.set(monitor.id, monitor));
       }

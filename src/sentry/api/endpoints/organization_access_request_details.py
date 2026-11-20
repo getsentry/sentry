@@ -32,6 +32,7 @@ class AccessRequestPermission(OrganizationPermission):
             "member:read",
             "member:write",
             "member:admin",
+            "membership:read",
         ],
         "POST": [],
         "PUT": [

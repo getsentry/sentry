@@ -55,6 +55,14 @@ export function getServiceAccountProjectIds(
   ].sort((a, b) => Number(a) - Number(b));
 }
 
+export const DEFAULT_SERVICE_ACCOUNT_SCOPES = [
+  'event:read',
+  'member:read',
+  'org:read',
+  'project:read',
+  'team:read',
+];
+
 const RESOURCE_ORDER = [
   'Event',
   'Alerts',

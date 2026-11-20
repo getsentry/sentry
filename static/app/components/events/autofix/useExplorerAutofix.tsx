@@ -18,14 +18,14 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {
-  seerCreditChecksQueryKey,
+  seerCreditChecksFilter,
   type SeerCreditDenialReason,
 } from 'sentry/utils/seer/useSeerCreditCheck';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 import {makeSeerPathname, makeSeerQuery} from 'sentry/views/issueDetails/autofix/utils';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 import {
   isArtifact,
   isExplorerCodingAgentState,
@@ -1009,9 +1009,9 @@ export function useExplorerAutofix(
         const invalidation = queryClient.invalidateQueries({
           queryKey: explorerAutofixApiOptions(orgSlug, groupId).queryKey,
         });
-        queryClient.invalidateQueries({
-          queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-        });
+        queryClient.invalidateQueries(
+          groupQueryFilter({organizationSlug: orgSlug, groupId})
+        );
 
         if (step === 'pr_iteration') {
           await invalidation;
@@ -1068,9 +1068,9 @@ export function useExplorerAutofix(
         // undoing the UI they just put into a loading state.
         if (isRunInFlightError(e)) {
           await queryClient.invalidateQueries({queryKey});
-          queryClient.invalidateQueries({
-            queryKey: groupQueryKey({organizationSlug: orgSlug, groupId}),
-          });
+          queryClient.invalidateQueries(
+            groupQueryFilter({organizationSlug: orgSlug, groupId})
+          );
           return {runId: getAutofixRunId(e.responseJSON)!, isSingleRun: false};
         }
 
@@ -1079,9 +1079,7 @@ export function useExplorerAutofix(
         // didn't start. A refused kickoff paints no failed run: the start card
         // offers the CTA instead.
         if (isOutOfCreditsError(e)) {
-          queryClient.invalidateQueries({
-            queryKey: seerCreditChecksQueryKey(organization),
-          });
+          queryClient.invalidateQueries(seerCreditChecksFilter(organization));
           // A refused PR iteration waits on the queue, so show it.
           if (step === 'pr_iteration') {
             queryClient.invalidateQueries({queryKey});
@@ -1158,7 +1156,7 @@ export function useExplorerAutofix(
 
         // Recheck every credit check, so the credit gates bring up the
         // out-of-credits CTA and hold their buttons back.
-        queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+        queryClient.invalidateQueries(seerCreditChecksFilter(organization));
         // A retry for a repo whose PR exists pushes to it rather than opening one.
         const repoState = repoName
           ? queryClient.getQueryData(explorerAutofixApiOptions(orgSlug, groupId).queryKey)

@@ -442,6 +442,7 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
 
             assert entry is not None
             assert entry.data["project_id"] == self.project.id
+            assert entry.data["project_count"] == 1
 
 
 class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
