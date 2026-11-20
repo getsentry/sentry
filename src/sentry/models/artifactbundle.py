@@ -131,7 +131,7 @@ class ArtifactBundle(Model):
 
     def get_objectstore_session(self) -> Session:
         # Bundles can be associated with multiple projects in the organization.
-        return get_session(UsecaseId.ARTIFACT_BUNDLES, org=self.organization_id)
+        return get_session(UsecaseId.ARTIFACT_BUNDLES, project=None, org=self.organization_id)
 
     def get_file(self) -> IO[bytes]:
         """Open the bundle contents. The caller is responsible for closing the stream."""
