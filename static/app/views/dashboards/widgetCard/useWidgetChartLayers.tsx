@@ -4,10 +4,6 @@ import type {
   ChartLayer,
   ChartLayersControlProps,
 } from 'sentry/components/charts/chartLayersControl';
-import {
-  CONFIDENCE_LAYER,
-  useConfidenceLayer,
-} from 'sentry/components/charts/useConfidenceLayer';
 import {useDroppedDataLayer} from 'sentry/components/droppedData/useDroppedDataLayer';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -28,13 +24,6 @@ export const WIDGET_TYPE_TO_DROPPED_DATA_DATASET: Partial<
   [WidgetType.TRACEMETRICS]: DiscoverDatasets.TRACEMETRICS,
   [WidgetType.ERRORS]: DiscoverDatasets.ERRORS,
 };
-
-// Only these widget datasets return a confidence rating for each bucket.
-const CONFIDENCE_WIDGET_TYPES = new Set<WidgetType>([
-  WidgetType.SPANS,
-  WidgetType.LOGS,
-  WidgetType.TRACEMETRICS,
-]);
 
 interface UseWidgetChartLayersParams {
   widget: Widget;
@@ -75,22 +64,10 @@ export function useWidgetChartLayers({
     }
   );
 
-  const confidence = useConfidenceLayer({
-    source: 'dashboards',
-    enabled:
-      enabled &&
-      !hidden &&
-      defined(widget.widgetType) &&
-      CONFIDENCE_WIDGET_TYPES.has(widget.widgetType),
-  });
-  const onConfidenceLayerChange = confidence.layerControl?.onChange;
-
   // Stable so the memoized VisualizationWidget doesn't re-render on every pass.
   const onLayerChange = useCallback(
     (value: string, selected: boolean) => {
-      if (value === CONFIDENCE_LAYER) {
-        onConfidenceLayerChange?.(value, selected);
-      } else if (value === RELEASES_LAYER) {
+      if (value === RELEASES_LAYER) {
         setIsReleasesLayerOn(selected);
         trackAnalytics('releases.bubbles_legend', {organization, selected});
       } else {
@@ -103,7 +80,7 @@ export function useWidgetChartLayers({
         });
       }
     },
-    [organization, dataset, onConfidenceLayerChange]
+    [organization, dataset]
   );
 
   const supportsReleases = widget.widgetType !== WidgetType.PREPROD_APP_SIZE;
@@ -119,7 +96,6 @@ export function useWidgetChartLayers({
           ? [{value: RELEASES_LAYER, label: t('Releases'), selected: isReleasesLayerOn}]
           : []),
         ...droppedDataLayers,
-        ...(confidence.layerControl?.layers ?? []),
       ]
     : [];
 
@@ -128,7 +104,6 @@ export function useWidgetChartLayers({
 
   return {
     showReleases: supportsReleases && isReleasesLayerOn,
-    showConfidence: confidence.showConfidence,
     droppedData,
     layerControl,
   };

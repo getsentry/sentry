@@ -48,6 +48,7 @@ describe('useChartLayers', () => {
     expect(result.current.layerControl?.layers).toEqual([
       expect.objectContaining({value: 'dropped-data', label: 'Dropped Spans'}),
     ]);
+    expect(result.current.showConfidence).toBe(false);
   });
 
   it.each(['explore', 'dashboards'] as const)(

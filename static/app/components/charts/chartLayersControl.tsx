@@ -81,27 +81,3 @@ export function ChartLayersControl({
     />
   );
 }
-
-/**
- * Merges the layer controls of several layer hooks into one Layers control.
- * Each change goes to the control that owns the changed layer.
- */
-export function combineLayerControls(
-  controls: Array<ChartLayersControlProps | undefined>
-): ChartLayersControlProps | undefined {
-  const presentControls = controls.filter(control => control !== undefined);
-  const layers = presentControls.flatMap(control => control.layers);
-
-  if (layers.length === 0) {
-    return undefined;
-  }
-
-  return {
-    layers,
-    onChange: (value, selected) => {
-      presentControls
-        .find(control => control.layers.some(layer => layer.value === value))
-        ?.onChange(value, selected);
-    },
-  };
-}

@@ -1,5 +1,4 @@
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
-import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
@@ -153,9 +152,6 @@ describe('TimeSeriesWidgetVisualization', () => {
   });
 
   describe('confidence', () => {
-    const organization = OrganizationFixture({
-      features: ['data-browsing-time-series-confidence'],
-    });
     const lowConfidencePlottables = [
       new Line(
         TimeSeriesFixture({
@@ -175,24 +171,21 @@ describe('TimeSeriesWidgetVisualization', () => {
       );
     }
 
-    it('marks low-confidence buckets by default', () => {
-      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
-        organization,
-      });
+    it('does not mark low-confidence buckets by default', () => {
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
 
-      expect(plottedLineStyles()).toContain('dashed');
+      expect(plottedLineStyles()).not.toContain('dashed');
     });
 
-    it('does not mark low-confidence buckets when showConfidence is off', () => {
+    it('marks low-confidence buckets with showConfidence', () => {
       render(
         <TimeSeriesWidgetVisualization
           plottables={lowConfidencePlottables}
-          showConfidence={false}
-        />,
-        {organization}
+          showConfidence
+        />
       );
 
-      expect(plottedLineStyles()).not.toContain('dashed');
+      expect(plottedLineStyles()).toContain('dashed');
     });
   });
 });

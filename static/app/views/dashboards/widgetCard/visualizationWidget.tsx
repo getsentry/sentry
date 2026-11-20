@@ -91,7 +91,6 @@ interface VisualizationWidgetProps {
   }) => void;
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
-  showConfidence?: boolean;
   showConfidenceWarning?: boolean;
   showReleases?: boolean;
   tableItemLimit?: number;
@@ -114,7 +113,6 @@ function VisualizationWidgetComponent({
   droppedData,
   isDroppedDataLoading,
   layerControl,
-  showConfidence,
   showReleases = true,
 }: VisualizationWidgetProps) {
   const onWidgetError = useWidgetErrorCallback();
@@ -192,7 +190,6 @@ function VisualizationWidgetComponent({
             droppedData={droppedData}
             isDroppedDataLoading={isDroppedDataLoading}
             layerControl={layerControl}
-            showConfidence={showConfidence}
             widgetInterval={timeseriesInterval ?? widgetInterval}
           />
         );
@@ -239,7 +236,6 @@ interface VisualizationWidgetContentProps {
   onLegendSelectionChange?: (selection: LegendSelection) => void;
   onZoom?: EChartDataZoomHandler;
   sampleCount?: number;
-  showConfidence?: boolean;
   showConfidenceWarning?: boolean;
   tableResults?: TableDataWithTitle[];
   widgetInterval?: string;
@@ -267,7 +263,6 @@ function VisualizationWidgetContent({
   droppedData,
   isDroppedDataLoading,
   layerControl,
-  showConfidence,
   widgetInterval,
 }: VisualizationWidgetContentProps) {
   const theme = useTheme();
@@ -523,7 +518,6 @@ function VisualizationWidgetContent({
             renderTooltipSeriesDetails={renderTooltipSeriesDetails}
             droppedData={droppedData}
             legendActions={legendActions}
-            showConfidence={showConfidence}
           />
         </Container>
         <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
@@ -550,7 +544,6 @@ function VisualizationWidgetContent({
           renderTooltipSeriesDetails={renderTooltipSeriesDetails}
           droppedData={droppedData}
           legendActions={legendActions}
-          showConfidence={showConfidence}
         />
       </Container>
       <Container {...timeseriesContainerPadding}>{confidenceFooter}</Container>
