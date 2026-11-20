@@ -76,8 +76,9 @@ One packet can produce:
 - Multiple results keyed by `DetectorGroupKey`
 
 `evaluate` returns `DetectorEvaluations`, whose `evaluations` map group keys to `DetectorEvaluation`
-objects. `_evaluate` returns only the evaluations that have a result, either an `IssueOccurrence` or a
-`StatusChangeMessage`. `process_detectors` routes those results according to the handler's `outcome`.
+objects. `_evaluate` returns only the evaluations that have a result: an `IssueOccurrence`, a
+`StatusChangeMessage`, or a `DetectorInvestigation`. `process_detectors` routes those results according
+to the handler's `outcome`.
 
 ### 4. Detector orchestration
 
@@ -167,12 +168,14 @@ Supported outcome implementations register their `DetectorOutcomeHandler` class 
 `@detector_outcome_registry.add(DetectorOutcome.<KEY>)`. The closed, typed set of keys
 lives in `supported_outcomes.py`; the registry maps each key to its handler implementation.
 
-`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each occurrence instead
-of creating an issue, and ignores status changes. Each occurrence is one trigger: its UUID
-(`IssueOccurrence.id`) keys the investigation, so task retries reuse it and every new
-occurrence, priority changes included, starts another. The detector's config names the
-service account that creates it (`service_account_id`). Pair it with a detector that only
-produces an occurrence when a group triggers; the anomaly detector does this.
+`DetectorOutcome.SEER_INVESTIGATION` starts a Seer investigation for each `DetectorInvestigation`
+result instead of creating an issue, and ignores other results. Each result is one trigger: its
+`id` keys the investigation, so task retries reuse it and every new trigger starts another.
+Detectors that use it return the investigation from `evaluate` with `with_result`, so they need
+no `GroupType`, and set `id` with `get_occurrence_id`, the same id the platform gives an
+occurrence. The detector's config names the service account that creates it
+(`service_account_id`). Pair it with a detector that only returns an investigation when a group
+triggers; the anomaly detector does this.
 
 Issue Platform ingestion creates or updates a group. The detector ID in occurrence
 evidence allows ingestion to create a

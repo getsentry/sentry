@@ -9,11 +9,6 @@ from typing import override
 
 from sentry.anomaly_detection.contracts import AnomalyGroupKey
 from sentry.anomaly_detection.evaluation.organization import AnomalyDecision
-from sentry.issues.grouptype import GroupCategory, GroupType
-from sentry.issues.issue_occurrence import IssueEvidence
-from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.models.group import GroupStatus
-from sentry.types.group import PriorityLevel
 from sentry.utils import metrics
 from sentry.workflow_engine.handlers.detector.base import (
     BaseDetectorHandler,
@@ -33,6 +28,7 @@ from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import (
     DetectorAPIOperation,
     DetectorGroupKey,
+    DetectorInvestigation,
     DetectorPriorityLevel,
     DetectorSettings,
     DetectorType,
@@ -41,18 +37,6 @@ from sentry.workflow_engine.types import (
 # Every open anomaly shares one triggered level, so an urgency change isn't a transition
 # and each open starts exactly one investigation.
 TRIGGERED = DetectorPriorityLevel.HIGH
-
-
-@dataclass(frozen=True)
-class AnomalyDetection(GroupType):
-    """Describes anomaly occurrences. They start investigations and never become issues."""
-
-    type_id = 14001
-    slug = DetectorType.ANOMALY_DETECTION.value
-    description = "Detected Anomaly"
-    category = GroupCategory.METRIC.value
-    released = False
-    default_priority = PriorityLevel.MEDIUM
 
 
 @dataclass(frozen=True)
@@ -119,10 +103,12 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
     ) -> DetectorEvaluations:
         """Open or resolve each group whose state changes at a minute it hasn't processed.
 
+        Each open carries the `DetectorInvestigation` to start; resolves only update state.
         The scheduler publishes before committing its checkpoint, so a retry can replay
         minutes; dedupe keeps a replayed open/resolve/reopen from starting another investigation.
         """
-        minute = int(data_packet.packet.minute.replace(tzinfo=UTC).timestamp())
+        packet = data_packet.packet
+        minute = int(packet.minute.replace(tzinfo=UTC).timestamp())
         state = self.state_manager.get_state_data(list(values))
         evaluations: dict[DetectorGroupKey, DetectorEvaluation] = {}
 
@@ -138,17 +124,11 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
 
             self.state_manager.enqueue_state_update(group_key, is_open, priority)
             if is_open:
-                evaluations[group_key] = DetectorEvaluation.create_issue(group_key, priority)
-            else:
-                evaluations[group_key] = DetectorEvaluation.ok(group_key).with_result(
-                    StatusChangeMessage(
-                        fingerprint=self.get_issue_fingerprint(group_key),
-                        project_id=self.detector.project_id,
-                        new_status=GroupStatus.RESOLVED,
-                        new_substatus=None,
-                        detector_id=self.detector.id,
-                    )
-                )
+                assert group_key is not None, "extract_value always groups by anomaly group key"
+                decision = packet.decisions[AnomalyGroupKey(group_key)]
+                evaluations[group_key] = DetectorEvaluation.create_issue(
+                    group_key, priority
+                ).with_result(_investigation(decision, self.get_issue_fingerprint(group_key)))
 
         self.state_manager.commit_state_updates()
         return DetectorEvaluations(evaluations=evaluations, tainted=False)
@@ -157,38 +137,30 @@ class AnomalyDetectionDetectorHandler(BaseDetectorHandler[MinuteDecisions, Detec
     def create_occurrence(
         self, evaluation: DetectorEvaluation, data_packet: DataPacket[MinuteDecisions]
     ) -> tuple[DetectorOccurrence, EventData]:
-        group_key = evaluation.data["group_key"]
-        assert group_key is not None, "extract_value always groups by anomaly group key"
-        decision = data_packet.packet.decisions[AnomalyGroupKey(group_key)]
-        evidence = decision.evidence
-        display: list[tuple[str, object]] = [
-            ("Signal", evidence["signal"]),
-            ("Change", evidence["change_type"]),
-            ("Urgency", decision.urgency),
-            ("Started", evidence["started_at"]),
-        ]
-        if "actual" in evidence:
-            display.append(("Observed", evidence["actual"]))
-        if "expected" in evidence:
-            display.append(("Expected", evidence["expected"]))
-        evidence_display = [
-            IssueEvidence(name=name, value=str(value), important=index == 0)
-            for index, (name, value) in enumerate(display)
-        ]
-        return (
-            DetectorOccurrence(
-                issue_title=decision.title,
-                subtitle="Anomaly detected",
-                evidence_data=evidence,
-                evidence_display=evidence_display,
-                type=AnomalyDetection,
-                level="warning",
-                culprit="",
-                priority=evaluation.priority,
-                detection_time=decision.timestamp.replace(tzinfo=UTC),
-            ),
-            {"environment": decision.env or None, "platform": "other"},
-        )
+        raise NotImplementedError("Anomalies start investigations and never create occurrences")
+
+
+def _investigation(decision: AnomalyDecision, fingerprint: list[str]) -> DetectorInvestigation:
+    evidence = decision.evidence
+    display: list[tuple[str, object]] = [
+        ("Signal", evidence["signal"]),
+        ("Change", evidence["change_type"]),
+        ("Urgency", decision.urgency),
+        ("Started", evidence["started_at"]),
+    ]
+    if "actual" in evidence:
+        display.append(("Observed", evidence["actual"]))
+    if "expected" in evidence:
+        display.append(("Expected", evidence["expected"]))
+    return DetectorInvestigation(
+        title=decision.title,
+        subtitle="Anomaly detected",
+        fingerprint=fingerprint,
+        detection_time=decision.timestamp.replace(tzinfo=UTC),
+        environment=decision.env or None,
+        evidence_display=[(name, str(value)) for name, value in display],
+        evidence_data=evidence,
+    )
 
 
 @detector_settings_registry.register(DetectorType.ANOMALY_DETECTION)

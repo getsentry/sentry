@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import IntEnum, StrEnum
 from types import MappingProxyType
 from typing import (
@@ -11,7 +12,6 @@ from typing import (
     ClassVar,
     Generic,
     Protocol,
-    Sequence,
     TypeAlias,
     TypedDict,
     TypeVar,
@@ -112,7 +112,27 @@ class ConditionError:
     msg: str
 
 
-type DetectorResult = IssueOccurrence | StatusChangeMessage | None
+@dataclass(frozen=True, kw_only=True)
+class DetectorInvestigation:
+    """
+    A detector finding to investigate with Seer instead of opening an issue.
+
+    `fingerprint` keys the investigation like an Issue Platform group: results with the same
+    fingerprint reuse the active investigation. `evidence_display` holds the name and value
+    pairs shown in the investigation prompt; `evidence_data` is passed to the investigation
+    as structured seed data.
+    """
+
+    title: str
+    subtitle: str
+    fingerprint: Sequence[str]
+    detection_time: datetime
+    environment: str | None = None
+    evidence_display: Sequence[tuple[str, str]] = ()
+    evidence_data: Mapping[str, Any] = field(default_factory=dict)
+
+
+type DetectorResult = IssueOccurrence | StatusChangeMessage | DetectorInvestigation | None
 
 
 class _WorkflowEventLocalCache(TypedDict, total=False):

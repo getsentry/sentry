@@ -471,7 +471,6 @@ class IssueTypeComparison(TypedDict):
         "web_vitals",
         "issue_stream",
         "metric_issue",
-        "anomaly_detection",
         "error",
         "uptime_domain_failure",
         "send-test-notification",

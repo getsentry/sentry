@@ -142,6 +142,9 @@ _LEGACY_ACTION_DATA: dict[str, Any] = {
 }
 
 _DETECTOR_CONFIG_DESCRIPTIONS: dict[str, dict[str, str]] = {
+    "anomaly_detection": {
+        "service_account_id": "ID of the service account that creates the detector's investigations",
+    },
     "issue_stream": {"organization_id": "ID of the organization"},
     "metric_issue": {
         "comparison_delta": "For percent detection, how far back the compared window is, in seconds",
@@ -208,15 +211,14 @@ def action_data_sources() -> list[tuple[str, Mapping[str, Any]]]:
 
 
 def detector_config_sources() -> list[tuple[str, Mapping[str, Any]]]:
-    """Every detector type's config JSON Schema, by group type slug."""
-    from sentry.issues.grouptype import registry
+    """Every detector type's config JSON Schema, by detector type."""
+    from sentry.workflow_engine.registry import detector_settings_registry
 
-    sources: list[tuple[str, Mapping[str, Any]]] = []
-    for group_type in sorted(registry.all(), key=lambda group_type: group_type.slug):
-        settings = group_type.detector_settings
-        if settings is not None and settings.config_schema:
-            sources.append((group_type.slug, settings.config_schema))
-    return sources
+    return [
+        (detector_type, settings.config_schema)
+        for detector_type, settings in sorted(detector_settings_registry.registrations.items())
+        if settings.config_schema
+    ]
 
 
 def error_detector_options_schema() -> dict[str, Any]:
