@@ -57,10 +57,13 @@ def _sync_artifact_bundles(
     if not source_org or not target_org:
         return
 
-    source_artifact_bundles = ArtifactBundle.objects.filter(
-        organization_id=source_org.id, date_uploaded__gte=cutoff_date
+    artifact_bundles = ArtifactBundle.objects.filter(
+        Q(organization_id=source_org.id) | Q(organization_id=target_org.id),
+        date_uploaded__gte=cutoff_date,
     )
-    target_artifact_bundles = ArtifactBundle.objects.filter(organization_id=target_org.id)
+
+    source_artifact_bundles = artifact_bundles.filter(organization_id=source_org.id)
+    target_artifact_bundles = artifact_bundles.filter(organization_id=target_org.id)
 
     different_artifact_bundles = source_artifact_bundles.exclude(
         bundle_id__in=target_artifact_bundles.values_list("bundle_id", flat=True)
