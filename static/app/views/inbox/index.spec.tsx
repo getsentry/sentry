@@ -67,6 +67,10 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
     url: `/organizations/org-slug/issues/${groupId}/pull-requests/`,
     body: {pullRequests: []},
   });
+  MockApiClient.addMockResponse({
+    url: `/organizations/org-slug/issues/${groupId}/related/`,
+    body: {data: [], meta: {types: []}},
+  });
 }
 
 describe('Inbox', () => {
