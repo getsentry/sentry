@@ -8,15 +8,26 @@ from sentry import options
 from sentry.mail.notifications import build_subject_prefix
 from sentry.models.activity import Activity
 from sentry.models.groupemailthread import GroupEmailThread
+from sentry.notifications.models.notificationrecord import NotificationRecord
+from sentry.notifications.models.notificationthread import NotificationThread
 from sentry.notifications.platform.email.provider import (
     EmailNotificationProvider,
     EmailRenderer,
 )
+from sentry.notifications.platform.provider import SendSuccessResult
+from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import GenericNotificationTarget
 from sentry.notifications.platform.templates.activity.assigned import AssignedActivityTemplate
 from sentry.notifications.platform.templates.activity.base import (
     AssignedNotificationData,
     build_activity_notification_data,
+)
+from sentry.notifications.platform.threading import (
+    ThreadContext,
+    ThreadingConfig,
+    ThreadingOptions,
+    ThreadingService,
+    ThreadKey,
 )
 from sentry.notifications.platform.tracking import NotificationLinkDecorator
 from sentry.notifications.platform.types import (
@@ -27,6 +38,7 @@ from sentry.notifications.platform.types import (
     NotificationRenderedTemplate,
     NotificationSection,
     NotificationSectionType,
+    NotificationSource,
     NotificationTargetResourceType,
     NotificationTextBlock,
     NotificationTextBlockType,
@@ -245,6 +257,13 @@ class EmailNotificationProviderTest(TestCase):
         assert sent_message.to == [self.email]
 
     @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_send_returns_message_id(self, mock_send_messages: mock.MagicMock) -> None:
+        email = render_email(self.data, self.rendered_template)
+        result = EmailNotificationProvider.send(target=self.target, renderable=email)
+
+        assert result == SendSuccessResult(provider_message_id=email.extra_headers["Message-Id"])
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
     def test_activity_email_preserves_legacy_headers(
         self, mock_send_messages: mock.MagicMock
     ) -> None:
@@ -316,3 +335,98 @@ class EmailNotificationProviderTest(TestCase):
         )
         assert sent_message.extra_headers["In-Reply-To"] == first_message_id
         assert sent_message.extra_headers["References"] == first_message_id
+
+
+class EmailNotificationProviderThreadingTest(TestCase):
+    def setUp(self) -> None:
+        self.data = MockNotification(message="test message")
+        self.rendered_template = MockNotificationTemplate().render(self.data)
+        self.email = "test@example.com"
+        self.target = GenericNotificationTarget(
+            provider_key=NotificationProviderKey.EMAIL,
+            resource_type=NotificationTargetResourceType.EMAIL,
+            resource_id=self.email,
+        )
+        self.thread_key = ThreadKey(
+            key_type=NotificationSource.ISSUE,
+            key_data={"action_id": 123, "group_id": 456},
+        )
+
+    def _create_existing_thread(self, thread_identifier: str) -> NotificationThread:
+        config: ThreadingConfig = {
+            "key_type": self.thread_key.key_type,
+            "key_data": self.thread_key.key_data,
+            "provider_key": NotificationProviderKey.EMAIL,
+            "target_id": self.email,
+            "thread_identifier": thread_identifier,
+            "provider_data": None,
+        }
+        thread, _ = ThreadingService.store_new_thread(
+            threading_config=config, external_message_id=thread_identifier
+        )
+        return thread
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_send_starts_thread(self, mock_send_messages: mock.MagicMock) -> None:
+        email = render_email(self.data, self.rendered_template)
+        result = EmailNotificationProvider.send(
+            target=self.target,
+            renderable=email,
+            thread_context=ThreadContext(thread_key=self.thread_key),
+        )
+
+        [sent_message] = mock_send_messages.call_args[0][0]
+        assert "In-Reply-To" not in sent_message.extra_headers
+        assert "References" not in sent_message.extra_headers
+        assert result == SendSuccessResult(
+            provider_message_id=sent_message.extra_headers["Message-Id"],
+            is_threaded=True,
+            thread_identifier=None,
+        )
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_send_replies_to_existing_thread(self, mock_send_messages: mock.MagicMock) -> None:
+        root_message_id = "<root@example.com>"
+        thread = self._create_existing_thread(thread_identifier=root_message_id)
+        email = render_email(self.data, self.rendered_template)
+
+        result = EmailNotificationProvider.send(
+            target=self.target,
+            renderable=email,
+            thread_context=ThreadContext(thread_key=self.thread_key, thread=thread),
+        )
+
+        [sent_message] = mock_send_messages.call_args[0][0]
+        assert sent_message.extra_headers["In-Reply-To"] == root_message_id
+        assert sent_message.extra_headers["References"] == root_message_id
+        assert sent_message.extra_headers["Message-Id"] != root_message_id
+        assert result == SendSuccessResult(
+            provider_message_id=sent_message.extra_headers["Message-Id"],
+            is_threaded=True,
+            thread_identifier=root_message_id,
+        )
+
+    @mock.patch("sentry.notifications.platform.email.provider.send_messages")
+    def test_notify_target_threads_emails(self, mock_send_messages: mock.MagicMock) -> None:
+        threading_options = ThreadingOptions(thread_key=self.thread_key)
+        service = NotificationService(data=self.data)
+
+        service.notify_target(target=self.target, threading_options=threading_options)
+        [first_message] = mock_send_messages.call_args[0][0]
+        root_message_id = first_message.extra_headers["Message-Id"]
+
+        thread = NotificationThread.objects.get(
+            provider_key=NotificationProviderKey.EMAIL, target_id=self.email
+        )
+        assert thread.thread_identifier == root_message_id
+
+        service.notify_target(target=self.target, threading_options=threading_options)
+        [second_message] = mock_send_messages.call_args[0][0]
+
+        assert second_message.extra_headers["In-Reply-To"] == root_message_id
+        assert second_message.extra_headers["References"] == root_message_id
+        assert list(
+            NotificationRecord.objects.filter(thread=thread)
+            .order_by("id")
+            .values_list("message_id", flat=True)
+        ) == [root_message_id, second_message.extra_headers["Message-Id"]]
