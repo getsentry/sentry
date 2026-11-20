@@ -146,11 +146,9 @@ export function TeamStatsControls({
       <TeamSelector
         name="select-team"
         controlLeadingItems={
-          <Container paddingLeft="lg" flexShrink={0}>
-            <Text bold wrap="nowrap">
-              {t('Team:')}
-            </Text>
-          </Container>
+          <Text bold wrap="nowrap">
+            {t('Team:')}
+          </Text>
         }
         value={currentTeam?.slug ?? null}
         onChange={(choice: any) => handleChangeTeam(choice.actor.id)}
@@ -164,11 +162,9 @@ export function TeamStatsControls({
           value={currentEnvironment ?? ''}
           onChange={handleEnvironmentChange}
           controlLeadingItems={
-            <Container paddingLeft="lg" flexShrink={0}>
-              <Text bold wrap="nowrap">
-                {t('Environment:')}
-              </Text>
-            </Container>
+            <Text bold wrap="nowrap">
+              {t('Environment:')}
+            </Text>
           }
         />
       )}

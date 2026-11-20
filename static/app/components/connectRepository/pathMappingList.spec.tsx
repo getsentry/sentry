@@ -63,7 +63,7 @@ describe('PathMappingList', () => {
 
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
       expect(
-        screen.getByRole('textbox', {name: /stack trace prefix/i})
+        screen.getByRole('combobox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
       expect(
         screen.queryByRole('button', {name: 'Delete path mapping'})
@@ -74,11 +74,11 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'lib/'
       );
 
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue(
+      expect(screen.getByRole('combobox', {name: /stack trace prefix/i})).toHaveValue(
         'lib/'
       );
     });
@@ -87,7 +87,7 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'app/'
       );
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
@@ -107,7 +107,7 @@ describe('PathMappingList', () => {
       expect(screen.getByText('app/')).toBeInTheDocument();
       expect(screen.getByText('src/')).toBeInTheDocument();
       expect(
-        screen.queryByRole('textbox', {name: /stack trace prefix/i})
+        screen.queryByRole('combobox', {name: /stack trace prefix/i})
       ).not.toBeInTheDocument();
     });
 
@@ -120,12 +120,12 @@ describe('PathMappingList', () => {
 
       await userEvent.click(first!);
       expect(
-        screen.getByRole('textbox', {name: /stack trace prefix/i})
+        screen.getByRole('combobox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
 
       await userEvent.click(second!);
       // Only one edit form open at a time.
-      expect(screen.getAllByRole('textbox', {name: /stack trace prefix/i})).toHaveLength(
+      expect(screen.getAllByRole('combobox', {name: /stack trace prefix/i})).toHaveLength(
         1
       );
     });
@@ -136,7 +136,7 @@ describe('PathMappingList', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Add another path'}));
 
       expect(screen.getByText(/Paths \(3\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+      expect(screen.getByRole('combobox', {name: /stack trace prefix/i})).toHaveValue('');
     });
 
     it('keeps delete on the summary when the only mapping is open', async () => {
@@ -209,7 +209,7 @@ describe('PathMappingList', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
 
       expect(screen.getByText(/Paths \(1\)/)).toBeInTheDocument();
-      expect(screen.getByRole('textbox', {name: /stack trace prefix/i})).toHaveValue('');
+      expect(screen.getByRole('combobox', {name: /stack trace prefix/i})).toHaveValue('');
     });
   });
 
@@ -279,7 +279,7 @@ describe('PathMappingList', () => {
 
       await userEvent.click(screen.getByRole('button', {name: 'Add path'}));
       expect(
-        screen.getByRole('textbox', {name: /stack trace prefix/i})
+        screen.getByRole('combobox', {name: /stack trace prefix/i})
       ).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('button', {name: 'Delete path mapping'}));
@@ -318,7 +318,7 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /repository prefix/i}),
+        screen.getByRole('combobox', {name: /repository prefix/i}),
         'app/'
       );
       await userEvent.tab();
@@ -335,7 +335,7 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'src/'
       );
       // Combobox commits the typed value on blur, not on each keystroke.
@@ -349,11 +349,11 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'src/'
       );
       await userEvent.type(
-        screen.getByRole('textbox', {name: /repository prefix/i}),
+        screen.getByRole('combobox', {name: /repository prefix/i}),
         'app/'
       );
       await userEvent.tab();
@@ -487,7 +487,7 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'src'
       );
       await userEvent.tab();
@@ -500,7 +500,7 @@ describe('PathMappingList', () => {
       renderList();
 
       await userEvent.type(
-        screen.getByRole('textbox', {name: /stack trace prefix/i}),
+        screen.getByRole('combobox', {name: /stack trace prefix/i}),
         'src/'
       );
       await userEvent.clear(screen.getByRole('textbox', {name: /branch/i}));

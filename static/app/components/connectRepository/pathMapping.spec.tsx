@@ -48,7 +48,7 @@ describe('PathMapping', () => {
     expect(screen.getByText('app/')).toBeInTheDocument();
     expect(screen.getByText('main')).toBeInTheDocument();
     expect(
-      screen.queryByRole('textbox', {name: /stack trace prefix/i})
+      screen.queryByRole('combobox', {name: /stack trace prefix/i})
     ).not.toBeInTheDocument();
   });
 
@@ -77,9 +77,11 @@ describe('PathMapping', () => {
 
     expect(screen.getByRole('textbox', {name: /branch/i})).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: /stack trace prefix/i})
+      screen.getByRole('combobox', {name: /stack trace prefix/i})
     ).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: /repository prefix/i})).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', {name: /repository prefix/i})
+    ).toBeInTheDocument();
   });
 
   it('shows placeholders on the prefix inputs', () => {
@@ -103,7 +105,7 @@ describe('PathMapping', () => {
     renderMapping({editing: true, isNew: true});
 
     await userEvent.type(
-      screen.getByRole('textbox', {name: /stack trace prefix/i}),
+      screen.getByRole('combobox', {name: /stack trace prefix/i}),
       'lib/'
     );
     // Blur commits the typed value; the preview and selected label then show it.

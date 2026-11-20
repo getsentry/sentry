@@ -1,14 +1,10 @@
 import type {ListItemProps} from './menu';
 
-/**
- * The option format used by react-select based components
- */
+/** A choice displayed by Scraps Select. */
 export interface SelectValue<T> extends ListItemProps {
   value: T;
   /**
-   * In scenarios where you're using a react element as the label react-select
-   * will be unable to filter to that label. Use this to specify the plain text of
-   * the label.
+   * Plain text for searching and for labels that contain React elements.
    */
   textValue?: string;
 }

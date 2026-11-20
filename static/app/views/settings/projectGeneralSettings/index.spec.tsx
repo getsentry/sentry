@@ -356,7 +356,7 @@ describe('projectGeneralSettings', () => {
       {organization, initialRouterConfig}
     );
 
-    const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+    const platformSelect = await screen.findByRole('combobox', {name: 'Platform'});
     await selectEvent.select(platformSelect, ['React']);
 
     expect(putMock).toHaveBeenCalled();
@@ -501,7 +501,7 @@ describe('projectGeneralSettings', () => {
         {organization: orgWithGamingAccess, initialRouterConfig: routerConfig}
       );
 
-      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+      const platformSelect = await screen.findByRole('combobox', {name: 'Platform'});
       await userEvent.click(platformSelect);
 
       // Should also show non-console platforms
@@ -537,7 +537,7 @@ describe('projectGeneralSettings', () => {
         {organization: orgWithoutGamingFeature, initialRouterConfig: routerConfig}
       );
 
-      const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
+      const platformSelect = await screen.findByRole('combobox', {name: 'Platform'});
       await userEvent.click(platformSelect);
 
       // Should not show console platforms except nintendo

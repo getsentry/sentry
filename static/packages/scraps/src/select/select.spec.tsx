@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {createRef, Fragment, useState} from 'react';
 import {ThemeProvider} from '@emotion/react';
-import {act, render, screen, within} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -362,8 +362,8 @@ it('customizes value and option content while preserving selection data', async 
   );
 
   expect(screen.getByText('Selected Apple')).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-  await userEvent.click(screen.getByRole('menuitemradio', {name: 'Choose Cherry'}));
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  await userEvent.click(screen.getByRole('option', {name: 'Choose Cherry'}));
 
   expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());
 });
@@ -387,6 +387,65 @@ it('customizes chip labels while retaining the remove control', async () => {
   await userEvent.click(screen.getAllByLabelText('Remove item')[0]!);
 
   expect(onChange).toHaveBeenCalledWith([options[1]], expect.anything());
+});
+
+it('removes the last selected item with Backspace when the search is empty', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('a{Backspace}');
+  expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('');
+  expect(onChange).not.toHaveBeenCalled();
+
+  await userEvent.keyboard('{Backspace}');
+  expect(onChange).toHaveBeenCalledWith([options[0]], expect.anything());
+});
+
+it('keeps the last selected item on Backspace when clearable is false', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      clearable={false}
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('{Backspace}');
+  expect(onChange).not.toHaveBeenCalled();
+  expect(screen.queryByRole('button', {name: 'Clear choices'})).not.toBeInTheDocument();
+});
+
+it('clears all selected items in a multi-select by default', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      multiple
+      aria-label="Fruit"
+      options={options}
+      value={['apple', 'cherry']}
+      onChange={onChange}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.click(screen.getByRole('button', {name: 'Clear choices'}));
+  expect(onChange).toHaveBeenCalledWith([], expect.anything());
 });
 
 it('customizes indicators while retaining the clear control', async () => {
@@ -422,8 +481,8 @@ it('can hide indicators without disabling option selection', async () => {
   );
 
   expect(screen.queryByLabelText('Clear choices')).not.toBeInTheDocument();
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-  await userEvent.click(screen.getByRole('menuitemradio', {name: 'Cherry'}));
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
   expect(onChange).toHaveBeenCalledWith(options[1], expect.anything());
 });
 
@@ -442,7 +501,7 @@ it('provides a native input ref and forwards validation attributes', () => {
     {wrapper: ThemeWrapper}
   );
 
-  const input = screen.getByRole('textbox', {name: 'Fruit'});
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
   expect(inputRef.current).toBe(input);
   expect(input).toHaveAttribute('aria-invalid', 'true');
   expect(input).toHaveAttribute('aria-describedby', 'fruit-error');
@@ -473,8 +532,7 @@ it('renders disabled selections without an onChange handler', async () => {
 
   await userEvent.click(screen.getByText('Apple'));
   await userEvent.click(screen.getByText('Cherry'));
-  expect(screen.queryByRole('menuitemradio')).not.toBeInTheDocument();
-  expect(screen.queryByRole('menuitemcheckbox')).not.toBeInTheDocument();
+  expect(screen.queryByRole('option')).not.toBeInTheDocument();
 });
 
 it('exposes focus and blur without access to the implementation instance', () => {
@@ -489,7 +547,7 @@ it('exposes focus and blur without access to the implementation instance', () =>
     />,
     {wrapper: ThemeWrapper}
   );
-  const input = screen.getByRole('textbox', {name: 'Fruit'});
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
 
   act(() => ref.current?.focus());
   expect(input).toHaveFocus();
@@ -519,10 +577,10 @@ it('controls the menu and keeps footer actions outside the options', async () =>
   const onOpenChange = jest.fn();
   render(<ControlledSelect onOpenChange={onOpenChange} />, {wrapper: ThemeWrapper});
 
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
   expect(onOpenChange).toHaveBeenLastCalledWith(true);
   expect(screen.getByRole('button', {name: 'Manage fruit'})).toBeInTheDocument();
-  for (const option of screen.getAllByRole('menuitemradio')) {
+  for (const option of screen.getAllByRole('option')) {
     expect(
       within(option).queryByRole('button', {name: 'Manage fruit'})
     ).not.toBeInTheDocument();
@@ -569,10 +627,8 @@ it.each([false, true])(
       {wrapper: ThemeWrapper}
     );
 
-    await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-    await userEvent.click(
-      screen.getByRole(multiple ? 'menuitemcheckbox' : 'menuitemradio', {name: 'Cherry'})
-    );
+    await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Cherry'}));
     await userEvent.keyboard('{Escape}');
 
     expect(onChange).toHaveBeenCalledWith(
@@ -611,14 +667,14 @@ it('blurs single selects after selection and reports edits and resets separately
     />,
     {wrapper: ThemeWrapper}
   );
-  const input = screen.getByRole('textbox', {name: 'Fruit'});
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
 
   await userEvent.type(input, 'App');
   expect(onInputChange).toHaveBeenLastCalledWith('App', 'input');
   expect(onInputChange).toHaveBeenCalledTimes(3);
 
-  await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
-  expect(input).not.toHaveFocus();
+  await userEvent.click(screen.getByRole('option', {name: 'Apple'}));
+  await waitFor(() => expect(input).not.toHaveFocus());
   expect(onInputChange).toHaveBeenLastCalledWith('', 'reset');
   expect(
     onInputChange.mock.calls.filter(([, reason]) => reason === 'input')
@@ -636,13 +692,13 @@ it('keeps multiple selects focused after selection', async () => {
     />,
     {wrapper: ThemeWrapper}
   );
-  const input = screen.getByRole('textbox', {name: 'Fruit'});
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
 
   await userEvent.click(input);
-  await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'Apple'}));
+  await userEvent.click(screen.getByRole('option', {name: 'Apple'}));
 
   expect(input).toHaveFocus();
-  expect(screen.getByRole('menuitemcheckbox', {name: 'Cherry'})).toBeInTheDocument();
+  expect(screen.getByRole('option', {name: 'Cherry'})).toBeInTheDocument();
 });
 
 it('can retain focus in a single select without firing blur', async () => {
@@ -658,13 +714,25 @@ it('can retain focus in a single select without firing blur', async () => {
     />,
     {wrapper: ThemeWrapper}
   );
-  const input = screen.getByRole('textbox', {name: 'Fruit'});
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
 
   await userEvent.click(input);
-  await userEvent.click(screen.getByRole('menuitemradio', {name: 'Apple'}));
+  await userEvent.click(screen.getByRole('option', {name: 'Apple'}));
 
   expect(input).toHaveFocus();
   expect(onBlur).not.toHaveBeenCalled();
+});
+
+it('matches letters in order when searching options', async () => {
+  render(
+    <Select value={null} onChange={jest.fn()} aria-label="Fruit" options={options} />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.type(screen.getByRole('combobox', {name: 'Fruit'}), 'PPL');
+
+  expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
+  expect(screen.queryByRole('option', {name: 'Cherry'})).not.toBeInTheDocument();
 });
 
 it('filters numeric labels as text', async () => {
@@ -678,9 +746,9 @@ it('filters numeric labels as text', async () => {
     {wrapper: ThemeWrapper}
   );
 
-  await userEvent.type(screen.getByRole('textbox', {name: 'Number'}), '123');
+  await userEvent.type(screen.getByRole('combobox', {name: 'Number'}), '123');
 
-  expect(screen.getByRole('menuitemradio', {name: '123'})).toBeInTheDocument();
+  expect(screen.getByRole('option', {name: '123'})).toBeInTheDocument();
 });
 
 it('preserves creatable values with an empty options list', () => {
@@ -714,9 +782,9 @@ it('passes option data directly to custom filters', async () => {
     {wrapper: ThemeWrapper}
   );
 
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-  expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).toBeInTheDocument();
-  expect(screen.queryByRole('menuitemradio', {name: 'Apple'})).not.toBeInTheDocument();
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  expect(screen.getByRole('option', {name: 'Cherry'})).toBeInTheDocument();
+  expect(screen.queryByRole('option', {name: 'Apple'})).not.toBeInTheDocument();
 });
 
 it('shows the placeholder for an empty selection without adding menu options', async () => {
@@ -732,12 +800,193 @@ it('shows the placeholder for an empty selection without adding menu options', a
   );
 
   expect(screen.getByText('Choose fruit')).toBeInTheDocument();
-  await userEvent.click(screen.getByRole('textbox', {name: 'Fruit'}));
-  expect(screen.getAllByRole('menuitemradio')).toHaveLength(options.length);
-  expect(screen.getByRole('menuitemradio', {name: 'Apple'})).not.toBeChecked();
-  expect(screen.getByRole('menuitemradio', {name: 'Cherry'})).not.toBeChecked();
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  expect(screen.getAllByRole('option')).toHaveLength(options.length);
+  expect(screen.getByRole('option', {name: 'Apple'})).not.toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
+  expect(screen.getByRole('option', {name: 'Cherry'})).not.toHaveAttribute(
+    'aria-selected',
+    'true'
+  );
 });
 
 function ThemeWrapper({children}: {children: React.ReactNode}) {
   return <ThemeProvider theme={lightTheme}>{children}</ThemeProvider>;
 }
+
+it('leaves the current choice unchanged when Tab moves past an open select', async () => {
+  const onChange = jest.fn();
+  render(
+    <Fragment>
+      <Select aria-label="Fruit" options={options} value="apple" onChange={onChange} />
+      <Button>Next field</Button>
+    </Fragment>,
+    {wrapper: ThemeWrapper}
+  );
+
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.click(input);
+  await userEvent.keyboard('{ArrowDown}');
+  expect(input).toHaveAttribute(
+    'aria-activedescendant',
+    screen.getByRole('option', {name: 'Cherry'}).id
+  );
+
+  await userEvent.tab();
+  expect(screen.getByRole('button', {name: 'Next field'})).toHaveFocus();
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+it('runs the caller keyboard handler before opening or choosing options', async () => {
+  const onOpenChange = jest.fn();
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={null}
+      onChange={jest.fn()}
+      onOpenChange={onOpenChange}
+      onKeyDown={event => event.preventDefault()}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  act(() => screen.getByRole('combobox', {name: 'Fruit'}).focus());
+  await userEvent.keyboard('{ArrowDown}');
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  expect(onOpenChange).not.toHaveBeenCalled();
+});
+
+it.each([true, false])(
+  'opens the menu and then selects an option with Space (searchable: %s)',
+  async searchable => {
+    const onChange = jest.fn();
+    render(
+      <Select
+        aria-label="Fruit"
+        options={options}
+        value={null}
+        onChange={onChange}
+        searchable={searchable}
+      />,
+      {wrapper: ThemeWrapper}
+    );
+
+    await userEvent.tab();
+    await userEvent.keyboard('[Space]');
+
+    expect(screen.getByRole('listbox')).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('');
+    expect(onChange).not.toHaveBeenCalled();
+
+    await userEvent.keyboard('[Space]');
+
+    expect(onChange.mock.calls[0]?.[0]).toBe(options[0]);
+    expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+  }
+);
+
+it('inserts Space into an active search query', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={[]}
+      onChange={onChange}
+      multiple
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.tab();
+  await userEvent.keyboard('apple[Space]');
+
+  expect(screen.getByRole('combobox', {name: 'Fruit'})).toHaveValue('apple ');
+  expect(screen.getByRole('option', {name: 'Apple'})).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+it('keeps the controlled menu closed while entering text', async () => {
+  const onInputChange = jest.fn();
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={null}
+      onChange={jest.fn()}
+      onInputChange={onInputChange}
+      isOpen={false}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.type(input, 'a');
+  await userEvent.keyboard('{ArrowDown}');
+  expect(input).toHaveValue('a');
+  expect(onInputChange).toHaveBeenCalledWith('a', 'input');
+  expect(screen.queryByRole('listbox')).not.toBeInTheDocument();
+});
+
+it('tabs to a footer button outside a portaled listbox', async () => {
+  const onChange = jest.fn();
+  render(
+    <Select
+      aria-label="Fruit"
+      options={options}
+      value={null}
+      onChange={onChange}
+      menuPortalTarget={document.body}
+      menuFooter={<Button>Manage fruit</Button>}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  await userEvent.click(screen.getByRole('combobox', {name: 'Fruit'}));
+  await userEvent.tab();
+  expect(screen.getByRole('button', {name: 'Manage fruit'})).toHaveFocus();
+  expect(screen.getByRole('listbox')).toBeInTheDocument();
+  expect(onChange).not.toHaveBeenCalled();
+});
+
+it('preserves the active option when object choices refetch and reorder', async () => {
+  const first = {label: 'Apple', value: {id: 1}};
+  const second = {label: 'Cherry', value: {id: 2}};
+  const isValueEqual = (a: {id: number}, b: {id: number}) => a.id === b.id;
+  const onChange = jest.fn();
+  const {rerender} = render(
+    <Select
+      aria-label="Fruit"
+      options={[first, second]}
+      value={null}
+      onChange={onChange}
+      isValueEqual={isValueEqual}
+    />,
+    {wrapper: ThemeWrapper}
+  );
+
+  const input = screen.getByRole('combobox', {name: 'Fruit'});
+  await userEvent.click(input);
+  await userEvent.keyboard('{ArrowDown}');
+  const activeId = screen.getByRole('option', {name: 'Cherry'}).id;
+  expect(input).toHaveAttribute('aria-activedescendant', activeId);
+
+  const updatedCherry = {label: 'Cherry', value: {id: 2}};
+  rerender(
+    <Select
+      aria-label="Fruit"
+      options={[updatedCherry, first]}
+      value={null}
+      onChange={onChange}
+      isValueEqual={isValueEqual}
+    />
+  );
+  expect(input).toHaveAttribute('aria-activedescendant', activeId);
+
+  await userEvent.keyboard('{Enter}');
+  expect(onChange.mock.calls[0]?.[0]).toBe(updatedCherry);
+});

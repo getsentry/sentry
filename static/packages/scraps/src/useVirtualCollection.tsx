@@ -1,7 +1,7 @@
 import type * as React from 'react';
 import {Fragment, useEffect} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
-import type {Key, Node} from '@react-types/shared';
+import type {Key, LayoutDelegate, Node} from '@react-types/shared';
 import {
   defaultRangeExtractor,
   observeElementRect,
@@ -147,6 +147,8 @@ export interface VirtualCollection<T> {
   rows: Array<VirtualRow<T>>;
   /** Height of the unmounted rows after the last mounted one. */
   spaceAfter: number;
+  /** Scroll geometry for keyboard navigation over rows outside the viewport. */
+  layoutDelegate?: LayoutDelegate;
 }
 
 /**
@@ -279,6 +281,33 @@ export function useVirtualCollection<T>({
   return {
     rows,
     spaceAfter: enabled ? Math.max(0, totalSize - (last?.end ?? listPadding)) : 0,
+    layoutDelegate: enabled
+      ? {
+          getItemRect(key) {
+            const item = virtualizer.measurementsCache.find(row => row.key === key);
+            return item
+              ? {
+                  x: 0,
+                  y: item.start,
+                  width: scrollRef.current?.clientWidth ?? 0,
+                  height: item.size,
+                }
+              : null;
+          },
+          getVisibleRect() {
+            const element = scrollRef.current;
+            return {
+              x: 0,
+              y: element?.scrollTop ?? 0,
+              width: element?.clientWidth ?? 0,
+              height: element?.clientHeight ?? 0,
+            };
+          },
+          getContentSize() {
+            return {width: scrollRef.current?.scrollWidth ?? 0, height: totalSize};
+          },
+        }
+      : undefined,
   };
 }
 

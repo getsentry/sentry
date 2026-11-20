@@ -287,7 +287,7 @@ describe('OrganizationSettingsForm', () => {
         screen.getByRole('checkbox', {name: 'Restrict Replay Access'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('textbox', {name: 'Replay Access Members'})
+        screen.queryByRole('combobox', {name: 'Replay Access Members'})
       ).not.toBeInTheDocument();
     });
 
@@ -303,7 +303,7 @@ describe('OrganizationSettingsForm', () => {
         }
       );
       expect(
-        screen.getByRole('textbox', {name: 'Replay Access Members'})
+        screen.getByRole('combobox', {name: 'Replay Access Members'})
       ).toBeInTheDocument();
     });
 
@@ -319,7 +319,9 @@ describe('OrganizationSettingsForm', () => {
           },
         }
       );
-      expect(screen.getByRole('textbox', {name: 'Replay Access Members'})).toBeDisabled();
+      expect(
+        screen.getByRole('combobox', {name: 'Replay Access Members'})
+      ).toBeDisabled();
     });
 
     it('saves when Restrict Replay Access toggle is enabled', async () => {
@@ -403,10 +405,10 @@ describe('OrganizationSettingsForm', () => {
         }
       );
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
       await userEvent.click(
-        await screen.findByRole('menuitemcheckbox', {name: 'Foo Bar'})
+        screen.getByRole('combobox', {name: 'Replay Access Members'})
       );
+      await userEvent.click(await screen.findByRole('option', {name: 'Foo Bar'}));
       await userEvent.keyboard('{Escape}');
       await userEvent.tab();
 
@@ -432,10 +434,12 @@ describe('OrganizationSettingsForm', () => {
         {organization: {...organization, hasGranularReplayPermissions: true}}
       );
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
+      await userEvent.click(
+        screen.getByRole('combobox', {name: 'Replay Access Members'})
+      );
 
       expect(
-        await screen.findByRole('menuitemcheckbox', {name: 'Teamless Member'})
+        await screen.findByRole('option', {name: 'Teamless Member'})
       ).toBeInTheDocument();
     });
 
@@ -481,15 +485,15 @@ describe('OrganizationSettingsForm', () => {
         {organization: {...organization, hasGranularReplayPermissions: true}}
       );
 
-      await userEvent.click(screen.getByRole('textbox', {name: 'Replay Access Members'}));
       await userEvent.click(
-        await screen.findByRole('menuitemcheckbox', {name: 'Alice Nguyen'})
+        screen.getByRole('combobox', {name: 'Replay Access Members'})
       );
+      await userEvent.click(await screen.findByRole('option', {name: 'Alice Nguyen'}));
       await userEvent.type(
-        screen.getByRole('textbox', {name: 'Replay Access Members'}),
+        screen.getByRole('combobox', {name: 'Replay Access Members'}),
         'bob'
       );
-      await screen.findByRole('menuitemcheckbox', {name: 'Bob Okafor'});
+      await screen.findByRole('option', {name: 'Bob Okafor'});
 
       expect(screen.getByText('Alice Nguyen')).toBeInTheDocument();
     });

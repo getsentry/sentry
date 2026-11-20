@@ -127,7 +127,7 @@ describe('Relocation Details', () => {
       body: pausedModel,
     });
     await userEvent.click(screen.getByText('Schedule Pause'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Scheduled At'}));
     [
       'As soon as possible',
       'Preprocessing',
@@ -136,7 +136,7 @@ describe('Relocation Details', () => {
       'Postprocessing',
     ].forEach(step => expect(screen.getByText(step)).toBeInTheDocument());
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Scheduled At'}),
+      screen.getByRole('combobox', {name: 'Scheduled At'}),
       'As soon as possible'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
@@ -161,9 +161,9 @@ describe('Relocation Details', () => {
       body: rePausedModel,
     });
     await userEvent.click(screen.getByText('Schedule Pause'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Scheduled At'}));
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Scheduled At'}),
+      screen.getByRole('combobox', {name: 'Scheduled At'}),
       'Validating'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
@@ -189,8 +189,8 @@ describe('Relocation Details', () => {
       body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Until'}), 'Completion');
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Until'}));
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Until'}), 'Completion');
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();
@@ -237,13 +237,13 @@ describe('Relocation Details', () => {
       body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Until'}));
     ['Completion', 'Importing', 'Postprocessing'].forEach(step =>
       expect(screen.getByText(step)).toBeInTheDocument()
     );
     expect(screen.queryByText('Validating')).not.toBeInTheDocument();
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Until'}), 'Completion');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Until'}), 'Completion');
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();
@@ -330,12 +330,12 @@ describe('Relocation Details', () => {
       body: cancelledModel,
     });
     await userEvent.click(screen.getByText('Schedule Cancellation'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Scheduled At'}));
     ['As soon as possible', 'Validating', 'Importing', 'Postprocessing'].forEach(step =>
       expect(screen.getByText(step)).toBeInTheDocument()
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Scheduled At'}),
+      screen.getByRole('combobox', {name: 'Scheduled At'}),
       'As soon as possible'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
@@ -359,9 +359,9 @@ describe('Relocation Details', () => {
       body: reCancelledModel,
     });
     await userEvent.click(screen.getByText('Schedule Cancellation'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Scheduled At'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Scheduled At'}));
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Scheduled At'}),
+      screen.getByRole('combobox', {name: 'Scheduled At'}),
       'Notifying'
     );
     await userEvent.click(screen.getByRole('button', {name: 'Schedule'}));
@@ -432,11 +432,11 @@ describe('Relocation Details', () => {
       body: unpausedModel,
     });
     await userEvent.click(screen.getByText('Unpause'));
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Until'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Until'}));
     expect(screen.getByText('Completion')).toBeInTheDocument();
     expect(screen.queryByText('Notifying')).not.toBeInTheDocument();
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Until'}), 'Completion');
+    await selectEvent.select(screen.getByRole('combobox', {name: 'Until'}), 'Completion');
     await userEvent.click(screen.getByRole('button', {name: 'Unpause'}));
     await waitForModalToHide();
     expect(unpauseCall.mock.calls[0][1].data.untilStep).toBeUndefined();

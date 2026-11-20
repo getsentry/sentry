@@ -43,7 +43,7 @@ describe('SentryMemberTeamSelectorField', () => {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Select Owner'}),
+      screen.getByRole('combobox', {name: 'Select Owner'}),
       `#${mockTeams[0]!.slug}`
     );
 
@@ -71,7 +71,7 @@ describe('SentryMemberTeamSelectorField', () => {
       </Form>
     );
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Select Owner'}));
     expect(await screen.findByText('My Teams')).toBeInTheDocument();
     expect(await screen.findByText('Other Teams')).toBeInTheDocument();
   });
@@ -89,7 +89,7 @@ describe('SentryMemberTeamSelectorField', () => {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Select Owner'}),
+      screen.getByRole('combobox', {name: 'Select Owner'}),
       mockUsers[0]!.name
     );
 
@@ -113,11 +113,11 @@ describe('SentryMemberTeamSelectorField', () => {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Select Owner'}),
+      screen.getByRole('combobox', {name: 'Select Owner'}),
       mockUsers[0]!.name
     );
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Select Owner'}),
+      screen.getByRole('combobox', {name: 'Select Owner'}),
       `#${mockTeams[0]!.slug}`
     );
 
@@ -147,14 +147,16 @@ describe('SentryMemberTeamSelectorField', () => {
       </Form>
     );
 
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Select Owner'}));
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Select Owner'}));
     expect(
-      within((await screen.findByText('My Teams')).parentElement!).getByText('#my-team')
+      within(await screen.findByRole('group', {name: 'My Teams'})).getByRole('option', {
+        name: '#my-team',
+      })
     ).toBeInTheDocument();
 
     const disabledOption = within(
-      (await screen.findByText('Disabled Teams')).parentElement!
-    ).getByRole('menuitemcheckbox', {name: '#disabled-team'});
+      await screen.findByRole('group', {name: 'Disabled Teams'})
+    ).getByRole('option', {name: '#disabled-team'});
     expect(disabledOption).toHaveAttribute('aria-disabled', 'true');
 
     await userEvent.click(disabledOption);

@@ -26,6 +26,6 @@ describe('Built-in Repositories', () => {
 
     // Enabled Field
     expect(screen.getByText('Microsoft')).toBeInTheDocument();
-    expect(screen.getByRole('textbox')).toBeEnabled();
+    expect(screen.getByRole('combobox')).toBeEnabled();
   });
 });

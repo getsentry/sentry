@@ -22,8 +22,8 @@ describe('ChangeGoogleDomainAction', () => {
     const {waitForModalToHide} = renderGlobalModal();
 
     await userEvent.type(screen.getByRole('textbox', {name: 'New Domain'}), 'new.test');
-    await userEvent.click(screen.getByRole('textbox', {name: 'Change Option'}));
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Swap'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Change Option'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Swap'}));
     await userEvent.click(screen.getByRole('button', {name: 'Do Dry Run'}));
 
     expect(

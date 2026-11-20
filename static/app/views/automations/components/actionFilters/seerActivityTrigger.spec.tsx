@@ -90,7 +90,7 @@ describe('SeerActivityTriggerNode', () => {
       screen.getByText('Seer runs on an issue and reaches the stage...')
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('textbox', {name: 'Seer activity stages'})
+      screen.getByRole('combobox', {name: 'Seer activity stages'})
     ).toBeInTheDocument();
   });
 
@@ -102,9 +102,9 @@ describe('SeerActivityTriggerNode', () => {
         </DataConditionNodeContext.Provider>
       </AutomationBuilderErrorContext.Provider>
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Seer activity stages'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Seer activity stages'}));
     await userEvent.click(
-      screen.getByRole('menuitemcheckbox', {name: 'Pull request ready for review'})
+      screen.getByRole('option', {name: 'Pull request ready for review'})
     );
     await waitFor(() => {
       expect(dataConditionNodeContext.onUpdate).toHaveBeenCalledWith({

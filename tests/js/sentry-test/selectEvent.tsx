@@ -1,5 +1,4 @@
 // Based on https://github.com/romgain/react-select-event
-// Switched from fireEvent to userEvent to avoid act warnings in react 18
 
 // Copyright 2019 Romain Bertrand
 //
@@ -25,11 +24,23 @@ import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no
 
 import {waitFor, within, type Matcher} from 'sentry-test/reactTestingLibrary';
 
-/**
- * Find the react-select container from its input field
- */
-function getReactSelectContainerFromInput(input: HTMLElement): HTMLElement {
-  return input.parentNode!.parentNode!.parentNode!.parentNode!.parentNode as HTMLElement;
+function findSelectContainer(input: HTMLElement): HTMLElement | null {
+  return input.closest<HTMLElement>('[data-scraps-select]');
+}
+
+function getSelectContainer(input: HTMLElement): HTMLElement {
+  const container = findSelectContainer(input);
+  if (!container) {
+    throw new Error('Expected a Scraps Select input');
+  }
+  return container;
+}
+
+function getSelectInput(target: HTMLElement): HTMLElement {
+  const container = findSelectContainer(target);
+  return container && !target.matches('[role="combobox"]')
+    ? within(container).getByRole('combobox')
+    : target;
 }
 
 type User = ReturnType<typeof userEvent.setup> | typeof userEvent;
@@ -44,32 +55,12 @@ const openMenu = async (
   input: HTMLElement,
   {user = userEvent}: UserEventOptions = {}
 ) => {
-  await user.click(input, {skipHover: true});
-  // Arrow down may be required?
-  // await user.type(input, '{ArrowDown}');
-};
-
-/**
- * Type text in the input field
- */
-const type = async (
-  input: HTMLElement,
-  text: string,
-  {user}: Required<UserEventOptions>
-) => {
-  await user.type(input, text);
-};
-
-/**
- * Press the "clear" button, and reset various states
- */
-const clear = async (clearButton: Element, {user}: Required<UserEventOptions>) => {
-  await user.click(clearButton, {skipHover: true});
+  await user.click(getSelectInput(input), {skipHover: true});
 };
 
 interface Config extends UserEventOptions {
   /**
-   * A container where the react-select dropdown gets rendered to.
+   * A container where the dropdown gets rendered to.
    * Useful when rendering the dropdown in a portal using `menuPortalTarget`.
    * Can be specified as a function if it needs to be lazily evaluated.
    */
@@ -77,7 +68,7 @@ interface Config extends UserEventOptions {
 }
 
 /**
- * Utility for selecting a value in a `react-select` dropdown.
+ * Utility for selecting a value in a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  * @param optionOrOptions The display name(s) for the option(s) to select
  */
@@ -86,38 +77,37 @@ const select = async (
   optionOrOptions: Matcher | Matcher[],
   {user = userEvent, ...config}: Config = {}
 ) => {
+  input = getSelectInput(input);
   const options = Array.isArray(optionOrOptions) ? optionOrOptions : [optionOrOptions];
 
-  // Select the items we care about
   for (const option of options) {
-    await openMenu(input, {user});
-
-    let container: HTMLElement;
-    if (typeof config.container === 'function') {
-      // when specified as a function, the container needs to be lazily evaluated, so
-      // we have to wait for it to be visible:
-      await waitFor(config.container);
-      container = config.container();
-    } else if (config.container) {
-      container = config.container;
-    } else {
-      container = getReactSelectContainerFromInput(input);
+    if (input.getAttribute('aria-expanded') !== 'true') {
+      await openMenu(input, {user});
     }
 
-    // only consider visible, interactive elements
-    const matchingElements = await within(container).findAllByText(option, {
-      ignore: "[aria-live] *,[style*='visibility: hidden']",
+    const target = config.container;
+    const container =
+      typeof target === 'function' ? await waitFor(target) : (target ?? document.body);
+    const popup = await waitFor(() => {
+      const id = input.getAttribute('aria-controls');
+      // eslint-disable-next-line testing-library/no-node-access -- Follow aria-controls to the popup, which may be portaled.
+      const element = id && input.ownerDocument.getElementById(id);
+      if (!element || !container.contains(element)) {
+        throw new Error('Expected an open popup for the Select');
+      }
+      return element;
     });
 
-    // When the target option is already selected, the react-select display text
-    // will also match the selector. In this case, the actual dropdown element is
-    // positioned last in the DOM tree.
-    const optionElement = matchingElements[matchingElements.length - 1]!;
+    const row = typeof option === 'number' ? String(option) : option;
+    const menu = within(popup);
+    const matchingOptions = menu.queryAllByRole('option', {name: row});
+    const optionElement =
+      matchingOptions.at(-1) ?? (await menu.findAllByText(row)).at(-1)!;
     await user.click(optionElement, {skipHover: true});
   }
 };
 
-interface CreateConfig extends Config, UserEventOptions {
+interface CreateConfig extends Config {
   /**
    * Custom label for the "create new ..." option in the menu (string or regexp)
    */
@@ -129,7 +119,7 @@ interface CreateConfig extends Config, UserEventOptions {
 }
 
 /**
- * Creates and selects a value in a Creatable `react-select` dropdown.
+ * Creates and selects a value in a creatable Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  * @param option The display name for the option to type and select
  */
@@ -138,47 +128,45 @@ const create = async (
   option: string,
   {waitForElement = true, user = userEvent, ...config}: CreateConfig = {}
 ) => {
+  input = getSelectInput(input);
   const createOptionText = config.createOptionText || /^Create "/;
   await openMenu(input, {user});
-  await type(input, option, {user});
+  await user.type(input, option);
 
   await select(input, createOptionText, {...config, user});
 
   if (waitForElement) {
-    await within(getReactSelectContainerFromInput(input)).findByText(option);
+    await within(getSelectContainer(input)).findByText(option);
   }
 };
 
 /**
- * Clears the first value of a `react-select` dropdown.
+ * Clears the first value of a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  */
 const clearFirst = async (
   input: HTMLElement,
   {user = userEvent}: UserEventOptions = {}
 ) => {
-  const container = getReactSelectContainerFromInput(input);
-  // The "clear" button is the first svg element that is hidden to screen readers
-  // eslint-disable-next-line testing-library/no-node-access
-  const clearButton = container.querySelector('svg[aria-hidden="true"]')!;
-  await clear(clearButton, {user});
+  const container = getSelectContainer(input);
+  const clearButton = within(container).getAllByRole('button', {name: 'Remove item'})[0]!;
+  await user.click(clearButton, {skipHover: true});
 };
 
 /**
- * Clears all values in a `react-select` dropdown.
+ * Clears all values in a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  */
 const clearAll = async (
   input: HTMLElement,
   {user = userEvent}: UserEventOptions = {}
 ) => {
-  const container = getReactSelectContainerFromInput(input);
-  // The "clear all" button is the penultimate svg element that is hidden to screen readers
-  // (the last one is the dropdown arrow)
-  // eslint-disable-next-line testing-library/no-node-access
-  const elements = container.querySelectorAll('svg[aria-hidden="true"]');
-  const clearAllButton = elements[elements.length - 2]!;
-  await clear(clearAllButton, {user});
+  const container = getSelectContainer(input);
+  await user.click(
+    within(container).queryByRole('button', {name: 'Clear choices'}) ??
+      within(container).getAllByRole('button', {name: 'Remove item'})[0]!,
+    {skipHover: true}
+  );
 };
 
 export const selectEvent = {select, create, clearFirst, clearAll, openMenu};

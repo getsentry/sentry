@@ -95,12 +95,15 @@ describe('SentryAppExternalForm', () => {
       />
     );
 
-    expect(screen.getByRole('textbox', {name: 'Board'})).toBeDisabled();
-    expect(screen.getByRole('textbox', {name: 'Issue Type'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Board'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Issue Type'})).toBeDisabled();
     expect(boardRequest).not.toHaveBeenCalled();
     expect(issueTypeRequest).not.toHaveBeenCalled();
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'project A');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      'project A'
+    );
 
     // The BFS fetches issue-types only after boards resolves with a default,
     // so waiting on the transitive call implies the parent fetch already ran.
@@ -145,7 +148,10 @@ describe('SentryAppExternalForm', () => {
       />
     );
 
-    await selectEvent.select(screen.getByRole('textbox', {name: 'Project'}), 'project A');
+    await selectEvent.select(
+      screen.getByRole('combobox', {name: 'Project'}),
+      'project A'
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
     await waitFor(() =>

@@ -36,8 +36,8 @@ describe('Broadcasts', () => {
     await userEvent.click(screen.getByText('New Broadcast'));
 
     expect(await screen.findByRole('textbox', {name: 'Image URL'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Category'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Product'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Category'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Product'})).toBeInTheDocument();
     expect(screen.queryByRole('textbox', {name: 'CTA'})).not.toBeInTheDocument();
   });
 
@@ -60,10 +60,10 @@ describe('Broadcasts', () => {
       screen.getByRole('textbox', {name: 'Link'}),
       'https://example.com'
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Category'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Category'}));
     await userEvent.click(screen.getByText('Announcement'));
     await userEvent.click(screen.getByLabelText('Clear choices'));
-    await userEvent.click(screen.getByRole('textbox', {name: 'Region'}));
+    await userEvent.click(screen.getByRole('combobox', {name: 'Region'}));
     await userEvent.click(screen.getByText('US'));
     await userEvent.click(screen.getByLabelText('Clear choices'));
     await userEvent.clear(screen.getByLabelText('Expires At'));

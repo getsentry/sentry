@@ -127,7 +127,7 @@ describe('AutomationBuilderDrawerForm', () => {
 
     // Add an action
     await selectEvent.select(
-      await screen.findByRole('textbox', {name: 'Add action'}),
+      await screen.findByRole('combobox', {name: 'Add action'}),
       'Slack'
     );
     await userEvent.type(screen.getByRole('textbox', {name: 'Target'}), '#alerts');

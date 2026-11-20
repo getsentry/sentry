@@ -104,7 +104,7 @@ describe('MonitorForm', () => {
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Project'}),
+      screen.getByRole('combobox', {name: 'Project'}),
       project.slug
     );
 
@@ -113,7 +113,7 @@ describe('MonitorForm', () => {
     await userEvent.type(schedule, '5 * * * *');
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Timezone'}),
+      screen.getByRole('combobox', {name: 'Timezone'}),
       'Los Angeles'
     );
 
@@ -129,7 +129,7 @@ describe('MonitorForm', () => {
       '2'
     );
 
-    const ownerSelect = screen.getByRole('textbox', {name: 'Owner'});
+    const ownerSelect = screen.getByRole('combobox', {name: 'Owner'});
     await selectEvent.select(ownerSelect, 'John Smith');
 
     const submitMock = MockApiClient.addMockResponse({url: apiEndpont, method: 'POST'});
@@ -185,13 +185,13 @@ describe('MonitorForm', () => {
     expect(screen.getByRole('textbox', {name: 'Slug'})).toHaveValue(monitor.slug);
 
     // Project
-    expect(screen.getByRole('textbox', {name: 'Project'})).toBeDisabled();
+    expect(screen.getByRole('combobox', {name: 'Project'})).toBeDisabled();
     expect(screen.getByText(project.slug)).toBeInTheDocument();
 
     // Schedule type
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Schedule Type'}));
-    const crontabOption = screen.getByRole('menuitemradio', {name: 'Crontab'});
-    expect(crontabOption).toBeChecked();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Schedule Type'}));
+    const crontabOption = screen.getByRole('option', {name: 'Crontab'});
+    expect(crontabOption).toHaveAttribute('aria-selected', 'true');
     await userEvent.keyboard('{Escape}');
 
     // Schedule value
@@ -200,9 +200,9 @@ describe('MonitorForm', () => {
     );
 
     // Schedule timezone
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Timezone'}));
-    const losAngelesOption = screen.getByRole('menuitemradio', {name: 'Los Angeles'});
-    expect(losAngelesOption).toBeChecked();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Timezone'}));
+    const losAngelesOption = screen.getByRole('option', {name: 'Los Angeles'});
+    expect(losAngelesOption).toHaveAttribute('aria-selected', 'true');
     await userEvent.keyboard('{Escape}');
 
     // Margins
@@ -214,9 +214,9 @@ describe('MonitorForm', () => {
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
 
     // Ownership
-    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Owner'}));
-    const ownerOption = screen.getByRole('menuitemradio', {name: member.user?.name});
-    expect(ownerOption).toBeChecked();
+    await selectEvent.openMenu(screen.getByRole('combobox', {name: 'Owner'}));
+    const ownerOption = screen.getByRole('option', {name: member.user?.name});
+    expect(ownerOption).toHaveAttribute('aria-selected', 'true');
     await userEvent.keyboard('{Escape}');
 
     expect(screen.queryByRole('textbox', {name: 'Notify'})).not.toBeInTheDocument();

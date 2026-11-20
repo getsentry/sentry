@@ -53,19 +53,19 @@ describe('InviteRowControlNew', () => {
   it('renders', () => {
     render(getComponent(defaultInviteProps));
 
-    expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Role'})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Add to Team'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Email Addresses'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Role'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Add to Team'})).toBeInTheDocument();
   });
 
   it('renders with invite-billing flag', () => {
     render(getComponent(billingProps));
 
-    expect(screen.getByRole('textbox', {name: 'Email Addresses'})).toBeInTheDocument();
-    const roleInput = screen.getByRole('textbox', {name: 'Role'});
+    expect(screen.getByRole('combobox', {name: 'Email Addresses'})).toBeInTheDocument();
+    const roleInput = screen.getByRole('combobox', {name: 'Role'});
     expect(roleInput).toBeInTheDocument();
     expect(roleInput).toBeDisabled();
-    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    const teamInput = screen.getByRole('combobox', {name: 'Add to Team'});
     expect(teamInput).toBeInTheDocument();
   });
 
@@ -77,7 +77,7 @@ describe('InviteRowControlNew', () => {
     it(`invokes the mock correctly with one using delimiter "${delimiter}"`, async () => {
       const mockSetEmails = jest.fn();
       render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
-      const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+      const emailInput = screen.getByRole('combobox', {name: 'Email Addresses'});
       await userEvent.type(emailInput, `${email}${delimiter}`);
       expect(mockSetEmails).toHaveBeenCalled();
     });
@@ -85,7 +85,7 @@ describe('InviteRowControlNew', () => {
     it(`invokes the mock correctly with many using delimiter "${delimiter}"`, async () => {
       const mockSetEmails = jest.fn();
       render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
-      const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+      const emailInput = screen.getByRole('combobox', {name: 'Email Addresses'});
       await userEvent.type(emailInput, `${email}${delimiter}`);
       await userEvent.type(emailInput, `${email}${delimiter}`);
       await userEvent.type(emailInput, `${email}${delimiter}`);
@@ -96,7 +96,7 @@ describe('InviteRowControlNew', () => {
   it('adds only the addresses from a pasted address list', async () => {
     const setEmails = jest.fn();
     render(getComponent({...defaultInviteProps, setEmails}));
-    const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+    const emailInput = screen.getByRole('combobox', {name: 'Email Addresses'});
     await userEvent.click(emailInput);
     await userEvent.paste('Jane Doe <jane@example.com>, John Smith <john@example.com>');
     expect(setEmails).toHaveBeenCalledWith(['jane@example.com', 'john@example.com'], 0);
@@ -106,7 +106,7 @@ describe('InviteRowControlNew', () => {
   it('updates email addresses when new emails are inputted and input is unfocussed', async () => {
     const mockSetEmails = jest.fn();
     render(getComponent({...defaultInviteProps, setEmails: mockSetEmails}));
-    const emailInput = screen.getByRole('textbox', {name: 'Email Addresses'});
+    const emailInput = screen.getByRole('combobox', {name: 'Email Addresses'});
     await userEvent.type(emailInput, 'test-unfocus@example.com');
     await userEvent.tab();
     expect(mockSetEmails).toHaveBeenCalled();
@@ -115,9 +115,9 @@ describe('InviteRowControlNew', () => {
   it('updates role value when new role is selected', async () => {
     const mockSetRole = jest.fn();
     render(getComponent({...defaultInviteProps, setRole: mockSetRole}));
-    const roleInput = screen.getByRole('textbox', {name: 'Role'});
+    const roleInput = screen.getByRole('combobox', {name: 'Role'});
     await userEvent.click(roleInput);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'Billing'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Billing'}));
     expect(mockSetRole).toHaveBeenCalled();
   });
 
@@ -133,7 +133,7 @@ describe('InviteRowControlNew', () => {
         },
       })
     );
-    const input = screen.getByRole('textbox', {name: 'Email Addresses'});
+    const input = screen.getByRole('combobox', {name: 'Email Addresses'});
 
     await userEvent.type(input, 'unfinished');
     await userEvent.click(screen.getByLabelText('Remove item'));
@@ -149,7 +149,7 @@ describe('InviteRowControlNew', () => {
         pendingInvites: {...defaultInviteProps.pendingInvites, role: 'billing'},
       })
     );
-    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    const teamInput = screen.getByRole('combobox', {name: 'Add to Team'});
     expect(teamInput).toBeDisabled();
   });
 
@@ -162,11 +162,11 @@ describe('InviteRowControlNew', () => {
         setTeams: mockSetTeams,
       })
     );
-    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    const teamInput = screen.getByRole('combobox', {name: 'Add to Team'});
     expect(teamInput).toBeEnabled();
     await userEvent.click(teamInput);
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '#moo-deng'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: '#moo-waan'}));
+    await userEvent.click(screen.getByRole('option', {name: '#moo-deng'}));
+    await userEvent.click(screen.getByRole('option', {name: '#moo-waan'}));
     expect(mockSetTeams).toHaveBeenCalledTimes(2);
   });
 
@@ -179,7 +179,7 @@ describe('InviteRowControlNew', () => {
       },
     });
     render(getComponent(defaultInviteProps), {organization: orgWithInviteAccess});
-    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    const teamInput = screen.getByRole('combobox', {name: 'Add to Team'});
     expect(teamInput).toBeEnabled();
     await userEvent.click(teamInput);
     expect(screen.getByText('#moo-deng')).toBeInTheDocument();
@@ -195,7 +195,7 @@ describe('InviteRowControlNew', () => {
       },
     });
     render(getComponent(defaultInviteProps), {organization: orgWithInviteAccess});
-    const teamInput = screen.getByRole('textbox', {name: 'Add to Team'});
+    const teamInput = screen.getByRole('combobox', {name: 'Add to Team'});
     expect(teamInput).toBeEnabled();
     await userEvent.click(teamInput);
     expect(screen.getByText('#moo-deng')).toBeInTheDocument();

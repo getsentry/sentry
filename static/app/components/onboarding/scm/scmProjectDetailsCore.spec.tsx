@@ -25,7 +25,7 @@ describe('ScmProjectDetailsCore', () => {
     render(<ExampleScmProjectDetailsCore />, {organization: OrganizationFixture()});
 
     expect(screen.getByRole('textbox', {name: 'Project name'})).toHaveValue('my-project');
-    expect(screen.getByRole('textbox', {name: 'Team'})).toBeInTheDocument();
+    expect(screen.getByRole('combobox', {name: 'Team'})).toBeInTheDocument();
   });
 
   it('hides the team selector for a no-access member', () => {
@@ -34,6 +34,6 @@ describe('ScmProjectDetailsCore', () => {
     });
 
     expect(screen.getByRole('textbox', {name: 'Project name'})).toBeInTheDocument();
-    expect(screen.queryByRole('textbox', {name: 'Team'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('combobox', {name: 'Team'})).not.toBeInTheDocument();
   });
 });

@@ -109,7 +109,7 @@ describe('SeerProjectTable', () => {
     // The agent dropdown renders its current value, "Seer".
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     await waitFor(() =>
@@ -152,7 +152,7 @@ describe('SeerProjectTable', () => {
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     // The guard drains every page, so the second-page GitLab repo still blocks.
@@ -177,7 +177,7 @@ describe('SeerProjectTable', () => {
 
     await userEvent.click(await screen.findByText('Seer'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Cursor Cloud Agent'})
+      await screen.findByRole('option', {name: 'Cursor Cloud Agent'})
     );
 
     // The check passes, so the selection is persisted and no warning is shown.
@@ -292,15 +292,15 @@ describe('SeerProjectTable', () => {
   }
 
   function getRowPrIterationSelect(slug: string) {
-    return screen.getByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`});
+    return screen.getByRole('combobox', {name: `Auto-iterate on PRs for ${slug}`});
   }
 
   async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
     // The row dropdown's menu renders outside the row, in the page body.
     await userEvent.click(
-      await screen.findByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`})
+      await screen.findByRole('combobox', {name: `Auto-iterate on PRs for ${slug}`})
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: label}));
+    await userEvent.click(await screen.findByRole('option', {name: label}));
   }
 
   function getRow(slug: string) {
@@ -319,7 +319,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('combobox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
 
     await chooseBulkPrIteration('Off');
@@ -385,7 +385,7 @@ describe('SeerProjectTable', () => {
     // Change project-slug's row from "Root Cause" to "PR drafted".
     await userEvent.click(await screen.findByText('Stop after Root Cause'));
     await userEvent.click(
-      await screen.findByRole('menuitemradio', {name: 'Stop after PR drafted'})
+      await screen.findByRole('option', {name: 'Stop after PR drafted'})
     );
     await waitFor(() =>
       expect(rowPuts['project-slug']).toHaveBeenCalledWith(
@@ -451,7 +451,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const rowSelect = await screen.findByRole('textbox', {
+    const rowSelect = await screen.findByRole('combobox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     await chooseRowPrIteration('project-slug', 'Off');
@@ -480,7 +480,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('combobox', {name: 'Auto-iterate on PRs for project-slug'});
     await selectAllProjects();
     const bulkMenu = await screen.findByRole('button', {name: 'Auto-Iterate on PRs'});
     expect(bulkMenu).toBeEnabled();
@@ -506,7 +506,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('combobox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
@@ -530,7 +530,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('combobox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
@@ -543,7 +543,7 @@ describe('SeerProjectTable', () => {
   it('leaves the built-in repos filter out of the selection banner', async () => {
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('combobox', {name: 'Auto-iterate on PRs for project-slug'});
     // The first checkbox in the table is the header's "select all".
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
 

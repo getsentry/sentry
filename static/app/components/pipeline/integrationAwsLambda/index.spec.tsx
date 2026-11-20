@@ -100,7 +100,7 @@ describe('CloudFormationStep', () => {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'AWS Region'}),
+      screen.getByRole('combobox', {name: 'AWS Region'}),
       'us-east-2'
     );
 
@@ -146,7 +146,7 @@ describe('CloudFormationStep', () => {
     );
 
     await selectEvent.select(
-      screen.getByRole('textbox', {name: 'AWS Region'}),
+      screen.getByRole('combobox', {name: 'AWS Region'}),
       'us-east-2'
     );
 

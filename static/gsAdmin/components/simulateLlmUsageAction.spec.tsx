@@ -29,7 +29,7 @@ describe('SimulateLlmUsageAction', () => {
   });
 
   async function fillRequiredFields() {
-    await userEvent.click(await screen.findByRole('textbox', {name: 'Project'}));
+    await userEvent.click(await screen.findByRole('combobox', {name: 'Project'}));
     await userEvent.click(screen.getByText('backend'));
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Cost'}), '12.5');
     await userEvent.type(
@@ -75,7 +75,7 @@ describe('SimulateLlmUsageAction', () => {
     triggerSimulateLlmUsageModal({orgId: organization.slug, onSuccess});
     renderGlobalModal();
 
-    await userEvent.click(await screen.findByRole('textbox', {name: 'Project'}));
+    await userEvent.click(await screen.findByRole('combobox', {name: 'Project'}));
     await userEvent.click(screen.getByText('backend'));
     await userEvent.type(screen.getByRole('spinbutton', {name: 'Cost'}), '1');
     await userEvent.click(screen.getByRole('button', {name: 'Record Usage'}));

@@ -246,7 +246,7 @@ describe('SentryAppExternalInstallation', () => {
       });
       await waitFor(() => expect(getInstallationsMock).toHaveBeenCalled());
 
-      await selectEvent.select(screen.getByRole('textbox'), 'org2');
+      await selectEvent.select(screen.getByRole('combobox'), 'org2');
       expect(testableWindowLocation.assign).toHaveBeenCalledWith(
         generateOrgSlugUrl('org2')
       );

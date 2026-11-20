@@ -454,7 +454,7 @@ describe('WidgetBuilderSlideout', () => {
       }
     );
 
-    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(await screen.findByRole('combobox', {name: 'Interval'}));
     await userEvent.click(screen.getByText('1 hour'));
     await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 
@@ -501,7 +501,7 @@ describe('WidgetBuilderSlideout', () => {
       }
     );
 
-    await userEvent.click(await screen.findByRole('textbox', {name: 'Interval'}));
+    await userEvent.click(await screen.findByRole('combobox', {name: 'Interval'}));
     await userEvent.click(screen.getByText('Fixed'));
     await userEvent.click(screen.getByRole('button', {name: 'Update Widget'}));
 

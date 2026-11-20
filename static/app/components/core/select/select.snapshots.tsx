@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconSearch} from '@sentry/icons/search';
 
-import {Container, Flex, Stack} from '@sentry/scraps/layout';
+import {Flex, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 const options = [
@@ -47,11 +47,7 @@ describe('Select', () => {
           options={options}
           value={null}
           size={size}
-          controlLeadingItems={
-            <Container paddingLeft="lg" flexShrink={0}>
-              <IconSearch size="sm" variant="muted" aria-hidden />
-            </Container>
-          }
+          controlLeadingItems={<IconSearch size="sm" variant="muted" aria-hidden />}
           onChange={() => {}}
         />
       </Stack>

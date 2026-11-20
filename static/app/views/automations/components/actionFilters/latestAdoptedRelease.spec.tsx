@@ -42,9 +42,9 @@ describe('LatestAdoptedReleaseNode', () => {
       {organization}
     );
 
-    const environmentSelect = await screen.findByRole('textbox', {name: 'Environment'});
+    const environmentSelect = await screen.findByRole('combobox', {name: 'Environment'});
     await userEvent.click(environmentSelect);
-    await userEvent.click(screen.getByRole('menuitemradio', {name: 'production'}));
+    await userEvent.click(screen.getByRole('option', {name: 'production'}));
 
     await waitFor(() => {
       expect(onUpdate).toHaveBeenCalledWith({
