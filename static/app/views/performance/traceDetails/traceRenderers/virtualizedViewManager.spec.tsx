@@ -479,7 +479,6 @@ describe('VirtualizedViewManger', () => {
         ghostRef: document.createElement('div'),
         connectorRef: document.createElement('div'),
         offsetMs,
-        recorded: [space[0] - offsetMs, space[1]] as [number, number],
         space,
       };
       manager.registerClockDriftGhost(ghost, 0);
@@ -540,7 +539,7 @@ describe('VirtualizedViewManger', () => {
         errors: new Set(),
         occurrences: new Set(),
         clockDriftOffsetMs: 700,
-        clockDriftCorrection: {clientNode: {} as BaseNode, offsetMs: 700},
+        clockDriftCorrection: {offsetMs: 700},
         makeBarTextColor: () => '',
       } as unknown as BaseNode;
       manager.columns.list.column_nodes[0] = node;
