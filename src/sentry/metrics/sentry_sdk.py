@@ -10,8 +10,9 @@ __all__ = ["SentrySDKMetricsBackend", "is_window_sampled"]
 
 def is_window_sampled(name: str) -> bool:
     """
-    Whether the SDK samples this metric name per time window. The SDK then sets
-    `sentry.client_sample_rate` itself, so callers must not sample it first.
+    Whether the SDK samples this metric name per time window. The SDK multiplies a
+    `sentry.client_sample_rate` the caller set into its own rate, so callers can
+    keep pre-sampling or send every call.
     """
     client = get_client()
     # SDKs without window sampling ignore the experiment and send every metric.

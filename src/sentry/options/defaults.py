@@ -4339,8 +4339,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Metric name -> metrics per second each process keeps, for SDK window sampling.
-# Read at SDK init, so a change needs a restart. SDKs without window sampling
-# ignore it, and the listed metrics keep their manual pre-sample.
+# Read at SDK init, so a change needs a restart. The SDK multiplies a caller's
+# own `sentry.client_sample_rate` into its rate, so callers may keep
+# pre-sampling. SDKs without window sampling ignore it, and the listed metrics
+# keep their manual pre-sample.
 register(
     "sdk_metrics_window_sampling.rates",
     default={},
