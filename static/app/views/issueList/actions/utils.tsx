@@ -12,7 +12,7 @@ import {getWorkflowEngineResponseErrorMessage} from 'sentry/components/workflowE
 import {t, tct, tn} from 'sentry/locale';
 import {GroupStore} from 'sentry/stores/groupStore';
 import type {PageFilters} from 'sentry/types/core';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {defined} from 'sentry/utils/defined';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -205,23 +205,20 @@ export function invalidateIssueQueries({
 }) {
   if (itemIds !== undefined) {
     for (const itemId of itemIds) {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organizationSlug}/issues/${itemId}/`],
-        exact: false,
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+          path: {organizationIdOrSlug: organizationSlug, issueId: itemId},
+        })
+      );
     }
     return;
   }
 
-  queryClient.invalidateQueries({
-    predicate: apiQuery => {
-      const queryKey = safeParseQueryKey(apiQuery.queryKey);
-      if (!queryKey) {
-        return false;
-      }
-      return queryKey.url.startsWith(`/organizations/${organizationSlug}/issues/`);
-    },
-  });
+  queryClient.invalidateQueries(
+    apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/*', {
+      path: {organizationIdOrSlug: organizationSlug},
+    })
+  );
 }
 
 function getBulkUpdateErrorMessage(error: unknown): string {

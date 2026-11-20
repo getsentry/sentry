@@ -31,6 +31,12 @@ interface Result {
   readonly start: number;
 }
 
+export function getSearchScore(text: string, search: string): number {
+  const {end, score} = fzf(text, search.toLowerCase(), false);
+  // Valid matches can have negative scores when their letters are far apart.
+  return end === -1 ? 0 : Math.max(1, score);
+}
+
 // https://github.com/junegunn/fzf/blob/f81feb1e69e5cb75797d50817752ddfe4933cd68/src/algo/algo.go#L107
 const scoreMatch = 16;
 const scoreGapStart = -3;

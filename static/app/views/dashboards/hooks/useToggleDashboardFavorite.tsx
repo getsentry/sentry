@@ -1,10 +1,12 @@
-import {useMutation, useQueryClient, type Query} from '@tanstack/react-query';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -31,13 +33,10 @@ export function useToggleDashboardFavorite() {
   );
 
   // Table query key for dashboards pinned by favorites.
-  const listFilter = {
-    queryKey: [dashboardsApiOptions(organization).queryKey[0]],
-    predicate: (query: Query) => {
-      const options = query.queryKey[1] as {query?: {pin?: string}} | undefined;
-      return options?.query?.pin === 'favorites';
-    },
-  };
+  const listFilter = apiOptions.queryFilter(
+    '/organizations/$organizationIdOrSlug/dashboards/',
+    {path: {organizationIdOrSlug: organization.slug}, query: {pin: 'favorites'}}
+  );
   // Query key for the "Starred Dashboards" sidebar.
   const starredQueryKey = getStarredDashboardsQueryKey(organization);
 
@@ -66,9 +65,9 @@ export function useToggleDashboardFavorite() {
         if (!response) {
           return;
         }
-        const options = key[1] as {query?: {sort?: string}} | undefined;
+        const sort = safeParseQueryKey(key)?.options.query?.sort;
         const json =
-          options?.query?.sort === 'recentlyViewed' && hasUserLastVisited
+          sort === 'recentlyViewed' && hasUserLastVisited
             ? reorderFavoriteDashboards(response.json, dashboardId, shouldFavorite)
             : response.json.map(item =>
                 item.id === dashboardId ? {...item, isFavorited: shouldFavorite} : item
