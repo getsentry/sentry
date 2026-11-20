@@ -19,10 +19,13 @@ from sentry.models.debugfile import (
 from sentry.models.files.file import File
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseFile
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.objectstore import debug_files_test_both_backends
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_objectstore
+from sentry.utils.security.orgauthtoken_token import generate_token, hash_token
 
 # This is obviously a freely generated UUID and not the checksum UUID.
 # This is permissible if users want to send different UUIDs
@@ -46,7 +49,7 @@ class DebugFilesTestCases(APITestCase):
         )
         self.login_as(user=self.user)
 
-    def _upload_proguard(self, url: str, uuid: str) -> Response:
+    def _upload_proguard(self, url: str, uuid: str, **extra: str) -> Response:
         out = BytesIO()
         f = zipfile.ZipFile(out, "w")
         f.writestr("proguard/%s.txt" % uuid, PROGUARD_SOURCE)
@@ -60,6 +63,7 @@ class DebugFilesTestCases(APITestCase):
                 )
             },
             format="multipart",
+            **extra,
         )
         return response
 
@@ -292,6 +296,36 @@ class DebugFilesTest(DebugFilesTestCases):
         # accessing foreign files should not work
         response = self.client.get(f"{url}?id={download_id}")
         assert response.status_code == 404
+
+    def test_org_auth_token_can_upload_but_not_list(self) -> None:
+        response = self._upload_proguard(self.url, PROGUARD_UUID)
+        assert response.status_code == 201, response.content
+        download_id = response.data[0]["id"]
+
+        token_str = generate_token(self.organization.slug, "")
+        self.create_org_auth_token(
+            organization_id=self.organization.id,
+            name="ci token",
+            token_hashed=hash_token(token_str),
+            token_last_characters="ABCD",
+            scope_list=["org:ci"],
+            date_last_used=None,
+        )
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+        auth = {"HTTP_AUTHORIZATION": f"Bearer {token_str}"}
+
+        response = self.client.get(self.url, **auth)
+        assert response.status_code == 403, response.content
+
+        response = self.client.get(f"{self.url}?id={download_id}", **auth)
+        assert response.status_code == 403, response.content
+
+        response = self.client.delete(f"{self.url}?id={download_id}", **auth)
+        assert response.status_code == 403, response.content
+
+        response = self._upload_proguard(self.url, str(uuid4()), **auth)
+        assert response.status_code == 201, response.content
 
     def test_dsyms_requests(self) -> None:
         response = self._upload_proguard(self.url, PROGUARD_UUID)
