@@ -1128,7 +1128,12 @@ class RPCBase:
     @traces.trace
     def build_top_event_conditions(
         cls, resolver: SearchResolver, top_events: EAPResponse, groupby_columns: list[str]
-    ) -> Any:
+    ) -> tuple[TraceItemFilter | None, TraceItemFilter | None]:
+        # With no group-by columns the top events table is a single aggregate row
+        # covering the entire query, so there is nothing to filter the top series
+        # on and nothing to exclude for the "other" series.
+        if not groupby_columns:
+            return None, None
         conditions = []
         other_conditions = []
         for event in top_events["data"]:
@@ -1256,7 +1261,7 @@ class RPCBase:
             additional_queries=additional_queries,
         )
         requests = [rpc_request]
-        if include_other:
+        if include_other and other_conditions is not None:
             other_request, _, _ = cls.get_timeseries_query(
                 search_resolver=cls.get_resolver(other_params, config),
                 params=other_params,
@@ -1274,7 +1279,7 @@ class RPCBase:
         try:
             timeseries_rpc_response = snuba_rpc.timeseries_rpc(requests, debug=params.debug)
             rpc_response = timeseries_rpc_response[0]
-            if include_other:
+            if include_other and other_conditions is not None:
                 other_response = timeseries_rpc_response[1]
         except Exception as e:
             # add the rpc to the error so we can include it in the response
@@ -1353,7 +1358,7 @@ class RPCBase:
                 params.end,
                 params.granularity_secs,
             )
-        if include_other and other_response.result_timeseries:
+        if include_other and other_conditions is not None and other_response.result_timeseries:
             result = cls.process_timeseries_list(
                 [timeseries for timeseries in other_response.result_timeseries], config
             )
