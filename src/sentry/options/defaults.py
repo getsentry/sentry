@@ -4338,7 +4338,9 @@ register(
     type=Bool,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Metric name -> metrics per second each process keeps, for SDK window sampling.
+# Metric name -> target metrics per second each process keeps, for SDK window
+# sampling. The SDK keeps max(1, int(rate * 5)) per 5s window, so the
+# effective rate moves in steps of 0.2/s and is never below 0.2/s.
 # Read at SDK init, so a change needs a restart. The SDK multiplies a caller's
 # own `sentry.client_sample_rate` into its rate, so callers may keep
 # pre-sampling. SDKs without window sampling ignore it, and the listed metrics
