@@ -39,4 +39,29 @@ describe('AnnotationsPanel', () => {
       screen.getByText('No severe annotations in this time range')
     ).toBeInTheDocument();
   });
+
+  it('lists flag changes', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/flags/logs/',
+      body: {
+        data: [
+          {
+            id: 1,
+            action: 'updated',
+            createdAt: '2026-11-03T13:00:00Z',
+            createdBy: 'user@example.com',
+            createdByType: 'email',
+            flag: 'new-checkout',
+            tags: {},
+          },
+        ],
+      },
+    });
+
+    render(<AnnotationsPanel items={[]} kinds={['flag']} />);
+
+    const flags = screen.getByRole('region', {name: 'Flags'});
+    expect(await within(flags).findByText('new-checkout')).toBeInTheDocument();
+    expect(within(flags).getByText('Updated')).toBeInTheDocument();
+  });
 });

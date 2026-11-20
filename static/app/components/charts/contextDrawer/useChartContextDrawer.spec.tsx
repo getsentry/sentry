@@ -966,7 +966,7 @@ describe('useChartContextDrawer', () => {
       );
     });
 
-    it('removes the tab and section from the URL when closed', async () => {
+    it('removes the tab, section, and flags cursor from the URL when closed', async () => {
       const {router} = render(
         <DroppedDataTrigger dataset={DiscoverDatasets.SPANS} showAnnotationTabs />,
         {
@@ -978,6 +978,7 @@ describe('useChartContextDrawer', () => {
                 droppedData: 'spans',
                 contextTab: 'annotations',
                 contextSection: 'severe',
+                contextFlagsCursor: '0:15:0',
               },
             },
           },
@@ -991,6 +992,7 @@ describe('useChartContextDrawer', () => {
       await waitFor(() => expect(router.location.query.droppedData).toBeUndefined());
       expect(router.location.query.contextTab).toBeUndefined();
       expect(router.location.query.contextSection).toBeUndefined();
+      expect(router.location.query.contextFlagsCursor).toBeUndefined();
     });
 
     it('opens on annotations when dropped data is not enabled', async () => {

@@ -16,6 +16,7 @@ import type {
 } from 'sentry/components/charts/annotations/types';
 import {t} from 'sentry/locale';
 
+import {AnnotationFlagsTable} from './annotationFlagsTable';
 import type {ChartContextSection} from './chartContextDrawer';
 
 interface AnnotationsPanelProps {
@@ -67,7 +68,11 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
               title={ANNOTATION_KIND_LABELS[kind]}
               count={activityItems.filter(item => item.kind === kind).length}
             >
-              <Text variant="muted">{t('Table coming soon')}</Text>
+              {kind === 'flag' ? (
+                <AnnotationFlagsTable />
+              ) : (
+                <Text variant="muted">{t('Table coming soon')}</Text>
+              )}
             </AnnotationsSection>
           ))
         ) : (
