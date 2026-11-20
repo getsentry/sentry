@@ -372,6 +372,12 @@ imply Workflow execution order.
 
 ### History and task dispatch
 
+Actions that do not opt into group-less execution are excluded for events without
+an issue group before dispatch. `ActionInvocation` still requires a detector;
+an opted-in handler can use an organization-scoped detector without a project.
+Investigation detector resolution and task transport are tracked in
+[ISWF-3709](https://linear.app/getsentry/issue/ISWF-3709).
+
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
 removes inactive actions and deduplicates by key. It then schedules
@@ -384,8 +390,11 @@ The action task:
 1. Requires exactly one event ID or activity ID.
 2. Rebuilds `WorkflowEventData`.
 3. Loads the action and preferred detector.
-4. Creates an [`ActionInvocation`](../types.py).
-5. Calls the handler registered for the action type.
+4. Validates handler compatibility and detector/event organization consistency.
+5. Creates an [`ActionInvocation`](../types.py) and calls the registered handler.
+
+`UnsupportedActionEvent`, including a detector organization mismatch, is logged
+without retrying the action.
 
 External integration calls therefore run outside the workflow evaluation task. Action
 handlers must handle deleted integrations and other expected external-state changes.
