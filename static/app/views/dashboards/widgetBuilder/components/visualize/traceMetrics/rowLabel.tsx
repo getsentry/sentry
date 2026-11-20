@@ -8,10 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
-/**
- * Box and colors of the letter badge. The same look as Explore's
- * `VisualizeLabelBadge`, kept in one place so both can share it later.
- */
+// Same look as Explore's VisualizeLabelBadge, so the two can be shared later.
 function rowLabelBadgeCss(theme: Theme, muted?: boolean) {
   return css`
     flex-shrink: 0;
@@ -26,9 +23,6 @@ function rowLabelBadgeCss(theme: Theme, muted?: boolean) {
   `;
 }
 
-/**
- * Static letter badge (A, B, ƒ1, ...). Has no behavior of its own.
- */
 function RowLabelBadge({label, muted}: {label: string; muted?: boolean}) {
   return (
     <Badge justify="center" align="center" muted={muted} aria-label={t('Row %s', label)}>
@@ -53,16 +47,14 @@ interface RowLabelProps {
    */
   hidden?: boolean;
   /**
-   * When set, the label is a button that hides a plotted row or shows a
-   * hidden one.
+   * When set, the badge is the hide / show button.
    */
   onToggle?: () => void;
 }
 
 /**
- * Letter badge at the start of a trace metrics visualize row so equations can
- * refer to the row. For rows an equation uses, the badge doubles as the hide /
- * show toggle.
+ * Row letter (A, B, ƒ1, ...). Doubles as the hide / show toggle for rows an
+ * equation uses.
  */
 export function RowLabel({label, hidden, disabled, onToggle}: RowLabelProps) {
   if (!onToggle) {

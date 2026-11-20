@@ -25,34 +25,22 @@ import {RowLabel} from './rowLabel';
 import type {MetricRow} from './rowModel';
 
 interface TraceMetricRowProps {
-  /**
-   * The metric selector or the equation input.
-   */
   children: ReactNode;
   /**
-   * The column this row edits. Aggregate rows get a filter bar for their `_if`
-   * filter beneath the control; equation rows do not.
+   * Aggregate rows get a filter bar for their `_if` filter.
    */
   field: QueryFieldValue;
-  /**
-   * Alias input, shown to the right of the control.
-   */
   alias?: ReactNode;
   disabled?: boolean;
-  /**
-   * Row letter (A, B, ƒ1, ...).
-   */
   label?: ReactNode;
   /**
-   * Receives the column with the filter applied. Without it the filter bar is
-   * not shown.
+   * Without it the filter bar is not shown.
    */
   onFieldChange?: (field: QueryFieldValue) => void;
 }
 
 /**
- * Rate aggregates cannot be used inside an equation, so rows an equation uses
- * cannot pick them.
+ * Rate aggregates are not supported in equations.
  */
 export const RATE_AGGREGATES_IN_EQUATION_DISABLED: Record<string, string> =
   Object.fromEntries(
@@ -63,9 +51,8 @@ export const RATE_AGGREGATES_IN_EQUATION_DISABLED: Record<string, string> =
   );
 
 /**
- * The field bar of a trace metrics visualize row: the row letter, the control,
- * the alias, and the filter bar beneath. Visible and hidden rows share it so
- * they line up.
+ * Letter, control, alias and filter bar of a row. Shared by visible and hidden
+ * rows so they line up.
  */
 export function TraceMetricRow({
   label,
@@ -114,14 +101,13 @@ interface HiddenTraceMetricRowProps {
   row: MetricRow;
   disabled?: boolean;
   /**
-   * Leave room for the drag handle the visible rows render.
+   * Leave room for the drag handle.
    */
   indent?: boolean;
 }
 
 /**
- * A metric row that only feeds an equation. It is not plotted and not saved on
- * its own.
+ * A metric row that only feeds an equation. Not plotted, not saved.
  */
 export function HiddenTraceMetricRow({
   row,
