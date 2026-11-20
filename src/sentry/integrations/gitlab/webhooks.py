@@ -535,15 +535,22 @@ class MergeEventWebhook(GitlabWebhook):
             return
 
         if not author_email:
+            # GitLab omits last_commit (or its author email) on some merge request
+            # events. This is expected payload shape, not a failure: skip syncing
+            # the pull request instead of raising, which would 404 the delivery,
+            # skip the remaining organizations, and be reported as an error.
             logger.info(
                 "gitlab.merge_request.missing_author_email",
                 extra={
+                    "organization_id": organization.id,
                     "integration_id": integration.id,
                     "repo_id": repo.id,
                     "pr_number": number,
+                    "action": action,
+                    "has_last_commit": bool(last_commit),
                 },
             )
-            raise Http404()
+            return
 
         author = CommitAuthor.objects.get_or_create(
             organization_id=organization.id, email=author_email, defaults={"name": author_name}
