@@ -1093,12 +1093,24 @@ interface ImpactCitation {
   source: string;
 }
 
+interface ImpactClaim {
+  citationIds: string[];
+  claim: string;
+}
+
 interface ImpactAssessment {
   citations: ImpactCitation[];
   description: string;
   level: ImpactLevel | null;
   score: number | null;
   sourceEventId: string;
+  /**
+   * Claims citing entries in `evidence` by id. Present on assessments made with
+   * typed citations; older assessments only have `citations`.
+   */
+  claims?: ImpactClaim[];
+  /** Typed citations, parsed with `parseCitation` from `sentry/components/seer/citations/schemas`. */
+  evidence?: unknown[];
 }
 
 export interface GroupActivityImpactAssessment extends GroupActivityBase {

@@ -22,8 +22,6 @@ const productionEntryPoints = [
   'utils/seer/useSeerCreditCheck.tsx',
   // TODO: Remove when the Seer credit gates render it (#129563, #129565)
   'components/seer/outOfCredits/seerOutOfCreditsCta.tsx',
-  // TODO: Remove when the Impact citation UI consumes it (#132028)
-  'components/seer/citations/schemas.ts',
   'components/brandPageLayout/**/*.{ts,tsx}',
   // React authentication routes are discovered dynamically by the frontend route registry
   'views/authV2/authLogin/**/*.{ts,tsx}',
