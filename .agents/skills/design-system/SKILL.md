@@ -26,7 +26,7 @@ For the complete list of supported props and their types, refer to the implement
 
 ## Layout Primitives
 
-> **Important**: `Flex`, `Grid`, and `Stack` all extend `Container`. This means **every prop available on Container is also available on Flex, Grid, and Stack**. When you use `<Flex>`, you get all Container props (position, padding, border, overflow, etc.) PLUS the flex-specific props. The same applies to Grid and Stack.
+> **Important**: `Flex`, `Grid`, and `Stack` all extend `Container`. This means **every prop available on Container is also available on Flex, Grid, and Stack**. When you use `<Flex>`, you get all Container props (position, padding, borderColor, overflow, etc.) PLUS the flex-specific props. The same applies to Grid and Stack.
 
 ### Container
 
@@ -38,7 +38,7 @@ Base layout component that supports all common layout properties. Flex, Grid, an
 - `padding`, `paddingTop`, `paddingBottom`, `paddingLeft`, `paddingRight`: SpaceSize tokens
 - `margin`, `marginTop`, etc.: SpaceSize tokens (deprecated, prefer gap)
 - `width`, `height`, `minWidth`, `maxWidth`, `minHeight`, `maxHeight`
-- `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
+- `borderColor`, `borderTopColor`, `borderBottomColor`, `borderLeftColor`, `borderRightColor`: BorderVariant tokens
 - `radius`: RadiusSize tokens
 - `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
 - `background`: SurfaceVariant ("primary" | "secondary" | "tertiary")
@@ -56,7 +56,7 @@ const Component = styled('div')`
 `;
 
 // ✅ Use Container primitive
-<Container padding="md" border="primary">
+<Container padding="md" borderColor="primary">
   Content
 </Container>;
 ```
@@ -74,7 +74,7 @@ Use `<Flex>` for flex layouts. Extends `Container`, inheriting all Container pro
 - `wrap`: "nowrap" | "wrap" | "wrap-reverse"
 - `display`: "flex" | "inline-flex" | "none"
 
-**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `borderColor`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
 
 ```tsx
 import {Flex} from '@sentry/scraps/layout';
@@ -110,7 +110,7 @@ Use `<Grid>` for grid layouts. Extends `Container`, inheriting all Container pro
 - `flow`: "row" | "column" | "row dense" | "column dense"
 - `autoColumns`, `autoRows`: Size of auto-generated tracks
 
-**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `border`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
+**Plus ALL Container props**: `position`, `padding`, `margin`, `width`, `height`, `borderColor`, `radius`, `overflow`, `background`, flex/grid item props, and more (see Container section above).
 
 ```tsx
 import {Grid} from '@sentry/scraps/layout';
@@ -167,7 +167,7 @@ const Component = styled('div')`
 </Stack>;
 
 // ✅ Stack supports all Flex and Container props
-<Stack gap="md" padding="lg" position="relative" border="primary">
+<Stack gap="md" padding="lg" position="relative" borderColor="primary">
   <Item1 />
   <Item2 />
 </Stack>;
@@ -478,9 +478,13 @@ Use these for `gap`, `padding`:
 
 ### Border Tokens (BorderVariant)
 
-Use these for `border` prop:
+Use these for the `borderColor` props. A value is a path into `tokens.border`, matching the theme's token names:
 
-- `"primary"`, `"muted"`, `"accent"`, `"danger"`, `"promotion"`, `"success"`, `"warning"`
+- `"primary"`, `"secondary"`
+- `"<color>.muted"`, `"<color>.moderate"`, `"<color>.vibrant"`, where `<color>` is `neutral`, `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"accent.moderate"`)
+- `"transparent.<color>.<step>"` with the same colors and steps (e.g. `"transparent.neutral.muted"`)
+- `"onVibrant.light"`, `"onVibrant.dark"`
+- `"none"` removes a border, e.g. at a breakpoint or on one side
 
 ### Radius Tokens (RadiusSize)
 
