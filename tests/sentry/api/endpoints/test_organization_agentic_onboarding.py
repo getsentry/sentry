@@ -241,6 +241,15 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             user_id=self.user.id,
             organization_id=self.organization.id,
             update=ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=StageStatus.COMPLETED,
+            ),
+        )
+        self.service.update(
+            token=token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
                 stage=Stage.CHECK_STACK_TRACE_QUALITY,
                 status=StageStatus.SKIPPED,
                 run_status=RunStatus.COMPLETED,
@@ -322,6 +331,32 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.status_code == 400
         assert "status" in response.data
 
+    def test_status_rejects_completion_without_received_verification_error(self) -> None:
+        created, token = self.service.create_or_resume(
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            client_run_id=str(uuid4()),
+            onboarding_code="abcdefghij",
+        )
+        assert token == "abcdefghij"
+
+        response = self._post_status(
+            token,
+            stage="check_stack_trace_quality",
+            status="completed",
+            runStatus="completed",
+        )
+
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": "The receive_verification_error stage must be completed before setup can finish"
+        }
+        run = self.service.get(
+            run_id=created.run_id, user_id=self.user.id, organization_id=self.organization.id
+        )
+        assert run is not None
+        assert run.run_status is RunStatus.ACTIVE
+
     def test_status_does_not_expose_domain_validation_details(self) -> None:
         path = reverse(
             "sentry-api-0-organization-agentic-onboarding-status",
@@ -357,6 +392,16 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             organization_id=self.organization.id,
             client_run_id=str(uuid4()),
             onboarding_code="klmnopqrst",
+        )
+        assert skipped_token == "klmnopqrst"
+        self.service.update(
+            token=skipped_token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=StageStatus.COMPLETED,
+            ),
         )
         path = reverse(
             "sentry-api-0-organization-agentic-onboarding-status",
@@ -405,7 +450,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             responses = [self.client.post(path, payload) for payload in payloads]
 
         assert [response.status_code for response in responses] == [200] * 7
-        assert [response.data["sequence"] for response in responses] == [1, 1, 2, 3, 4, 5, 1]
+        assert [response.data["sequence"] for response in responses] == [1, 1, 2, 3, 4, 5, 2]
         assert [call.args[0].type for call in record_analytics.call_args_list] == [
             "agentic_onboarding.stage_status_changed",
             "agentic_onboarding.stage_status_changed",
@@ -446,6 +491,15 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             origin=RunOrigin.ONBOARDING,
         )
         assert token == "abcdefghij"
+        self.service.update(
+            token=token,
+            user_id=self.user.id,
+            organization_id=self.organization.id,
+            update=ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=StageStatus.COMPLETED,
+            ),
+        )
         self.service.update(
             token=token,
             user_id=self.user.id,
@@ -576,6 +630,14 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
                 stage=Stage.CONNECT_MCP,
                 status=StageStatus.COMPLETED,
                 extra=ConnectExtra(method="cli"),
+            ),
+            timezone.now(),
+        )
+        seeded_run = apply_update(
+            seeded_run,
+            ProgressUpdate(
+                stage=Stage.RECEIVE_VERIFICATION_ERROR,
+                status=StageStatus.COMPLETED,
             ),
             timezone.now(),
         )
