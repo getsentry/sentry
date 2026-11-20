@@ -70,6 +70,18 @@ describe('rowModel', () => {
       expect(rows[2]).toMatchObject({kind: 'equation', expression: 'A / B'});
     });
 
+    it('does not make hidden rows for aggregates a later field provides', () => {
+      const rows = rowsFromFields([
+        eq(`${SUM_FOO} + ${SUM_BAR}`),
+        fn(SUM_FOO),
+        fn(SUM_BAR),
+      ]);
+
+      expect(letters(rows)).toEqual(['equation', 'A', 'B']);
+      expect(rows[0]).toMatchObject({expression: 'A + B'});
+      expect(getHiddenAggregates(rows)).toEqual([]);
+    });
+
     it('gives repeated uses of a shared aggregate distinct letters', () => {
       const rows = rowsFromFields([
         fn(SUM_FOO),
