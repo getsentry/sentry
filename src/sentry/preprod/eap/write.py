@@ -22,7 +22,7 @@ from sentry.preprod.models import (
     PreprodArtifact,
     PreprodArtifactSizeMetrics,
 )
-from sentry.preprod.retention import get_retention_days_or_default
+from sentry.preprod.retention import get_retention_days
 from sentry.search.eap.rpc_utils import anyvalue
 from sentry.utils.arroyo_producer import (
     get_arroyo_producer,
@@ -133,7 +133,7 @@ def produce_preprod_size_metric_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=get_retention_days_or_default(organization, DataCategory.SIZE_ANALYSIS),
+        retention_days=get_retention_days(organization, DataCategory.SIZE_ANALYSIS),
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,
@@ -246,7 +246,7 @@ def produce_preprod_build_distribution_to_eap(
         timestamp=proto_timestamp,
         trace_id=trace_id,
         received=received,
-        retention_days=get_retention_days_or_default(organization, DataCategory.INSTALLABLE_BUILD),
+        retention_days=get_retention_days(organization, DataCategory.INSTALLABLE_BUILD),
         attributes={k: anyvalue(v) for k, v in attributes.items() if v is not None},
         client_sample_rate=1.0,
         server_sample_rate=1.0,

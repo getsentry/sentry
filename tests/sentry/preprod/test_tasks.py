@@ -487,19 +487,6 @@ class CreatePreprodArtifactTest(TestCase):
         assert artifact.date_expires == artifact.date_added + timedelta(days=396)
         assert artifact.date_size_analysis_expires == artifact.date_added + timedelta(days=30)
 
-    def test_create_preprod_artifact_without_expiry_when_retention_is_unlimited(self) -> None:
-        with patch("sentry.quotas.backend.get_event_retention", return_value=None):
-            artifact = create_preprod_artifact(
-                org_id=self.organization.id,
-                project_id=self.project.id,
-                checksum=sha1(b"test no expiry").hexdigest(),
-            )
-
-        assert artifact is not None
-        artifact.refresh_from_db()
-        assert artifact.date_expires is None
-        assert artifact.date_size_analysis_expires is None
-
     def test_create_preprod_artifact_succeeds_with_both_quotas_available(self) -> None:
         """Test that create_preprod_artifact succeeds when both quotas are available"""
         content = b"test with both quotas"
