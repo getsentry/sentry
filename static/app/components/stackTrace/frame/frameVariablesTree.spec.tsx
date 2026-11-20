@@ -247,6 +247,42 @@ it('displays and copies native scalars exactly without expanding collections', a
   expect(screen.getByText('[ 2 items ]')).toBeInTheDocument();
 });
 
+it('shows the pointer chain next to the value and keeps it when a structure is expanded', async () => {
+  render(
+    <FrameVariablesTree
+      defaultExpanded={[]}
+      variables={[
+        {name: 'null_player', type: 'Player*', kind: 'null'},
+        {
+          name: 'health_ptr',
+          type: 'float*',
+          kind: 'number',
+          value: '-5.5',
+          pointerAddresses: ['0x000000016b29a4b0'],
+        },
+        {
+          name: 'player',
+          type: 'Player**',
+          kind: 'object',
+          pointerAddresses: ['0x000000016b29a430', '0x000000016b29a450'],
+          children: [{name: 'id', type: 'int', kind: 'number', value: '1'}],
+        },
+      ]}
+    />
+  );
+
+  expect(screen.getByText('nullptr')).toBeInTheDocument();
+  expect(screen.getByText('0x000000016b29a4b0 \u2192')).toBeInTheDocument();
+  expect(
+    screen.getByText('0x000000016b29a430 \u2192 0x000000016b29a450 \u2192')
+  ).toBeInTheDocument();
+  await userEvent.click(screen.getByText('{ id }'));
+  expect(
+    screen.getByText('0x000000016b29a430 \u2192 0x000000016b29a450')
+  ).toBeInTheDocument();
+  expect(screen.getByText('1')).toBeInTheDocument();
+});
+
 it('copies available collection values while preserving displayed annotations', async () => {
   const writeText = jest.fn().mockResolvedValue(undefined);
   Object.assign(navigator, {clipboard: {writeText}});

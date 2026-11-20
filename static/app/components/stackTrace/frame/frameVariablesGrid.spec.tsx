@@ -10,7 +10,7 @@ import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {FrameVariablesGrid} from './frameVariablesGrid';
 
 describe('FrameVariablesGrid', () => {
-  it('renders extracted native variables with type labels, and values', async () => {
+  it('renders extracted native variables with type labels, pointer chains and values', async () => {
     const writeText = jest.fn().mockResolvedValue(undefined);
     Object.assign(navigator, {clipboard: {writeText}});
     render(
@@ -45,6 +45,7 @@ describe('FrameVariablesGrid', () => {
 
     expect(screen.getByText('int')).toBeInTheDocument();
     expect(screen.getByText('float*')).toBeInTheDocument();
+    expect(screen.getByText('0x000000016b29a4b0 \u2192')).toBeInTheDocument();
     expect(screen.getByText('-5.5')).toBeInTheDocument();
     expect(screen.getByText('nullptr')).toBeInTheDocument();
     expect(screen.queryByText(/0x0000000000000000/)).not.toBeInTheDocument();
