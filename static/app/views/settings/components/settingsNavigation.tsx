@@ -3,7 +3,6 @@ import {matchPath, useParams as useRouteParams} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
 import orderBy from 'lodash/orderBy';
-import {useStore} from 'zustand';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
@@ -14,11 +13,8 @@ import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
-import {useCanCreateOrganization} from 'sentry/utils/organization/useCanCreateOrganization';
+import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -200,10 +196,9 @@ function SettingsHeaderSelectTrigger({
 
 function SettingsOrganizationHeader() {
   const organization = useOrganization();
-  const organizations = useOrganizations();
-  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
+  const {canSwitch} = useOrganizationSwitcher();
 
-  if (singleOrganization || isDemoModeActive() || organizations.length <= 1) {
+  if (!canSwitch) {
     return (
       <SecondaryNavigation.HeaderTitle>
         <Flex as="span" align="center" gap="sm" minWidth="0">
@@ -235,7 +230,7 @@ function SettingsOrganizationSelector() {
   const location = useLocation();
   const organization = useOrganization();
   const organizations = useOrganizations();
-  const canCreateOrganization = useCanCreateOrganization();
+  const {createOrganizationLink} = useOrganizationSwitcher();
 
   // Read the matched route directly: our useParams fills in orgId on customer
   // domains even when the path has no slug.
@@ -262,10 +257,10 @@ function SettingsOrganizationSelector() {
           )}
           search
           menuFooter={
-            canCreateOrganization ? (
+            createOrganizationLink ? (
               <MenuComponents.CTALinkButton
                 icon={<IconAdd />}
-                {...getCreateOrganizationLink()}
+                {...createOrganizationLink}
               >
                 {t('Create Organization')}
               </MenuComponents.CTALinkButton>

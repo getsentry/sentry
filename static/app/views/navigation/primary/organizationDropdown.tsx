@@ -7,7 +7,6 @@ import {IconSettings} from '@sentry/icons/settings';
 import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
-import {useStore} from 'zustand';
 
 import {
   getOrganizationAvatarProps,
@@ -30,13 +29,10 @@ import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
 import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
-import {useCanCreateOrganization} from 'sentry/utils/organization/useCanCreateOrganization';
+import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -72,8 +68,8 @@ interface OrganizationDropdownProps {
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
-  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
-  const canCreateOrganization = useCanCreateOrganization();
+  const organizations = useOrganizations();
+  const {canSwitch, createOrganizationLink} = useOrganizationSwitcher();
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -86,7 +82,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const organizations = useOrganizations();
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -173,7 +168,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       )}
     </SettingsNavigationTourElement>
   );
-  const createOrganizationItem = makeCreateOrganizationMenuItem(canCreateOrganization);
+  const createOrganizationItem = makeCreateOrganizationMenuItem(createOrganizationLink);
 
   if (settingsV3) {
     const memberProjects = sortProjectsByBookmarkAndMembership(
@@ -270,10 +265,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     label: t('Switch'),
                     leadingItems: <IconBuilding />,
                     submenu: true,
-                    hidden:
-                      singleOrganization ||
-                      isDemoModeActive() ||
-                      (activeOrgs.length === 0 && inactiveOrgs.length === 0),
+                    hidden: !canSwitch,
                     children: [
                       {
                         key: 'active-orgs',
@@ -422,7 +414,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               submenu: true,
-              hidden: singleOrganization || isDemoModeActive(),
+              hidden: !canSwitch,
               children: [
                 {
                   key: 'active-orgs',
@@ -487,14 +479,14 @@ function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemPro
   };
 }
 
-function makeCreateOrganizationMenuItem(canCreateOrganization: boolean): MenuItemProps {
-  const link = getCreateOrganizationLink();
-
+function makeCreateOrganizationMenuItem(
+  link: {href: string} | {to: string} | null
+): MenuItemProps {
   return {
     key: 'create-organization',
     leadingItems: <IconAdd />,
     label: t('Create Organization'),
-    hidden: !canCreateOrganization,
-    ...('href' in link ? {externalHref: link.href} : {to: link.to}),
+    hidden: link === null,
+    ...(link === null ? {} : 'href' in link ? {externalHref: link.href} : {to: link.to}),
   };
 }
