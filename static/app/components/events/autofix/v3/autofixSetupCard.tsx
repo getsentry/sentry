@@ -44,12 +44,7 @@ export function useAutofixSetupStep({seerReposLinked}: {seerReposLinked: boolean
     }
   }
 
-  return {
-    isPending,
-    needOrgSetup,
-    needProjSetup,
-    setupType,
-  };
+  return {isPending, needOrgSetup, needProjSetup, setupType};
 }
 
 interface AutofixSetupCardProps {

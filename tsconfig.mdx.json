@@ -4,9 +4,7 @@
     // Volar needs react-jsx to process JSX in MDX files (base uses "preserve")
     "jsx": "react-jsx"
   },
-  "mdx": {
-    "checkMdx": true
-  },
+  "mdx": {"checkMdx": true},
   "include": [
     // MDX files to typecheck
     "static/**/*.mdx",

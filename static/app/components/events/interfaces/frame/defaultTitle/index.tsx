@@ -34,6 +34,13 @@ type Props = {
   frame: Frame;
   platform: PlatformKey;
   /**
+   * Name of the debug image containing the frame's instruction address, used
+   * when the frame itself carries no `package`. Some symbolicated native
+   * frames only carry a symbol and file, so the binary name would otherwise
+   * be missing from the frame title.
+   */
+  fallbackPackageName?: string;
+  /**
    * Is the stack trace being previewed in a hovercard?
    */
   isHoverPreviewed?: boolean;
@@ -52,6 +59,7 @@ export function DefaultTitle({
   isHoverPreviewed,
   meta,
   isPotentiallyThirdParty,
+  fallbackPackageName,
 }: Props) {
   const title: React.ReactElement[] = [];
   const framePlatform = getPlatform(frame.platform, platform);
@@ -67,11 +75,7 @@ export function DefaultTitle({
 
   const getModule = (): GetPathNameOutput | undefined => {
     if (frame.module) {
-      return {
-        key: 'module',
-        value: frame.module,
-        meta: meta?.module?.[''],
-      };
+      return {key: 'module', value: frame.module, meta: meta?.module?.['']};
     }
 
     return undefined;
@@ -85,21 +89,13 @@ export function DefaultTitle({
         return getModule();
       }
       if (frame.filename) {
-        return {
-          key: 'filename',
-          value: frame.filename,
-          meta: meta?.filename?.[''],
-        };
+        return {key: 'filename', value: frame.filename, meta: meta?.filename?.['']};
       }
       return undefined;
     }
 
     if (frame.filename) {
-      return {
-        key: 'filename',
-        value: frame.filename,
-        meta: meta?.filename?.[''],
-      };
+      return {key: 'filename', value: frame.filename, meta: meta?.filename?.['']};
     }
 
     if (frame.module) {
@@ -222,11 +218,13 @@ export function DefaultTitle({
     );
   }
 
-  if (defined(frame.package) && !isDotnet(framePlatform)) {
+  const packageName = frame.package ?? fallbackPackageName;
+
+  if (defined(packageName) && !isDotnet(framePlatform)) {
     title.push(<InFramePosition key="within">{` ${t('within')} `}</InFramePosition>);
     title.push(
-      <code title={frame.package} className="package" key="package">
-        {trimPackage(frame.package)}
+      <code title={packageName} className="package" key="package">
+        {trimPackage(packageName)}
       </code>
     );
   }

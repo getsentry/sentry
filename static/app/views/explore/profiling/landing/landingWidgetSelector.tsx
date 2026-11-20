@@ -58,13 +58,7 @@ export function LandingWidgetSelector({
   const onWidgetChange = useCallback(
     (opt: any) => {
       const newQuery = omit(location.query, [cursorName]);
-      navigate(
-        {
-          pathname: location.pathname,
-          query: newQuery,
-        },
-        {replace: true}
-      );
+      navigate({pathname: location.pathname, query: newQuery}, {replace: true});
       setSelectedWidget(opt.value);
       trackAnalytics('profiling_views.landing.widget_change', {
         organization,
@@ -196,10 +190,7 @@ const SUSPECT_FUNCTIONS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
     label: t('Slowest Functions (breakdown by P50)'),
     value: 'slowest functions p50' as const,
   },
-  {
-    label: t('Slowest Functions (breakdown by P75)'),
-    value: 'slowest functions' as const,
-  },
+  {label: t('Slowest Functions (breakdown by P75)'), value: 'slowest functions' as const},
   {
     label: t('Slowest Functions (breakdown by P95)'),
     value: 'slowest functions p95' as const,
@@ -211,14 +202,8 @@ const SUSPECT_FUNCTIONS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
 ];
 
 const FUNCTION_TRENDS_WIDGET_OPTIONS: Array<SelectOption<WidgetOption>> = [
-  {
-    label: t('Most Regressed Functions'),
-    value: 'regressed functions' as const,
-  },
-  {
-    label: t('Most Improved Functions'),
-    value: 'improved functions' as const,
-  },
+  {label: t('Most Regressed Functions'), value: 'regressed functions' as const},
+  {label: t('Most Improved Functions'), value: 'improved functions' as const},
 ];
 
 const StyledCompactSelect = styled(CompactSelect)`

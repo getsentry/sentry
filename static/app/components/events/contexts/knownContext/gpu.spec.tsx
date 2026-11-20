@@ -27,14 +27,7 @@ const MOCK_GPU_CONTEXT: GPUContext = {
   unknown_key: 123,
 };
 
-const MOCK_REDACTION = {
-  api_type: {
-    '': {
-      rem: [['organization:0', 's', 0, 0]],
-      len: 5,
-    },
-  },
-};
+const MOCK_REDACTION = {api_type: {'': {rem: [['organization:0', 's', 0, 0]], len: 5}}};
 
 describe('GPUContext', () => {
   it('returns values and according to the parameters', () => {
@@ -66,23 +59,13 @@ describe('GPUContext', () => {
         subject: 'Supports Geometry Shaders',
         value: true,
       },
-      {
-        key: 'extra_data',
-        subject: 'extra_data',
-        value: 'something',
-      },
-      {
-        key: 'unknown_key',
-        subject: 'unknown_key',
-        value: 123,
-      },
+      {key: 'extra_data', subject: 'extra_data', value: 'something'},
+      {key: 'unknown_key', subject: 'unknown_key', value: 123},
     ]);
   });
 
   it('renders with meta annotations correctly', () => {
-    const event = EventFixture({
-      _meta: {contexts: {gpu: MOCK_REDACTION}},
-    });
+    const event = EventFixture({_meta: {contexts: {gpu: MOCK_REDACTION}}});
 
     render(
       <ContextCard

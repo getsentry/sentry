@@ -56,11 +56,7 @@ describe('RootCausePreview', () => {
   });
 
   it('shows why a single run stopped instead of the failure text', () => {
-    const stop = {
-      key: 'stop',
-      reason: 'stop',
-      data: {reason: 'R', suggestion: 'N'},
-    };
+    const stop = {key: 'stop', reason: 'stop', data: {reason: 'R', suggestion: 'N'}};
 
     render(<RootCausePreview section={makeSection('root_cause', [stop])} />);
 
@@ -297,16 +293,8 @@ describe('PullRequestsPreview', () => {
       <PullRequestsPreview
         section={makeSection('pull_request', [
           [
-            makePR({
-              repo_name: 'org/repo-a',
-              pr_number: 10,
-              pr_url: 'https://pr/10',
-            }),
-            makePR({
-              repo_name: 'org/repo-b',
-              pr_number: 20,
-              pr_url: 'https://pr/20',
-            }),
+            makePR({repo_name: 'org/repo-a', pr_number: 10, pr_url: 'https://pr/10'}),
+            makePR({repo_name: 'org/repo-b', pr_number: 20, pr_url: 'https://pr/20'}),
           ],
         ])}
       />
@@ -320,13 +308,7 @@ describe('PullRequestsPreview', () => {
     render(
       <PullRequestsPreview
         section={makeSection('pull_request', [
-          [
-            makePR({
-              pr_creation_status: 'creating',
-              pr_url: null,
-              pr_number: null,
-            }),
-          ],
+          [makePR({pr_creation_status: 'creating', pr_url: null, pr_number: null})],
         ])}
       />
     );
@@ -369,11 +351,7 @@ describe('PullRequestsPreview', () => {
               pr_number: null,
               pr_creation_status: 'completed',
             }),
-            makePR({
-              repo_name: 'org/valid',
-              pr_number: 55,
-              pr_url: 'https://pr/55',
-            }),
+            makePR({repo_name: 'org/valid', pr_number: 55, pr_url: 'https://pr/55'}),
           ],
         ])}
       />
@@ -403,11 +381,7 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [
-            makeCodingAgent({
-              provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT,
-            }),
-          ],
+          [makeCodingAgent({provider: CodingAgentProvider.CURSOR_BACKGROUND_AGENT})],
         ])}
       />
     );
@@ -419,11 +393,7 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [
-            makeCodingAgent({
-              provider: CodingAgentProvider.CLAUDE_CODE_AGENT,
-            }),
-          ],
+          [makeCodingAgent({provider: CodingAgentProvider.CLAUDE_CODE_AGENT})],
         ])}
       />
     );
@@ -435,11 +405,7 @@ describe('CodingAgentPreview', () => {
     render(
       <CodingAgentPreview
         section={makeSection('coding_agents', [
-          [
-            makeCodingAgent({
-              provider: CodingAgentProvider.GITHUB_COPILOT_AGENT,
-            }),
-          ],
+          [makeCodingAgent({provider: CodingAgentProvider.GITHUB_COPILOT_AGENT})],
         ])}
       />
     );
@@ -523,11 +489,7 @@ describe('CodingAgentPreview', () => {
         section={makeSection('coding_agents', [
           [
             makeCodingAgent({id: 'a1', name: 'Agent One', status: 'running'}),
-            makeCodingAgent({
-              id: 'a2',
-              name: 'Agent Two',
-              status: 'completed',
-            }),
+            makeCodingAgent({id: 'a2', name: 'Agent Two', status: 'completed'}),
           ],
         ])}
       />

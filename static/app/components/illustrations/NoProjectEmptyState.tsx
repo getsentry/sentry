@@ -104,11 +104,7 @@ const sparksAnimationProps = {
   variants: {
     animate: {
       x: 0,
-      transition: {
-        when: 'beforeChildren',
-        delay: 3.6,
-        staggerChildren: 0.2,
-      },
+      transition: {when: 'beforeChildren', delay: 3.6, staggerChildren: 0.2},
     },
   },
 };
@@ -126,12 +122,7 @@ const sparkAnimationProps = {
       opacity: 0,
       display: 'none',
     }),
-    animate: {
-      rotate: 0,
-      scale: 1,
-      opacity: 1,
-      display: 'block',
-    },
+    animate: {rotate: 0, scale: 1, opacity: 1, display: 'block'},
   },
   transition: {type: 'spring', stiffness: 500, bounce: 80} satisfies Transition,
 };

@@ -204,10 +204,7 @@ export function useExploreSpansTable({
     return {
       ...spansTableResult,
       requestIdentityKey: visibleSamples.identityKey,
-      result: {
-        ...spansTableResult.result,
-        pageLinks: visibleSamples.pageLinks,
-      },
+      result: {...spansTableResult.result, pageLinks: visibleSamples.pageLinks},
     };
   }, [identityKey, spansTableResult, visibleSamples]);
 }

@@ -62,9 +62,7 @@ describe('getWidgetExploreUrl', () => {
       ],
     });
 
-    const widgetSelection = PageFiltersFixture({
-      projects: [17762],
-    });
+    const widgetSelection = PageFiltersFixture({projects: [17762]});
 
     const url = getWidgetExploreUrl(widget, undefined, widgetSelection, organization);
 
@@ -300,9 +298,7 @@ describe('getWidgetExploreUrl', () => {
 
     const url = getWidgetExploreUrl(
       widget,
-      {
-        release: ['1.0.0', '2.0.0'],
-      },
+      {release: ['1.0.0', '2.0.0']},
       selection,
       organization
     );
@@ -430,10 +426,7 @@ describe('getWidgetExploreUrl', () => {
   });
 
   it('returns null for widgets with an empty queries array', () => {
-    const widget = WidgetFixture({
-      displayType: DisplayType.LINE,
-      queries: [],
-    });
+    const widget = WidgetFixture({displayType: DisplayType.LINE, queries: []});
 
     const url = getWidgetExploreUrl(widget, undefined, selection, organization);
     expect(url).toBeNull();
@@ -536,6 +529,126 @@ describe('getWidgetExploreUrl', () => {
       ],
     });
   });
+
+  it('preserves the dashboard query speed on a spans widget', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'span.description:test',
+          orderby: '-avg(span.duration)',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      undefined,
+      selection,
+      organization,
+      undefined,
+      undefined,
+      'faster'
+    );
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'span.description'],
+        ['field', 'span.duration'],
+        ['groupBy', 'span.description'],
+        ['interval', '30m'],
+        ['mode', 'aggregate'],
+        ['query', 'span.description:test'],
+        ['queryPriority', 'faster'],
+        ['sort', '-avg(span.duration)'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
+      ],
+    });
+  });
+
+  it('preserves the dashboard query speed on a logs widget', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      widgetType: WidgetType.LOGS,
+      queries: [
+        WidgetQueryFixture({
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          conditions: '',
+          orderby: '-count()',
+        }),
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      undefined,
+      selection,
+      organization,
+      undefined,
+      undefined,
+      'normal'
+    );
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/logs/',
+      params: [
+        ['aggregateField', '{"groupBy":""}'],
+        ['aggregateField', '{"chartType":1,"yAxes":["count(message)"]}'],
+        ['interval', '3h'],
+        ['mode', 'aggregate'],
+        ['project', ''],
+        ['queryPriority', 'normal'],
+        ['statsPeriod', '14d'],
+      ],
+    });
+  });
+
+  it('preserves the dashboard query speed for multiple queries', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.LINE,
+      queries: [
+        {
+          fields: [],
+          aggregates: ['count(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:true',
+          orderby: '',
+          name: '',
+        },
+        {
+          fields: [],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'is_transaction:false',
+          orderby: '',
+          name: '',
+        },
+      ],
+    });
+
+    const url = getWidgetExploreUrl(
+      widget,
+      undefined,
+      selection,
+      organization,
+      undefined,
+      undefined,
+      'faster'
+    );
+    const urlObject = new URL(url!, 'https://www.example.com');
+
+    expect(urlObject.pathname).toBe('/organizations/org-slug/explore/traces/compare/');
+    expect(urlObject.searchParams.get('queryPriority')).toBe('faster');
+  });
 });
 
 describe('getWidgetTableRowExploreUrlFunction', () => {
@@ -562,9 +675,7 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
       widget,
       organization
     );
-    const url = urlGenerator({
-      'browser.name': 'Chrome',
-    });
+    const url = urlGenerator({'browser.name': 'Chrome'});
 
     expectUrl(url).toMatch({
       path: '/organizations/org-slug/explore/traces/',
@@ -575,6 +686,50 @@ describe('getWidgetTableRowExploreUrlFunction', () => {
         ['mode', 'samples'],
         // span.description:test is carried over from the widget query conditions
         ['query', 'span.description:test browser.name:Chrome'],
+        ['referrer', 'api.dashboards.tablewidget.row'],
+        ['sort', '-span.duration'],
+        ['statsPeriod', '14d'],
+        ['visualize', JSON.stringify({chartType: 1, yAxes: ['avg(span.duration)']})],
+        ['project', ''],
+      ],
+    });
+  });
+
+  it('preserves the dashboard query speed on a table row link', () => {
+    const widget = WidgetFixture({
+      displayType: DisplayType.TABLE,
+      queries: [
+        {
+          fields: ['browser.name'],
+          aggregates: ['avg(span.duration)'],
+          columns: ['span.description'],
+          conditions: 'span.description:test',
+          orderby: '-avg(span.duration)',
+          name: '',
+        },
+      ],
+    });
+
+    const selectedQueryIndex = 0;
+    const urlGenerator = getWidgetTableRowExploreUrlFunction(
+      selection,
+      widget,
+      organization,
+      undefined,
+      selectedQueryIndex,
+      'faster'
+    );
+    const url = urlGenerator({'browser.name': 'Chrome'});
+
+    expectUrl(url).toMatch({
+      path: '/organizations/org-slug/explore/traces/',
+      params: [
+        ['field', 'browser.name'],
+        ['groupBy', 'browser.name'],
+        ['interval', '30m'],
+        ['mode', 'samples'],
+        ['query', 'span.description:test browser.name:Chrome'],
+        ['queryPriority', 'faster'],
         ['referrer', 'api.dashboards.tablewidget.row'],
         ['sort', '-span.duration'],
         ['statsPeriod', '14d'],

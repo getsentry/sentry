@@ -28,10 +28,7 @@ export function useMetricDetectorLimit(): MetricDetectorLimitResponse {
     isLoading: isDetectorsLoading,
     isError: isDetectorsError,
   } = useQuery({
-    ...detectorListApiOptions(organization, {
-      query: 'type:metric',
-      limit: 1,
-    }),
+    ...detectorListApiOptions(organization, {query: 'type:metric', limit: 1}),
     enabled: hasFlag && detectorLimit !== UNLIMITED_QUOTA,
     staleTime: 5 * 1000, // Set stale time to 5 sec to avoid unnecessary re-fetching
     select: data => data.headers['X-Hits'],

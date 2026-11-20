@@ -5,11 +5,7 @@ import styled from '@emotion/styled';
  * Renders the project badge and short name
  */
 
-type Props = {
-  shortId: string;
-  avatar?: React.ReactNode;
-  className?: string;
-};
+type Props = {shortId: string; avatar?: React.ReactNode; className?: string};
 
 export function ShortId({shortId, avatar, className}: Props) {
   return (

@@ -82,10 +82,7 @@ export function NewProviderForm({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          provider: provider.toLowerCase(),
-          secret,
-        },
+        data: {provider: provider.toLowerCase(), secret},
       });
     },
     onSuccess: (_response, {secret, provider}) => {

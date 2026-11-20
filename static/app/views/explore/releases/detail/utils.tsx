@@ -36,10 +36,7 @@ export function getFilesByRepository(fileList: CommitFile[]) {
     }
 
     if (!Object.hasOwn(filesByRepository[repoName]!, filename)) {
-      filesByRepository[repoName]![filename] = {
-        authors: {},
-        types: new Set(),
-      };
+      filesByRepository[repoName]![filename] = {authors: {}, types: new Set()};
     }
 
     if (author.email) {
@@ -73,9 +70,7 @@ export function getCommitsByRepository(commitList: Commit[]): CommitsByRepositor
  * Get request query according to the url params and active repository
  */
 
-type GetQueryProps = {
-  location: Location;
-};
+type GetQueryProps = {location: Location};
 
 export function getQuery({location}: GetQueryProps) {
   const query = {
@@ -143,10 +138,7 @@ export const releaseComparisonChartHelp: Partial<
   [ReleaseComparisonChartType.USER_COUNT]: t('The number of users in a given period.'),
 };
 
-type GenerateReleaseMarklineOptions = {
-  axisIndex?: number;
-  hideLabel?: boolean;
-};
+type GenerateReleaseMarklineOptions = {axisIndex?: number; hideLabel?: boolean};
 
 function generateReleaseMarkLine(
   title: string,
@@ -174,11 +166,7 @@ function generateReleaseMarkLine(
         color: theme.tokens.content.secondary,
         backgroundColor: theme.tokens.background.secondary,
       },
-      data: [
-        {
-          xAxis: position,
-        },
-      ],
+      data: [{xAxis: position}],
     }),
   };
 }
@@ -200,10 +188,7 @@ export function generateReleaseMarkLines(
   const adoptionStages = release.adoptionStages?.[project.slug];
   const isSingleEnv = decodeList(location.query.environment).length === 1;
   const releaseBounds = getReleaseBounds(release);
-  const {statsPeriod, ...releaseParamsRest} = getReleaseParams({
-    location,
-    releaseBounds,
-  });
+  const {statsPeriod, ...releaseParamsRest} = getReleaseParams({location, releaseBounds});
   let {start, end} = releaseParamsRest;
   const isDefaultPeriod = !(
     location.query.pageStart ||

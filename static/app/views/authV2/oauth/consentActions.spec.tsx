@@ -1,11 +1,12 @@
 import {OAuthContextFixture} from 'sentry-fixture/oauth';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {ConsentActions} from './consentActions';
 
 afterEach(() => {
   try {
+    cleanup();
     act(() => jest.runOnlyPendingTimers());
   } finally {
     jest.useRealTimers();

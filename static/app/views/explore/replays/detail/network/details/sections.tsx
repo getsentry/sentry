@@ -34,11 +34,7 @@ import {
 } from './components';
 import {useDismissReqRespBodiesAlert} from './onboarding';
 
-export type SectionProps = {
-  item: SpanFrame;
-  projectId: string;
-  startTimestampMs: number;
-};
+export type SectionProps = {item: SpanFrame; projectId: string; startTimestampMs: number};
 
 const config = {
   isString: (v: any) => {

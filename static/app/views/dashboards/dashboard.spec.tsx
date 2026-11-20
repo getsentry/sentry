@@ -128,15 +128,8 @@ describe('Dashboards > Dashboard', () => {
           annotations: [],
           id: '1',
           title: 'Error: Failed',
-          project: {
-            id: '3',
-          },
-          assignedTo: {
-            email: 'test@sentry.io',
-            type: 'user',
-            id: '1',
-            name: 'Test User',
-          },
+          project: {id: '3'},
+          assignedTo: {email: 'test@sentry.io', type: 'user', id: '1', name: 'Test User'},
         },
       ],
     });
@@ -149,10 +142,7 @@ describe('Dashboards > Dashboard', () => {
             id: '2',
             name: 'test@sentry.io',
             email: 'test@sentry.io',
-            avatar: {
-              avatarType: 'letter_avatar',
-              avatarUuid: null,
-            },
+            avatar: {avatarType: 'letter_avatar', avatarUuid: null},
           },
         },
       ],
@@ -194,18 +184,7 @@ describe('Dashboards > Dashboard', () => {
 
     const dashboardWithOneWidget = {
       ...mockDashboard,
-      widgets: [
-        WidgetFixture({
-          id: '1',
-          layout: {
-            h: 1,
-            w: 1,
-            x: 0,
-            y: 0,
-            minH: 1,
-          },
-        }),
-      ],
+      widgets: [WidgetFixture({id: '1', layout: {h: 1, w: 1, x: 0, y: 0, minH: 1}})],
     };
 
     render(
@@ -253,13 +232,7 @@ describe('Dashboards > Dashboard', () => {
         WidgetFixture({
           id: '1',
           title: 'Test Widget',
-          layout: {
-            h: 1,
-            w: 1,
-            x: 0,
-            y: 0,
-            minH: 1,
-          },
+          layout: {h: 1, w: 1, x: 0, y: 0, minH: 1},
         }),
       ],
     };
@@ -291,15 +264,8 @@ describe('Dashboards > Dashboard', () => {
           annotations: [],
           id: '1',
           title: 'Error: Failed',
-          project: {
-            id: '3',
-          },
-          assignedTo: {
-            email: 'test@sentry.io',
-            type: 'user',
-            id: '1',
-            name: 'Test User',
-          },
+          project: {id: '3'},
+          assignedTo: {email: 'test@sentry.io', type: 'user', id: '1', name: 'Test User'},
         },
       });
     });
@@ -383,11 +349,7 @@ describe('Dashboards > Dashboard', () => {
     };
     // The dashboard carries a saved 24h time range — this is the source of the
     // time range, not the URL or PageFiltersStore.
-    const dashboardWithWidget = {
-      ...mockDashboard,
-      widgets: [spansWidget],
-      period: '24h',
-    };
+    const dashboardWithWidget = {...mockDashboard, widgets: [spansWidget], period: '24h'};
 
     // 30d variants used by the "URL interval not valid" tests.
     const thirtyDayDashboard: DashboardDetails = {
@@ -417,9 +379,7 @@ describe('Dashboards > Dashboard', () => {
     // Accepts an optional dashboard prop so tests can supply a different period.
     function DashboardWithIntervalSelector({
       dashboard = dashboardWithWidget,
-    }: {
-      dashboard?: DashboardDetails;
-    } = {}) {
+    }: {dashboard?: DashboardDetails} = {}) {
       const location = useLocation();
       const [widgetInterval] = useDashboardChartInterval();
       return (
@@ -685,10 +645,7 @@ describe('Dashboards > Dashboard', () => {
 
     it('triggers the edit widget callback', async () => {
       const testData = initializeOrg();
-      const dashboardWithOneWidget = {
-        ...mockDashboard,
-        widgets: [newWidget],
-      };
+      const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
       const mockOnEditWidget = jest.fn();
 
       mount({
@@ -707,10 +664,7 @@ describe('Dashboards > Dashboard', () => {
 
     it('does not show the add widget button if dashboard is in preview mode', async () => {
       const testData = initializeOrg();
-      const dashboardWithOneWidget = {
-        ...mockDashboard,
-        widgets: [newWidget],
-      };
+      const dashboardWithOneWidget = {...mockDashboard, widgets: [newWidget]};
 
       mount({
         dashboard: dashboardWithOneWidget,
@@ -820,10 +774,7 @@ describe('Dashboards > Dashboard', () => {
       expect(snapshot.nodes).toHaveLength(1);
       expect(snapshot.nodes[0]!.nodeType).toBe('dashboard');
       expect(snapshot.nodes[0]!.data).toEqual(
-        expect.objectContaining({
-          title: 'LLM Test Dashboard',
-          widgetCount: 0,
-        })
+        expect.objectContaining({title: 'LLM Test Dashboard', widgetCount: 0})
       );
     });
   });

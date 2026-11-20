@@ -42,10 +42,7 @@ import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 function makeSentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppInstallation[]>()(
     '/organizations/$organizationIdOrSlug/sentry-app-installations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 }
 
@@ -76,10 +73,7 @@ export default function SentryAppDetailedView() {
   } = useQuery({
     ...apiOptions.as<IntegrationFeature[]>()(
       '/sentry-apps/$sentryAppIdOrSlug/features/',
-      {
-        path: {sentryAppIdOrSlug: integrationSlug},
-        staleTime: Infinity,
-      }
+      {path: {sentryAppIdOrSlug: integrationSlug}, staleTime: Infinity}
     ),
     retry: false,
   });

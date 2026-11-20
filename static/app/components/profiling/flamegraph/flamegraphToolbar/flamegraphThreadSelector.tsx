@@ -113,11 +113,7 @@ function FlamegraphThreadSelector({
       )}
       options={[
         {key: 'profiles', label: t('Profiles'), options: profileOptions},
-        {
-          key: 'empty-profiles',
-          label: t('Empty Profiles'),
-          options: emptyProfileOptions,
-        },
+        {key: 'empty-profiles', label: t('Empty Profiles'), options: emptyProfileOptions},
       ]}
       value={threadId ?? 0}
       onChange={handleChange}
@@ -140,10 +136,7 @@ function ThreadLabelDetails(props: ThreadLabelDetailsProps) {
   );
 }
 
-type ProfileLight = {
-  name: Profile['name'];
-  threadId: Profile['threadId'];
-};
+type ProfileLight = {name: Profile['name']; threadId: Profile['threadId']};
 
 export function compareProfiles(activeThreadId?: number) {
   return function (a: ProfileLight, b: ProfileLight): number {

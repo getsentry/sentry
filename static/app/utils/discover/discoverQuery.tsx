@@ -7,26 +7,17 @@ import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQu
 /**
  * An individual row in a DiscoverQuery result
  */
-export type TableDataRow = {
-  [key: string]: string | number;
-  id: string;
-};
+export type TableDataRow = {[key: string]: string | number; id: string};
 
 /**
  * A DiscoverQuery result including rows and metadata.
  */
-export type TableData = {
-  data: TableDataRow[];
-  meta?: MetaType;
-};
+export type TableData = {data: TableDataRow[]; meta?: MetaType};
 
 /**
  * A DiscoverQuery result including rows and metadata from the events endpoint.
  */
-export type EventsTableData = {
-  data: TableDataRow[];
-  meta?: EventsMetaType;
-};
+export type EventsTableData = {data: TableDataRow[]; meta?: EventsMetaType};
 
 export type TableDataWithTitle = TableData & {title: string};
 
@@ -54,10 +45,7 @@ function shouldRefetchData(
 export function DiscoverQuery(props: DiscoverQueryComponentProps) {
   const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
-    return {
-      ...data,
-      meta: {...fields, ...otherMeta, fields},
-    };
+    return {...data, meta: {...fields, ...otherMeta, fields}};
   };
   return (
     <GenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>
@@ -72,10 +60,7 @@ export function DiscoverQuery(props: DiscoverQueryComponentProps) {
 export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
   const afterFetch = (data: any, _: any) => {
     const {fields, ...otherMeta} = data.meta ?? {};
-    return {
-      ...data,
-      meta: {...fields, ...otherMeta, fields},
-    };
+    return {...data, meta: {...fields, ...otherMeta, fields}};
   };
 
   const res = useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
