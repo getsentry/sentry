@@ -14,7 +14,9 @@ import type {
   AnnotationItem,
   AnnotationKind,
 } from 'sentry/components/charts/annotations/types';
+import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
+import {ReleasesDrawerTable} from 'sentry/views/explore/releases/drawer/releasesDrawerTable';
 
 import type {ChartContextSection} from './chartContextDrawer';
 
@@ -25,6 +27,7 @@ interface AnnotationsPanelProps {
 }
 
 export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps) {
+  const {selection} = usePageFilters();
   const activityRef = useRef<HTMLElement>(null);
   const severeRef = useRef<HTMLElement>(null);
   const activityItems = items.filter(item => !isSevere(item));
@@ -67,7 +70,14 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
               title={ANNOTATION_KIND_LABELS[kind]}
               count={activityItems.filter(item => item.kind === kind).length}
             >
-              <Text variant="muted">{t('Table coming soon')}</Text>
+              {kind === 'release' ? (
+                <ReleasesDrawerTable
+                  {...selection}
+                  releaseDrawerSource="chart-context-drawer"
+                />
+              ) : (
+                <Text variant="muted">{t('Table coming soon')}</Text>
+              )}
             </AnnotationsSection>
           ))
         ) : (
