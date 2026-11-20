@@ -15,9 +15,10 @@ from snuba_sdk import Column, Function, Op
 from sentry.anomaly_detection.contracts import (
     Metric,
     SeriesRow,
+    Service,
     Signal,
 )
-from sentry.anomaly_detection.inputs import measurements
+from sentry.anomaly_detection.inputs import measurements, new_failures
 from sentry.anomaly_detection.inputs.measurements import (
     ERROR_RELEASE,
     ERROR_USER,
@@ -380,3 +381,28 @@ class TestCollection(TestCase):
                 f"{self.project.id}:{dataset}:60"
             )
             assert 0 < client().ttl(key) <= 600
+
+
+def test_failure_thresholds_use_only_observed_hourly_error_users() -> None:
+    rows = [
+        SeriesRow(START, 10, "prod", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", 300.0),
+        SeriesRow(
+            START + timedelta(hours=1),
+            10,
+            "prod",
+            Signal.ERRORS,
+            Metric.COUNT_UNIQUE_USER,
+            "",
+            None,
+        ),
+        SeriesRow(START, 10, "stage", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", 5.0),
+        SeriesRow(
+            START, 10, "stage", Signal.ERRORS_BY_RELEASE, Metric.COUNT_UNIQUE_USER, "v1", 2000.0
+        ),
+        SeriesRow(START, 10, "unobserved", Signal.ERRORS, Metric.COUNT_UNIQUE_USER, "", None),
+    ]
+    thresholds = new_failures.new_failure_thresholds(rows)
+    observation_end = START + timedelta(hours=2)
+    assert thresholds.at(Service(10, "prod"), observation_end) == 15.0
+    assert thresholds.at(Service(10, "stage"), observation_end) == 10.0
+    assert thresholds.at(Service(10, "unobserved"), observation_end) == 10.0
