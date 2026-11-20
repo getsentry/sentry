@@ -29,7 +29,6 @@ from sentry.web.frontend import csrf_failure, generic
 from sentry.web.frontend.auth_channel_login import AuthChannelLoginView
 from sentry.web.frontend.auth_close import AuthCloseView
 from sentry.web.frontend.auth_login import AuthPageView
-from sentry.web.frontend.auth_logout import AuthLogoutView
 from sentry.web.frontend.auth_organization_login import AuthOrganizationLoginView
 from sentry.web.frontend.auth_provider_login import AuthProviderLoginView
 from sentry.web.frontend.cli import get_cli, get_cli_download_url
@@ -64,7 +63,7 @@ from social_auth.views import complete
 
 # Only create one instance of the ReactPageView since it's duplicated everywhere
 generic_react_page_view = GenericReactPageView.as_view()
-public_oauth_react_page_view = never_cache(
+public_react_page_view = never_cache(
     require_safe(GenericReactPageView.as_view(auth_required=False))
 )
 react_page_view = ReactPageView.as_view()
@@ -210,7 +209,7 @@ urlpatterns += [
             [
                 re_path(
                     r"^authorize/$",
-                    public_oauth_react_page_view,
+                    public_react_page_view,
                     name="sentry-oauth-authorize",
                 ),
                 re_path(
@@ -231,7 +230,7 @@ urlpatterns += [
                 ),
                 re_path(
                     r"^device/$",
-                    public_oauth_react_page_view,
+                    public_react_page_view,
                     name="sentry-oauth-device",
                 ),
             ]
@@ -302,7 +301,7 @@ urlpatterns += [
                 ),  # OAuth Pipeline for SSO redirect URI
                 re_path(
                     r"^logout/$",
-                    AuthLogoutView.as_view(),
+                    public_react_page_view,
                     name="sentry-logout",
                 ),
                 re_path(
