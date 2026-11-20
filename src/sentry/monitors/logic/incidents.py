@@ -4,6 +4,7 @@ import logging
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
+from django.db.models import Q
 from django.utils import timezone
 
 from sentry import analytics
@@ -18,6 +19,9 @@ from sentry.monitors.models import CheckInStatus, MonitorCheckIn, MonitorInciden
 from sentry.monitors.tasks.detect_broken_monitor_envs import NUM_DAYS_BROKEN_PERIOD
 
 logger = logging.getLogger(__name__)
+
+# Covers the longest check-in retention and stops the lookup scanning an env's whole history.
+LAST_SUCCESSFUL_LOOKBACK = timedelta(days=90)
 
 
 @dataclass
@@ -93,7 +97,21 @@ def try_incident_threshold(
 
         starting_checkin = previous_checkins[0]
 
+        def last_successful_timestamp() -> datetime | None:
+            return (
+                MonitorCheckIn.objects.filter(
+                    monitor_environment=monitor_env,
+                    status=CheckInStatus.OK,
+                    date_added__lte=starting_checkin.date_added,
+                    date_added__gte=starting_checkin.date_added - LAST_SUCCESSFUL_LOOKBACK,
+                )
+                .order_by("-date_added")
+                .values_list("date_added", flat=True)
+                .first()
+            )
+
         incident: MonitorIncident | None
+        # get_or_create only calls the callable default when it creates the incident.
         incident, _ = MonitorIncident.objects.get_or_create(
             monitor_environment=monitor_env,
             resolving_checkin=None,
@@ -101,6 +119,7 @@ def try_incident_threshold(
                 "monitor": monitor_env.monitor,
                 "starting_checkin_id": starting_checkin.id,
                 "starting_timestamp": starting_checkin.date_added,
+                "last_successful_timestamp": last_successful_timestamp,
                 "grouphash": monitor_env.build_occurrence_fingerprint(),
             },
         )
@@ -168,6 +187,13 @@ def try_incident_resolution(ok_checkin: MonitorCheckIn) -> bool:
         incident_recovering = True
 
     if not incident_recovering:
+        # Out-of-order OK check-ins must not move the timestamp back.
+        MonitorIncident.objects.filter(
+            Q(last_successful_timestamp__isnull=True)
+            | Q(last_successful_timestamp__lt=ok_checkin.date_added),
+            monitor_environment=monitor_env,
+            resolving_checkin=None,
+        ).update(last_successful_timestamp=ok_checkin.date_added)
         return False
 
     incident = monitor_env.active_incident

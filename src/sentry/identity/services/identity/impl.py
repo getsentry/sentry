@@ -35,7 +35,7 @@ class DatabaseBackedIdentityService(IdentityService):
             else {"type": provider_type, "external_id": provider_ext_id}
         )
 
-        idp = IdentityProvider.objects.filter(**idp_kwargs).first()
+        idp = IdentityProvider.objects.filter(**idp_kwargs).first()  # noqa: S035
 
         return serialize_identity_provider(idp) if idp else None
 

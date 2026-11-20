@@ -8,7 +8,7 @@ interface ProjectSetupContext {
   runId: string;
 }
 
-type AddFeatureProduct = 'tracing';
+export type AddFeatureProduct = 'tracing';
 
 export interface AddFeatureContext {
   product: AddFeatureProduct;

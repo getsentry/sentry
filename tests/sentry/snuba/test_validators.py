@@ -321,11 +321,7 @@ class SnubaQueryValidatorTest(TestCase):
         assert validator.is_valid(), validator.errors
 
     @with_feature(
-        {
-            "organizations:performance-view": True,
-            "organizations:tracemetrics-enabled": True,
-            "organizations:custom-metrics": True,
-        }
+        {"organizations:tracemetrics-enabled": True, "organizations:custom-metrics": True}
     )
     def test_trace_metrics_per_second_field(self) -> None:
         data = {

@@ -404,9 +404,7 @@ describe('SampledProfile', () => {
     const profile = SampledProfile.FromProfile(
       trace,
       createFrameIndex('mobile', [{name: 'f0'}, {name: 'f1'}, {name: 'f2'}]),
-      {
-        type: 'flamegraph',
-      }
+      {type: 'flamegraph'}
     );
 
     expect(profile.callTree.children[0]!.frame.name).toBe('f0');

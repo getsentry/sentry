@@ -1,13 +1,8 @@
 """
 Finds issues whose stack traces Seer finds similar.
 
-The Seer request is the one the Similar Issues tab sends: GroupSimilarIssuesEmbeddingsEndpoint
-builds it with the same two helpers, get_seer_stacktrace() and build_seer_request(). What differs
-is the handling around the request:
-
-- Each reason the lookup can't run is reported as a status, not an empty list.
-- Seer failures are reported as unavailable, not an empty list.
-- Results map to group IDs without a GroupHash lookup.
+Each reason the lookup can't run is reported as a status, and a Seer failure is reported as
+unavailable.
 """
 
 import logging
@@ -58,10 +53,7 @@ SIMILARITY_DISABLED_DETAIL = "Seer similarity isn't enabled for this project."
 NO_STACKTRACE_DETAIL = "This issue's event has no stack trace Seer can compare."
 
 
-# Shared with GroupSimilarIssuesEmbeddingsEndpoint
-
-
-def get_seer_stacktrace(event: GroupEvent, model_version: GroupingVersion) -> str:
+def _get_seer_stacktrace(event: GroupEvent, model_version: GroupingVersion) -> str:
     """The event's stack trace as Seer reads it, or "" when there's none Seer can use."""
     if not event_content_has_stacktrace(event):
         return ""
@@ -77,7 +69,7 @@ def get_seer_stacktrace(event: GroupEvent, model_version: GroupingVersion) -> st
         return ""
 
 
-def build_seer_request(
+def _build_seer_request(
     event: GroupEvent, project: Project, stacktrace: str, model_version: GroupingVersion
 ) -> SimilarIssuesEmbeddingsRequest:
     """A read-only request for issues similar to the event. Callers add `k` if they need it."""
@@ -115,12 +107,12 @@ def similar_stacktrace_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     if event is None:
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NO_STACKTRACE_DETAIL)
     model_version = get_grouping_model_version(group.project)
-    stacktrace = get_seer_stacktrace(event, model_version)
+    stacktrace = _get_seer_stacktrace(event, model_version)
     if not stacktrace:
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NO_STACKTRACE_DETAIL, event=event)
 
     # 2. Ask Seer
-    request = build_seer_request(event, group.project, stacktrace, model_version)
+    request = _build_seer_request(event, group.project, stacktrace, model_version)
     request["k"] = ctx.limit
     viewer_context = SeerViewerContext(
         organization_id=group.project.organization_id, user_id=acting_user_id(ctx.user)

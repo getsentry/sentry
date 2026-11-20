@@ -15,9 +15,7 @@ interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   startTimestampMs: number;
 }
 
-type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
-  current: Frame | undefined;
-};
+type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {current: Frame | undefined};
 
 export function replayerStepper<
   Frame extends ReplayFrame | RecordingFrame,
@@ -63,9 +61,7 @@ export function replayerStepper<
       cleanupReplayer();
     };
 
-    const frameRef: FrameRef<Frame> = {
-      current: undefined,
-    };
+    const frameRef: FrameRef<Frame> = {current: undefined};
 
     const nextOrDone = () => {
       let next = nextFrame();

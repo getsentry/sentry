@@ -55,11 +55,7 @@ function CommitRow({commit, onPullRequestClick, onCommitClick, project}: CommitR
     });
 
     openInviteMembersModal({
-      initialData: [
-        {
-          emails: new Set([commit.author.email]),
-        },
-      ],
+      initialData: [{emails: new Set([commit.author.email])}],
       source: 'suspect_commit',
     });
   }, [commit.author, organization]);

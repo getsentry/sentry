@@ -7,19 +7,9 @@ import {
 describe('groupMerged state', () => {
   const initialState = createInitialGroupMergedState();
   const fingerprints = [
-    {
-      latestEvent: {id: 'event-1'} as any,
-      id: '1',
-    },
-    {
-      latestEvent: {id: 'event-2'} as any,
-      id: '2',
-      mergedBySeer: true,
-    },
-    {
-      latestEvent: {id: 'event-3'} as any,
-      id: '3',
-    },
+    {latestEvent: {id: 'event-1'} as any, id: '1'},
+    {latestEvent: {id: 'event-2'} as any, id: '2', mergedBySeer: true},
+    {latestEvent: {id: 'event-3'} as any, id: '3'},
   ];
 
   it('does not select busy fingerprints', () => {
@@ -34,10 +24,7 @@ describe('groupMerged state', () => {
     });
 
     expect(state.unmergeList).toEqual(new Map());
-    expect(state.fingerprintState.get('1')).toEqual({
-      busy: true,
-      checked: false,
-    });
+    expect(state.fingerprintState.get('1')).toEqual({busy: true, checked: false});
   });
 
   it('selects and unselects fingerprints', () => {
@@ -96,10 +83,7 @@ describe('groupMerged state', () => {
     });
 
     expect(success.unmergeList).toEqual(new Map());
-    expect(success.fingerprintState.get('2')).toEqual({
-      busy: true,
-      checked: false,
-    });
+    expect(success.fingerprintState.get('2')).toEqual({busy: true, checked: false});
   });
 
   it('restores selection when unmerge fails', () => {
@@ -118,9 +102,6 @@ describe('groupMerged state', () => {
     });
 
     expect(error.unmergeList).toEqual(new Map([['2', 'event-2']]));
-    expect(error.fingerprintState.get('2')).toEqual({
-      busy: false,
-      checked: true,
-    });
+    expect(error.fingerprintState.get('2')).toEqual({busy: false, checked: true});
   });
 });

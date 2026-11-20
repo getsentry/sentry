@@ -1,9 +1,8 @@
 import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
-import noop from 'lodash/noop';
 
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -52,7 +51,7 @@ export default function SessionHistory() {
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader title={t('Security')} />
       <TabsContainer>
-        <Tabs onChange={noop} value={activeTab}>
+        <LinkTabs value={activeTab}>
           {({TabList}) => (
             <TabList>
               <TabList.Item key="settings" to={routePrefix}>
@@ -63,7 +62,7 @@ export default function SessionHistory() {
               </TabList.Item>
             </TabList>
           )}
-        </Tabs>
+        </LinkTabs>
       </TabsContainer>
 
       <SimpleTable

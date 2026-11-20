@@ -147,8 +147,8 @@ process.exit(Number(packageRun ? process.env.PACKAGE_TEST_STATUS ?? 0 : process.
       ['!./static/packages/*', ...(standalone ? ['./static/packages/*'] : [])]
     );
     for (const args of runs) {
-      assert.ok(args.includes('--workspace-concurrency=2'));
-      assert.ok(args.includes('--maxWorkers=2'));
+      assert.ok(args.includes('--workspace-concurrency=1'));
+      assert.ok(args.includes('--maxWorkers=75%'));
       assert.ok(args.includes('--aggregate-output'));
     }
   }
@@ -236,10 +236,7 @@ test('CI runner executes repository-relative file selections in workspace direct
       const result = await exec(
         process.execPath,
         [path.join(root, 'scripts/testCi.js'), ...args],
-        {
-          cwd: directory,
-          env,
-        }
+        {cwd: directory, env}
       );
       assert.equal(readFileSync(marker, 'utf8'), 'executed', result.stdout);
       rmSync(marker);
@@ -347,10 +344,7 @@ test('an empty shard does not fall back to running all workspace tests', async t
       '-e',
       `import {createJestConfig} from './tests/js/createJestConfig.ts'; process.stdout.write(JSON.stringify(createJestConfig('static/app').testMatch));`,
     ],
-    {
-      cwd: directory,
-      env: {...env, CI: 'true', CI_NODE_TOTAL: '2', CI_NODE_INDEX: '1'},
-    }
+    {cwd: directory, env: {...env, CI: 'true', CI_NODE_TOTAL: '2', CI_NODE_INDEX: '1'}}
   );
   assert.deepEqual(JSON.parse(result.stdout), ['<rootDir>/__no_tests_for_this_shard__']);
 
@@ -366,10 +360,7 @@ test('an empty shard does not fall back to running all workspace tests', async t
         '-e',
         `import {createJestConfig} from './tests/js/createJestConfig.ts'; process.stdout.write(JSON.stringify(createJestConfig('static/app').testMatch));`,
       ],
-      {
-        cwd: directory,
-        env: {...env, CI: 'true', CI_NODE_TOTAL: '2', CI_NODE_INDEX: '0'},
-      }
+      {cwd: directory, env: {...env, CI: 'true', CI_NODE_TOTAL: '2', CI_NODE_INDEX: '0'}}
     );
     assert.deepEqual(JSON.parse(empty.stdout), ['<rootDir>/__no_tests_for_this_shard__']);
   }
@@ -406,9 +397,7 @@ test('parallel workspace reports retain repository paths and combine without ove
     const filename = encodeURIComponent(workspace) + '.json';
     assert.deepEqual(
       JSON.parse(readFileSync(path.join(reportDirectory, filename), 'utf8')),
-      {
-        ['/' + workspace + '/example.spec.ts']: 123,
-      }
+      {['/' + workspace + '/example.spec.ts']: 123}
     );
     write(
       'artifacts/jest-balance-0/' + filename,
@@ -421,9 +410,6 @@ test('parallel workspace reports retain repository paths and combine without ove
   });
   assert.deepEqual(
     JSON.parse(readFileSync(path.join(directory, 'jest-balance.json'), 'utf8')),
-    {
-      '/static/app/example.spec.ts': 123,
-      '/static/gsApp/example.spec.ts': 123,
-    }
+    {'/static/app/example.spec.ts': 123, '/static/gsApp/example.spec.ts': 123}
   );
 });

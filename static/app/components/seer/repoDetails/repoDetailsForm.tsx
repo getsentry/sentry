@@ -9,6 +9,7 @@ import {t, tct} from 'sentry/locale';
 import type {RepositoryWithSettings} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {CodeReviewTrigger} from 'sentry/types/seer';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
 import {fetchMutation} from 'sentry/utils/queryClient';
@@ -36,10 +37,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
 
   const repoMutationOpts = mutationOptions({
     mutationFn: (
-      data: Partial<{
-        codeReviewTriggers: CodeReviewTrigger[];
-        enabledCodeReview: boolean;
-      }>
+      data: Partial<{codeReviewTriggers: CodeReviewTrigger[]; enabledCodeReview: boolean}>
     ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',
@@ -73,9 +71,11 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
       }
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey: [`/organizations/${organization.slug}/repos/`],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/repos/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
       queryClient.invalidateQueries({
         queryKey: getSeerOnboardingCheckQueryOptions({organization}).queryKey,
       });

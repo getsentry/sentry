@@ -556,6 +556,7 @@ class MonitorCheckIn(Model):
         on_delete=models.PROTECT,
         # Nothing looks up check-ins by config, and config rows are never deleted
         db_index=False,
+        db_constraint=False,
     )
     """
     References the MonitorCheckInConfig holding a snapshot of the monitor
@@ -582,9 +583,6 @@ class MonitorCheckIn(Model):
                 condition=Q(status=CheckInStatus.IN_PROGRESS),
                 name="consumer_latest",
             ),
-            # Note: If we remove all indexes that start with `monitor_environment`, we need to add the index back on the
-            # column
-            models.Index(fields=["monitor_environment", "status", "date_added"]),
             # used for timeout task
             models.Index(
                 fields=["timeout_at"],
@@ -733,9 +731,6 @@ class MonitorEnvironment(Model):
         app_label = "monitors"
         db_table = "sentry_monitorenvironment"
         unique_together = (("monitor", "environment_id"),)
-        indexes = [
-            models.Index(fields=["status", "next_checkin_latest"]),
-        ]
 
     __repr__ = sane_repr("monitor_id", "environment_id")
 
@@ -748,13 +743,6 @@ class MonitorEnvironment(Model):
             "status": self.status,
             "monitor": self.monitor.name,
         }
-
-    def get_last_successful_checkin(self) -> MonitorCheckIn | None:
-        return (
-            MonitorCheckIn.objects.filter(monitor_environment=self, status=CheckInStatus.OK)
-            .order_by("-date_added")
-            .first()
-        )
 
     @property
     def active_incident(self) -> MonitorIncident | None:
@@ -815,6 +803,12 @@ class MonitorIncident(Model):
     This represents the final OK check-in that we receive
     """
 
+    last_successful_timestamp = models.DateTimeField(null=True)
+    """
+    Time of the newest OK check-in before this incident, or during it while
+    the recovery threshold is not yet met. Shown on the incident's issue.
+    """
+
     grouphash = models.CharField(max_length=32, default=default_grouphash)
     """
     Used for issue occurrences generation. Failed check-ins produce an
@@ -868,7 +862,7 @@ def get_cron_monitor(detector: Detector) -> Monitor:
     """
     Given a detector get the matching cron monitor.
     """
-    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()
+    data_source = detector.data_sources.filter(type=DATA_SOURCE_CRON_MONITOR).first()  # noqa: S035
     assert data_source
     return Monitor.objects.get(id=int(data_source.source_id), project_id=detector.linked_project.id)
 

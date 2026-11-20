@@ -189,13 +189,13 @@ class DatabaseBackedUserService(UserService):
             social_auth__provider=provider,
             social_auth__uid=uid,
             orgmembermapping_set__organization_id=organization_id,
-        ).first()
+        ).first()  # noqa: S035
         if user is None:
             return None
         return serialize_rpc_user(user)
 
     def get_first_superuser(self) -> RpcUser | None:
-        user = User.objects.filter(is_superuser=True, is_active=True).first()
+        user = User.objects.filter(is_superuser=True, is_active=True).first()  # noqa: S035
         if user is None:
             return None
         return serialize_rpc_user(user)

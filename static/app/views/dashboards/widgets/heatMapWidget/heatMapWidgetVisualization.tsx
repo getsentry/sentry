@@ -309,11 +309,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
 
   const heatMapPlottable = plottables[0];
 
-  const series = plottables.flatMap(plottable =>
-    plottable.toSeries({
-      theme,
-    })
-  );
+  const series = plottables.flatMap(plottable => plottable.toSeries({theme}));
 
   const yAxisDataType = heatMapPlottable.yAxisValueType;
   const yAxisDataUnit = heatMapPlottable.yAxisValueUnit;
@@ -494,9 +490,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
           show: true,
           enterable: true,
           extraCssText: `box-shadow: 0 0 0 1px ${theme.tokens.border.transparent.neutral.muted}, ${theme.shadow.high}; z-index: ${theme.zIndex.tooltip} !important; pointer-events: auto !important;`,
-          axisPointer: {
-            show: false,
-          },
+          axisPointer: {show: false},
           triggerOn: 'mousemove',
           formatter: formatTooltip,
         }}
@@ -504,11 +498,7 @@ export function HeatMapWidgetVisualization(props: HeatMapWidgetVisualizationProp
         xAxes={[
           HIDDEN_CATEGORY_AXIS,
           {
-            ...heatMapTimeAxis({
-              min: meta.xAxis.start,
-              max: meta.xAxis.end,
-              timezone,
-            }),
+            ...heatMapTimeAxis({min: meta.xAxis.start, max: meta.xAxis.end, timezone}),
             axisPointer: showCursor ? CURSOR_AXIS_POINTER : undefined,
           },
         ]}
@@ -749,9 +739,7 @@ export const visualMapOptions = (
       seriesIndex: 0,
       min: 0,
       max: 1,
-      inRange: {
-        color: [...colors],
-      },
+      inRange: {color: [...colors]},
     },
   ];
 };

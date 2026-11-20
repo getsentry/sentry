@@ -11,10 +11,18 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: 1500,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
     ...params,
   };
+}
+
+function savedSettings({
+  minTopUpCredits: _minTopUpCredits,
+  ...settings
+}: SeerWalletAutoTopUp) {
+  return settings;
 }
 
 describe('openSeerAutoTopUpModal', () => {
@@ -64,6 +72,12 @@ describe('openSeerAutoTopUpModal', () => {
     act(() => openSeerAutoTopUpModal({organization}));
   }
 
+  async function toggleAutoReload() {
+    await userEvent.click(
+      await screen.findByRole('checkbox', {name: 'Auto-reload enabled'})
+    );
+  }
+
   beforeEach(() => {
     MockApiClient.clearMockResponses();
   });
@@ -76,10 +90,10 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     expect(
-      await screen.findByText('Whenever your credits drop below $5, purchase this amount')
+      screen.getByText('Whenever your credits are at or below $5, purchase this amount')
     ).toBeInTheDocument();
-    // The saved $10 isn't a preset, so turning on starts from the first one.
     expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
     expect(
       screen.queryByRole('textbox', {name: 'Custom credit amount'})
@@ -92,7 +106,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(screen.getByText('$25.00')).toBeInTheDocument();
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -108,22 +122,32 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('charges right away when the balance is at the threshold', async () => {
+    openAutoTopUpModal({balance: 500});
+
+    await toggleAutoReload();
+    expect(screen.getByText('Due now')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
   it('turns on without a charge when the balance is above the threshold', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
       body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
     });
-    openAutoTopUpModal({balance: 500});
+    openAutoTopUpModal({balance: 501});
 
-    const turnOn = await screen.findByRole('button', {name: 'Turn on'});
+    await toggleAutoReload();
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
 
-    await userEvent.click(turnOn);
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     expect(saveMock).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+        data: savedSettings(AutoTopUpFixture({enabled: true, topUpCredits: 1500})),
       })
     );
   });
@@ -136,7 +160,8 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: 'Custom'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: 'Custom'}));
     const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
     expect(customAmount).toHaveValue('15');
 
@@ -149,7 +174,7 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.type(dailyLimit, '15');
 
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $175.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $175.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -204,6 +229,19 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('turns back on with the custom amount saved before turning off', async () => {
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 2000}),
+    });
+
+    await toggleAutoReload();
+    expect(screen.getByRole('radio', {name: 'Custom'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
+    expect(
+      screen.getByRole('button', {name: 'Save and pay $20.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
   it('switches a saved preset to another preset', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
@@ -235,6 +273,133 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('shows an unset daily usage limit as no limit', async () => {
+    openAutoTopUpModal({autoTopUp: AutoTopUpFixture({dailySpendCapCents: null})});
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    expect(dailyLimit).toHaveValue('');
+    expect(dailyLimit).toHaveAttribute('placeholder', 'No limit');
+  });
+
+  it('saves no daily usage limit when the field is cleared', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    await userEvent.clear(dailyLimit);
+    expect(dailyLimit).toHaveValue('');
+    expect(
+      screen.queryByText('A $0 limit turns off all Seer usage.')
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 2500,
+          dailySpendCapCents: null,
+        },
+      })
+    );
+  });
+
+  it('blocks a credit amount below the minimum', async () => {
+    const saveMock = MockApiClient.addMockResponse({url, method: 'PUT', body: {}});
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    await userEvent.click(await screen.findByRole('radio', {name: 'Custom'}));
+    const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
+    await userEvent.clear(customAmount);
+    await userEvent.type(customAmount, '14');
+
+    expect(
+      screen.getByText('The credit amount must be at least $15.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+
+    await userEvent.type(customAmount, '0');
+    expect(
+      screen.queryByText('The credit amount must be at least $15.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+
+  it('warns about a $0 daily usage limit and still saves it', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 2500, dailySpendCapCents: 0}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '0');
+
+    expect(screen.getByText('A $0 limit turns off all Seer usage.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 2500,
+          dailySpendCapCents: 0,
+        },
+      })
+    );
+  });
+
+  it('saves the daily usage limit without turning on auto-reload', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({dailySpendCapCents: 2000}),
+    });
+    openAutoTopUpModal();
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).not.toBeChecked();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Due now')).not.toBeInTheDocument();
+
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '20');
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: false,
+          thresholdCredits: 500,
+          topUpCredits: 1500,
+          dailySpendCapCents: 2000,
+        },
+      })
+    );
+    expect(await screen.findByText('Settings saved')).toBeInTheDocument();
+  });
+
   it('confirms before turning off auto-reload', async () => {
     const autoTopUp = AutoTopUpFixture({enabled: true, topUpCredits: 2500});
     const saveMock = MockApiClient.addMockResponse({
@@ -248,9 +413,13 @@ describe('openSeerAutoTopUpModal', () => {
       purchasedRemaining: 1200,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    // An amount picked before switching off is hidden, so it isn't saved.
+    await userEvent.click(await screen.findByRole('radio', {name: '$50 5,000 credits'}));
+    await toggleAutoReload();
+    expect(
+      screen.queryByRole('radiogroup', {name: 'Credit amount'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     expect(
       screen.getByText(
         'Your 1,200 purchased credits will remain, and expire on Oct 1, 2027. When they run out, Seer pauses until your included credits reset.'
@@ -259,13 +428,15 @@ describe('openSeerAutoTopUpModal', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Keep it on'}));
     expect(saveMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('checkbox', {name: 'Auto-reload enabled'})).toBeChecked();
 
-    await userEvent.click(screen.getByRole('button', {name: 'Turn off auto-reload'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
     await userEvent.click(screen.getByRole('button', {name: 'Turn off'}));
 
     expect(saveMock).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({data: {...autoTopUp, enabled: false}})
+      expect.objectContaining({data: savedSettings({...autoTopUp, enabled: false})})
     );
   });
 
@@ -275,9 +446,8 @@ describe('openSeerAutoTopUpModal', () => {
       purchasedRemaining: 1200,
     });
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(
       screen.getByText(
@@ -289,9 +459,8 @@ describe('openSeerAutoTopUpModal', () => {
   it('leaves out purchased credits when none remain', async () => {
     openAutoTopUpModal({autoTopUp: AutoTopUpFixture({enabled: true})});
 
-    await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn off auto-reload'})
-    );
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
     expect(
       screen.getByText(
@@ -309,8 +478,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -351,8 +521,9 @@ describe('openSeerAutoTopUpModal', () => {
     renderGlobalModal({organization});
     act(() => openSeerAutoTopUpModal({organization}));
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
     // Auto-reload stays off until the refill is paid, so the settings go again.
     const resendMock = MockApiClient.addMockResponse({
@@ -408,8 +579,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -451,9 +623,10 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
 
     expect(await screen.findByText('No payment method on file.')).toBeInTheDocument();
@@ -487,8 +660,9 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
+    await toggleAutoReload();
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
     const conflictMock = MockApiClient.addMockResponse({
       url: intentUrl,
@@ -518,7 +692,7 @@ describe('openSeerAutoTopUpModal', () => {
       },
     });
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $15.00 + tax'})
     );
 
     expect(
@@ -537,18 +711,15 @@ describe('openSeerAutoTopUpModal', () => {
       statusCode: 402,
       body: {
         invoiceGuid: 'invoice-guid',
-        verification: {
-          required: true,
-          paymentIntentId: 'pi_123',
-          clientSecret: 'ERROR',
-        },
+        verification: {required: true, paymentIntentId: 'pi_123', clientSecret: 'ERROR'},
       },
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
     await userEvent.click(
       await screen.findByRole('button', {name: 'Verify with your bank'})
@@ -557,7 +728,7 @@ describe('openSeerAutoTopUpModal', () => {
     expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
     expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     ).toBeInTheDocument();
   });
 
@@ -577,15 +748,16 @@ describe('openSeerAutoTopUpModal', () => {
     });
     openAutoTopUpModal();
 
-    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await toggleAutoReload();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     );
     await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
 
     expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
     expect(
-      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+      screen.getByRole('button', {name: 'Save and pay $25.00 + tax'})
     ).toBeInTheDocument();
   });
 

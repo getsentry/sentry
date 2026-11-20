@@ -27,10 +27,10 @@ class CreateDefaultProjectsTest(TestCase):
         ):
             OrganizationMapping.objects.all().delete()
         Team.objects.filter(slug="sentry").delete()
-        Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
+        Project.objects.filter(id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID).delete()
 
         create_default_projects()
-        project = Project.objects.get(id=settings.SENTRY_PROJECT)
+        project = Project.objects.get(id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID)
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"
@@ -55,11 +55,11 @@ class CreateDefaultProjectsTest(TestCase):
             User.objects.filter(is_superuser=True).delete()
         with unguarded_write(using=router.db_for_write(Team)):
             Team.objects.filter(slug="sentry").delete()
-            Project.objects.filter(id=settings.SENTRY_PROJECT).delete()
+            Project.objects.filter(id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID).delete()
 
         create_default_projects()
 
-        project = Project.objects.get(id=settings.SENTRY_PROJECT)
+        project = Project.objects.get(id=settings.SENTRY_PROJECT or DEFAULT_SENTRY_PROJECT_ID)
         assert project.public is False
         assert project.name == "Internal"
         assert project.slug == "internal"

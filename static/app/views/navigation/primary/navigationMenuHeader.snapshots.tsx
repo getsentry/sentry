@@ -26,24 +26,22 @@ function logoOrganization(hex: string) {
  * Seed the sampled color so the header renders what it shows once sampling
  * finishes.
  */
-function sampledQueryClient(hex?: string): QueryClient {
+function sampledQueryClient(logo?: Logo): QueryClient {
   // No garbage collection timers, so Jest can exit once the snapshots are taken.
   const queryClient = new QueryClient({defaultOptions: {queries: {gcTime: Infinity}}});
-  if (hex) {
-    for (const themeType of ['light', 'dark']) {
-      queryClient.setQueryData(['avatar-button-chonk', solidImage(hex), themeType], {
-        chonk: hex,
-        dominant: hex,
-        style: 'fill',
-      });
-    }
+  if (logo) {
+    queryClient.setQueryData(['avatar-image-analysis', solidImage(logo.color)], {
+      tint: logo.tint,
+      edge: logo.color,
+      style: 'fill',
+    });
   }
   return queryClient;
 }
 
-function Frame({children, sampledColor}: {children: ReactNode; sampledColor?: string}) {
+function Frame({children, sampled}: {children: ReactNode; sampled?: Logo}) {
   return (
-    <QueryClientProvider client={sampledQueryClient(sampledColor)}>
+    <QueryClientProvider client={sampledQueryClient(sampled)}>
       <Container width="258px" padding="sm lg">
         {children}
       </Container>
@@ -53,29 +51,37 @@ function Frame({children, sampledColor}: {children: ReactNode; sampledColor?: st
 
 const LONG_NAME = 'a-very-long-slug-that-keeps-going-past-the-menu-edge';
 
-const LOGOS = [
-  // Bright, where the gradient used to start near black.
-  {kind: 'bright', color: '#ffd744'},
-  {kind: 'saturated', color: '#e3442a'},
+interface Logo {
+  color: string;
+  kind: string;
+  tint: string | null;
+}
+
+// Bright, where the gradient used to start near black.
+const BRIGHT_LOGO: Logo = {kind: 'bright', color: '#ffd744', tint: '#ffd744'};
+
+const LOGOS: Logo[] = [
+  BRIGHT_LOGO,
+  {kind: 'saturated', color: '#e3442a', tint: '#e3442a'},
   // Already darker than the default gradient.
-  {kind: 'dark', color: '#12424a'},
+  {kind: 'dark', color: '#12424a', tint: '#12424a'},
   // No colored pixels, so the header keeps its default gradient.
-  {kind: 'neutral', color: '#000000'},
+  {kind: 'neutral', color: '#000000', tint: null},
 ];
 
 describe('NavigationMenuHeader', () => {
-  for (const {kind, color} of LOGOS) {
+  for (const logo of LOGOS) {
     it.snapshot(
-      `organization-logo-${kind}`,
+      `organization-logo-${logo.kind}`,
       () => (
-        <Frame sampledColor={color}>
+        <Frame sampled={logo}>
           <NavigationMenuHeader
-            organization={logoOrganization(color)}
+            organization={logoOrganization(logo.color)}
             projectCount={12}
           />
         </Frame>
       ),
-      {tags: {avatar: 'image', logo: kind, area: 'core'}}
+      {tags: {avatar: 'image', logo: logo.kind, area: 'core'}}
     );
   }
 
@@ -85,7 +91,7 @@ describe('NavigationMenuHeader', () => {
     () => (
       <Frame>
         <NavigationMenuHeader
-          organization={logoOrganization('#ffd744')}
+          organization={logoOrganization(BRIGHT_LOGO.color)}
           projectCount={12}
         />
       </Frame>
@@ -136,10 +142,10 @@ describe('NavigationMenuHeader', () => {
   it.snapshot(
     'user-with-organization-logo',
     () => (
-      <Frame sampledColor="#ffd744">
+      <Frame sampled={BRIGHT_LOGO}>
         <NavigationMenuHeader
           user={UserFixture({name: 'Jane Doe', email: 'jane@example.com'})}
-          organization={logoOrganization('#ffd744')}
+          organization={logoOrganization(BRIGHT_LOGO.color)}
         />
       </Frame>
     ),

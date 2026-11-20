@@ -42,7 +42,10 @@ class AgentHandoffCrossOriginError(SentryAPIException):
 class AgentHandoffIPMismatchError(SentryAPIException):
     status_code = 403
     code = "agent-handoff-ip-mismatch"
-    message = "The handoff code is pinned to a different IP address."
+    message = (
+        "The handoff code is pinned to a different IP address. Ask the user to turn "
+        'off "Use IP pinning" and copy a new handoff prompt.'
+    )
     auth_challenge = False
 
 

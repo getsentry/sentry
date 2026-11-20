@@ -44,10 +44,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
 
   const handleRecenter = () => {
     if (chartRef.current) {
-      chartRef.current.dispatchAction({
-        type: 'treemapRootToNode',
-        seriesIndex: 0,
-      });
+      chartRef.current.dispatchAction({type: 'treemapRootToNode', seriesIndex: 0});
       setIsZoomed(false);
     }
   };
@@ -142,37 +139,13 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
       visibleMin: 300,
       levels: [
         {
-          itemStyle: {
-            gapWidth: 4,
-            borderColor: 'transparent',
-            borderRadius: 6,
-          },
+          itemStyle: {gapWidth: 4, borderColor: 'transparent', borderRadius: 6},
           colorSaturation: [0.3, 0.5],
         },
-        {
-          itemStyle: {
-            borderRadius: 6,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 4,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 2,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
-        {
-          itemStyle: {
-            borderRadius: 1,
-          },
-          colorSaturation: [0.4, 0.6],
-        },
+        {itemStyle: {borderRadius: 6}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 4}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 2}, colorSaturation: [0.4, 0.6]},
+        {itemStyle: {borderRadius: 1}, colorSaturation: [0.4, 0.6]},
       ],
       data: chartData.children || [chartData],
     },
@@ -186,10 +159,7 @@ export function TreemapDiffSection({diffItems}: TreemapDiffSectionProps) {
     transitionDuration: 0,
     padding: 12,
     extraCssText: 'border-radius: 6px;',
-    textStyle: {
-      color: theme.tokens.content.primary,
-      fontFamily: 'Rubik',
-    },
+    textStyle: {color: theme.tokens.content.primary, fontFamily: 'Rubik'},
     formatter: function (params: any) {
       const sizeDiff = params.data?.size_diff || 0;
       const diffType = params.data?.diff_type;

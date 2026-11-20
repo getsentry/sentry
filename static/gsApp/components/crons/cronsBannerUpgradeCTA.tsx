@@ -69,9 +69,7 @@ export function CronsBannerOnDemandCTA({
           organization={organization}
         />
       ),
-      {
-        closeEvents: 'escape-key',
-      }
+      {closeEvents: 'escape-key'}
     );
   };
 

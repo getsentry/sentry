@@ -7,9 +7,7 @@ import {EvidencePreview} from './evidencePreview';
 describe('EvidencePreview', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/group-id/',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/group-id/'});
   });
 
   it('shows error when request fails', async () => {

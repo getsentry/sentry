@@ -12,16 +12,10 @@ type DataLoaded = {
   widget2Data: DataState;
 };
 
-type DataStateAction = {
-  dataKey: keyof DataLoaded;
-  dataState: DataState;
-};
+type DataStateAction = {dataKey: keyof DataLoaded; dataState: DataState};
 
 function dataLoadedReducer(state: DataLoaded, action: DataStateAction) {
-  return {
-    ...state,
-    [action.dataKey]: action.dataState,
-  };
+  return {...state, [action.dataKey]: action.dataState};
 }
 
 export function useLandingAnalytics() {
@@ -45,10 +39,7 @@ export function useLandingAnalytics() {
       dataState !== 'pending'
     ) {
       dispatchedAnalytics.current = true;
-      trackAnalytics('profiling_views.landing', {
-        organization,
-        data: dataState,
-      });
+      trackAnalytics('profiling_views.landing', {organization, data: dataState});
     }
   }, [dataState, organization]);
 

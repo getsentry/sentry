@@ -9,9 +9,7 @@ import type {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModel
 
 import {SpanErrorCard} from './spanErrorCard';
 
-type HttpErrorCardProps = {
-  node: EapSpanNode;
-};
+type HttpErrorCardProps = {node: EapSpanNode};
 
 function formatStatusText(status: string): string {
   return status

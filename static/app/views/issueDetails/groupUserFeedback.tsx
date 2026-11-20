@@ -30,16 +30,12 @@ function GroupUserFeedback() {
     isPending: isPendingGroup,
     isError: isErrorGroup,
     refetch: refetchGroup,
-  } = useGroup({
-    groupId,
-  });
+  } = useGroup({groupId});
 
   const {data, isPending, isError, refetch} = useQuery({
     ...groupUserFeedbackApiOptions(organization, {
       groupId,
-      query: {
-        cursor: cursor ?? undefined,
-      },
+      query: {cursor: cursor ?? undefined},
     }),
     select: selectJsonWithHeaders,
   });

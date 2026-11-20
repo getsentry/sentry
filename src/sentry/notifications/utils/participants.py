@@ -432,7 +432,7 @@ def get_user_from_identifier(
     team_ids = [t.id for t in project.teams.all()]
     omt = OrganizationMemberTeam.objects.filter(
         organizationmember_id=organization_member_team.id, team_id__in=team_ids
-    ).first()
+    ).first()  # noqa: S035
     if omt is None:
         return None
     return user_service.get_user(ident)

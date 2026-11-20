@@ -1,6 +1,9 @@
 import moment from 'moment-timezone';
 import {createStore} from 'zustand/vanilla';
 
+import {configureFormatting, type FormattingSnapshot} from '@sentry/scraps/dateTime';
+
+import {getLocaleSnapshot, subscribeLocale} from 'sentry/locale';
 import type {Config} from 'sentry/types/system';
 
 // When the app is booted we will _immediately_ hydrate the config store,
@@ -46,3 +49,43 @@ export const ConfigStore = {
     store.setState(state, true);
   },
 };
+
+let formattingSnapshot: FormattingSnapshot | undefined;
+const getTimezoneAbbreviation = (
+  epochMilliseconds: number,
+  timezone: string,
+  locale: string
+) => {
+  const abbreviation = moment.tz.zone(timezone)?.abbr(epochMilliseconds);
+  return abbreviation === undefined
+    ? undefined
+    : moment.localeData(locale).postformat(abbreviation);
+};
+
+configureFormatting({
+  getSnapshot: () => {
+    const {locale, messages} = getLocaleSnapshot();
+    const user = ConfigStore.get('user');
+    const timezone =
+      user?.options.timezone ?? Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const clock = user?.options.clock24Hours ? '24' : '12';
+    if (
+      !formattingSnapshot ||
+      formattingSnapshot.timezone !== timezone ||
+      formattingSnapshot.clock !== clock ||
+      formattingSnapshot.locale !== locale ||
+      formattingSnapshot.messages !== messages
+    ) {
+      formattingSnapshot = {timezone, clock, locale, messages, getTimezoneAbbreviation};
+    }
+    return formattingSnapshot;
+  },
+  subscribe: onChange => {
+    const unlistenConfig = ConfigStore.subscribe(onChange);
+    const unlistenLocale = subscribeLocale(onChange);
+    return () => {
+      unlistenConfig();
+      unlistenLocale();
+    };
+  },
+});

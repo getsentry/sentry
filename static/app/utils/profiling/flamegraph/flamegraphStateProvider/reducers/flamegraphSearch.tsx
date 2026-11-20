@@ -6,10 +6,7 @@ type FlamegraphSearchResult = {
   match: ReadonlyArray<[number, number]>;
 };
 
-type SpansSearchResult = {
-  match: ReadonlyArray<[number, number]>;
-  span: SpanChartNode;
-};
+type SpansSearchResult = {match: ReadonlyArray<[number, number]>; span: SpanChartNode};
 
 export type FlamegraphSearch = {
   highlightFrames: {name: string | undefined; package: string | undefined} | null;
@@ -21,35 +18,20 @@ export type FlamegraphSearch = {
   };
 };
 
-type ClearFlamegraphSearchAction = {
-  type: 'clear search';
-};
+type ClearFlamegraphSearchAction = {type: 'clear search'};
 
 type SetFlamegraphResultsAction = {
-  payload: {
-    query: string;
-    results: FlamegraphSearch['results'];
-  };
+  payload: {query: string; results: FlamegraphSearch['results']};
   type: 'set search results';
 };
 
 type FlamegraphSearchArrowNavigationAction =
-  | {
-      type: 'next search result';
-    }
-  | {
-      type: 'previous search result';
-    }
-  | {
-      payload: number;
-      type: 'set search index position';
-    };
+  | {type: 'next search result'}
+  | {type: 'previous search result'}
+  | {payload: number; type: 'set search index position'};
 
 type SetHighlightAllFrames = {
-  payload: {
-    name: string;
-    package: string;
-  } | null;
+  payload: {name: string; package: string} | null;
   type: 'set highlight all frames';
 };
 
@@ -70,17 +52,11 @@ export function flamegraphSearchReducer(
         query: '',
         index: null,
         highlightFrames: null,
-        results: {
-          frames: new Map(),
-          spans: new Map(),
-        },
+        results: {frames: new Map(), spans: new Map()},
       };
     }
     case 'set highlight all frames': {
-      return {
-        ...state,
-        highlightFrames: action.payload,
-      };
+      return {...state, highlightFrames: action.payload};
     }
     case 'set search results': {
       const frames = action.payload.results.frames;

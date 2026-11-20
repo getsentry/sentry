@@ -15,10 +15,7 @@ describe('RelayWrapper', () => {
   function renderComponent(
     organizationProps: Parameters<typeof OrganizationFixture>[0] = {}
   ) {
-    const organization = OrganizationFixture({
-      trustedRelays: [],
-      ...organizationProps,
-    });
+    const organization = OrganizationFixture({trustedRelays: [], ...organizationProps});
     return render(
       <Fragment>
         <GlobalModal />
@@ -33,34 +30,24 @@ describe('RelayWrapper', () => {
       renderComponent();
 
       expect(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).toBeInTheDocument();
       expect(screen.getByText('Data Authenticity')).toBeInTheDocument();
     });
 
     it('toggle is unchecked when ingestThroughTrustedRelaysOnly is disabled', async () => {
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'disabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'disabled'});
 
       expect(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).not.toBeChecked();
     });
 
     it('toggle is checked when ingestThroughTrustedRelaysOnly is enabled', async () => {
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'enabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'enabled'});
 
       expect(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).toBeChecked();
     });
 
@@ -70,14 +57,10 @@ describe('RelayWrapper', () => {
         method: 'PUT',
       });
 
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'disabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'disabled'});
 
       await userEvent.click(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       );
 
       expect(
@@ -103,23 +86,17 @@ describe('RelayWrapper', () => {
         method: 'PUT',
       });
 
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'disabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'disabled'});
 
       await userEvent.click(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(mock).not.toHaveBeenCalled();
       expect(
-        screen.getByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        screen.getByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).not.toBeChecked();
     });
 
@@ -129,14 +106,10 @@ describe('RelayWrapper', () => {
         method: 'PUT',
       });
 
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'enabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'enabled'});
 
       await userEvent.click(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       );
 
       expect(screen.queryByRole('button', {name: 'Confirm'})).not.toBeInTheDocument();
@@ -157,43 +130,31 @@ describe('RelayWrapper', () => {
         statusCode: 500,
       });
 
-      renderComponent({
-        ingestThroughTrustedRelaysOnly: 'disabled',
-      });
+      renderComponent({ingestThroughTrustedRelaysOnly: 'disabled'});
 
       await userEvent.click(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       );
 
       await userEvent.click(screen.getByRole('button', {name: 'Confirm'}));
 
       expect(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).not.toBeChecked();
     });
 
     it('toggle is disabled when user lacks org:write permission', async () => {
-      renderComponent({
-        access: [],
-      });
+      renderComponent({access: []});
 
       expect(
-        await screen.findByRole('checkbox', {
-          name: 'Ingest Through Trusted Relays Only',
-        })
+        await screen.findByRole('checkbox', {name: 'Ingest Through Trusted Relays Only'})
       ).toBeDisabled();
     });
   });
 
   describe('relayDsnEndpoint input', () => {
     it('renders the persisted value', () => {
-      renderComponent({
-        relayDsnEndpoint: 'https://relay.example.com',
-      });
+      renderComponent({relayDsnEndpoint: 'https://relay.example.com'});
 
       expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toHaveValue(
         'https://relay.example.com'
@@ -207,9 +168,7 @@ describe('RelayWrapper', () => {
         body: OrganizationFixture({relayDsnEndpoint: 'https://relay.example.com'}),
       });
 
-      renderComponent({
-        relayDsnEndpoint: 'https://old-relay.example.com',
-      });
+      renderComponent({relayDsnEndpoint: 'https://old-relay.example.com'});
 
       const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
       await userEvent.clear(input);
@@ -234,9 +193,7 @@ describe('RelayWrapper', () => {
         body: OrganizationFixture({relayDsnEndpoint: null}),
       });
 
-      renderComponent({
-        relayDsnEndpoint: 'https://relay.example.com',
-      });
+      renderComponent({relayDsnEndpoint: 'https://relay.example.com'});
 
       const input = screen.getByRole('textbox', {name: 'DSN Endpoint Override'});
       await userEvent.clear(input);
@@ -245,18 +202,13 @@ describe('RelayWrapper', () => {
       await waitFor(() =>
         expect(mock).toHaveBeenCalledWith(
           '/organizations/org-slug/',
-          expect.objectContaining({
-            method: 'PUT',
-            data: {relayDsnEndpoint: ''},
-          })
+          expect.objectContaining({method: 'PUT', data: {relayDsnEndpoint: ''}})
         )
       );
     });
 
     it('is disabled when user lacks org:write permission', () => {
-      renderComponent({
-        access: [],
-      });
+      renderComponent({access: []});
 
       expect(screen.getByRole('textbox', {name: 'DSN Endpoint Override'})).toBeDisabled();
     });

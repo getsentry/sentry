@@ -1,3 +1,5 @@
+import {annotate} from '@sentry/scraps/markdown/annotation';
+
 import {
   EMPTY_TEXT_CONTENT,
   extractAssistantOutput,
@@ -58,10 +60,7 @@ describe('normalizeToMessages', () => {
 
     it('falls back to object parts when no text is present', () => {
       const input = JSON.stringify([
-        {
-          role: 'assistant',
-          parts: [{type: 'object', schema: 'x', data: {k: 'v'}}],
-        },
+        {role: 'assistant', parts: [{type: 'object', schema: 'x', data: {k: 'v'}}]},
       ]);
 
       const {messages} = normalizeToMessages(input, {defaultRole: 'assistant'});
@@ -211,9 +210,7 @@ describe('normalizeToMessages', () => {
 
   describe('{messages: ...} wrapper', () => {
     it('unwraps a direct array', () => {
-      const input = JSON.stringify({
-        messages: [{role: 'user', content: 'hi'}],
-      });
+      const input = JSON.stringify({messages: [{role: 'user', content: 'hi'}]});
 
       const {messages} = normalizeToMessages(input, {defaultRole: 'user'});
 
@@ -334,6 +331,18 @@ describe('normalizeToMessages', () => {
 
       expect(messages).toBeNull();
       expect(fixedInvalidJson).toBe(true);
+    });
+
+    it('returns null when everything is a marked [Filtered]', () => {
+      const marked = annotate(
+        '[Filtered]',
+        JSON.stringify({ruleId: '@password:filter', remark: 's'})
+      );
+
+      expect(normalizeToMessages(marked, {defaultRole: 'user'})).toEqual({
+        messages: null,
+        fixedInvalidJson: true,
+      });
     });
 
     it('does not throw on malformed JSON with [Filtered]', () => {
@@ -559,9 +568,7 @@ describe('extractAssistantOutput', () => {
     it('preserves JSON primitive content strings from assistant messages', () => {
       const numeric = extractAssistantOutput(
         JSON.stringify([{role: 'assistant', content: '42'}]),
-        {
-          defaultRole: 'assistant',
-        }
+        {defaultRole: 'assistant'}
       );
       const boolean = extractAssistantOutput(
         JSON.stringify([{role: 'assistant', content: 'true'}]),
@@ -712,9 +719,7 @@ describe('extractAssistantOutput', () => {
     });
 
     it('accepts {messages: [...]} wrapper on an output field', () => {
-      const input = JSON.stringify({
-        messages: [{role: 'assistant', content: 'wrapped'}],
-      });
+      const input = JSON.stringify({messages: [{role: 'assistant', content: 'wrapped'}]});
 
       const {responseText} = extractAssistantOutput(input, {defaultRole: 'assistant'});
 

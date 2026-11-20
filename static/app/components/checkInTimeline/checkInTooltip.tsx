@@ -2,13 +2,13 @@ import {Fragment} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {Table, type TableColumnConfig} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
 import type {TooltipProps} from '@sentry/scraps/tooltip';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {t} from 'sentry/locale';
 
 import type {JobTickData, TickStyle, TimeWindowConfig} from './types';
@@ -49,7 +49,7 @@ export function CheckInTooltip<Status extends string>({
   ...props
 }: CheckInTooltipProps<Status>) {
   const {startTs, endTs, stats} = jobTick;
-  const {dateLabelFormat} = timeWindowConfig;
+  const {dateLabelOptions} = timeWindowConfig;
   const representsSingleJob =
     Object.values<number>(stats).reduce((sum, count) => sum + count, 0) === 1;
 
@@ -59,11 +59,11 @@ export function CheckInTooltip<Status extends string>({
   const tooltipTitle = (
     <Stack gap="md">
       <Flex justify="center">
-        <DateTime date={startTs * 1000} format={dateLabelFormat} />
+        <DateTime date={startTs * 1000} {...dateLabelOptions} />
         {!representsSingleJob && (
           <Fragment>
             <Text>{'\u2014'}</Text>
-            <DateTime date={endTs * 1000} format={dateLabelFormat} />
+            <DateTime date={endTs * 1000} {...dateLabelOptions} />
           </Fragment>
         )}
       </Flex>

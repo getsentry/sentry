@@ -237,15 +237,10 @@ describe('autogrouping', () => {
             ],
           }),
         ]),
-        {
-          ...traceMetadata,
-          organization: EAPOrganization,
-        }
+        {...traceMetadata, organization: EAPOrganization}
       );
 
-      TraceTree.AutogroupSiblingSpanNodes(tree.root, {
-        organization: EAPOrganization,
-      });
+      TraceTree.AutogroupSiblingSpanNodes(tree.root, {organization: EAPOrganization});
       expect(tree.build().serialize()).toMatchSnapshot();
     });
 

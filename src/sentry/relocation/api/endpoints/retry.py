@@ -77,7 +77,7 @@ class RelocationRetryEndpoint(Endpoint):
             )
 
         relocation_file = (
-            RelocationFile.objects.filter(relocation=relocation).select_related("file").first()
+            RelocationFile.objects.filter(relocation=relocation).select_related("file").first()  # noqa: S035
         )
         if relocation_file is None:
             return Response(

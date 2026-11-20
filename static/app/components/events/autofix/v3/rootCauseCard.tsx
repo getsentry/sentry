@@ -67,6 +67,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('root_cause', {
+    billingFeature: isSingleRun ? undefined : autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
   });
 
@@ -89,10 +90,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const evidence = useAutofixSectionEvidence({section});
   const evidenceDetails =

@@ -10,10 +10,7 @@ import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCu
 
 import {ZoomTriangles} from './zoomTrianges';
 
-type Props = {
-  className?: string;
-  showZoomIndicators?: boolean;
-};
+type Props = {className?: string; showZoomIndicators?: boolean};
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
   const replay = useReplayReader();

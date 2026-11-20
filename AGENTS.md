@@ -76,7 +76,7 @@ Dev server URLs: full devserver `http://dev.getsentry.net:8000`; frontend-only `
 
 #### Typechecking
 
-Run `pnpm run typecheck` to run the typescript type checker. It does not accept file paths. DO NOT use `tsc` directly.
+Run `pnpm run typecheck` to check the frontend TypeScript projects with tsrs. It does not accept file paths. Run it separately from Rsbuild. Do not use `tsc` directly.
 
 #### Linting
 

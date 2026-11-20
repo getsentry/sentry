@@ -58,10 +58,7 @@ async function importStory(filename: string): Promise<StoryDescriptor> {
   }
 
   const story = (await loadStory()) as StoryDescriptor['exports'];
-  return {
-    exports: story,
-    filename,
-  };
+  return {exports: story, filename};
 }
 
 interface UseStoriesLoaderOptions {

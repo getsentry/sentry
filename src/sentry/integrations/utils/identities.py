@@ -42,7 +42,7 @@ def get_identity_or_404(
 
     idp = IdentityProvider.objects.filter(
         external_id=integration.external_id, type=integration.provider
-    ).first()
+    ).first()  # noqa: S035
     logger_metadata["external_id"] = integration.external_id
     if idp is None:
         _logger.info("failed to find an identity provider", extra=logger_metadata)

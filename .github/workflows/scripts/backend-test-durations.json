@@ -1041,7 +1041,6 @@
     "tests/sentry/issues/endpoints/test_group_pull_requests.py": 9.8,
     "tests/sentry/issues/endpoints/test_group_related.py": 17.7,
     "tests/sentry/issues/endpoints/test_group_reprocessing.py": 3.2,
-    "tests/sentry/issues/endpoints/test_group_similar_issues_embeddings.py": 17.9,
     "tests/sentry/issues/endpoints/test_group_stats.py": 1.2,
     "tests/sentry/issues/endpoints/test_group_tagkey_details.py": 3.7,
     "tests/sentry/issues/endpoints/test_group_tagkey_values.py": 21.4,
