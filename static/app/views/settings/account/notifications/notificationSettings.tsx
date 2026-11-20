@@ -90,11 +90,7 @@ export function NotificationSettings() {
 
   const notificationMutationOptions = mutationOptions({
     mutationFn: (data: Partial<NotificationFields>) => {
-      return fetchMutation({
-        method: 'PUT',
-        url: NOTIFICATIONS_ENDPOINT,
-        data,
-      });
+      return fetchMutation({method: 'PUT', url: NOTIFICATIONS_ENDPOINT, data});
     },
     onSuccess: (_, variables) => {
       toast.success(t('Notification preferences saved'));
@@ -111,9 +107,7 @@ export function NotificationSettings() {
         title={t('Notifications')}
         subtitle={tct(
           'Personal notifications sent by email or an integration. Looking to add or remove an email address? [link:Update your email settings.]',
-          {
-            link: <Link to="/settings/account/emails" />,
-          }
+          {link: <Link to="/settings/account/emails" />}
         )}
       />
       <FormSearch route="/settings/account/notifications/">

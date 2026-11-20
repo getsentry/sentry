@@ -28,18 +28,14 @@ const commitSchema = z.object({
       id: z.string(),
       message: z.string().nullable().optional(),
       author: z.looseObject({name: z.string().nullable().optional()}).optional(),
-      repository: z.looseObject({
-        name: z.string(),
-      }),
+      repository: z.looseObject({name: z.string()}),
       dateCreated: z.string(),
     })
     .nullable()
     .refine(val => val !== null, t('Please select a commit')),
 });
 
-const defaultValues: z.input<typeof commitSchema> = {
-  commit: null,
-};
+const defaultValues: z.input<typeof commitSchema> = {commit: null};
 
 type Commit = z.output<typeof commitSchema>['commit'];
 
@@ -55,15 +51,10 @@ export function CustomCommitsResolutionModal({
   const form = useScrapsForm({
     ...defaultFormOptions,
     defaultValues,
-    validators: {
-      onDynamic: commitSchema,
-    },
+    validators: {onDynamic: commitSchema},
     onSubmit: ({value}) => {
       onSelected({
-        inCommit: {
-          commit: value.commit?.id,
-          repository: value.commit?.repository?.name,
-        },
+        inCommit: {commit: value.commit?.id, repository: value.commit?.repository?.name},
       });
       closeModal();
     },

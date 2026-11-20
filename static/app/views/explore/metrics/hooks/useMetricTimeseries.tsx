@@ -211,7 +211,5 @@ function useMetricTimeseriesImpl({
     DiscoverDatasets.TRACEMETRICS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

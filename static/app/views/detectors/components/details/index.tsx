@@ -16,10 +16,7 @@ import {MetricDetectorDetails} from './metric';
 import {MobileBuildDetectorDetails} from './mobileBuild';
 import {UptimeDetectorDetails} from './uptime';
 
-type DetectorDetailsContentProps = {
-  detector: Detector;
-  project: Project;
-};
+type DetectorDetailsContentProps = {detector: Detector; project: Project};
 
 /**
  * Only the facts the node's own data cannot state. The monitor's type and

@@ -46,10 +46,7 @@ export const parseAsChartSelection = createParser<ChartSelectionState>({
 
     return {
       chartIndex: parsed.chartIndex,
-      selection: {
-        range: parsed.range,
-        panelId: parsed.panelId,
-      },
+      selection: {range: parsed.range, panelId: parsed.panelId},
       yRange: parsed.yRange,
     };
   },
@@ -76,10 +73,7 @@ export function ChartSelectionProvider({children}: ChartSelectionProviderProps) 
   );
 
   const value = useMemo<ChartSelectionContextValue>(
-    () => ({
-      chartSelection,
-      setChartSelection,
-    }),
+    () => ({chartSelection, setChartSelection}),
     [chartSelection, setChartSelection]
   );
 

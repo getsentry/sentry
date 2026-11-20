@@ -587,10 +587,7 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
 
   abstract get drawerTabsTitle(): string;
 
-  abstract get traceHeaderTitle(): {
-    title: string;
-    subtitle?: string;
-  };
+  abstract get traceHeaderTitle(): {title: string; subtitle?: string};
 
   abstract analyticsName(): string;
 

@@ -9,20 +9,12 @@ type SearchEventBase = {
 type ProjectSelectorEvent = {path: string};
 
 export type SearchEventParameters = {
-  'projectselector.apply': ProjectSelectorEvent & {
-    count: number;
-    multi: boolean;
-  };
+  'projectselector.apply': ProjectSelectorEvent & {count: number; multi: boolean};
   'projectselector.cancel': ProjectSelectorEvent;
   'projectselector.clear': ProjectSelectorEvent;
   'projectselector.direct_selection': ProjectSelectorEvent;
-  'projectselector.toggle': ProjectSelectorEvent & {
-    action: 'added' | 'removed';
-  };
-  'projectselector.update': ProjectSelectorEvent & {
-    count: number;
-    multi: boolean;
-  };
+  'projectselector.toggle': ProjectSelectorEvent & {action: 'added' | 'removed'};
+  'projectselector.update': ProjectSelectorEvent & {count: number; multi: boolean};
   'search.docs_opened': SearchEventBase;
   'search.key_autocompleted': Omit<SearchEventBase, 'query'> & {
     item_name: string | undefined;
@@ -50,10 +42,7 @@ export type SearchEventParameters = {
   };
   'search.search_with_invalid': SearchEventBase;
   'search.searched': SearchEventBase;
-  'search.searched_filter': SearchEventBase & {
-    key: string;
-    values: string[];
-  };
+  'search.searched_filter': SearchEventBase & {key: string; values: string[]};
   'search.value_autocompleted': Omit<SearchEventBase, 'query'> & {
     filter_key: string;
     filter_operator: string;

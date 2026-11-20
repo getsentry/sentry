@@ -57,10 +57,7 @@ const INITIAL_STATE: WizardState = {
   selectedRepository: undefined,
 };
 
-const autoFillParsers = {
-  referrer: parseAsString,
-  project: parseAsString,
-};
+const autoFillParsers = {referrer: parseAsString, project: parseAsString};
 
 export function ScmCreateProject() {
   const organization = useOrganization();
@@ -84,10 +81,7 @@ export function ScmCreateProject() {
 
   // Above the keyed wizard so the per-mount sampling decision survives the
   // restore remount below.
-  useReplayForCriticalFlow({
-    flowName: 'scm_project_creation',
-    sampleRate: 0.5,
-  });
+  useReplayForCriticalFlow({flowName: 'scm_project_creation', sampleRate: 0.5});
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a

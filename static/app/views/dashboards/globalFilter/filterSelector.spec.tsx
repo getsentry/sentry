@@ -14,11 +14,7 @@ describe('FilterSelector', () => {
 
   const mockGlobalFilter: GlobalFilter = {
     dataset: WidgetType.ERRORS,
-    tag: {
-      key: 'browser',
-      name: 'Browser',
-      kind: FieldKind.FIELD,
-    },
+    tag: {key: 'browser', name: 'Browser', kind: FieldKind.FIELD},
     value: '',
   };
 

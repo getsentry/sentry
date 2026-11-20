@@ -48,10 +48,7 @@ describe('ProjectCreationAccess', () => {
       allowMemberProjectCreation: false,
     });
     const teams = [
-      TeamFixture({
-        teamRole: 'admin',
-        access: ['team:admin', 'team:write', 'team:read'],
-      }),
+      TeamFixture({teamRole: 'admin', access: ['team:admin', 'team:write', 'team:read']}),
     ];
 
     const result = canCreateProject(memberOrg, teams);

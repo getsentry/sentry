@@ -11,10 +11,7 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useParams} from 'sentry/utils/useParams';
 
-type RedirectOptions = {
-  orgId: string;
-  projectId: null | string;
-};
+type RedirectOptions = {orgId: string; projectId: null | string};
 
 type RedirectCallback = (options: RedirectOptions) => string;
 

@@ -18,10 +18,7 @@ export interface SerializedOption {
   fieldType: 'bool' | 'rate';
   name: string;
   value: string | boolean | number;
-  groupingInfo?: {
-    name: string;
-    order: number;
-  };
+  groupingInfo?: {name: string; order: number};
 }
 
 const getRow = (row: SerializedOption, allRows: SerializedOption[]) =>
@@ -84,9 +81,7 @@ function EditableOption({
                   path={path}
                 />
               ),
-              {
-                modalCss,
-              }
+              {modalCss}
             )
           }
         />

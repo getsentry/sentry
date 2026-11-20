@@ -14,10 +14,7 @@ export function ResponseStatusCodeCell({code}: Props) {
   return (
     <Tooltip
       disabled={!code}
-      title={tct('Status Code [code] “[explanation]”', {
-        code,
-        explanation,
-      })}
+      title={tct('Status Code [code] “[explanation]”', {code, explanation})}
     >
       {code}
     </Tooltip>

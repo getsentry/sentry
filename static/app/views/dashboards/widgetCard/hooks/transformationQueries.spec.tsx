@@ -115,9 +115,7 @@ describe('dashboard transformation queries', () => {
     });
     const request = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
-      body: {
-        timeSeries: [TimeSeriesFixture({yAxis: 'count()'})],
-      },
+      body: {timeSeries: [TimeSeriesFixture({yAxis: 'count()'})]},
     });
     const {result} = renderHookWithProviders(() =>
       useSpansSeriesQuery({

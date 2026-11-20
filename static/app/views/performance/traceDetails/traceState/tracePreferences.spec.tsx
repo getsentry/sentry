@@ -32,9 +32,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES},
         'trace_view'
       ).compressed_timeline
     ).toBe(true);
@@ -53,10 +51,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-          compressed_timeline: false,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES, compressed_timeline: false},
         'trace_view'
       ).compressed_timeline
     ).toBe(false);
@@ -76,9 +71,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES},
         'trace_view'
       ).compressed_timeline
     ).toBe(false);
@@ -98,10 +91,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-          compressed_timeline: false,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES, compressed_timeline: false},
         'trace_view'
       ).compressed_timeline
     ).toBe(true);
@@ -121,10 +111,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-          compressed_timeline: false,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES, compressed_timeline: false},
         'trace_view'
       ).compressed_timeline
     ).toBe(false);
@@ -144,9 +131,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES},
         'issues'
       ).compressed_timeline
     ).toBe(false);
@@ -154,9 +139,7 @@ describe('tracePreferences', () => {
     expect(
       getInitialTracePreferences(
         'trace-waterfall-preferences',
-        {
-          ...DEFAULT_TRACE_VIEW_PREFERENCES,
-        },
+        {...DEFAULT_TRACE_VIEW_PREFERENCES},
         'replay'
       ).compressed_timeline
     ).toBe(false);
@@ -172,10 +155,7 @@ describe('tracePreferences', () => {
   });
 
   it('does not mutate the provided default state when stored preferences load', () => {
-    const defaultState = {
-      ...DEFAULT_TRACE_VIEW_PREFERENCES,
-      compressed_timeline: false,
-    };
+    const defaultState = {...DEFAULT_TRACE_VIEW_PREFERENCES, compressed_timeline: false};
 
     localStorage.setItem(
       'trace-waterfall-preferences',

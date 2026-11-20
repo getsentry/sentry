@@ -18,10 +18,7 @@ import {useUptimeRule} from 'sentry/views/insights/uptime/utils/useUptimeRule';
 
 import {UptimeAlertForm} from './uptimeAlertForm';
 
-type RouteParams = {
-  projectId: string;
-  ruleId: string;
-};
+type RouteParams = {projectId: string; ruleId: string};
 
 type Props = {
   onChangeTitle: (data: string) => void;

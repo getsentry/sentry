@@ -63,11 +63,7 @@ export function ConnectProviderDropdown({providers, onAddIntegration}: Props) {
           openRequestModal(request);
           return;
         }
-        startFlow({
-          provider,
-          organization,
-          onInstall: onAddIntegration,
-        });
+        startFlow({provider, organization, onInstall: onAddIntegration});
       },
     };
   });

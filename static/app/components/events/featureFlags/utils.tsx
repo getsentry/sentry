@@ -23,22 +23,10 @@ const getOrderByLabel = (sort: string) => {
 };
 
 export const ORDER_BY_OPTIONS = [
-  {
-    label: getOrderByLabel(OrderBy.NEWEST),
-    value: OrderBy.NEWEST,
-  },
-  {
-    label: getOrderByLabel(OrderBy.OLDEST),
-    value: OrderBy.OLDEST,
-  },
-  {
-    label: getOrderByLabel(OrderBy.A_TO_Z),
-    value: OrderBy.A_TO_Z,
-  },
-  {
-    label: getOrderByLabel(OrderBy.Z_TO_A),
-    value: OrderBy.Z_TO_A,
-  },
+  {label: getOrderByLabel(OrderBy.NEWEST), value: OrderBy.NEWEST},
+  {label: getOrderByLabel(OrderBy.OLDEST), value: OrderBy.OLDEST},
+  {label: getOrderByLabel(OrderBy.A_TO_Z), value: OrderBy.A_TO_Z},
+  {label: getOrderByLabel(OrderBy.Z_TO_A), value: OrderBy.Z_TO_A},
 ];
 
 export const enum FlagControlOptions {

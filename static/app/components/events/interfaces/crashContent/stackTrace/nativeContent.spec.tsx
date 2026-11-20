@@ -56,10 +56,7 @@ describe('Native StackTrace', () => {
       url: '/organizations/org-slug/sentry-app-components/',
       body: [],
     });
-    const promptResponse = {
-      dismissed_ts: undefined,
-      snoozed_ts: undefined,
-    };
+    const promptResponse = {dismissed_ts: undefined, snoozed_ts: undefined};
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
@@ -74,14 +71,9 @@ describe('Native StackTrace', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: false};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
-    renderedComponent({
-      data: newData,
-    });
+    renderedComponent({data: newData});
 
     expect(screen.queryByText('System')).not.toBeInTheDocument();
   });
@@ -90,15 +82,9 @@ describe('Native StackTrace', () => {
     const dataFrames = [...data.frames];
     dataFrames[0] = {...dataFrames[0]!, inApp: true};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    renderedComponent({data: newData, includeSystemFrames: false});
 
     expect(screen.getByText('Show 3 more frames')).toBeInTheDocument();
   });
@@ -111,15 +97,9 @@ describe('Native StackTrace', () => {
     dataFrames[3] = {...dataFrames[3]!, function: 'non-in-app-frame'};
     dataFrames[4] = {...dataFrames[4]!, function: 'non-in-app-frame'};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    renderedComponent({data: newData, includeSystemFrames: false});
     await userEvent.click(screen.getByText('Show 3 more frames'));
     expect(screen.getAllByText('non-in-app-frame')).toHaveLength(4);
     await userEvent.click(screen.getByText('Hide 3 more frames'));
@@ -132,15 +112,9 @@ describe('Native StackTrace', () => {
     dataFrames[2] = {...dataFrames[2]!, inApp: true};
     dataFrames[4] = {...dataFrames[4]!, inApp: true};
 
-    const newData = {
-      ...data,
-      frames: dataFrames,
-    };
+    const newData = {...data, frames: dataFrames};
 
-    renderedComponent({
-      data: newData,
-      includeSystemFrames: false,
-    });
+    renderedComponent({data: newData, includeSystemFrames: false});
 
     expect(screen.queryByText(/Show .* more frames*/)).not.toBeInTheDocument();
   });

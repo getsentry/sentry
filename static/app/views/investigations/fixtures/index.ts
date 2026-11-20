@@ -213,11 +213,7 @@ export function InvestigationExecutionDetailFixture(
 export function InvestigationTitleGenerationFixture(
   overrides: Partial<InvestigationTitleGeneration> = {}
 ): InvestigationTitleGeneration {
-  return {
-    status: 'completed',
-    preview: null,
-    ...overrides,
-  };
+  return {status: 'completed', preview: null, ...overrides};
 }
 
 export function InvestigationActionRequestFixture(
@@ -467,10 +463,7 @@ export function InvestigationAwaitingInputExecutionFixture(
     status: 'awaiting_input',
     blocks: [
       InvestigationTranscriptBlockFixture({
-        message: {
-          role: 'assistant',
-          content: 'I need one more detail before finishing.',
-        },
+        message: {role: 'assistant', content: 'I need one more detail before finishing.'},
       }),
     ],
     pendingUserInput: {

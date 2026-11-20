@@ -92,10 +92,7 @@ describe('TracesTable', () => {
       },
     });
 
-    render(<TracesTableWithResults />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    render(<TracesTableWithResults />, {organization, additionalWrapper: Wrapper});
 
     expect(await screen.findByText('GET /api/0/projects/')).toBeInTheDocument();
     const table = screen.getByRole('table', {name: 'Trace samples'});
@@ -130,16 +127,10 @@ describe('TracesTable', () => {
     });
     const spansRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [makeSpan('b'.repeat(16), 'SELECT * FROM table')],
-        meta: {},
-      },
+      body: {data: [makeSpan('b'.repeat(16), 'SELECT * FROM table')], meta: {}},
     });
 
-    render(<TracesTableWithResults />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    render(<TracesTableWithResults />, {organization, additionalWrapper: Wrapper});
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Toggle trace details'})
@@ -225,10 +216,7 @@ describe('TracesTable', () => {
       body: {},
     });
 
-    render(<TracesTableWithResults />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    render(<TracesTableWithResults />, {organization, additionalWrapper: Wrapper});
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Toggle trace details'})
@@ -246,10 +234,7 @@ describe('TracesTable', () => {
       body: {data: [], meta: {}},
     });
 
-    render(<TracesTableWithResults />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    render(<TracesTableWithResults />, {organization, additionalWrapper: Wrapper});
 
     expect(await screen.findByText('No trace results found')).toBeInTheDocument();
     expect(
@@ -267,10 +252,7 @@ describe('TracesTable', () => {
       },
     });
 
-    render(<TracesTableWithResults />, {
-      organization,
-      additionalWrapper: Wrapper,
-    });
+    render(<TracesTableWithResults />, {organization, additionalWrapper: Wrapper});
 
     expect(
       await screen.findByText(

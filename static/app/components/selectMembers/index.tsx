@@ -22,12 +22,7 @@ const getSearchKeyForUser = (user: User) =>
 type SelectMemberValue = null | number | string | undefined;
 
 interface MentionableUser extends SelectValue<string> {
-  actor: {
-    email: string;
-    id: string;
-    name: string;
-    type: 'user';
-  };
+  actor: {email: string; id: string; name: string; type: 'user'};
   label: React.ReactElement;
   searchKey: string;
   user: User;
@@ -64,12 +59,7 @@ function createMentionableUser(user: User): MentionableUser {
     ),
     searchKey: getSearchKeyForUser(user),
     user,
-    actor: {
-      type: 'user',
-      email: user.email,
-      id: user.id,
-      name: user.name,
-    },
+    actor: {type: 'user', email: user.email, id: user.id, name: user.name},
   };
 }
 
@@ -113,10 +103,7 @@ function SelectMembers({
     select: resp => selectUsersFromMembers(resp.json),
   });
   const searchMembersQuery = useQuery({
-    ...memberUsersQueryOptions({
-      orgSlug: organization.slug,
-      search: debouncedSearch,
-    }),
+    ...memberUsersQueryOptions({orgSlug: organization.slug, search: debouncedSearch}),
     enabled: debouncedSearch !== '',
     placeholderData: previousData => (debouncedSearch ? previousData : undefined),
   });
@@ -147,9 +134,7 @@ function SelectMembers({
       menuList: (provided, state) => ({
         ...provided,
         ...styles?.menuList?.(provided, state),
-        '.option > div': {
-          paddingBlock: 4,
-        },
+        '.option > div': {paddingBlock: 4},
       }),
       input: (provided, state) => ({
         ...provided,
@@ -159,9 +144,7 @@ function SelectMembers({
       }),
       option: (provided, state) => ({
         ...provided,
-        svg: {
-          color: state.isSelected ? '#fff' : undefined,
-        },
+        svg: {color: state.isSelected ? '#fff' : undefined},
       }),
     }),
     [styles, hasSelectedMember, search]

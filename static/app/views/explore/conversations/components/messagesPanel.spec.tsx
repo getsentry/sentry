@@ -27,10 +27,7 @@ function createMockNode(overrides: {
       end_timestamp: end,
       parent_span_id: parentId,
     },
-    attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      ...attributes,
-    },
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
   };
 }

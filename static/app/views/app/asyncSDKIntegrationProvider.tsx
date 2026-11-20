@@ -5,15 +5,9 @@ type Integration = Parameters<typeof addIntegration>[0];
 
 type State = Record<string, Integration | undefined>;
 
-type Context = {
-  setState: React.Dispatch<React.SetStateAction<State>>;
-  state: State;
-};
+type Context = {setState: React.Dispatch<React.SetStateAction<State>>; state: State};
 
-const Context = createContext<Context>({
-  setState: () => {},
-  state: {},
-});
+const Context = createContext<Context>({setState: () => {}, state: {}});
 
 export function AsyncSDKIntegrationContextProvider({
   children,

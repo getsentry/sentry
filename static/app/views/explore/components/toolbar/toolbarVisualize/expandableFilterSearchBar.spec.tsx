@@ -22,9 +22,7 @@ async function flushAnimationFrames() {
 function SearchBarStub({
   children,
   ...inputProps
-}: {
-  children?: React.ReactNode;
-} & React.ComponentProps<'input'>) {
+}: {children?: React.ReactNode} & React.ComponentProps<'input'>) {
   return (
     <ExpandableFilterSearchBar>
       <div data-test-id="search-query-builder">
@@ -40,9 +38,7 @@ function SearchBarStub({
 function EquationBuilderStub({
   children,
   ...inputProps
-}: {
-  children?: React.ReactNode;
-} & React.ComponentProps<'input'>) {
+}: {children?: React.ReactNode} & React.ComponentProps<'input'>) {
   return (
     <ExpandableFilterSearchBar>
       <div data-test-id="arithmetic-builder">

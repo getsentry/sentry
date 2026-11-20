@@ -10,10 +10,7 @@ type FeedbackIssueMetadata = {
   name: null | string;
   title: string;
   value: string;
-  sdk?: {
-    name: string;
-    name_normalized: string;
-  };
+  sdk?: {name: string; name_normalized: string};
   source?: null | string;
   summary?: null | string;
 };

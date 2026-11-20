@@ -94,16 +94,10 @@ describe('useConsoleFilters', () => {
     const LOG_FILTER = ['error'];
     const SEARCH_FILTER = 'component';
 
-    const {result, router} = renderHook(useConsoleFilters, {
-      initialProps: {frames},
-    });
+    const {result, router} = renderHook(useConsoleFilters, {initialProps: {frames}});
 
     act(() => result.current.setLogLevel(LOG_FILTER));
-    await waitFor(() =>
-      expect(router.location.query).toEqual({
-        f_c_logLevel: 'error',
-      })
-    );
+    await waitFor(() => expect(router.location.query).toEqual({f_c_logLevel: 'error'}));
 
     act(() => result.current.setSearchTerm(SEARCH_FILTER));
     await waitFor(() =>
@@ -115,9 +109,7 @@ describe('useConsoleFilters', () => {
   });
 
   it('should not filter anything when no values are set', async () => {
-    const {result} = renderHook(useConsoleFilters, {
-      initialProps: {frames},
-    });
+    const {result} = renderHook(useConsoleFilters, {initialProps: {frames}});
     await waitFor(() => expect(result.current.items).toHaveLength(5));
   });
 
@@ -125,12 +117,7 @@ describe('useConsoleFilters', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_c_logLevel: ['error', 'warning'],
-          },
-        },
+        location: {pathname: '/', query: {f_c_logLevel: ['error', 'warning']}},
       },
     });
     expect(result.current.items).toHaveLength(2);
@@ -139,14 +126,7 @@ describe('useConsoleFilters', () => {
   it('should filter by searchTerm', () => {
     const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {
-            f_c_search: 'component',
-          },
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {f_c_search: 'component'}}},
     });
     expect(result.current.items).toHaveLength(2);
   });
@@ -157,10 +137,7 @@ describe('useConsoleFilters', () => {
       initialRouterConfig: {
         location: {
           pathname: '/',
-          query: {
-            f_c_search: 'error occurred',
-            f_c_logLevel: ['error'],
-          },
+          query: {f_c_search: 'error occurred', f_c_logLevel: ['error']},
         },
       },
     });
@@ -227,12 +204,7 @@ describe('useConsoleFilters', () => {
 
       const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
-        initialRouterConfig: {
-          location: {
-            pathname: '/',
-            query: {f_c_logLevel: ['log']},
-          },
-        },
+        initialRouterConfig: {location: {pathname: '/', query: {f_c_logLevel: ['log']}}},
       });
 
       expect(result.current.getLogLevels()).toStrictEqual([

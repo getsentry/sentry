@@ -75,10 +75,7 @@ export function buildTraceMetricAggregate(
     );
   }
 
-  return {
-    kind: 'function',
-    function: [aggregation, args[0]!, ...args.slice(1)],
-  };
+  return {kind: 'function', function: [aggregation, args[0]!, ...args.slice(1)]};
 }
 
 /**

@@ -5,10 +5,7 @@ import {pacerDevtoolsPlugin} from '@tanstack/react-pacer-devtools';
 import {ReactQueryDevtoolsPanel} from '@tanstack/react-query-devtools';
 
 const plugins = [
-  {
-    name: 'TanStack Query',
-    render: <ReactQueryDevtoolsPanel />,
-  },
+  {name: 'TanStack Query', render: <ReactQueryDevtoolsPanel />},
   formDevtoolsPlugin(),
   hotkeysDevtoolsPlugin(),
   pacerDevtoolsPlugin(),

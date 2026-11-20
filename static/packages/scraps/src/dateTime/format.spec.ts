@@ -65,13 +65,9 @@ it.each([
     subscribe: () => () => {},
   });
   try {
-    expect(
-      formatDateTime(date, {
-        mode: 'time',
-        timezone,
-        showTimezone: true,
-      })
-    ).toBe(expected);
+    expect(formatDateTime(date, {mode: 'time', timezone, showTimezone: true})).toBe(
+      expected
+    );
   } finally {
     restore();
   }

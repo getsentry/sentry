@@ -23,11 +23,11 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0018_add_orchestration_run_notebook_fk
 
-monitors: 0031_drop_checkin_env_status_index
+monitors: 0033_drop_checkin_config_fk
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0004_add_notebook_org_auth_token_creator
+notebooks: 0005_add_comment_mentions
 
 notifications: 0019_require_inbox_event_idempotency_key
 

@@ -140,16 +140,8 @@ export function ScreenshotModal({
                   value: <DateTime date={dateCreated} />,
                 },
               },
-              {
-                item: {key: 'size', subject: t('Size'), value: formatBytesBase2(size)},
-              },
-              {
-                item: {
-                  key: 'mimetype',
-                  subject: t('MIME Type'),
-                  value: mimetype,
-                },
-              },
+              {item: {key: 'size', subject: t('Size'), value: formatBytesBase2(size)}},
+              {item: {key: 'mimetype', subject: t('MIME Type'), value: mimetype}},
             ]}
           />
         </Stack>

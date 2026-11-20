@@ -12,10 +12,7 @@ export type ConversationsEventParameters = {
   'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
-  'conversations.detail.tab-switch': {
-    fromTab: string;
-    toTab: string;
-  };
+  'conversations.detail.tab-switch': {fromTab: string; toTab: string};
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-evaluation': Record<string, unknown>;
   'conversations.message.click-extraction': Record<string, unknown>;
@@ -40,21 +37,14 @@ export type ConversationsEventParameters = {
     empty_state: 'no_agent_spans' | 'no_conversations';
   };
   'conversations.page-view': Record<string, unknown>;
-  'conversations.save_as': {
-    chart: string;
-    save_type: 'alert' | 'dashboard';
-  };
+  'conversations.save_as': {chart: string; save_type: 'alert' | 'dashboard'};
   'conversations.save_query_modal': {
     action: 'open' | 'submit';
     save_type?: 'save_new_query' | 'rename_query';
     ui_source?: 'table';
   };
-  'conversations.table.page-view': {
-    tab: AgentsTableTab;
-  };
-  'conversations.table.paginate': {
-    direction: 'next' | 'previous';
-  };
+  'conversations.table.page-view': {tab: AgentsTableTab};
+  'conversations.table.paginate': {direction: 'next' | 'previous'};
 };
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {

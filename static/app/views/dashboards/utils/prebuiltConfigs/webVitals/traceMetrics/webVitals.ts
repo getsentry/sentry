@@ -47,9 +47,7 @@ export const WEB_VITALS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard = {
   projects: [],
   title: DASHBOARD_TITLE,
   description: DASHBOARD_DESCRIPTION,
-  filters: {
-    globalFilter: WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  },
+  filters: {globalFilter: WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS},
   widgets: [
     scoreBreakdownWheelWidget({y: 0, w: 2, h: 2, x: 0, minH: 2}),
     scoreBreakdownChartWidget(

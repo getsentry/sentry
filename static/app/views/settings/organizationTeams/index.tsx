@@ -20,10 +20,7 @@ export default function OrganizationTeamsContainer() {
     () =>
       apiOptions.as<AccessRequest[]>()(
         '/organizations/$organizationIdOrSlug/access-requests/',
-        {
-          path: orgSlug ? {organizationIdOrSlug: orgSlug} : skipToken,
-          staleTime: 0,
-        }
+        {path: orgSlug ? {organizationIdOrSlug: orgSlug} : skipToken, staleTime: 0}
       ),
     [orgSlug]
   );

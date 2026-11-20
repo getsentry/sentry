@@ -254,9 +254,7 @@ function TableComponent({
     const fieldHeaderMap = datasetConfig.getFieldHeaderMap?.() ?? {};
     const eventView = eventViewFromWidget(widget.title, widget.queries[0]!, selection);
     const columns = decodeColumnOrder(
-      fields.map(field => ({
-        field,
-      })),
+      fields.map(field => ({field})),
       tableResults[i]?.meta
     ).map((column, index) => {
       let sortable = false;
@@ -555,19 +553,10 @@ function shouldMemoizeWidgetCardChart(
   // Widget title changes should not update the WidgetCardChart component tree
   const currentProps = {
     ...omit(prevProps, ['windowWidth']),
-    widget: {
-      ...prevProps.widget,
-      title: '',
-    },
+    widget: {...prevProps.widget, title: ''},
   };
 
-  props = {
-    ...omit(props, ['windowWidth']),
-    widget: {
-      ...props.widget,
-      title: '',
-    },
-  };
+  props = {...omit(props, ['windowWidth']), widget: {...props.widget, title: ''}};
   return isEqual(currentProps, props);
 }
 

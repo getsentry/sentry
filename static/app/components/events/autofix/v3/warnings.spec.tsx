@@ -12,14 +12,8 @@ describe('AutofixWarnings', () => {
       <AutofixWarnings
         groupId="1"
         warnings={[
-          {
-            warning_type: 'github_app_permissions',
-            repo_name: 'getsentry/sentry',
-          },
-          {
-            warning_type: 'github_app_permissions',
-            repo_name: 'getsentry/seer',
-          },
+          {warning_type: 'github_app_permissions', repo_name: 'getsentry/sentry'},
+          {warning_type: 'github_app_permissions', repo_name: 'getsentry/seer'},
         ]}
       />,
       {organization}

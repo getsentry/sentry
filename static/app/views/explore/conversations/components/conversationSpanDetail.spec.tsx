@@ -220,9 +220,7 @@ describe('ConversationSpanDetail', () => {
     });
 
     it('copies the tool output without marks', async () => {
-      Object.assign(navigator, {
-        clipboard: {writeText: jest.fn().mockResolvedValue('')},
-      });
+      Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
       renderToolSpan('output');
 
       await userEvent.click(await screen.findByRole('button', {name: 'Copy output'}));

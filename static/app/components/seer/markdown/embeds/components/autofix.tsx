@@ -270,9 +270,8 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
   const {runState, isLoading, isPolling} = autofix;
   const {isBusy, sendMessage} = useAutofixChat();
   const isRefetching =
-    useIsFetching({
-      queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey,
-    }) > 0;
+    useIsFetching({queryKey: explorerAutofixApiOptions(organization.slug, id).queryKey}) >
+    0;
 
   const sections = useMemo(() => getOrderedAutofixSections(runState), [runState]);
   const section = useMemo(() => findStepSection(sections, step), [sections, step]);

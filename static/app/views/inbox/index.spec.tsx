@@ -38,10 +38,7 @@ function mockIssuePreviewRequests(groupId: string, activity: GroupActivity[] = [
     url: `/organizations/org-slug/issues/${groupId}/events/recommended/`,
     body: EventFixture({id: 'event-id'}),
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/users/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/events/event-id/owners/',
     body: {owners: [], rules: []},
@@ -157,10 +154,7 @@ describe('Inbox', () => {
   });
 
   it('shows an empty state when there are no items', async () => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/inbox/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
 
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
@@ -271,9 +265,7 @@ describe('Inbox', () => {
     const issueCheckbox = {name: `Select ${issueItem.title}`};
     await userEvent.click(await screen.findByRole('checkbox', issueCheckbox));
     await userEvent.click(
-      screen.getByRole('link', {
-        name: /OperationalError: could not connect to server/,
-      })
+      screen.getByRole('link', {name: /OperationalError: could not connect to server/})
     );
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
@@ -489,10 +481,7 @@ describe('Inbox', () => {
   });
 
   it('does not mark items as read without viewing them', async () => {
-    render(<Inbox />, {
-      organization,
-      initialRouterConfig: INBOX_ROUTER_CONFIG,
-    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(await screen.findByText('No item selected')).toBeInTheDocument();
     expect(markReadRequest).not.toHaveBeenCalled();
@@ -615,9 +604,7 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(
-        await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
-        })
+        await screen.findByRole('button', {name: `Actions for ${readNotebookItem.title}`})
       );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
@@ -698,9 +685,7 @@ describe('Inbox', () => {
       });
 
       await userEvent.click(
-        await screen.findByRole('button', {
-          name: `Actions for ${readNotebookItem.title}`,
-        })
+        await screen.findByRole('button', {name: `Actions for ${readNotebookItem.title}`})
       );
       await userEvent.click(
         await screen.findByRole('menuitemradio', {name: 'Mark as unread'})
@@ -1068,10 +1053,7 @@ describe('Inbox', () => {
         body: [notebookItem, readNotebookItem],
       });
 
-      render(<Inbox />, {
-        organization,
-        initialRouterConfig: INBOX_ROUTER_CONFIG,
-      });
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       expect(
         await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
@@ -1142,12 +1124,7 @@ describe('Inbox', () => {
         match: [
           MockApiClient.matchQuery({subject_type: ['notebook'], recipient: ['team']}),
         ],
-        body: [
-          {
-            ...notebookItem,
-            url: `${notebookItem.url}?comment=1#comment-1`,
-          },
-        ],
+        body: [{...notebookItem, url: `${notebookItem.url}?comment=1#comment-1`}],
       });
 
       const {router} = render(<Inbox />, {

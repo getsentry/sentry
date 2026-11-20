@@ -244,9 +244,7 @@ it('calls onClose handler when closeModal prop is called', async () => {
   const closeSpy = jest.fn();
 
   act(() =>
-    openModal(({closeModal: cm}) => <button onClick={cm}>Yo</button>, {
-      onClose: closeSpy,
-    })
+    openModal(({closeModal: cm}) => <button onClick={cm}>Yo</button>, {onClose: closeSpy})
   );
 
   await userEvent.click(screen.getByRole('button', {name: 'Yo'}));

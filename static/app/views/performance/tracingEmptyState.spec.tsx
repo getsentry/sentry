@@ -18,10 +18,7 @@ describe('TracingEmptyState', () => {
       body: [ProjectKeysFixture()[0]],
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/sdks/',
-      method: 'GET',
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/sdks/', method: 'GET'});
 
     PageFiltersStore.init();
   });

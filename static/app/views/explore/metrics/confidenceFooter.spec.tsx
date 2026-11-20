@@ -11,14 +11,8 @@ function Wrapper({children}: {children: React.ReactNode}) {
 
 describe('ConfidenceFooter', () => {
   const rawMetricCounts = {
-    normal: {
-      count: 100,
-      isLoading: false,
-    },
-    total: {
-      count: 1000,
-      isLoading: false,
-    },
+    normal: {count: 100, isLoading: false},
+    total: {count: 1000, isLoading: false},
   };
 
   function chartInfo(info: Partial<ChartInfo>) {
@@ -55,9 +49,7 @@ describe('ConfidenceFooter', () => {
               hasUserQuery={false}
               isLoading={false}
             />,
-            {
-              additionalWrapper: Wrapper,
-            }
+            {additionalWrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent('100 data points');
         });
@@ -70,9 +62,7 @@ describe('ConfidenceFooter', () => {
               hasUserQuery={false}
               isLoading={false}
             />,
-            {
-              additionalWrapper: Wrapper,
-            }
+            {additionalWrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 data points for top 5 groups'
@@ -89,9 +79,7 @@ describe('ConfidenceFooter', () => {
               hasUserQuery
               isLoading={false}
             />,
-            {
-              additionalWrapper: Wrapper,
-            }
+            {additionalWrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K data points'
@@ -106,9 +94,7 @@ describe('ConfidenceFooter', () => {
               hasUserQuery
               isLoading={false}
             />,
-            {
-              additionalWrapper: Wrapper,
-            }
+            {additionalWrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K data points for top 5 groups'
@@ -132,9 +118,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 1 sample of 1K data points'
@@ -167,9 +151,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 1 sample of 1K data points'
@@ -201,9 +183,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 10 samples of 1K data points'
@@ -236,9 +216,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 10 samples of 1K data points'
@@ -272,9 +250,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 1 data point'
@@ -294,9 +270,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 1 data point'
@@ -315,9 +289,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 10 data points'
@@ -337,9 +309,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery={false}
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 10 data points'
@@ -362,9 +332,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 1 match after scanning 100 samples of 1K data points'
@@ -397,9 +365,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 1 match after scanning 100 samples of 1K data points'
@@ -431,9 +397,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 10 matches after scanning 100 samples of 1K data points'
@@ -466,9 +430,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 10 matches after scanning 100 samples of 1K data points'
@@ -502,9 +464,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 1 match of 1K data points'
@@ -524,9 +484,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 1 match of 1K data points'
@@ -545,9 +503,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated from 10 matches of 1K data points'
@@ -567,9 +523,7 @@ describe('ConfidenceFooter', () => {
                 hasUserQuery
                 isLoading={false}
               />,
-              {
-                additionalWrapper: Wrapper,
-              }
+              {additionalWrapper: Wrapper}
             );
             expect(screen.getByTestId('wrapper')).toHaveTextContent(
               'Estimated for top 5 groups from 10 matches of 1K data points'

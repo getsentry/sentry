@@ -223,9 +223,9 @@ function SeerDrawerArtifacts({autofix, groupId, sections}: SeerDrawerArtifactsPr
  * analysis above it is still in view, then scrolls away with the rest of the
  * autofix content once the reader moves past it into the event details below.
  */
-const NextStepWrap = styled('div', {
-  shouldForwardProp: prop => prop !== 'isSticky',
-})<{isSticky?: boolean}>`
+const NextStepWrap = styled('div', {shouldForwardProp: prop => prop !== 'isSticky'})<{
+  isSticky?: boolean;
+}>`
   ${p =>
     p.isSticky &&
     css`

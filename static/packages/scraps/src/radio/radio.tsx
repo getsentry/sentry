@@ -25,18 +25,9 @@ interface RadioProps extends Omit<
 }
 
 const radioConfig = {
-  xs: {
-    outerSize: '12px',
-    innerSize: '6px',
-  },
-  sm: {
-    outerSize: '20px',
-    innerSize: '10px',
-  },
-  md: {
-    outerSize: '24px',
-    innerSize: '12px',
-  },
+  xs: {outerSize: '12px', innerSize: '6px'},
+  sm: {outerSize: '20px', innerSize: '10px'},
+  md: {outerSize: '24px', innerSize: '12px'},
 };
 
 const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
@@ -67,24 +58,16 @@ const radioStyles = (props: RadioProps & {theme: Theme}): StrictCSSObject => ({
     opacity: 0,
   },
 
-  '&:focus-visible': {
-    ...props.theme.focusRing(),
-  },
+  '&:focus-visible': {...props.theme.focusRing()},
 
   '&:checked': {
     backgroundColor: props.theme.tokens.interactive.chonky.debossed.accent.background,
     border: `1px solid ${props.theme.tokens.interactive.chonky.debossed.accent.chonk}`,
 
-    '&:after': {
-      animation: `${growIn} ${props.theme.motion.smooth.moderate}`,
-      opacity: 1,
-    },
+    '&:after': {animation: `${growIn} ${props.theme.motion.smooth.moderate}`, opacity: 1},
   },
 
-  '&:disabled': {
-    opacity: props.theme.tokens.interactive.disabled,
-    cursor: 'not-allowed',
-  },
+  '&:disabled': {opacity: props.theme.tokens.interactive.disabled, cursor: 'not-allowed'},
 });
 
 export const Radio = styled(
@@ -97,9 +80,7 @@ export const Radio = styled(
 
     ...props
   }: RadioProps) => <input type="radio" {...props} ref={ref} />,
-  {
-    shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop),
-  }
+  {shouldForwardProp: prop => typeof prop === 'string' && isPropValid(prop)}
 )`
   ${p => radioStyles(p)}
 `;

@@ -133,18 +133,9 @@ describe('AddToDashboardButton', () => {
   });
 
   it.each([
-    {
-      chartType: ChartType.AREA,
-      expectedDisplayType: DisplayType.AREA,
-    },
-    {
-      chartType: ChartType.BAR,
-      expectedDisplayType: DisplayType.BAR,
-    },
-    {
-      chartType: ChartType.LINE,
-      expectedDisplayType: DisplayType.LINE,
-    },
+    {chartType: ChartType.AREA, expectedDisplayType: DisplayType.AREA},
+    {chartType: ChartType.BAR, expectedDisplayType: DisplayType.BAR},
+    {chartType: ChartType.LINE, expectedDisplayType: DisplayType.LINE},
   ])(
     'opens the dashboard modal with display type $expectedDisplayType for chart type $chartType',
     async ({chartType, expectedDisplayType}) => {
@@ -156,14 +147,8 @@ describe('AddToDashboardButton', () => {
 
       act(() =>
         setVisualizes([
-          {
-            yAxes: ['avg(span.duration)'],
-            chartType: ChartType.AREA,
-          },
-          {
-            yAxes: ['max(span.duration)'],
-            chartType,
-          },
+          {yAxes: ['avg(span.duration)'], chartType: ChartType.AREA},
+          {yAxes: ['max(span.duration)'], chartType},
         ])
       );
 
@@ -206,14 +191,8 @@ describe('AddToDashboardButton', () => {
 
     act(() =>
       setVisualizes([
-        {
-          yAxes: ['avg(span.duration)'],
-          chartType: ChartType.LINE,
-        },
-        {
-          yAxes: ['max(span.duration)'],
-          chartType: ChartType.LINE,
-        },
+        {yAxes: ['avg(span.duration)'], chartType: ChartType.LINE},
+        {yAxes: ['max(span.duration)'], chartType: ChartType.LINE},
       ])
     );
 
@@ -351,10 +330,7 @@ describe('AddToDashboardButton', () => {
           chartType: ChartType.LINE,
           transformations: ['fill(locf)', 'smooth(sma,5)'],
         },
-        {
-          yAxes: ['count(span.duration)'],
-          chartType: ChartType.BAR,
-        },
+        {yAxes: ['count(span.duration)'], chartType: ChartType.BAR},
       ])
     );
 

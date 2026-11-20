@@ -83,10 +83,7 @@ export function AggregateSelector({
         }
         const newAggregates = cloneDeep(displayFields) ?? [];
         newAggregates[index] = nextField;
-        dispatch({
-          type: actionType,
-          payload: newAggregates,
-        });
+        dispatch({type: actionType, payload: newAggregates});
       }}
       trigger={triggerProps => (
         <OverlayTrigger.Button {...triggerProps} aria-label={t('Aggregate Selection')} />

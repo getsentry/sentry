@@ -9,12 +9,8 @@ type StackTraceView = 'stacktrace_issue_details';
 export type EcosystemEventParameters = {
   'data_forwarding.add_forwarder_clicked': Record<string, unknown>;
   'data_forwarding.back_button_clicked': Record<string, unknown>;
-  'data_forwarding.delete_cancelled': {
-    provider?: DataForwarderProviderSlug;
-  };
-  'data_forwarding.delete_confirmed': {
-    provider?: DataForwarderProviderSlug;
-  };
+  'data_forwarding.delete_cancelled': {provider?: DataForwarderProviderSlug};
+  'data_forwarding.delete_confirmed': {provider?: DataForwarderProviderSlug};
   'data_forwarding.docs_link_clicked': Record<string, unknown>;
   'data_forwarding.edit_clicked': Record<string, unknown>;
   'data_forwarding.edit_complete': {

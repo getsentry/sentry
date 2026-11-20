@@ -208,9 +208,7 @@ export declare namespace TraceTree {
   };
 
   type Profile = {profile_id: string} | {profiler_id: string};
-  type Project = {
-    slug: string;
-  };
+  type Project = {slug: string};
   type Root = null;
 
   // All possible node value types
@@ -256,17 +254,12 @@ export declare namespace TraceTree {
   }
 
   interface SiblingAutogroup extends BaseAutogroup {
-    autogrouped_by: {
-      description: string;
-      op: string;
-    };
+    autogrouped_by: {description: string; op: string};
     type: 'sibling_autogroup';
   }
 
   interface ChildrenAutogroup extends BaseAutogroup {
-    autogrouped_by: {
-      op: string;
-    };
+    autogrouped_by: {op: string};
     type: 'children_autogroup';
   }
 
@@ -287,10 +280,7 @@ export declare namespace TraceTree {
     | 'root';
   type NodePath = `${NodeType}-${string}`;
 
-  type OpsBreakdown = Array<{
-    count: number;
-    op: string;
-  }>;
+  type OpsBreakdown = Array<{count: number; op: string}>;
 
   type Indicator = {
     duration: number;
@@ -324,11 +314,7 @@ export enum TraceShape {
 
 function fetchTrace(
   api: Client,
-  params: {
-    orgSlug: string;
-    query: string;
-    traceId: string;
-  }
+  params: {orgSlug: string; query: string; traceId: string}
 ): Promise<TraceTree.EAPTrace> {
   return api.requestPromise(
     `/organizations/${params.orgSlug}/trace/${params.traceId}/?${params.query}`
@@ -395,9 +381,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     if (options?.preferences?.autogroup.sibling) {
-      TraceTree.AutogroupSiblingSpanNodes(root, {
-        organization: options.organization,
-      });
+      TraceTree.AutogroupSiblingSpanNodes(root, {organization: options.organization});
     }
   }
 
@@ -431,18 +415,14 @@ export class TraceTree extends TraceTreeEventDispatcher {
     ) {
       const nodeId = 'event_id' in value ? value.event_id : undefined;
       if (nodeId && visitedIds.has(nodeId)) {
-        Sentry.logger.warn('Cycle detected in trace tree structure', {
-          nodeId,
-        });
+        Sentry.logger.warn('Cycle detected in trace tree structure', {nodeId});
         return;
       }
       if (nodeId) {
         visitedIds.add(nodeId);
       }
 
-      tree.projects.set(value.project_id, {
-        slug: value.project_slug,
-      });
+      tree.projects.set(value.project_id, {slug: value.project_slug});
 
       let node: BaseNode;
 
@@ -526,11 +506,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
         //   // The swap can occur at a later point when new transactions are fetched,
         //   // which means we need to invalidate the tree and re-render the UI.
         const parent = c.parent.parent;
-        TraceTree.Swap({
-          parent: c.parent,
-          child: c,
-          reason: 'pageload server handler',
-        });
+        TraceTree.Swap({parent: c.parent, child: c, reason: 'pageload server handler'});
         parent!.invalidate();
         parent!.forEachChild(child => {
           child.invalidate();
@@ -902,9 +878,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static AutogroupSiblingSpanNodes(
     root: BaseNode,
-    options: {
-      organization: Organization;
-    }
+    options: {organization: Organization}
   ): number {
     const queue = [root];
     let autogroupCount = 0;
@@ -968,9 +942,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
                 description: current.description ?? '',
               },
             },
-            {
-              organization: options.organization,
-            }
+            {organization: options.organization}
           );
 
           autogroupCount++;
@@ -1258,16 +1230,17 @@ export class TraceTree extends TraceTreeEventDispatcher {
     throw new Error('Not a valid trace');
   }
 
-  findRepresentativeTraceNode({logs}: {logs: OurLogsResponseItem[] | undefined}): {
+  findRepresentativeTraceNode({
+    logs,
+  }: {
+    logs: OurLogsResponseItem[] | undefined;
+  }): {
     dataset: TraceItemDataset | null;
     event: BaseNode | OurLogsResponseItem | null;
   } | null {
     const hasLogs = logs && logs.length > 0;
     if (this.type === 'empty' && hasLogs) {
-      return {
-        event: logs[0]!,
-        dataset: TraceItemDataset.LOGS,
-      };
+      return {event: logs[0]!, dataset: TraceItemDataset.LOGS};
     }
 
     const traceNode = this.root.children[0];
@@ -1310,10 +1283,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     }
 
     const event = preferredRootEvent ?? firstRootEvent ?? candidateEvent ?? firstEvent;
-    return {
-      event,
-      dataset: event?.traceItemDataset ?? null,
-    };
+    return {event, dataset: event?.traceItemDataset ?? null};
   }
 
   fetchAdditionalTraces(options: {

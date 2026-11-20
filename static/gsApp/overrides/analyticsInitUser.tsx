@@ -50,14 +50,8 @@ export function analyticsInitUser(user: User) {
   Amplitude.init(amplitudeKey, undefined, {
     logLevel: Amplitude.Types.LogLevel.None,
     minIdLength: 1,
-    attribution: {
-      disabled: false,
-    },
-    trackingOptions: {
-      city: false,
-      ip_address: false,
-      dma: false,
-    },
+    attribution: {disabled: false},
+    trackingOptions: {city: false, ip_address: false, dma: false},
   });
 
   // Most of our in-app amplitude logging happens on the backend, whereas anonymous user tracking

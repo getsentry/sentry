@@ -22,10 +22,7 @@ describe('TwoFactorRequired', () => {
       url: ENDPOINT,
       body: [AuthenticatorsFixture().Totp({isEnrolled: false})],
     });
-    MockApiClient.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: OrganizationsFixture(),
-    });
+    MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: OrganizationsFixture()});
     MockApiClient.addMockResponse({
       url: ACCOUNT_EMAILS_ENDPOINT,
       body: AccountEmailsFixture(),
@@ -33,23 +30,13 @@ describe('TwoFactorRequired', () => {
   });
 
   it('renders empty', async () => {
-    MockApiClient.addMockResponse({
-      url: ORG_ENDPOINT,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: ORG_ENDPOINT, body: []});
 
     render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
 
@@ -60,16 +47,9 @@ describe('TwoFactorRequired', () => {
   it('does not render when 2FA is disabled and no pendingInvite cookie', async () => {
     render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
 
@@ -85,16 +65,9 @@ describe('TwoFactorRequired', () => {
 
     render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
 
@@ -103,11 +76,7 @@ describe('TwoFactorRequired', () => {
   });
 
   it('does not render when 2FA is enrolled and has pendingInvite cookie', async () => {
-    const cookieData = {
-      memberId: 5,
-      token: 'abcde',
-      url: '/accept/5/abcde/',
-    };
+    const cookieData = {memberId: 5, token: 'abcde', url: '/accept/5/abcde/'};
     Cookies.set(INVITE_COOKIE, qs.stringify(cookieData));
     MockApiClient.addMockResponse({
       url: ENDPOINT,
@@ -120,16 +89,9 @@ describe('TwoFactorRequired', () => {
 
     render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
 
@@ -147,16 +109,9 @@ describe('TwoFactorRequired', () => {
 
     render(<AccountSecurityWrapper />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/settings/account/security/',
-        },
+        location: {pathname: '/settings/account/security/'},
         route: '/settings/account/security/',
-        children: [
-          {
-            index: true,
-            element: <AccountSecurity />,
-          },
-        ],
+        children: [{index: true, element: <AccountSecurity />}],
       },
     });
 

@@ -3,11 +3,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 import {restrictJsxSlotChildren, type Options} from './restrictJsxSlotChildren';
 
 const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      ecmaFeatures: {jsx: true},
-    },
-  },
+  languageOptions: {parserOptions: {ecmaFeatures: {jsx: true}}},
 });
 
 // ── Shared fixtures ──────────────────────────────────────────────────────────

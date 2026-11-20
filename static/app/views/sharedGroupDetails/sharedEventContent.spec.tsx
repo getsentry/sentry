@@ -20,9 +20,7 @@ describe('SharedEventContent', () => {
         organization={organization}
         project={project}
         group={group}
-        event={EventFixture({
-          entries: [EventEntryFixture()],
-        })}
+        event={EventFixture({entries: [EventEntryFixture()]})}
       />
     );
 

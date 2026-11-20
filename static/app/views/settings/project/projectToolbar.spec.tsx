@@ -9,9 +9,7 @@ describe('ProjectToolbarSettings', () => {
   const organization = OrganizationFixture();
   const project = DetailedProjectFixture();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/${project.slug}/toolbar/`,
-    },
+    location: {pathname: `/settings/projects/${project.slug}/toolbar/`},
     route: '/settings/projects/:projectId/toolbar/',
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
@@ -55,9 +53,7 @@ describe('ProjectToolbarSettings', () => {
       getProjectEndpoint,
       expect.objectContaining({
         method: 'PUT',
-        data: {
-          options: {'sentry:toolbar_allowed_origins': mockInput},
-        },
+        data: {options: {'sentry:toolbar_allowed_origins': mockInput}},
       })
     );
   });

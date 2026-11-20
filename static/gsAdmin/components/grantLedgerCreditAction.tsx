@@ -22,11 +22,7 @@ import {displayPriceWithCents} from 'getsentry/utils/billing';
 const MAX_CLIENT_KEY_LENGTH = 16;
 const CLIENT_KEY_PATTERN = /^[\w-]+$/;
 
-type LedgerLineItem = {
-  balanceCents: number;
-  name: string;
-  uid: string;
-};
+type LedgerLineItem = {balanceCents: number; name: string; uid: string};
 
 const schema = z
   .object({

@@ -47,11 +47,7 @@ export default function AccountSecurity() {
 
   const {mutateAsync: closeAllSessions} = useMutation({
     mutationFn: () =>
-      fetchMutation({
-        url: getApiUrl('/auth/'),
-        method: 'DELETE',
-        data: {all: true},
-      }),
+      fetchMutation({url: getApiUrl('/auth/'), method: 'DELETE', data: {all: true}}),
   });
 
   async function handleSessionClose() {

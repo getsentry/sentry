@@ -22,19 +22,11 @@ import {activateZoomAreaSelect} from './utils';
 
 type DateTimeUpdate = Parameters<typeof updateDateTime>[0];
 
-type DataZoomRange = {
-  endValue: number;
-  startValue: number;
-};
+type DataZoomRange = {endValue: number; startValue: number};
 
-type DataZoomRangePayload = {
-  endValue?: number | null;
-  startValue?: number | null;
-};
+type DataZoomRangePayload = {endValue?: number | null; startValue?: number | null};
 
-type DataZoomPayload = {
-  batch?: DataZoomRangePayload[];
-} & DataZoomRangePayload;
+type DataZoomPayload = {batch?: DataZoomRangePayload[]} & DataZoomRangePayload;
 
 /**
  * Our api query params expects a specific date format
@@ -43,11 +35,7 @@ const getQueryTime = (date: DateString | undefined) =>
   date ? getUtcDateString(date) : null;
 
 function getFormattedPeriod({period, start, end}: DateTimeUpdate) {
-  return {
-    period,
-    start: getQueryTime(start),
-    end: getQueryTime(end),
-  };
+  return {period, start: getQueryTime(start), end: getQueryTime(end)};
 }
 
 type FormattedPeriod = ReturnType<typeof getFormattedPeriod>;
@@ -89,10 +77,7 @@ function roundZoomRange({startValue, endValue}: DataZoomRange): DataZoomRange {
   // Ensure the bounds have at least 1 minute resolution.
   roundedStartValue = Math.min(roundedStartValue, roundedEndValue - 60_000);
 
-  return {
-    startValue: roundedStartValue,
-    endValue: roundedEndValue,
-  };
+  return {startValue: roundedStartValue, endValue: roundedEndValue};
 }
 
 interface ZoomRenderProps {
@@ -141,9 +126,7 @@ function useChartZoomCancel(disabled?: boolean) {
         // Mark the component as currently cancelling a zoom selection. This allows
         // us to prevent "restore" handlers from running
         // "restore" removes the current chart zoom selection
-        chartInstance.current.dispatchAction({
-          type: 'restore',
-        });
+        chartInstance.current.dispatchAction({type: 'restore'});
       }
     },
     [disabled]
@@ -298,9 +281,7 @@ export function useChartZoom({
   const dataZoomProp = useMemo<DataZoomComponentOption[]>(() => {
     // Keep the inside dataZoom model even when disabled so synced charts can
     // still receive x-range changes without this hook writing URL state.
-    const zoomInside = dataZoomInside({
-      id: 'useChartZoom-inside',
-    });
+    const zoomInside = dataZoomInside({id: 'useChartZoom-inside'});
     return zoomInside;
   }, []);
 
@@ -315,15 +296,8 @@ export function useChartZoom({
       {id: 'useChartZoom-toolbox'},
       {
         dataZoom: {
-          title: {
-            zoom: '',
-            back: '',
-          },
-          iconStyle: {
-            borderWidth: 0,
-            color: 'transparent',
-            opacity: 0,
-          },
+          title: {zoom: '', back: ''},
+          iconStyle: {borderWidth: 0, color: 'transparent', opacity: 0},
         },
       }
     );

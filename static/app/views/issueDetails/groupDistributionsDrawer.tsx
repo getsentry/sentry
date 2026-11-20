@@ -12,10 +12,7 @@ import {TagsDistributionDrawer} from './groupDistributions/tagsDistributionDrawe
 import {DrawerTab} from './groupDistributions/types';
 import {useDrawerTab} from './groupDistributions/useDrawerTab';
 
-type Props = {
-  group: Group;
-  includeFeatureFlagsTab: boolean;
-};
+type Props = {group: Group; includeFeatureFlagsTab: boolean};
 
 /**
  * Shared tags and feature flags distributions drawer used by issue details.

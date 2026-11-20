@@ -12,9 +12,7 @@ import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
-type Options = {
-  frames: ReplayFrame[];
-};
+type Options = {frames: ReplayFrame[]};
 
 type Return = {
   clearAllFilters: () => void;
@@ -106,10 +104,7 @@ export function useBreadcrumbFilters({frames}: Options): Return {
     return filterItems({
       items: frames,
       filterFns: FILTERS,
-      filterVals: {
-        type: OpOrCategory,
-        searchTerm,
-      },
+      filterVals: {type: OpOrCategory, searchTerm},
     });
   }, [frames, type, searchTerm]);
 
@@ -121,10 +116,7 @@ export function useBreadcrumbFilters({frames}: Options): Return {
           .concat(type)
       )
         .sort()
-        .map(value => ({
-          value: value!,
-          label: TYPE_TO_LABEL[value!],
-        })),
+        .map(value => ({value: value!, label: TYPE_TO_LABEL[value!]})),
     [frames, type]
   );
 

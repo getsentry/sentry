@@ -141,9 +141,7 @@ describe('AuthRegister', () => {
       url: '/auth/register/',
       method: 'POST',
       statusCode: 400,
-      body: {
-        email: ['An account is already registered with that email address.'],
-      },
+      body: {email: ['An account is already registered with that email address.']},
     });
 
     renderRegister();

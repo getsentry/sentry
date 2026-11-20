@@ -132,10 +132,7 @@ async function fetchProjects(
     getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');

@@ -153,9 +153,7 @@ describe('useDroppedData', () => {
       jest.useFakeTimers({advanceTimers: true});
       jest.setSystemTime(now);
       PageFiltersStore.onInitializeUrlState(
-        PageFiltersFixture({
-          datetime: {start: null, end: null, period: '14d', utc: null},
-        })
+        PageFiltersFixture({datetime: {start: null, end: null, period: '14d', utc: null}})
       );
     });
 

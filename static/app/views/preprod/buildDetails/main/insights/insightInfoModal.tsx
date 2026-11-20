@@ -3,10 +3,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from '@sentry/scraps/modal';
 
-type InsightInfoModalOptions = {
-  children: ReactNode;
-  title: string;
-};
+type InsightInfoModalOptions = {children: ReactNode; title: string};
 
 type Props = ModalRenderProps & InsightInfoModalOptions;
 

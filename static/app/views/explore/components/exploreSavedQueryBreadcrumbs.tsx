@@ -167,10 +167,7 @@ function useSavedQueryMenuItems({
     onAction: async () => {
       toast.loading(t('Duplicating query...'));
       try {
-        await saveQueryFromSavedQuery({
-          ...savedQuery,
-          name: `${savedQuery.name} (Copy)`,
-        });
+        await saveQueryFromSavedQuery({...savedQuery, name: `${savedQuery.name} (Copy)`});
         toast.success(t('Query duplicated'));
       } catch (error) {
         toast.error(t('Unable to duplicate query'));
@@ -238,10 +235,7 @@ function useSavedQueryMenuItems({
         handleDelete: async () => {
           toast.loading(t('Deleting query...'));
           try {
-            await deleteQuery({
-              queryId: savedQuery.id,
-              queryType: savedQuery.queryType,
-            });
+            await deleteQuery({queryId: savedQuery.id, queryType: savedQuery.queryType});
             toast.success(t('Query deleted'));
           } catch (error) {
             toast.error(t('Unable to delete query'));

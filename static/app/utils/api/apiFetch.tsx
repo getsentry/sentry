@@ -80,10 +80,7 @@ export async function apiFetchInfinite<TQueryFnData = unknown>({
     host: options?.host,
     method: options?.method ?? 'GET',
     data: options?.data,
-    query: {
-      ...options?.query,
-      cursor: pageParam?.cursor ?? options?.query?.cursor,
-    },
+    query: {...options?.query, cursor: pageParam?.cursor ?? options?.query?.cursor},
     headers: options?.headers,
   });
 

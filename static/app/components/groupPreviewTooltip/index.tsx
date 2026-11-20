@@ -30,13 +30,7 @@ export function GroupPreviewTooltip({
   }
 
   const issueTypeConfig = project
-    ? getConfigForIssueType(
-        {
-          issueCategory,
-          issueType,
-        },
-        project
-      )
+    ? getConfigForIssueType({issueCategory, issueType}, project)
     : null;
 
   if (issueTypeConfig?.spanEvidence.enabled) {

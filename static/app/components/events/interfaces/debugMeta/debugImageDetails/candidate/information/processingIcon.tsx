@@ -6,9 +6,7 @@ import * as Sentry from '@sentry/react';
 import type {CandidateProcessingInfo} from 'sentry/types/debugImage';
 import {CandidateProcessingStatus} from 'sentry/types/debugImage';
 
-type Props = {
-  processingInfo: CandidateProcessingInfo;
-};
+type Props = {processingInfo: CandidateProcessingInfo};
 
 export function getProcessingInfoTooltip(
   processingInfo: CandidateProcessingInfo

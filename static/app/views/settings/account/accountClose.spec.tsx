@@ -19,26 +19,15 @@ describe('AccountClose', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/',
       body: [
+        {organization: OrganizationFixture({slug: soloOrgSlug}), singleOwner: true},
         {
-          organization: OrganizationFixture({
-            slug: soloOrgSlug,
-          }),
-          singleOwner: true,
-        },
-        {
-          organization: OrganizationFixture({
-            id: '4',
-            slug: nonSingleOwnerSlug,
-          }),
+          organization: OrganizationFixture({id: '4', slug: nonSingleOwnerSlug}),
           singleOwner: false,
         },
       ],
     });
 
-    deleteMock = MockApiClient.addMockResponse({
-      url: '/users/me/',
-      method: 'DELETE',
-    });
+    deleteMock = MockApiClient.addMockResponse({url: '/users/me/', method: 'DELETE'});
   });
 
   it('lists all orgs user is an owner of', async () => {
@@ -80,11 +69,7 @@ describe('AccountClose', () => {
 
     expect(deleteMock).toHaveBeenCalledWith(
       '/users/me/',
-      expect.objectContaining({
-        data: {
-          organizations: [soloOrgSlug, nonSingleOwnerSlug],
-        },
-      })
+      expect.objectContaining({data: {organizations: [soloOrgSlug, nonSingleOwnerSlug]}})
     );
   });
 });

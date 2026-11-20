@@ -61,10 +61,7 @@ function ExploreSecondaryNavigationImpl() {
     navItems.push({label: 'Errors', badge: 'alpha', to: `${baseUrl}/errors-v2/`});
   }
   if (organization.features.includes('discover-basic')) {
-    navItems.push({
-      label: 'Errors',
-      to: `${baseUrl}/errors/`,
-    });
+    navItems.push({label: 'Errors', to: `${baseUrl}/errors/`});
   }
   if (organization.features.includes('profiling')) {
     navItems.push({label: 'Profiles', to: `${baseUrl}/profiles/`});

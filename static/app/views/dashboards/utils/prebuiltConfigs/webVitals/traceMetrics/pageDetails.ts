@@ -23,9 +23,7 @@ export const WEB_VITALS_DETAILS_TRACE_METRICS_PREBUILT_CONFIG: PrebuiltDashboard
   dateCreated: '',
   projects: [],
   title: DETAILS_DASHBOARD_TITLE,
-  filters: {
-    globalFilter: WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS,
-  },
+  filters: {globalFilter: WEB_VITALS_TRACE_METRICS_GLOBAL_FILTERS},
   widgets: [
     scoreBreakdownChartWidget(
       t('Score Breakdown'),

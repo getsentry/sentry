@@ -165,9 +165,7 @@ describe('useChartLayers', () => {
       await waitFor(() =>
         expect(flagLogRequest).toHaveBeenCalledWith(
           `/organizations/${annotationsOrganization.slug}/flags/logs/`,
-          expect.objectContaining({
-            query: expect.objectContaining({sort: 'created_at'}),
-          })
+          expect.objectContaining({query: expect.objectContaining({sort: 'created_at'})})
         )
       );
     });

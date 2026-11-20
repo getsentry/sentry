@@ -102,22 +102,11 @@ export function TourContextProvider<T extends TourEnumType>({
   const organization = useOrganization({allowNull: true});
   const {mutate} = useMutateAssistant();
   const options = useMemo(
-    () => ({
-      onStartTour,
-      onEndTour,
-      onStepChange,
-      requireAllStepsRegistered,
-    }),
+    () => ({onStartTour, onEndTour, onStepChange, requireAllStepsRegistered}),
     [onStartTour, onEndTour, onStepChange, requireAllStepsRegistered]
   );
   const tourContextValue = useTourReducer<T>(
-    {
-      isCompleted,
-      isRegistered: false,
-      orderedStepIds,
-      currentStepId: null,
-      tourKey,
-    },
+    {isCompleted, isRegistered: false, orderedStepIds, currentStepId: null, tourKey},
     options
   );
   const {endTour, previousStep, nextStep, currentStepId} = tourContextValue;
@@ -138,11 +127,7 @@ export function TourContextProvider<T extends TourEnumType>({
   // A layout effect, so the scope ends before the last guide's effects clean up
   // and return focus.
   useLayoutEffect(() => focusScope.end, [focusScope]);
-  const variantTourContextValue = {
-    ...tourContextValue,
-    variant,
-    focusScope,
-  };
+  const variantTourContextValue = {...tourContextValue, variant, focusScope};
 
   // Subtle tours leave the page usable, so their guides handle Escape only
   // while focused instead.
@@ -263,10 +248,7 @@ export function TourElement<T extends TourEnumType>({
   const tourContextValue = useContext(tourContext);
   if (!tourContextValue) {
     // Tour is not active, render children with no-op props
-    return children({
-      'aria-expanded': false,
-      ref: () => {},
-    });
+    return children({'aria-expanded': false, ref: () => {}});
   }
 
   return (
@@ -460,11 +442,7 @@ function createTourFocusScope({isRunning}: {isRunning: boolean}): TourFocusScope
   };
 }
 
-const zIndex = {
-  blur: 10100,
-  element: 10101,
-  overlay: 10102,
-};
+const zIndex = {blur: 10100, element: 10101, overlay: 10102};
 
 /**
  * Keep the guide inside the viewport even when that means overlapping its
@@ -545,10 +523,7 @@ export function TourGuide({
   // scroll that container.
   useEffect(() => {
     if (isOpen) {
-      triggerRef.current?.scrollIntoView?.({
-        block: 'nearest',
-        behavior: 'smooth',
-      });
+      triggerRef.current?.scrollIntoView?.({block: 'nearest', behavior: 'smooth'});
     }
   }, [isOpen, triggerRef]);
 

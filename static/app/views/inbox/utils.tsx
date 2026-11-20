@@ -18,14 +18,8 @@ interface InboxSubjectConfig {
 }
 
 export const INBOX_SUBJECT_CONFIG: Record<InboxSubjectType, InboxSubjectConfig> = {
-  issue: {
-    icon: IconIssues,
-    label: t('Issue'),
-  },
-  notebook: {
-    icon: IconSeer,
-    label: t('Investigation'),
-  },
+  issue: {icon: IconIssues, label: t('Issue')},
+  notebook: {icon: IconSeer, label: t('Investigation')},
 };
 
 interface InboxEventTypeConfig {

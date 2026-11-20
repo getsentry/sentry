@@ -145,13 +145,7 @@ export function AddAutofixRepoModal({
           </EmptyMessage>
         ) : (
           <ModalReposContainer ref={parentRef}>
-            <div
-              style={{
-                height: `${totalSize}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
+            <div style={{height: `${totalSize}px`, width: '100%', position: 'relative'}}>
               {virtualItems.map(virtualItem => {
                 const repo = filteredRepositories[virtualItem.index]!;
                 return (

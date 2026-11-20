@@ -25,9 +25,7 @@ import BillingInformationView, {
 // TODO(isabella): tbh most of these tests should be in a spec for the individual panel components
 
 describe('Subscription > BillingInformation', () => {
-  const {organization} = initializeOrg({
-    organization: {access: ['org:billing']},
-  });
+  const {organization} = initializeOrg({organization: {access: ['org:billing']}});
   const subscription = SubscriptionFixture({organization});
 
   beforeEach(() => {
@@ -82,10 +80,7 @@ describe('Subscription > BillingInformation', () => {
   it('renders an error for non-billing roles', async () => {
     const org = {...organization, access: OrganizationFixture().access};
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/members/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/members/`, body: []});
 
     render(<BillingInformation subscription={subscription} />, {organization: org});
 
@@ -299,12 +294,12 @@ describe('Subscription > BillingInformation', () => {
   it('leaves Stripe field validation errors beside the fields', async () => {
     const stripeImport = await import('@stripe/react-stripe-js');
     const originalElements = stripeImport.useElements();
-    const submit = jest.fn().mockResolvedValue({
-      error: {message: 'Your card number is incomplete.'},
-    });
-    const useElementsSpy = jest.spyOn(stripeImport, 'useElements').mockReturnValue({
-      submit,
-    } as unknown as StripeElements);
+    const submit = jest
+      .fn()
+      .mockResolvedValue({error: {message: 'Your card number is incomplete.'}});
+    const useElementsSpy = jest
+      .spyOn(stripeImport, 'useElements')
+      .mockReturnValue({submit} as unknown as StripeElements);
     const createSetupIntent = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
@@ -339,9 +334,7 @@ describe('Subscription > BillingInformation', () => {
       url: `/organizations/${organization.slug}/payments/setup/`,
       method: 'POST',
       statusCode: 400,
-      body: {
-        detail: 'Unable to initialize payment setup, please try again later.',
-      },
+      body: {detail: 'Unable to initialize payment setup, please try again later.'},
     });
 
     render(<BillingInformation subscription={testSubscription} />, {organization});

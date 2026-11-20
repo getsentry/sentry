@@ -27,9 +27,7 @@ export function GeneralCard({
   release,
   releaseMeta,
 }: DetailsSectionProps) {
-  const {isError: isDetailsError, data: releaseDetails} = useReleaseDetails({
-    release,
-  });
+  const {isError: isDetailsError, data: releaseDetails} = useReleaseDetails({release});
   const organization = useOrganization();
 
   if (isDetailsError) {

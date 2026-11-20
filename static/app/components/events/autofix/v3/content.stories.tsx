@@ -252,13 +252,7 @@ function makeRun(
   blocks: Block[],
   overrides: Partial<ExplorerAutofixState> = {}
 ): ExplorerAutofixState {
-  return {
-    run_id: 123,
-    blocks,
-    status: 'completed',
-    updated_at: TIMESTAMP,
-    ...overrides,
-  };
+  return {run_id: 123, blocks, status: 'completed', updated_at: TIMESTAMP, ...overrides};
 }
 
 /**

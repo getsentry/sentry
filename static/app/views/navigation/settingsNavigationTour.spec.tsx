@@ -65,9 +65,7 @@ describe('Settings navigation tour', () => {
   it('guides users through two steps without leaving the app', async () => {
     const {router} = render(<Tour />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/issues/'},
-      },
+      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
     });
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     expect(screen.getByText('1/2')).toBeInTheDocument();
@@ -309,9 +307,7 @@ describe('Settings navigation tour', () => {
   it('ends without dismissing the guide when the user enters settings', async () => {
     const {router} = render(<Tour />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/issues/'},
-      },
+      initialRouterConfig: {location: {pathname: '/organizations/org-slug/issues/'}},
     });
     expect(await screen.findByText('Tour entry')).toBeInTheDocument();
     act(() => router.navigate('/settings/org-slug/'));
