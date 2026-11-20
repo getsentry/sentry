@@ -85,6 +85,13 @@ def handle_archived_until_escalating(
     return {"ignoreUntilEscalating": True}
 
 
+def _pop_condition(status_details: dict[str, Any], key: str) -> Any:
+    value = status_details.pop(key, None)
+    if not value:
+        return None
+    return value
+
+
 def handle_ignored(
     group_list: Sequence[Group],
     status_details: dict[str, Any],
@@ -102,18 +109,22 @@ def handle_ignored(
         remove_group_from_inbox(group, action=GroupInboxRemoveAction.IGNORED, user=acting_user)
 
     new_status_details: IgnoredStatusDetails = {}
-    ignore_duration = (
-        status_details.pop("ignoreDuration", None) or status_details.pop("snoozeDuration", None)
-    ) or None
-    ignore_count = status_details.pop("ignoreCount", None) or None
-    ignore_window = status_details.pop("ignoreWindow", None) or None
-    ignore_user_count = status_details.pop("ignoreUserCount", None) or None
-    ignore_user_window = status_details.pop("ignoreUserWindow", None) or None
+    ignore_duration = _pop_condition(status_details, "ignoreDuration")
+    if ignore_duration is None:
+        ignore_duration = _pop_condition(status_details, "snoozeDuration")
+    ignore_count = _pop_condition(status_details, "ignoreCount")
+    ignore_window = _pop_condition(status_details, "ignoreWindow")
+    ignore_user_count = _pop_condition(status_details, "ignoreUserCount")
+    ignore_user_window = _pop_condition(status_details, "ignoreUserWindow")
     if ignore_duration or ignore_count or ignore_user_count:
         if ignore_duration:
             ignore_until = timezone.now() + timedelta(minutes=ignore_duration)
         else:
             ignore_until = None
+        if acting_user:
+            actor_id = acting_user.id
+        else:
+            actor_id = None
         for group in group_list:
             state = {}
             if ignore_count and not ignore_window:
@@ -131,7 +142,7 @@ def handle_ignored(
                     "user_count": ignore_user_count,
                     "user_window": ignore_user_window,
                     "state": state,
-                    "actor_id": acting_user.id if acting_user else None,
+                    "actor_id": actor_id,
                 },
             )
 
@@ -145,13 +156,17 @@ def handle_ignored(
                     filter=dict(user_ids=[acting_user.id]),
                     as_user=serialize_generic_user(acting_user),
                 )
+        if serialized_user:
+            actor = serialized_user[0]
+        else:
+            actor = None
         new_status_details = IgnoredStatusDetails(
             ignoreCount=ignore_count,
             ignoreUntil=ignore_until,
             ignoreUserCount=ignore_user_count,
             ignoreUserWindow=ignore_user_window,
             ignoreWindow=ignore_window,
-            actor=serialized_user[0] if serialized_user else None,
+            actor=actor,
         )
     else:
         GroupSnooze.objects.filter(group__in=group_list).delete()
