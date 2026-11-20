@@ -14,6 +14,10 @@ import {
   isInvestigationLinkedActivity,
 } from './activityLineItem/investigationLinked';
 import {ActivityLineNote, isActivityNote} from './activityLineItem/note';
+import {
+  ActivityLinePullRequestReference,
+  isPullRequestReferenceActivity,
+} from './activityLineItem/pullRequestReference';
 import {ActivityLine} from './activityLineItem';
 import {Timeline} from './timeline';
 
@@ -90,6 +94,16 @@ export function ActivityFeed({
         <ActivityLineInvestigationLinked
           activity={activity}
           variant={inputVariant}
+          timestampUnitStyle={timestampUnitStyle}
+        />
+      );
+    } else if (inputVariant === 'full' && isPullRequestReferenceActivity(activity)) {
+      // The compact sidebar feed leaves out the linked pull request.
+      line = (
+        <ActivityLinePullRequestReference
+          activity={activity}
+          group={group}
+          item={item}
           timestampUnitStyle={timestampUnitStyle}
         />
       );
