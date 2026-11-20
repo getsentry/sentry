@@ -176,7 +176,7 @@ class ActionHandlerSerializer(Serializer[ActionHandlerSerializerResponse]):
                 "name": installation.sentry_app.name,
                 "installationId": str(installation.id),
                 "installationUuid": uuid_str(installation.uuid),
-                "status": cast(SentryAppStatusName, installation.sentry_app.status),
+                "status": installation.sentry_app.status,
             }
             if component:
                 sentry_app["settings"] = component.app_schema.get("settings", {})

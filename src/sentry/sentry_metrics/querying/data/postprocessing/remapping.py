@@ -51,4 +51,4 @@ class QueryRemappingStep(PostProcessingStep):
                 del element[key]
             element.update(updated_element)
 
-        return cast(Sequence[Mapping[str, Any]], unmapped_data)
+        return unmapped_data
