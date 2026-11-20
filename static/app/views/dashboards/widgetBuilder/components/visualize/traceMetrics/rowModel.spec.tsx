@@ -392,6 +392,39 @@ describe('rowModel', () => {
       expect(next[1]).toMatchObject({expression: 'A - B'});
     });
 
+    it('keeps a hidden row that shares its aggregate with a visible row', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_FOO),
+        eq(`${SUM_FOO} / ${SUM_FOO}`),
+      ]);
+      const hidden = setRowVisible(rows, metric(rows, 'A').id, false);
+
+      // A display type switch round-trips the saved shape.
+      const next = rowsFromFields(fieldsFromRows(hidden), hidden);
+
+      expect(letters(next)).toEqual(['A', 'B', 'equation']);
+      expect(metric(next, 'A')).toMatchObject({id: metric(rows, 'A').id, visible: false});
+      expect(metric(next, 'B')).toMatchObject({id: metric(rows, 'B').id, visible: true});
+      expect(next[2]).toMatchObject({expression: 'A / B'});
+    });
+
+    it('does not let a new visible field claim a hidden row', () => {
+      const rows = rowsFromFields([
+        fn(SUM_FOO),
+        fn(SUM_FOO),
+        eq(`${SUM_FOO} / ${SUM_FOO}`),
+      ]);
+      const hidden = setRowVisible(rows, metric(rows, 'A').id, false);
+
+      // Something outside the list added another sum(foo).
+      const next = rowsFromFields([...fieldsFromRows(hidden), fn(SUM_FOO)], hidden);
+
+      expect(letters(next)).toEqual(['A', 'B', 'equation', 'C']);
+      expect(metric(next, 'A').visible).toBe(false);
+      expect(next[2]).toMatchObject({expression: 'A / B'});
+    });
+
     it('gives new letters to rows it cannot match', () => {
       const rows = rowsFromFields([fn(SUM_FOO)]);
 
