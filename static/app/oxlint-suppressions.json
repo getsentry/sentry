@@ -510,9 +510,6 @@
   "components/onboarding/agenticProgress/useAgenticSetupRun.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },
-  "components/onboarding/createSampleEventButton.spec.tsx": {
-    "@sentry/require-fake-timer-cleanup": {"count": 1}
-  },
   "components/onboarding/frameworkSuggestionModal.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 4},
     "@sentry/scraps/prefer-container-responsive-props": {"count": 1},
