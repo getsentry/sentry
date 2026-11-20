@@ -1,6 +1,7 @@
 from datetime import timedelta
 from types import UnionType
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints, is_typeddict
+from unittest import mock
 from uuid import UUID
 
 from sentry.api.serializers import serialize
@@ -194,6 +195,57 @@ class TestEvaluateMetricDetector(BaseMetricIssueTest):
         assert isinstance(occurrence, IssueOccurrence)
 
         self.verify_issue_occurrence(occurrence, evidence_data, self.critical_detector_trigger)
+
+
+class TestMetricIssueAssignee(TestEvaluateMetricDetector):
+    def _trigger(self) -> IssueOccurrence:
+        value = self.critical_detector_trigger.comparison + 1
+        occurrence = self.process_packet_and_return_result(self.create_subscription_packet(value))
+        assert isinstance(occurrence, IssueOccurrence)
+        return occurrence
+
+    def test_assigns_existing_team_owner(self) -> None:
+        team = self.create_team(organization=self.organization)
+        self.detector.update(owner_user_id=None, owner_team_id=team.id)
+
+        occurrence = self._trigger()
+
+        assert occurrence.assignee is not None
+        assert occurrence.assignee.is_team
+        assert occurrence.assignee.id == team.id
+
+    @mock.patch("sentry.incidents.grouptype.logger")
+    def test_deleted_team_owner_is_cleared(self, mock_logger: mock.MagicMock) -> None:
+        missing_team_id = self.create_team(organization=self.organization).id + 1000
+        self.detector.update(owner_user_id=None, owner_team_id=missing_team_id)
+
+        occurrence = self._trigger()
+
+        assert occurrence.assignee is None
+        self.detector.refresh_from_db()
+        assert self.detector.owner_team_id is None
+        assert self.detector.owner_user_id is None
+        mock_logger.exception.assert_not_called()
+        mock_logger.warning.assert_any_call(
+            "metric_issue.detector_owner_missing",
+            extra={
+                "detector_id": self.detector.id,
+                "owner": f"team:{missing_team_id}",
+                "organization_id": self.organization.id,
+            },
+        )
+
+    @mock.patch("sentry.incidents.grouptype.logger")
+    def test_team_from_other_org_still_reported(self, mock_logger: mock.MagicMock) -> None:
+        other_team = self.create_team(organization=self.create_organization())
+        self.detector.update(owner_user_id=None, owner_team_id=other_team.id)
+
+        occurrence = self._trigger()
+
+        assert occurrence.assignee is None
+        self.detector.refresh_from_db()
+        assert self.detector.owner_team_id == other_team.id
+        mock_logger.exception.assert_called_once()
 
 
 class TestConstructTitle(TestEvaluateMetricDetector):
