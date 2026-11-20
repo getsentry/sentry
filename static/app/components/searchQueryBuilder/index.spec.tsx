@@ -6556,6 +6556,141 @@ describe('SearchQueryBuilder', () => {
         await userEvent.keyboard(',100{Enter}');
         expect(screen.getByLabelText('Edit filter value')).toHaveFocus();
       });
+
+      describe('filter-first conditional aggregates', () => {
+        const conditionalGetFieldDefinition: FieldDefinitionGetter = (key, options) => {
+          if (key !== 'count_if') {
+            return aggregateGetFieldDefinition(key, options);
+          }
+          return {
+            desc: 'count_if() description',
+            kind: FieldKind.FUNCTION,
+            valueType: FieldValueType.INTEGER,
+            parameters: [
+              {
+                name: 'filter',
+                kind: 'value' as const,
+                dataType: FieldValueType.STRING,
+                defaultValue: '``',
+                required: true,
+              },
+              {
+                name: 'column',
+                kind: 'column' as const,
+                columnTypes: [FieldValueType.DURATION],
+                defaultValue: 'transaction.duration',
+                defaultLabel: 'transactions',
+                required: false,
+              },
+            ],
+          };
+        };
+
+        const conditionalDefaultProps: SearchQueryBuilderProps = {
+          ...aggregateDefaultProps,
+          fieldDefinitionGetter: conditionalGetFieldDefinition,
+        };
+
+        it('adds the aggregate with an empty filter and one input per argument', async () => {
+          render(<SearchQueryBuilder {...conditionalDefaultProps} />);
+          await userEvent.click(getLastInput());
+          await userEvent.click(screen.getByRole('option', {name: 'count_if(...)'}));
+
+          expect(
+            await screen.findByRole('row', {
+              name: 'count_if(``,transaction.duration):>100',
+            })
+          ).toBeInTheDocument();
+
+          // Like the equation builder, the filter and the column get separate inputs
+          expect(
+            await screen.findByRole('combobox', {name: 'Add a filter'})
+          ).toHaveFocus();
+          expect(screen.getByPlaceholderText('transactions')).toHaveAccessibleName(
+            'Select an attribute'
+          );
+          // The suggestions menu is the only overlay, as in the equation builder
+          expect(screen.queryByText('count_if() description')).not.toBeInTheDocument();
+        });
+
+        it('shows the filter without backticks and the column default label', async () => {
+          render(
+            <SearchQueryBuilder
+              {...conditionalDefaultProps}
+              initialQuery="count_if(`timesSeen:5`,transaction.duration):>100"
+            />
+          );
+
+          expect(
+            await screen.findByRole('button', {
+              name: 'Edit parameters for filter: count_if',
+            })
+          ).toHaveTextContent('count_if(timesSeen:5,transactions)');
+        });
+
+        it('suggests filter keys and values for the filter argument', async () => {
+          const getTagValues = jest.fn().mockResolvedValue(['foo']);
+          render(
+            <SearchQueryBuilder
+              {...conditionalDefaultProps}
+              getTagValues={getTagValues}
+              initialQuery="count_if(``,transaction.duration):>100"
+            />
+          );
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+          );
+          const input = await screen.findByRole('combobox', {name: 'Add a filter'});
+
+          // Aggregates are not valid filter keys
+          expect(screen.queryByRole('option', {name: 'count:'})).not.toBeInTheDocument();
+
+          await userEvent.click(await screen.findByRole('option', {name: 'timesSeen:'}));
+          await waitFor(() => {
+            expect(input).toHaveValue('timesSeen:');
+          });
+
+          await userEvent.click(await screen.findByRole('option', {name: 'foo'}));
+          await waitFor(() => {
+            expect(input).toHaveValue('timesSeen:foo');
+          });
+          expect(getTagValues).toHaveBeenCalledWith(
+            expect.objectContaining({tag: expect.objectContaining({key: 'timesSeen'})})
+          );
+
+          await userEvent.click(document.body);
+
+          expect(
+            await screen.findByRole('row', {
+              name: 'count_if(`timesSeen:foo`,transaction.duration):>100',
+            })
+          ).toBeInTheDocument();
+        });
+
+        it('moves from the filter to the column on enter, then commits', async () => {
+          render(
+            <SearchQueryBuilder
+              {...conditionalDefaultProps}
+              initialQuery="count_if(``,transaction.duration):>100"
+            />
+          );
+          await userEvent.click(
+            screen.getByRole('button', {name: 'Edit parameters for filter: count_if'})
+          );
+          await userEvent.keyboard('timesSeen:5 lastSeen:-24h{Enter}');
+
+          expect(
+            screen.getByRole('combobox', {name: 'Select an attribute'})
+          ).toHaveFocus();
+          await userEvent.keyboard('{Enter}');
+
+          expect(
+            await screen.findByRole('row', {
+              name: 'count_if(`timesSeen:5 lastSeen:-24h`,transaction.duration):>100',
+            })
+          ).toBeInTheDocument();
+        });
+      });
     });
   });
 

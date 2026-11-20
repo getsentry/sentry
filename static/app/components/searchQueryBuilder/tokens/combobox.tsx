@@ -94,6 +94,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    */
   isOpen?: boolean;
   /**
+   * Keep the menu open after selecting an option, such as a filter key that still
+   * needs a value.
+   */
+  keepMenuOpenOnSelect?: (option: T) => boolean;
+  /**
    * Element kept visible to screen readers (alongside the input and popover)
    * while the menu is open. Use for content rendered next to the input, e.g.
    * value chips, which `ariaHideOutside` would otherwise hide.
@@ -359,6 +364,7 @@ export function SearchQueryBuilderCombobox<
   customMenu,
   isLoading: incomingIsLoading,
   isOpen: incomingIsOpen,
+  keepMenuOpenOnSelect,
   keepVisibleRef,
   'data-test-id': dataTestId,
   ref,
@@ -381,6 +387,8 @@ export function SearchQueryBuilderCombobox<
     shouldFilterResults,
   });
 
+  const openMenuRef = useRef<(() => void) | null>(null);
+
   const onValueChange = useCallback(
     (key: Key | null) => {
       if (!key) {
@@ -390,9 +398,12 @@ export function SearchQueryBuilderCombobox<
       const selectedOption = findItemInSections(items, key);
       if (selectedOption) {
         onOptionSelected(selectedOption);
+        if (keepMenuOpenOnSelect?.(selectedOption)) {
+          openMenuRef.current?.();
+        }
       }
     },
-    [items, onOptionSelected]
+    [items, keepMenuOpenOnSelect, onOptionSelected]
   );
 
   const comboBoxProps: Partial<AriaComboBoxProps<T>> = {
@@ -416,6 +427,8 @@ export function SearchQueryBuilderCombobox<
     menuTrigger: 'manual',
     ...comboBoxProps,
   });
+  // oxlint-disable-next-line react/refs
+  openMenuRef.current = () => state.open();
 
   const {inputProps, listBoxProps} = useSearchTokenCombobox<T>(
     {

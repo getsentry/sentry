@@ -1595,8 +1595,21 @@ export const NO_ARGUMENT_SPAN_AGGREGATES: AggregationKey[] = Object.entries(
  * fills it in: `avg_if(``,span.duration)`.
  */
 function withConditionalFilterParameter(definition: FieldDefinition): FieldDefinition {
+  const {parameterDependentValueType} = definition;
   return {
     ...definition,
+    // The base aggregate's value type depends on its own arguments, which follow the
+    // filter. Discover-style calls have no filter, so their arguments are passed as is.
+    parameterDependentValueType: parameterDependentValueType
+      ? parameters =>
+          parameterDependentValueType(
+            usesDiscoverStyleConditionalAggregateArgs(
+              parameters.map(parameter => parameter ?? '')
+            )
+              ? parameters
+              : parameters.slice(1)
+          )
+      : undefined,
     parameters: [
       {
         name: 'filter',

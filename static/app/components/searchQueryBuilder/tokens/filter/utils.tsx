@@ -1,4 +1,8 @@
 import {
+  isSearchFilterParameter,
+  unwrapSearchFilterArgument,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
+import {
   comparisonOperators,
   FilterType,
   filterTypeConfig,
@@ -13,7 +17,11 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldValueType,
+  type AggregateParameter,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
@@ -337,4 +345,77 @@ export function areWildcardOperatorsAllowed(
   }
 
   return false;
+}
+
+/**
+ * Raw text of each argument of an aggregate filter key, such as
+ * ['`span.op:db`', 'span.duration'] for count_if(`span.op:db`,span.duration).
+ */
+export function getAggregateArgTexts(token: AggregateFilter): string[] {
+  return token.key.args?.args.map(arg => arg.value?.text ?? '') ?? [];
+}
+
+/**
+ * Split aggregate parameter text on commas. Commas inside explicit tags
+ * (`tags[foo,number]`), quoted values, and backtick-delimited `_if` filters
+ * (`` `span.op:[db,http]` ``) do not split.
+ */
+export function splitAggregateParameters(text: string): string[] {
+  const parameters: string[] = [];
+  let closingDelimiter: string | null = null;
+  let start = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (closingDelimiter) {
+      if (c === '\\' && closingDelimiter === '"') {
+        i++;
+      } else if (c === closingDelimiter) {
+        closingDelimiter = null;
+      }
+      continue;
+    }
+
+    if (c === '[') {
+      closingDelimiter = ']';
+    } else if (c === '"' || c === '`') {
+      closingDelimiter = c;
+    } else if (c === ',') {
+      parameters.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+
+  parameters.push(text.slice(start));
+
+  return parameters;
+}
+
+/**
+ * Whether an aggregate takes an `_if` search filter argument, such as
+ * count_if(`span.op:db`,span.duration).
+ */
+export function hasSearchFilterParameter(definition: FieldDefinition | null): boolean {
+  return Boolean(definition?.parameters?.some(isSearchFilterParameter));
+}
+
+/**
+ * Label for an argument, as the equation builder shows it: the filter without its
+ * backticks, and the column's default label (`spans` for `span.duration`).
+ */
+export function getConditionalAggregateArgumentLabel(
+  parameter: AggregateParameter | undefined,
+  value: string
+): string {
+  if (isSearchFilterParameter(parameter)) {
+    return unwrapSearchFilterArgument(value);
+  }
+  if (
+    parameter?.kind === 'column' &&
+    parameter.defaultLabel &&
+    value === parameter.defaultValue
+  ) {
+    return parameter.defaultLabel;
+  }
+  return value;
 }
