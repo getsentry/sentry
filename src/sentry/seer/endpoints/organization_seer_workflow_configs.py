@@ -162,11 +162,24 @@ class SlackChannelSerializer(serializers.Serializer):
     integrationId = serializers.IntegerField(min_value=1, max_value=2**63 - 1)
     channelId = serializers.CharField(max_length=255)
 
-    def validate(self, data: dict[str, Any]) -> SlackChannel:
+
+class WorkflowConfigSerializer(serializers.Serializer):
+    slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+
+    def resolve_slack_channel(self, data: dict[str, Any], strategy: str) -> None:
+        channel = data.get("slackChannel")
+        if channel is None:
+            return
+        if strategy != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
+            raise ValidationError(
+                {
+                    "slackChannel": {
+                        "non_field_errors": ["Only metric automations support Slack channels."]
+                    }
+                }
+            )
         organization = self.context["organization"]
-        if self.context["strategy"] != SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION:
-            raise ValidationError("Only metric automations support Slack channels.")
-        integration_id = data["integrationId"]
+        integration_id = channel["integrationId"]
         integration_context = integration_service.organization_context(
             organization_id=organization.id, integration_id=integration_id
         )
@@ -176,17 +189,20 @@ class SlackChannelSerializer(serializers.Serializer):
             or integration_context.active() is None
             or not is_action_permitted(Action.Type.SLACK, organization)
         ):
-            raise ValidationError({"integrationId": "Choose an available Slack workspace."})
-        channel_id = data["channelId"]
+            raise ValidationError(
+                {"slackChannel": {"integrationId": ["Choose an available Slack workspace."]}}
+            )
+        channel_id = channel["channelId"]
         try:
             name = get_slack_channel_name(integration_id=integration_id, channel_id=channel_id)
         except (DjangoValidationError, IntegrationError, OSError) as exc:
-            raise ValidationError({"channelId": "Could not resolve this Slack channel."}) from exc
-        return SlackChannel(integration_id, channel_id, name)
+            raise ValidationError(
+                {"slackChannel": {"channelId": ["Could not resolve this Slack channel."]}}
+            ) from exc
+        data["slackChannel"] = SlackChannel(integration_id, channel_id, name)
 
 
-class WorkflowConfigCreateSerializer(serializers.Serializer):
-    slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+class WorkflowConfigCreateSerializer(WorkflowConfigSerializer):
     strategy = serializers.ChoiceField(
         choices=sorted(s.value for s in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES)
     )
@@ -233,11 +249,11 @@ class WorkflowConfigCreateSerializer(serializers.Serializer):
             raise serializers.ValidationError(
                 {"monitorIds": "This automation type does not support monitor selection."}
             )
+        self.resolve_slack_channel(data, data["strategy"])
         return data
 
 
-class WorkflowConfigUpdateSerializer(serializers.Serializer):
-    slackChannel = SlackChannelSerializer(required=False, allow_null=True)
+class WorkflowConfigUpdateSerializer(WorkflowConfigSerializer):
     enabled = serializers.BooleanField(required=False)
     serviceAccount = ServiceAccountGrantSerializer(required=False)
     name = serializers.CharField(required=False, max_length=64)
@@ -263,6 +279,7 @@ class WorkflowConfigUpdateSerializer(serializers.Serializer):
             raise serializers.ValidationError("Send fields to update.")
         if "projectIds" in data and "monitorIds" in data:
             raise serializers.ValidationError("Send at most one of projectIds or monitorIds.")
+        self.resolve_slack_channel(data, self.context["strategy"])
         return data
 
 
@@ -472,13 +489,7 @@ class OrganizationSeerWorkflowConfigsEndpoint(OrganizationEndpoint):
             raise NotFound
 
         serializer = WorkflowConfigCreateSerializer(
-            data=request.data,
-            context={
-                "organization": organization,
-                "strategy": request.data.get("strategy")
-                if isinstance(request.data, dict)
-                else None,
-            },
+            data=request.data, context={"organization": organization}
         )
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)

@@ -1354,12 +1354,15 @@ class OrganizationSeerWorkflowConfigCreateTest(APITestCase):
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
     def test_scheduled_workflow_rejects_slack_channel(self) -> None:
-        self.get_error_response(
+        response = self.get_error_response(
             self.organization.slug,
             strategy="agentic_triage_v2",
             slackChannel={"integrationId": "123", "channelId": "C123"},
             status_code=400,
         )
+        assert response.data["slackChannel"] == {
+            "non_field_errors": ["Only metric automations support Slack channels."]
+        }
 
     def test_creates_config_with_defaults(self) -> None:
         response = self.get_success_response(
