@@ -17,7 +17,7 @@ from sentry.preprod.api.models.project_preprod_build_details_models import (
     transform_preprod_artifact_to_build_details,
 )
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import is_size_analysis_expired
 
 logger = logging.getLogger(__name__)
 
@@ -59,8 +59,7 @@ class ProjectPreprodBuildDetailsEndpoint(PreprodArtifactEndpoint):
             )
         )
 
-        cutoff = get_size_retention_cutoff(project.organization)
-        if head_artifact.date_added < cutoff:
+        if is_size_analysis_expired(head_artifact, project.organization):
             return Response({"detail": "This build's size data has expired."}, status=404)
 
         if head_artifact.state == PreprodArtifact.ArtifactState.FAILED:

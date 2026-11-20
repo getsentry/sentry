@@ -1,7 +1,7 @@
 import csv
 import io
 from typing import Any
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 from django.urls import reverse
 from django.utils.functional import cached_property
@@ -278,11 +278,13 @@ class BuildsExportEndpointTest(APITestCase):
         assert len(rows) == 2
         assert _col(rows[1], "artifact_id") == str(middle.id)
 
-    @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
-    def test_excludes_expired_artifacts(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = before_now(days=30)
-        self._create_installable_build(app_id="recent.app", date_added=before_now(days=10))
-        self._create_installable_build(app_id="expired.app", date_added=before_now(days=60))
+    def test_excludes_expired_artifacts(self) -> None:
+        self._create_installable_build(
+            app_id="recent.app", date_size_analysis_expires=before_now(days=-1)
+        )
+        self._create_installable_build(
+            app_id="expired.app", date_size_analysis_expires=before_now(days=1)
+        )
 
         rows = self._csv_rows(self._request({}))
         assert len(rows) == 2

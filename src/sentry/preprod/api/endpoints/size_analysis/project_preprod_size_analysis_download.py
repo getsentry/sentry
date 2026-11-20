@@ -13,7 +13,7 @@ from sentry.models.project import Project
 from sentry.preprod.analytics import PreprodArtifactApiSizeAnalysisDownloadEvent
 from sentry.preprod.api.bases.preprod_artifact_endpoint import PreprodArtifactEndpoint
 from sentry.preprod.models import PreprodArtifact
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import is_size_analysis_expired
 from sentry.preprod.size_analysis.download import (
     SizeAnalysisError,
     get_size_analysis_error_response,
@@ -58,8 +58,7 @@ class ProjectPreprodArtifactSizeAnalysisDownloadEndpoint(PreprodArtifactEndpoint
             )
         )
 
-        cutoff = get_size_retention_cutoff(project.organization)
-        if head_artifact.date_added < cutoff:
+        if is_size_analysis_expired(head_artifact, project.organization):
             return Response({"detail": "This build's size data has expired."}, status=404)
 
         all_size_metrics = list(head_artifact.get_size_metrics())

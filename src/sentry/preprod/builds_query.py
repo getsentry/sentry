@@ -6,7 +6,7 @@ from datetime import datetime
 from sentry.models.organization import Organization
 from sentry.preprod.artifact_search import queryset_for_query
 from sentry.preprod.models import PreprodArtifactQuerySet
-from sentry.preprod.quotas import get_size_retention_cutoff
+from sentry.preprod.retention import unexpired_artifacts
 
 # Display values that constrain the list to non-snapshot builds (size + distribution
 # share the same underlying artifacts; only the columns shown differ).
@@ -24,7 +24,7 @@ def filtered_builds_queryset(
 ) -> PreprodArtifactQuerySet:
     """Build the PreprodArtifact queryset shared by the builds list and CSV export endpoints.
 
-    Applies the search query, size-retention cutoff, optional date range, project
+    Applies the search query, retention, optional date range, project
     scoping, and display-based snapshot filtering. Keeping this in one place ensures
     the CSV export returns exactly the same rows as the on-screen list.
 
@@ -35,7 +35,7 @@ def filtered_builds_queryset(
         InvalidSearchQuery: if the query string is invalid.
     """
     queryset = queryset_for_query(query, organization)
-    queryset = queryset.filter(date_added__gte=get_size_retention_cutoff(organization))
+    queryset = queryset.filter(unexpired_artifacts(organization))
     if start:
         queryset = queryset.filter(date_added__gte=start)
     if end:

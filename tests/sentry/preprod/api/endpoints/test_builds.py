@@ -1,5 +1,5 @@
 from typing import Any
-from unittest.mock import ANY, MagicMock, patch
+from unittest.mock import ANY
 
 import pytest
 from django.urls import reverse
@@ -865,11 +865,13 @@ class BuildsEndpointTest(APITestCase):
         self.create_preprod_artifact(app_id="test.app")
         assert self._request({"query": "distribution_error_code:bogus"}).status_code == 400
 
-    @patch("sentry.preprod.builds_query.get_size_retention_cutoff")
-    def test_excludes_expired_artifacts(self, mock_cutoff: MagicMock) -> None:
-        mock_cutoff.return_value = before_now(days=30)
-        self.create_preprod_artifact(app_id="recent.app", date_added=before_now(days=10))
-        self.create_preprod_artifact(app_id="expired.app", date_added=before_now(days=60))
+    def test_excludes_expired_artifacts(self) -> None:
+        self.create_preprod_artifact(
+            app_id="recent.app", date_size_analysis_expires=before_now(days=-1)
+        )
+        self.create_preprod_artifact(
+            app_id="expired.app", date_size_analysis_expires=before_now(days=1)
+        )
 
         response = self._request({})
         self._assert_is_successful(response)

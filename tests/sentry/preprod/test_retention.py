@@ -3,6 +3,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import MagicMock, patch
 
 from sentry.constants import DataCategory
+from sentry.preprod.models import PreprodArtifact
 from sentry.preprod.retention import (
     DEFAULT_RETENTION_DAYS,
     MAX_RETENTION_DAYS,
@@ -10,9 +11,12 @@ from sentry.preprod.retention import (
     get_artifact_retention_days,
     get_retention_days,
     get_retention_days_or_default,
+    is_expired,
+    is_size_analysis_expired,
+    unexpired_artifacts,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.datetime import before_now, freeze_time
 
 
 def retention_by_category(
@@ -98,3 +102,86 @@ class GetArtifactExpiryTest(TestCase):
             "date_expires": None,
             "date_size_analysis_expires": None,
         }
+
+
+class ExpiredArtifactsTest(TestCase):
+    """
+    `is_expired`, `is_size_analysis_expired` and the `unexpired_artifacts` filter, which
+    must agree with them.
+    """
+
+    def is_listed(self, artifact: PreprodArtifact) -> bool:
+        listed = PreprodArtifact.objects.filter(unexpired_artifacts(self.organization))
+        return listed.filter(id=artifact.id).exists()
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_stamped_expiry_outlives_a_shorter_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        # Ingested under a 396 day retention, and the plan was downgraded since.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=60),
+            date_expires=before_now(days=60 - 396),
+            date_size_analysis_expires=before_now(days=60 - 396),
+        )
+
+        assert not is_expired(artifact)
+        assert not is_size_analysis_expired(artifact, self.organization)
+        mock_retention.assert_not_called()
+        assert self.is_listed(artifact)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=396)
+    def test_stamped_expiry_is_not_extended_by_a_longer_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        # Ingested under a 30 day Size Analysis retention, and the plan was upgraded since.
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=60),
+            date_expires=before_now(days=60 - 396),
+            date_size_analysis_expires=before_now(days=60 - 30),
+        )
+
+        assert not is_expired(artifact)
+        assert is_size_analysis_expired(artifact, self.organization)
+        assert not self.is_listed(artifact)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=396)
+    def test_artifact_past_date_expires(self, mock_retention: MagicMock) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project,
+            date_added=before_now(days=100),
+            date_expires=before_now(days=10),
+            date_size_analysis_expires=before_now(days=10),
+        )
+
+        assert is_expired(artifact)
+        assert not self.is_listed(artifact)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=30)
+    def test_artifact_without_expiry_follows_the_current_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        recent = self.create_preprod_artifact(project=self.project, date_added=before_now(days=10))
+        old = self.create_preprod_artifact(project=self.project, date_added=before_now(days=60))
+
+        for artifact in (recent, old):
+            assert artifact.date_expires is None
+            assert not is_expired(artifact)
+        assert not is_size_analysis_expired(recent, self.organization)
+        assert is_size_analysis_expired(old, self.organization)
+        assert self.is_listed(recent)
+        assert not self.is_listed(old)
+
+    @patch("sentry.quotas.backend.get_event_retention", return_value=None)
+    def test_artifact_without_expiry_under_unlimited_retention(
+        self, mock_retention: MagicMock
+    ) -> None:
+        artifact = self.create_preprod_artifact(
+            project=self.project, date_added=before_now(days=1000)
+        )
+
+        assert not is_expired(artifact)
+        assert not is_size_analysis_expired(artifact, self.organization)
+        assert self.is_listed(artifact)
