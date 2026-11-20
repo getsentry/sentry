@@ -151,10 +151,7 @@ class TestProcessWorkflows(BaseWorkflowTest):
         self.create_workflow_action(cross_org_workflow)
         _, action = self.create_workflow_action(self.error_workflow)
 
-        with (
-            self.options({"workflow_engine.filter_cross_org_workflows": False}),
-            patch("sentry.workflow_engine.processors.action.fire_actions") as fire_actions,
-        ):
+        with patch("sentry.workflow_engine.processors.action.fire_actions") as fire_actions:
             result = process_workflows(self.batch_client, self.event_data, FROZEN_TIME)
         assert _triggered_workflow_ids(result) == {self.error_workflow.id}
         assert cross_org_workflow.id not in result.evaluations
@@ -1557,13 +1554,12 @@ class TestOrganizationWorkflowEvaluation(BaseWorkflowTest):
         foreign = self.create_workflow(organization=self.create_organization())
         environment_workflow = self.create_workflow(environment=self.create_environment())
         disabled = self.create_workflow(enabled=False)
-        with self.options({"workflow_engine.filter_cross_org_workflows": False}):
-            evaluation, action_groups, _ = _evaluate_workflows(
-                {self.workflow, foreign, environment_workflow, disabled},
-                self.event_data,
-                FROZEN_TIME,
-                detector=self.detector,
-            )
+        evaluation, action_groups, _ = _evaluate_workflows(
+            {self.workflow, foreign, environment_workflow, disabled},
+            self.event_data,
+            FROZEN_TIME,
+            detector=self.detector,
+        )
         assert evaluation.evaluated_workflow_ids() == {self.workflow.id}
         assert action_groups == {self.action_group}
 
