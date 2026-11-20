@@ -10,12 +10,7 @@ import {
 import {getConfigStep} from './utils';
 
 export const replay: OnboardingConfig = {
-  install: params => [
-    {
-      type: StepType.INSTALL,
-      content: getConfigStep(params),
-    },
-  ],
+  install: params => [{type: StepType.INSTALL, content: getConfigStep(params)}],
   configure: params => [
     {
       type: StepType.CONFIGURE,

@@ -348,19 +348,16 @@ class IntegrationConfigSerializer(IntegrationSerializer):
 
         # TicketRuleModal only needs the ticket-creation form for this request.
         if self.params.get("action") == "create":
-            return cast(
-                "IntegrationConfigSerializerResponse",
-                {
-                    **base,
-                    "configOrganization": [],
-                    # This method comes from IssueBasicIntegration within the integration's installation class
-                    "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
-                        None,
-                        user,
-                        params=self.params,
-                    ),
-                },
-            )
+            return {
+                **base,
+                "configOrganization": [],
+                # This method comes from IssueBasicIntegration within the integration's installation class
+                "createIssueConfig": installation.get_create_issue_config(  # type: ignore[attr-defined]
+                    None,
+                    user,
+                    params=self.params,
+                ),
+            }
 
         return cast(
             "IntegrationConfigSerializerResponse",
@@ -439,7 +436,7 @@ class OrganizationIntegrationSerializer(Serializer):
         organization_integration_fields = {
             "externalId": integration.external_id,
             "organizationId": obj.organization_id,
-            "organizationIntegrationStatus": cast(ObjectStatusName, obj.get_status_display()),
+            "organizationIntegrationStatus": obj.get_status_display(),
             "gracePeriodEnd": obj.grace_period_end,
         }
         if self.params.get("action") == "create":

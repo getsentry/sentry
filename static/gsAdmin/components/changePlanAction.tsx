@@ -136,9 +136,7 @@ function ChangePlanAction({
         );
         if (closestTier) {
           formModel.setValue(
-            `reserved${toTitleCase(category, {
-              allowInnerUpperCase: true,
-            })}`,
+            `reserved${toTitleCase(category, {allowInnerUpperCase: true})}`,
             closestTier
           );
         }

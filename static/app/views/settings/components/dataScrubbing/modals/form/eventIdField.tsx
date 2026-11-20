@@ -20,11 +20,7 @@ const suggestionOptions = (
 ) =>
   apiOptions.as<{suggestions: SourceSuggestion[]}>()(
     '/organizations/$organizationIdOrSlug/data-scrubbing-selector-suggestions/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, query, staleTime: 0}
   );
 
 type FieldProps = {
@@ -82,10 +78,7 @@ export function EventIdField({
 
       try {
         const data = await queryClient.fetchQuery({
-          ...suggestionOptions(orgSlug, {
-            eventId,
-            ...(projectId ? {projectId} : {}),
-          }),
+          ...suggestionOptions(orgSlug, {eventId, ...(projectId ? {projectId} : {})}),
           retry: false,
         });
 

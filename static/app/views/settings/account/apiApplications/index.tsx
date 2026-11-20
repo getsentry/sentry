@@ -59,10 +59,7 @@ export default function ApiApplications() {
     toast.loading(t('Saving changes...'));
 
     try {
-      const app = await api.requestPromise(ENDPOINT, {
-        method: 'POST',
-        data: {isPublic},
-      });
+      const app = await api.requestPromise(ENDPOINT, {method: 'POST', data: {isPublic}});
 
       toast.success(t('Created a new API Application'));
       navigate(`${ROUTE_PREFIX}applications/${app.id}/`);

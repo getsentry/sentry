@@ -63,11 +63,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
       }),
       wrapperProps: {
         'data-is-virtualized': true,
-        style: {
-          height: totalSize + listPadding * 2,
-          width: '100%',
-          position: 'relative',
-        },
+        style: {height: totalSize + listPadding * 2, width: '100%', position: 'relative'},
       },
       listWrapStyle: {
         position: 'absolute',
@@ -84,9 +80,7 @@ export function useVirtualizedItems<T extends ObjectLike>({
     scrollToIndex: () => {},
     scrollElementRef: undefined,
     itemProps: () => {},
-    wrapperProps: {
-      'data-is-virtualized': false,
-    },
+    wrapperProps: {'data-is-virtualized': false},
     listWrapStyle: {},
   } as const;
 }

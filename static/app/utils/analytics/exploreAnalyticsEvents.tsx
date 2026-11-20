@@ -25,12 +25,14 @@ type DroppedDataAnalyticsContext = {
 };
 
 export type ExploreAnalyticsEventParameters = {
+  'explore.chart_context.changes_layer_toggled': DroppedDataAnalyticsContext & {
+    selected: boolean;
+  };
   'explore.chart_context.drawer_opened': DroppedDataAnalyticsContext & {
     tab: string;
+    section?: string;
   };
-  'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {
-    tab: string;
-  };
+  'explore.chart_context.tab_selected': DroppedDataAnalyticsContext & {tab: string};
   'explore.confidence.layer_toggled': {
     organization: Organization;
     selected: boolean;
@@ -41,9 +43,7 @@ export type ExploreAnalyticsEventParameters = {
     reason: string;
   };
   'explore.dropped_data.drawer_opened': DroppedDataAnalyticsContext;
-  'explore.dropped_data.layer_toggled': DroppedDataAnalyticsContext & {
-    selected: boolean;
-  };
+  'explore.dropped_data.layer_toggled': DroppedDataAnalyticsContext & {selected: boolean};
   'explore.dropped_data.legend_outcome_toggled': DroppedDataAnalyticsContext & {
     outcome: string;
     selected: boolean;
@@ -51,15 +51,9 @@ export type ExploreAnalyticsEventParameters = {
   'explore.dropped_data.scope_toggled': DroppedDataAnalyticsContext & {
     scope: 'unexpected' | 'all';
   };
-  'explore.floating_trigger.clear_selection': {
-    organization: Organization;
-  };
-  'explore.floating_trigger.compare_attribute_breakdowns': {
-    organization: Organization;
-  };
-  'explore.floating_trigger.zoom_in': {
-    organization: Organization;
-  };
+  'explore.floating_trigger.clear_selection': {organization: Organization};
+  'explore.floating_trigger.compare_attribute_breakdowns': {organization: Organization};
+  'explore.floating_trigger.zoom_in': {organization: Organization};
   'explore.share_link_copied': {
     frozen_relative_period: boolean;
     organization: Organization;
@@ -114,6 +108,8 @@ export type ExploreAnalyticsEventParameters = {
 type ExploreAnalyticsEventKey = keyof ExploreAnalyticsEventParameters;
 
 export const exploreAnalyticsEventMap = {
+  'explore.chart_context.changes_layer_toggled':
+    'Explore: Chart Context Changes Layer Toggled',
   'explore.chart_context.drawer_opened': 'Explore: Chart Context Drawer Opened',
   'explore.chart_context.tab_selected': 'Explore: Chart Context Tab Selected',
   'explore.confidence.layer_toggled': 'Explore: Confidence Layer Toggled',

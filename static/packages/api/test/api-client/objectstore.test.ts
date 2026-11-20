@@ -31,36 +31,47 @@ function mockFetch(): FetchMock {
   return vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
 }
 
-/** Build a batch response in the server's `multipart/form-data` shape. */
-function batchResponse(parts: { index: number; status: string; body?: string }[]): Response {
+type ResultPart = {
+  index: number;
+  status: number;
+  error?: { detail?: string | null };
+};
+
+/**
+ * Build a batch response in the server's JSON layout: one JSON part per
+ * operation, named by its index, exactly as Objectstore writes it.
+ */
+function batchResponse(parts: ResultPart[]): Response {
   const boundary = "os-boundary-00000000000000000000000000000abc";
   let text = "";
-  for (const part of parts) {
+  for (const { index, ...result } of parts) {
     text +=
       `--${boundary}\r\n` +
-      `x-sn-batch-operation-index: ${part.index}\r\n` +
-      `x-sn-batch-operation-status: ${part.status}\r\n` +
-      "content-disposition: form-data; name=part\r\n\r\n" +
-      `${part.body ?? ""}\r\n`;
+      `content-disposition: form-data; name="${index}"\r\n` +
+      "content-type: application/json\r\n\r\n" +
+      `${JSON.stringify(result)}\r\n`;
   }
-  text += `--${boundary}--`;
+  text += `--${boundary}--\r\n`;
   return new Response(text, {
     status: 200,
     headers: { "content-type": `multipart/form-data; boundary="${boundary}"` },
   });
 }
 
-/** Decode a captured batch request body as multipart form data. */
-async function sentParts(init: RequestInit): Promise<FormDataEntryValue[]> {
-  const headers = init.headers as Record<string, string>;
-  const form = await new Response(init.body as BodyInit, {
-    headers: { "content-type": headers["content-type"] as string },
-  }).formData();
-  return form.getAll("part");
+/** The batch request's form, as passed to fetch. */
+function sentForm(init: RequestInit): FormData {
+  expect(init.body).toBeInstanceOf(FormData);
+  return init.body as FormData;
 }
 
-function rawBody(init: RequestInit): string {
-  return new TextDecoder("latin1").decode(init.body as Uint8Array);
+/** The JSON operation descriptors of a batch request, in index order. */
+function sentDescriptors(init: RequestInit): unknown[] {
+  const form = sentForm(init);
+  const descriptors: unknown[] = [];
+  for (let index = 0; form.has(String(index)); index++) {
+    descriptors.push(JSON.parse(form.get(String(index)) as string));
+  }
+  return descriptors;
 }
 
 function upload(key: string, bytes: Uint8Array<ArrayBuffer>): ObjectUpload & { reads: number } {
@@ -84,9 +95,9 @@ describe("findExistingObjects", () => {
   it("sends all HEADs in one batch request and returns existing keys", async () => {
     const fetch = mockFetch().mockResolvedValue(
       batchResponse([
-        { index: 1, status: "404 Not Found" },
-        { index: 0, status: "200 OK" },
-        { index: 2, status: "200 OK" },
+        { index: 1, status: 404 },
+        { index: 0, status: 200 },
+        { index: 2, status: 200 },
       ]),
     );
 
@@ -99,20 +110,27 @@ describe("findExistingObjects", () => {
       "https://objectstore.example.com/v1/objects:batch/preprod_snapshots/org=123;project=456/",
     );
     expect(init.method).toBe("POST");
-    expect((init.headers as Record<string, string>)["x-os-auth"]).toBe("Bearer jwt-token");
-    expect(await sentParts(init)).toHaveLength(3);
-    const raw = rawBody(init);
-    expect(raw).toContain("x-sn-batch-operation-kind: head\r\n");
-    expect(raw).toContain("x-sn-batch-operation-key: k1\r\n");
+    const headers = init.headers as Record<string, string>;
+    expect(headers["x-os-auth"]).toBe("Bearer jwt-token");
+    // fetch derives the multipart Content-Type and boundary from the FormData body.
+    expect(headers).not.toHaveProperty("content-type");
+    expect(sentDescriptors(init)).toEqual([
+      { kind: "head", key: "k0" },
+      { kind: "head", key: "k1" },
+      { kind: "head", key: "k2" },
+    ]);
   });
 
-  it("percent-encodes `%`, controls, and non-ASCII in operation keys", async () => {
-    const fetch = mockFetch().mockResolvedValue(batchResponse([{ index: 0, status: "404 Not Found" }]));
+  it("sends keys verbatim in UTF-8 JSON descriptors with quoted part names", async () => {
+    const fetch = mockFetch().mockResolvedValue(batchResponse([{ index: 0, status: 404 }]));
+    const key = "100% r\u00e9port\n\"x\"";
 
-    await findExistingObjects(config, ["100% r\u00e9port\n"], { fetch });
+    await findExistingObjects(config, [key], { fetch });
 
     const [, init] = fetch.mock.calls[0] as [string, RequestInit];
-    expect(rawBody(init)).toContain("x-sn-batch-operation-key: 100%25 r%C3%A9port%0A\r\n");
+    const raw = await new Response(sentForm(init)).text();
+    expect(raw).toContain('name="0"');
+    expect(raw).toContain(JSON.stringify({ kind: "head", key }));
   });
 
   it("splits more than 1000 keys into batches sent concurrently", async () => {
@@ -121,10 +139,10 @@ describe("findExistingObjects", () => {
     const fetch = mockFetch().mockImplementation(async (_url, init) => {
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
-      const count = (await sentParts(init as RequestInit)).length;
+      const count = sentDescriptors(init as RequestInit).length;
       await new Promise((resolve) => setTimeout(resolve, 10));
       inFlight -= 1;
-      return batchResponse(Array.from({ length: count }, (_, index) => ({ index, status: "200 OK" })));
+      return batchResponse(Array.from({ length: count }, (_, index) => ({ index, status: 200 })));
     });
     const keys = Array.from({ length: 2500 }, (_, i) => `k${i}`);
 
@@ -139,12 +157,12 @@ describe("findExistingObjects", () => {
     // Five batches, four in flight: the first fails before the others finish.
     const fetch = mockFetch().mockImplementation(async (_url, init) => {
       const call = fetch.mock.calls.length;
-      const count = (await sentParts(init as RequestInit)).length;
+      const count = sentDescriptors(init as RequestInit).length;
       if (call === 1) {
         return new Response(null, { status: 429 });
       }
       await new Promise((resolve) => setTimeout(resolve, 10));
-      return batchResponse(Array.from({ length: count }, (_, index) => ({ index, status: "200 OK" })));
+      return batchResponse(Array.from({ length: count }, (_, index) => ({ index, status: 200 })));
     });
     const keys = Array.from({ length: 5000 }, (_, i) => `k${i}`);
 
@@ -157,8 +175,8 @@ describe("findExistingObjects", () => {
   it("throws on a per-operation error other than 404", async () => {
     const fetch = mockFetch().mockResolvedValue(
       batchResponse([
-        { index: 0, status: "200 OK" },
-        { index: 1, status: "429 Too Many Requests", body: "slow down — retry" },
+        { index: 0, status: 200 },
+        { index: 1, status: 429, error: { detail: "slow down — retry" } },
       ]),
     );
     const error = await findExistingObjects(config, ["k0", "k1"], { fetch }).catch((e) => e);
@@ -180,10 +198,36 @@ describe("findExistingObjects", () => {
   });
 
   it("throws when the response is missing an operation", async () => {
-    const fetch = mockFetch().mockResolvedValue(batchResponse([{ index: 0, status: "200 OK" }]));
+    const fetch = mockFetch().mockResolvedValue(batchResponse([{ index: 0, status: 200 }]));
     await expect(findExistingObjects(config, ["k0", "k1"], { fetch })).rejects.toThrow(
       ObjectstoreError,
     );
+  });
+
+  it("ignores parts that are not results", async () => {
+    const boundary = "b";
+    const body =
+      `--${boundary}\r\ncontent-disposition: form-data; name="0"\r\n` +
+      `content-type: application/json\r\n\r\n{"status":200,"kind":"head","key":"k0"}\r\n` +
+      `--${boundary}\r\ncontent-disposition: form-data; name="0.payload"; filename="0"\r\n` +
+      `content-type: application/octet-stream\r\n\r\n\x00\x01\r\n` +
+      `--${boundary}--\r\n`;
+    const fetch = mockFetch().mockResolvedValue(
+      new Response(body, { headers: { "content-type": `multipart/form-data; boundary=${boundary}` } }),
+    );
+
+    expect([...(await findExistingObjects(config, ["k0"], { fetch }))]).toEqual(["k0"]);
+  });
+
+  it("throws when the multipart response is malformed", async () => {
+    const fetch = mockFetch().mockResolvedValue(
+      new Response("--b\r\ncontent-disposition: form-data; name=\"0\"\r\n\r\n{", {
+        headers: { "content-type": "multipart/form-data; boundary=b" },
+      }),
+    );
+    const error = await findExistingObjects(config, ["k0"], { fetch }).catch((e) => e);
+    expect(error).toBeInstanceOf(ObjectstoreError);
+    expect(error.status).toBe(502);
   });
 
   it("throws when the response is not multipart", async () => {
@@ -202,7 +246,7 @@ describe("putObjects", () => {
     const large = upload("1/2/large", new Uint8Array(LARGE));
     const fetch = mockFetch().mockImplementation(async (_url, init) =>
       init?.method === "POST"
-        ? batchResponse([{ index: 0, status: "201 Created" }])
+        ? batchResponse([{ index: 0, status: 201 }])
         : new Response(null, { status: 201 }),
     );
 
@@ -215,14 +259,13 @@ describe("putObjects", () => {
       string,
       RequestInit,
     ];
-    const parts = await sentParts(batchInit);
-    expect(parts).toHaveLength(1);
-    // Parts without a filename decode as strings.
-    expect(parts[0]).toBe("\x01\x02\x03");
-    const raw = rawBody(batchInit);
-    expect(raw).toContain("x-sn-batch-operation-kind: insert\r\n");
-    expect(raw).toContain("x-sn-batch-operation-key: 1/2/small\r\n");
-    expect(raw).toContain("x-sn-expiration: ttl:30d\r\n");
+    expect(sentDescriptors(batchInit)).toEqual([
+      { kind: "insert", key: "1/2/small", metadata: { expiration: "ttl:30d" } },
+    ]);
+    const payload = sentForm(batchInit).get("0.payload");
+    expect(payload).toBeInstanceOf(File);
+    expect((payload as File).name).toBe("0");
+    expect(new Uint8Array(await (payload as File).arrayBuffer())).toEqual(new Uint8Array([1, 2, 3]));
 
     const [putUrl] = fetch.mock.calls.find(([, init]) => init?.method === "PUT") as [string];
     expect(putUrl).toBe(`${OBJECTS_URL}/1/2/large`);
@@ -234,11 +277,11 @@ describe("putObjects", () => {
     const fetch = mockFetch().mockImplementation(async (_url, init) => {
       inFlight += 1;
       maxInFlight = Math.max(maxInFlight, inFlight);
-      const count = (await sentParts(init as RequestInit)).length;
+      const count = sentDescriptors(init as RequestInit).length;
       await new Promise((resolve) => setTimeout(resolve, 10));
       inFlight -= 1;
       return batchResponse(
-        Array.from({ length: count }, (_, index) => ({ index, status: "201 Created" })),
+        Array.from({ length: count }, (_, index) => ({ index, status: 201 })),
       );
     });
     // 60 uploads of 1 MB: three batches of at most 25 MB each.
@@ -266,7 +309,7 @@ describe("putObjects", () => {
       },
     }));
     const fetch = mockFetch().mockResolvedValue(
-      batchResponse(uploads.map((_, index) => ({ index, status: "201 Created" }))),
+      batchResponse(uploads.map((_, index) => ({ index, status: 201 }))),
     );
 
     await putObjects(config, uploads, { fetch });
@@ -295,7 +338,7 @@ describe("putObjects", () => {
 
   it("throws when an insert in the batch fails", async () => {
     const fetch = mockFetch().mockResolvedValue(
-      batchResponse([{ index: 0, status: "500 Internal Server Error" }]),
+      batchResponse([{ index: 0, status: 500, error: { detail: "backend failed" } }]),
     );
     await expect(
       putObjects(config, [upload("k", new Uint8Array([1]))], { fetch }),

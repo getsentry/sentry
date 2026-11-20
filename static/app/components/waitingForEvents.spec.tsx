@@ -22,10 +22,7 @@ describe('WaitingForEvents', () => {
   });
 
   describe('with a project', () => {
-    const props = {
-      org: OrganizationFixture(),
-      project: ProjectFixture(),
-    };
+    const props = {org: OrganizationFixture(), project: ProjectFixture()};
 
     it('Renders a button for creating an event', async () => {
       render(<WaitingForEvents {...props} />);
@@ -46,9 +43,7 @@ describe('WaitingForEvents', () => {
   });
 
   describe('without a project', () => {
-    const props = {
-      org: OrganizationFixture(),
-    };
+    const props = {org: OrganizationFixture()};
 
     it('Renders a disabled create event button', () => {
       render(<WaitingForEvents {...props} />);

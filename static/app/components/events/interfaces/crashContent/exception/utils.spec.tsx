@@ -18,11 +18,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com';
     const text = `Go to ${url} to search.`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
@@ -128,11 +124,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com';
     const text = `Go to ${url}.`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();
@@ -143,11 +135,7 @@ describe('Linkify()', () => {
     const url = 'https://www.example.com/page.html';
     const text = `Go to ${url}`;
 
-    render(
-      renderLinksInText({
-        exceptionText: text,
-      })
-    );
+    render(renderLinksInText({exceptionText: text}));
 
     const linkElement = screen.getByText(url);
     expect(linkElement).toBeInTheDocument();

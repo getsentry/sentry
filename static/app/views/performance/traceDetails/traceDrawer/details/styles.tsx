@@ -251,10 +251,7 @@ function Highlights({
                   }}
                   to={{
                     ...location,
-                    query: {
-                      ...location.query,
-                      tab: TraceLayoutTabKeys.AI_SPANS,
-                    },
+                    query: {...location.query, tab: TraceLayoutTabKeys.AI_SPANS},
                   }}
                 >
                   {t('Open Agent Activity')}
@@ -305,17 +302,13 @@ function HighLightEAPOpsBreakdown({node}: {node: EapSpanNode}) {
   const totalCount = sortedBreakdown.reduce((acc, curr) => acc + curr.count, 0);
 
   const TOP_N = 3;
-  const displayOps = sortedBreakdown.slice(0, TOP_N).map(op => ({
-    op: op.op,
-    percentage: (op.count / totalCount) * 100,
-  }));
+  const displayOps = sortedBreakdown
+    .slice(0, TOP_N)
+    .map(op => ({op: op.op, percentage: (op.count / totalCount) * 100}));
 
   if (sortedBreakdown.length > TOP_N) {
     const topNPercentage = displayOps.reduce((acc, curr) => acc + curr.percentage, 0);
-    displayOps.push({
-      op: t('Other'),
-      percentage: 100 - topNPercentage,
-    });
+    displayOps.push({op: t('Other'), percentage: 100 - topNPercentage});
   }
 
   return (

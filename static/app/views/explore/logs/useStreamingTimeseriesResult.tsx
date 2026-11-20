@@ -24,15 +24,9 @@ import type {OurLogsResponseItem} from './types';
 import type {UseInfiniteLogsQueryResult} from './useLogsQuery';
 import {getLogRowTimestampMillis, getLogTimestampBucketIndex} from './utils';
 
-type BufferEntry = {
-  bucketIndex: number;
-  count: number;
-};
+type BufferEntry = {bucketIndex: number; count: number};
 
-type BufferedTimeseriesGroup = {
-  stableIndex: number;
-  values: BufferEntry[];
-};
+type BufferedTimeseriesGroup = {stableIndex: number; values: BufferEntry[]};
 
 /**
  * Streaming Timeseries Result
@@ -179,10 +173,7 @@ export function useStreamingTimeseriesResult(
       timeseriesLastBucketIndex
     );
 
-    return {
-      ...timeseriesResult,
-      data: mergedData,
-    };
+    return {...timeseriesResult, data: mergedData};
   }, [
     timeseriesResult,
     groupBuffers,

@@ -19,10 +19,7 @@ Add the event key and its parameter types to the domain's `*EventParameters` typ
 ```typescript
 export type FeedbackEventParameters = {
   // Existing events...
-  'feedback.filter-applied': {
-    filter_type: string;
-    source: 'list' | 'detail';
-  };
+  'feedback.filter-applied': {filter_type: string; source: 'list' | 'detail'};
 };
 ```
 
@@ -94,10 +91,7 @@ Adding a "filter applied" event to the feedback domain:
 
 export type FeedbackEventParameters = {
   // ... existing events
-  'feedback.filter-applied': {
-    filter_type: string;
-    source: 'list' | 'detail';
-  };
+  'feedback.filter-applied': {filter_type: string; source: 'list' | 'detail'};
 };
 
 export const feedbackEventMap: Record<keyof FeedbackEventParameters, string | null> = {
@@ -110,10 +104,7 @@ export const feedbackEventMap: Record<keyof FeedbackEventParameters, string | nu
 
 ```typescript
 // BAD — will cause TypeScript error, event key not registered
-trackAnalytics('feedback.my-new-thing', {
-  organization,
-  some_param: 'value',
-});
+trackAnalytics('feedback.my-new-thing', {organization, some_param: 'value'});
 
 // GOOD — define the event type and map entry first, then call
 trackAnalytics('feedback.filter-applied', {

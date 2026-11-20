@@ -57,13 +57,7 @@ export default Storybook.story('BigNumberWidgetVisualization', story => {
                 field="eps()"
                 type="rate"
                 unit={RateUnit.PER_SECOND}
-                thresholds={{
-                  max_values: {
-                    max1: 1,
-                    max2: 2,
-                  },
-                  unit: '1/second',
-                }}
+                thresholds={{max_values: {max1: 1, max2: 2}, unit: '1/second'}}
               />
             </Container>
           </SmallStorybookSizingWindow>
@@ -201,13 +195,7 @@ export default Storybook.story('BigNumberWidgetVisualization', story => {
     const type = 'rate';
     const unit = RateUnit.PER_SECOND;
 
-    const thresholds = {
-      max_values: {
-        max1: 20,
-        max2: 50,
-      },
-      unit: '1/second',
-    };
+    const thresholds = {max_values: {max1: 20, max2: 50}, unit: '1/second'};
 
     return (
       <Fragment>

@@ -12,9 +12,7 @@ describe('decodeHistogramZoom', () => {
   });
 
   it('returns both bounds when the zoom params are integers', () => {
-    const location = LocationFixture({
-      query: {startDuration: '100', endDuration: '250'},
-    });
+    const location = LocationFixture({query: {startDuration: '100', endDuration: '250'}});
 
     const zoom = decodeHistogramZoom(location);
 

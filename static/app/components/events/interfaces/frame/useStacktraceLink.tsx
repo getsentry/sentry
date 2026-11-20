@@ -64,10 +64,7 @@ const stacktraceLinkOptions = (
   apiOptions.as<StacktraceLinkResult>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/stacktrace-link/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-      },
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!},
       query,
       staleTime: Infinity,
     }

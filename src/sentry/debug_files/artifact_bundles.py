@@ -157,9 +157,11 @@ def index_urls_in_bundle(
     skip_debug_id_names = options.get("sourcemaps.artifact-bundles.index-skip-debug-id-names")
 
     # We first open up the bundle and extract all the things we want to index from it.
-    archive = existing_archive or ArtifactBundleArchive(
-        artifact_bundle.file.getfile(), build_memory_map=False
-    )
+    if existing_archive is None:
+        assert artifact_bundle.file is not None
+        archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
+    else:
+        archive = existing_archive
     urls_to_index = []
     skipped_urls = 0
     try:
@@ -550,8 +552,9 @@ def get_project_bundle_ids_containing_debug_id(
     rows than the debug ID has. Each query here starts from the debug ID or from the bundles it
     found, whatever the table statistics say.
     """
-    # A bundle has a row for each of its files with the debug ID, and other organizations may
-    # have uploaded the same file. One more row than we use tells whether the debug ID has more.
+    # A bundle has one row for the debug ID, older bundles one for each of their files with it,
+    # and other organizations may have uploaded the same file. One more row than we use tells
+    # whether the debug ID has more.
     rows = list(
         DebugIdArtifactBundle.objects.filter(debug_id=debug_id).values_list(
             "artifact_bundle_id", flat=True

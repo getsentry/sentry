@@ -1,7 +1,7 @@
 import datetime
 import logging
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 from urllib.parse import parse_qs, urlsplit
 
 from requests import PreparedRequest
@@ -208,7 +208,7 @@ class JiraCloudClient(ApiClient):
             raise ApiError(f"More than one project found matching {project}.")
 
         try:
-            return cast(MappingApiResponse, metas["projects"][0])
+            return metas["projects"][0]
         except IndexError:
             logger.info(
                 "jira.get-create-meta.key-error",
@@ -249,9 +249,7 @@ class JiraCloudClient(ApiClient):
         return self.get_cached_sequence(self.STATUS_URL)
 
     def get_transitions(self, issue_key: str) -> SequenceApiResponse:
-        return cast(
-            SequenceApiResponse, self.get_mapping(self.TRANSITION_URL % issue_key)["transitions"]
-        )
+        return self.get_mapping(self.TRANSITION_URL % issue_key)["transitions"]
 
     def transition_issue(self, issue_key: str, transition_id: str) -> MappingApiResponse:
         return self.post_mapping(

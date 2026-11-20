@@ -17,10 +17,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type OpenPeriodTimelineSectionProps = {
-  eventId: string;
-  groupId: string;
-};
+type OpenPeriodTimelineSectionProps = {eventId: string; groupId: string};
 
 function getOpenPeriodActivityLabel(
   activity: GroupOpenPeriod['activities'][number]
@@ -79,14 +76,7 @@ export function OpenPeriodTimelineSection({
   groupId,
   eventId,
 }: OpenPeriodTimelineSectionProps) {
-  const {
-    data: openPeriod,
-    isPending,
-    isError,
-  } = useEventOpenPeriod({
-    groupId,
-    eventId,
-  });
+  const {data: openPeriod, isPending, isError} = useEventOpenPeriod({groupId, eventId});
 
   if (isPending) {
     return (

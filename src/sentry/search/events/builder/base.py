@@ -4,7 +4,7 @@ from collections.abc import Callable, Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from datetime import datetime
 from re import Match
-from typing import Any, Union, cast
+from typing import Any
 
 import sentry_sdk
 from parsimonious.exceptions import ParseError
@@ -164,7 +164,7 @@ class BaseQueryBuilder:
         # Yes this is a little janky, but its temporary until we can have everyone passing the dataclass directly
         environments: Sequence[Environment | None] = []
         if "environment_objects" in params:
-            environments = cast(Sequence[Union[Environment, None]], params["environment_objects"])
+            environments = params["environment_objects"]
         if "environment" in params and organization is not None:
             if isinstance(params["environment"], list):
                 environments = list(
@@ -191,8 +191,8 @@ class BaseQueryBuilder:
             else []
         )
         return SnubaParams(
-            start=cast(datetime, params.get("start")),
-            end=cast(datetime, params.get("end")),
+            start=params.get("start"),
+            end=params.get("end"),
             environments=environments,
             projects=projects,
             user=user,

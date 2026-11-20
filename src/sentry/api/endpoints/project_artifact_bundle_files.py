@@ -98,6 +98,7 @@ class ProjectArtifactBundleFilesEndpoint(ProjectEndpoint):
 
         try:
             # We open the archive to fetch the number of files.
+            assert artifact_bundle.file is not None
             archive = ArtifactBundleArchive(artifact_bundle.file.getfile(), build_memory_map=False)
         except Exception:
             return Response(
