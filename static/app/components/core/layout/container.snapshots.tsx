@@ -79,18 +79,12 @@ describe('Container', () => {
     {tags: {area: 'core'}}
   );
 
-  // The container is narrower than `md` (576px) at 480 and wider at 800.
+  // The snapshot body is the query container: narrower than `md` (576px) at 480
+  // and wider at 800.
   it.snapshot.each([480, 800])(
     'responsive borders at %s',
     () => (
-      <Flex
-        containerType="inline-size"
-        gap="md"
-        padding="md"
-        wrap="wrap"
-        width="100%"
-        background="primary"
-      >
+      <Flex gap="md" padding="md" wrap="wrap" width="100%" background="primary">
         <Swatch border={{zero: 'primary', md: 'danger.vibrant'}}>primary → danger</Swatch>
         <Swatch borderBottom={{zero: 'primary', md: 'none'}}>bottom → none</Swatch>
       </Flex>
