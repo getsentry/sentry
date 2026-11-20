@@ -5,35 +5,30 @@ import {FullHeightAreas} from './fullHeightAreas';
 describe('FullHeightAreas', () => {
   const config = {name: 'areas', color: '#f0f0f2', dataType: 'number' as const};
 
-  it('merges overlapping ranges and clips them to the bounds', () => {
-    const areas = new FullHeightAreas({
-      ...config,
-      ranges: [
-        {start: 40, end: 60},
+  it('clips areas to the bounds it is plotted with', () => {
+    const areas = new FullHeightAreas(
+      [
         {start: -10, end: 10},
-        {start: 50, end: 120},
+        {start: 40, end: 120},
         {start: 150, end: 160},
       ],
-      bounds: {start: 0, end: 100},
-    });
+      config
+    );
 
-    expect(areas.ranges).toEqual([
-      {start: 0, end: 10},
-      {start: 40, end: 100},
+    const [series] = areas.toSeries({bounds: {start: 0, end: 100}});
+
+    expect(series?.data).toEqual([
+      [0, 10],
+      [40, 100],
     ]);
-    expect(areas.start).toBe(0);
-    expect(areas.end).toBe(100);
   });
 
   it('is empty without ranges', () => {
-    expect(new FullHeightAreas({...config, ranges: []}).isEmpty).toBe(true);
+    expect(new FullHeightAreas([], config).isEmpty).toBe(true);
   });
 
   it('draws a hatched area across the full plot height behind the data', () => {
-    const [series] = new FullHeightAreas({
-      ...config,
-      ranges: [{start: 1_000, end: 3_000}],
-    }).toSeries();
+    const [series] = new FullHeightAreas([{start: 1_000, end: 3_000}], config).toSeries();
 
     expect(series).toEqual(
       expect.objectContaining({
@@ -45,12 +40,14 @@ describe('FullHeightAreas', () => {
       })
     );
 
+    const values = [1_000, 3_000];
     const element = series!.renderItem!(
       {
         dataIndex: 0,
         coordSys: {type: 'cartesian2d', x: 0, y: 10, width: 500, height: 200},
       } as unknown as CustomSeriesRenderItemParams,
       {
+        value: (dimension: number) => values[dimension],
         coord: ([time]: number[]) => [(time ?? 0) / 10, 0],
       } as unknown as CustomSeriesRenderItemAPI
     );
