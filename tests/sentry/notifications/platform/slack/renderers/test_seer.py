@@ -353,11 +353,7 @@ def assert_out_of_credits_message(renderable: SlackRenderable, message: str) -> 
 
 
 def assert_billing_button(
-    renderable: SlackRenderable,
-    *,
-    organization_id: int,
-    billing_slug: str,
-    text: str = "Configure auto-reload",
+    renderable: SlackRenderable, *, organization_id: int, billing_slug: str
 ) -> None:
     blocks = renderable["blocks"]
     assert len(blocks) == 2
@@ -366,7 +362,7 @@ def assert_billing_button(
     button = blocks[1].elements[0]
     assert isinstance(button, ButtonElement)
     assert button.text is not None
-    assert button.text.text == text
+    assert button.text.text == "Configure billing"
     assert button.url is not None
     assert f"/settings/{billing_slug}/billing/overview/" in button.url
     assert button.action_id is not None
@@ -389,7 +385,6 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
-            text="View billing",
         )
 
     def test_links_to_auto_reload_settings(self) -> None:
@@ -433,7 +428,6 @@ class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
-            text="View billing",
         )
 
     def test_links_to_auto_reload_settings(self) -> None:
