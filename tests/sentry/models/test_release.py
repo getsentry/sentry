@@ -1135,7 +1135,7 @@ class SetCommitsTestCase(TestCase):
     _COAUTHORS_MESSAGE = (
         "feat: Do a thing\n\n"
         "Co-authored-by: Co Author <CoAuthor@example.com>\n"
-        "Co-Authored-By: Octo Cat <456+OctoCat@users.noreply.github.com>\n"
+        "Co-Authored-By: Octo Cat <456+octocat@users.noreply.github.com>\n"
         "co-authored-by: Stranger <stranger@example.com>"
     )
 

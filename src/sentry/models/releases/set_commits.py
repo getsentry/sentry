@@ -224,7 +224,8 @@ def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[i
     form matches the stored `login@` form too. The push webhook files authors
     whose GitHub identity it resolves under their real email with a
     `github:<login>` external id. Only that email resolves to a Sentry user, so it
-    replaces any noreply author the same login left from before.
+    replaces any noreply author the same login left from before. GitHub logins
+    ignore case, and a trailer can spell one differently from the stored id.
     """
     emails: set[str] = set()
     logins: set[str] = set()
@@ -234,17 +235,17 @@ def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[i
                 continue
             emails.add(email.lower())
             if noreply := _GITHUB_NOREPLY_RE.match(email):
-                logins.add(noreply.group(1))
+                logins.add(noreply.group(1).lower())
                 emails.add(f"{noreply.group(1)}@users.noreply.github.com".lower())
 
     if not emails:
         return []
 
+    matches = Q(email__in=emails)
+    for login in logins:
+        matches |= Q(external_id__iexact=f"github:{login}")
     authors = list(
-        CommitAuthor.objects.filter(
-            Q(email__in=emails) | Q(external_id__in={f"github:{login}" for login in logins}),
-            organization_id=organization_id,
-        )
+        CommitAuthor.objects.filter(matches, organization_id=organization_id)
         .order_by("id")
         .values_list("id", "email", "external_id")
     )
