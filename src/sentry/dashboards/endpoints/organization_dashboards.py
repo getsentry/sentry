@@ -93,6 +93,7 @@ class PrebuiltDashboardId(IntEnum):
     BACKEND_QUEUE_SUMMARY = 27
     BACKEND_CACHES = 28
     NODE_RUNTIME_METRICS = 29
+    ELIXIR_RUNTIME_METRICS = 30
 
 
 class PrebuiltDashboard(TypedDict, total=False):
@@ -237,6 +238,11 @@ PREBUILT_DASHBOARDS: list[PrebuiltDashboard] = [
     {
         "prebuilt_id": PrebuiltDashboardId.NODE_RUNTIME_METRICS,
         "title": "Node.js Runtime Metrics",
+        "required_feature_flags": ["organizations:tracemetrics-enabled"],
+    },
+    {
+        "prebuilt_id": PrebuiltDashboardId.ELIXIR_RUNTIME_METRICS,
+        "title": "Elixir Runtime Metrics",
         "required_feature_flags": ["organizations:tracemetrics-enabled"],
     },
 ]
