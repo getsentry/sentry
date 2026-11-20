@@ -1,4 +1,8 @@
 import {
+  isSearchFilterParameter,
+  unwrapSearchFilterArgument,
+} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
+import {
   comparisonOperators,
   FilterType,
   filterTypeConfig,
@@ -13,7 +17,11 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, type FieldDefinition} from 'sentry/utils/fields';
+import {
+  FieldValueType,
+  type AggregateParameter,
+  type FieldDefinition,
+} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"(),]/;
 
@@ -381,4 +389,33 @@ export function splitAggregateParameters(text: string): string[] {
   parameters.push(text.slice(start));
 
   return parameters;
+}
+
+/**
+ * Whether an aggregate takes an `_if` search filter argument, such as
+ * count_if(`span.op:db`,span.duration).
+ */
+export function hasSearchFilterParameter(definition: FieldDefinition | null): boolean {
+  return Boolean(definition?.parameters?.some(isSearchFilterParameter));
+}
+
+/**
+ * Label for an argument, as the equation builder shows it: the filter without its
+ * backticks, and the column's default label (`spans` for `span.duration`).
+ */
+export function getConditionalAggregateArgumentLabel(
+  parameter: AggregateParameter | undefined,
+  value: string
+): string {
+  if (isSearchFilterParameter(parameter)) {
+    return unwrapSearchFilterArgument(value);
+  }
+  if (
+    parameter?.kind === 'column' &&
+    parameter.defaultLabel &&
+    value === parameter.defaultValue
+  ) {
+    return parameter.defaultLabel;
+  }
+  return value;
 }

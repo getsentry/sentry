@@ -8,14 +8,6 @@ import type {SelectOptionWithKey} from '@sentry/scraps/compactSelect';
 import {getEscapedKey} from '@sentry/scraps/compactSelect';
 
 import {
-  ensureSearchFilterArgument,
-  isFilterKeySuggestion,
-  isSearchFilterParameter,
-  replaceConditionalFilterClause,
-} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilter';
-import {useConditionalFilterAutocomplete} from 'sentry/components/arithmeticBuilder/conditionalFilter/conditionalFilterAutocomplete';
-import type {FunctionArgument} from 'sentry/components/arithmeticBuilder/types';
-import {
   useSearchQueryBuilderConfig,
   useSearchQueryBuilderState,
 } from 'sentry/components/searchQueryBuilder/context';
@@ -61,23 +53,22 @@ function getInitialInputValue(token: AggregateFilter) {
 function getParameterAtCursorPosition(
   text: string,
   cursorPosition: number | null
-): {parameterIndex: number; parameterStart: number; textValue: string} {
+): {parameterIndex: number; textValue: string} {
   if (cursorPosition === null) {
-    return {parameterIndex: 0, parameterStart: 0, textValue: ''};
+    return {parameterIndex: 0, textValue: ''};
   }
 
   const items = splitAggregateParameters(text);
 
   let characterCount = 0;
   for (let i = 0; i < items.length; i++) {
-    const parameterStart = characterCount;
     characterCount += items[i]!.length + 1;
     if (characterCount > cursorPosition) {
-      return {parameterIndex: i, parameterStart, textValue: items[i]!.trim()};
+      return {parameterIndex: i, textValue: items[i]!.trim()};
     }
   }
 
-  return {parameterIndex: 0, parameterStart: 0, textValue: ''};
+  return {parameterIndex: 0, textValue: ''};
 }
 
 function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number): number {
@@ -86,30 +77,6 @@ function getCursorPositionAtEndOfParameter(text: string, parameterIndex: number)
     items.slice(0, parameterIndex).join('').length + parameterIndex;
 
   return charactersBefore + items[parameterIndex]!.length;
-}
-
-/**
- * The search query inside an `_if` filter parameter, without its backticks, and
- * where it starts in the full parameters text. Either backtick may still be missing
- * while the user types.
- */
-function getSearchFilterAtParameter(
-  parameterText: string,
-  parameterStart: number
-): {filter: string; filterStart: number} {
-  const leadingWhitespace = parameterText.length - parameterText.trimStart().length;
-  let filter = parameterText.trim();
-  let filterStart = parameterStart + leadingWhitespace;
-
-  if (filter.startsWith('`')) {
-    filter = filter.slice(1);
-    filterStart += 1;
-  }
-  if (filter.endsWith('`')) {
-    filter = filter.slice(0, -1);
-  }
-
-  return {filter, filterStart};
 }
 
 function calculateNextFocus(
@@ -155,7 +122,7 @@ function useSelectionIndex({
   return {selectionIndex, updateSelectionIndex};
 }
 
-function useParameterSuggestions({
+export function useParameterSuggestions({
   parameterDefinition,
 }: {
   parameterDefinition: AggregateParameter | undefined;
@@ -237,7 +204,7 @@ export function SearchQueryBuilderParametersCombobox({
   onDelete,
   onKeyDown: passedOnKeyDown,
 }: ParametersComboboxProps) {
-  const {filterKeys, getFieldDefinition, getSuggestedFilterKey, getTagValues} =
+  const {filterKeys, getFieldDefinition, getSuggestedFilterKey} =
     useSearchQueryBuilderConfig();
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -258,55 +225,17 @@ export function SearchQueryBuilderParametersCombobox({
     inputValue: initialValue,
   });
 
-  const {
-    parameterIndex,
-    parameterStart,
-    textValue: parameterValue,
-  } = getParameterAtCursorPosition(inputValue, selectionIndex);
+  const {parameterIndex, textValue: filterValue} = getParameterAtCursorPosition(
+    inputValue,
+    selectionIndex
+  );
 
   const definition = getFieldDefinition(token.key.name.text, {
     aggregateArgs: getAggregateArgTexts(token),
   });
-  const parameterDefinition = definition?.parameters?.[parameterIndex];
-  const parameterSuggestions = useParameterSuggestions({parameterDefinition});
-
-  // `_if` filter parameters get the same search autocomplete as the equation
-  // builder: attribute keys, then values for the key under the cursor.
-  const isFilterParameter = isSearchFilterParameter(parameterDefinition);
-  const {filter: searchFilter, filterStart: searchFilterStart} =
-    getSearchFilterAtParameter(
-      splitAggregateParameters(inputValue)[parameterIndex] ?? '',
-      parameterStart
-    );
-  const searchFilterCursor = Math.min(
-    Math.max((selectionIndex ?? 0) - searchFilterStart, 0),
-    searchFilter.length
-  );
-  const searchFilterKeys = useMemo<FunctionArgument[]>(
-    () =>
-      Object.values(filterKeys)
-        .filter(filterKey => {
-          const kind = getFieldDefinition(filterKey.key)?.kind;
-          return kind !== FieldKind.FUNCTION && kind !== FieldKind.EQUATION;
-        })
-        .map(filterKey => ({
-          name: filterKey.key,
-          kind: filterKey.kind ?? FieldKind.FIELD,
-        })),
-    [filterKeys, getFieldDefinition]
-  );
-  const searchFilterAutocomplete = useConditionalFilterAutocomplete({
-    enabled: isFilterParameter,
-    filterValue: searchFilter,
-    functionArguments: searchFilterKeys,
-    getFilterTagValues: getTagValues,
-    selectionIndex: searchFilterCursor,
+  const items = useParameterSuggestions({
+    parameterDefinition: definition?.parameters?.[parameterIndex],
   });
-
-  const items = isFilterParameter ? searchFilterAutocomplete.items : parameterSuggestions;
-  const filterValue = isFilterParameter
-    ? searchFilterAutocomplete.comboBoxFilterValue
-    : parameterValue;
 
   const onKeyDown = useCallback(
     (
@@ -316,28 +245,19 @@ export function SearchQueryBuilderParametersCombobox({
       if (passedOnKeyDown) {
         passedOnKeyDown(e, {state: passedState});
       }
-      // Filter suggestions change as the user types, so reopen the menu after a
-      // suggestion closed it.
-      if (isFilterParameter && !['Enter', 'Escape', 'Tab'].includes(e.key)) {
-        passedState.open();
-      }
       // If there's nothing in the input and we hit a delete key, we should focus the filter
       if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
         onDelete();
       }
     },
-    [isFilterParameter, onDelete, passedOnKeyDown]
+    [onDelete, passedOnKeyDown]
   );
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
       if (inputChanged) {
         const parameters = splitAggregateParameters(value).map((parameter, i) => {
-          const parameterDef = definition?.parameters?.[i];
-          if (isSearchFilterParameter(parameterDef)) {
-            return ensureSearchFilterArgument(parameter);
-          }
-          return parameterDef?.kind === 'column'
+          return definition?.parameters?.[i]?.kind === 'column'
             ? resolveFilterKey({key: parameter, filterKeys, getSuggestedFilterKey})
             : parameter;
         });
@@ -362,35 +282,6 @@ export function SearchQueryBuilderParametersCombobox({
       filterKeys,
       getSuggestedFilterKey,
     ]
-  );
-
-  // Keep editing after picking a filter key or value, so the user can finish the
-  // clause or add more. The filter is committed with the other parameters.
-  const handleSearchFilterOptionSelected = useCallback(
-    (option: SelectOptionWithKey<string>) => {
-      const {newValue: newFilter, newCursorIndex} = replaceConditionalFilterClause(
-        searchFilter,
-        searchFilterCursor,
-        option.value
-      );
-      const parameters = splitAggregateParameters(inputValue);
-      parameters[parameterIndex] = ensureSearchFilterArgument(newFilter);
-      const newValue = parameters.join(',');
-      const newCursorPosition =
-        parameters.slice(0, parameterIndex).join(',').length +
-        (parameterIndex > 0 ? 1 : 0) +
-        1 +
-        Math.min(newCursorIndex, newFilter.trim().length);
-
-      updateInputValue(newValue);
-      if (inputRef.current) {
-        inputRef.current.value = newValue;
-        inputRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
-      }
-      updateSelectionIndex();
-    },
-    // oxlint-disable-next-line react/memo-dependencies
-    [inputValue, parameterIndex, searchFilter, searchFilterCursor, updateSelectionIndex]
   );
 
   const handleOptionSelected = useCallback(
@@ -425,9 +316,7 @@ export function SearchQueryBuilderParametersCombobox({
       ref={inputRef}
       items={items}
       placeholder={placeholder}
-      onOptionSelected={
-        isFilterParameter ? handleSearchFilterOptionSelected : handleOptionSelected
-      }
+      onOptionSelected={handleOptionSelected}
       onCustomValueBlurred={handleInputValueConfirmed}
       onCustomValueCommitted={handleInputValueConfirmed}
       onExit={onCommit}
@@ -441,16 +330,6 @@ export function SearchQueryBuilderParametersCombobox({
       onClick={updateSelectionIndex}
       autoFocus
       maxOptions={20}
-      keepMenuOpenOnSelect={option =>
-        isFilterParameter && isFilterKeySuggestion(option.value)
-      }
-      shouldFilterResults={
-        !(
-          isFilterParameter &&
-          searchFilterAutocomplete.editPhase === 'value' &&
-          searchFilterAutocomplete.parsedFilterInput
-        )
-      }
       isOpen
       description={<FunctionDescription token={token} parameterIndex={parameterIndex} />}
     >

@@ -18,9 +18,11 @@ import {getKeyLabel} from 'sentry/components/searchSyntax/utils';
 import {t} from 'sentry/locale';
 
 import {AggregateKeyVisual, Parameters} from './aggregateKeyVisual';
+import {SearchQueryBuilderConditionalAggregateParameters} from './conditionalAggregateParameters';
 import {SearchQueryBuilderParametersCombobox} from './parametersCombobox';
 import {UnstyledButton} from './unstyledButton';
 import {useFilterButtonProps} from './useFilterButtonProps';
+import {getAggregateArgTexts, hasSearchFilterParameter} from './utils';
 
 type AggregateKeyProps = {
   filterRef: React.RefObject<HTMLDivElement | null>;
@@ -39,7 +41,7 @@ export function AggregateKey({
 }: AggregateKeyProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilderState();
-  const {disabled} = useSearchQueryBuilderConfig();
+  const {disabled, getFieldDefinition} = useSearchQueryBuilderConfig();
 
   const [isEditing, setIsEditing] = useState(false);
 
@@ -68,6 +70,23 @@ export function AggregateKey({
   const fnName = getKeyLabel(token.key);
 
   if (isEditing) {
+    const definition = getFieldDefinition(token.key.name.text, {
+      aggregateArgs: getAggregateArgTexts(token),
+    });
+    const onDelete = () => {
+      filterRef.current?.focus();
+      state.selectionManager.setFocusedKey(item.key);
+      setIsEditing(false);
+      onActiveChange(false);
+    };
+    const onCommit = () => {
+      setIsEditing(false);
+      onActiveChange(false);
+      if (state.collection.getKeyAfter(item.key)) {
+        state.selectionManager.setFocusedKey(state.collection.getKeyAfter(item.key));
+      }
+    };
+
     return (
       <KeyEditing ref={ref} {...mergeProps(focusWithinProps, filterButtonProps)}>
         <UnfocusedText>
@@ -75,32 +94,29 @@ export function AggregateKey({
           {'('}
         </UnfocusedText>
         <Parameters>
-          <SearchQueryBuilderParametersCombobox
-            state={state}
-            token={token}
-            onDelete={() => {
-              filterRef.current?.focus();
-              state.selectionManager.setFocusedKey(item.key);
-              setIsEditing(false);
-              onActiveChange(false);
-            }}
-            onCommit={() => {
-              setIsEditing(false);
-              onActiveChange(false);
-              if (state.collection.getKeyAfter(item.key)) {
-                state.selectionManager.setFocusedKey(
-                  state.collection.getKeyAfter(item.key)
-                );
-              }
-            }}
-            onKeyDown={(e, {state: passedState}) => {
-              // we need to force this open for aggregate filters e.g. count_if()
-              if (e.key === ',') {
-                passedState.open();
-                return;
-              }
-            }}
-          />
+          {definition && hasSearchFilterParameter(definition) ? (
+            <SearchQueryBuilderConditionalAggregateParameters
+              definition={definition}
+              state={state}
+              token={token}
+              onDelete={onDelete}
+              onCommit={onCommit}
+            />
+          ) : (
+            <SearchQueryBuilderParametersCombobox
+              state={state}
+              token={token}
+              onDelete={onDelete}
+              onCommit={onCommit}
+              onKeyDown={(e, {state: passedState}) => {
+                // we need to force this open for aggregate filters e.g. count_if()
+                if (e.key === ',') {
+                  passedState.open();
+                  return;
+                }
+              }}
+            />
+          )}
         </Parameters>
         <UnfocusedText>{')'}</UnfocusedText>
       </KeyEditing>
