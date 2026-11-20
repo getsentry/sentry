@@ -17,6 +17,11 @@ modules:
       events:
         - avi:forge:installed:app
         - avi:forge:upgraded:app
+    # Sentry only accepts issue events from the trigger with this key.
+    - key: issue-updated
+      endpoint: issue-updated-endpoint
+      events:
+        - avi:jira:updated:issue
   scheduledTrigger:
     # Forge only sends tokens when it calls us, and each one is valid for at least
     # 2 hours, so this keeps a usable token stored for background API calls.
@@ -31,9 +36,33 @@ modules:
       auth:
         appSystemToken:
           enabled: true
+    - key: issue-updated-endpoint
+      remote: sentry
+      route:
+        path: /extensions/jira/forge/issue-updated/
+    # The config page's invokeRemote calls. Sentry checks the user's own token to
+    # confirm they're a Jira admin before handing out a configure link.
+    - key: configure-endpoint
+      remote: sentry
+      auth:
+        appUserToken:
+          enabled: true
+  jira:adminPage:
+    - key: sentry-configure
+      title: Sentry
+      resource: config-page
+      resolver:
+        endpoint: configure-endpoint
+      useAsConfig: true
+resources:
+  # The config page bundle isn't in this repo; it lives with the staging app's
+  # deploy folder and is built with `npm run build` before `forge deploy`.
+  - key: config-page
+    path: config-page/build
 permissions:
   scopes:
     - read:app-system-token
+    - read:app-user-token
     - read:jira-work
     - read:jira-user
     - read:email-address:jira
