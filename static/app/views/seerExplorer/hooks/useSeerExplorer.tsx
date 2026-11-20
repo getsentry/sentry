@@ -1,5 +1,10 @@
 import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  useMutation,
+  useMutationState,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 
 import {useTimezone} from '@sentry/scraps/dateTime';
@@ -53,6 +58,9 @@ type SessionSnapshot = {
   optimisticData: SeerExplorerResponse | undefined;
   previousData: SeerExplorerResponse | undefined;
 };
+
+/** Identifies chat message sends in the mutation cache, so every send in flight can be found. */
+const SEND_MESSAGE_MUTATION_KEY = ['seer-explorer', 'send-message'];
 
 type SeerExplorerUpdateResponse = {run_id: number};
 
@@ -275,6 +283,7 @@ export const useSeerExplorer = () => {
     },
     SessionSnapshot
   >({
+    mutationKey: SEND_MESSAGE_MUTATION_KEY,
     onMutate: params => {
       setHasSentInterrupt(false);
       latestRequestIdByRunRef.current.set(params.runId, params.requestId);
@@ -447,6 +456,16 @@ export const useSeerExplorer = () => {
   const pollingState = runId === null ? undefined : chatStates[runId]?.polling;
   const isPolling = pollingState === 'polling' || pollingState === 'polling-with-backoff';
   const isTimedOut = pollingState === 'timed-out';
+  // A poll that lands before the server saves a sent message returns the finished session
+  // and stops polling, so polling alone can say the chat is idle while the send is in flight.
+  // Check every send in flight, not only the latest (`isSendingMessage`): after sending in
+  // one chat and then another, going back to the first must still show it busy.
+  const runIdsWithSendInFlight = useMutationState({
+    filters: {mutationKey: SEND_MESSAGE_MUTATION_KEY, status: 'pending'},
+    select: mutation =>
+      (mutation.state.variables as {runId: SeerExplorerRunId | null} | undefined)?.runId,
+  });
+  const isSendingToCurrentRun = runId !== null && runIdsWithSendInFlight.includes(runId);
 
   const {
     data: apiData,
@@ -759,7 +778,8 @@ export const useSeerExplorer = () => {
   return {
     sessionData: processedSessionData,
     featureId: apiData?.feature_id ?? null,
-    isPolling,
+    /** The chat is busy: Seer is working on it, or a message sent to it is still in flight. */
+    isPolling: isPolling || isSendingToCurrentRun,
     isError,
     /** The session itself came back errored with nothing to render. */
     hasSessionLoadError,
