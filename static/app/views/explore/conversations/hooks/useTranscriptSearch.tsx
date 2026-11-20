@@ -7,6 +7,9 @@ import {
   type RefObject,
 } from 'react';
 
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {useOrganization} from 'sentry/utils/useOrganization';
+
 const MATCH_HIGHLIGHT = 'conversation-search-match';
 const CURRENT_HIGHLIGHT = 'conversation-search-current';
 
@@ -20,6 +23,7 @@ interface TranscriptMatch {
 
 interface UseTranscriptSearchOptions {
   canLoadMore: boolean;
+  hasReachedPageLimit: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
   onSelectMatch: (spanId: string, element: HTMLElement) => void;
@@ -79,6 +83,7 @@ function clearHighlights() {
 export function useTranscriptSearch({
   rootRef,
   canLoadMore,
+  hasReachedPageLimit,
   isLoadingMore,
   loadMore,
   onSelectMatch,
@@ -89,7 +94,12 @@ export function useTranscriptSearch({
   const [status, setStatus] = useState<TranscriptSearchStatus>('idle');
   const [matchCount, setMatchCount] = useState(0);
   const revealedRef = useRef<string | null>(null);
+  const limitReportedRef = useRef<string | null>(null);
+  const organization = useOrganization();
   const loadNextPage = useEffectEvent(() => loadMore());
+  const reportPageLimit = useEffectEvent(() =>
+    trackAnalytics('conversations.detail.span-limit-reached', {organization})
+  );
   const selectMatch = useEffectEvent((match: TranscriptMatch) =>
     onSelectMatch(match.spanId, match.element)
   );
@@ -119,6 +129,7 @@ export function useTranscriptSearch({
 
   const clear = useCallback(() => {
     revealedRef.current = null;
+    limitReportedRef.current = null;
     setSearch(null);
     setStatus('idle');
     setMatchCount(0);
@@ -133,6 +144,12 @@ export function useTranscriptSearch({
     const {query, index} = search;
 
     let frame: number | null = null;
+    const stopAtPageLimit = () => {
+      if (hasReachedPageLimit && limitReportedRef.current !== query) {
+        limitReportedRef.current = query;
+        reportPageLimit();
+      }
+    };
     const apply = () => {
       frame = null;
       const matches = findMatches(root, query);
@@ -145,11 +162,14 @@ export function useTranscriptSearch({
           if (!isLoadingMore) {
             loadNextPage();
           }
-        } else if (matches.length === 0) {
-          highlight(matches, null);
-          setStatus('no-results');
         } else {
-          setSearch({query, index: matches.length - 1});
+          stopAtPageLimit();
+          if (matches.length === 0) {
+            highlight(matches, null);
+            setStatus('no-results');
+          } else {
+            setSearch({query, index: matches.length - 1});
+          }
         }
         return;
       }
@@ -163,13 +183,16 @@ export function useTranscriptSearch({
           if (!isLoadingMore) {
             loadNextPage();
           }
-        } else if (matches.length === 0) {
-          setStatus('no-results');
         } else {
-          // Past the last occurrence with nothing left to load: start over, like
-          // browser find.
-          revealedRef.current = null;
-          setSearch({query, index: 0});
+          stopAtPageLimit();
+          if (matches.length === 0) {
+            setStatus('no-results');
+          } else {
+            // Past the last occurrence with nothing left to load: start over, like
+            // browser find.
+            revealedRef.current = null;
+            setSearch({query, index: 0});
+          }
         }
         return;
       }
@@ -206,7 +229,7 @@ export function useTranscriptSearch({
         cancelAnimationFrame(frame);
       }
     };
-  }, [rootRef, search, canLoadMore, isLoadingMore]);
+  }, [rootRef, search, canLoadMore, hasReachedPageLimit, isLoadingMore]);
 
   useEffect(() => clearHighlights, []);
 

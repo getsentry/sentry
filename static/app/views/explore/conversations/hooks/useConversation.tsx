@@ -146,6 +146,7 @@ interface UseConversationResult {
   canAutoFetchNextPage: boolean;
   error: boolean;
   hasNextPage: boolean;
+  hasReachedPageLimit: boolean;
   isFetchingNextPage: boolean;
   isLoading: boolean;
   isNextPageError: boolean;
@@ -573,6 +574,7 @@ export function useConversation(
       canAutoFetchNextPage: false,
       nodeTraceMap: new Map(),
       hasNextPage: false,
+      hasReachedPageLimit: false,
       isFetchingNextPage: false,
       isLoading: false,
       loadNextPage,
@@ -588,6 +590,7 @@ export function useConversation(
     nodeTraceMap,
     canAutoFetchNextPage,
     hasNextPage: Boolean(hasNextPage),
+    hasReachedPageLimit: Boolean(hasNextPage && pageCount >= MAX_PAGES),
     isFetchingNextPage,
     isLoading: isLoading || nextAutoFetchPage !== null,
     loadNextPage,

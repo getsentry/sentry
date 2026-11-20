@@ -65,6 +65,7 @@ export function ConversationViewContent({
     nodeTraceMap,
     canAutoFetchNextPage,
     hasNextPage,
+    hasReachedPageLimit,
     isLoading,
     isFetchingNextPage,
     error,
@@ -194,6 +195,7 @@ export function ConversationViewContent({
                 key={conversation.conversationId}
                 rootRef={contentRef}
                 canLoadMore={canAutoFetchNextPage}
+                hasReachedPageLimit={hasReachedPageLimit}
                 isLoadingMore={isLoading || isFetchingNextPage}
                 loadMore={loadNextPage}
                 onSelectMatch={(spanId, element) => {

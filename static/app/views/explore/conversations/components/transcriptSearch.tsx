@@ -16,6 +16,7 @@ const MAX_QUERY_LENGTH = 256;
 
 interface TranscriptSearchProps {
   canLoadMore: boolean;
+  hasReachedPageLimit: boolean;
   isLoadingMore: boolean;
   loadMore: () => void;
   onSelectMatch: (spanId: string, element: HTMLElement) => void;
@@ -25,6 +26,7 @@ interface TranscriptSearchProps {
 export function TranscriptSearch({
   rootRef,
   canLoadMore,
+  hasReachedPageLimit,
   isLoadingMore,
   loadMore,
   onSelectMatch,
@@ -34,6 +36,7 @@ export function TranscriptSearch({
   const search = useTranscriptSearch({
     rootRef,
     canLoadMore,
+    hasReachedPageLimit,
     isLoadingMore,
     loadMore,
     onSelectMatch,
