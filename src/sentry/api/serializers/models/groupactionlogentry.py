@@ -427,6 +427,11 @@ class GroupActionLogEntrySerializer(Serializer):
                 "description": action.description,
                 "citations": [citation.dict() for citation in action.citations],
                 "sourceEventId": action.source_event_id,
+                "claims": [
+                    {"claim": claim.claim, "citationIds": claim.citation_ids}
+                    for claim in action.claims
+                ],
+                "evidence": [citation.to_api() for citation in action.evidence],
             }
         elif obj.type == GroupActionType.INVESTIGATION_LINKED.value:
             data = {

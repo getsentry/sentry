@@ -88,6 +88,8 @@ class GroupActionLogEntrySerializerTestCase(TestCase):
                 }
             ],
             "sourceEventId": "event-id",
+            "claims": [],
+            "evidence": [],
         }
 
     def test_impact_assessment_is_in_activity(self) -> None:

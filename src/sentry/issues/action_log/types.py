@@ -13,7 +13,7 @@ from typing import Any, ClassVar, Literal, NotRequired, Optional, TypeAlias, Typ
 import orjson
 from pydantic import BaseModel, Field
 
-from sentry.issues.impact.types import ImpactCitation
+from sentry.issues.impact.types import ImpactCitation, ImpactClaim, StoredCitation
 
 # NOTE: Underspecified schema; don't copy this. See the GroupAction docstring.
 # `int` comes first so pydantic keeps pr_number an int; with `str` first it coerced it to one.
@@ -655,6 +655,10 @@ class ImpactAssessmentAction(GroupAction):
     description: str
     citations: list[ImpactCitation]
     source_event_id: str
+    # Citation contract version 2: claims citing typed citations in `evidence` by id.
+    # Empty for version 1 assessments, which only have `citations`.
+    claims: list[ImpactClaim] = Field(default_factory=list)
+    evidence: list[StoredCitation] = Field(default_factory=list)
 
     @classmethod
     def get_type(cls) -> GroupActionType:

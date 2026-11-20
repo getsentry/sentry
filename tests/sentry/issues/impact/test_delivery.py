@@ -123,3 +123,94 @@ class DeliverImpactAssessmentTest(TestCase):
 
         self.agent_run.refresh_from_db()
         assert self.agent_run.extras == original_extras
+
+
+FRAME = {
+    "id": "c_frame001",
+    "kind": "event",
+    "title": "submitOrder in checkout.ts:88",
+    "locator": {
+        "eventId": "a" * 32,
+        "focus": {"type": "frame", "exceptionIndex": 0, "frameIndex": 2},
+    },
+}
+USERS = {
+    "id": "c_users001",
+    "kind": "issue",
+    "title": "SHOP-1: 903 users",
+    "locator": {"groupId": "123", "stat": {"name": "users", "value": 903}},
+}
+
+
+class DeliverTypedCitationImpactAssessmentTest(TestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.group = self.create_group(project=self.project)
+        run = self.create_seer_run(organization=self.organization, type="feature_run")
+        self.agent_run = self.create_seer_agent_run(
+            run=run,
+            source=IMPACT_FEATURE_ID,
+            group=self.group,
+            project=self.project,
+            extras={"source_event_id": "a" * 32, "citation_contract_version": 2},
+        )
+
+    def deliver(self, result: dict[str, object]) -> GroupActionLogEntry | None:
+        with self.feature("projects:issue-action-log-write-to-db"), outbox_runner():
+            deliver_impact_assessment(
+                organization_id=self.organization.id,
+                run_uuid=self.agent_run.run.uuid,
+                status="completed",
+                result=result,
+                error=None,
+            )
+        return GroupActionLogEntry.objects.filter(
+            group_id=self.group.id, type=ImpactAssessmentAction.get_type()
+        ).first()
+
+    def test_publishes_claims_with_evidence(self) -> None:
+        other_org_project = self.create_project(organization=self.create_organization())
+        foreign = {
+            **FRAME,
+            "id": "c_foreign01",
+            "projectId": str(other_org_project.id),
+        }
+        entry = self.deliver(
+            {
+                "score": 70,
+                "description": "Users cannot complete checkout.",
+                "claims": [
+                    {"claim": "Checkout crashes on submit.", "citationIds": [FRAME["id"]]},
+                    {"claim": "903 users hit it.", "citationIds": [USERS["id"], "c_missing01"]},
+                    {"claim": "Leaks across orgs.", "citationIds": [foreign["id"]]},
+                ],
+                "citations": [FRAME, USERS, foreign, {"id": "junk"}],
+            }
+        )
+
+        assert entry is not None
+        action = entry.action
+        assert isinstance(action, ImpactAssessmentAction)
+        assert [(c.claim, c.citation_ids) for c in action.claims] == [
+            ("Checkout crashes on submit.", [FRAME["id"]]),
+            ("903 users hit it.", [USERS["id"]]),
+        ]
+        assert [c.to_api() for c in action.evidence] == [FRAME, USERS]
+        # Older clients read `citations`; each claim maps to its first citation.
+        assert [(c.reference, c.source, c.claim) for c in action.citations] == [
+            (FRAME["id"], "event", "Checkout crashes on submit."),
+            (USERS["id"], "issue", "903 users hit it."),
+        ]
+
+    def test_drops_assessment_without_backed_claims(self) -> None:
+        assert (
+            self.deliver(
+                {
+                    "score": 70,
+                    "description": "Unknown.",
+                    "claims": [{"claim": "Made up.", "citationIds": ["c_missing01"]}],
+                    "citations": [],
+                }
+            )
+            is None
+        )

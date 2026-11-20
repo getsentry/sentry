@@ -54,6 +54,7 @@ from sentry.issues.derived.framework import (
 )
 from sentry.issues.impact.types import (
     ImpactCitationData,
+    ImpactClaimData,
     ImpactDerivedData,
     get_impact_level,
 )
@@ -240,6 +241,11 @@ def track_impact(state: StateView, entry: GroupActionLogEntry) -> AggregatorResu
         description=action.description,
         citations=citations,
         sourceEventId=action.source_event_id,
+        claims=[
+            ImpactClaimData(claim=claim.claim, citationIds=claim.citation_ids)
+            for claim in action.claims
+        ],
+        evidence=[citation.to_api() for citation in action.evidence],
     )
 
     return emit(IMPACT.value(impact))
