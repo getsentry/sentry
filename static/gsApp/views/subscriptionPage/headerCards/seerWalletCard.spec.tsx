@@ -15,6 +15,7 @@ function WalletFixture(params: Partial<SeerWalletBalance> = {}): SeerWalletBalan
   return {
     balance: 320,
     creditPriceCents: 1,
+    dailyLimit: null,
     included: {total: 500, remaining: 320, resetsAt: '2026-11-01'},
     purchased: {total: 0, remaining: 0, expiresAt: null},
     percentUsed: 0.36,

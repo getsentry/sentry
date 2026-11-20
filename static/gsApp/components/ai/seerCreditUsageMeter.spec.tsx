@@ -17,13 +17,20 @@ function mockWallet(
   {
     autoReload = false,
     balance = 250,
+    dailyLimit = null,
     percentUsed = 0.75,
-  }: {autoReload?: boolean; balance?: number; percentUsed?: number} = {}
+  }: {
+    autoReload?: boolean;
+    balance?: number;
+    dailyLimit?: {remaining: number; total: number} | null;
+    percentUsed?: number;
+  } = {}
 ) {
   const wallet = MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/seer-wallet/`,
     body: {
       balance,
+      dailyLimit,
       percentUsed,
       included: {remaining: balance, resetsAt: null, total: 1000},
       purchased: {remaining: 0, expiresAt: null, total: 0},
@@ -168,6 +175,44 @@ describe('SeerCreditUsageMeter', () => {
     await userEvent.hover(await screen.findByText('100%'));
 
     expect(await screen.findByText('1 credit remaining.')).toBeInTheDocument();
+  });
+
+  it.each([
+    [
+      'what is left of the daily usage limit when it runs out first',
+      {autoReload: false, balance: 2000, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 72% of its daily usage limit.',
+      '700 credits remaining today.',
+    ],
+    [
+      'the wallet when it runs out first',
+      {autoReload: false, balance: 250, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 75% of your available monthly credits.',
+      '250 credits remaining.',
+    ],
+    [
+      'the daily usage limit when auto-reload refills the wallet',
+      {autoReload: true, balance: 250, dailyLimit: {total: 2500, remaining: 700}},
+      'Your organization has used 72% of its daily usage limit.',
+      '700 credits remaining today.',
+    ],
+    [
+      'a $0 daily usage limit as fully used',
+      {autoReload: false, balance: 2000, dailyLimit: {total: 0, remaining: 0}},
+      'Your organization has used 100% of its daily usage limit.',
+      '0 credits remaining today.',
+    ],
+  ] as const)('counts down %s', async (_, wallet, usedText, remainingText) => {
+    mockWallet(billingOrganization, wallet);
+
+    render(<SeerCreditUsageMeter hasEnoughCredits />, {
+      organization: billingOrganization,
+    });
+
+    await userEvent.hover(await screen.findByTestId('seer-credit-usage-meter'));
+
+    expect(await screen.findByText(usedText)).toBeInTheDocument();
+    expect(screen.getByText(remainingText)).toBeInTheDocument();
   });
 
   it.each([

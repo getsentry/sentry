@@ -81,6 +81,7 @@ class FixtureQueryClient extends QueryClient {
       const {remaining, total} = this.wallet;
       return {
         balance: remaining,
+        dailyLimit: null,
         percentUsed: 1 - remaining / total,
         included: {remaining, resetsAt: null, total},
         purchased: {remaining: 0, expiresAt: null, total: 0},
