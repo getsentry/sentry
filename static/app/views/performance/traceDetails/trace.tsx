@@ -1664,6 +1664,57 @@ const TraceStylingWrapper = styled('div')`
     display: flex;
   }
 
+  /* Where a span shifted for clock drift was recorded, shown for the selected row */
+  .TraceClockDriftGhost {
+    position: absolute;
+    left: 0;
+    height: 16px;
+    border: 1px dashed ${p => p.theme.tokens.graphics.neutral.moderate};
+    background-color: ${p => p.theme.tokens.graphics.neutral.muted};
+  }
+
+  .TraceClockDriftConnector {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    color: ${p => p.theme.tokens.graphics.neutral.moderate};
+
+    /* The dashed line */
+    &::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(50% - 0.5px);
+      height: 1px;
+      background-image: repeating-linear-gradient(
+        to right,
+        currentColor 0 4px,
+        transparent 4px 7px
+      );
+    }
+
+    /* The arrowhead */
+    &::after {
+      content: '';
+      position: absolute;
+      top: calc(50% - 3.5px);
+      border-top: 3.5px solid transparent;
+      border-bottom: 3.5px solid transparent;
+    }
+
+    &[data-direction='right']::after {
+      right: 0;
+      border-left: 5px solid currentColor;
+    }
+
+    &[data-direction='left']::after {
+      left: 0;
+      border-right: 5px solid currentColor;
+    }
+  }
+
   .TraceChildrenCount {
     height: 16px;
     white-space: nowrap;
