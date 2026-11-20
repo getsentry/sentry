@@ -1,0 +1,68 @@
+---
+title: Team Admin Project Creation Alert
+description: Warns members on Create a Project that their agent can only create projects on teams they administer.
+category: patterns
+source: sentry/views/projectInstall/teamAdminProjectCreationAlert
+---
+
+import {Stack} from '@sentry/scraps/layout';
+
+import * as Storybook from 'sentry/stories';
+import {TeamAdminProjectCreationAlert} from 'sentry/views/projectInstall/teamAdminProjectCreationAlert';
+
+export const teams = [
+  {id: '1', slug: 'backend', name: 'Backend', teamRole: 'admin', access: ['team:admin']},
+  {
+    id: '2',
+    slug: 'frontend',
+    name: 'Frontend',
+    teamRole: 'admin',
+    access: ['team:admin'],
+  },
+];
+
+Create a Project shows this alert above the agent setup when "Let Members Create Projects" is off and the member has no `project:admin` access. These members can still create projects on the teams they administer, so the alert names those teams. The project-create endpoints don't know which agent run made a request, so a 403 the agent hits never reaches the page. The alert warns the member before that happens.
+
+The host passes only the teams where `isTeamAdminForProjectCreation` is true, the same check `canCreateProject` uses. It hides the alert once setup completes.
+
+## Before the Prompt Is Copied
+
+Before an agent connects, the setup card still shows its own "Set up manually" link, so the alert has no button.
+
+<Storybook.Demo>
+  <Stack width="100%" maxWidth="700px">
+    <TeamAdminProjectCreationAlert teams={teams} />
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+<TeamAdminProjectCreationAlert teams={projectCreationTeams} />
+```
+
+## While the Agent Runs
+
+The setup card hides its manual link while a run is active. Pass `onSetupInBrowser` so a member whose agent is stuck on a 403 can still switch to the manual form.
+
+<Storybook.Demo>
+  <Stack width="100%" maxWidth="700px">
+    <TeamAdminProjectCreationAlert teams={teams} onSetupInBrowser={() => {}} />
+  </Stack>
+</Storybook.Demo>
+
+```tsx
+<TeamAdminProjectCreationAlert
+  teams={projectCreationTeams}
+  onSetupInBrowser={isAgentConnected && !hasRunFailed ? openManualSetup : undefined}
+/>
+```
+
+## Props
+
+| Prop               | Type         | Description                                                            |
+| ------------------ | ------------ | ---------------------------------------------------------------------- |
+| `teams`            | `Team[]`     | The teams the member administers, listed as `#slug`.                   |
+| `onSetupInBrowser` | `() => void` | Optional. Shows a "Set up manually" button that opens the manual form. |
+
+## Accessibility
+
+The alert uses the warning variant with an icon, so the warning does not rely on color alone. The "Set up manually" button has a visible text label and supports keyboard navigation.
