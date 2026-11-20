@@ -48,7 +48,8 @@ interface RepoAccess {
   connectedAccounts: string[];
   /**
    * `found` when Seer can open the repo, `unknown` when Sentry can't say why it can't, or the
-   * reason it can't.
+   * reason it can't. Asked without a repo, `found` when source control is connected, or
+   * `no_scm_integration`.
    */
   status: string;
 }
@@ -226,6 +227,30 @@ type PromptAction =
   | {label: string; onClick: () => void}
   | {requestMessage: string; requested: boolean};
 
+/**
+ * How the popup names what Seer couldn't reach: a repo, or, when a list of repos came back empty
+ * because no source control is connected, the organization's repos.
+ */
+function getTitles(repoName: string | null) {
+  if (!repoName) {
+    return {
+      checking: t('Checking whether source control is connected'),
+      couldntCheck: t("Couldn't check whether source control is connected"),
+      found: t('Perfect, source control is connected'),
+      cant: t("Seer can't see this organization's repos"),
+      // How a member's request to the owners starts.
+      requestStart: t("Seer can't see this organization's repos."),
+    };
+  }
+  return {
+    checking: t('Checking whether Seer can access %s', repoName),
+    couldntCheck: t("Couldn't check whether Seer can access %s", repoName),
+    found: t('Perfect, Seer can access %s', repoName),
+    cant: t("Seer can't access %s", repoName),
+    requestStart: t("Seer can't access %s.", repoName),
+  };
+}
+
 /** What the popup says. Every version has the same layout. */
 interface Prompt {
   /**
@@ -266,26 +291,23 @@ function getPrompt({
   onCheckAgain: () => void;
   onContinue: () => void;
   orgSlug: string;
-  repoName: string;
+  /** Null when there's no repo: a list of repos came back empty. */
+  repoName: string | null;
   /** The messages of the member's requests to the owners during this pause. */
   requestedMessages: string[];
 }): Prompt {
   const checkAgain = {label: t('Check again'), onClick: onCheckAgain};
   const continueRun = {label: t('Continue'), onClick: onContinue};
+  const titles = getTitles(repoName);
 
   if (!access) {
     // No answer for this pause yet, so whatever was wrong may already be fixed. That holds while
     // checks fail too: a failure says nothing about the repo.
     if (isWatching) {
-      return {
-        title: t('Checking whether Seer can access %s', repoName),
-        variant: 'muted',
-        body: null,
-        actions: [],
-      };
+      return {title: titles.checking, variant: 'muted', body: null, actions: []};
     }
     return {
-      title: t("Couldn't check whether Seer can access %s", repoName),
+      title: titles.couldntCheck,
       variant: 'warning',
       body: t('Check again, or continue and Seer will try again.'),
       actions: [checkAgain, continueRun],
@@ -294,7 +316,7 @@ function getPrompt({
 
   if (isFound(access.status)) {
     return {
-      title: t('Perfect, Seer can access %s', repoName),
+      title: titles.found,
       variant: 'success',
       body: t('Continue and Seer will try again.'),
       actions: [continueRun],
@@ -304,7 +326,7 @@ function getPrompt({
   const problem = getProblem(access, orgSlug);
   if (!problem) {
     return {
-      title: t("Seer can't access %s", repoName),
+      title: titles.cant,
       variant: 'warning',
       body: t(
         "Sentry can't tell what's wrong. Check the repo name, or continue and Seer will try again."
@@ -317,7 +339,7 @@ function getPrompt({
   // request it either way, and the message says which one it is. A new problem (say, the owners
   // connected a different account) needs a new request, so only a request for this one counts.
   const mustRequest = problem.needsInstall && !canInstall;
-  const requestMessage = `${t("Seer can't access %s.", repoName)} ${problem.body}`;
+  const requestMessage = `${titles.requestStart} ${problem.body}`;
   const requested = mustRequest && requestedMessages.includes(requestMessage);
   const fix: PromptAction = mustRequest ? {requestMessage, requested} : problem.fix;
   const hint = mustRequest
@@ -329,7 +351,7 @@ function getPrompt({
   // Checking again could still help, but the popup has stopped doing it every few seconds.
   if (!isWatching && !isSettled(access.status)) {
     return {
-      title: t("Seer can't access %s", repoName),
+      title: titles.cant,
       variant: 'warning',
       body: problem.body,
       hint,
@@ -339,7 +361,7 @@ function getPrompt({
     };
   }
   return {
-    title: t("Seer can't access %s", repoName),
+    title: titles.cant,
     variant: 'warning',
     body: problem.body,
     hint,
@@ -358,18 +380,20 @@ interface ConnectScmBlockProps {
 }
 
 /**
- * The prompt above the composer while a run waits on a repo it couldn't open. What it shows
- * comes from Sentry's answer to "can Seer open this repo now?", which it checks until the answer
- * is yes. Until this pause's first answer it shows that it's checking, and a failed check keeps
- * whatever it showed last, since it can't say anything new. If it stops checking without an
- * answer, it says it couldn't check. The run resumes on one of its actions or on the user's next
- * message.
+ * The prompt above the composer while a run waits on a repo it couldn't open, or, with no repo,
+ * on source control after a list of repos came back empty without it. What it shows comes from
+ * Sentry's answer to "can Seer open this repo now?" (or "is source control connected now?"),
+ * which it checks until the answer is yes. Until this pause's first answer it shows that it's
+ * checking, and a failed check keeps whatever it showed last, since it can't say anything new. If
+ * it stops checking without an answer, it says it couldn't check. The run resumes on one of its
+ * actions or on the user's next message.
  */
 export function ConnectScmBlock({
   pendingInput,
   respondToUserInput,
 }: ConnectScmBlockProps) {
   const data = pendingInput.data as ConnectScmData;
+  const repoName = data.repo_name;
   const organization = useOrganization();
   // Whether the field to correct the repo name is open. A later request remounts the block, so
   // it starts closed.
@@ -389,7 +413,8 @@ export function ConnectScmBlock({
     '/organizations/$organizationIdOrSlug/seer/repo-access/',
     {
       path: {organizationIdOrSlug: organization.slug},
-      query: {repoName: data.repo_name},
+      // Without a repo, Sentry says whether source control is connected.
+      query: repoName ? {repoName} : undefined,
       staleTime: 0,
     }
   );
@@ -424,7 +449,7 @@ export function ConnectScmBlock({
   const prompt = getPrompt({
     access,
     isWatching,
-    repoName: data.repo_name,
+    repoName,
     orgSlug: organization.slug,
     canInstall: canManageIntegrations(organization),
     requestedMessages,
@@ -458,15 +483,15 @@ export function ConnectScmBlock({
             </Stack>
             {isChecking ? (
               <Placeholder height="28px" width="160px" />
-            ) : isCorrecting ? (
+            ) : isCorrecting && repoName ? (
               <CorrectRepoForm
-                repoName={data.repo_name}
+                repoName={repoName}
                 onCancel={() => setIsCorrecting(false)}
-                onSubmit={repoName => {
+                onSubmit={correctedName => {
                   setIsCorrecting(false);
                   respondToUserInput(pendingInput.id, {
                     decision: 'correct_repo',
-                    repo_name: repoName,
+                    repo_name: correctedName,
                   });
                 }}
               />
@@ -505,7 +530,7 @@ export function ConnectScmBlock({
                     </Button>
                   );
                 })}
-                {!prompt.requested && (
+                {repoName && !prompt.requested && (
                   <Button size="sm" onClick={() => setIsCorrecting(true)}>
                     {t('Correct repo name')}
                   </Button>

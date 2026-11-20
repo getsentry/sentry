@@ -32,15 +32,33 @@ describe('ConnectScmBlock', () => {
     });
   }
 
+  /** Answers the check without a repo: whether source control is connected. */
+  function mockSourceControl(status: string) {
+    return MockApiClient.addMockResponse({
+      url: REPO_ACCESS_URL,
+      body: {status, connectedAccounts: []},
+      match: [
+        (_url: string, options: {query?: Record<string, unknown>}) =>
+          options.query?.repoName === undefined,
+      ],
+    });
+  }
+
   function renderBlock({
     failureReason = 'no_scm_integration',
     org = organization,
-  }: {failureReason?: string; org?: typeof organization} = {}) {
+    repoName = 'acme/app',
+  }: {
+    failureReason?: string;
+    org?: typeof organization;
+    /** Null for a list of repos that came back empty. */
+    repoName?: string | null;
+  } = {}) {
     const respondToUserInput = jest.fn();
     const pendingInput: PendingUserInput = {
       id: 'input-id',
       input_type: 'connect_scm',
-      data: {repo_name: 'acme/app', failure_reason: failureReason},
+      data: {repo_name: repoName, failure_reason: failureReason},
     };
     render(
       <ConnectScmBlock
@@ -641,6 +659,70 @@ describe('ConnectScmBlock', () => {
           "This repo's account isn't connected to this organization. Connected: acme-labs."
         )
       ).toBeInTheDocument();
+    });
+  });
+
+  describe('after a list of repos came back empty', () => {
+    it('asks to connect source control, with no repo name to correct', async () => {
+      mockSourceControl('no_scm_integration');
+      renderBlock({repoName: null});
+
+      expect(
+        screen.getByText('Checking whether source control is connected')
+      ).toBeInTheDocument();
+      expect(
+        await screen.findByText("Seer can't see this organization's repos")
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText('No source control is connected to this organization.')
+      ).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Connect source control'})
+      ).toHaveAttribute('href', INTEGRATIONS_LINK);
+      expect(
+        screen.queryByRole('button', {name: 'Correct repo name'})
+      ).not.toBeInTheDocument();
+      expect(
+        screen.getByRole('button', {name: 'Continue without code'})
+      ).toBeInTheDocument();
+    });
+
+    it('retries on Continue once source control is connected', async () => {
+      mockSourceControl('found');
+      const respondToUserInput = renderBlock({repoName: null});
+
+      expect(
+        await screen.findByText('Perfect, source control is connected')
+      ).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('button', {name: 'Continue'}));
+
+      expect(respondToUserInput).toHaveBeenCalledWith('input-id', {decision: 'retry'});
+    });
+
+    it('lets a member request source control', async () => {
+      mockSourceControl('no_scm_integration');
+      const request = MockApiClient.addMockResponse({
+        url: INTEGRATION_REQUEST_URL,
+        method: 'POST',
+        statusCode: 201,
+      });
+      renderBlock({repoName: null, org: memberOrganization});
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Request installation'})
+      );
+
+      expect(request).toHaveBeenCalledWith(
+        INTEGRATION_REQUEST_URL,
+        expect.objectContaining({
+          data: {
+            providerType: 'category',
+            providerSlug: 'source code management',
+            message:
+              "Seer can't see this organization's repos. No source control is connected to this organization.",
+          },
+        })
+      );
     });
   });
 
