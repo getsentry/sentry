@@ -30,7 +30,12 @@ from sentry.workflow_engine.processors.action import (
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
 from sentry.workflow_engine.registry import action_handler_registry
-from sentry.workflow_engine.types import ActionHandler, FeatureGate, WorkflowEventData
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    FeatureGate,
+    UnsupportedActionEvent,
+    WorkflowEventData,
+)
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
 
@@ -50,6 +55,28 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             occurrence=self.build_occurrence(evidence_data={"detector_id": self.detector.id})
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
+
+    def test_unsupported_event_does_not_consume_frequency(self) -> None:
+        self.workflow.update(config={"frequency": 30})
+        with patch.object(
+            self.action.get_handler(),
+            "validate_event_data",
+            side_effect=UnsupportedActionEvent("Unsupported event"),
+        ):
+            actions, attribution, workflows = filter_recently_fired_workflow_actions(
+                {self.action_group}, self.event_data
+            )
+        assert list(actions) == []
+        assert attribution == {}
+        assert workflows == set()
+        assert not WorkflowActionGroupStatus.objects.exists()
+
+        actions, attribution, workflows = filter_recently_fired_workflow_actions(
+            {self.action_group}, self.event_data
+        )
+        assert list(actions) == [self.action]
+        assert attribution == {self.action.id: self.workflow.id}
+        assert workflows == {self.workflow.id}
 
     def test(self) -> None:
         status_1 = WorkflowActionGroupStatus.objects.create(
