@@ -221,6 +221,19 @@ describe('useBootstrapTeamsQuery', () => {
     expect(TeamStore.getState().teams).toEqual([]);
   });
 
+  it('stops loading when the user cannot access teams', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/teams/`,
+      statusCode: 403,
+    });
+
+    const {result} = renderHookWithProviders(() => useBootstrapTeamsQuery(orgSlug));
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(TeamStore.getState().loading).toBe(false);
+    expect(TeamStore.getState().teams).toEqual([]);
+  });
+
   it('does not fetch when orgSlug is null', () => {
     const {result} = renderHookWithProviders(() => useBootstrapTeamsQuery(null));
     expect(result.current.data).toBeUndefined();
@@ -261,6 +274,19 @@ describe('useBootstrapProjectsQuery', () => {
     const {result} = renderHookWithProviders(() => useBootstrapProjectsQuery(orgSlug));
 
     await waitFor(() => expect(result.current.error).toBeDefined());
+    expect(ProjectsStore.getState().projects).toEqual([]);
+  });
+
+  it('stops loading when the user cannot access projects', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${orgSlug}/projects/`,
+      statusCode: 403,
+    });
+
+    const {result} = renderHookWithProviders(() => useBootstrapProjectsQuery(orgSlug));
+
+    await waitFor(() => expect(result.current.isError).toBe(true));
+    expect(ProjectsStore.getState().loading).toBe(false);
     expect(ProjectsStore.getState().projects).toEqual([]);
   });
 

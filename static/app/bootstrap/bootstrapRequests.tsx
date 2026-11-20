@@ -19,6 +19,7 @@ import {
   buildSentryFeaturesHandler,
 } from 'sentry/utils/featureFlags';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
+import {RequestError} from 'sentry/utils/requestError/requestError';
 
 // 30 second stale time
 // Stale time decides if the query should be refetched
@@ -77,8 +78,10 @@ export function useBootstrapTeamsQuery(orgSlug: string | null) {
         teamsQuery.data.hasMore,
         teamsQuery.data.cursor
       );
+    } else if (isForbidden(teamsQuery.error)) {
+      TeamStore.loadInitialData([]);
     }
-  }, [teamsQuery.data]);
+  }, [teamsQuery.data, teamsQuery.error]);
 
   return teamsQuery;
 }
@@ -89,10 +92,21 @@ export function useBootstrapProjectsQuery(orgSlug: string | null) {
   useLayoutEffect(() => {
     if (projectsQuery.data) {
       ProjectsStore.loadInitialData(projectsQuery.data);
+    } else if (isForbidden(projectsQuery.error)) {
+      ProjectsStore.loadInitialData([]);
     }
-  }, [projectsQuery.data]);
+  }, [projectsQuery.data, projectsQuery.error]);
 
   return projectsQuery;
+}
+
+/**
+ * Roles without project or team access, such as billing, get a 403 from the
+ * projects and teams endpoints but can still use the organization. Treat that
+ * as an empty list so the stores stop loading.
+ */
+function isForbidden(error: Error | null) {
+  return error instanceof RequestError && error.status === 403;
 }
 
 export function getBootstrapOrganizationQueryOptions(orgSlug: string | null) {
