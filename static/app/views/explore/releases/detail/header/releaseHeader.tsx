@@ -10,7 +10,7 @@ import {LinkButton} from '@sentry/scraps/button';
 import {Container, Stack} from '@sentry/scraps/layout';
 import {LinkTabs} from '@sentry/scraps/tabs';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {URL_PARAM} from 'sentry/components/pageFilters/constants';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
@@ -29,9 +29,7 @@ import {useReleaseMenuItems} from './useReleaseMenuItems';
 
 const releaseFeedbackOptions = {
   messagePlaceholder: t('How can we improve the Releases experience?'),
-  tags: {
-    'feedback.source': 'release-detail',
-  },
+  tags: {'feedback.source': 'release-detail'},
 };
 
 type Props = {
@@ -174,7 +172,9 @@ export function ReleaseHeader({
           type: 'page-title',
           label: formatVersion(version),
           leadingGraphic: (
-            <IdBadge project={project} disableLink avatarSize={16} hideName />
+            <ProjectsBadge
+              projectPlatforms={project.platform ? [project.platform] : ['default']}
+            />
           ),
           pagination: {
             previous: {

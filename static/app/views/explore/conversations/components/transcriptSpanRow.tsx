@@ -61,10 +61,7 @@ export function TranscriptSpanRow({
       data-node-id={node?.id}
       style={
         isSelected
-          ? {
-              outline: `2px solid ${theme.tokens.focus.default}`,
-              outlineOffset: '-2px',
-            }
+          ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
           : undefined
       }
       onClick={(e: React.MouseEvent) => {

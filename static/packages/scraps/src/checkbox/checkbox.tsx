@@ -7,11 +7,7 @@ import {mergeRefs} from '@react-aria/utils';
 import type {FormSize} from '@sentry/scraps/theme';
 import {Tooltip, useDisabledTooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 
-type CheckboxConfig = {
-  borderRadius: string;
-  box: string;
-  icon: string;
-};
+type CheckboxConfig = {borderRadius: string; box: string; icon: string};
 
 const NativeHiddenCheckbox = styled('input')`
   position: absolute;
@@ -174,11 +170,7 @@ const CheckboxWrapper = styled('div', {
     typeof prop === 'string' &&
     isPropValid(prop) &&
     !['disabled', 'readOnly'].includes(prop),
-})<{
-  size: NonNullable<CheckboxProps['size']>;
-  disabled?: boolean;
-  readOnly?: boolean;
-}>`
+})<{size: NonNullable<CheckboxProps['size']>; disabled?: boolean; readOnly?: boolean}>`
   position: relative;
   cursor: ${p => (p.disabled || p.readOnly ? 'initial' : 'pointer')};
   display: inline-flex;
@@ -213,9 +205,7 @@ const CheckboxWrapper = styled('div', {
   }
 `;
 
-const FakeCheckbox = styled('div')<{
-  size: NonNullable<CheckboxProps['size']>;
-}>`
+const FakeCheckbox = styled('div')<{size: NonNullable<CheckboxProps['size']>}>`
   position: relative;
   display: flex;
   align-items: center;

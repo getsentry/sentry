@@ -38,16 +38,10 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install our Go SDK using [code:go get]. The minimum version of the SDK that supports metrics is [code:0.42.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'go get github.com/getsentry/sentry-go',
-        },
+        {type: 'code', language: 'bash', code: 'go get github.com/getsentry/sentry-go'},
       ],
     },
   ],
@@ -60,9 +54,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are automatically enabled when you initialize the SDK. You can emit metrics using the [code:sentry.NewMeter] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

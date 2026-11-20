@@ -1,5 +1,4 @@
 import {Fragment, useState} from 'react';
-import {useTheme} from '@emotion/react';
 import {IconClock} from '@sentry/icons/clock';
 import {IconGraph} from '@sentry/icons/graph';
 
@@ -12,20 +11,12 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {PageFilters} from 'sentry/types/core';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
-import {useFetchEventsTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
 import {getIntervalOptionsForPageFilter} from 'sentry/utils/useChartInterval';
 import {useClassifiedCounts} from 'sentry/views/classifiers/hooks/useClassifiedCounts';
+import {useClassifierOutput} from 'sentry/views/classifiers/hooks/useClassifierOutput';
 import {useClassifierPageFilters} from 'sentry/views/classifiers/hooks/useClassifierPageFilters';
-import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getClassifierResultQuery, getResultField} from 'sentry/views/classifiers/utils';
-import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
-import {Area} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/area';
-import {Bars} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/bars';
-import {Line} from 'sentry/views/dashboards/widgets/timeSeriesWidget/plottables/line';
-import {TimeSeriesWidgetVisualization} from 'sentry/views/dashboards/widgets/timeSeriesWidget/timeSeriesWidgetVisualization';
 import {Widget} from 'sentry/views/dashboards/widgets/widget/widget';
 import {EXPLORE_CHART_TYPE_OPTIONS} from 'sentry/views/explore/spans/charts';
 import {ChartType} from 'sentry/views/insights/common/components/chartTypes';
@@ -57,32 +48,9 @@ interface ClassifierInstancesChartProps {
   classifier: TelemetryClassifier;
 }
 
-interface SeriesGroup {
-  alias: string;
-  timeSeries: TimeSeries[];
-  color?: string;
-}
-
-function createPlottable(
-  chartType: ChartType,
-  series: TimeSeries,
-  {alias, color}: SeriesGroup
-) {
-  const config = {alias, name: alias, color};
-  switch (chartType) {
-    case ChartType.LINE:
-      return new Line(series, config);
-    case ChartType.AREA:
-      return new Area(series, config);
-    default:
-      return new Bars(series, {...config, stack: 'results'});
-  }
-}
-
 export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartProps) {
-  const theme = useTheme();
   const selection = useClassifierPageFilters(classifier);
-  const {isBinary, resultFilter} = useClassifierResultFilter(classifier);
+  const {filter, output} = useClassifierOutput(classifier);
   const {data: classifiedCounts, isPending: isCountPending} =
     useClassifiedCounts(classifier);
   const [chartType, setChartType] = useState(ChartType.BAR);
@@ -98,80 +66,8 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
     projects: [Number(classifier.projectId)],
   };
 
-  const isGrouped = isBinary && resultFilter === 'all';
-  const yAxis = `count(${getResultField(classifier.resultAttribute)})`;
-
-  const primaryResults = useFetchEventsTimeSeries(
-    DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
-    {
-      yAxis,
-      query: getClassifierResultQuery(classifier, isGrouped ? 'matches' : resultFilter),
-      interval: chartInterval,
-      pageFilters,
-    },
-    'api.classifiers.detail.instances-chart'
-  );
-  const nonMatchResults = useFetchEventsTimeSeries(
-    DiscoverDatasets.ENRICHMENT_ATTRIBUTES,
-    {
-      yAxis,
-      query: getClassifierResultQuery(classifier, 'non-matches'),
-      interval: chartInterval,
-      pageFilters,
-      enabled: isGrouped,
-    },
-    'api.classifiers.detail.instances-chart'
-  );
-
-  const isPending = primaryResults.isPending || (isGrouped && nonMatchResults.isPending);
-  const error = primaryResults.error ?? (isGrouped ? nonMatchResults.error : null);
-  const nonMatchColor = theme.tokens.dataviz.semantic.neutral;
-  const seriesGroups: SeriesGroup[] = isGrouped
-    ? [
-        {alias: t('Matches'), timeSeries: primaryResults.data?.timeSeries ?? []},
-        {
-          alias: t('Non-matches'),
-          timeSeries: nonMatchResults.data?.timeSeries ?? [],
-          color: nonMatchColor,
-        },
-      ]
-    : [
-        {
-          alias: TITLE,
-          timeSeries: primaryResults.data?.timeSeries ?? [],
-          color: resultFilter === 'non-matches' ? nonMatchColor : undefined,
-        },
-      ];
-  const plottables = seriesGroups.flatMap(group =>
-    group.timeSeries.map(series => createPlottable(chartType, series, group))
-  );
-  const hasInstances = seriesGroups.some(({timeSeries}) =>
-    timeSeries.some(series => series.values.some(item => !!item.value))
-  );
   const chartIcon =
     chartType === ChartType.LINE ? 'line' : chartType === ChartType.AREA ? 'area' : 'bar';
-
-  let visualization: React.ReactNode;
-  if (isPending) {
-    visualization = <TimeSeriesWidgetVisualization.LoadingPlaceholder />;
-  } else if (error) {
-    visualization = (
-      <Container position="absolute" inset={0}>
-        <Widget.WidgetError error={error} />
-      </Container>
-    );
-  } else if (hasInstances) {
-    visualization = (
-      <TimeSeriesWidgetVisualization
-        pageFilters={pageFilters}
-        disableZoom
-        showLegend={isGrouped ? 'always' : 'never'}
-        plottables={plottables}
-      />
-    );
-  } else {
-    visualization = <TimeSeriesWidgetVisualization.NoData />;
-  }
 
   const actions = (
     <Fragment>
@@ -226,7 +122,15 @@ export function ClassifierInstancesChart({classifier}: ClassifierInstancesChartP
         Title={<Widget.WidgetTitle title={TITLE} />}
         Actions={actions}
         revealActions="always"
-        Visualization={visualization}
+        Visualization={
+          <output.Visualization
+            chartType={chartType}
+            classifier={classifier}
+            filter={filter}
+            interval={chartInterval}
+            pageFilters={pageFilters}
+          />
+        }
         Footer={footer}
       />
     </Container>

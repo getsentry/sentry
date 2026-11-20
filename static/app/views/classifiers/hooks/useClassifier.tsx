@@ -1,24 +1,16 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 
-function classifierApiOptions(organizationSlug: string, classifierId: string) {
-  return apiOptions.as<TelemetryClassifier>()(
-    '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, classifierId},
-      staleTime: 0,
-    }
-  );
-}
+import {classifierDetailsApiOptions} from './classifierApiOptions';
 
 export function useClassifier(classifierId: string) {
   const organization = useOrganization();
-  return useQuery(classifierApiOptions(organization.slug, classifierId));
+  return useQuery(classifierDetailsApiOptions(organization.slug, classifierId));
 }
 
 type UpdateClassifierPayload = Partial<Pick<TelemetryClassifier, 'status'>>;
@@ -26,17 +18,12 @@ type UpdateClassifierPayload = Partial<Pick<TelemetryClassifier, 'status'>>;
 export function useUpdateClassifier(classifierId: string) {
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const options = classifierApiOptions(organization.slug, classifierId);
+  const options = classifierDetailsApiOptions(organization.slug, classifierId);
 
   return useMutation({
     mutationFn: (data: UpdateClassifierPayload) =>
       fetchMutation<TelemetryClassifier>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, classifierId},
-          }
-        ),
+        url: parseQueryKey(options.queryKey).url,
         method: 'PUT',
         data,
       }),
@@ -55,22 +42,17 @@ export function useDeleteClassifier(classifierId: string) {
   return useMutation({
     mutationFn: () =>
       fetchMutation<void>({
-        url: getApiUrl(
-          '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, classifierId},
-          }
-        ),
+        url: parseQueryKey(
+          classifierDetailsApiOptions(organization.slug, classifierId).queryKey
+        ).url,
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [
-          getApiUrl('/organizations/$organizationIdOrSlug/classifiers/', {
-            path: {organizationIdOrSlug: organization.slug},
-          }),
-        ],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/classifiers/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
     },
   });
 }

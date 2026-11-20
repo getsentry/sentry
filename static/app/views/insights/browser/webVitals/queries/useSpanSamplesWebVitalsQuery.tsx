@@ -141,9 +141,5 @@ export function useSpanSamplesWebVitalsQuery({
           };
         })
       : [];
-  return {
-    data: tableData,
-    isPending,
-    ...rest,
-  };
+  return {data: tableData, isPending, ...rest};
 }

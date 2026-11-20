@@ -1,8 +1,7 @@
 import {useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Tag} from '@sentry/scraps/badge';
-import {Flex, Stack} from '@sentry/scraps/layout';
+import {Stack} from '@sentry/scraps/layout';
 import {Pagination} from '@sentry/scraps/pagination';
 import {COL_WIDTH_MINIMUM, COL_WIDTH_UNDEFINED} from '@sentry/scraps/table';
 import {Text} from '@sentry/scraps/text';
@@ -24,9 +23,9 @@ import {
   type ClassifiedConversation,
   type ClassifiedConversationSortKey,
 } from 'sentry/views/classifiers/hooks/useClassifiedConversations';
-import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
+import {useClassifierOutput} from 'sentry/views/classifiers/hooks/useClassifierOutput';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {getResultAttributeKey, isClassifierMatch} from 'sentry/views/classifiers/utils';
+import {getResultAttributeKey} from 'sentry/views/classifiers/utils';
 import {ConversationCell} from 'sentry/views/explore/conversations/components/conversationsTable';
 import {getConversationDetailUrl} from 'sentry/views/explore/conversations/utils/urlParams';
 
@@ -44,37 +43,6 @@ const FLEXIBLE_CONVERSATION_COLUMN = {
   conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`,
 };
 
-function ClassifierResult({
-  classifier,
-  isBinary,
-  value,
-}: {
-  classifier: TelemetryClassifier;
-  isBinary: boolean;
-  value: number | null;
-}) {
-  if (value === null) {
-    return (
-      <Text variant="muted" align="right">
-        &mdash;
-      </Text>
-    );
-  }
-  if (isBinary) {
-    const isMatch = isClassifierMatch(classifier, value);
-    return (
-      <Flex justify="end">
-        <Tag variant={isMatch ? 'info' : 'muted'}>{isMatch ? t('True') : t('False')}</Tag>
-      </Flex>
-    );
-  }
-  return (
-    <Text tabular align="right">
-      {value}
-    </Text>
-  );
-}
-
 interface ClassifiedConversationsTableProps {
   classifier: TelemetryClassifier;
 }
@@ -86,15 +54,14 @@ export function ClassifiedConversationsTable({
   const navigate = useNavigate();
   const {data, isFetching, error, pageLinks, setCursor, sort, setSort} =
     useClassifiedConversations(classifier);
-  const {isBinary, resultFilter} = useClassifierResultFilter(classifier);
+  const {isFiltered, output} = useClassifierOutput(classifier);
+  const showResultColumn = !isFiltered;
   const [highlightedRowKey, setHighlightedRowKey] = useState<number | undefined>();
   const [columnWidths, setColumnWidths] = useState<Partial<Record<ColumnKey, number>>>(
     {}
   );
 
   const projects = useMemo(() => [Number(classifier.projectId)], [classifier.projectId]);
-
-  const showResultColumn = resultFilter === 'all';
 
   const columnOrder = useMemo<Array<GridColumnOrder<ColumnKey>>>(
     () => [
@@ -112,11 +79,7 @@ export function ClassifiedConversationsTable({
             },
           ]
         : []),
-      {
-        key: 'age',
-        name: t('Age'),
-        width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age,
-      },
+      {key: 'age', name: t('Age'), width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age},
     ],
     [classifier.resultAttribute, columnWidths, showResultColumn]
   );
@@ -171,12 +134,12 @@ export function ClassifiedConversationsTable({
         case 'conversation':
           return <ConversationCell conversation={row.conversation} />;
         case 'result':
-          return (
-            <ClassifierResult
-              classifier={classifier}
-              isBinary={isBinary}
-              value={row.result}
-            />
+          return row.result === null ? (
+            <Text variant="muted" align="right">
+              &mdash;
+            </Text>
+          ) : (
+            <output.ResultCell classifier={classifier} value={row.result} />
           );
         case 'age':
           return (
@@ -192,7 +155,7 @@ export function ClassifiedConversationsTable({
           return null;
       }
     },
-    [classifier, isBinary]
+    [classifier, output]
   );
 
   const handleRowClick = useCallback(

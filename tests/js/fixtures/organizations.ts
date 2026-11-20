@@ -9,10 +9,7 @@ export function OrganizationsFixture(params: Partial<Organization> = {}): Organi
       name: 'test 1',
       slug: 'test-1',
       require2FA: false,
-      status: {
-        id: 'active',
-        name: 'active',
-      },
+      status: {id: 'active', name: 'active'},
       ...params,
     }),
     OrganizationFixture({
@@ -20,10 +17,7 @@ export function OrganizationsFixture(params: Partial<Organization> = {}): Organi
       name: 'test 2',
       slug: 'test-2',
       require2FA: false,
-      status: {
-        id: 'active',
-        name: 'active',
-      },
+      status: {id: 'active', name: 'active'},
       ...params,
     }),
   ];

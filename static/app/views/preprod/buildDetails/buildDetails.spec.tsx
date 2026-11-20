@@ -25,9 +25,7 @@ describe('BuildDetails', () => {
   const initialRouterConfig = {
     location: {
       pathname: `/organizations/${organization.slug}/preprod/size/artifact-1/`,
-      query: {
-        project: 'project-1',
-      },
+      query: {project: 'project-1'},
     },
     route: '/organizations/:orgId/preprod/size/:artifactId/',
   };
@@ -39,10 +37,7 @@ describe('BuildDetails', () => {
   const QUOTA_STATE_URL = '/organizations/org-slug/preprod/quota/';
 
   const createMockSizeAnalysisData = () => ({
-    treemap: {
-      root: {name: 'root', size: 1024000, children: []},
-      category_breakdown: {},
-    },
+    treemap: {root: {name: 'root', size: 1024000, children: []}, category_breakdown: {}},
     insights: [],
   });
 
@@ -69,10 +64,7 @@ describe('BuildDetails', () => {
       body: new Promise(() => {}),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     expect(screen.getByRole('complementary')).toBeInTheDocument();
     expect(
@@ -105,10 +97,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
 
@@ -157,10 +146,7 @@ describe('BuildDetails', () => {
         body: createMockSizeAnalysisData(),
       });
 
-      render(<BuildDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<BuildDetails />, {organization, initialRouterConfig});
 
       await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
       await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
@@ -261,10 +247,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    const {router} = render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {router} = render(<BuildDetails />, {organization, initialRouterConfig});
 
     // Metadata that used to live in the sidebar aside now sits in the header.
     const metadata = await screen.findByRole('list', {name: 'Build properties'});
@@ -355,10 +338,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     expect(await screen.findByText('v1.0.0 (1.2.3)')).toBeInTheDocument();
     expect(screen.queryByText('v1.0.0 (1000002000003)')).not.toBeInTheDocument();
@@ -387,10 +367,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
 
@@ -439,10 +416,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
     expect(await screen.findByText('Running size analysis')).toBeInTheDocument();
@@ -494,10 +468,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    const {rerender} = render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    const {rerender} = render(<BuildDetails />, {organization, initialRouterConfig});
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
     await waitFor(() => expect(appSizeMock).toHaveBeenCalledTimes(1));
@@ -542,10 +513,7 @@ describe('BuildDetails', () => {
       body: createMockSizeAnalysisData(),
     });
 
-    render(<BuildDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<BuildDetails />, {organization, initialRouterConfig});
 
     await waitFor(() => expect(buildDetailsMock).toHaveBeenCalledTimes(1));
     // First call returns PENDING state - shows queued message
@@ -591,10 +559,7 @@ describe('BuildDetails', () => {
         body: createMockSizeAnalysisData(),
       });
 
-      render(<BuildDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<BuildDetails />, {organization, initialRouterConfig});
 
       await screen.findByText('v1.0.0 (123)');
 
@@ -640,10 +605,7 @@ describe('BuildDetails', () => {
         body: createMockSizeAnalysisData(),
       });
 
-      render(<BuildDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<BuildDetails />, {organization, initialRouterConfig});
 
       expect(
         await screen.findByText(/You've exceeded your Size Analysis quota/)
@@ -679,10 +641,7 @@ describe('BuildDetails', () => {
         body: createMockSizeAnalysisData(),
       });
 
-      render(<BuildDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<BuildDetails />, {organization, initialRouterConfig});
 
       expect(
         await screen.findByText(/You've exceeded your Build Distribution quota/)
@@ -718,10 +677,7 @@ describe('BuildDetails', () => {
         body: createMockSizeAnalysisData(),
       });
 
-      render(<BuildDetails />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<BuildDetails />, {organization, initialRouterConfig});
 
       expect(
         await screen.findByText(

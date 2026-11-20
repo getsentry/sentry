@@ -7,22 +7,13 @@ type Props = YAXisComponentOption & {theme: Theme};
 export function createYAxisOptions({theme, ...props}: Props): YAXisComponentOption {
   return merge(
     {
-      axisLine: {
-        show: false,
-      },
-      axisTick: {
-        show: false,
-      },
+      axisLine: {show: false},
+      axisTick: {show: false},
       axisLabel: {
         color: theme.tokens.content.secondary,
         fontFamily: theme.font.family.sans,
       },
-      splitLine: {
-        lineStyle: {
-          color: theme.colors.gray300,
-          opacity: 0.3,
-        },
-      },
+      splitLine: {lineStyle: {color: theme.colors.gray300, opacity: 0.3}},
     },
     props
   );

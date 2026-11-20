@@ -24,10 +24,7 @@ const ISSUE_TYPES = [
   {value: IssuesType.ALL, label: t('All Issues')},
 ];
 
-type Props = {
-  monitor: Monitor;
-  monitorEnvs: MonitorEnvironment[];
-};
+type Props = {monitor: Monitor; monitorEnvs: MonitorEnvironment[]};
 
 function MonitorIssuesEmptyMessage() {
   return (
@@ -47,13 +44,8 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
   const {start, end, period} = selection.datetime;
   const timeProps =
     start && end
-      ? {
-          start: getUtcDateString(start),
-          end: getUtcDateString(end),
-        }
-      : {
-          statsPeriod: period,
-        };
+      ? {start: getUtcDateString(start), end: getUtcDateString(end)}
+      : {statsPeriod: period};
 
   const [issuesType, setIssuesType] = useState(IssuesType.UNRESOLVED);
 
@@ -64,11 +56,7 @@ export function MonitorIssues({monitor, monitorEnvs}: Props) {
 
   const issueSearchLocation = {
     pathname: `/organizations/${organization.slug}/issues/`,
-    query: {
-      query: issueQuery,
-      project: monitor.project.id,
-      ...timeProps,
-    },
+    query: {query: issueQuery, project: monitor.project.id, ...timeProps},
   };
 
   // TODO(epurkhiser): We probably want to filter on envrionemnt

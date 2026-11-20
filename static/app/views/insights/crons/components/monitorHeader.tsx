@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {extractSelectionParameters} from 'sentry/components/pageFilters/parse';
 import {t} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -33,7 +33,11 @@ export function MonitorHeader({monitor, orgSlug, onUpdate}: Props) {
           type: 'page-title',
           label: monitor.name,
           leadingGraphic: (
-            <IdBadge project={monitor.project} avatarSize={16} hideName disableLink />
+            <ProjectsBadge
+              projectPlatforms={
+                monitor.project.platform ? [monitor.project.platform] : ['default']
+              }
+            />
           ),
         }}
         items={[

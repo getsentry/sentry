@@ -3,7 +3,4 @@ import {docs as nodeDocs} from 'sentry/gettingStartedDocs/node';
 
 import {onboarding} from './onboarding';
 
-export const docs: Docs = {
-  ...nodeDocs,
-  onboarding,
-};
+export const docs: Docs = {...nodeDocs, onboarding};

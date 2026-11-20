@@ -38,7 +38,7 @@ class SessionsV2QueryBuilder(BaseQueryBuilder):
         """
         if groupby_columns is None:
             return []
-        return list({self.resolve_column(column) for column in groupby_columns})
+        return list({self.resolve_groupby_column(column) for column in groupby_columns})
 
     def default_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         name = search_filter.key.name

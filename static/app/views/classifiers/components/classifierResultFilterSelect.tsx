@@ -1,34 +1,24 @@
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 
-import {t} from 'sentry/locale';
-import {useClassifierResultFilter} from 'sentry/views/classifiers/hooks/useClassifierResultFilter';
-import type {
-  ClassifierResultFilter,
-  TelemetryClassifier,
-} from 'sentry/views/classifiers/types';
-
-const OPTIONS: Array<{label: string; value: ClassifierResultFilter}> = [
-  {value: 'all', label: t('Show all')},
-  {value: 'matches', label: t('Show matches')},
-  {value: 'non-matches', label: t('Show non-matches')},
-];
+import {useClassifierOutput} from 'sentry/views/classifiers/hooks/useClassifierOutput';
+import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 
 export function ClassifierResultFilterSelect({
   classifier,
 }: {
   classifier: TelemetryClassifier;
 }) {
-  const {isBinary, resultFilter, setResultFilter} = useClassifierResultFilter(classifier);
+  const {filter, output, setFilter} = useClassifierOutput(classifier);
 
-  if (!isBinary) {
+  if (output.filterOptions.length === 0) {
     return null;
   }
 
   return (
     <CompactSelect
-      value={resultFilter}
-      options={OPTIONS}
-      onChange={option => setResultFilter(option.value)}
+      value={filter}
+      options={output.filterOptions}
+      onChange={option => setFilter(option.value)}
     />
   );
 }

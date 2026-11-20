@@ -3,18 +3,10 @@ import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {toast} from '@sentry/scraps/toast';
 
-import {hasEveryAccess} from 'sentry/components/acl/access';
 import {t} from 'sentry/locale';
-import {useOrganization} from 'sentry/utils/useOrganization';
-import {useProjectFromId} from 'sentry/utils/useProjectFromId';
+import {useCanEditClassifier} from 'sentry/views/classifiers/hooks/useCanEditClassifier';
 import {useUpdateClassifier} from 'sentry/views/classifiers/hooks/useClassifier';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-
-export function useCanEditClassifier(classifier: TelemetryClassifier) {
-  const organization = useOrganization();
-  const project = useProjectFromId({project_id: classifier.projectId});
-  return hasEveryAccess(['project:read'], {organization, project});
-}
 
 function useUpdateClassifierStatus(classifier: TelemetryClassifier) {
   const {mutate, isPending} = useUpdateClassifier(classifier.id);

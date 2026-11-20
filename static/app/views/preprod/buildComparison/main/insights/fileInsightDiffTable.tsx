@@ -34,10 +34,7 @@ interface FileInsightItemDiffTableProps {
 
 // This table is very similar  to FileInsightItemDiffTable, but shows only files. Should remain separate.
 export function FileInsightItemDiffTable({fileDiffItems}: FileInsightItemDiffTableProps) {
-  const [sort, setSort] = useState<DiffTableSort>({
-    field: 'size_diff',
-    kind: 'desc',
-  });
+  const [sort, setSort] = useState<DiffTableSort>({field: 'size_diff', kind: 'desc'});
 
   const [currentPage, setCurrentPage] = useState(0);
 

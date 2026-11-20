@@ -96,26 +96,11 @@ def write_exceptions(
     Note: we need dest_file as a param, even though every time this is called `dest_file` is almost always exceptions.json just for handling test cases since we don't want to override exceptions.json for testing
     """
 
-    # turn each entry into one line of JSON
-    json_lines: list[str] = []
-    for entry in entries:
-        json_lines.append(json.dumps(entry))
-
-    header = (
-        '{"version": 1, "generated": '
-        + json.dumps(generated)
-        + ', "commit": '
-        + json.dumps(commit)
-        + ', "entries": '
-    )
-    if json_lines:
-        text = header + "[\n" + ",\n".join(json_lines) + "\n]}\n"
-    else:
-        text = header + "[]}\n"
+    data = {"version": 1, "generated": generated, "commit": commit, "entries": entries}
 
     # create the output's folder if needed then write the file (create it or replace it)
     dest_file.parent.mkdir(parents=True, exist_ok=True)
-    dest_file.write_text(text)
+    dest_file.write_text(json.dumps(data, indent=2) + "\n")
 
 
 def _possible_moves(

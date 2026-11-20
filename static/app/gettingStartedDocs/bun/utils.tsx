@@ -18,11 +18,7 @@ export const sentryImport = `import * as Sentry from "${PACKAGE_NAME}";`;
 export function getInstallContent(text: React.ReactNode): ContentBlock[] {
   return [
     {type: 'text', text},
-    {
-      type: 'code',
-      language: 'bash',
-      code: `bun add ${PACKAGE_NAME}`,
-    },
+    {type: 'code', language: 'bash', code: `bun add ${PACKAGE_NAME}`},
   ];
 }
 

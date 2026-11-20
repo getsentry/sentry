@@ -22,11 +22,7 @@ export function DebugIdBundleDetails({
     const associations = debugIdBundle.associations;
     const visibleAssociations = showAll ? associations : associations.slice(0, 3);
     return [
-      {
-        key: 'count',
-        subject: t('Artifacts'),
-        value: debugIdBundle.fileCount,
-      },
+      {key: 'count', subject: t('Artifacts'), value: debugIdBundle.fileCount},
       {
         key: 'releases',
         subject: t('Associated Releases'),

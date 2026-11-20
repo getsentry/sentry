@@ -63,9 +63,7 @@ export const useProjectWebVitalsScoresQuery = ({
   );
 
   const finalData: Array<
-    (typeof result.data)[0] & {
-      'avg(measurements.score.total)': number;
-    }
+    (typeof result.data)[0] & {'avg(measurements.score.total)': number}
   > = result.data.map(row => {
     // Map performance_score(measurements.score.total) to avg(measurements.score.total) so we don't have to handle both keys in the UI
     return {

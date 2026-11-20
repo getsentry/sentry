@@ -11,13 +11,9 @@ import {t} from 'sentry/locale';
 
 import {DetailedError} from './errors/detailedError';
 
-type DefaultProps = {
-  mini: boolean;
-};
+type DefaultProps = {mini: boolean};
 
-type CustomComponentRenderProps = {
-  error: Error | null;
-};
+type CustomComponentRenderProps = {error: Error | null};
 
 type Props = DefaultProps & {
   // allow the error message to be dismissable, which allows the
@@ -41,10 +37,7 @@ type Props = DefaultProps & {
   resetKey?: React.Key;
 };
 
-type State = {
-  error: Error | null;
-  resetKey: Props['resetKey'];
-};
+type State = {error: Error | null; resetKey: Props['resetKey']};
 
 const exclamation = ['Raspberries', 'Snap', 'Frig', 'Welp', 'Uhhhh', 'Hmmm'] as const;
 
@@ -53,14 +46,9 @@ function getExclamation() {
 }
 
 export class ErrorBoundary extends Component<Props, State> {
-  static defaultProps: DefaultProps = {
-    mini: false,
-  };
+  static defaultProps: DefaultProps = {mini: false};
 
-  state: State = {
-    error: null,
-    resetKey: this.props.resetKey,
-  };
+  state: State = {error: null, resetKey: this.props.resetKey};
 
   static getDerivedStateFromProps(props: Props, state: State): Partial<State> | null {
     if (!Object.is(props.resetKey, state.resetKey)) {

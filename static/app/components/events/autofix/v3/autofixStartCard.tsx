@@ -62,9 +62,9 @@ export function AutofixStartCard({
   const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    const run = await startStep('root_cause', {
-      userContext: userContext.trim(),
-    }).catch(() => null);
+    const run = await startStep('root_cause', {userContext: userContext.trim()}).catch(
+      () => null
+    );
     setStartingRun(false);
     if (!run) {
       return;
@@ -85,11 +85,7 @@ export function AutofixStartCard({
       onClick={handleStartRootCause}
       analyticsEventKey="autofix.start_fix_clicked"
       analyticsEventName="Autofix: Start Fix Clicked"
-      analyticsParams={{
-        group_id: group.id,
-        mode: 'explorer',
-        referrer,
-      }}
+      analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       busy={isStarting}
       // Held disabled until this mount's credit check answers, so it is never
       // clickable before the answer arrives, even with an earlier one cached.
@@ -213,9 +209,7 @@ function LegacyStartCardContent() {
   );
 }
 
-const LegacyImageContainer = styled(Flex)<{
-  aspectRatio?: CSS['aspectRatio'];
-}>`
+const LegacyImageContainer = styled(Flex)<{aspectRatio?: CSS['aspectRatio']}>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;
 

@@ -1,6 +1,7 @@
 ---
 name: verify-sentry
-description: Verify the Sentry web app (getsentry/sentry) as a real user, against a disposable local devserver driven with agent-browser, with stored state checked through the API. One skill for the whole app; `features/` holds one file per system. Mapped today: new-org onboarding, project creation in an existing org, the coding-agent handoff, the manual "Configure <Platform> SDK" setup docs, and onboarding navigation state, for owner and member. Use when asked to verify, battle-test, or re-prove Sentry product behavior in a browser, or when a change touches a mapped system, such as `static/app/views/onboarding/`, `static/app/views/projectInstall/`, `static/app/components/agentHandoff/`, or `src/sentry/agent_handoff/`.
+description: >-
+  Verify the Sentry web app (getsentry/sentry) as a real user, against a disposable local devserver driven with agent-browser, with stored state checked through the API. One skill for the whole app; `features/` holds one file per system. Mapped today: new-org onboarding, project creation in an existing org, the coding-agent handoff, the manual "Configure <Platform> SDK" setup docs, and onboarding navigation state, for owner and member. Use when asked to verify, battle-test, or re-prove Sentry product behavior in a browser, or when a change touches a mapped system, such as `static/app/views/onboarding/`, `static/app/views/projectInstall/`, `static/app/components/agentHandoff/`, or `src/sentry/agent_handoff/`.
 ---
 
 # Verify Sentry

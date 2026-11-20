@@ -139,10 +139,9 @@ describe('PrIterationFeedbackForm', () => {
 
   it('clears the feedback when out of credits', async () => {
     const autofix = makeAutofix({
-      startStep: jest.fn().mockRejectedValue({
-        status: 402,
-        responseJSON: {code: 'seer_out_of_credits'},
-      }),
+      startStep: jest
+        .fn()
+        .mockRejectedValue({status: 402, responseJSON: {code: 'seer_out_of_credits'}}),
     });
     const onClose = jest.fn();
     render(

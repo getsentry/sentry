@@ -60,10 +60,7 @@ describe('OverviewIssueAssignee', () => {
     const assignRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/`,
       method: 'PUT',
-      body: {
-        ...group,
-        assignedTo: {id: assignee.id, name: assignee.name, type: 'user'},
-      },
+      body: {...group, assignedTo: {id: assignee.id, name: assignee.name, type: 'user'}},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/users/`,

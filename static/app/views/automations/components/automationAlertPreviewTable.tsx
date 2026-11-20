@@ -102,11 +102,7 @@ export function AutomationAlertPreviewTable({
       '/organizations/$organizationIdOrSlug/issues/',
       {
         path: groupIds.length ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          group: groupIds,
-          project: projectIds,
-          collapse: ['stats', 'unhandled'],
-        },
+        query: {group: groupIds, project: projectIds, collapse: ['stats', 'unhandled']},
         staleTime: 30_000,
       }
     )

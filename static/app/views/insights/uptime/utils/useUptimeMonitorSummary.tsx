@@ -23,9 +23,7 @@ export function useUptimeMonitorSummaries({detectorIds}: Options) {
       '/organizations/$organizationIdOrSlug/uptime-summary/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          uptimeDetectorId: detectorIds,
-        },
+        query: {uptimeDetectorId: detectorIds},
         staleTime: 0,
       }
     )

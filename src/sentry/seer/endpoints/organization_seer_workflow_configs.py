@@ -614,10 +614,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         name: str | None = serializer.validated_data.get("name")
 
         # Checks that depend only on the request run before taking the lock.
-        if (
-            monitor_ids is not None
-            and get_definition(config.strategy).trigger.scoped_by != "monitors"
-        ):
+        if monitor_ids is not None and get_definition(config.strategy).scoped_by != "monitors":
             return Response(
                 {"detail": "This automation type does not support monitor selection."}, status=400
             )
