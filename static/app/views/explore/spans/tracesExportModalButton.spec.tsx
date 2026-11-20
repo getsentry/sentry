@@ -55,13 +55,7 @@ function makeQueryResult(
     enabled: false,
   }).getCurrentResult();
 
-  return {
-    ...base,
-    data: error ? undefined : data,
-    error,
-    meta: undefined,
-    pageLinks,
-  };
+  return {...base, data: error ? undefined : data, error, meta: undefined, pageLinks};
 }
 
 const HAS_MORE_ROWS_LINK = '<https://sentry.io/fake/next>; rel="next"; results="true"';
