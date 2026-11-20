@@ -6220,6 +6220,16 @@ describe('SearchQueryBuilder', () => {
         expect(await screen.findByRole('row', {name: 'cost:>7k'})).toBeInTheDocument();
       });
 
+      it('new currency filters accept a typed $ prefix', async () => {
+        render(<SearchQueryBuilder {...currencyProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'cost'}));
+
+        await userEvent.keyboard('$50{Enter}');
+
+        expect(await screen.findByRole('row', {name: 'cost:>50'})).toBeInTheDocument();
+      });
+
       it('currency filter values render with a $ prefix', async () => {
         render(<SearchQueryBuilder {...currencyProps} initialQuery="cost:>100" />);
 
