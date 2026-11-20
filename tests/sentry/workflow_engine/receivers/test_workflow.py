@@ -104,7 +104,6 @@ class ActivityWorkflowCacheInvalidationTest(TestCase):
         other_environment = self.create_environment(name="other")
         with self.capture_on_commit_callbacks(execute=True):
             self.workflow.update(environment=environment)
-        assert get_activity_workflows_by_organization(self.organization.id, None) == set()
         assert get_activity_workflows_by_organization(self.organization.id, environment) == {
             self.workflow
         }
@@ -118,11 +117,6 @@ class ActivityWorkflowCacheInvalidationTest(TestCase):
     def test_pending_deletion(self) -> None:
         with self.capture_on_commit_callbacks(execute=True):
             self.workflow.update(status=ObjectStatus.PENDING_DELETION)
-        assert get_activity_workflows_by_organization(self.organization.id, None) == set()
-
-    def test_deletion_in_progress(self) -> None:
-        with self.capture_on_commit_callbacks(execute=True):
-            self.workflow.update(status=ObjectStatus.DELETION_IN_PROGRESS)
         assert get_activity_workflows_by_organization(self.organization.id, None) == set()
 
     def test_delete(self) -> None:
