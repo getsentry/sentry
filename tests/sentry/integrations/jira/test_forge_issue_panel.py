@@ -61,7 +61,9 @@ class JiraForgeIssuePanelWebhookTest(APITestCase):
 
         assert response.status_code == 200
         assert [group["title"] for group in response.data["groups"]] == [self.group.title]
-        assert response.data["groups"][0]["url"].endswith(f"/issues/{self.group.id}/")
+        assert response.data["groups"][0]["url"] == self.group.get_absolute_url(
+            params={"referrer": "sentry-issues-glance"}
+        )
 
     def test_rejects_other_callers(self, mock_verify: MagicMock) -> None:
         mock_verify.side_effect = ForgeInvocationTokenError("bad")
