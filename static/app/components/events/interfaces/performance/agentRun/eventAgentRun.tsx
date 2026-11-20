@@ -54,10 +54,6 @@ function useAgentActivityLink(event: Event) {
 
 const SURROUNDING_STEPS = 3;
 
-/**
- * Space is tight here, so only the run's own steps and the spans they start (like a
- * tool's sub-agent) show, and anything deeper starts collapsed.
- */
 const MAX_DEFAULT_DEPTH = 2;
 
 /**
