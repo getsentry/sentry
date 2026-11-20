@@ -242,4 +242,44 @@ describe('EntityHeader', () => {
     ),
     {viewport: 240, tags: {area: 'core'}}
   );
+
+  // Long parts of a property share the space and truncate, while short ones
+  // such as "id" keep their width, so no part overflows under the pipe.
+  it.snapshot(
+    'long parts',
+    () => (
+      <MemoryRouter>
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          metadata={{
+            label: 'Conversation properties',
+            items: [
+              {
+                label: 'Version label',
+                mode: 'full',
+                type: 'text',
+                value: 'value-of-some-length-here',
+                secondary: {label: 'build', value: 'secondary-value-long-1234567890'},
+              },
+              {
+                label: 'A very long full mode label here',
+                mode: 'full',
+                type: 'link',
+                to: '/x/',
+                value: 'a-linked-value',
+              },
+              {
+                label: 'id',
+                mode: 'full',
+                type: 'text',
+                value: 'a-long-identifier-value-0123456789',
+              },
+              {label: 'Started at', type: 'text', value: '2h ago'},
+            ],
+          }}
+        />
+      </MemoryRouter>
+    ),
+    {viewport: 240, tags: {area: 'core'}}
+  );
 });

@@ -13,7 +13,7 @@ import {
 } from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
 import type {Responsive} from '@sentry/scraps/layout';
-import {Container, Flex, useResponsivePropValue} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
@@ -250,16 +250,20 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
     <Fragment>
       {needsOwnLabel &&
         (mode === 'full' ? (
-          <Text {...METADATA_TEXT_STYLES} variant="muted">
+          <InfoText
+            mode="overflowOnly"
+            title={label}
+            variant="muted"
+            size="md"
+            density="comfortable"
+          >
             {label}
-          </Text>
+          </InfoText>
         ) : (
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
       <EntityHeaderText
         behavior={behavior}
-        // Truncates rather than overflowing its item, so the pipe after it
-        // follows the text a narrow header shows.
         styles={{size: 'md', density: 'comfortable', ellipsis: true}}
       >
         {props.value}
@@ -272,7 +276,13 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
             `aria-describedby`, which is not announced on focus.
           */}
           <VisuallyHidden>{secondaryLabel}</VisuallyHidden>
-          <InfoText title={secondaryLabel} variant="muted" {...METADATA_TEXT_STYLES}>
+          <InfoText
+            title={secondaryLabel}
+            variant="muted"
+            size="md"
+            density="comfortable"
+            ellipsis
+          >
             {secondary.value}
           </InfoText>
         </Fragment>
@@ -285,20 +295,43 @@ interface MetadataEntryProps {
   entry: MetadataValueData;
   /**
    * Set on a list's first visible entry, which starts the property: it
-   * carries the list's graphic and label.
+   * carries the list's graphic and label. The graphic keeps its fixed box,
+   * while the label shares the space with the entry's text.
    */
-  lead?: React.ReactNode;
+  leadGraphic?: React.ReactNode;
+  leadLabel?: React.ReactNode;
   ref?: React.Ref<HTMLDivElement>;
   tabIndex?: number;
   trailing?: React.ReactNode;
 }
 
-function MetadataEntry({entry, lead, ref, tabIndex, trailing}: MetadataEntryProps) {
+function MetadataEntry({
+  entry,
+  leadGraphic,
+  leadLabel,
+  ref,
+  tabIndex,
+  trailing,
+}: MetadataEntryProps) {
   return (
     <MetadataItemFrame ref={ref} tabIndex={tabIndex} trailing={trailing}>
-      {lead}
+      {leadGraphic}
       {entry.leadingGraphic && <MetadataGraphic>{entry.leadingGraphic}</MetadataGraphic>}
-      <MetadataValue value={entry} />
+      {/*
+        Each text part takes its natural width while there is room. In a
+        narrow header the long parts share what is left equally and truncate,
+        so short ones stay whole and the pipe follows the text that shows.
+      */}
+      <Grid
+        flow="column"
+        autoColumns="minmax(0, max-content)"
+        gap="xs"
+        align="center"
+        minWidth={0}
+      >
+        {leadLabel}
+        <MetadataValue value={entry} />
+      </Grid>
     </MetadataItemFrame>
   );
 }
@@ -322,15 +355,20 @@ function MetadataList({
 
   // The list's graphic and label travel with its first drawn item, so they
   // wrap with it: the first entry, or "+N more" when every entry collapses.
+  const leadGraphic = leadingGraphic ? (
+    <MetadataGraphic>{leadingGraphic}</MetadataGraphic>
+  ) : undefined;
+  // The nested list's name already speaks the label.
+  const leadLabel =
+    mode === 'full' ? (
+      <Text size="md" density="comfortable" ellipsis variant="muted" aria-hidden>
+        {label}
+      </Text>
+    ) : undefined;
   const lead = (
     <Fragment>
-      {leadingGraphic && <MetadataGraphic>{leadingGraphic}</MetadataGraphic>}
-      {/* The nested list's name already speaks the label. */}
-      {mode === 'full' && (
-        <Text {...METADATA_TEXT_STYLES} variant="muted" aria-hidden>
-          {label}
-        </Text>
-      )}
+      {leadGraphic}
+      {leadLabel}
     </Fragment>
   );
 
@@ -344,7 +382,8 @@ function MetadataList({
           <MetadataEntry
             key={entry.key}
             entry={entry}
-            lead={index === 0 ? lead : undefined}
+            leadGraphic={index === 0 ? leadGraphic : undefined}
+            leadLabel={index === 0 ? leadLabel : undefined}
             trailing={!isCollapsed && index === shown.length - 1 ? trailing : undefined}
             // "+N more" unmounts as it reveals the rest, so focus moves to
             // the first revealed entry rather than falling to the page.
