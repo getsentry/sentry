@@ -252,11 +252,11 @@ describe('AutofixAgent', () => {
     ).toBeDisabled();
   });
 
-  // The reason is a tooltip on the disabled dropdown itself.
+  // The reason is shown via the field's DisabledTip lock icon.
   async function expectPrIterationDisabledWithReason() {
     const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
     await waitFor(() => expect(select).toBeDisabled());
-    await userEvent.hover(select);
+    await userEvent.hover(await screen.findByRole('img', {name: 'Disabled'}));
     expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
   }
 
@@ -286,8 +286,7 @@ describe('AutofixAgent', () => {
 
     const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
     await waitFor(() => expect(select).toBeEnabled());
-    await userEvent.hover(select);
-    expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
 
   it('keeps Auto-Iterate on PRs disabled while the repos query is still loading', async () => {
@@ -298,7 +297,7 @@ describe('AutofixAgent', () => {
     expect(
       await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
-    expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
 
   it('keeps Auto-Iterate on PRs available when the repos request fails', async () => {

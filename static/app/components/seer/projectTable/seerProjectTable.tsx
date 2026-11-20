@@ -25,7 +25,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
@@ -479,21 +478,15 @@ function PrIterationSelectCell({
       })}
     >
       {field => (
-        <Tooltip
-          title={NON_GITHUB_PR_ITERATION_WARNING}
-          disabled={!unavailable}
-          containerDisplayMode="block"
-        >
-          <field.Select
-            aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
-            disabled={disabled || unavailable}
-            menuPortalTarget={document.body}
-            onChange={field.handleChange}
-            options={PR_ITERATION_OPTIONS}
-            size="xs"
-            value={unavailable ? false : field.state.value}
-          />
-        </Tooltip>
+        <field.Select
+          aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
+          menuPortalTarget={document.body}
+          onChange={field.handleChange}
+          options={PR_ITERATION_OPTIONS}
+          size="xs"
+          value={unavailable ? false : field.state.value}
+        />
       )}
     </AutoSaveForm>
   );

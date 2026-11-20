@@ -23,7 +23,6 @@ import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Separator} from '@sentry/scraps/separator';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t, tct} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
@@ -416,16 +415,11 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                     'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
                   )}
                 >
-                  <Tooltip
-                    title={NON_GITHUB_PR_ITERATION_WARNING}
-                    disabled={!hasNoGitHubDotComRepo}
-                  >
-                    <field.Switch
-                      checked={hasNoGitHubDotComRepo ? false : field.state.value}
-                      onChange={field.handleChange}
-                      disabled={hasNoGitHubDotComRepo}
-                    />
-                  </Tooltip>
+                  <field.Switch
+                    checked={hasNoGitHubDotComRepo ? false : field.state.value}
+                    onChange={field.handleChange}
+                    disabled={hasNoGitHubDotComRepo && NON_GITHUB_PR_ITERATION_WARNING}
+                  />
                 </field.Layout.Row>
               )}
             </form.AppField>

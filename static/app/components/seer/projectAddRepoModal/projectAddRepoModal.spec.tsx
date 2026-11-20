@@ -222,24 +222,13 @@ describe('ProjectAddRepoModal', () => {
 
     await waitFor(() => expect(getToggle()).toBeDisabled());
     expect(getToggle()).not.toBeChecked();
-    await userEvent.hover(getToggle());
+    await userEvent.hover(await screen.findByRole('img', {name: 'Disabled'}));
     expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
 
     // The user's choice comes back once a github.com repo is added.
     await addRepository(/getsentry\/sentry/);
     await waitFor(() => expect(getToggle()).toBeEnabled());
     expect(getToggle()).toBeChecked();
-  });
-
-  it('keeps Auto-Iterate on PRs available when a github.com repo is added', async () => {
-    openAddRepoModal();
-
-    await addRepository(/getsentry\/sentry/);
-
-    const toggle = screen.getByRole('checkbox', {name: 'Auto-Iterate on PRs'});
-    expect(toggle).toBeEnabled();
-    expect(toggle).toBeChecked();
-    await userEvent.hover(toggle);
-    expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
   });
 });

@@ -218,8 +218,9 @@ describe('SeerProjectTable', () => {
     });
     expect(select).toBeDisabled();
     // Shown as off, whatever is saved.
-    expect(within(getRow('project-slug')).getAllByText('Off').length).toBeGreaterThan(0);
-    await userEvent.hover(select);
+    const row = within(getRow('project-slug'));
+    expect(row.getAllByText('Off').length).toBeGreaterThan(0);
+    await userEvent.hover(row.getByRole('img', {name: 'Disabled'}));
     expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
   });
 
@@ -232,19 +233,14 @@ describe('SeerProjectTable', () => {
       name: 'Auto-iterate on PRs for project-slug',
     });
     expect(select).toBeEnabled();
-    await userEvent.hover(select);
-    expect(screen.queryByText(NON_GITHUB_PR_ITERATION_WARNING)).not.toBeInTheDocument();
-  });
-
-  it('keeps PR iteration available when the response has no repo providers', async () => {
-    render(<SeerProjectTable />, {organization});
-
     expect(
-      await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'})
-    ).toBeEnabled();
+      within(getRow('project-slug')).queryByRole('img', {name: 'Disabled'})
+    ).not.toBeInTheDocument();
   });
 
   it('saves the PR iteration dropdown for a project', async () => {
+    // The default mock row omits `repoProviders`, which also verifies the
+    // dropdown stays enabled until the backend sends that field.
     const settingsPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',

@@ -11,7 +11,6 @@ import {AutoSaveForm, FieldGroup, FormSearch} from '@sentry/scraps/form';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink, Link} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
-import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t, tct} from 'sentry/locale';
@@ -251,18 +250,16 @@ export function AutofixAgent({canWrite, project}: Props) {
                 'After opening a PR, Seer automatically pushes fixes when CI checks fail. You can still ask Seer to iterate on a PR yourself.'
               )}
             >
-              <Tooltip
-                title={NON_GITHUB_PR_ITERATION_WARNING}
-                disabled={!prIterationUnavailable}
-                containerDisplayMode="block"
-              >
-                <field.Select
-                  disabled={!canWrite || prIterationLoading || prIterationUnavailable}
-                  value={prIterationUnavailable ? false : field.state.value}
-                  onChange={field.handleChange}
-                  options={PR_ITERATION_OPTIONS}
-                />
-              </Tooltip>
+              <field.Select
+                disabled={
+                  prIterationUnavailable
+                    ? NON_GITHUB_PR_ITERATION_WARNING
+                    : !canWrite || prIterationLoading
+                }
+                value={prIterationUnavailable ? false : field.state.value}
+                onChange={field.handleChange}
+                options={PR_ITERATION_OPTIONS}
+              />
             </field.Layout.Row>
           )}
         </AutoSaveForm>
