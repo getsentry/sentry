@@ -1,0 +1,148 @@
+---
+title: Slack Formatting
+layout: document
+description: Guidelines and copyable Block Kit examples for the Slack notifications Sentry sends.
+status: in-progress
+resources:
+  js: https://github.com/getsentry/sentry/tree/master/src/sentry/integrations/slack/message_builder
+---
+
+import {
+  BlockKitExample,
+  issueAlertChannelPayload,
+  issueAlertPersonPayload,
+  issueLinkPreviewPayload,
+  metricAlertCriticalPayload,
+  metricAlertResolvedPayload,
+  threadReplyPayload,
+  issueAssignedPayload,
+  deployPayload,
+} from './__stories__/slackFormatting';
+
+Slack is often where people first hear that something in their app broke. Sentry's Slack notifications are built with [Block Kit](https://api.slack.com/block-kit), so they should be quick to scan, honest about severity, and one click away from the right page in Sentry.
+
+This page covers the conventions our Slack messages follow, and has copyable example payloads for the most common notifications.
+
+## Where Slack messages are built
+
+- **Issue alerts** are built by `SlackIssuesMessageBuilder` in `src/sentry/integrations/slack/message_builder/issues.py`.
+- **Metric alerts** are rendered by `SlackMetricAlertRenderer` in `src/sentry/notifications/platform/slack/renderers/metric_alert.py`.
+- **Everything else on the Notification Platform** (deploys, assignments, comments, Seer updates, and so on) is a `NotificationTemplate` rendered by the default `SlackRenderer` in `src/sentry/notifications/platform/slack/provider.py`.
+
+For a new notification, write a `NotificationTemplate` and use the default renderer. Add a custom Slack renderer only when the message needs something the template can't express, like interactive buttons. Every registered template also has a Slack preview with a Block Kit Builder link at `/debug/notifications/`.
+
+## Anatomy of a message
+
+Most Sentry Slack messages have the same parts, from top to bottom:
+
+1. **Title**: what happened, linked to the relevant page in Sentry. Notification Platform messages use a `header` block. Issue alerts use a `section` block that starts with a severity emoji.
+2. **Context**: where it happened, like the culprit, project, or environment, in a `context` block or a short `section`.
+3. **Details**: the error message, comment, or commit list. Error messages and stack-like content go in a code block.
+4. **Actions** (optional): buttons or selects in an `actions` block.
+5. **Chart** (optional): an `image` block. Charts are extra information, never the only information.
+6. **Footer**: a `context` block with links to the project, the alert that sent the message, and notification settings.
+
+## Do's
+
+- **Do lead with the outcome.** Put what happened and how bad it is in the first line, for example `Critical: High error rate in checkout`. People often read only the push notification.
+- **Do use Slack's link and bold syntax.** Links are `<url|label>`, not Markdown's `[label](url)`. Bold is single asterisks (`*bold*`), not double.
+- **Do set the top-level `text` fallback.** Slack uses it for push notifications, screen readers, and clients that can't render blocks. Our builders set it to something like `[project] TypeError: Cannot read properties…`.
+- **Do link back to Sentry.** The title should open the issue, alert, or release. Keep the tracking query parameters (`referrer=slack`, `notification_uuid`, `alert_type`) the builders add so we can measure engagement.
+- **Do show severity with words and color together.** Issue alerts use a level emoji (`:red_circle:` error or fatal, `:large_yellow_circle:` warning, `:large_blue_circle:` info, `:bug:` debug). Metric alerts use the attachment color bar (`#FA4747` critical, `#FFC227` warning, `#4DC771` resolved) and a status word in the title.
+- **Do put error messages in code blocks** (` ```message``` `), and cut them short. Issue descriptions are cut at 256 characters with `...`.
+- **Do format tags as `key: \`value\``**, separated by two spaces, so they're easy to scan.
+- **Do use Slack date tokens for timestamps**, for example `<!date^1767225600^Started: {date_pretty} at {time} | Sentry Incident>`. Slack shows them in each reader's time zone. The text after `|` is the fallback.
+- **Do escape anything users control.** Issue titles, tag values, alert names, and commit messages can contain `<`, `>`, `&`, `*`, or `|`. Use `escape_slack_text` or `escape_slack_markdown_text` from `src/sentry/integrations/slack/utils/escape.py`. Slack has no escape for `|` inside `<url|label>`, so replace it in link labels (see `get_workflow_footer`).
+- **Do separate footer items with `·`** in new Notification Platform templates, for example `Project: <url|javascript> · Alert: <url|My alert> · <url|Manage Preferences>`.
+- **Do store structured `block_id` data as a JSON string.** `block_id` must be a string, so issue alerts store values like `{"issue":1,"workflow":1}` as escaped JSON. Slack sends it back when someone uses an action.
+- **Do route interactive elements through `encode_action_id`**, which produces `action::organization_id::project_id`. Slack webhooks use it to find the right cell.
+- **Do write in plain speech.** Follow [Content & voice](/stories/principles/content-and-voice/): short, direct, no jargon.
+
+## Don'ts
+
+- **Don't use Sentry Voice in notifications.** Someone getting paged doesn't want a joke.
+- **Don't rely on color alone.** Color bars and emoji support the text. They can't replace it, because some clients and screen readers ignore them.
+- **Don't put key information only in an image.** Charts can fail to load and can't be searched. Always give image blocks meaningful `alt_text`.
+- **Don't use `mrkdwn` in `header` blocks.** Headers only support `plain_text`, up to 150 characters.
+- **Don't overflow Slack's limits.** A message can have up to 50 blocks, and `section` text is capped at 3,000 characters. Shorten or summarize long content, like commit lists, and link to Sentry for the rest.
+- **Don't use legacy `attachments` for new layouts.** Metric alerts use an attachment only to get the color bar. Everything else should use top-level `blocks`.
+- **Don't add `@channel` or `@here` mentions.** Users decide who to notify with their alert configuration.
+- **Don't add new tracking parameters or hand-build URLs.** Use the existing link helpers and `NotificationLinkDecorator`.
+
+## Example payloads
+
+The payloads below were generated from Sentry's message builders and renderers, then cleaned up with example data. Use **Open in Block Kit Builder** to load one into the [Slack Block Kit Builder](https://app.slack.com/block-kit-builder), or copy the JSON and paste it there.
+
+> [!NOTE]
+> These payloads only include what Block Kit Builder can render. When Sentry sends a message, it also sets the top-level `text` fallback, which is noted for each example. Buttons and selects don't do anything in the builder.
+
+### Issue alert: sent to a channel
+
+Sent when an issue alert fires for a Slack action. The title starts with a level emoji and links to the issue. The culprit, error message, chosen tags, issue state, and triage actions come after it. When Seer Autofix is available, a Seer button is added to the actions.
+
+Fallback `text`: `[javascript] TypeError: Cannot read properties of undefined (reading 'map')`
+
+<BlockKitExample payload={issueAlertChannelPayload} />
+
+### Issue alert: sent to a person
+
+Sent when an issue alert notifies a user or team directly instead of a channel. An `Alert triggered` line naming the alert comes first, then the same issue content as the channel version. There are no triage actions, and the footer links to the recipient's notification settings. This example is a User Feedback issue, so the title also has the `:busts_in_silhouette:` category emoji.
+
+Fallback `text`: `Alert triggered <https://sentry.io/organizations/acme/monitors/alerts/1/|New Issues>`
+
+<BlockKitExample payload={issueAlertPersonPayload} />
+
+### Issue link preview
+
+Shown when someone pastes a Sentry issue link into Slack. It uses the same builder as the channel issue alert, so it has the same triage actions, but the title links to the event in the pasted URL. Because no alert rule sent it, the footer's `Alert` slot repeats the short ID.
+
+Fallback `text`: `[javascript] TypeError: Cannot read properties of undefined (reading 'map')`
+
+<BlockKitExample payload={issueLinkPreviewPayload} />
+
+### Metric alert: critical
+
+Sent when a metric alert crosses its critical threshold. The blocks sit inside an attachment so Slack shows a red color bar. The title only appears in the fallback `text`, which Slack shows above the attachment. When Seer can investigate the alert, an **Investigate with Seer** button is added.
+
+Fallback `text`: `<https://sentry.io/organizations/acme/issues/1/|*Critical: High error rate in checkout*>`
+
+<BlockKitExample payload={metricAlertCriticalPayload} />
+
+### Metric alert: resolved
+
+Sent when a metric alert goes back below its thresholds. It has the same structure as the critical message, with a green color bar and no Seer button.
+
+Fallback `text`: `<https://sentry.io/organizations/acme/issues/1/|*Resolved: High error rate in checkout*>`
+
+<BlockKitExample payload={metricAlertResolvedPayload} />
+
+### Thread reply on an alert
+
+Posted in the thread under an earlier issue alert when someone changes the issue, so the channel can follow what happened without a new message. Sentry sends one `section` block with a short sentence. Other changes use the same format, for example `Jane Doe assigned JAVASCRIPT-1 to John Smith` or `Sentry marked JAVASCRIPT-1 as a regression`. Block Kit Builder can't show threads, so the preview shows it as a regular message.
+
+Fallback `text`: same as the block text.
+
+<BlockKitExample payload={threadReplyPayload} />
+
+### Issue assigned
+
+A Notification Platform activity message, sent when an issue is assigned. Other issue activity, like new comments and status changes, uses the same layout: a plain-text `header`, a summary, the issue title and culprit, the error message, and a footer.
+
+Fallback `text`: `JAVASCRIPT-1 - ExampleError: something went wrong was assigned to Jane Doe by themselves`
+
+<BlockKitExample payload={issueAssignedPayload} />
+
+### Deploy
+
+A Notification Platform message, sent when a release is deployed to an environment. It lists the affected projects and the commits in each repository.
+
+Fallback `text`: `Deployed v1.0.0 of backend, frontend to production`
+
+<BlockKitExample payload={deployPayload} />
+
+## Resources
+
+- [Slack Block Kit reference](https://api.slack.com/reference/block-kit/blocks)
+- [Slack mrkdwn formatting](https://api.slack.com/reference/surfaces/formatting)
+- [Slack Block Kit Builder](https://app.slack.com/block-kit-builder)
+- `/debug/notifications/` for live previews of every registered Notification Platform template
