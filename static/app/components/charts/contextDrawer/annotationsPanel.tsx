@@ -19,6 +19,7 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 
+import {AnnotationSevereTable} from './annotationSevereTable';
 import type {ChartContextSection} from './chartContextDrawer';
 
 export const ANNOTATION_FLAGS_CURSOR = 'contextFlagsCursor';
@@ -64,11 +65,11 @@ export function AnnotationsPanel({items, kinds, section}: AnnotationsPanelProps)
         count={severeItems.length}
         padding="2xl"
       >
-        <Text variant="muted">
-          {severeItems.length > 0
-            ? t('Table coming soon')
-            : t('No severe annotations in this time range')}
-        </Text>
+        {severeItems.length > 0 ? (
+          <AnnotationSevereTable items={severeItems} />
+        ) : (
+          <Text variant="muted">{t('No severe annotations in this time range')}</Text>
+        )}
       </AnnotationsSection>
       <Separator orientation="horizontal" border="primary" />
       <Stack
