@@ -1,6 +1,6 @@
 import styled from '@emotion/styled';
 import {IconAdd} from '@sentry/icons/add';
-import {skipToken, useQuery} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {ProjectAvatar} from '@sentry/scraps/avatar';
@@ -20,7 +20,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
-import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
@@ -28,6 +28,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {ClassifierSearch} from './components/classifierSearch';
 import {ResultAttributeName} from './components/resultAttributeName';
+import {classifierListApiOptions} from './hooks/classifierApiOptions';
 import type {TelemetryClassifier} from './types';
 import {getClassifierDetailPath, getDatasetLabel, getNewClassifierPath} from './utils';
 
@@ -127,19 +128,13 @@ function ClassifiersTable() {
   const [{query, cursor}] = useQueryStates(searchParsers);
 
   const {data, isPending, isError, refetch} = useQuery({
-    ...apiOptions.as<TelemetryClassifier[]>()(
-      '/organizations/$organizationIdOrSlug/classifiers/',
-      {
-        path: isReady ? {organizationIdOrSlug: organization.slug} : skipToken,
-        query: {
-          project: selection.projects,
-          query: query || undefined,
-          cursor: cursor ?? undefined,
-          per_page: CLASSIFIERS_PER_PAGE,
-        },
-        staleTime: 0,
-      }
-    ),
+    ...classifierListApiOptions(organization.slug, {
+      project: selection.projects,
+      query: query || undefined,
+      cursor: cursor ?? undefined,
+      per_page: CLASSIFIERS_PER_PAGE,
+    }),
+    enabled: isReady,
     select: selectJsonWithHeaders,
   });
 
