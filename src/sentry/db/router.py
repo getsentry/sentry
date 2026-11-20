@@ -125,6 +125,7 @@ class SiloRouter:
         "sentry_scheduledjob": SiloMode.CONTROL,
         "sentry_projecttemplate": SiloMode.CELL,
         "sentry_projecttemplateoption": SiloMode.CELL,
+        "sentry_releasethreshold": SiloMode.CELL,
         "sentry_neglectedrule": SiloMode.CELL,
         "sentry_ruleactivity": SiloMode.CELL,
         "sentry_rulefirehistory": SiloMode.CELL,
