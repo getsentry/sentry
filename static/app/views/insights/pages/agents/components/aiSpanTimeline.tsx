@@ -83,16 +83,7 @@ export function AiSpanTimeline({
   selectedNodeKey: string | null;
   compressGaps?: boolean;
   isLoading?: boolean;
-  /**
-   * Spans shallower than this start expanded, like `StructuredEventData`'s
-   * `maxDefaultDepth`. Everything starts expanded by default. The selected span's
-   * ancestors are always expanded so it stays visible.
-   */
   maxDefaultDepth?: number;
-  /**
-   * Only shows these spans, e.g. a window around one step. Nesting still comes
-   * from all `nodes`, so the rows keep their depth.
-   */
   visibleNodeIds?: ReadonlySet<string>;
 }) {
   const compressedBounds = useMemo(
@@ -318,7 +309,7 @@ const TimelineRow = memo(function TimelineRowImpl({
           ) : null}
         </Flex>
       ) : null}
-      <Flex align="center" flex="1" minWidth="0">
+      <Flex align="center" flex="1" minWidth="0" padding="xs" cursor="pointer">
         {flexProps => (
           <SelectButton type="button" {...flexProps} onClick={() => onSelectNode(node)}>
             <Stack gap="xs" flex="1" minWidth="0">
@@ -557,15 +548,12 @@ const RowContainer = styled('div')<{depth: number}>`
   }
 `;
 
+// Layout comes from the wrapping `Flex`; this only resets the native button.
 const SelectButton = styled('button')`
-  width: 100%;
   border: none;
   font: inherit;
   color: inherit;
   text-align: left;
-  padding: ${p => p.theme.space.xs};
-  border-radius: 0;
-  cursor: pointer;
   background-color: transparent;
 `;
 
