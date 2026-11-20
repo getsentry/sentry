@@ -1,8 +1,12 @@
 from collections import Counter
+from dataclasses import replace
+from datetime import datetime, timedelta
 
 import pytest
 
 from sentry.anomaly_detection.contracts import (
+    ChangeEvent,
+    ChangeType,
     Metric,
     SeriesKey,
     Service,
@@ -12,8 +16,61 @@ from sentry.anomaly_detection.correlation.call_graph import DOWNSTREAM, UPSTREAM
 from sentry.anomaly_detection.correlation.footprint import (
     CallEdge,
 )
+from sentry.anomaly_detection.correlation.shared_dependencies import (
+    PairStats,
+    learn,
+)
+from sentry.anomaly_detection.evaluation.novelty import Novelty
 
+START = datetime(2024, 1, 1)
+MINUTE = timedelta(minutes=1)
 LATENCY = Metric.P95_DURATION
+ORDERS = SeriesKey(2, "production", Signal.OUTBOUND_DB, LATENCY, "orders")
+
+
+def _episode(
+    key: SeriesKey, start: datetime = START, change_type: ChangeType = ChangeType.SLOWDOWN
+) -> ChangeEvent:
+    return ChangeEvent(key, change_type, start, 100, 10, 0.9, open_ratio=10, peak_ratio=10)
+
+
+def test_shared_learning_counts_staggered_incidents_in_novelty_history_once() -> None:
+    replica = replace(ORDERS, project_id=3)
+    now = START + timedelta(days=3)
+    novelty = Novelty()
+    minute = START
+    while minute < now:
+        for key in (ORDERS, replica):
+            novelty.observe(key, minute)
+            novelty.observe(replace(key, metric=Metric.FAILURE_RATE), minute)
+        minute += MINUTE
+
+    def record_incident(onset: datetime) -> None:
+        # Failures follow the slowdown within the coincidence tolerance, while it's open.
+        for key in (ORDERS, replica):
+            slowdown = _episode(key, onset)
+            failures = _episode(
+                replace(key, metric=Metric.FAILURE_RATE), onset + 2 * MINUTE, ChangeType.SPIKE
+            )
+            novelty.record(slowdown)
+            novelty.record(failures)
+            # Episodes are recorded when they open and end later.
+            slowdown.ended_at = failures.ended_at = onset + 10 * MINUTE
+
+    def learned_pair() -> PairStats | None:
+        return learn(novelty.state.history, now, coverage=novelty.state.coverage).get(
+            ORDERS, replica
+        )
+
+    incidents = [START + timedelta(hours=9 * i, minutes=7 * i) for i in range(1, 4)]
+    for onset in incidents[:2]:
+        record_incident(onset)
+    assert learned_pair() is None
+
+    record_incident(incidents[2])
+    pair = learned_pair()
+    assert pair is not None
+    assert pair.co == 3
 
 
 def _service(project_id: int) -> Service:
