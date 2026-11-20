@@ -7,6 +7,9 @@ import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataIt
 import {
   EntityHeaderMetadataItem,
   EntityHeaderMetadataItemSkeleton,
+  hasMetadataContent,
+  MetadataDivider,
+  warnOnEmptyMetadataValues,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
 import {EntityHeaderPeople} from './items/entityHeaderPeople';
@@ -14,7 +17,7 @@ import type {EntityHeaderStatProps} from './items/entityHeaderStat';
 import {EntityHeaderStat} from './items/entityHeaderStat';
 import type {EntityHeaderTitleProps} from './items/entityHeaderTitle';
 import {EntityHeaderTitle} from './items/entityHeaderTitle';
-import {METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
+import {METADATA_ROW_HEIGHT, METADATA_TEXT_HEIGHT, ROW_HEIGHT} from './constants';
 
 export interface EntityHeaderProps {
   /**
@@ -113,10 +116,18 @@ export function EntityHeader({
     .filter((entry): entry is {index: number; stat: EntityHeaderStatProps} =>
       Boolean(entry.stat)
     );
+  // While loading, a value is often empty until its data lands.
+  for (const item of isLoading ? [] : (metadata?.items ?? [])) {
+    if (item) {
+      warnOnEmptyMetadataValues(item);
+    }
+  }
   const visibleMetadata = (metadata?.items ?? [])
     .map((item, index) => ({item, index}))
-    .filter((entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
-      Boolean(entry.item)
+    .filter(
+      (entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
+        // An item that draws nothing must not count as the row's last item.
+        entry.item !== null && hasMetadataContent(entry.item)
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));
@@ -182,22 +193,25 @@ export function EntityHeader({
                 role="list"
                 aria-label={metadata.label}
                 align="center"
-                gap="md xl"
+                gap="md"
                 wrap="wrap"
                 minWidth={0}
-                minHeight={METADATA_TEXT_HEIGHT}
+                minHeight={METADATA_ROW_HEIGHT}
               >
-                {metadataSlots.map(({item, index}) =>
-                  item ? (
+                {metadataSlots.map(({item, index}, position) => {
+                  const isLast = position === metadataSlots.length - 1;
+                  const trailing = isLast ? null : <MetadataDivider />;
+                  return item ? (
                     <EntityHeaderMetadataItem
                       key={index}
                       {...item}
+                      trailing={trailing}
                       isLoading={isLoading}
                     />
                   ) : (
-                    <EntityHeaderMetadataItemSkeleton key={index} />
-                  )
-                )}
+                    <EntityHeaderMetadataItemSkeleton key={index} trailing={trailing} />
+                  );
+                })}
               </Flex>
             )}
           </Stack>
