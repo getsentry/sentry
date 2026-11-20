@@ -17,6 +17,7 @@ from typing import Any
 from django.utils import timezone
 from taskbroker_client.retry import Retry
 
+from sentry import features
 from sentry.constants import ObjectStatus
 from sentry.integrations.github.repository import GitHubRepositoryProvider
 from sentry.integrations.models.organization_integration import OrganizationIntegration
@@ -262,7 +263,7 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                 repos=active_repos + disabled_repos,
                 provider_repos=provider_repos,
             )
-            if provider_key in RENAME_SYNC_PROVIDERS
+            if _sync_renames_enabled(provider_key, rpc_org)
             else []
         )
 
@@ -395,6 +396,12 @@ def _sync_repos_for_org(organization_integration_id: int) -> None:
                     "renames": rename_batch,
                 }
             )
+
+
+def _sync_renames_enabled(provider_key: str, organization: RpcOrganization) -> bool:
+    return provider_key in RENAME_SYNC_PROVIDERS and features.has(
+        "organizations:scm-repo-sync-renames", organization
+    )
 
 
 def _find_renames(
@@ -625,6 +632,10 @@ def rename_repos_batch(
     if ctx is None:
         return
     integration, rpc_org, provider_key = ctx
+
+    # The organization may have been removed from the rollout since this batch was queued.
+    if not _sync_renames_enabled(provider_key, rpc_org):
+        return
 
     renamed_ids = repository_service.rename_repositories(
         organization_id=rpc_org.id,

@@ -40,8 +40,11 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase, TestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.users.models.identity import Identity
+
+RENAME_FEATURE = "organizations:scm-repo-sync-renames"
 
 
 @control_silo_test
@@ -153,6 +156,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             ).exists()
 
     @responses.activate
+    @with_feature(RENAME_FEATURE)
     def test_renames_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -180,6 +184,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert Repository.objects.filter(organization_id=self.organization.id).count() == 1
 
     @responses.activate
+    @with_feature(RENAME_FEATURE)
     def test_renames_disabled_repos(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -205,7 +210,56 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert repo.status == ObjectStatus.ACTIVE
 
     @responses.activate
+    def test_restores_without_queuing_renames_when_flag_is_off(self, _: MagicMock) -> None:
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo = self.create_repo(
+                name="org/old",
+                provider="integrations:github",
+                integration_id=self.integration.id,
+                external_id="1",
+            )
+            repo.update(status=ObjectStatus.DISABLED)
+        self._add_repos_response([{"id": 1, "full_name": "org/new", "name": "new"}])
+
+        with (
+            self.feature({RENAME_FEATURE: False}),
+            patch.object(sync_repos_module.rename_repos_batch, "apply_async") as enqueue,
+            self.tasks(),
+        ):
+            sync_repos_for_org(self.oi.id)
+
+        enqueue.assert_not_called()
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.status == ObjectStatus.ACTIVE
+            assert repo.name == "org/old"
+
+    @responses.activate
+    def test_queued_rename_skipped_after_flag_is_disabled(self, _: MagicMock) -> None:
+        repo = self.create_repo(
+            name="org/old",
+            provider="integrations:github",
+            integration_id=self.integration.id,
+            external_id="1",
+        )
+        self._add_repos_response([{"id": 1, "full_name": "org/new", "name": "new"}])
+        with (
+            self.feature(RENAME_FEATURE),
+            patch.object(sync_repos_module.rename_repos_batch, "apply_async") as enqueue,
+        ):
+            sync_repos_for_org(self.oi.id)
+        enqueue.assert_called_once()
+
+        with self.feature({RENAME_FEATURE: False}):
+            sync_repos_module.rename_repos_batch(**enqueue.call_args.kwargs["kwargs"])
+
+        with assume_test_silo_mode(SiloMode.CELL):
+            repo.refresh_from_db()
+            assert repo.name == "org/old"
+
+    @responses.activate
     @patch("sentry.integrations.source_code_management.sync_repos.rename_repos_batch.apply_async")
+    @with_feature(RENAME_FEATURE)
     def test_does_not_rename_unchanged_repos(self, mock_rename: MagicMock, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             Repository.objects.create(
@@ -227,6 +281,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         mock_rename.assert_not_called()
 
     @responses.activate
+    @with_feature(RENAME_FEATURE)
     def test_repairs_url_when_only_url_is_stale(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -253,6 +308,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
     @responses.activate
     @patch("sentry.integrations.source_code_management.sync_repos.SYNC_BATCH_SIZE", 2)
     @patch("sentry.integrations.source_code_management.sync_repos.rename_repos_batch.apply_async")
+    @with_feature(RENAME_FEATURE)
     def test_dispatches_renames_in_batches(self, mock_rename: MagicMock, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             for i in range(1, 4):
@@ -282,6 +338,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
         }
 
     @responses.activate
+    @with_feature(RENAME_FEATURE)
     def test_rename_skips_repo_deleted_after_sync_read_it(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -361,6 +418,7 @@ class SyncReposForOrgTestCase(IntegrationTestCase):
             assert repo.url == "https://github.com/getsentry/new-name"
 
     @responses.activate
+    @with_feature(RENAME_FEATURE)
     def test_rename_skips_repo_renamed_by_webhook_after_sync_read_it(self, _: MagicMock) -> None:
         with assume_test_silo_mode(SiloMode.CELL):
             repo = Repository.objects.create(
@@ -939,6 +997,7 @@ class SyncReposForOrgGHETestCase(TestCase):
         assert repos[0].provider == "integrations:github_enterprise"
 
     @patch("sentry.integrations.github.client.GitHubBaseClient.get_repos")
+    @with_feature(RENAME_FEATURE)
     def test_renames_repos_for_ghe(self, mock_get_repos: MagicMock) -> None:
         GitHubEnterpriseIntegrationProvider().setup()
         integration = self._create_ghe_integration("ghe.example.com")
