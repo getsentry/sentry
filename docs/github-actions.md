@@ -17,26 +17,23 @@ How to write the logic behind a step in `.github/workflows/`. These rules apply 
 
 ## `actions/github-script`
 
-- Pin the action to the full commit SHA that other workflows here already use, with the version in a comment.
+- Don't pin commit SHAs by hand. Write the version tag in `uses:` and run [`gh actions-lock`](https://github.com/github/gh-actions-lock), which pins every action to a verified commit in `.github/workflows/actions.lock`. Rerun it after you change any `uses:`.
 - Keep the inline `script:` to an import and a call. The logic lives in `.github/workflows/scripts/<name>.ts`:
 
   ```yaml
-  - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
-    env:
-      NEW_BASELINE: ${{ runner.temp }}/api-exceptions/exceptions.json
+  - uses: actions/github-script@v9.0.0
     with:
-      github-token: ${{ steps.bot.outputs.token }}
       script: |
-        const {publishApiBaseline} = await import(
-          `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/publish-api-baseline.ts`
+        const {syncStoriesPreviewComment} = await import(
+          `${process.env.GITHUB_WORKSPACE}/.github/workflows/scripts/stories-preview-comment.ts`
         );
-        await publishApiBaseline({github, context, core, newBaselinePath: process.env.NEW_BASELINE});
+        await syncStoriesPreviewComment({github, context, core});
   ```
 
 - Write modules in TypeScript and export one function that takes `{github, context, core, ...inputs}`. Node runs them by stripping types, so use only erasable syntax: no `enum`, `namespace`, or constructor parameter properties, and import with the `.ts` extension.
-- Type the Octokit calls you use in a local interface, because `@actions/github` isn't a dependency. `stories-preview-comment.ts` is an example.
+- Type the Octokit calls you use in a local interface, because `@actions/github` isn't a dependency, as `stories-preview-comment.ts` does.
 - Pass inputs through `env:` and read them from `process.env`. Don't put `${{ }}` expressions in `script:`, because they're templated into the code before it runs.
-- Use Octokit, not `gh` or `git push`. To commit to a bot branch, use the Git Data API (`git.createTree`, `git.createCommit`, `git.updateRef`), as `publish-api-baseline.ts` does. That needs no git identity, and GitHub signs the commit as the app.
+- Use Octokit, not `gh` or `git push`. To commit to a bot branch, use the Git Data API (`git.createTree`, `git.createCommit`, `git.updateRef`). That needs no git identity, and GitHub signs the commit as the app.
 - Fail with a thrown error or `core.setFailed`, and log with `core.info`. Don't swallow API errors. Catch only the status you expect, such as a 422 for a ref that doesn't exist yet, and rethrow everything else.
 
 ## Python scripts
