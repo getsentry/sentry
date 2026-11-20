@@ -41,7 +41,10 @@ from sentry.models.team import Team
 from sentry.notifications.notifications.activity import EMAIL_CLASSES_BY_TYPE
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.digest import DigestNotification
-from sentry.notifications.notifications.rules import get_group_substatus_text
+from sentry.notifications.notifications.rules import (
+    get_group_substatus_text,
+    get_new_error_environment,
+)
 from sentry.notifications.types import GroupSubscriptionReason, NotificationOrigin
 from sentry.notifications.utils import get_interface_list
 from sentry.notifications.utils.links import (
@@ -489,6 +492,7 @@ def alert(request: HttpRequest) -> HttpResponse:
         or None
     )
 
+    environment = event.get_tag("environment") if random.randint(0, 1) else None
     return MailPreview(
         html_template="sentry/emails/error.html",
         text_template="sentry/emails/error.txt",
@@ -497,7 +501,10 @@ def alert(request: HttpRequest) -> HttpResponse:
             "interfaces": get_interface_list(event),
             "project_label": project.slug,
             "commits": json.loads(COMMIT_EXAMPLE),
-            "environment": random.randint(0, 1) > 0 and "prod" or None,
+            "environment": environment,
+            "new_error_environment": get_new_error_environment(
+                group, environment, enhanced_privacy=org.flags.enhanced_privacy
+            ),
             "notification_reason": notification_reason,
             "notification_settings_link": absolute_uri(
                 "/settings/account/notifications/alerts/?referrer=alert_email"

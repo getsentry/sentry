@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping, Sequence
 from datetime import date as date_type
 from datetime import datetime, timedelta, timezone
 from random import randint
-from typing import cast
+from typing import TYPE_CHECKING, cast
 from urllib.parse import quote, urlencode
 
 from django import template
@@ -19,9 +19,14 @@ from packaging.version import parse as parse_version
 
 from sentry import options
 from sentry.api.serializers import serialize as serialize_func
+from sentry.issues.grouptype import GroupCategory
 from sentry.utils import json
 from sentry.utils.strings import soft_break as _soft_break
 from sentry.utils.strings import soft_hyphenate, truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models.group import Group
+    from sentry.services.eventstore.models import Event, GroupEvent
 
 SentryVersion = namedtuple("SentryVersion", ["current", "latest", "update_available", "build"])
 
@@ -406,6 +411,15 @@ def random_int(a: int, b: int | None = None) -> int:
 @register.filter
 def get_item(dictionary: Mapping[object, object], key: object) -> object:
     return dictionary.get(key, "")
+
+
+@register.simple_tag
+def digest_environment(
+    group: "Group", event: "Event | GroupEvent", show_environments: bool
+) -> str | None:
+    if show_environments and group.issue_category == GroupCategory.ERROR:
+        return event.get_tag("environment")
+    return None
 
 
 @register.filter
