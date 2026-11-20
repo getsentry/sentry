@@ -87,6 +87,9 @@ const config: KnipConfig = {
       entry: [
         ...productionEntryPoints.map(entry => `${entry}!`),
         ...frontendWorkspace.entry,
+        // Lands ahead of the unified visualize list that imports it; remove
+        // this entry when that follow-up merges.
+        'views/dashboards/widgetBuilder/components/visualize/traceMetrics/rowModel.ts!',
         '**/__mocks__/**/*.{js,ts,tsx}',
         '**/*.snapshots.tsx',
         '**/*.stories.{js,ts,tsx}',
