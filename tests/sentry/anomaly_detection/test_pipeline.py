@@ -4,6 +4,8 @@ from unittest.mock import patch
 
 import pytest
 
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.checkpoint.replay import advance_org, snapshot
 from sentry.anomaly_detection.contracts import (
     AnomalyGroupKey,
     ChangeEvent,
@@ -154,6 +156,60 @@ def test_routine_slowdown_qualifies_when_it_lasts_unusually_long() -> None:
     assert opened.timestamp == duration_look
     assert not opened.is_resolved
     assert not evaluator.state.admission.absorbed
+
+
+def _routine_slowdown_with_gap_rows(
+    gap_start: datetime, healthy_return: datetime, unsupported_return: datetime
+) -> list[SeriesRow]:
+    """No rows in [gap_start, healthy_return), then a healthy minute, then a slow minute
+    without enough samples, then the slowdown again."""
+    rows: list[SeriesRow] = []
+    for row in _routine_slowdown_rows():
+        if gap_start <= row.ts < healthy_return:
+            continue
+        if row.ts == healthy_return and row.metric == Metric.P95_DURATION:
+            row = row._replace(value=30.0)
+        elif row.ts == unsupported_return and row.metric == Metric.COUNT_SAMPLE:
+            row = row._replace(value=1.0)
+        rows.append(row)
+    return rows
+
+
+def test_duration_promotion_waits_for_supported_anomaly_after_gap() -> None:
+    start = T0 + 480 * MINUTE
+    first_look = start + 60 * MINUTE
+    healthy_return = first_look + 5 * MINUTE
+    unsupported_return = healthy_return + MINUTE
+    supported_return = unsupported_return + MINUTE
+    rows = _routine_slowdown_with_gap_rows(first_look, healthy_return, unsupported_return)
+    evaluator = OrgEvaluator(NoFootprints(), projects=(PROJECT,))
+    assert not evaluator.advance(rows=rows, hourly_rows=[], start=start, end=first_look)
+    checkpoint = codec.decode(codec.encode(snapshot(evaluator, first_look)))
+
+    assert not evaluator.advance(rows=rows, hourly_rows=[], start=first_look, end=supported_return)
+    (latent,) = evaluator.state.admission.absorbed.values()
+    assert evaluator.novelty.observed_duration(latent, supported_return) == 61
+    assert not evaluator.state.admission.next_look
+
+    expected = evaluator.advance(
+        rows=rows, hourly_rows=[], start=supported_return, end=supported_return + MINUTE
+    )
+    (opened,) = expected
+    assert opened.timestamp == supported_return and not opened.is_resolved
+    assert latent.novelty and latent.novelty["opened_on_duration"] is True
+
+    # A restarted poll catches up through the gap and healthy return, publishing
+    # exactly what the uninterrupted evaluator published from the checkpoint on.
+    restarted, _ = advance_org(
+        rows=rows,
+        hourly_rows=[],
+        start=first_look,
+        end=supported_return + MINUTE,
+        footprints=NoFootprints(),
+        projects=(PROJECT,),
+        checkpoint=checkpoint,
+    )
+    assert list(restarted) == [opened]
 
 
 def _key_latency_rows(key: SeriesKey, p95s: list[float], samples: float) -> list[SeriesRow]:
