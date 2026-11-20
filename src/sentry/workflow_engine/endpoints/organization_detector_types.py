@@ -16,7 +16,7 @@ from sentry.apidocs.constants import (
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.organization import Organization
-from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_excluded_detector_types
 from sentry.workflow_engine.registry import detector_settings_registry
 from sentry.workflow_engine.types import WorkflowEngineAPIOperation
 

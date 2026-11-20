@@ -4,31 +4,16 @@ from typing import TYPE_CHECKING
 
 from django.db.models import Q
 
-from sentry import features
+from sentry.workflow_engine.endpoints.utils.api_availability import (
+    get_excluded_types,
+    is_api_operation_available,
+)
 from sentry.workflow_engine.registry import detector_settings_registry
-from sentry.workflow_engine.types import DetectorSettings, WorkflowEngineAPIOperation
+from sentry.workflow_engine.types import WorkflowEngineAPIOperation
 
 if TYPE_CHECKING:
     from sentry.auth.principal import RequestPrincipal
     from sentry.models.organization import Organization
-
-
-def is_detector_api_operation_available(
-    settings: type[DetectorSettings],
-    operation: WorkflowEngineAPIOperation,
-    organization: Organization,
-    *,
-    actor: RequestPrincipal | None = None,
-) -> bool:
-    gate = settings.api_availability.get(
-        operation, DetectorSettings.DEFAULT_API_AVAILABILITY[operation]
-    )
-    if isinstance(gate, bool):
-        return gate
-    # Type discovery uses organization visibility; row operations also use the actor.
-    if operation == WorkflowEngineAPIOperation.DISCOVER:
-        actor = None
-    return features.has(gate.name, organization, actor=actor)
 
 
 def get_visible_detector_types(organization: Organization) -> list[str]:
@@ -36,10 +21,20 @@ def get_visible_detector_types(organization: Organization) -> list[str]:
     return [
         detector_type
         for detector_type, settings in detector_settings_registry.registrations.items()
-        if is_detector_api_operation_available(
-            settings, WorkflowEngineAPIOperation.DISCOVER, organization
-        )
+        if is_api_operation_available(settings, WorkflowEngineAPIOperation.DISCOVER, organization)
     ]
+
+
+def get_excluded_detector_types(
+    operation: WorkflowEngineAPIOperation | str | None,
+    organization: Organization,
+    *,
+    actor: RequestPrincipal | None = None,
+) -> list[str]:
+    """Resolve detector-platform API gates for the current request, without fetching rows."""
+    return get_excluded_types(
+        detector_settings_registry.registrations, operation, organization, actor=actor
+    )
 
 
 def get_detector_type_filters() -> Q:
