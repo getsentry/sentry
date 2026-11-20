@@ -2206,7 +2206,6 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
-    (("membership:read", "Read access to organization and team membership."),),
     (
         ("membership:admin", "Admin access to organization and team membership."),
         ("membership:write", "Write access to organization and team membership."),

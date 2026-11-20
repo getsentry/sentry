@@ -262,6 +262,8 @@ _PERMISSION_ACTIONS = {
     "saved_query:write": ("write",),
     "service_account:write": ("write",),
     "user_preference:write": ("write",),
+    "membership:write": ("write",),
+    "membership:admin": ("admin",),
     "org:integrations": ("read", "write", "admin"),
     "project:releases": ("read", "write", "admin"),
 }
