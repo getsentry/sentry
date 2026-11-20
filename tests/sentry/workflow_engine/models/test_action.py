@@ -196,7 +196,7 @@ class TestAction(TestCase):
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
     def test_group_less_invocation(self, mock_get_detector: MagicMock) -> None:
         detector = self.create_all_projects_detector(self.organization)
-        # Concrete investigation detector resolution lands with its event integration.
+        # ISWF-3709 adds concrete investigation detector resolution and task transport.
         mock_get_detector.return_value = detector
         notification_uuid = str(uuid.uuid4())
         with (
