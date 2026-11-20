@@ -445,6 +445,17 @@ describe('OrganizationDropdown', () => {
     ).toHaveAttribute('href', '/organizations/new/');
   });
 
+  it('hides Switch Organization when there is nothing to switch to or create', async () => {
+    OrganizationsStore.load([organization]);
+
+    render(<OrganizationDropdown />, {organization});
+
+    await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));
+
+    expect(screen.getByRole('menuitemradio', {name: 'Members'})).toBeInTheDocument();
+    expect(screen.queryByText('Switch Organization')).not.toBeInTheDocument();
+  });
+
   it('Shows inactive orgs in their own section', async () => {
     OrganizationsStore.addOrReplace(
       OrganizationFixture({id: '1', name: 'Org 1', slug: 'org-1'})
