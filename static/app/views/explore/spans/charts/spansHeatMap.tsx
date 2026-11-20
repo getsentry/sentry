@@ -1,5 +1,6 @@
 import {useCallback, useMemo, useRef} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useDebouncedValue} from '@tanstack/react-pacer';
+import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container} from '@sentry/scraps/layout';
@@ -26,6 +27,7 @@ import {
   type HeatMapZoomContext,
 } from 'sentry/views/dashboards/widgets/heatMapWidget/heatMapWidgetVisualization';
 import {HeatMap} from 'sentry/views/dashboards/widgets/heatMapWidget/plottables/heatMap';
+import {HEATMAP_RESIZE_DEBOUNCE_MS} from 'sentry/views/dashboards/widgets/heatMapWidget/settings';
 import {calculateHeatMapBucketDimensions} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/calculateHeatMapBucketDimensions';
 import {mergeMetricUnit} from 'sentry/views/dashboards/widgets/heatMapWidget/utils/mergeMetricUnit';
 import {plottablesCanBeVisualized} from 'sentry/views/dashboards/widgets/plottablesCanBeVisualized';
@@ -132,7 +134,14 @@ export function SpansHeatMap({
     {scroll: false}
   );
   const containerRef = useRef<HTMLDivElement>(null);
-  const {width, height} = useDimensions({elementRef: containerRef});
+  const dimensions = useDimensions({elementRef: containerRef});
+  // A leading update keeps the first usable measurement fast; mid-resize churn
+  // collapses into a single trailing update once the resize settles.
+  const [debouncedDimensions] = useDebouncedValue(dimensions, {
+    wait: HEATMAP_RESIZE_DEBOUNCE_MS,
+    // The initial zero-sized value must not consume the leading execution.
+    leading: dimensions.width > 0 && dimensions.height > 0,
+  });
 
   // The endpoint clamps values outside the bounds into the edge rows, so filter
   // out spans above the clip instead or they pile up into a solid band. The clip
@@ -147,7 +156,7 @@ export function SpansHeatMap({
 
   const bucketDimensions = calculateHeatMapBucketDimensions(
     selection,
-    {width, height},
+    debouncedDimensions,
     intervalOptions.map(option => option.value)
   );
 
@@ -162,7 +171,9 @@ export function SpansHeatMap({
       referrer: 'api.explore.spans-heatmap',
       interval: bucketDimensions?.interval,
       sampling: samplingMode,
-      yBuckets: bucketDimensions?.yBuckets,
+      yBuckets: defined(bucketDimensions)
+        ? Math.min(bucketDimensions.yBuckets, MAX_Y_BUCKETS)
+        : undefined,
       yMin: yBounds?.yMin,
       yMax: yBounds?.yMax,
       caseInsensitive: Boolean(caseInsensitive),
@@ -170,6 +181,7 @@ export function SpansHeatMap({
       ...crossEventQueries,
     }),
     select: selectWithMillisecondUnit,
+    placeholderData: keepPreviousData,
     enabled: !isYBoundsPending,
   });
 
@@ -307,6 +319,10 @@ export function SpansHeatMap({
 }
 
 const HEATMAP_SELECTION_PANEL_ID = 'heatmap';
+
+// Mirrors the backend's MAX_SPANS_Y_BUCKETS. Taller charts would ask for more
+// rows than the endpoint returns, and refetch on every height change.
+const MAX_Y_BUCKETS = 50;
 
 const PERCENTILES = ['p99', 'p75', 'p50'] as const;
 
