@@ -107,16 +107,24 @@ function annotationMarkerRenderItem(
       const endX = Number.isFinite(bucket.rangeEnd)
         ? api.coord([bucket.rangeEnd, 0])[0]
         : undefined;
-      children.push({
-        type: 'line',
-        shape: {
-          x1: x,
-          y1: plot.y,
-          x2: Math.min(endX ?? plotRight, plotRight),
-          y2: plot.y,
+      const rangeRight = Math.min(endX ?? plotRight, plotRight);
+      children.push(
+        {
+          type: 'line',
+          shape: {x1: x, y1: plot.y, x2: rangeRight, y2: plot.y},
+          style: {stroke: color, lineWidth: RANGE_LINE_WIDTH},
         },
-        style: {stroke: color, lineWidth: RANGE_LINE_WIDTH},
-      });
+        {
+          type: 'rect',
+          shape: {
+            x,
+            y: plot.y - LINE_HOVER_WIDTH / 2,
+            width: rangeRight - x,
+            height: LINE_HOVER_WIDTH,
+          },
+          style: {fill: 'transparent'},
+        }
+      );
     }
 
     if (!bucket.startsBeforeWindow) {

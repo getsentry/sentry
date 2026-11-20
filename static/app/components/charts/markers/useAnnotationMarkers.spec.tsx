@@ -103,6 +103,7 @@ describe('useAnnotationMarkers', () => {
     expect(range).toMatchObject({
       children: [
         {type: 'line', shape: {x1: 120, y1: 10, x2: 300, y2: 10}},
+        {type: 'rect'},
         {type: 'line', shape: {x1: 120, x2: 120}},
         {type: 'circle'},
         {type: 'rect'},
@@ -113,7 +114,9 @@ describe('useAnnotationMarkers', () => {
   it('runs ongoing ranges to the right edge of the plot', () => {
     const [ongoing] = renderMarkers([change('ongoing', 2 * MINUTE, 'high', 'ongoing')]);
 
-    expect(ongoing).toMatchObject({children: [{shape: {x1: 120, x2: 600}}, {}, {}, {}]});
+    expect(ongoing).toMatchObject({
+      children: [{shape: {x1: 120, x2: 600}}, {}, {}, {}, {}],
+    });
   });
 
   it('draws only the line from the left edge for ranges that started before the chart', () => {
@@ -122,7 +125,10 @@ describe('useAnnotationMarkers', () => {
     ]);
 
     expect(earlier).toMatchObject({
-      children: [{type: 'line', shape: {x1: 0, y1: 10, x2: 180, y2: 10}}],
+      children: [
+        {type: 'line', shape: {x1: 0, y1: 10, x2: 180, y2: 10}},
+        {type: 'rect', shape: {x: 0, width: 180}},
+      ],
     });
   });
 
@@ -133,7 +139,9 @@ describe('useAnnotationMarkers', () => {
       change('point', 2 * MINUTE + 20_000, 'high'),
     ]);
 
-    expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}, {}]});
+    expect(merged).toMatchObject({
+      children: [{shape: {x1: 120, x2: 360}}, {}, {}, {}, {}],
+    });
   });
 
   it('shows the annotations of the hovered marker in its tooltip', async () => {
