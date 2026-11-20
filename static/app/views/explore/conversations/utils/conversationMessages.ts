@@ -89,8 +89,6 @@ export interface ToolCall {
 export interface SubAgentCall {
   hasError: boolean;
   kind: 'subagent';
-  /** The sub-agent's own LLM calls, not counting those of its sub-agents. */
-  llmCallCount: number;
   messages: ConversationMessage[];
   name: string;
   nodeId: string;
@@ -795,10 +793,7 @@ function buildAgentHierarchyMessages(nodes: AITraceSpanNode[]): ConversationMess
       toSubAgentCall(
         agent,
         placements.get(agent.id)?.viaTool ?? null,
-        buildScope(agent.id),
-        (nodesByScope.get(agent.id) ?? []).filter(
-          node => getSpanKind(node) === 'generation'
-        ).length
+        buildScope(agent.id)
       )
     );
     return attachSubAgentCalls(
@@ -836,8 +831,7 @@ function getToolResult(tool: AITraceSpanNode): string | null {
 function toSubAgentCall(
   agent: AITraceSpanNode,
   viaTool: AITraceSpanNode | null,
-  messages: ConversationMessage[],
-  llmCallCount: number
+  messages: ConversationMessage[]
 ): SubAgentCall {
   const name = resolveAgentName(agent.attributes ?? {}) || agent.description || 'agent';
   const result = viaTool ? getToolResult(viaTool) : null;
@@ -845,7 +839,6 @@ function toSubAgentCall(
     kind: 'subagent',
     nodeId: agent.id,
     name,
-    llmCallCount,
     hasError: hasError(agent),
     duration: getNodeDuration(agent),
     preview:

@@ -306,7 +306,7 @@ const TimelineRow = memo(function TimelineRowImpl({
               icon={
                 <IconChevron
                   direction={isExpanded ? 'down' : 'right'}
-                  size="xs"
+                  size="sm"
                   variant="muted"
                 />
               }

@@ -2404,7 +2404,6 @@ describe('conversationMessages utilities', () => {
         viaNodeId: 't1',
         preview: 'find c2pa',
         duration: 27,
-        llmCallCount: 2,
       });
       // The task is the sub-agent's user message, and the tool's result is
       // what it returned to the parent.

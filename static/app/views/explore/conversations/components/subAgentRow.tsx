@@ -1,5 +1,4 @@
 import type {ReactNode} from 'react';
-import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
@@ -37,11 +36,11 @@ interface SubAgentRowProps {
 }
 
 /**
- * A sub-agent as a collapsed row laid out like a tool call row: the agent's
- * icon, its name and its task. A pill after the name, like the trace view's
- * children button, shows how many LLM calls it made and whether it's open.
- * Expanding it shows its own transcript, with the same bubbles and tool calls
- * as the rest of the conversation.
+ * A sub-agent as a collapsed row laid out like a tool call row: the leading
+ * caret shared with the transcript's other collapsible rows and the Agent
+ * Timeline, then the agent's icon, its name and its task. Expanding it shows its
+ * own transcript, with the same bubbles and tool calls as the rest of the
+ * conversation.
  */
 export function SubAgentRow({
   call,
@@ -61,14 +60,11 @@ export function SubAgentRow({
 
   return (
     <CollapsibleChatRow
-      // The pill after the name shows the open state instead.
-      showCaret={false}
       open={isOpen}
       title={
         <Flex align="center" gap="sm" minWidth={0}>
           {node && <AiSpanStatusIcon node={node} />}
           <ToolTag name={call.name} hasError={call.hasError} />
-          <ExpandPill count={call.llmCallCount} isOpen={isOpen} />
           {!isOpen && call.preview && (
             <Text size="xs" monospace variant="muted" ellipsis>
               {call.preview}
@@ -91,34 +87,5 @@ export function SubAgentRow({
         </Container>
       </Container>
     </CollapsibleChatRow>
-  );
-}
-
-/**
- * Mirrors the trace view's children button: a pill with the number of LLM
- * calls inside and a chevron for the open state.
- */
-function ExpandPill({count, isOpen}: {count: number; isOpen: boolean}) {
-  return (
-    <Flex
-      align="center"
-      justify="center"
-      gap="2xs"
-      flexShrink={0}
-      // Same height and text size as the tag before it, so the two line up.
-      height="20px"
-      minWidth="36px"
-      padding="0 sm"
-      radius="full"
-      border="primary"
-      background="primary"
-    >
-      {count > 0 && (
-        <Text size="sm" variant="muted" tabular>
-          {count}
-        </Text>
-      )}
-      <IconChevron direction={isOpen ? 'down' : 'right'} size="sm" variant="muted" />
-    </Flex>
   );
 }
