@@ -46,9 +46,13 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
-import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
+import {
+  NON_GITHUB_PR_ITERATION_WARNING,
+  PR_ITERATION_OPTIONS,
+} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
+  isGitHubDotComProvider,
   prefetchAllSeerProjectRepos,
 } from 'sentry/utils/seer/seerProjectRepos';
 import {
@@ -341,32 +345,13 @@ export function SeerProjectTable() {
                     </InfiniteTable.RowCell>
                     <InfiniteTable.RowCell>
                       <Stack align="stretch" flex="1">
-                        <AutoSaveForm
+                        <PrIterationSelectCell
                           key={bulkEditVersion}
-                          name="prIteration"
-                          schema={seerProjectSettingsSchema}
+                          projectSlug={item.projectSlug}
                           initialValue={item.prIteration}
-                          mutationOptions={getMutateSeerProjectSettingsOptions({
-                            organization,
-                            project: {slug: item.projectSlug},
-                            queryClient,
-                          })}
-                        >
-                          {field => (
-                            <field.Select
-                              aria-label={t(
-                                'Auto-iterate on PRs for %s',
-                                item.projectSlug
-                              )}
-                              disabled={isRowDisabled}
-                              menuPortalTarget={document.body}
-                              onChange={field.handleChange}
-                              options={PR_ITERATION_OPTIONS}
-                              size="xs"
-                              value={field.state.value}
-                            />
-                          )}
-                        </AutoSaveForm>
+                          disabled={isRowDisabled}
+                          repoProviders={item.repoProviders}
+                        />
                       </Stack>
                     </InfiniteTable.RowCell>
                   </InfiniteTable.Row>
@@ -455,6 +440,52 @@ function AgentSelectCell({
           options={agentSelectOptions}
           size="xs"
           value={field.state.value}
+        />
+      )}
+    </AutoSaveForm>
+  );
+}
+
+interface PrIterationSelectCellProps {
+  disabled: boolean;
+  initialValue: boolean;
+  projectSlug: string;
+  repoProviders: string[] | undefined;
+}
+
+function PrIterationSelectCell({
+  disabled,
+  initialValue,
+  projectSlug,
+  repoProviders,
+}: PrIterationSelectCellProps) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+  // Auto-Iterate only runs on github.com PRs. Older responses don't list the
+  // providers, so the control stays available until they do.
+  const unavailable =
+    repoProviders !== undefined && !repoProviders.some(isGitHubDotComProvider);
+
+  return (
+    <AutoSaveForm
+      name="prIteration"
+      schema={seerProjectSettingsSchema}
+      initialValue={initialValue}
+      mutationOptions={getMutateSeerProjectSettingsOptions({
+        organization,
+        project: {slug: projectSlug},
+        queryClient,
+      })}
+    >
+      {field => (
+        <field.Select
+          aria-label={t('Auto-iterate on PRs for %s', projectSlug)}
+          disabled={unavailable ? NON_GITHUB_PR_ITERATION_WARNING : disabled}
+          menuPortalTarget={document.body}
+          onChange={field.handleChange}
+          options={PR_ITERATION_OPTIONS}
+          size="xs"
+          value={unavailable ? false : field.state.value}
         />
       )}
     </AutoSaveForm>
