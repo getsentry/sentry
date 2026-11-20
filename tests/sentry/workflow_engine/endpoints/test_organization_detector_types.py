@@ -11,8 +11,10 @@ from sentry.issues.grouptype import GroupCategory, GroupType, GroupTypeRegistry
 from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
-from sentry.workflow_engine.endpoints.utils.detector_filters import get_visible_detector_types
-from sentry.workflow_engine.endpoints.utils.filters import get_excluded_detector_types
+from sentry.workflow_engine.endpoints.utils.detector_filters import (
+    get_excluded_detector_types,
+    get_visible_detector_types,
+)
 from sentry.workflow_engine.endpoints.validators.base import BaseDetectorTypeValidator
 from sentry.workflow_engine.endpoints.validators.utils import get_unknown_detector_type_error
 from sentry.workflow_engine.handlers.detector import (
@@ -60,7 +62,7 @@ def test_released_issue_type_keeps_detector_discoverable(
         patch.object(GroupType, "__init_subclass__", classmethod(register_released_type)),
         patch.dict(detector_settings_registry.registrations, clear=True),
         patch(
-            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has"
+            "sentry.workflow_engine.endpoints.utils.api_availability.features.has"
         ) as has_feature,
     ):
         runpy.run_path(source_path)
@@ -79,7 +81,7 @@ def test_released_issue_type_keeps_detector_discoverable(
 )
 def test_internal_types_opt_out_of_discovery(detector_type: DetectorType) -> None:
     with patch(
-        "sentry.workflow_engine.endpoints.utils.detector_filters.features.has", return_value=False
+        "sentry.workflow_engine.endpoints.utils.api_availability.features.has", return_value=False
     ):
         organization = Organization()
         assert detector_type not in get_visible_detector_types(organization)
@@ -344,7 +346,7 @@ class OrganizationDetectorTypesAPITestCase(APITestCase):
             }
         )
         with patch(
-            "sentry.workflow_engine.endpoints.utils.detector_filters.features.has",
+            "sentry.workflow_engine.endpoints.utils.api_availability.features.has",
             return_value=True,
         ) as has_feature:
             assert (

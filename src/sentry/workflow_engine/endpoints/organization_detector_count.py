@@ -15,10 +15,8 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.organization import Organization
 from sentry.utils.auth import AuthenticatedHttpRequest
-from sentry.workflow_engine.endpoints.utils.filters import (
-    exclude_disallowed_metric_detectors,
-    get_excluded_detector_types,
-)
+from sentry.workflow_engine.endpoints.utils.detector_filters import get_excluded_detector_types
+from sentry.workflow_engine.endpoints.utils.filters import exclude_disallowed_metric_detectors
 from sentry.workflow_engine.models import Detector
 from sentry.workflow_engine.types import WorkflowEngineAPIOperation
 
