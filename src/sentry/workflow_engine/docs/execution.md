@@ -393,8 +393,7 @@ imply Workflow execution order.
 Actions that do not opt into group-less execution are excluded for events without
 an issue group before dispatch. `ActionInvocation` still requires a detector;
 an opted-in handler can use an organization-scoped detector without a project.
-Investigation detector resolution and task transport are tracked in
-[ISWF-3709](https://linear.app/getsentry/issue/ISWF-3709).
+Investigation detector resolution and task transport are not yet implemented.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
