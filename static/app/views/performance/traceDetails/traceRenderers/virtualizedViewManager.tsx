@@ -11,6 +11,10 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 import {
+  CLOCK_DRIFT_ICON_GAP_PX,
+  CLOCK_DRIFT_ICON_SIZE_PX,
+} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
+import {
   MIN_PINNED_TRACE_WIDTH,
   TraceColumnLayout,
 } from 'sentry/views/performance/traceDetails/traceColumnLayout';
@@ -1449,7 +1453,7 @@ export class VirtualizedViewManager {
       this.time_compression.toCompressedOffset(
         this.view.to_origin + this.view.trace_space.width * 0.5
       );
-    const text_width = this.text_measurer.measure(text);
+    const text_width = this.text_measurer.measure(text) + getLabelIconWidthPx(node);
     const text_width_ceil = Math.ceil(text_width);
 
     const timestamps = getIconTimestamps(
@@ -2266,7 +2270,7 @@ export class VirtualizedViewManager {
               this.text_measurer.measure(text)
             );
       const {edge, anchorTimestamp} = this.computeTraceIconPlacement(
-        getTraceIssueTimestamp(issue, node.space),
+        getTraceIssueTimestamp(issue, node.space, node.clockDriftOffsetMs),
         width,
         node.space
       );
@@ -2332,6 +2336,15 @@ export class VirtualizedViewManager {
   }
 }
 
+/**
+ * The width of icons rendered inside the duration label, in addition to its text.
+ */
+function getLabelIconWidthPx(node: BaseNode): number {
+  return node.clockDriftCorrection
+    ? CLOCK_DRIFT_ICON_SIZE_PX + CLOCK_DRIFT_ICON_GAP_PX
+    : 0;
+}
+
 // Computes a min and max icon timestamp. This effectively extends or reduces the hitbox
 // of the span to include the icon. We need this because when the icon is close to the edge
 // it can extend it and cause overlaps with duration labels
@@ -2360,7 +2373,7 @@ function getIconTimestamps(
       additionalIssueCount === undefined
         ? TRACE_ICON_WIDTH
         : getTraceIconGroupWidth(additionalIssueCount, measureText);
-    const timestamp = getTraceIssueTimestamp(issue, span_space);
+    const timestamp = getTraceIssueTimestamp(issue, span_space, node.clockDriftOffsetMs);
     const {bounds} = getTraceIconPlacement(timestamp, icon_width_px);
     const [icon_left, icon_right] = bounds;
 

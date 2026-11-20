@@ -13,6 +13,7 @@ type TracePreferencesAction =
   | {payload: boolean; type: 'minimize drawer'}
   | {payload: boolean; type: 'set missing instrumentation'}
   | {payload: boolean; type: 'set compressed timeline'}
+  | {payload: boolean; type: 'set clock drift correction'}
   | {payload: boolean; type: 'set autogrouping'};
 
 type TraceDrawerPreferences = {
@@ -23,6 +24,7 @@ type TraceDrawerPreferences = {
 
 export type TracePreferencesState = {
   autogroup: {parent: boolean; sibling: boolean};
+  clock_drift_correction: boolean;
   compressed_timeline: boolean;
   drawer: TraceDrawerPreferences;
   layout: TraceLayoutPreferences;
@@ -34,8 +36,18 @@ type StoredTracePreferences = {
   autogroup: TracePreferencesState['autogroup'];
   drawer_layout: TraceLayoutPreferences;
   missing_instrumentation: boolean;
+  clock_drift_correction?: boolean;
   compressed_timeline?: boolean;
 };
+
+/**
+ * The preferences that change the structure or timing of a trace tree.
+ */
+export type TraceTreePreferences = Pick<
+  TracePreferencesState,
+  'autogroup' | 'missing_instrumentation'
+> &
+  Partial<Pick<TracePreferencesState, 'clock_drift_correction'>>;
 
 export const TRACE_DRAWER_DEFAULT_SIZES: TraceDrawerPreferences['sizes'] = {
   'drawer left': 0.4,
@@ -52,6 +64,7 @@ export const DEFAULT_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   autogroup: {parent: true, sibling: true},
   missing_instrumentation: false,
   compressed_timeline: true,
+  clock_drift_correction: false,
   layout: 'drawer right',
   list: {width: 0.5},
 };
@@ -65,6 +78,7 @@ export function storeTraceViewPreferences(
     missing_instrumentation: state.missing_instrumentation,
     autogroup: state.autogroup,
     compressed_timeline: state.compressed_timeline,
+    clock_drift_correction: state.clock_drift_correction,
   };
 
   // Make sure we dont fire this during a render phase
@@ -154,6 +168,8 @@ export function getInitialTracePreferences(
     preferences.autogroup = stored.autogroup;
     preferences.missing_instrumentation = stored.missing_instrumentation;
     preferences.layout = stored.drawer_layout;
+    preferences.clock_drift_correction =
+      stored.clock_drift_correction ?? default_state.clock_drift_correction;
 
     if (source === 'issues' || source === 'replay') {
       preferences.compressed_timeline = false;
@@ -194,6 +210,8 @@ export function tracePreferencesReducer(
       return {...state, missing_instrumentation: action.payload};
     case 'set compressed timeline':
       return {...state, compressed_timeline: action.payload};
+    case 'set clock drift correction':
+      return {...state, clock_drift_correction: action.payload};
     case 'set list width':
       return {...state, list: {width: clamp(action.payload, 0.1, 0.9)}};
     default:

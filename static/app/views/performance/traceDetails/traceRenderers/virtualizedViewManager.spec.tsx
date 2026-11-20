@@ -1,5 +1,9 @@
 import {ThemeFixture} from 'sentry-fixture/theme';
 
+import {
+  CLOCK_DRIFT_ICON_GAP_PX,
+  CLOCK_DRIFT_ICON_SIZE_PX,
+} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {BaseNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/baseNode';
 
@@ -389,6 +393,66 @@ describe('VirtualizedViewManger', () => {
 
       expect(placement.edge).toBe('end');
       expect(placement.anchorTimestamp).toBe(200);
+    });
+  });
+
+  describe('span text placement', () => {
+    function makeNode(clockDriftCorrection: BaseNode['clockDriftCorrection']): BaseNode {
+      return {
+        errors: new Set(),
+        occurrences: new Set(),
+        clockDriftOffsetMs: clockDriftCorrection?.offsetMs ?? 0,
+        clockDriftCorrection,
+      } as unknown as BaseNode;
+    }
+
+    function makeManager() {
+      const manager = new VirtualizedViewManager(
+        {list: {width: 0}, span_list: {width: 1}},
+        new TraceScheduler(),
+        new TraceView(),
+        ThemeFixture()
+      );
+
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.recomputeSpanToPXMatrix();
+      return manager;
+    }
+
+    const shifted = makeNode({offsetMs: 100});
+
+    it('makes room for the clock drift icon when placing the text left of the span', () => {
+      const manager = makeManager();
+      // The span is in the right half, so the text is placed left of it
+      const span: [number, number] = [800, 100];
+
+      const [insideWithout, withoutIcon] = manager.computeSpanTextPlacement(
+        makeNode(null),
+        span,
+        '100.00ms'
+      );
+      const [insideWith, withIcon] = manager.computeSpanTextPlacement(
+        shifted,
+        span,
+        '100.00ms'
+      );
+
+      expect(insideWithout).toBe(0);
+      expect(insideWith).toBe(0);
+      expect(withoutIcon! - withIcon!).toBe(
+        CLOCK_DRIFT_ICON_SIZE_PX + CLOCK_DRIFT_ICON_GAP_PX
+      );
+    });
+
+    it('keeps the text in place when placing it right of the span', () => {
+      const manager = makeManager();
+      // The span is in the left half, so the text is placed right of it, starting with the icon
+      const span: [number, number] = [100, 100];
+
+      expect(manager.computeSpanTextPlacement(shifted, span, '100.00ms')).toEqual(
+        manager.computeSpanTextPlacement(makeNode(null), span, '100.00ms')
+      );
     });
   });
 

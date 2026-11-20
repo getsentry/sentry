@@ -51,6 +51,7 @@ import {useParams} from 'sentry/utils/useParams';
 import {useUser} from 'sentry/utils/useUser';
 import {getIsAiNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {getIsMCPNode} from 'sentry/views/insights/pages/mcp/utils/mcpTraceNodes';
+import {ClockDriftTag} from 'sentry/views/performance/traceDetails/clockDriftIndicators';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {
   makeTraceContinuousProfilingLink,
@@ -223,6 +224,7 @@ function Highlights({
                   {comparison.deltaText}
                 </HiglightsDurationComparison>
               ) : null}
+              <ClockDriftTag offsetMs={node.clockDriftOffsetMs} />
             </Flex>
           </Stack>
           <Stack gap="lg">

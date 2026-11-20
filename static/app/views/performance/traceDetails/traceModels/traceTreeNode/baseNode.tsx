@@ -7,6 +7,7 @@ import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {TraceItemDataset} from 'sentry/views/explore/types';
 import type {TraceMetaQueryResults} from 'sentry/views/performance/traceDetails/traceApi/useTraceMeta';
 import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import type {ClockDriftCorrection} from 'sentry/views/performance/traceDetails/traceModels/clockDriftCorrection';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
 import type {TraceRowProps} from 'sentry/views/performance/traceDetails/traceRow/traceRow';
 
@@ -78,6 +79,17 @@ export abstract class BaseNode<T extends TraceTree.NodeValue = TraceTree.NodeVal
    * the second value is the duration in milliseconds.
    */
   space: [number, number] = [0, 0];
+
+  /**
+   * How far `space` was moved to correct for clock drift between a client and a server, in
+   * milliseconds. Raw timestamps (e.g. of issues) need this added to line up with `space`.
+   */
+  clockDriftOffsetMs = 0;
+
+  /**
+   * Set on the root of a server subtree that was moved into the client span that made the request.
+   */
+  clockDriftCorrection: ClockDriftCorrection | null = null;
 
   /**
    * The children of the node.

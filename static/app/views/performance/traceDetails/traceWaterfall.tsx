@@ -19,7 +19,7 @@ import {Flex, Stack} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DemoTourElement, DemoTourStep} from 'sentry/utils/demoMode/demoTours';
@@ -43,6 +43,11 @@ import type {TraceMetaQueryResults} from './traceApi/useTraceMeta';
 import type {TraceRootEventQueryResults} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {TraceLinksNavigation} from './traceLinksNavigation/traceLinksNavigation';
+import {
+  applyClockDriftCorrection,
+  collectClockDriftCorrections,
+  removeClockDriftCorrection,
+} from './traceModels/clockDriftCorrection';
 import {TraceTree} from './traceModels/traceTree';
 import type {BaseNode} from './traceModels/traceTreeNode/baseNode';
 import {
@@ -756,6 +761,70 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
     props.organization,
   ]);
 
+  const onClockDriftCorrectionChange = useCallback(() => {
+    const value = !traceState.preferences.clock_drift_correction;
+    const root = props.tree.root;
+    const {autogroup, missing_instrumentation} = traceState.preferences;
+
+    // Autogroups and missing instrumentation spans derive their spaces from the spans we are
+    // about to move, so we take them out and add them back once the spans are in place.
+    if (autogroup.sibling) {
+      TraceTree.RemoveSiblingAutogroupNodes(root);
+    }
+    if (autogroup.parent) {
+      TraceTree.RemoveDirectChildrenAutogroupNodes(root);
+    }
+    if (missing_instrumentation) {
+      TraceTree.RemoveMissingInstrumentationNodes(root);
+    }
+
+    let count = 0;
+    if (value) {
+      count = applyClockDriftCorrection(root);
+    } else {
+      removeClockDriftCorrection(root);
+    }
+
+    if (missing_instrumentation) {
+      TraceTree.DetectMissingInstrumentation(root);
+    }
+    if (autogroup.parent) {
+      TraceTree.AutogroupDirectChildrenSpanNodes(root);
+    }
+    if (autogroup.sibling) {
+      TraceTree.AutogroupSiblingSpanNodes(root, {organization: props.organization});
+    }
+
+    // Moved spans may now start before or end after the trace space.
+    props.tree.refreshTraceSpace();
+
+    toast.success(
+      value
+        ? count > 0
+          ? tn(
+              'Clock drift correction enabled, adjusted %s span',
+              'Clock drift correction enabled, adjusted %s spans',
+              count
+            )
+          : t('Clock drift correction enabled')
+        : t('Clock drift correction disabled')
+    );
+
+    traceAnalytics.trackClockDriftCorrectionPreferenceChange(props.organization, value);
+    props.tree.rebuild();
+    traceDispatch({type: 'set clock drift correction', payload: value});
+  }, [traceDispatch, traceState.preferences, props.tree, props.organization]);
+
+  const clockDriftCorrectionCount = useMemo(
+    () =>
+      traceState.preferences.clock_drift_correction
+        ? collectClockDriftCorrections(props.tree.root).length
+        : 0,
+    // The tree is mutated in place, a new list means its structure changed.
+    // oxlint-disable-next-line react-hooks/exhaustive-deps
+    [props.tree.root, props.tree.list, traceState.preferences.clock_drift_correction]
+  );
+
   const onCompressedTimelineChange = useCallback(() => {
     const value = !traceState.preferences.compressed_timeline;
 
@@ -813,8 +882,11 @@ export function TraceWaterfall(props: TraceWaterfallProps) {
               traceState.preferences.autogroup.sibling
             }
             compressedTimeline={traceState.preferences.compressed_timeline}
+            clockDriftCorrection={traceState.preferences.clock_drift_correction}
+            clockDriftCorrectionCount={clockDriftCorrectionCount}
             missingInstrumentation={traceState.preferences.missing_instrumentation}
             onAutogroupChange={onAutogroupChange}
+            onClockDriftCorrectionChange={onClockDriftCorrectionChange}
             onCompressedTimelineChange={onCompressedTimelineChange}
             onMissingInstrumentationChange={onMissingInstrumentationChange}
           />
