@@ -77,8 +77,14 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // TODO: undecided for now, fixed at 30 days
-      return {maxPickableDays: 30, maxUpgradableDays: 30, defaultPeriod: '24h'};
+      // Only the standard retention counts. Every plan includes 13 months of
+      // downsampled retention for trace metrics, which may be removed, so the
+      // picker goes past 30 days only when a longer standard retention is set.
+      const maxPickableDays = Math.max(
+        30,
+        subscription?.effectiveRetentions?.traceMetric?.standard ?? 30
+      );
+      return {maxPickableDays, maxUpgradableDays: maxPickableDays, defaultPeriod: '24h'};
     }
     case DataCategory.LOG_BYTE:
     case DataCategory.LOG_ITEM: {

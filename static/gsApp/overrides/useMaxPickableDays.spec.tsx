@@ -247,45 +247,26 @@ describe('useMaxPickableDays', () => {
     });
   });
 
-  describe('trace metrics with dashboards-tracemetrics-90-day-range', () => {
-    const organization = OrganizationFixture({
-      features: ['dashboards-tracemetrics-90-day-range'],
-    });
+  describe('trace metrics retention', () => {
+    const organization = OrganizationFixture();
 
-    it('uses the downsampled trace metrics retention', () => {
+    function renderTraceMetrics(
+      effectiveRetentions: ReturnType<typeof SubscriptionFixture>['effectiveRetentions']
+    ) {
       SubscriptionStore.set(
         organization.slug,
-        SubscriptionFixture({
-          organization,
-          effectiveRetentions: {traceMetric: {standard: 30, downsampled: 60}},
-        })
+        SubscriptionFixture({organization, effectiveRetentions})
       );
-
-      const {result} = renderHookWithProviders(
+      return renderHookWithProviders(
         () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
         {organization}
       );
+    }
 
-      expect(result.current).toEqual({
-        defaultPeriod: '24h',
-        maxPickableDays: 60,
-        maxUpgradableDays: 60,
+    it('uses a configured standard retention longer than 30 days', () => {
+      const {result} = renderTraceMetrics({
+        traceMetric: {standard: 90, downsampled: 396},
       });
-    });
-
-    it('caps the trace metrics retention at 90 days', () => {
-      SubscriptionStore.set(
-        organization.slug,
-        SubscriptionFixture({
-          organization,
-          effectiveRetentions: {traceMetric: {standard: 30, downsampled: 396}},
-        })
-      );
-
-      const {result} = renderHookWithProviders(
-        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
-        {organization}
-      );
 
       expect(result.current).toEqual({
         defaultPeriod: '24h',
@@ -294,16 +275,20 @@ describe('useMaxPickableDays', () => {
       });
     });
 
-    it('returns 30 days without trace metrics retention', () => {
-      SubscriptionStore.set(
-        organization.slug,
-        SubscriptionFixture({organization, effectiveRetentions: {}})
-      );
+    it('ignores the downsampled retention', () => {
+      const {result} = renderTraceMetrics({
+        traceMetric: {standard: 30, downsampled: 396},
+      });
 
-      const {result} = renderHookWithProviders(
-        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
-        {organization}
-      );
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+      });
+    });
+
+    it('returns 30 days without trace metrics retention', () => {
+      const {result} = renderTraceMetrics({});
 
       expect(result.current).toEqual({
         defaultPeriod: '24h',
