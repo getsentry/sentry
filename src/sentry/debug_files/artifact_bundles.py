@@ -23,10 +23,10 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
+    artifact_bundle_retention,
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.objectstore import artifact_bundle_retention
 from sentry.options.rollout import in_random_rollout
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
