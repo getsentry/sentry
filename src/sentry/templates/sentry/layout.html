@@ -6,7 +6,7 @@
 {% load sentry_status %}
 {% get_sentry_version %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en"{% block htmlattrs %}{% endblock %}>
 <head>
   <meta http-equiv="content-type" content="text/html; charset=utf-8">
   <!-- The "none" directive is equivalent to using both the noindex and nofollow tags simultaneously -->
