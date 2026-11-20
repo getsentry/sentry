@@ -1,17 +1,28 @@
+import logging
+import time
+
 import orjson
 from django.db import router, transaction
 from taskbroker_client.retry import Retry
 
 from sentry import options
+from sentry.constants import ObjectStatus
 from sentry.integrations.jira.forge.client import ForgeInstallationClient
 from sentry.integrations.models.integration import Integration
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import integrations_control_tasks
+from sentry.utils import metrics
+from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.security.encrypted_field_key_store import FernetKeyStore
 
+logger = logging.getLogger(__name__)
+
 FORGE_INSTALLATION_PAYLOAD_TTL = 15 * 60
+# Hourly refreshes keep a token valid, so one this far past expiry means the site stopped
+# calling us, most likely because the app was uninstalled.
+FORGE_STALE_TOKEN_AGE = 24 * 60 * 60
 
 
 @instrumented_task(
@@ -96,3 +107,30 @@ def sync_forge_installation(key_id: str, encrypted_payload: str) -> None:
             return
         if existing != forge:
             integration.update(metadata={**integration.metadata, "forge": forge})
+
+
+@instrumented_task(
+    name="sentry.integrations.jira.tasks.find_stale_forge_tokens",
+    namespace=integrations_control_tasks,
+    silo_mode=SiloMode.CONTROL,
+    processing_deadline_duration=15 * 60,
+)
+def find_stale_forge_tokens() -> None:
+    """
+    Counts active Jira integrations whose Forge token expired more than a day ago. Forge
+    doesn't promise an uninstall event, so a site that stopped sending hourly tokens has
+    most likely uninstalled the app. This only reports them for now.
+    """
+    stale_before = time.time() - FORGE_STALE_TOKEN_AGE
+    for integration in RangeQuerySetWrapper(
+        Integration.objects.filter(provider="jira", status=ObjectStatus.ACTIVE)
+    ):
+        forge = integration.metadata.get("forge")
+        if not forge or forge.get("system_token_expires_at", 0) > stale_before:
+            continue
+        kind = "connect" if "shared_secret" in integration.metadata else "forge"
+        metrics.incr("jira.forge.stale_token", tags={"kind": kind})
+        logger.info(
+            "jira.forge.stale_token",
+            extra={"integration_id": integration.id, "kind": kind},
+        )
