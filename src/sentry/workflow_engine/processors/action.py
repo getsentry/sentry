@@ -344,9 +344,15 @@ def filter_recently_fired_workflow_actions(
         "condition_group__workflowdataconditiongroup__workflow_id",
         "condition_group__workflowdataconditiongroup__workflow__type",
     )
+    supported_actions = get_supported_actions(
+        Action.objects.filter(id__in={action_id for action_id, _, _ in associations}), event_data
+    )
+    supported_action_ids = {action.id for action in supported_actions}
     inbox_actions: dict[int, set[int]] = defaultdict(set)
     alert_actions: dict[int, set[int]] = defaultdict(set)
     for action_id, workflow_id, workflow_type in associations:
+        if action_id not in supported_action_ids:
+            continue
         if workflow_type == Workflow.Type.INBOX:
             inbox_actions[action_id].add(workflow_id)
         elif event_data.group is not None:
@@ -359,7 +365,7 @@ def filter_recently_fired_workflow_actions(
         ).items():
             eligible_actions[action_id].update(workflow_ids)
 
-    actions = get_supported_actions(Action.objects.filter(id__in=eligible_actions), event_data)
+    actions = supported_actions.filter(id__in=eligible_actions)
     action_to_workflow_id = {action.id: min(eligible_actions[action.id]) for action in actions}
     eligible_workflow_ids = {
         workflow_id for action in actions for workflow_id in eligible_actions[action.id]
