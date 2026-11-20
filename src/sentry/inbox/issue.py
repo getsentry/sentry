@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
+from sentry import roles
+from sentry.constants import ObjectStatus
 from sentry.inbox.event_data import (
     InboxEventData,
     IssueAssignedDataResponse,
@@ -23,6 +25,9 @@ from sentry.inbox.types import (
 from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.organizationmemberteam import OrganizationMemberTeam
+from sentry.models.team import TeamStatus
 from sentry.notifications.types import NotificationSettingEnum
 
 if TYPE_CHECKING:
@@ -80,7 +85,33 @@ class IssueItemType(InboxItemType[Group]):
         )
 
     def filter_recipients(self, *, subject: Group, user_ids: Sequence[int]) -> list[int]:
-        return list(user_ids)
+        """The given users with access to the issue's project, by the rules of
+        ``OrganizationMemberAccess.has_project_access``."""
+        project = subject.project
+        if not user_ids or project.status != ObjectStatus.ACTIVE:
+            return []
+        members_by_user_id = {
+            member.user_id: member
+            for member in OrganizationMember.objects.filter(
+                organization_id=project.organization_id, user_id__in=user_ids, user_is_active=True
+            )
+            if member.user_id is not None
+        }
+        if project.organization.flags.allow_joinleave:
+            return list(members_by_user_id)
+        team_member_ids = set(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember__in=members_by_user_id.values(),
+                is_active=True,
+                team__status=TeamStatus.ACTIVE,
+                team__projectteam__project=project,
+            ).values_list("organizationmember_id", flat=True)
+        )
+        return [
+            user_id
+            for user_id, member in members_by_user_id.items()
+            if roles.get(member.role).is_global or member.id in team_member_ids
+        ]
 
 
 @dataclass(frozen=True, kw_only=True)

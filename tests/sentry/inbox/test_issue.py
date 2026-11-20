@@ -3,6 +3,7 @@ from unittest.mock import patch
 import pytest
 from django.db import IntegrityError, router, transaction
 
+from sentry.auth.access import from_member
 from sentry.inbox.event_data import InboxEventData
 from sentry.inbox.issue import (
     ISSUE,
@@ -16,9 +17,11 @@ from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_typ
 from sentry.inbox.types import InboxActor
 from sentry.issues.comments import create_comment, update_comment
 from sentry.models.activity import Activity, ActivityIntegration
+from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus
 from sentry.models.groupowner import GroupOwnerType
+from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
 from sentry.notifications.platform.inbox import create_inbox_items
@@ -83,6 +86,46 @@ class IssueItemTypeTest(TestCase):
 
         with self.assertNumQueries(0):
             assert ISSUE.get_url(organization=organization, subject_id="123") == expected
+
+    def test_filter_recipients_matches_project_access(self) -> None:
+        team_member = self.create_user()
+        self.create_member(organization=self.organization, user=team_member, teams=[self.team])
+        manager = self.create_user()
+        self.create_member(organization=self.organization, user=manager, role="manager")
+        outsider = self.create_user()
+        self.create_member(organization=self.organization, user=outsider)
+        other_team_member = self.create_user()
+        self.create_member(
+            organization=self.organization,
+            user=other_team_member,
+            teams=[self.create_team(organization=self.organization)],
+        )
+        users = [team_member, manager, outsider, other_team_member]
+        group = self.create_group(project=self.project)
+
+        for open_membership in (False, True):
+            self.organization.flags.allow_joinleave = open_membership
+            self.organization.save()
+            group = Group.objects.get(id=group.id)
+            with self.subTest(open_membership=open_membership):
+                expected = {
+                    user.id
+                    for user in users
+                    if from_member(
+                        OrganizationMember.objects.get(
+                            organization=self.organization, user_id=user.id
+                        )
+                    ).has_project_access(group.project)
+                }
+                assert (
+                    set(
+                        ISSUE.filter_recipients(subject=group, user_ids=[user.id for user in users])
+                    )
+                    == expected
+                )
+                assert expected == (
+                    {user.id for user in users} if open_membership else {team_member.id, manager.id}
+                )
 
     def test_event_urls_link_to_activity(self) -> None:
         subject_url = ISSUE.get_url(organization=self.organization, subject_id="123")
