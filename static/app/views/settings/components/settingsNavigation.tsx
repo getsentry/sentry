@@ -2,17 +2,24 @@ import {cloneElement, Fragment} from 'react';
 import {matchPath} from 'react-router';
 import {mergeProps} from '@react-aria/utils';
 import {IconAdd} from '@sentry/icons/add';
+import orderBy from 'lodash/orderBy';
+import {useStore} from 'zustand';
 
-import {ProjectAvatar} from '@sentry/scraps/avatar';
+import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {Container, Grid} from '@sentry/scraps/layout';
-import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
+import {InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Grid} from '@sentry/scraps/layout';
+import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
+import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {isDemoModeActive} from 'sentry/utils/demoMode';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
+import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -54,14 +61,15 @@ export function SettingsNavigation({
   const navWithHooks = navigationObjects.concat(hookConfigs);
   const settingsV3 = useSettingsV3();
   const {scope} = useSettingsScope();
-  const showProjectSelector = settingsV3 && scope === 'project';
   const title = settingsV3 && scope ? getSettingsScopeTitle(scope) : t('Settings');
 
   return (
     <ErrorBoundary customComponent={null}>
       <SecondaryNavigation.Header>
-        {showProjectSelector ? (
+        {settingsV3 && scope === 'project' ? (
           <SettingsProjectSelector />
+        ) : settingsV3 && scope === 'org' ? (
+          <SettingsOrganizationHeader />
         ) : (
           <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
         )}
@@ -104,28 +112,16 @@ function SettingsProjectSelector() {
           preventOverflowOptions={{boundary: 'clippingAncestors'}}
           value={projectId}
           trigger={triggerProps => (
-            // A one-column grid on the trigger itself stretches the label across
-            // the full width: transparent buttons otherwise size it to its content.
-            <Grid width="100%" columns="minmax(0, 1fr)">
-              {buttonProps => (
-                <OverlayTrigger.Button
-                  {...mergeProps(buttonProps, triggerProps)}
-                  variant="transparent"
-                  aria-label={t('Select a project')}
-                  icon={
-                    selectedProject ? (
-                      <ProjectAvatar project={selectedProject} size={16} />
-                    ) : undefined
-                  }
-                >
-                  <Container flex="1" minWidth="0">
-                    <Text ellipsis align="left">
-                      {projectId}
-                    </Text>
-                  </Container>
-                </OverlayTrigger.Button>
-              )}
-            </Grid>
+            <SettingsHeaderSelectTrigger
+              triggerProps={triggerProps}
+              aria-label={t('Select a project')}
+              icon={
+                selectedProject ? (
+                  <ProjectAvatar project={selectedProject} size={16} />
+                ) : undefined
+              }
+              label={projectId}
+            />
           )}
           search={{onChange: onSearch}}
           menuFooter={
@@ -165,4 +161,150 @@ function SettingsProjectSelector() {
       )}
     </Container>
   );
+}
+
+function SettingsHeaderSelectTrigger({
+  triggerProps,
+  label,
+  icon,
+  'aria-label': ariaLabel,
+}: {
+  'aria-label': string;
+  icon: React.ReactNode;
+  label: React.ReactNode;
+  triggerProps: TriggerProps;
+}) {
+  return (
+    // A one-column grid on the trigger itself stretches the label across
+    // the full width: transparent buttons otherwise size it to its content.
+    <Grid width="100%" columns="minmax(0, 1fr)">
+      {buttonProps => (
+        <OverlayTrigger.Button
+          {...mergeProps(buttonProps, triggerProps)}
+          variant="transparent"
+          aria-label={ariaLabel}
+          icon={icon}
+        >
+          <Container flex="1" minWidth="0">
+            <Text ellipsis align="left">
+              {label}
+            </Text>
+          </Container>
+        </OverlayTrigger.Button>
+      )}
+    </Grid>
+  );
+}
+
+function SettingsOrganizationHeader() {
+  const organization = useOrganization();
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
+
+  if (singleOrganization || isDemoModeActive() || organizations.length <= 1) {
+    return (
+      <SecondaryNavigation.HeaderTitle>
+        <Flex as="span" align="center" gap="sm" minWidth="0">
+          <OrganizationAvatar organization={organization} size={16} />
+          <Text ellipsis>{organization.name}</Text>
+        </Flex>
+      </SecondaryNavigation.HeaderTitle>
+    );
+  }
+
+  return <SettingsOrganizationSelector />;
+}
+
+/**
+ * The first path segment after the organization in a settings URL, e.g.
+ * `members` for `/settings/org-slug/members/123/`. Deeper segments usually
+ * point at objects that only exist in the current organization, so switching
+ * organizations keeps the section and drops the rest.
+ */
+function getOrganizationSettingsSection(pathname: string, orgSlug: string) {
+  const segments = pathname.split('/').filter(Boolean);
+  // Customer domain URLs leave the organization slug out of the path.
+  const sectionIndex = segments[1] === orgSlug ? 2 : 1;
+  return segments[sectionIndex];
+}
+
+function SettingsOrganizationSelector() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const organization = useOrganization();
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const canCreateOrganization = ConfigStore.get('features').has('organizations:create');
+
+  const section = getOrganizationSettingsSection(location.pathname, organization.slug);
+
+  return (
+    <Container width="100%">
+      {containerProps => (
+        <CompactSelect
+          {...containerProps}
+          size="sm"
+          position="bottom-start"
+          menuWidth="24em"
+          preventOverflowOptions={{boundary: 'clippingAncestors'}}
+          value={organization.slug}
+          trigger={triggerProps => (
+            <SettingsHeaderSelectTrigger
+              triggerProps={triggerProps}
+              aria-label={t('Select an organization')}
+              icon={<OrganizationAvatar organization={organization} size={16} />}
+              label={organization.name}
+            />
+          )}
+          search
+          menuFooter={
+            canCreateOrganization ? (
+              <MenuComponents.CTALinkButton
+                icon={<IconAdd />}
+                {...getCreateOrganizationLinkProps()}
+              >
+                {t('Create Organization')}
+              </MenuComponents.CTALinkButton>
+            ) : undefined
+          }
+          options={orderBy(organizations, ['name']).map(org => ({
+            value: org.slug,
+            label: org.name,
+            textValue: org.name,
+            leadingItems: <OrganizationAvatar organization={org} size={16} />,
+            trailingItems:
+              org.status.id === 'active' ? undefined : (
+                <InfoTip size="sm" title={org.status.name} />
+              ),
+          }))}
+          onChange={selection => {
+            const org = organizations.find(o => o.slug === selection.value);
+            if (!org || org.slug === organization.slug) {
+              return;
+            }
+            trackAnalytics('settings.organization_selector.changed', {organization});
+            const url = resolveRoute(
+              `/settings/${org.slug}/${section ? `${section}/` : ''}`,
+              null,
+              org
+            );
+            if (url.startsWith('http')) {
+              window.location.assign(url);
+            } else {
+              navigate(url);
+            }
+          }}
+        />
+      )}
+    </Container>
+  );
+}
+
+/**
+ * Organizations are created on the main Sentry domain, outside of any
+ * organization's customer domain.
+ */
+function getCreateOrganizationLinkProps() {
+  return ConfigStore.get('features').has('system:multi-region')
+    ? {href: `${localizeDomain(ConfigStore.get('links').sentryUrl)}/organizations/new/`}
+    : {to: '/organizations/new/'};
 }

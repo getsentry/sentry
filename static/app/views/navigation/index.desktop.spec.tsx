@@ -20,6 +20,7 @@ import {
 
 import * as modal from 'sentry/actionCreators/modal';
 import {ConfigStore} from 'sentry/stores/configStore';
+import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import Inbox from 'sentry/views/inbox';
 import {Navigation} from 'sentry/views/navigation';
@@ -412,11 +413,79 @@ describe('desktop navigation', () => {
         })
       );
 
-      expect(screen.getByText('Organization Settings')).toBeInTheDocument();
+      expect(screen.getByText('Organization Name')).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'Select an organization'})
+      ).not.toBeInTheDocument();
       expect(screen.getByRole('link', {name: 'Organization Tokens'})).toBeInTheDocument();
       expect(
         screen.queryByRole('link', {name: 'Personal Tokens'})
       ).not.toBeInTheDocument();
+    });
+
+    describe('with multiple organizations', () => {
+      const otherOrganization = OrganizationFixture({
+        id: '2',
+        slug: 'other-org',
+        name: 'Other Org',
+      });
+
+      beforeEach(() => {
+        OrganizationsStore.load([OrganizationFixture(), otherOrganization]);
+        ConfigStore.set('features', new Set(['organizations:create']));
+      });
+
+      afterEach(() => {
+        // Unmount first so resetting the stores does not update a mounted tree.
+        cleanup();
+        OrganizationsStore.init();
+        ConfigStore.set('features', new Set());
+      });
+
+      it('switches organizations and keeps the settings section', async () => {
+        const {router} = render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: settingsV3,
+            initialRouterConfig: {
+              location: {pathname: '/settings/org-slug/members/123/'},
+            },
+          })
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
+        expect(
+          screen.getByRole('button', {name: 'Create Organization'})
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'Other Org'}));
+
+        expect(router.location.pathname).toBe('/settings/other-org/members/');
+      });
+
+      it('hides the create organization button without permission', async () => {
+        ConfigStore.set('features', new Set());
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: settingsV3,
+            initialRouterConfig: {location: {pathname: '/settings/org-slug/'}},
+          })
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Select an organization'})
+        );
+        expect(screen.getByRole('option', {name: 'Other Org'})).toBeInTheDocument();
+        expect(
+          screen.queryByRole('button', {name: 'Create Organization'})
+        ).not.toBeInTheDocument();
+      });
     });
 
     it('keeps the settings sidebar expanded when the app sidebar is collapsed', () => {
