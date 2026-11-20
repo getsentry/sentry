@@ -60,8 +60,9 @@ export function SeerOutOfCreditsCta({
     options: {enabled: escalation === 'request'},
   });
 
-  // With auto-reload on, running out means the org hit its daily usage limit,
-  // which gets its own copy. Only billing members can read the setting.
+  // With auto-reload on and a daily usage limit set, running out means the org
+  // hit the limit, which gets its own copy. Only billing members can read the
+  // setting.
   const {data: autoTopUp, isPending: isAutoTopUpPending} = useQuery({
     ...seerWalletAutoTopUpOptions(organization),
     enabled: escalation === 'configure',
@@ -99,6 +100,9 @@ export function SeerOutOfCreditsCta({
       variant={variant}
       escalation={escalation}
       autoReloadEnabled={autoTopUp?.enabled}
+      autoReloadHasDailyLimit={
+        autoTopUp !== undefined && autoTopUp.dailySpendCapCents !== null
+      }
       onConfigureAutoReload={() => openSeerAutoTopUpModal({organization})}
       onRequestCredits={handleRequestCredits}
       isRequestingCredits={isRequestingCredits}

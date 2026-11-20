@@ -37,6 +37,21 @@ const BILLING_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
   ),
 };
 
+// Billing members who already have auto-reload on, without a daily usage limit
+// that could explain it. The designs' copy asks them to turn auto-reload on, so
+// this keeps only its first sentence.
+const BILLING_AUTO_RELOAD_ON_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
+  'agent-chat': t(
+    'Your organization does not have enough credits left for you to message Seer.'
+  ),
+  'autofix-start': t(
+    'Your organization does not have enough credits to start an Autofix run.'
+  ),
+  'autofix-continue': t(
+    'Your organization does not have enough credits to continue your Autofix run.'
+  ),
+};
+
 // Members, from the designs' member flow. "Contact Admin" says who to ask, so
 // the chat copy stops at its first sentence.
 const MEMBER_MESSAGE: Record<SeerOutOfCreditsReason, string> = {
@@ -108,7 +123,9 @@ function getSeerOutOfCreditsMessage({
   reason,
   escalation,
   isDailyLimitReached,
+  autoReloadEnabled,
 }: {
+  autoReloadEnabled: boolean;
   escalation: SeerOutOfCreditsEscalation;
   isDailyLimitReached: boolean;
   reason: SeerOutOfCreditsReason;
@@ -119,7 +136,9 @@ function getSeerOutOfCreditsMessage({
     ];
   }
   if (escalation === 'configure') {
-    return BILLING_MESSAGE[reason];
+    return autoReloadEnabled
+      ? BILLING_AUTO_RELOAD_ON_MESSAGE[reason]
+      : BILLING_MESSAGE[reason];
   }
   return escalation === 'request' ? MEMBER_MESSAGE[reason] : CONTACT_MESSAGE[reason];
 }
@@ -130,11 +149,15 @@ export interface SeerOutOfCreditsNoticeProps extends Omit<
 > {
   escalation: SeerOutOfCreditsEscalation;
   /**
-   * Auto-reload is on. It reloads credits as they run low, so running out
-   * anyway means the org hit its daily usage limit. Only billing members can
-   * read it.
+   * Auto-reload is on. Only billing members can read it.
    */
   autoReloadEnabled?: boolean;
+  /**
+   * The org set a daily usage limit with auto-reload. Auto-reload reloads
+   * credits as they run low, so with a limit set, running out anyway means the
+   * org hit it. Only billing members can read it.
+   */
+  autoReloadHasDailyLimit?: boolean;
   denialReason?: SeerCreditDenialReason | null;
   /**
    * The viewer already emailed their admins, so "Contact Admin" shows
@@ -163,20 +186,28 @@ export function SeerOutOfCreditsNotice({
   size,
   variant = 'warning',
   escalation,
-  autoReloadEnabled,
+  autoReloadEnabled = false,
+  autoReloadHasDailyLimit = false,
   ...actionProps
 }: SeerOutOfCreditsNoticeProps) {
   const NoticeAlert = variant === 'muted' ? MutedAlert : Alert;
   // The chat has room for a full-size button; Autofix's spots are tighter.
   const buttonSize = size ?? (reason === 'agent-chat' ? 'md' : 'sm');
+  // Without a limit, auto-reload being on says nothing about one.
   const isDailyLimitReached =
-    denialReason === 'daily_cap_exceeded' || !!autoReloadEnabled;
+    denialReason === 'daily_cap_exceeded' ||
+    (autoReloadEnabled && autoReloadHasDailyLimit);
 
   return (
     <NoticeAlert variant={variant} data-test-id="seer-out-of-credits">
       <Stack gap="md" align="start">
         <Text>
-          {getSeerOutOfCreditsMessage({reason, escalation, isDailyLimitReached})}
+          {getSeerOutOfCreditsMessage({
+            reason,
+            escalation,
+            isDailyLimitReached,
+            autoReloadEnabled,
+          })}
         </Text>
         {isDailyLimitReached && (
           <Text>
@@ -191,7 +222,7 @@ export function SeerOutOfCreditsNotice({
           // the chat when it's off; otherwise they configure it, which is also
           // where the daily usage limit is set.
           configureLabel={
-            reason === 'agent-chat' && !isDailyLimitReached
+            reason === 'agent-chat' && !isDailyLimitReached && !autoReloadEnabled
               ? t('Turn on auto-reload')
               : t('Configure auto-reload')
           }

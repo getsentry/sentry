@@ -21,15 +21,14 @@ describe('SeerOutOfCreditsCta', () => {
     MockApiClient.clearMockResponses();
   });
 
-  function mockAutoTopUp(organization: Organization, enabled: boolean) {
+  function mockAutoTopUp(
+    organization: Organization,
+    enabled: boolean,
+    dailySpendCapCents: number | null = 7500
+  ) {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
-      body: {
-        enabled,
-        thresholdCredits: 500,
-        topUpCredits: 1000,
-        dailySpendCapCents: 7500,
-      },
+      body: {enabled, thresholdCredits: 500, topUpCredits: 1000, dailySpendCapCents},
     });
   }
 
@@ -68,7 +67,7 @@ describe('SeerOutOfCreditsCta', () => {
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('tells billing members with auto-reload on that the org hit its daily usage limit', async () => {
+  it('tells billing members with auto-reload on and a daily usage limit that the org hit it', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
@@ -87,6 +86,31 @@ describe('SeerOutOfCreditsCta', () => {
         'Your organization hit its daily usage limit, so you cannot continue messaging Seer.'
       )
     ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Configure auto-reload'})
+    ).toBeInTheDocument();
+  });
+
+  it('does not blame a daily usage limit when auto-reload is on without one', async () => {
+    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
+    act(() =>
+      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
+    );
+    mockAutoTopUp(organization, true, null);
+
+    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
+      organization,
+    });
+
+    // Auto-reload is already on, so the copy doesn't ask to turn it on either.
+    expect(
+      await screen.findByText(
+        'Your organization does not have enough credits left for you to message Seer.'
+      )
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('seer-out-of-credits')).not.toHaveTextContent(
+      'This will reset at'
+    );
     expect(
       screen.getByRole('button', {name: 'Configure auto-reload'})
     ).toBeInTheDocument();
