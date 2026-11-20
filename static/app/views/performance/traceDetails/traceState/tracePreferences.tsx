@@ -169,9 +169,7 @@ export function getInitialTracePreferences(
     preferences.missing_instrumentation = stored.missing_instrumentation;
     preferences.layout = stored.drawer_layout;
     preferences.clock_drift_correction =
-      typeof stored.clock_drift_correction === 'boolean'
-        ? stored.clock_drift_correction
-        : default_state.clock_drift_correction;
+      stored.clock_drift_correction ?? default_state.clock_drift_correction;
 
     if (source === 'issues' || source === 'replay') {
       preferences.compressed_timeline = false;

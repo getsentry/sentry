@@ -408,10 +408,7 @@ describe('VirtualizedViewManger', () => {
 
     function makeManager() {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -423,7 +420,7 @@ describe('VirtualizedViewManger', () => {
       return manager;
     }
 
-    const shifted = makeNode({clientNode: {} as BaseNode, offsetMs: 100});
+    const shifted = makeNode({offsetMs: 100});
 
     it('makes room for the clock drift icon when placing the text left of the span', () => {
       const manager = makeManager();

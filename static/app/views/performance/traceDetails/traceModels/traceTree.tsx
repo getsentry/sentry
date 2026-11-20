@@ -44,10 +44,7 @@ import {SiblingAutogroupNode} from './traceTreeNode/siblingAutogroupNode';
 import {TraceNode} from './traceTreeNode/traceNode';
 import {UptimeCheckNode} from './traceTreeNode/uptimeCheckNode';
 import {traceChronologicalSort} from './traceTreeNode/utils';
-import {
-  applyClockDriftCorrection,
-  removeClockDriftCorrection,
-} from './clockDriftCorrection';
+import {applyClockDriftCorrection} from './clockDriftCorrection';
 import {makeExampleTraceData} from './makeExampleTraceData';
 import {
   collectTraceMeasurements,
@@ -377,10 +374,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
 
   static ApplyPreferences(
     root: BaseNode,
-    options: {
-      organization: Organization;
-      preferences?: TraceTreePreferences;
-    }
+    options: {organization: Organization; preferences?: TraceTreePreferences}
   ): void {
     if (options?.preferences?.missing_instrumentation) {
       TraceTree.DetectMissingInstrumentation(root);
@@ -480,7 +474,7 @@ export class TraceTree extends TraceTreeEventDispatcher {
     // spans were recorded, and before missing instrumentation and autogrouping, as they derive
     // their spaces from the spans.
     if (options.preferences?.clock_drift_correction) {
-      TraceTree.ApplyClockDriftCorrection(tree.root);
+      applyClockDriftCorrection(tree.root);
     }
 
     // At this point, the tree is built, we need  iterate over it again to collect all of the
@@ -584,14 +578,12 @@ export class TraceTree extends TraceTreeEventDispatcher {
     let start = Number.POSITIVE_INFINITY;
     let end = Number.NEGATIVE_INFINITY;
 
-    const nodes: BaseNode[] = [];
-    for (const traceNode of this.root.children) {
-      traceNode.forEachChild(node => nodes.push(node));
-    }
-
-    for (const node of nodes) {
+    const include = (node: BaseNode) => {
       start = Math.min(start, node.space[0]);
       end = Math.max(end, node.space[0] + node.space[1]);
+    };
+    for (const traceNode of this.root.children) {
+      traceNode.forEachChild(include);
     }
 
     for (const indicator of this.indicators) {
@@ -733,14 +725,6 @@ export class TraceTree extends TraceTreeEventDispatcher {
       );
       parent.children.unshift(placeholder);
     }
-  }
-
-  static ApplyClockDriftCorrection(root: BaseNode): number {
-    return applyClockDriftCorrection(root);
-  }
-
-  static RemoveClockDriftCorrection(root: BaseNode): number {
-    return removeClockDriftCorrection(root);
   }
 
   static DetectMissingInstrumentation(root: BaseNode): number {
@@ -907,6 +891,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
       end = Math.max(end, tail.space[0] + tail.space[1]);
 
       autoGroupedNode.space = [start, end - start];
+      // Issue timestamps are not shifted, so the group needs the offset of the spans it wraps
+      autoGroupedNode.clockDriftOffsetMs = head.clockDriftOffsetMs;
       autoGroupedNode.errors = new Set(errors);
       autoGroupedNode.occurrences = new Set(occurrences);
 
@@ -1047,6 +1033,8 @@ export class TraceTree extends TraceTreeEventDispatcher {
           }
 
           autoGroupedNode.space = [start_timestamp, timestamp - start_timestamp];
+          // Issue timestamps are not shifted, so the group needs the offset of the spans it wraps
+          autoGroupedNode.clockDriftOffsetMs = current.clockDriftOffsetMs;
 
           node.children.splice(start, matchCount + 1, autoGroupedNode);
           index = start + 1;

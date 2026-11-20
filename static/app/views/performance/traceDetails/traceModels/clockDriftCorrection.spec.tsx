@@ -1,14 +1,20 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {isEAPSpanNode} from 'sentry/views/performance/traceDetails/traceGuards';
+import {
+  isEAPSpanNode,
+  isParentAutogroupedNode,
+  isSiblingAutogroupedNode,
+} from 'sentry/views/performance/traceDetails/traceGuards';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {
+  applyClockDriftCorrection,
   collectClockDriftCorrections,
   getAlignmentRange,
   getClockDriftShifts,
   getSmallestShift,
   MIN_CLOCK_DRIFT_CORRECTION_MS,
+  removeClockDriftCorrection,
 } from './clockDriftCorrection';
 import {TraceTree} from './traceTree';
 import {makeEAPSpan, makeEAPTrace} from './traceTreeTestUtils';
@@ -407,6 +413,50 @@ describe('clock drift correction', () => {
       expect(db.space[0] - server.space[0]).toBeCloseTo(20);
     });
 
+    it('gives autogroups in a moved subtree the offset of the spans they wrap', () => {
+      const serverStart = T + ms(-1366);
+      const span = (
+        id: string,
+        op: string,
+        children: Array<ReturnType<typeof makeEAPSpan>> = []
+      ) =>
+        makeEAPSpan({
+          event_id: id,
+          op,
+          project_id: 2,
+          start_timestamp: serverStart + ms(20),
+          end_timestamp: serverStart + ms(50),
+          children,
+        });
+
+      const tree = TraceTree.FromTrace(
+        makePageload([
+          makeRequest({
+            id: '1',
+            clientStart: 0,
+            clientDuration: 287.6,
+            serverStartGap: -1366,
+            serverDuration: 186.6,
+            serverChildren: [
+              span('middleware-1', 'middleware', [span('middleware-2', 'middleware')]),
+              ...[1, 2, 3, 4, 5].map(i => span(`db-${i}`, 'db')),
+            ],
+          }),
+        ]),
+        {
+          replay: null,
+          organization,
+          preferences: {...preferences, autogroup: {parent: true, sibling: true}},
+        }
+      );
+
+      const parentGroup = tree.root.findChild(isParentAutogroupedNode);
+      const siblingGroup = tree.root.findChild(isSiblingAutogroupedNode);
+
+      expect(parentGroup?.clockDriftOffsetMs).toBeCloseTo(1366);
+      expect(siblingGroup?.clockDriftOffsetMs).toBeCloseTo(1366);
+    });
+
     it('does not move server spans that fit inside their client span', () => {
       const tree = build(
         makePageload([
@@ -542,12 +592,12 @@ describe('clock drift correction', () => {
       const server = findSpan(tree, 'server-1');
       const recordedStart = server.startTimestamp! * 1e3;
 
-      expect(TraceTree.RemoveClockDriftCorrection(tree.root)).toBe(1);
+      removeClockDriftCorrection(tree.root);
       expect(server.space[0]).toBe(recordedStart);
       expect(server.clockDriftOffsetMs).toBe(0);
       expect(server.clockDriftCorrection).toBeNull();
 
-      expect(TraceTree.ApplyClockDriftCorrection(tree.root)).toBe(1);
+      expect(applyClockDriftCorrection(tree.root)).toBe(1);
       expect(server.clockDriftCorrection?.offsetMs).toBeCloseTo(-20_406.1);
     });
 
@@ -582,13 +632,13 @@ describe('clock drift correction', () => {
       const onTimelineChange = jest.fn();
       tree.on('trace timeline change', onTimelineChange);
 
-      TraceTree.RemoveClockDriftCorrection(tree.root);
+      removeClockDriftCorrection(tree.root);
       tree.refreshTraceSpace();
 
       expect(tree.root.space[0]).toBeCloseTo((T - 121.0564) * 1e3);
       expect(onTimelineChange).toHaveBeenCalledWith(tree.root.space);
 
-      TraceTree.ApplyClockDriftCorrection(tree.root);
+      applyClockDriftCorrection(tree.root);
       tree.refreshTraceSpace();
 
       expect(tree.root.space[0]).toBeCloseTo((T - 10) * 1e3);
