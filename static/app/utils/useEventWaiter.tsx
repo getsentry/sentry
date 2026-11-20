@@ -61,6 +61,31 @@ function maybeUpdateProjectsStore(eventType: EventType, projectData: Project): v
 }
 
 /**
+ * `Project.firstEvent` and `Group.firstSeen` are written separately during
+ * ingestion, so they can disagree: concurrent first events race to set the
+ * project field, and `firstSeen` moves earlier when an older event arrives
+ * later. The issue nearest in time is the best guess at where the first
+ * event landed.
+ */
+export function findFirstIssue(issues: Group[], firstEvent: string): Group | undefined {
+  const firstEventTime = new Date(firstEvent).getTime();
+  if (Number.isNaN(firstEventTime)) {
+    return undefined;
+  }
+
+  let closest: Group | undefined;
+  let closestDistance = Infinity;
+  for (const issue of issues) {
+    const distance = Math.abs(new Date(issue.firstSeen).getTime() - firstEventTime);
+    if (distance < closestDistance) {
+      closest = issue;
+      closestDistance = distance;
+    }
+  }
+  return closest;
+}
+
+/**
  * Hook that polls for the first event of a project.
  * Returns null until the first event is detected, then returns the
  * resolved event (a Group for errors, or true for other event types).
@@ -163,7 +188,7 @@ export function useEventWaiter({
     // The event may have expired, default to true
     const group =
       typeof projectEventValue === 'string'
-        ? issuesQuery.data.find((issue: Group) => issue.firstSeen === projectEventValue)
+        ? findFirstIssue(issuesQuery.data, projectEventValue)
         : undefined;
     return group || true;
   }
