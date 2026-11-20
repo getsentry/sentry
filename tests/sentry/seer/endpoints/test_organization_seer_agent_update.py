@@ -389,7 +389,7 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
             can_install_integrations=True,
         )
         # The user connects GitHub and the repo while the popup is open.
-        self.create_integration(
+        integration = self.create_integration(
             organization=self.organization,
             provider="github",
             external_id="github:1",
@@ -402,6 +402,7 @@ class TestOrganizationSeerAgentUpdateCommitAuthor(APITestCase):
             provider="integrations:github",
             url="https://github.com/acme-labs/app",
             external_id="1",
+            integration_id=integration.id,
         )
 
         with assert_analytics_events(
