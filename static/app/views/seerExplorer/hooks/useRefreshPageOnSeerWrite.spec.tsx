@@ -26,10 +26,7 @@ const CACHED_QUERY_KEYS = [
   }).queryKey,
   apiOptions.as<unknown>()(
     '/organizations/$organizationIdOrSlug/workflows/$workflowId/',
-    {
-      path: {...orgPath, workflowId: '7'},
-      staleTime: 0,
-    }
+    {path: {...orgPath, workflowId: '7'}, staleTime: 0}
   ).queryKey,
   apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/detectors/', {
     path: orgPath,
@@ -37,10 +34,7 @@ const CACHED_QUERY_KEYS = [
   }).queryKey,
   apiOptions.as<unknown>()(
     '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
-    {
-      path: {...orgPath, detectorId: '9'},
-      staleTime: 0,
-    }
+    {path: {...orgPath, detectorId: '9'}, staleTime: 0}
   ).queryKey,
   apiOptions.as<unknown>()('/organizations/$organizationIdOrSlug/issues/', {
     path: orgPath,

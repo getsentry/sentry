@@ -21,9 +21,7 @@ describe('detectorListApiOptions', () => {
 
     it('does not exclude issue_stream when includeIssueStreamDetectors is true', () => {
       const {options} = parseQueryKey(
-        detectorListApiOptions(organization, {
-          includeIssueStreamDetectors: true,
-        }).queryKey
+        detectorListApiOptions(organization, {includeIssueStreamDetectors: true}).queryKey
       );
       expect(options?.query?.query).toBeUndefined();
     });
@@ -37,10 +35,8 @@ describe('detectorListApiOptions', () => {
 
     it('combines type filter with custom query', () => {
       const {options} = parseQueryKey(
-        detectorListApiOptions(organization, {
-          type: 'uptime',
-          query: 'my-search',
-        }).queryKey
+        detectorListApiOptions(organization, {type: 'uptime', query: 'my-search'})
+          .queryKey
       );
       expect(options?.query?.query).toBe('!type:issue_stream type:uptime my-search');
     });

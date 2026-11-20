@@ -187,14 +187,7 @@ export function useLogsApiOptionsWithInfinite({
       highAccuracy,
       highFidelity,
     });
-  return {
-    infiniteApiOptions,
-    pageApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {infiniteApiOptions, pageApiOptions, other: {eventView, pageFiltersReady}};
 }
 
 export type LogsInfiniteQueryKey = ReturnType<

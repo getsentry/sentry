@@ -11,11 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {repositoryWithSettingsApiOptions} from './repositoryWithSettingsApiOptions';
 
 type RepositorySettings =
-  | {
-      enabledCodeReview: boolean;
-      repositoryIds: string[];
-      codeReviewTriggers?: never;
-    }
+  | {enabledCodeReview: boolean; repositoryIds: string[]; codeReviewTriggers?: never}
   | {
       codeReviewTriggers: CodeReviewTrigger[];
       repositoryIds: string[];

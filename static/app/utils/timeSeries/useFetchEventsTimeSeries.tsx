@@ -104,10 +104,7 @@ export function makeEventsTimeSeriesFilter(
 ) {
   return apiOptions.queryFilter(
     '/organizations/$organizationIdOrSlug/events-timeseries/',
-    {
-      path: {organizationIdOrSlug: organizationSlug},
-      ...options,
-    }
+    {path: {organizationIdOrSlug: organizationSlug}, ...options}
   );
 }
 

@@ -358,9 +358,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
       queryClient.refetchQueries({
         ...apiOptions.queryFilter(
           '/organizations/$organizationIdOrSlug/events-dropped/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-          }
+          {path: {organizationIdOrSlug: organization.slug}}
         ),
         type: 'active',
       }),

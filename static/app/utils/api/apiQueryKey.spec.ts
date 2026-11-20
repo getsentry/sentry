@@ -363,9 +363,7 @@ describe('apiQueryKey', () => {
         path: {organizationIdOrSlug: 'acme'},
       });
       // @ts-expect-error unknown prefix
-      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/isues/*', {
-        path: {},
-      });
+      apiOptions.queryFilter('/organizations/$organizationIdOrSlug/isues/*', {path: {}});
       // @ts-expect-error a glob has to follow a slash
       apiOptions.queryFilter('/organizations/$organizationIdOrSlug/iss*', {path: {}});
       // @ts-expect-error a glob has to be at the end

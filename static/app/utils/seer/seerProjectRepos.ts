@@ -216,11 +216,7 @@ export function getDeleteSeerProjectRepoOptions({
   return mutationOptions({
     mutationFn: ({repoId}: {repoId: string}) => {
       const singleUrl = parseQueryKey(
-        getSeerProjectRepoQueryOptions({
-          organization,
-          project,
-          repoId,
-        }).queryKey
+        getSeerProjectRepoQueryOptions({organization, project, repoId}).queryKey
       ).url;
 
       return fetchMutation({method: 'DELETE', url: singleUrl, data: {repoId}});

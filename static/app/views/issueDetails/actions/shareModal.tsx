@@ -111,10 +111,7 @@ export function ShareIssueModal({
         data: {isPublic: reshare ?? !isPublished},
       });
       queryClient.invalidateQueries(
-        groupQueryFilter({
-          organizationSlug: organization.slug,
-          groupId,
-        })
+        groupQueryFilter({organizationSlug: organization.slug, groupId})
       );
     } catch {
       toast.error(t('Error sharing'));

@@ -59,10 +59,7 @@ function useChangePriority(group: Group, onChange?: (priority: PriorityLevel) =>
         project: [group.project.id],
       });
       queryClient.invalidateQueries(
-        groupQueryFilter({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        })
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
       );
       toast.dismiss();
       toast.success(getPriorityUpdateSuccessMessage(nextPriority));

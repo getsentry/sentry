@@ -80,10 +80,7 @@ function getAttributeScopeHash(queryKey: ApiQueryKey) {
   const {url, options} = parseQueryKey(queryKey);
   return hashKey([
     url,
-    {
-      ...options,
-      query: {...options.query, substringMatch: undefined},
-    },
+    {...options, query: {...options.query, substringMatch: undefined}},
   ]);
 }
 

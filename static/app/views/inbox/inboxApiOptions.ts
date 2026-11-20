@@ -181,10 +181,7 @@ export function removeInboxItemsMutationOptions({
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        ...filter,
-        refetchType: 'active',
-      });
+      queryClient.invalidateQueries({...filter, refetchType: 'active'});
       queryClient.invalidateQueries(getInboxCountFilter(organization));
     },
   });

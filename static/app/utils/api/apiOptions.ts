@@ -142,16 +142,10 @@ function queryFilter(
     path,
     infinite,
     ...options
-  }: QueryKeyEndpointOptions & {
-    infinite?: true;
-    path?: Record<string, string>;
-  } = {}
+  }: QueryKeyEndpointOptions & {infinite?: true; path?: Record<string, string>} = {}
 ): ApiQueryFilter {
   const exact = isExactMatch(url);
-  const keyOptions = stripUndefinedValues({
-    ...options,
-    path: exact ? undefined : path,
-  });
+  const keyOptions = stripUndefinedValues({...options, path: exact ? undefined : path});
 
   const params: Partial<ParsedQueryKey> = {
     ...(exact

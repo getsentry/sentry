@@ -122,11 +122,7 @@ describe('apiOptions', () => {
     expect(getOptions(null).queryFn).toEqual(skipToken);
     expect(getOptions(null).queryKey).toEqual([
       '_api',
-      {
-        url: '/api-tokens/$tokenId/',
-        urlParts: ['api-tokens', '$tokenId'],
-        options: {},
-      },
+      {url: '/api-tokens/$tokenId/', urlParts: ['api-tokens', '$tokenId'], options: {}},
     ]);
   });
 

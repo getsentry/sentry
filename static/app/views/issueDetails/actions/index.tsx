@@ -352,10 +352,7 @@ export function GroupActions({
       // oxlint-disable-next-line react/todo
     } finally {
       queryClient.invalidateQueries(
-        groupQueryFilter({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        })
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
       );
     }
   };

@@ -14,9 +14,7 @@ export type QueryKeyEndpointOptions = {
   query?: Record<string, unknown>;
 };
 
-type ApiQueryKeyOptions = QueryKeyEndpointOptions & {
-  path?: Record<string, string>;
-};
+type ApiQueryKeyOptions = QueryKeyEndpointOptions & {path?: Record<string, string>};
 
 type ApiQueryKeyParams = {
   options: ApiQueryKeyOptions;
@@ -36,9 +34,7 @@ type ApiQueryKeyParams = {
   infinite?: never;
 };
 
-type InfiniteApiQueryKeyParams = Omit<ApiQueryKeyParams, 'infinite'> & {
-  infinite: true;
-};
+type InfiniteApiQueryKeyParams = Omit<ApiQueryKeyParams, 'infinite'> & {infinite: true};
 
 export const API_QUERY_KEY_MARKER = '_api';
 

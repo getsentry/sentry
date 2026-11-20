@@ -115,10 +115,7 @@ function IssuePreviewResolutionActions({
       IssueListCacheStore.reset();
       invalidateInboxQueries();
       void queryClient.invalidateQueries(
-        groupQueryFilter({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        })
+        groupQueryFilter({organizationSlug: organization.slug, groupId: group.id})
       );
     } catch {
       // GroupStore already shows the error

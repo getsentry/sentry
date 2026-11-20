@@ -92,10 +92,7 @@ async function fetchTraceMetaInBatches(
             ...apiOptions.as<ResponseEAPTraceMeta>()(
               '/organizations/$organizationIdOrSlug/trace-meta/$traceId/',
               {
-                path: {
-                  organizationIdOrSlug: organization.slug,
-                  traceId: trace.traceSlug,
-                },
+                path: {organizationIdOrSlug: organization.slug, traceId: trace.traceSlug},
                 method: 'GET',
                 data: getMetaQueryParams(
                   trace,

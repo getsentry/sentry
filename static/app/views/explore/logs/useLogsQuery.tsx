@@ -83,11 +83,7 @@ export function useInfiniteLogsQuery({
     infiniteApiOptions: baseApiOptions,
     pageApiOptions: basePageApiOptions,
     other,
-  } = useLogsApiOptionsWithInfinite({
-    referrer: _referrer,
-    autoRefresh,
-    highFidelity,
-  });
+  } = useLogsApiOptionsWithInfinite({referrer: _referrer, autoRefresh, highFidelity});
   const infiniteApiOptions = anchor ? anchoredApiOptions : baseApiOptions;
   const pageApiOptions = anchor ? anchoredPageApiOptions : basePageApiOptions;
   const queryKeyWithInfinite = infiniteApiOptions.queryKey;

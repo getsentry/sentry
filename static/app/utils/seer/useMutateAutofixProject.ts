@@ -98,11 +98,7 @@ export function useMutateAutofixProject() {
         project,
       });
       const reposUrl = parseQueryKey(reposQueryOptions.queryKey).url;
-      await fetchMutation({
-        method: 'PUT',
-        url: reposUrl,
-        data: {repos},
-      });
+      await fetchMutation({method: 'PUT', url: reposUrl, data: {repos}});
 
       // 2. Agent, tuning, and stopping point are written SECOND, through the
       //    project settings endpoint added for the new Seer settings UI. Because

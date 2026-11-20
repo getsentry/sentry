@@ -23,9 +23,7 @@ export function useReopenGamingSdkModal(
   useEffect(() => {
     if (reopenModal) {
       queryClient.invalidateQueries(
-        apiOptions.queryFilter('/users/$userId/user-identities/', {
-          path: {userId: 'me'},
-        })
+        apiOptions.queryFilter('/users/$userId/user-identities/', {path: {userId: 'me'}})
       );
       setReopenModal(null);
       openPrivateGamingSdkAccessModal(modalPropsRef.current);
