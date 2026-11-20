@@ -178,7 +178,7 @@ class OrganizationTraceItemAttributeContextEndpoint(OrganizationTraceItemAttribu
         data = serializer.validated_data
 
         dataset = data["dataset"]
-        attribute_type = data["attribute_type"]
+        attribute_type: AttributeType = data["attribute_type"]
         trace_item_type = SupportedTraceItemType(dataset)
 
         try:

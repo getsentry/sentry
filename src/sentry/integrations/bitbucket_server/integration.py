@@ -246,21 +246,6 @@ class OAuthApiStep:
         return PipelineStepResult.advance()
 
 
-class BitbucketServerProjectPayload(TypedDict, total=False):
-    key: str
-    name: str
-
-
-class BitbucketServerRepoPayload(TypedDict, total=False):
-    slug: str
-    name: str
-    project: BitbucketServerProjectPayload
-
-
-class BitbucketServerReposResponse(TypedDict, total=False):
-    values: list[BitbucketServerRepoPayload]
-
-
 class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
@@ -306,8 +291,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         parallel: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
-            resp = self.get_client().get_repos()
-            repos = resp
+            repos = self.get_client().get_repos()
 
             return [
                 {
@@ -320,8 +304,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                 for repo in repos.get("values", [])
             ]
 
-        resp = self.get_client().search_repositories(query)
-        repos = resp
+        repos = self.get_client().search_repositories(query)
 
         return [
             {

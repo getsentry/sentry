@@ -140,7 +140,7 @@ def verify_signature(request: Request) -> bool:
     # get the open id config and jwks
     client = MsTeamsJwtClient()
     open_id_config = client.get_open_id_config()
-    jwks = client.get_cached(open_id_config["jwks_uri"])
+    jwks: Mapping[str, Any] = client.get_cached(open_id_config["jwks_uri"])
 
     # create a mapping of all the keys
     # taken from: https://renzolucioni.com/verifying-jwts-with-jwks-and-pyjwt/

@@ -89,7 +89,7 @@ def get_storage(
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    storage: type[Storage] = import_string(backend)
     return storage(**options)
 
 
@@ -102,7 +102,7 @@ def get_relocation_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    storage: type[Storage] = import_string(backend)
     return storage(**relocation)
 
 
@@ -115,7 +115,7 @@ def get_profiles_storage(config: dict[str, Any] | None = None) -> Storage:
     except KeyError:
         pass
 
-    storage = import_string(backend)
+    storage: type[Storage] = import_string(backend)
     return storage(**profiles)
 
 

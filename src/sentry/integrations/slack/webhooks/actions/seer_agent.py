@@ -23,6 +23,7 @@ from sentry.seer.agent.client_utils import (
     make_agent_update_request,
 )
 from sentry.seer.endpoints.agent_request import (
+    AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
 from sentry.seer.endpoints.utils import resolve_seer_run
@@ -196,7 +197,7 @@ def handle_seer_agent_write_approval(
     if not approval.is_valid():
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
 
-    validated_data = approval.validated_data
+    validated_data: AgentApprovalRequestData = approval.validated_data
     session_id = validated_data["sessionId"]
     requested_scopes = validated_data["scopes"]
     if not requested_scopes:

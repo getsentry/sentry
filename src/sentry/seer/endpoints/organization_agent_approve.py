@@ -28,6 +28,7 @@ from sentry.auth.principal import require_user
 from sentry.models.organization import Organization
 from sentry.seer import agent_token
 from sentry.seer.endpoints.agent_request import (
+    AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
 )
 from sentry.utils.auth import is_user_from_viewer_context
@@ -96,7 +97,7 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         serializer = AgentApprovalRequestSerializer(data=data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        validated_data = serializer.validated_data
+        validated_data: AgentApprovalRequestData = serializer.validated_data
         session_id = validated_data["sessionId"]
         requested = validated_data["scopes"]
 

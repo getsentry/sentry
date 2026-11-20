@@ -23,6 +23,7 @@ from snuba_sdk import (
     Storage,
     Timeseries,
 )
+from snuba_sdk.formula import FormulaParameterGroup
 from snuba_sdk.mql.mql import parse_mql
 
 from sentry.exceptions import InvalidParams
@@ -191,7 +192,7 @@ def _resolve_aggregate_aliases(exp: Timeseries | Formula) -> MetricsQuery:
         if not exp.parameters:
             return exp
 
-        aliased_parameters = exp.parameters
+        aliased_parameters: list[FormulaParameterGroup] = exp.parameters
         for i, p in enumerate(aliased_parameters):
             if isinstance(p, (Timeseries, Formula)):
                 aliased_parameters[i] = _resolve_aggregate_aliases(p)

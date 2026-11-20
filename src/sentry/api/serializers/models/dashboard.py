@@ -890,7 +890,7 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     ) -> dict[Dashboard, dict[str, object]]:
         result: dict[Dashboard, dict[str, object]] = {}
 
-        widgets = serialize(
+        widgets: list[DashboardWidgetResponse] = serialize(
             list(
                 DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
                     "id"
