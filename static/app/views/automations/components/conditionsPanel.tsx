@@ -103,9 +103,7 @@ function ActionFilter({actionFilter, showDivider}: ActionFilterProps) {
           ))
         : t('Any event')}
       <ConditionGroupHeader>
-        {tct('[then:Then] perform these actions', {
-          then: <ConditionBadge />,
-        })}
+        {tct('[then:Then] perform these actions', {then: <ConditionBadge />})}
       </ConditionGroupHeader>
       {isLoading
         ? actionFilter.actions?.map((_, index) => (

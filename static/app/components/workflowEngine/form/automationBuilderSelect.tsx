@@ -19,9 +19,5 @@ const StyledSelect = styled(Select)`
 ` as typeof Select;
 
 export const selectControlStyles = {
-  control: (provided: any) => ({
-    ...provided,
-    minHeight: '32px',
-    padding: 0,
-  }),
+  control: (provided: any) => ({...provided, minHeight: '32px', padding: 0}),
 };

@@ -34,10 +34,7 @@ import {
 import {useTraceContextSections} from './useTraceContextSections';
 import {TraceLayoutTabKeys} from './useTraceLayoutTabs';
 
-type Props = {
-  rootEventResults: TraceRootEventQueryResults;
-  tree: TraceTree;
-};
+type Props = {rootEventResults: TraceRootEventQueryResults; tree: TraceTree};
 
 const zoomToVitalParsers = {
   tab: parseAsString,
@@ -120,9 +117,7 @@ export function TraceContextVitals({rootEventResults, tree}: Props) {
             onClick={
               vital
                 ? () => {
-                    trackAnalytics('trace.trace_layout.zoom_to_fill', {
-                      organization,
-                    });
+                    trackAnalytics('trace.trace_layout.zoom_to_fill', {organization});
                     setZoomToVitalParams({
                       tab: TraceLayoutTabKeys.WATERFALL,
                       zoomToNode: vital.node.pathToNode()[0] ?? null,

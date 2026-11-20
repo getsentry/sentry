@@ -78,6 +78,17 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
         assert response.data == {"configs": []}
         assert not SeerWorkflowConfig.objects.filter(organization=self.organization).exists()
 
+    def test_lists_config_whose_backing_workflow_was_deleted_as_disabled(self) -> None:
+        config = self.create_config(enabled=True)
+        Workflow.objects.filter(id=config.backing_workflow_id).delete()
+
+        response = self.get_success_response(self.organization.slug)
+
+        [item] = response.data["configs"]
+        assert item["id"] == str(config.id)
+        assert item["enabled"] is False
+        assert "name" not in item
+
     def test_lists_saved_configs_for_organization(self) -> None:
         project = self.create_project()
         config = self.create_config(

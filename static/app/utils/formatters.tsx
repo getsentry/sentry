@@ -79,9 +79,7 @@ export function formatAbbreviatedNumber(
     const formattedNumber = formatFloat(
       numAbsValue / suffixNum,
       maximumSignificantDigits || 1
-    ).toLocaleString(undefined, {
-      maximumSignificantDigits,
-    });
+    ).toLocaleString(undefined, {maximumSignificantDigits});
 
     return `${prefix}${formattedNumber}${suffix}`;
   }
@@ -127,9 +125,7 @@ const FORMAT_RATE_SIGNIFICANT_DIGITS = 3;
 export function formatRate(
   value: number,
   unit: RateUnit = RateUnit.PER_SECOND,
-  options: {
-    minimumValue?: number;
-  } = {}
+  options: {minimumValue?: number} = {}
 ) {
   // NOTE: `Intl` doesn't support unitless-per-unit formats (i.e.,
   // `"-per-minute"` is not valid) so we have to concatenate the unit manually, since our rates are usually just "/min" or "/s".

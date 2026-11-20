@@ -8,9 +8,7 @@ export const StepHeading = styled((props: React.ComponentProps<typeof motion.h2>
       animate: {clipPath: 'inset(0% 0% 0% 0%)', opacity: 1},
       exit: {opacity: 0},
     }}
-    transition={{
-      duration: 0.3,
-    }}
+    transition={{duration: 0.3}}
     {...props}
   />
 ))<{step: number}>`

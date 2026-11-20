@@ -4,9 +4,7 @@ import type {Plan} from 'getsentry/types';
 
 const BUDGET_TERM = 'on-demand';
 
-const MM1_CATEGORY_DISPLAY_NAMES = {
-  errors: {singular: 'error', plural: 'errors'},
-};
+const MM1_CATEGORY_DISPLAY_NAMES = {errors: {singular: 'error', plural: 'errors'}};
 
 const MM1_CATEGORIES = [DataCategory.ERRORS];
 
@@ -29,9 +27,7 @@ export const MM1_PLANS = {
     name: 'Enterprise',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [],
-    },
+    planCategories: {errors: []},
     totalPrice: 0,
     userSelectable: false,
     billingInterval: 'monthly',
@@ -48,9 +44,7 @@ export const MM1_PLANS = {
     name: 'Enterprise',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [],
-    },
+    planCategories: {errors: []},
     totalPrice: 0,
     userSelectable: false,
     billingInterval: 'annual',
@@ -67,14 +61,7 @@ export const MM1_PLANS = {
     name: 'Free',
     trialPlan: 'am1_t',
     maxMembers: 1,
-    planCategories: {
-      errors: [
-        {
-          price: 0,
-          events: 10000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 0, events: 10000}]},
     totalPrice: 0,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -91,14 +78,7 @@ export const MM1_PLANS = {
     name: 'Large',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 49900,
-          events: 4000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 49900, events: 4000000}]},
     totalPrice: 49900,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -115,14 +95,7 @@ export const MM1_PLANS = {
     name: 'Large',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 44900,
-          events: 4000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 44900, events: 4000000}]},
     totalPrice: 44900,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -139,14 +112,7 @@ export const MM1_PLANS = {
     name: 'Large',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 538800,
-          events: 4000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 538800, events: 4000000}]},
     totalPrice: 538800,
     userSelectable: true,
     billingInterval: 'annual',
@@ -163,14 +129,7 @@ export const MM1_PLANS = {
     name: 'Medium',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 19900,
-          events: 1000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 19900, events: 1000000}]},
     totalPrice: 19900,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -187,14 +146,7 @@ export const MM1_PLANS = {
     name: 'Medium',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 17900,
-          events: 1000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 17900, events: 1000000}]},
     totalPrice: 17900,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -211,14 +163,7 @@ export const MM1_PLANS = {
     name: 'Medium',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 214800,
-          events: 1000000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 214800, events: 1000000}]},
     totalPrice: 214800,
     userSelectable: true,
     billingInterval: 'annual',
@@ -235,14 +180,7 @@ export const MM1_PLANS = {
     name: 'Small',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 2900,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 2900, events: 100000}]},
     totalPrice: 2900,
     userSelectable: true,
     billingInterval: 'monthly',
@@ -259,14 +197,7 @@ export const MM1_PLANS = {
     name: 'Small',
     trialPlan: 'mm2_a',
     maxMembers: null,
-    planCategories: {
-      errors: [
-        {
-          price: 2600,
-          events: 100000,
-        },
-      ],
-    },
+    planCategories: {errors: [{price: 2600, events: 100000}]},
     totalPrice: 2600,
     userSelectable: true,
     billingInterval: 'monthly',

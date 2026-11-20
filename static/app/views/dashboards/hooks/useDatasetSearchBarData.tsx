@@ -10,10 +10,7 @@ import {
 import {useGlobalFilterTraceMetricsSearchBarDataProvider} from 'sentry/views/dashboards/datasetConfig/traceMetrics';
 import {WidgetType} from 'sentry/views/dashboards/types';
 
-type FilterKeySearch = {
-  query: string;
-  widgetType: WidgetType;
-};
+type FilterKeySearch = {query: string; widgetType: WidgetType};
 
 export function useDatasetSearchBarData(): {
   getSearchBarData: (widgetType: WidgetType) => SearchBarData;

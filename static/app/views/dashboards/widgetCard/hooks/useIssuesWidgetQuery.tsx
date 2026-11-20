@@ -34,11 +34,7 @@ type IssuesTableResponse = Group[];
 
 export type IssuesSeriesResponse = {
   timeSeries: TimeSeries[];
-  meta?: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
+  meta?: {dataset: string; end: number; start: number};
 };
 
 const EMPTY_ARRAY: any[] = [];
@@ -76,10 +72,7 @@ export function useIssuesSeriesQuery(
         widgetInterval
       );
 
-      requestData.queryExtras = {
-        ...requestData.queryExtras,
-        category: 'issue',
-      };
+      requestData.queryExtras = {...requestData.queryExtras, category: 'issue'};
 
       const {
         organization: _org,
@@ -143,11 +136,7 @@ export function useIssuesSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -168,12 +157,7 @@ export function useIssuesSeriesQuery(
       timeseriesResults.push(...transformedResult);
     });
 
-    return {
-      loading: false,
-      errorMessage: undefined,
-      timeseriesResults,
-      rawData,
-    };
+    return {loading: false, errorMessage: undefined, timeseriesResults, rawData};
   })();
 
   return transformedData;
@@ -262,11 +246,7 @@ export function useIssuesTableQuery(
 
   if (!allHaveData || isFetching) {
     const loading = isFetching || !errorMessage;
-    return {
-      loading,
-      errorMessage,
-      rawData: EMPTY_ARRAY,
-    };
+    return {loading, errorMessage, rawData: EMPTY_ARRAY};
   }
 
   const tableResults: any[] = [];

@@ -216,10 +216,7 @@ function getOutcomesReason(filter: CustomInboundFilter): string {
 // metrics, and each of those counts under its own category in ingest outcomes.
 type SeriesByCategory = Map<string, number[]>;
 
-type FilteredStats = {
-  intervals: string[];
-  seriesByReason: Map<string, SeriesByCategory>;
-};
+type FilteredStats = {intervals: string[]; seriesByReason: Map<string, SeriesByCategory>};
 
 // One request covers the whole table, so index the outcomes by the reason a row
 // reports under before the table reads them.
@@ -345,12 +342,7 @@ function FilteredVolumeCells({
         markLine: index === 0 && peak > 0 ? markLine : undefined,
         data: intervals.map((name, i) => ({name, value: values[i] ?? 0})),
       }))
-    : [
-        {
-          seriesName: t('Filtered'),
-          data: intervals.map(name => ({name, value: 0})),
-        },
-      ];
+    : [{seriesName: t('Filtered'), data: intervals.map(name => ({name, value: 0}))}];
 
   return (
     <Fragment>

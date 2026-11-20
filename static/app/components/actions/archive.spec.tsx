@@ -92,9 +92,7 @@ describe('ArchiveActions', () => {
       screen.getByRole('menuitem', {name: 'Until this occurs again\u2026'})
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('menuitem', {
-        name: 'Until this affects an additional\u2026',
-      })
+      screen.getByRole('menuitem', {name: 'Until this affects an additional\u2026'})
     ).toBeInTheDocument();
   });
 
@@ -168,9 +166,7 @@ describe('ArchiveActions', () => {
 
     expect(onUpdate).toHaveBeenCalledWith({
       status: 'ignored',
-      statusDetails: {
-        ignoreDuration: expect.any(Number),
-      },
+      statusDetails: {ignoreDuration: expect.any(Number)},
       substatus: 'archived_until_condition_met',
     });
   });

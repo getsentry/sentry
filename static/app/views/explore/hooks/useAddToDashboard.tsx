@@ -119,7 +119,5 @@ export function useAddToDashboard() {
     [organization, location, getEventView]
   );
 
-  return {
-    addToDashboard,
-  };
+  return {addToDashboard};
 }

@@ -21,13 +21,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          tabs: getWizardInstallSnippet({
-            platform: 'android',
-            params,
-          }),
-        },
+        {type: 'code', tabs: getWizardInstallSnippet({platform: 'android', params})},
         {
           type: 'text',
           text: t('The Sentry wizard will automatically patch your application:'),
@@ -37,21 +31,15 @@ export const onboarding: OnboardingConfig = {
           items: [
             tct(
               "Update your app's [buildGradle:build.gradle] file with the Sentry Gradle plugin and configure it.",
-              {
-                buildGradle: <code />,
-              }
+              {buildGradle: <code />}
             ),
             tct(
               'Update your [manifest: AndroidManifest.xml] with the default Sentry configuration',
-              {
-                manifest: <code />,
-              }
+              {manifest: <code />}
             ),
             tct(
               'Create [code: sentry.properties] with an auth token to upload proguard mappings (this file is automatically added to [code: .gitignore])',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
             t(
               "Add an example error to your app's Main Activity to verify your Sentry setup"

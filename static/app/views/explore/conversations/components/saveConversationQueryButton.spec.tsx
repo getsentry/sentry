@@ -43,10 +43,7 @@ describe('SaveConversationQueryButton', () => {
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        data: expect.objectContaining({
-          dataset: 'ai_conversations',
-          errorsOnly: true,
-        }),
+        data: expect.objectContaining({dataset: 'ai_conversations', errorsOnly: true}),
       })
     );
   });
@@ -56,9 +53,7 @@ describe('SaveConversationQueryButton', () => {
 
     expect(request).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        data: expect.objectContaining({errorsOnly: undefined}),
-      })
+      expect.objectContaining({data: expect.objectContaining({errorsOnly: undefined})})
     );
   });
 });

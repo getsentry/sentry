@@ -76,10 +76,7 @@ describe('hydrateFrames', () => {
     const timestamp = new Date();
     const attachments = [
       ReplayConsoleEventFixture({timestamp}),
-      ReplayBreadcrumbFrameEventFixture({
-        timestamp,
-        data: {payload: undefined as any},
-      }),
+      ReplayBreadcrumbFrameEventFixture({timestamp, data: {payload: undefined as any}}),
       ReplayMemoryEventFixture({startTimestamp: timestamp, endTimestamp: timestamp}),
     ];
 

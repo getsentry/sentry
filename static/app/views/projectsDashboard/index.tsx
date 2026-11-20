@@ -239,10 +239,7 @@ function Dashboard() {
               ? undefined
               : t('You do not have permission to create projects'),
           }}
-          to={makeProjectsPathname({
-            path: '/new/',
-            organization,
-          })}
+          to={makeProjectsPathname({path: '/new/', organization})}
           icon={<IconAdd />}
           data-test-id="create-project"
         >

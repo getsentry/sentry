@@ -26,32 +26,12 @@ describe('IntegrationExternalMappings', () => {
     '@getsentry/hype',
   ];
   const MOCK_USER_MAPPINGS = [
-    {
-      id: '1',
-      userId: '1',
-      externalName: '@gwen',
-      sentryName: 'gwen@mcu.org',
-    },
-    {
-      id: '2',
-      userId: '2',
-      externalName: '@eddie',
-      sentryName: 'eddie@mcu.org',
-    },
+    {id: '1', userId: '1', externalName: '@gwen', sentryName: 'gwen@mcu.org'},
+    {id: '2', userId: '2', externalName: '@eddie', sentryName: 'eddie@mcu.org'},
   ];
   const MOCK_TEAM_MAPPINGS = [
-    {
-      id: '1',
-      teamId: '1',
-      externalName: '@getsentry/animals',
-      sentryName: '#zoo',
-    },
-    {
-      id: '2',
-      teamId: '2',
-      externalName: '@getsentry/ghosts',
-      sentryName: '#boo',
-    },
+    {id: '1', teamId: '1', externalName: '@getsentry/animals', sentryName: '#zoo'},
+    {id: '2', teamId: '2', externalName: '@getsentry/ghosts', sentryName: '#boo'},
   ];
 
   const MOCK_MEMBERS = [

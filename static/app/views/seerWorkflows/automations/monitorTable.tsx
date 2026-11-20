@@ -41,10 +41,7 @@ function useMonitorAlertTargets(monitorIds: string[]) {
   const organization = useOrganization();
 
   return useQuery({
-    ...automationsApiOptions(organization, {
-      detector: monitorIds.toSorted(),
-      limit: 100,
-    }),
+    ...automationsApiOptions(organization, {detector: monitorIds.toSorted(), limit: 100}),
     enabled: monitorIds.length > 0,
     select: ({json}) => getAlertTargetsByMonitor(json),
     refetchInterval: AUTO_REFRESH_INTERVAL,

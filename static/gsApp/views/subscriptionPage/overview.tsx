@@ -27,9 +27,7 @@ import {RecurringCredits} from './recurringCredits';
 import {SubscriptionHeader} from './subscriptionHeader';
 import {UsageAlert} from './usageAlert';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 /**
  * Subscription overview page.

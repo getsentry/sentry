@@ -32,10 +32,7 @@ describe('useParams', () => {
       }
 
       render(<HomePage />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(params).toEqual({});
@@ -79,19 +76,14 @@ describe('useParams', () => {
       }
 
       render(<Component />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(
         screen.getByText('rendered component for org: albertos-apples')
       ).toBeInTheDocument();
       expect(originalParams).toEqual({});
-      expect(paramsValue).toEqual({
-        orgId: 'albertos-apples',
-      });
+      expect(paramsValue).toEqual({orgId: 'albertos-apples'});
     });
 
     it('does not populate orgId when customer domain is not being used', () => {
@@ -108,10 +100,7 @@ describe('useParams', () => {
       }
 
       render(<Component />, {
-        initialRouterConfig: {
-          route: '/issues/',
-          location: {pathname: '/issues/'},
-        },
+        initialRouterConfig: {route: '/issues/', location: {pathname: '/issues/'}},
       });
 
       expect(

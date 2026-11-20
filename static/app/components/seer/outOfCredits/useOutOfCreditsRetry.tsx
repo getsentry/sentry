@@ -28,8 +28,5 @@ export function useOutOfCreditsRetry(
 ) {
   const {disabled, hasEnoughCredits} = useAutofixCreditCheck(action, options);
 
-  return {
-    disabled,
-    tooltip: hasEnoughCredits ? undefined : OUT_OF_CREDITS_RETRY_TOOLTIP,
-  };
+  return {disabled, tooltip: hasEnoughCredits ? undefined : OUT_OF_CREDITS_RETRY_TOOLTIP};
 }

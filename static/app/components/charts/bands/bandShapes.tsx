@@ -40,7 +40,7 @@ export const BAND_Y_AXIS = {
 type BandGroup = Extract<NonNullable<CustomSeriesRenderItemReturn>, {type: 'group'}>;
 export type BandElement = BandGroup['children'][number];
 
-type CartesianCoordSys = CustomSeriesRenderItemParams['coordSys'] & {
+export type CartesianCoordSys = CustomSeriesRenderItemParams['coordSys'] & {
   height: number;
   width: number;
   x: number;
@@ -104,10 +104,7 @@ export function bandLayout(
   }
 
   const {x, width} = params.coordSys as CartesianCoordSys;
-  return {
-    track: {left: x, right: x + width},
-    y: baseY + offset + BAND_PADDING_TOP,
-  };
+  return {track: {left: x, right: x + width}, y: baseY + offset + BAND_PADDING_TOP};
 }
 
 /**

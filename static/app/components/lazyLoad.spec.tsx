@@ -6,9 +6,7 @@ import {ROOT_ELEMENT} from 'sentry/constants';
 
 import {LazyLoad} from './lazyLoad';
 
-type TestProps = {
-  testProp?: boolean;
-};
+type TestProps = {testProp?: boolean};
 
 function FooComponent() {
   return <div>my foo component</div>;

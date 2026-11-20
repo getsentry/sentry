@@ -24,10 +24,7 @@ import {
 import type {UptimeCheck} from './types';
 import {CheckStatus} from './types';
 
-type Props = {
-  traceSampling: boolean;
-  uptimeChecks: UptimeCheck[];
-};
+type Props = {traceSampling: boolean; uptimeChecks: UptimeCheck[]};
 
 type ColumnKey =
   | 'traceItemId'
@@ -239,13 +236,7 @@ function CheckInBodyCell({
 
       return (
         <TraceCell>
-          <Link
-            to={getUptimeTraceLink({
-              organization,
-              timestamp,
-              traceId,
-            })}
-          >
+          <Link to={getUptimeTraceLink({organization, timestamp, traceId})}>
             {getShortEventId(traceId)}
           </Link>
           {badge}

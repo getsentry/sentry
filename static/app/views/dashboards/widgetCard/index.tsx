@@ -372,7 +372,8 @@ function WidgetCard(props: Props) {
         props.onDuplicate,
         props.onEdit,
         data?.timeseriesResults,
-        canAskSeer ? askSeer : undefined
+        canAskSeer ? askSeer : undefined,
+        dashboardQueryPriority
       )
     : [];
   const actions = props.onContextMenuAction
@@ -545,9 +546,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   ) {
     return tct(
       "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
-      {
-        numDays: retentionLimitDays,
-      }
+      {numDays: retentionLimitDays}
     );
   }
 

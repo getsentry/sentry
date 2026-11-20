@@ -118,9 +118,7 @@ describe('InviteMembersModal', () => {
   });
 
   it('renders for superuser', async () => {
-    jest.mock('sentry/utils/isActiveSuperuser', () => ({
-      isActiveSuperuser: jest.fn(),
-    }));
+    jest.mock('sentry/utils/isActiveSuperuser', () => ({isActiveSuperuser: jest.fn()}));
 
     const errorResponse: MockApiResponseFn = (client, orgSlug, _) => {
       return client.addMockResponse({
@@ -180,9 +178,7 @@ describe('InviteMembersModal', () => {
 
     expect(mockPostApi).toHaveBeenCalledWith(
       '/organizations/org-slug/members/',
-      expect.objectContaining({
-        data: {email: 'test1@test.com', role: 'admin', teams: []},
-      })
+      expect.objectContaining({data: {email: 'test1@test.com', role: 'admin', teams: []}})
     );
   });
 
@@ -258,10 +254,7 @@ describe('InviteMembersModal', () => {
 
     const {mocks} = setupView({
       mockApiResponses: [defaultMockOrganizationRoles, defaultMockPostOrganizationMember],
-      modalProps: {
-        ...defaultMockModalProps,
-        initialData,
-      },
+      modalProps: {...defaultMockModalProps, initialData},
     });
 
     await waitFor(() => {
@@ -293,10 +286,7 @@ describe('InviteMembersModal', () => {
 
     const {mocks} = setupView({
       mockApiResponses: [defaultMockOrganizationRoles, defaultMockPostOrganizationMember],
-      modalProps: {
-        ...defaultMockModalProps,
-        initialData,
-      },
+      modalProps: {...defaultMockModalProps, initialData},
     });
 
     await waitFor(() => {
@@ -349,10 +339,7 @@ describe('InviteMembersModal', () => {
       const {mocks} = setupView({
         orgAccess: [],
         mockApiResponses: [defaultMockOrganizationRoles, createInviteRequestMock],
-        modalProps: {
-          ...defaultMockModalProps,
-          initialData,
-        },
+        modalProps: {...defaultMockModalProps, initialData},
       });
 
       await waitFor(() => {

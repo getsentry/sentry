@@ -45,21 +45,9 @@ export function getPythonInstallCodeBlock({
   return {
     type: 'code',
     tabs: [
-      {
-        label: 'pip',
-        language: 'bash',
-        code: packageManagerCommands.pip,
-      },
-      {
-        label: 'uv',
-        language: 'bash',
-        code: packageManagerCommands.uv,
-      },
-      {
-        label: 'poetry',
-        language: 'bash',
-        code: packageManagerCommands.poetry,
-      },
+      {label: 'pip', language: 'bash', code: packageManagerCommands.pip},
+      {label: 'uv', language: 'bash', code: packageManagerCommands.uv},
+      {label: 'poetry', language: 'bash', code: packageManagerCommands.poetry},
     ],
   };
 }
@@ -70,13 +58,9 @@ export function getPythonAiocontextvarsCodeBlocks(): ContentBlock[] {
       type: 'text',
       text: tct(
         "If you're on Python 3.6, you also need the [code:aiocontextvars] package:",
-        {
-          code: <code />,
-        }
+        {code: <code />}
       ),
     },
-    getPythonInstallCodeBlock({
-      packageName: 'aiocontextvars',
-    }),
+    getPythonInstallCodeBlock({packageName: 'aiocontextvars'}),
   ];
 }

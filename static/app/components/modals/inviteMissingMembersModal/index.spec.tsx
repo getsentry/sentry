@@ -15,23 +15,11 @@ import {TeamStore} from 'sentry/stores/teamStore';
 import type {OrgRole} from 'sentry/types/organization';
 
 const roles = [
-  {
-    id: 'admin',
-    name: 'Admin',
-    desc: 'This is the admin role',
-    isAllowed: true,
-  },
-  {
-    id: 'member',
-    name: 'Member',
-    desc: 'This is the member role',
-    isAllowed: true,
-  },
+  {id: 'admin', name: 'Admin', desc: 'This is the admin role', isAllowed: true},
+  {id: 'member', name: 'Member', desc: 'This is the member role', isAllowed: true},
 ] as OrgRole[];
 
-const mockRefObject = {
-  current: document.body as HTMLDivElement,
-};
+const mockRefObject = {current: document.body as HTMLDivElement};
 
 describe('InviteMissingMembersModal', () => {
   const team = TeamFixture();
@@ -193,14 +181,10 @@ describe('InviteMissingMembersModal', () => {
     const teamInputs = screen.getAllByRole('combobox', {name: 'Add to Team'});
 
     await userEvent.click(screen.getByLabelText('Select hello@sentry.io'));
-    await selectEvent.select(roleInputs[0]!, 'Admin', {
-      container: document.body,
-    });
+    await selectEvent.select(roleInputs[0]!, 'Admin', {container: document.body});
 
     await userEvent.click(screen.getByLabelText('Select abcd@sentry.io'));
-    await selectEvent.select(teamInputs[1]!, '#team-slug', {
-      container: document.body,
-    });
+    await selectEvent.select(teamInputs[1]!, '#team-slug', {container: document.body});
 
     await userEvent.click(screen.getByLabelText('Send Invites'));
 

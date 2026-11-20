@@ -380,10 +380,7 @@ export function ScmPlatformFeaturesCore({
         variant: 'scm',
       });
     },
-    {
-      wait: DEFAULT_DEBOUNCE_DURATION,
-      onUnmount: debouncer => debouncer.flush(),
-    }
+    {wait: DEFAULT_DEBOUNCE_DURATION, onUnmount: debouncer => debouncer.flush()}
   );
 
   function handleManualPickerSearch(query: string, reason: 'input' | 'reset') {
@@ -401,12 +398,7 @@ export function ScmPlatformFeaturesCore({
   // paddingLeft override. Shared by both manual-picker Select variants below.
   const manualPickerStyles: StylesConfig = {
     container: base => ({...base, width: '100%'}),
-    menu: base => ({
-      ...base,
-      '& [role="option"]': {
-        paddingLeft: theme.space.md,
-      },
-    }),
+    menu: base => ({...base, '& [role="option"]': {paddingLeft: theme.space.md}}),
     groupHeading: base => ({
       ...base,
       padding: `${theme.space.xs} ${theme.space.lg} ${theme.space.xs} calc(${theme.space.md} + ${theme.space.lg} + ${theme.form.md.fontSize} + ${theme.space.md})`,

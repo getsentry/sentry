@@ -84,10 +84,7 @@ export function TermsAndConditions({subscription}: TermsProps) {
     toast.loading(t('Saving changes...'));
     const data = await api.requestPromise(`/customers/${subscription.slug}/policies/`, {
       method: 'POST',
-      data: {
-        policy: policy.slug,
-        version: policy.version,
-      },
+      data: {policy: policy.slug, version: policy.version},
     });
 
     queryClient.setQueryData(policiesOptions(subscription).queryKey, previous => ({

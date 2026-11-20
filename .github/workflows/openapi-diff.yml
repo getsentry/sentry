@@ -33,6 +33,8 @@ jobs:
       api_docs: ${{ steps.changes.outputs.api_docs }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for python file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -42,12 +44,12 @@ jobs:
           filters: .github/file-filters.yml
 
       - name: Setup sentry env
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           mode: migrations
         if: steps.changes.outputs.api_docs == 'true'
 
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
         if: steps.changes.outputs.api_docs == 'true'
 
       - name: Build OpenAPI Derefed JSON
@@ -91,6 +93,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: .github/workflows/scripts
+          persist-credentials: false
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:
@@ -113,6 +116,7 @@ jobs:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         with:
           sparse-checkout: .github/workflows/scripts
+          persist-credentials: false
 
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
         with:

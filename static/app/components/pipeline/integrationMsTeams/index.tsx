@@ -10,10 +10,7 @@ import {pipelineComplete} from 'sentry/components/pipeline/types';
 import {t} from 'sentry/locale';
 import type {IntegrationWithConfig} from 'sentry/types/integrations';
 
-type MsTeamsStepData = {
-  appDirectoryInstall: true;
-  state: string;
-};
+type MsTeamsStepData = {appDirectoryInstall: true; state: string};
 
 function MsTeamsInstallStep({
   stepData,

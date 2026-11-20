@@ -43,11 +43,7 @@ export function useFlagsInEventPaginated({
     isPending,
     isError,
     error,
-  } = useFetchGroupAndEvent({
-    eventId,
-    groupId,
-    enabled,
-  });
+  } = useFetchGroupAndEvent({eventId, groupId, enabled});
 
   const {
     data: rawFlagResp,
@@ -55,13 +51,7 @@ export function useFlagsInEventPaginated({
     isError: isFlagsError,
     error: flagsError,
   } = useQuery({
-    ...organizationFlagLogOptions({
-      organization,
-      query: {
-        ...query,
-        flag: eventFlags,
-      },
-    }),
+    ...organizationFlagLogOptions({organization, query: {...query, flag: eventFlags}}),
     enabled: enabled && Boolean(eventFlags?.length),
     select: selectJsonWithHeaders,
   });
@@ -146,10 +136,7 @@ export function useFlagsInEvent({
     error: flagsError,
   } = useOrganizationFlagLogInfinite({
     organization,
-    query: {
-      ...query,
-      flag: eventFlags,
-    },
+    query: {...query, flag: eventFlags},
     enabled: enabled && Boolean(eventFlags.length),
   });
 

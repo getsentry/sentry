@@ -286,10 +286,7 @@ function SortActions({
 
   return (
     <CMDKAction
-      display={{
-        label: t('Sort by: %s', getSortLabel(sort)),
-        icon: <IconSort />,
-      }}
+      display={{label: t('Sort by: %s', getSortLabel(sort)), icon: <IconSort />}}
       keywords={['order', 'arrange', 'last seen', 'age', 'events', 'users', 'trends']}
     >
       {sortKeys.map(key => (

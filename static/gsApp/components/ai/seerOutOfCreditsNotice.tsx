@@ -226,10 +226,7 @@ function SeerOutOfCreditsAction({
   onRequestCredits,
   isRequestingCredits,
   hasRequestedCredits,
-}: {
-  configureLabel: string;
-  size: ButtonProps['size'];
-} & Pick<
+}: {configureLabel: string; size: ButtonProps['size']} & Pick<
   SeerOutOfCreditsNoticeProps,
   | 'escalation'
   | 'onConfigureAutoReload'

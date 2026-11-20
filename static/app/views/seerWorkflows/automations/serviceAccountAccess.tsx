@@ -66,14 +66,14 @@ const RESOURCE_ORDER = [
   'Distribution',
 ];
 
-const PERMISSIONS = SENTRY_APP_PERMISSIONS.toSorted(
+export const PERMISSIONS = SENTRY_APP_PERMISSIONS.toSorted(
   (a, b) => RESOURCE_ORDER.indexOf(a.resource) - RESOURCE_ORDER.indexOf(b.resource)
 );
 
 /**
  * Choices ascend, so the last one fully granted is the current level
  */
-function getPermissionLevel(
+export function getPermissionLevel(
   permission: (typeof SENTRY_APP_PERMISSIONS)[number],
   scopes: Set<string>
 ): string {
@@ -183,10 +183,7 @@ export function ServiceAccountProjects({
             }))}
             value={value.projectIds.filter(id => !monitorCounts.has(id))}
             onChange={selected =>
-              onChange({
-                ...value,
-                projectIds: selected.map(option => option.value),
-              })
+              onChange({...value, projectIds: selected.map(option => option.value)})
             }
             emptyMessage={t('No other projects to add')}
             trigger={triggerProps => (

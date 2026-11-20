@@ -13,9 +13,7 @@ import {useReplayPrefs} from 'sentry/utils/replays/playback/providers/replayPref
 import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayReaderProvider';
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
-type Props = {
-  container: HTMLElement;
-};
+type Props = {container: HTMLElement};
 
 export function TimelineTooltip({container}: Props) {
   const replay = useReplayReader();

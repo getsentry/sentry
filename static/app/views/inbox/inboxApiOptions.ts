@@ -185,10 +185,7 @@ export function removeInboxItemsMutationOptions({
       });
     },
     onSettled: () => {
-      queryClient.invalidateQueries({
-        queryKey,
-        refetchType: 'active',
-      });
+      queryClient.invalidateQueries({queryKey, refetchType: 'active'});
       queryClient.invalidateQueries({queryKey: getInboxCountQueryKey(organization)});
     },
   });

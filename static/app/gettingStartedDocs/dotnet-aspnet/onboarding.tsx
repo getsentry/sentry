@@ -98,28 +98,12 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
-        {
-          type: 'text',
-          text: t('Package Manager:'),
-        },
-        {
-          type: 'code',
-          language: 'shell',
-          code: getInstallSnippetPackageManager(params),
-        },
-        {
-          type: 'text',
-          text: t('Using Entity Framework 6?'),
-        },
-        {
-          type: 'code',
-          language: 'shell',
-          code: getInstallSnippetEntityFramework(params),
-        },
+        {type: 'text', text: t('Package Manager:')},
+        {type: 'code', language: 'shell', code: getInstallSnippetPackageManager(params)},
+        {type: 'text', text: t('Using Entity Framework 6?')},
+        {type: 'code', language: 'shell', code: getInstallSnippetEntityFramework(params)},
       ],
     },
   ],
@@ -131,16 +115,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'You should [code:init] the Sentry SDK as soon as possible during your application load by adding Sentry to [code:Global.asax.cs]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],

@@ -1,8 +1,4 @@
-export type SignupAnalyticsParameters = {
-  'join_request.created': {
-    referrer: string;
-  };
-};
+export type SignupAnalyticsParameters = {'join_request.created': {referrer: string}};
 
 type SignupAnalyticsKeys = keyof SignupAnalyticsParameters;
 

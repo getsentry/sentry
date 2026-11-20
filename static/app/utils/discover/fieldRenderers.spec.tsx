@@ -25,18 +25,13 @@ describe('getFieldRenderer', () => {
   let location: any, context: any, project: any, organization: any, data: any, user: any;
 
   beforeEach(() => {
-    context = initializeOrg({
-      organization: OrganizationFixture(),
-    });
+    context = initializeOrg({organization: OrganizationFixture()});
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
     user = 'email:text@example.com';
 
-    location = {
-      pathname: '/events',
-      query: {},
-    };
+    location = {pathname: '/events', query: {}};
     data = {
       id: '1',
       team_key_transaction: 1,
@@ -244,12 +239,7 @@ describe('getFieldRenderer', () => {
       const {unmount} = render(
         renderer(
           {...data, boolValue: value},
-          {
-            location,
-            navigate: jest.fn(),
-            organization,
-            theme,
-          }
+          {location, navigate: jest.fn(), organization, theme}
         ) as React.ReactElement<any, any>
       );
       expect(screen.getByText(expected)).toBeInTheDocument();
@@ -364,9 +354,7 @@ describe('getFieldRenderer', () => {
     it('can render null rate', () => {
       const renderer = getFieldRenderer(
         'per_second(value)',
-        {
-          'per_second(value)': 'rate',
-        },
+        {'per_second(value)': 'rate'},
         false
       );
 
@@ -382,9 +370,7 @@ describe('getFieldRenderer', () => {
     it('can render low rate', () => {
       const renderer = getFieldRenderer(
         'per_second(value)',
-        {
-          'per_second(value)': 'rate',
-        },
+        {'per_second(value)': 'rate'},
         false
       );
 
@@ -400,9 +386,7 @@ describe('getFieldRenderer', () => {
     it('can render high rate', () => {
       const renderer = getFieldRenderer(
         'per_second(value)',
-        {
-          'per_second(value)': 'rate',
-        },
+        {'per_second(value)': 'rate'},
         false
       );
 
@@ -420,9 +404,7 @@ describe('getFieldRenderer', () => {
     it('can render percentage fields', () => {
       const renderer = getFieldRenderer(
         'http_response_rate(3)',
-        {
-          'http_response_rate(3)': 'percentage',
-        },
+        {'http_response_rate(3)': 'percentage'},
         false
       );
 
@@ -440,9 +422,7 @@ describe('getFieldRenderer', () => {
     it('can render very small percentages', () => {
       const renderer = getFieldRenderer(
         'http_response_rate(5)',
-        {
-          'http_response_rate(5)': 'percentage',
-        },
+        {'http_response_rate(5)': 'percentage'},
         false
       );
 

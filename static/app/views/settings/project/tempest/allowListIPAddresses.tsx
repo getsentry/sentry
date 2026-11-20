@@ -12,9 +12,7 @@ export const ALLOWLIST_IP_ADDRESSES_DESCRIPTION = t(
 export function AllowListIPAddresses() {
   const {data: ipAddresses, isPending} = useQuery(
     apiOptions.as<string>()('/tempest-ips/', {
-      headers: {
-        Accept: 'text/html, text/plain, */*',
-      },
+      headers: {Accept: 'text/html, text/plain, */*'},
       staleTime: Infinity,
     })
   );

@@ -145,11 +145,7 @@ export function WidgetBuilderV2({
                 // oxlint-disable-next-line react/refs
                 navigationElementRef.current
                   ? isMediumScreen
-                    ? {
-                        left: 0,
-                        top: contentTop,
-                        willChange: 'top',
-                      }
+                    ? {left: 0, top: contentTop, willChange: 'top'}
                     : {
                         left: `${dimensions.width ?? 0}px`,
                         top: contentTop,

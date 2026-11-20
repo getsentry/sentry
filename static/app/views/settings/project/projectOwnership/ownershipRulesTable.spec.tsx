@@ -199,10 +199,7 @@ describe('OwnershipRulesTable', () => {
     const owners: Actor[] = [{type: 'user', id: user1.id, name: user1.name}];
     const rules: ParsedOwnershipRule[] = Array.from({length: 100})
       .fill(0)
-      .map((_, i) => ({
-        matcher: {pattern: `mytag${i}`, type: 'tag'},
-        owners,
-      }));
+      .map((_, i) => ({matcher: {pattern: `mytag${i}`, type: 'tag'}, owners}));
 
     render(<OwnershipRulesTable projectRules={rules} codeowners={[]} />);
 
@@ -215,10 +212,7 @@ describe('OwnershipRulesTable', () => {
 
   it('should render codeowner exclusion rules with no owners', async () => {
     const codeownerRules: ParsedOwnershipRule[] = [
-      {
-        matcher: {pattern: '/apps/github', type: 'codeowners'},
-        owners: [],
-      },
+      {matcher: {pattern: '/apps/github', type: 'codeowners'}, owners: []},
       {
         matcher: {pattern: 'src/utils/*', type: 'codeowners'},
         owners: [{type: 'user', id: user1.id, name: user1.name}],
@@ -244,10 +238,7 @@ describe('OwnershipRulesTable', () => {
 
   it('should show exclusion rules even when My Teams filter is active', async () => {
     const codeownerRules: ParsedOwnershipRule[] = [
-      {
-        matcher: {pattern: '/apps/github', type: 'codeowners'},
-        owners: [],
-      },
+      {matcher: {pattern: '/apps/github', type: 'codeowners'}, owners: []},
     ];
     const projectRules: ParsedOwnershipRule[] = [
       {
@@ -272,18 +263,9 @@ describe('OwnershipRulesTable', () => {
 
   it('should render multiple exclusion rules', async () => {
     const codeownerRules: ParsedOwnershipRule[] = [
-      {
-        matcher: {pattern: '/apps/github', type: 'codeowners'},
-        owners: [],
-      },
-      {
-        matcher: {pattern: '/vendor/*', type: 'codeowners'},
-        owners: [],
-      },
-      {
-        matcher: {pattern: '/build/*', type: 'codeowners'},
-        owners: [],
-      },
+      {matcher: {pattern: '/apps/github', type: 'codeowners'}, owners: []},
+      {matcher: {pattern: '/vendor/*', type: 'codeowners'}, owners: []},
+      {matcher: {pattern: '/build/*', type: 'codeowners'}, owners: []},
     ];
 
     render(

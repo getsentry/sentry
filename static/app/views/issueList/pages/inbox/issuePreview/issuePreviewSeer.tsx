@@ -100,9 +100,7 @@ function getSeerButtonAction(
 
 function useIssuePreviewSeerState(group: Group, project: Project) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group, {
-    enabled: aiConfig.hasAutofix,
-  });
+  const autofix = useExplorerAutofix(group, {enabled: aiConfig.hasAutofix});
   const {isPending: isSetupPending, setupType} = useAutofixSetupStep({
     seerReposLinked: aiConfig.seerReposLinked,
   });

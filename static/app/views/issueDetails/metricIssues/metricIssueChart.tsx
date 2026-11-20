@@ -129,10 +129,7 @@ function MetricIssueChartContent({
   const dateTimeParams = normalizeDateTimeParams(selection.datetime);
   const intervalSeconds = detector.dataSources[0]?.queryObj?.snubaQuery?.timeWindow;
   const {dateTimeParams: cappedDateTimeParams, isRangeLimited} =
-    limitDateTimeParamsToMaxPoints({
-      ...dateTimeParams,
-      intervalSeconds,
-    });
+    limitDateTimeParamsToMaxPoints({...dateTimeParams, intervalSeconds});
 
   const navigateToOpenPeriodIssue = useCallback(
     (clickedOpenPeriod: GroupOpenPeriod) =>

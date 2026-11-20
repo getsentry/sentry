@@ -22,34 +22,13 @@ describe('highlightFuseMatches', () => {
 
   it('gets the correct tokens', () => {
     expect(getFuseMatches(matchObj)).toEqual([
-      {
-        highlight: false,
-        text: 'Auth',
-      },
-      {
-        highlight: true,
-        text: 'ent',
-      },
-      {
-        highlight: false,
-        text: 'icati',
-      },
-      {
-        highlight: true,
-        text: 'on',
-      },
-      {
-        highlight: false,
-        text: ' ',
-      },
-      {
-        highlight: true,
-        text: 'to',
-      },
-      {
-        highlight: false,
-        text: 'kens allow you to perform actions',
-      },
+      {highlight: false, text: 'Auth'},
+      {highlight: true, text: 'ent'},
+      {highlight: false, text: 'icati'},
+      {highlight: true, text: 'on'},
+      {highlight: false, text: ' '},
+      {highlight: true, text: 'to'},
+      {highlight: false, text: 'kens allow you to perform actions'},
     ]);
   });
 

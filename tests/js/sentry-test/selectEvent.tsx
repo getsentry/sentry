@@ -46,9 +46,7 @@ function getSelectInput(target: HTMLElement): HTMLElement {
 
 type User = ReturnType<typeof userEvent.setup> | typeof userEvent;
 
-type UserEventOptions = {
-  user?: User;
-};
+type UserEventOptions = {user?: User};
 
 /**
  * Open the select's dropdown menu.

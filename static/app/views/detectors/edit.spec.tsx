@@ -40,15 +40,11 @@ import {SnubaQueryType} from './components/forms/metric/metricFormData';
 import DetectorEdit from './edit';
 
 describe('DetectorEdit', () => {
-  const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
-  });
+  const organization = OrganizationFixture({features: ['visibility-explore-view']});
   const project = ProjectFixture({id: '1', organization, environments: ['production']});
   const initialRouterConfig = {
     route: '/organizations/:orgId/monitors/:detectorId/edit/',
-    location: {
-      pathname: '/organizations/org-slug/monitors/1/edit/',
-    },
+    location: {pathname: '/organizations/org-slug/monitors/1/edit/'},
   };
 
   beforeEach(() => {
@@ -248,10 +244,7 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
-      render(<DetectorEdit />, {
-        organization: readOnlyOrganization,
-        initialRouterConfig,
-      });
+      render(<DetectorEdit />, {organization: readOnlyOrganization, initialRouterConfig});
 
       await screen.findAllByText(mockDetector.name);
 
@@ -316,10 +309,7 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
-      const {router} = render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      const {router} = render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(name);
 
@@ -332,9 +322,7 @@ describe('DetectorEdit', () => {
       await userEvent.click(
         screen.getByRole('button', {name: 'Connect Existing Alerts'})
       );
-      const drawer = await screen.findByRole('complementary', {
-        name: 'Connect Alerts',
-      });
+      const drawer = await screen.findByRole('complementary', {name: 'Connect Alerts'});
       await userEvent.click(await within(drawer).findByRole('button', {name: 'Connect'}));
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
@@ -343,10 +331,7 @@ describe('DetectorEdit', () => {
           `/organizations/${organization.slug}/detectors/1/`,
           expect.objectContaining({
             method: 'PUT',
-            data: expect.objectContaining({
-              type: 'error',
-              workflowIds: ['100'],
-            }),
+            data: expect.objectContaining({type: 'error', workflowIds: ['100']}),
           })
         );
       });
@@ -455,16 +440,10 @@ describe('DetectorEdit', () => {
       const updateRequest = MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/detectors/${mockDetector.id}/`,
         method: 'PUT',
-        body: {
-          ...mockDetector,
-          name: 'Updated Detector Name',
-        },
+        body: {...mockDetector, name: 'Updated Detector Name'},
       });
 
-      const {router} = render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      const {router} = render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(name);
 
@@ -501,9 +480,7 @@ describe('DetectorEdit', () => {
               projectId: project.id,
               type: 'metric_issue',
               workflowIds: mockDetector.workflowIds,
-              config: {
-                detectionType: 'static',
-              },
+              config: {detectionType: 'static'},
               dataSources: [
                 {
                   environment: 'production',
@@ -539,10 +516,7 @@ describe('DetectorEdit', () => {
         body: mockDetector,
       });
 
-      render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(name);
 
@@ -676,9 +650,7 @@ describe('DetectorEdit', () => {
         expect(eventsStatsRequest).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/events-stats/`,
           expect.objectContaining({
-            query: expect.objectContaining({
-              comparisonDelta: 3600,
-            }),
+            query: expect.objectContaining({comparisonDelta: 3600}),
           })
         );
       });
@@ -778,10 +750,7 @@ describe('DetectorEdit', () => {
         body: spansDetector,
       });
 
-      render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(spansDetector.name);
 
@@ -806,10 +775,7 @@ describe('DetectorEdit', () => {
         body: [],
       });
 
-      render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(name);
 
@@ -829,9 +795,7 @@ describe('DetectorEdit', () => {
       const dynamicDetector = MetricDetectorFixture({
         name: 'Dynamic Detector',
         projectId: project.id,
-        config: {
-          detectionType: 'dynamic',
-        },
+        config: {detectionType: 'dynamic'},
         conditionGroup: {
           id: 'cg-dynamic',
           logicType: DataConditionGroupLogicType.ANY,
@@ -923,10 +887,7 @@ describe('DetectorEdit', () => {
         body: [],
       });
 
-      render(<DetectorEdit />, {
-        organization,
-        initialRouterConfig,
-      });
+      render(<DetectorEdit />, {organization, initialRouterConfig});
 
       await screen.findAllByText(name);
 
@@ -973,10 +934,7 @@ describe('DetectorEdit', () => {
           body: mockDetector,
         });
 
-        render(<DetectorEdit />, {
-          organization,
-          initialRouterConfig,
-        });
+        render(<DetectorEdit />, {organization, initialRouterConfig});
 
         await screen.findAllByText(name);
 

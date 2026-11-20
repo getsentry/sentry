@@ -177,12 +177,7 @@ describe('ScmRepoSelector', () => {
             name: 'relay',
             isInstalled: false,
           },
-          {
-            externalId: '5',
-            identifier: 'getsentry/cli',
-            name: 'cli',
-            isInstalled: false,
-          },
+          {externalId: '5', identifier: 'getsentry/cli', name: 'cli', isInstalled: false},
           {
             externalId: '6',
             identifier: 'getsentry/clickhouse-backup',
@@ -314,10 +309,7 @@ describe('ScmRepoSelector', () => {
     const reposLookup = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/repos/`,
       body: [
-        RepositoryFixture({
-          name: 'getsentry/sentry',
-          externalSlug: 'getsentry/sentry',
-        }),
+        RepositoryFixture({name: 'getsentry/sentry', externalSlug: 'getsentry/sentry'}),
       ],
     });
 

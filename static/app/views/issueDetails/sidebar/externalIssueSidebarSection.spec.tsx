@@ -93,12 +93,7 @@ describe('ExternalIssueSidebarSection', () => {
     // Integrations are refetched, remove the external issue from the object
     const refetchMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/integrations/`,
-      body: [
-        GitHubIntegrationFixture({
-          status: 'active',
-          externalIssues: [],
-        }),
-      ],
+      body: [GitHubIntegrationFixture({status: 'active', externalIssues: []})],
     });
 
     await userEvent.click(
@@ -203,11 +198,7 @@ describe('ExternalIssueSidebarSection', () => {
 
   it('should render issue tracker actions in the section header', async () => {
     const asanaComponent = SentryAppComponentFixture({
-      sentryApp: {
-        ...SentryAppComponentFixture().sentryApp,
-        slug: 'asana',
-        name: 'Asana',
-      },
+      sentryApp: {...SentryAppComponentFixture().sentryApp, slug: 'asana', name: 'Asana'},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/sentry-app-components/`,
@@ -325,9 +316,7 @@ describe('ExternalIssueSidebarSection', () => {
       within(linkedIssueList).getByRole('button', {name: `Unlink ${issue.key}`})
     ).toBeInTheDocument();
     expect(
-      within(linkedIssueList).getByRole('button', {
-        name: `Unlink ${prefixedIssue.key}`,
-      })
+      within(linkedIssueList).getByRole('button', {name: `Unlink ${prefixedIssue.key}`})
     ).toBeInTheDocument();
   });
 
@@ -365,9 +354,7 @@ describe('ExternalIssueSidebarSection', () => {
     render(<ExternalIssueSidebarSection event={event} group={group} />);
 
     expect(
-      await screen.findByRole('link', {
-        name: 'Track this issue in Jira, GitHub, etc.',
-      })
+      await screen.findByRole('link', {name: 'Track this issue in Jira, GitHub, etc.'})
     ).toBeInTheDocument();
     expect(
       screen.queryByText('No linked issues or pull requests')

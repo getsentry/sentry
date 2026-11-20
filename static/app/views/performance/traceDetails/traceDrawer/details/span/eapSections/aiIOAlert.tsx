@@ -64,10 +64,7 @@ function getInstrumentationType(
   return 'manual';
 }
 
-const contentComponents = {
-  python: PythonContent,
-  javascript: JavaScriptContent,
-} as const;
+const contentComponents = {python: PythonContent, javascript: JavaScriptContent} as const;
 
 export function AIIOAlert({
   node,
@@ -78,9 +75,7 @@ export function AIIOAlert({
   attributes?: TraceItemResponseAttribute[];
   event?: EventTransaction;
 }) {
-  const {dismiss, isDismissed} = useDismissAlert({
-    key: 'genai-io-alert-dismissed',
-  });
+  const {dismiss, isDismissed} = useDismissAlert({key: 'genai-io-alert-dismissed'});
 
   const isSupportedNodeType = getIsAiGenerationNode(node) || getIsExecuteToolNode(node);
   const hasData =
@@ -155,9 +150,7 @@ function PythonContent({
       <Prose>
         {tct(
           'Simply enable [code:send_default_pii] in your Sentry init call to start capturing it:',
-          {
-            code: <StyledCode />,
-          }
+          {code: <StyledCode />}
         )}
       </Prose>
       <CodeBlock dark language="python" linesToHighlight={[3]} css={codeSnippetStyles}>
@@ -206,9 +199,7 @@ function JavaScriptContent({
       <Prose>
         {tct(
           'Simply set [code:recordInputs] and [code:recordOutputs] to [code:true] when initializing the SDK integration:',
-          {
-            code: <StyledCode />,
-          }
+          {code: <StyledCode />}
         )}
       </Prose>
       <CodeBlock

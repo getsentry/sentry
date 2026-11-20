@@ -21,14 +21,8 @@ describe('SavedIssueViewEmbedStory', () => {
       url: `/organizations/org-slug/group-search-views/${view.id}/`,
       body: view,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
 
     render(<SavedIssueViewEmbedStory />);
 

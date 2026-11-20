@@ -127,9 +127,7 @@ function itemMaxDiff(item: SidebarItem): number {
 export default function SnapshotsPage() {
   const organization = useOrganization();
   const theme = useTheme();
-  const {snapshotId} = useParams<{
-    snapshotId: string;
-  }>();
+  const {snapshotId} = useParams<{snapshotId: string}>();
 
   const snapshotApiOptions = useSnapShotApiOptions();
 

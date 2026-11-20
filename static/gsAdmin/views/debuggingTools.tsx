@@ -45,11 +45,7 @@ function IssueOwnerDebbuging() {
         getApiUrl('/organizations/$organizationIdOrSlug/debugging/issue-owners/', {
           path: {organizationIdOrSlug: organizationSlug},
         }),
-        {
-          method: 'GET',
-          query: {projectSlug, stacktracePath},
-          includeAllArgs: true,
-        }
+        {method: 'GET', query: {projectSlug, stacktracePath}, includeAllArgs: true}
       );
       setRuleMatches(data);
     } catch {
@@ -182,10 +178,7 @@ function IssueEscalatingDebugging() {
       getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/', {
         path: {organizationIdOrSlug: organizationSlug, issueId: groupId},
       }),
-      {
-        method: 'GET',
-        query: {expand},
-      }
+      {method: 'GET', query: {expand}}
     );
 
     const forecast = data.forecast;
@@ -251,9 +244,7 @@ function IssueEscalatingDebugging() {
         series={hourlySeries}
         grid={{left: theme.space['3xl'], right: theme.space['3xl']}}
         showTimeInTooltip
-        xAxis={{
-          show: hourlySeries.length > 0,
-        }}
+        xAxis={{show: hourlySeries.length > 0}}
         legend={{
           show: true,
           orient: 'horizontal',

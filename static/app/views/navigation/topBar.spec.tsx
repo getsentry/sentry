@@ -45,9 +45,7 @@ function renderTopBar(width?: number) {
   );
 
   render(<Flex containerType="inline-size">{topBar}</Flex>, {
-    organization: OrganizationFixture({
-      features: ['seer-explorer'],
-    }),
+    organization: OrganizationFixture({features: ['seer-explorer']}),
   });
 }
 
@@ -78,10 +76,7 @@ describe('TopBar', () => {
               previous: {ariaLabel: 'Previous issue'},
               next: {ariaLabel: 'Next issue', to: '/issues/next/'},
             },
-            trailingActions: {
-              type: 'button',
-              element: <Button>Resolve</Button>,
-            },
+            trailingActions: {type: 'button', element: <Button>Resolve</Button>},
           }}
           items={[{type: 'link', label: 'Issues', to: '/issues/'}]}
         />

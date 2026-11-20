@@ -76,10 +76,7 @@ export function UserDetails() {
 
   const onUpdateMutation = useMutation({
     mutationFn: (params: Record<string, any>) => {
-      return api.requestPromise(`/users/${userId}/`, {
-        method: 'PUT',
-        data: params,
-      });
+      return api.requestPromise(`/users/${userId}/`, {method: 'PUT', data: params});
     },
     onMutate: () => {
       toast.loading('Saving changes...');
@@ -90,11 +87,7 @@ export function UserDetails() {
       queryClient.setQueryData(userQueryOptions.queryKey, previous =>
         data === undefined
           ? previous
-          : {
-              ...previous,
-              headers: previous?.headers ?? {},
-              json: data,
-            }
+          : {...previous, headers: previous?.headers ?? {}, json: data}
       );
     },
     onError: () => {
@@ -166,20 +159,14 @@ export function UserDetails() {
       message: 'Are you sure you want to remove this authenticator?',
       onConfirm: async () => {
         try {
-          await api.requestPromise(endpoint, {
-            method: 'DELETE',
-            includeAllArgs: true,
-          });
+          await api.requestPromise(endpoint, {method: 'DELETE', includeAllArgs: true});
           toast.success('Authenticator has been removed.');
           const authenticators =
             user?.authenticators?.filter(a => a.id !== auth.id) ?? [];
           queryClient.setQueryData(userQueryOptions.queryKey, previous => ({
             ...previous,
             headers: previous?.headers ?? {},
-            json: {
-              ...user,
-              authenticators,
-            },
+            json: {...user, authenticators},
           }));
         } catch {
           toast.error('Unable to remove authenticator from account.');
@@ -209,10 +196,7 @@ export function UserDetails() {
           : ''),
       onConfirm: async () => {
         try {
-          await api.requestPromise(endpoint, {
-            method: 'DELETE',
-            includeAllArgs: true,
-          });
+          await api.requestPromise(endpoint, {method: 'DELETE', includeAllArgs: true});
           toast.success('Identity has been disconnected.');
           const newIdentities =
             identities?.filter(
@@ -309,10 +293,7 @@ export function UserDetails() {
           name: 'Suspend Account',
           help: 'Prevent this user from logging in. Account and data are preserved.',
           visible: user.isActive && !user.isSuspended,
-          confirmModalOpts: {
-            priority: 'danger',
-            confirmText: 'Suspend Account',
-          },
+          confirmModalOpts: {priority: 'danger', confirmText: 'Suspend Account'},
           onAction: params => suspendMutation.mutate({...params, action: 'suspend'}),
         },
         {
@@ -336,14 +317,8 @@ export function UserDetails() {
             />
           ),
         },
-        {
-          noPanel: true,
-          content: <UserCustomers userId={user.id} />,
-        },
-        {
-          noPanel: true,
-          content: userEmails,
-        },
+        {noPanel: true, content: <UserCustomers userId={user.id} />},
+        {noPanel: true, content: userEmails},
       ]}
     />
   );

@@ -13,9 +13,7 @@ import {DetectorFormProvider} from 'sentry/views/detectors/components/forms/cont
 import {NewMetricDetectorForm} from './metric';
 
 describe('NewMetricDetectorForm', () => {
-  const organization = OrganizationFixture({
-    features: ['visibility-explore-view'],
-  });
+  const organization = OrganizationFixture({features: ['visibility-explore-view']});
   const project = ProjectFixture({id: '1', slug: 'proj-1'});
   const user = UserFixture();
 
@@ -45,10 +43,7 @@ describe('NewMetricDetectorForm', () => {
       url: '/organizations/org-slug/recent-searches/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/tags/is/values/',
       body: [],
@@ -61,18 +56,12 @@ describe('NewMetricDetectorForm', () => {
       url: '/organizations/org-slug/members/',
       body: [MemberFixture({user})],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/teams/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: [project],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/user-teams/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/user-teams/', body: []});
   });
 
   it.isKnownFlake(
@@ -160,9 +149,7 @@ describe('NewMetricDetectorForm', () => {
       const highThreshold = await screen.findByRole('spinbutton', {
         name: 'High threshold',
       });
-      const mediumThreshold = screen.getByRole('spinbutton', {
-        name: 'Medium threshold',
-      });
+      const mediumThreshold = screen.getByRole('spinbutton', {name: 'Medium threshold'});
 
       // Set medium higher than high (invalid for "above" condition)
       await userEvent.type(highThreshold, '50');

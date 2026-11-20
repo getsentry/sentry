@@ -4,10 +4,7 @@ describe('getAttributeValue', () => {
   it('returns the first value in the requested attribute deprecation chain', () => {
     expect(
       getAttributeValue(
-        {
-          'http.request.method': 'GET',
-          'http.method': 'POST',
-        },
+        {'http.request.method': 'GET', 'http.method': 'POST'},
         'http.method'
       )
     ).toBe('GET');
@@ -16,10 +13,7 @@ describe('getAttributeValue', () => {
   it('uses the chain associated with the requested search attribute', () => {
     expect(
       getAttributeValue(
-        {
-          'code.function': 'legacyFunction',
-          'code.function.name': 'currentFunction',
-        },
+        {'code.function': 'legacyFunction', 'code.function.name': 'currentFunction'},
         'code.function.name'
       )
     ).toBe('currentFunction');
@@ -75,10 +69,7 @@ describe('getAttributeValue', () => {
     ).toBe('prefixed');
     expect(
       getAttributeValue(
-        {
-          'tags[severity,string]': 'unprefixed',
-          'tags[log.severity,string]': 'prefixed',
-        },
+        {'tags[severity,string]': 'unprefixed', 'tags[log.severity,string]': 'prefixed'},
         'log.severity',
         'string'
       )
@@ -156,10 +147,7 @@ describe('getAttributeValue', () => {
   it('returns a falsy value when its key is present', () => {
     expect(
       getAttributeValue(
-        {
-          'http.request.method': undefined,
-          method: 'POST',
-        },
+        {'http.request.method': undefined, method: 'POST'},
         'http.request.method'
       )
     ).toBeUndefined();

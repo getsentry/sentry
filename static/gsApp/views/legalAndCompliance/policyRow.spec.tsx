@@ -82,9 +82,7 @@ describe('PolicyRow', () => {
 
   it('allows org members to view policies', () => {
     const policy = policies['soc-2-bridge-letter']!;
-    const modifiedOrganization = OrganizationFixture({
-      access: [],
-    });
+    const modifiedOrganization = OrganizationFixture({access: []});
 
     render(
       <PolicyRow
@@ -106,9 +104,7 @@ describe('PolicyRow', () => {
   });
   it('allows those with org write to accept policies', () => {
     const policy = policies['soc-2-bridge-letter']!;
-    const modifiedOrganization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const modifiedOrganization = OrganizationFixture({access: ['org:billing']});
 
     render(
       <PolicyRow

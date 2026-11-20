@@ -155,13 +155,8 @@ function Stats90DayFixture(): Response {
     ],
     groups: [
       {
-        by: {
-          outcome: 'invalid',
-          reason: 'browser-extensions',
-        },
-        totals: {
-          'sum(quantity)': 2300000,
-        },
+        by: {outcome: 'invalid', reason: 'browser-extensions'},
+        totals: {'sum(quantity)': 2300000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -172,13 +167,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'cors',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2300000,
-        },
+        by: {reason: 'cors', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2300000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -189,13 +179,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'grace_period',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2200000,
-        },
+        by: {reason: 'grace_period', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2200000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -206,13 +191,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'usage_exceeded',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2200000,
-        },
+        by: {reason: 'usage_exceeded', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2200000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -223,13 +203,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'web-crawlers',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2300000,
-        },
+        by: {reason: 'web-crawlers', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2300000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -240,13 +215,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'rate_limited',
-          reason: 'none',
-        },
-        totals: {
-          'sum(quantity)': 18000000,
-        },
+        by: {outcome: 'rate_limited', reason: 'none'},
+        totals: {'sum(quantity)': 18000000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -258,13 +228,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'error-message',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2200000,
-        },
+        by: {reason: 'error-message', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2200000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -275,13 +240,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'legacy-browsers',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2300000,
-        },
+        by: {reason: 'legacy-browsers', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2300000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -292,13 +252,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'localhost',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 2200000,
-        },
+        by: {reason: 'localhost', outcome: 'invalid'},
+        totals: {'sum(quantity)': 2200000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -309,13 +264,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'filtered',
-          reason: 'none',
-        },
-        totals: {
-          'sum(quantity)': 18000000,
-        },
+        by: {outcome: 'filtered', reason: 'none'},
+        totals: {'sum(quantity)': 18000000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -327,13 +277,8 @@ function Stats90DayFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'none',
-          outcome: 'accepted',
-        },
-        totals: {
-          'sum(quantity)': 18000000,
-        },
+        by: {reason: 'none', outcome: 'accepted'},
+        totals: {'sum(quantity)': 18000000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -378,13 +323,8 @@ function StatsBillingPeriodFixture(): Response {
     ],
     groups: [
       {
-        by: {
-          outcome: 'filtered',
-          reason: 'none',
-        },
-        totals: {
-          'sum(quantity)': 4000,
-        },
+        by: {outcome: 'filtered', reason: 'none'},
+        totals: {'sum(quantity)': 4000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 500, 500, 500, 500, 500, 500, 500, 500,
@@ -393,13 +333,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'filtered',
-          reason: 'browser-extensions',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'filtered', reason: 'browser-extensions'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -408,13 +343,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'filtered',
-          reason: 'Sampled:3',
-        },
-        totals: {
-          'sum(quantity)': 3558,
-        },
+        by: {outcome: 'filtered', reason: 'Sampled:3'},
+        totals: {'sum(quantity)': 3558},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 3558, 0,
@@ -422,13 +352,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'filtered',
-          reason: 'Sampled:4',
-        },
-        totals: {
-          'sum(quantity)': 1404,
-        },
+        by: {outcome: 'filtered', reason: 'Sampled:4'},
+        totals: {'sum(quantity)': 1404},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1404, 0,
@@ -436,13 +361,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'rate_limited',
-          reason: 'grace_period',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'rate_limited', reason: 'grace_period'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -451,13 +371,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'rate_limited',
-          reason: 'browser-extensions',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'rate_limited', reason: 'browser-extensions'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -466,13 +381,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'invalid',
-          reason: 'legacy-browsers',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'invalid', reason: 'legacy-browsers'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -481,13 +391,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'error-message',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {reason: 'error-message', outcome: 'invalid'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -496,13 +401,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'invalid',
-          reason: 'cors',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'invalid', reason: 'cors'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -511,13 +411,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'project_abuse_limit',
-          outcome: 'rate_limited',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {reason: 'project_abuse_limit', outcome: 'rate_limited'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -526,13 +421,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'localhost',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {reason: 'localhost', outcome: 'invalid'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -541,13 +431,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'accepted',
-          reason: 'none',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'accepted', reason: 'none'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -556,13 +441,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          outcome: 'rate_limited',
-          reason: 'usage_exceeded',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {outcome: 'rate_limited', reason: 'usage_exceeded'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -571,13 +451,8 @@ function StatsBillingPeriodFixture(): Response {
         },
       },
       {
-        by: {
-          reason: 'web-crawlers',
-          outcome: 'invalid',
-        },
-        totals: {
-          'sum(quantity)': 8000,
-        },
+        by: {reason: 'web-crawlers', outcome: 'invalid'},
+        totals: {'sum(quantity)': 8000},
         series: {
           'sum(quantity)': [
             0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1000, 1000, 1000, 1000, 1000, 1000,
@@ -636,12 +511,7 @@ function setUpMocks(
   });
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
-    body: [
-      {
-        ...ProjectFixture({}),
-        stats: [],
-      },
-    ],
+    body: [{...ProjectFixture({}), stats: []}],
   });
   MockApiClient.addMockResponse({
     url: `/customers/${organization.slug}/history/`,
@@ -671,10 +541,7 @@ function setUpMocks(
     url: `/customers/${organization.slug}/integrations/`,
     body: [],
   });
-  MockApiClient.addMockResponse({
-    url: `/audit-logs/`,
-    body: {rows: [], filters: {}},
-  });
+  MockApiClient.addMockResponse({url: `/audit-logs/`, body: {rows: [], filters: {}}});
 }
 
 async function openCustomerActions() {
@@ -1259,10 +1126,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           `/customers/${pendingPaygOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {clearPendingPayg: true},
-          })
+          expect.objectContaining({method: 'PUT', data: {clearPendingPayg: true}})
         );
       });
     });
@@ -1299,12 +1163,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(trialMock).toHaveBeenCalledWith(
           `/customers/${cannotTrialOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              canTrial: true,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {canTrial: true}})
         );
       });
     });
@@ -1347,9 +1206,7 @@ describe('Customer Details', () => {
     });
 
     it("terminates an organization's contract", async () => {
-      const mockBillingAdminUser = UserFixture({
-        permissions: new Set(['billing.admin']),
-      });
+      const mockBillingAdminUser = UserFixture({permissions: new Set(['billing.admin'])});
 
       ConfigStore.set('user', mockBillingAdminUser);
 
@@ -1383,12 +1240,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           `/customers/${terminateOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              terminateContract: true,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {terminateContract: true}})
         );
       });
     });
@@ -1428,9 +1280,7 @@ describe('Customer Details', () => {
           `/customers/${recreateOrg.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              recreateBillingPlatformModels: true,
-            },
+            data: {recreateBillingPlatformModels: true},
           })
         );
       });
@@ -1593,10 +1443,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(enableMock).toHaveBeenCalledWith(
           `/_admin/customers/${restrictedOrg.slug}/members/enable-restricted/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {notes: 'Trial workaround'},
-          })
+          expect.objectContaining({method: 'POST', data: {notes: 'Trial workaround'}})
         );
       });
     });
@@ -1639,9 +1486,7 @@ describe('Customer Details', () => {
       ).not.toBeInTheDocument();
 
       await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       await userEvent.click(screen.getByText(name));
@@ -1663,10 +1508,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(migrateMock).toHaveBeenCalledWith(
           `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {migrated: true},
-          })
+          expect.objectContaining({method: 'POST', data: {migrated: true}})
         );
       });
     });
@@ -1684,10 +1526,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(unmigrateMock).toHaveBeenCalledWith(
           `/_admin/customers/${migrationOrg.slug}/billing-platform-migration/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {migrated: false},
-          })
+          expect.objectContaining({method: 'POST', data: {migrated: false}})
         );
       });
     });
@@ -1787,12 +1626,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
           `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              orgClose: true,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {orgClose: true}})
         )
       );
     });
@@ -1807,11 +1641,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: true,
         },
       });
@@ -1851,13 +1681,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
           `/customers/${organization.slug}/refund-vercel/`,
-          expect.objectContaining({
-            method: 'POST',
-            data: {
-              guid: '123',
-              reason: 'test',
-            },
-          })
+          expect.objectContaining({method: 'POST', data: {guid: '123', reason: 'test'}})
         )
       );
     });
@@ -1870,11 +1694,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: true,
         },
       });
@@ -1903,11 +1723,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: true,
         },
       });
@@ -1932,14 +1748,8 @@ describe('Customer Details', () => {
   describe('fork customer', () => {
     beforeEach(() => {
       ConfigStore.set('localities', [
-        {
-          name: 'foo',
-          url: 'https://foo.example.com/api/0/',
-        },
-        {
-          name: 'bar',
-          url: 'https://bar.example.com/api/0/',
-        },
+        {name: 'foo', url: 'https://foo.example.com/api/0/'},
+        {name: 'bar', url: 'https://bar.example.com/api/0/'},
       ]);
     });
 
@@ -1958,16 +1768,8 @@ describe('Customer Details', () => {
           dateAdded: '2023-12-18T01:02:03:45.678Z',
           dateUpdated: '2023-12-18T02:02:03:45.678Z',
           uuid: 'd39f84fc-554a-4d7d-95b7-78f983bcba73',
-          creator: {
-            email: 'alice@example.com',
-            id: '2',
-            username: 'alice',
-          },
-          owner: {
-            email: 'alice@example.com',
-            id: '2',
-            username: 'alice',
-          },
+          creator: {email: 'alice@example.com', id: '2', username: 'alice'},
+          owner: {email: 'alice@example.com', id: '2', username: 'alice'},
           status: 'IN_PROGRESS',
           step: 'IMPORTING',
           provenanve: 'SAAS_TO_SAAS',
@@ -2057,11 +1859,7 @@ describe('Customer Details', () => {
           `/customers/${cancelSubOrg.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              cancel: true,
-              cancelAtPeriodEnd: true,
-              applyBalance: true,
-            },
+            data: {cancel: true, cancelAtPeriodEnd: true, applyBalance: true},
           })
         );
       });
@@ -2069,10 +1867,7 @@ describe('Customer Details', () => {
   });
 
   describe('change plan', () => {
-    const sub = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_500k',
-    });
+    const sub = SubscriptionFixture({organization, plan: 'mm2_b_500k'});
 
     it('is enabled for NT customers', async () => {
       const Subscription = SubscriptionFixture({
@@ -2081,11 +1876,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'NT',
-            displayName: 'NT',
-            supportNote: '',
-          },
+          partnership: {id: 'NT', displayName: 'NT', supportNote: ''},
           isActive: true,
         },
         sponsoredType: 'NT',
@@ -2110,9 +1901,7 @@ describe('Customer Details', () => {
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
       expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
@@ -2124,11 +1913,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: false,
         },
         sponsoredType: 'XX',
@@ -2141,10 +1926,7 @@ describe('Customer Details', () => {
         body: partnerSubscription,
       });
 
-      MockApiClient.addMockResponse({
-        url: `/customers/${sub.slug}/`,
-        body: sub,
-      });
+      MockApiClient.addMockResponse({url: `/customers/${sub.slug}/`, body: sub});
 
       render(<CustomerDetails />, {
         initialRouterConfig: {
@@ -2158,9 +1940,7 @@ describe('Customer Details', () => {
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
       expect(screen.getByTestId('changePlan')).toBeEnabled();
     });
@@ -2172,11 +1952,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: true,
         },
         sponsoredType: 'XX',
@@ -2194,9 +1970,7 @@ describe('Customer Details', () => {
 
       await screen.findByRole('heading', {name: 'Customers'});
       await userEvent.click(
-        screen.getAllByRole('button', {
-          name: 'Customers Actions',
-        })[0]!
+        screen.getAllByRole('button', {name: 'Customers Actions'})[0]!
       );
 
       expect(screen.getByTestId('changePlan')).toHaveAttribute('aria-disabled', 'true');
@@ -2236,12 +2010,7 @@ describe('Customer Details', () => {
       await waitFor(() => {
         expect(updateMock).toHaveBeenCalledWith(
           `/customers/${trialOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              endTrialEarly: true,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {endTrialEarly: true}})
         );
       });
     });
@@ -2251,9 +2020,7 @@ describe('Customer Details', () => {
     const invoicedOrg = OrganizationFixture({slug: 'invoiced'});
     const onDemandInvoicedOrg = OrganizationFixture({slug: 'ondemand-invoiced'});
 
-    const mockBillingAdminUser = UserFixture({
-      permissions: new Set(['billing.admin']),
-    });
+    const mockBillingAdminUser = UserFixture({permissions: new Set(['billing.admin'])});
 
     it('does not render on-demand invoices actions when manually invoiced on-demand flag is True', async () => {
       ConfigStore.set('user', mockBillingAdminUser);
@@ -2326,12 +2093,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(updateMock).toHaveBeenCalledWith(
           `/customers/${invoicedOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              onDemandInvoiced: true,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {onDemandInvoiced: true}})
         )
       );
     });
@@ -2377,12 +2139,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(updateMock).toHaveBeenCalledWith(
           `/customers/${onDemandInvoicedOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              onDemandInvoiced: false,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {onDemandInvoiced: false}})
         )
       );
     });
@@ -2396,11 +2153,7 @@ describe('Customer Details', () => {
         partner: {
           externalId: '123',
           name: 'test',
-          partnership: {
-            id: 'XX',
-            displayName: 'XX',
-            supportNote: '',
-          },
+          partnership: {id: 'XX', displayName: 'XX', supportNote: ''},
           isActive: true,
         },
         sponsoredType: 'XX',
@@ -2439,12 +2192,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
           `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              sponsoredType: 'open_source',
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {sponsoredType: 'open_source'}})
         )
       );
     });
@@ -2487,19 +2235,13 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
           `/customers/${organization.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {sponsoredType: null},
-          })
+          expect.objectContaining({method: 'PUT', data: {sponsoredType: null}})
         )
       );
     });
 
     it('cannot convert partner-type subscription to sponsored', async () => {
-      const partnerSubscription = SubscriptionFixture({
-        organization,
-        isPartner: true,
-      });
+      const partnerSubscription = SubscriptionFixture({organization, isPartner: true});
       setUpMocks(organization, partnerSubscription);
 
       render(<CustomerDetails />, {
@@ -2556,10 +2298,7 @@ describe('Customer Details', () => {
         await waitFor(() =>
           expect(updateMock).toHaveBeenCalledWith(
             `/customers/${organization.slug}/`,
-            expect.objectContaining({
-              method: 'PUT',
-              data: {[freeEventsKey]: 26000},
-            })
+            expect.objectContaining({method: 'PUT', data: {[freeEventsKey]: 26000}})
           )
         );
       }
@@ -2582,11 +2321,7 @@ describe('Customer Details', () => {
 
     renderGlobalModal();
 
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
 
     const freeEventsKey = getFreeEventsKey(DataCategory.REPLAYS);
     const updateMock = MockApiClient.addMockResponse({
@@ -2613,12 +2348,7 @@ describe('Customer Details', () => {
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            [freeEventsKey]: 50,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {[freeEventsKey]: 50}})
       )
     );
   });
@@ -2639,11 +2369,7 @@ describe('Customer Details', () => {
 
     renderGlobalModal();
 
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
 
     const freeEventsKey = getFreeEventsKey(DataCategory.SPANS);
     const updateMock = MockApiClient.addMockResponse({
@@ -2670,12 +2396,7 @@ describe('Customer Details', () => {
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            [freeEventsKey]: 5_000_000,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {[freeEventsKey]: 5_000_000}})
       )
     );
   });
@@ -2695,11 +2416,7 @@ describe('Customer Details', () => {
 
     renderGlobalModal();
 
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
 
     const item = screen.queryByTestId(`gift-${DataCategory.SPANS_INDEXED}`);
     expect(item).not.toBeInTheDocument();
@@ -2721,11 +2438,7 @@ describe('Customer Details', () => {
 
     renderGlobalModal();
 
-    await userEvent.click(
-      screen.getAllByRole('button', {
-        name: 'Customers Actions',
-      })[0]!
-    );
+    await userEvent.click(screen.getAllByRole('button', {name: 'Customers Actions'})[0]!);
 
     const freeEventsKey = getFreeEventsKey(DataCategory.MONITOR_SEATS);
     const updateMock = MockApiClient.addMockResponse({
@@ -2752,20 +2465,13 @@ describe('Customer Details', () => {
     await waitFor(() =>
       expect(updateMock).toHaveBeenCalledWith(
         `/customers/${organization.slug}/`,
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            [freeEventsKey]: 50,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {[freeEventsKey]: 50}})
       )
     );
   });
 
   describe('adjust contract end dates', () => {
-    const mockBillingAdminUser = UserFixture({
-      permissions: new Set(['billing.admin']),
-    });
+    const mockBillingAdminUser = UserFixture({permissions: new Set(['billing.admin'])});
 
     beforeEach(() => {
       ConfigStore.set('user', mockBillingAdminUser);
@@ -2843,12 +2549,7 @@ describe('Customer Details', () => {
       await waitFor(() =>
         expect(apiMock).toHaveBeenCalledWith(
           `/customers/${suspendedOrg.slug}/`,
-          expect.objectContaining({
-            method: 'PUT',
-            data: {
-              suspended: false,
-            },
-          })
+          expect.objectContaining({method: 'PUT', data: {suspended: false}})
         )
       );
     });
@@ -2880,11 +2581,7 @@ describe('Customer Details', () => {
         screen.getByText('This account was reported as fraudulent')
       ).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('radio', {
-          name: 'Fraudulent',
-        })
-      );
+      await userEvent.click(screen.getByRole('radio', {name: 'Fraudulent'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
 
@@ -2895,10 +2592,7 @@ describe('Customer Details', () => {
           `/customers/${organization.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              suspended: true,
-              suspensionReason: 'fraud',
-            },
+            data: {suspended: true, suspensionReason: 'fraud'},
           })
         );
       });
@@ -2931,11 +2625,7 @@ describe('Customer Details', () => {
         screen.getByText('This account has been suspended for security or abuse reasons')
       ).toBeInTheDocument();
 
-      await userEvent.click(
-        screen.getByRole('radio', {
-          name: 'Security/Abuse',
-        })
-      );
+      await userEvent.click(screen.getByRole('radio', {name: 'Security/Abuse'}));
 
       await userEvent.click(screen.getByRole('button', {name: 'Suspend Account'}));
 
@@ -2944,10 +2634,7 @@ describe('Customer Details', () => {
           `/customers/${organization.slug}/`,
           expect.objectContaining({
             method: 'PUT',
-            data: {
-              suspended: true,
-              suspensionReason: 'security_abuse',
-            },
+            data: {suspended: true, suspensionReason: 'security_abuse'},
           })
         );
       });
@@ -2990,9 +2677,7 @@ describe('Customer Details', () => {
 
     it('does not show option when feature flag is missing', async () => {
       // Set up organization without the feature flag
-      const orgWithoutDeleteFeature = OrganizationFixture({
-        features: [],
-      });
+      const orgWithoutDeleteFeature = OrganizationFixture({features: []});
       setUpMocks(orgWithoutDeleteFeature);
 
       render(<CustomerDetails />, {

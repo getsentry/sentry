@@ -199,10 +199,7 @@ interface GithubPrReviewBodyFeedbackSource {
 
 interface CheckSuiteFeedbackSource {
   app_name: string;
-  event: {
-    check_suite: {head_sha: string; id: number};
-    repository: {html_url: string};
-  };
+  event: {check_suite: {head_sha: string; id: number}; repository: {html_url: string}};
   type: 'check-suite';
 }
 
@@ -242,11 +239,7 @@ export interface ExplorerAutofixState {
   queued_feedback?: RawFeedback[];
   repo_pr_states?: Record<string, RepoPRState>;
   sentry_run_id?: string | null;
-  warnings?: Array<{
-    warning_type: string;
-    installation_id?: string;
-    repo_name?: string;
-  }>;
+  warnings?: Array<{warning_type: string; installation_id?: string; repo_name?: string}>;
 }
 
 interface PrIterationOutOfCredits {
@@ -287,9 +280,7 @@ export function explorerAutofixApiOptions(orgSlug: string, groupId: string) {
   );
 }
 
-const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({
-  autofix: null,
-});
+const makeInitialExplorerAutofixData = (): ExplorerAutofixResponse => ({autofix: null});
 
 /**
  * Pulls a readable message out of an API error, falling back to `fallback`.
@@ -378,10 +369,7 @@ const makeErrorExplorerAutofixData = (errorMessage: string): ExplorerAutofixResp
     blocks: [
       {
         id: 'error',
-        message: {
-          role: 'assistant',
-          content: `Error: ${errorMessage}`,
-        },
+        message: {role: 'assistant', content: `Error: ${errorMessage}`},
         timestamp: new Date().toISOString(),
         loading: false,
       },
@@ -500,13 +488,7 @@ function buildSection(
   // (codemode-structured-content-only).
   const artifacts: AutofixArtifact[] = collectArtifacts(blocks);
 
-  const section: AutofixSection = {
-    index,
-    step,
-    blocks,
-    artifacts,
-    status: 'processing',
-  };
+  const section: AutofixSection = {index, step, blocks, artifacts, status: 'processing'};
 
   if (currentStep && runState?.status === 'error') {
     section.status = 'error';
@@ -1020,11 +1002,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to fetch fresh data
@@ -1165,11 +1143,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Invalidate to trigger polling for status updates
@@ -1256,11 +1230,7 @@ export function useExplorerAutofix(
           getApiUrl('/organizations/$organizationIdOrSlug/issues/$issueId/autofix/', {
             path: {organizationIdOrSlug: orgSlug, issueId: groupId},
           }),
-          {
-            method: 'POST',
-            query: {mode: 'explorer'},
-            data,
-          }
+          {method: 'POST', query: {mode: 'explorer'}, data}
         );
 
         // Check for failures in the response

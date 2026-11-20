@@ -26,9 +26,7 @@ import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/
 import {TraceLayoutTabKeys} from 'sentry/views/performance/traceDetails/useTraceLayoutTabs';
 import {getScrollToPath} from 'sentry/views/performance/traceDetails/useTraceScrollToPath';
 
-const serializeTab = createSerializer({
-  tab: parseAsString,
-});
+const serializeTab = createSerializer({tab: parseAsString});
 
 function useAiSpanSelection(nodes: AITraceSpanNode[]) {
   const organization = useOrganization();
@@ -54,9 +52,7 @@ function useAiSpanSelection(nodes: AITraceSpanNode[]) {
       }
       setSelectedNodeKey(eventId);
 
-      trackAnalytics('agent-monitoring.trace.span-select', {
-        organization,
-      });
+      trackAnalytics('agent-monitoring.trace.span-select', {organization});
 
       const nodeIdentifier: TraceTree.NodePath = `span-${eventId}`;
       setNode([nodeIdentifier]);
@@ -95,9 +91,7 @@ export function TraceAiSpans({
   const {selectedNode, handleSelectNode} = useAiSpanSelection(nodes);
 
   const handleViewFullTraceClick = () => {
-    trackAnalytics('agent-monitoring.trace.view-full-trace-click', {
-      organization,
-    });
+    trackAnalytics('agent-monitoring.trace.view-full-trace-click', {organization});
   };
 
   if (isLoading) {

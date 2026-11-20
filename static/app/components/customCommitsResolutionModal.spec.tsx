@@ -141,10 +141,7 @@ describe('CustomCommitsResolutionModal', () => {
 
     expect(onSelected).toHaveBeenCalledWith(
       expect.objectContaining({
-        inCommit: {
-          commit: 'abc123filtered',
-          repository: 'example/repo-name',
-        },
+        inCommit: {commit: 'abc123filtered', repository: 'example/repo-name'},
       })
     );
   });

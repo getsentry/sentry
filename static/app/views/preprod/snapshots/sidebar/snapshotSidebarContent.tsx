@@ -218,13 +218,7 @@ export const SnapshotSidebarContent = memo(function SnapshotSidebarContentImpl({
       {availableTags.size > 0 && <TagFilterSection availableTags={availableTags} />}
       <Stack ref={scrollRef} overflow="auto" flex="1" paddingRight="0">
         {hasGroups ? (
-          <div
-            style={{
-              height: totalSize,
-              position: 'relative',
-              width: '100%',
-            }}
-          >
+          <div style={{height: totalSize, position: 'relative', width: '100%'}}>
             {virtualItems.map(vi => {
               const row = virtualRows[vi.index]!;
               return (

@@ -19,9 +19,7 @@ function renderMockRequests(organization: Organization) {
   const getOnboardingTasksMock = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/onboarding-tasks/`,
     method: 'GET',
-    body: {
-      onboardingTasks: organization.onboardingTasks,
-    },
+    body: {onboardingTasks: organization.onboardingTasks},
   });
 
   const mutateUserOptionsMock = MockApiClient.addMockResponse({
@@ -41,9 +39,7 @@ describe('Onboarding Status', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'GET',
-      body: {
-        onboardingTasks: [],
-      },
+      body: {onboardingTasks: []},
     });
 
     MockApiClient.addMockResponse({
@@ -51,10 +47,7 @@ describe('Onboarding Status', () => {
       method: 'POST',
     });
 
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   it('displays pending tasks', async () => {
@@ -79,9 +72,7 @@ describe('Onboarding Status', () => {
           <PrimaryNavigationOnboarding />
         </NavigationTourProvider>
       </PrimaryNavigationContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('1')).toBeInTheDocument();

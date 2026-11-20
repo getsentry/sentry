@@ -9,9 +9,7 @@ import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type Props = {
-  event: Event;
-};
+type Props = {event: Event};
 
 export function EventPackageData({event}: Props) {
   let title: string;

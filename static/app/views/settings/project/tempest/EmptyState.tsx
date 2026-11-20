@@ -180,9 +180,7 @@ export function EmptyState({
                   onClick={() => {
                     navigate({
                       pathname: `/organizations/${organization.slug}/issues/`,
-                      query: {
-                        query: 'os.name:PlayStation',
-                      },
+                      query: {query: 'os.name:PlayStation'},
                     });
                   }}
                 >

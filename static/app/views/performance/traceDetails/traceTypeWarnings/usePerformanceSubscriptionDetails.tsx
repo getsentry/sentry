@@ -7,34 +7,16 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 // Contains only the subset of attributes that we used in the hook.
 type Subscription = {
   categories:
-    | {
-        transactions: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        spans: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        logBytes: {
-          usageExceeded: boolean;
-        };
-      }
-    | {
-        traceMetrics: {
-          usageExceeded: boolean;
-        };
-      };
+    | {transactions: {usageExceeded: boolean}}
+    | {spans: {usageExceeded: boolean}}
+    | {logBytes: {usageExceeded: boolean}}
+    | {traceMetrics: {usageExceeded: boolean}};
   planDetails: {
     billingInterval: 'monthly' | 'annual';
     budgetTerm: 'pay-as-you-go' | 'on-demand';
   };
   planTier: string;
-  onDemandBudgets?: {
-    enabled: boolean;
-  };
+  onDemandBudgets?: {enabled: boolean};
 };
 
 export function usePerformanceSubscriptionDetails({
@@ -60,10 +42,7 @@ export function usePerformanceSubscriptionDetails({
 
   return {
     isLoading: subscriptionQuery.isLoading,
-    data: {
-      hasExceededPerformanceUsageLimit,
-      subscription: subscriptionQuery.data,
-    },
+    data: {hasExceededPerformanceUsageLimit, subscription: subscriptionQuery.data},
   };
 }
 

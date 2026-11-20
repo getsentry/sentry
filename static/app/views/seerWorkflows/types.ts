@@ -4,19 +4,12 @@ export type WorkflowStrategy =
   | 'breached_metric_investigation'
   | 'duplicate_monitors';
 
-type SeerWorkflowError = {
-  code: string;
-  message: string;
-};
+type SeerWorkflowError = {code: string; message: string};
 
 /**
  * Something an execution produced, e.g. a linked investigation
  */
-type ExecutionOutput = {
-  id: string;
-  title: string;
-  type: 'investigation';
-};
+type ExecutionOutput = {id: string; title: string; type: 'investigation'};
 
 type SeerWorkflowExecutionBase = {
   dateAdded: string;
@@ -68,9 +61,7 @@ type MonitorTrigger = {
 /**
  * A scheduled run
  */
-type CronTrigger = {
-  type: 'cron';
-};
+type CronTrigger = {type: 'cron'};
 
 /**
  * What started a run. Discriminated by `type`; add new trigger variants to this union.
@@ -109,9 +100,7 @@ export type SeerAutomationRun = SeerAutomationRunBase &
 
 export type SeerAutomationRunStatus = SeerAutomationRun['status'];
 
-export type SeerAutomationRunsResponse = {
-  runs: SeerAutomationRun[];
-};
+export type SeerAutomationRunsResponse = {runs: SeerAutomationRun[]};
 
 export type WorkflowDisplayStatus =
   | 'succeeded'
@@ -213,6 +202,4 @@ export type SeerWorkflowConfigUpdateRequest = {
   serviceAccount?: SeerServiceAccountRequest;
 };
 
-export type SeerWorkflowConfigsResponse = {
-  configs: SeerWorkflowConfigResponse[];
-};
+export type SeerWorkflowConfigsResponse = {configs: SeerWorkflowConfigResponse[]};

@@ -18,9 +18,7 @@ import {BillingType, type Subscription} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 import {DataConsentSettingsHeader} from 'getsentry/views/legalAndCompliance/utils';
 
-const dataConsentSchema = z.object({
-  aggregatedDataConsent: z.boolean(),
-});
+const dataConsentSchema = z.object({aggregatedDataConsent: z.boolean()});
 
 export function DataConsentForm({subscription}: {subscription: Subscription}) {
   const organization = useOrganization();

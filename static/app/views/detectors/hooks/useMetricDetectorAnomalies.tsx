@@ -113,10 +113,5 @@ export function useMetricDetectorAnomalies({
     enabled: filteredHistoricalData.length > 0 && currentData.length > 0 && enabled,
   });
 
-  return {
-    data,
-    isLoading,
-    error,
-    refetch,
-  };
+  return {data, isLoading, error, refetch};
 }

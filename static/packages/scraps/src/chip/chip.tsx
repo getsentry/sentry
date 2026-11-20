@@ -28,9 +28,7 @@ type ChipSize = keyof typeof SIZES;
 
 const SEGMENT_ATTR = 'data-chip-segment';
 
-type ChipSegmentProps = React.HTMLAttributes<HTMLElement> & {
-  [SEGMENT_ATTR]?: '';
-};
+type ChipSegmentProps = React.HTMLAttributes<HTMLElement> & {[SEGMENT_ATTR]?: ''};
 
 interface RovingController {
   activeId: string | null;

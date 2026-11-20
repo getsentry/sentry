@@ -747,9 +747,7 @@ function EmptyNotice({children}: {children: React.ReactNode}) {
  */
 export function MessagesPanelSkeleton() {
   const theme = useTheme();
-  const invertedPlaceholderStyle = {
-    backgroundColor: theme.tokens.background.primary,
-  };
+  const invertedPlaceholderStyle = {backgroundColor: theme.tokens.background.primary};
 
   return (
     <PanelContainer>

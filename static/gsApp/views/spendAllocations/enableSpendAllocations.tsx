@@ -30,18 +30,14 @@ export function EnableSpendAllocations({
         getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/toggle/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
-        {
-          method: 'POST',
-        }
+        {method: 'POST'}
       );
       // Create root allocations
       await api.requestPromise(
         getApiUrl('/organizations/$organizationIdOrSlug/spend-allocations/index/', {
           path: {organizationIdOrSlug: orgSlug},
         }),
-        {
-          method: 'POST',
-        }
+        {method: 'POST'}
       );
     } catch (err: any) {
       if (err.status === 409) {

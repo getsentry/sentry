@@ -14,10 +14,7 @@ import type {ThresholdsConfig} from 'sentry/views/dashboards/widgetBuilder/build
 export function serializeFields(fields: Column[]): string[] {
   return fields.map(field => {
     if (field.alias) {
-      return JSON.stringify({
-        field: generateFieldAsString(field),
-        alias: field.alias,
-      });
+      return JSON.stringify({field: generateFieldAsString(field), alias: field.alias});
     }
     return generateFieldAsString(field);
   });

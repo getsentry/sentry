@@ -46,12 +46,8 @@ describe('InviteRequestRow', () => {
     TeamStore.reset();
   });
 
-  const orgWithoutAdminAccess = OrganizationFixture({
-    access: [],
-  });
-  const orgWithAdminAccess = OrganizationFixture({
-    access: ['member:admin'],
-  });
+  const orgWithoutAdminAccess = OrganizationFixture({access: []});
+  const orgWithAdminAccess = OrganizationFixture({access: ['member:admin']});
   const inviteRequestBusy: Record<string, boolean> = {};
 
   const inviteRequest = MemberFixture({

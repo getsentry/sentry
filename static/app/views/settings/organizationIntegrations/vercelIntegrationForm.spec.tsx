@@ -44,9 +44,7 @@ function makeIntegration(projectMappings: unknown) {
   });
 }
 
-const mutationOptions = {
-  mutationFn: jest.fn().mockResolvedValue({}),
-};
+const mutationOptions = {mutationFn: jest.fn().mockResolvedValue({})};
 
 function renderForm(
   projectMappings: unknown,
@@ -409,9 +407,7 @@ describe('VercelIntegrationForm', () => {
         />,
         {
           organization: org,
-          initialRouterConfig: {
-            location: {pathname: '/', query: next ? {next} : {}},
-          },
+          initialRouterConfig: {location: {pathname: '/', query: next ? {next} : {}}},
         }
       );
     }

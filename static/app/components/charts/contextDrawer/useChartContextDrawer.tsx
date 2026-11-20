@@ -4,9 +4,11 @@ import {createLoader, parseAsString, useQueryStates} from 'nuqs';
 
 import {useDrawer} from '@sentry/scraps/drawer';
 
+import {buildAskSeerPrompt} from 'sentry/components/droppedData/drawer/askSeer';
 import {droppedAndFilteredLabel} from 'sentry/components/droppedData/outcomes';
 import type {ReasonRow} from 'sentry/components/droppedData/outcomeSections';
 import type {UseDroppedDataParams} from 'sentry/components/droppedData/useDroppedData';
+import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {DroppedDataAnalyticsSource} from 'sentry/utils/analytics/exploreAnalyticsEvents';
 import {DiscoverDatasetToUrlParam} from 'sentry/utils/discover/types';
@@ -15,21 +17,28 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
-import {buildAskSeerPrompt} from './askSeer';
-import {DroppedDataDrawer} from './droppedDataDrawer';
+import {
+  CHART_CONTEXT_TAB_PARSERS,
+  ChartContextDrawer,
+  type ChartContextTab,
+} from './chartContextDrawer';
 
-const DROPPED_DATA_DRAWER_PARSERS = {droppedData: parseAsString};
+const CHART_CONTEXT_DRAWER_PARSERS = {
+  droppedData: parseAsString,
+  ...CHART_CONTEXT_TAB_PARSERS,
+};
 
-const loadDroppedDataQuery = createLoader(DROPPED_DATA_DRAWER_PARSERS);
+const loadDroppedDataQuery = createLoader(CHART_CONTEXT_DRAWER_PARSERS);
 
-interface UseDroppedDataDrawerOptions {
+interface UseChartContextDrawerOptions {
   source: DroppedDataAnalyticsSource;
   enabled?: boolean;
+  showAnnotationTabs?: boolean;
 }
 
-export function useDroppedDataDrawer(
+export function useChartContextDrawer(
   {dataset, interval, projects}: UseDroppedDataParams,
-  {source, enabled = true}: UseDroppedDataDrawerOptions
+  {source, enabled = true, showAnnotationTabs = false}: UseChartContextDrawerOptions
 ) {
   const organization = useOrganization();
   const {openDrawer, isDrawerOpen, isAnyDrawerOpen} = useDrawer();
@@ -37,7 +46,7 @@ export function useDroppedDataDrawer(
   // The param carries the dataset so a page with several charts opens the drawer
   // for the chart whose dataset matches, not whichever mounts first.
   const paramValue = DiscoverDatasetToUrlParam[dataset];
-  const [{droppedData}, setDrawerQuery] = useQueryStates(DROPPED_DATA_DRAWER_PARSERS);
+  const [{droppedData}, setDrawerQuery] = useQueryStates(CHART_CONTEXT_DRAWER_PARSERS);
   const isDrawerInUrl = droppedData === paramValue;
   const renderedQueryRef = useRef({interval, projects});
 
@@ -79,22 +88,28 @@ export function useDroppedDataDrawer(
     renderedQueryRef.current = query;
     openDrawer(
       () => (
-        <DroppedDataDrawer
+        <ChartContextDrawer
           dataset={dataset}
           interval={interval}
           projects={projects}
           source={source}
           onAskSeer={onAskSeer}
+          showAnnotationTabs={showAnnotationTabs}
         />
       ),
       {
-        ariaLabel: droppedAndFilteredLabel(dataset),
+        ariaLabel: showAnnotationTabs
+          ? t('Chart Context')
+          : droppedAndFilteredLabel(dataset),
         drawerKey: 'dropped-data-drawer',
         shouldCloseOnLocationChange: nextLocation =>
           nextLocation.pathname !== pathname ||
           loadDroppedDataQuery(nextLocation.search ?? '').droppedData !== paramValue,
         onClose: () => {
-          void setDrawerQuery({droppedData: null}, {history: 'replace'});
+          void setDrawerQuery(
+            {droppedData: null, contextTab: null},
+            {history: 'replace'}
+          );
         },
       }
     );
@@ -110,12 +125,32 @@ export function useDroppedDataDrawer(
     projects,
     source,
     onAskSeer,
+    showAnnotationTabs,
     pathname,
     setDrawerQuery,
   ]);
 
-  return useCallback(() => {
-    trackAnalytics('explore.dropped_data.drawer_opened', {organization, dataset, source});
-    void setDrawerQuery({droppedData: paramValue}, {history: 'push'});
-  }, [organization, dataset, source, paramValue, setDrawerQuery]);
+  return useCallback(
+    (tab: ChartContextTab = 'dropped-data') => {
+      if (tab === 'dropped-data') {
+        trackAnalytics('explore.dropped_data.drawer_opened', {
+          organization,
+          dataset,
+          source,
+        });
+      } else {
+        trackAnalytics('explore.chart_context.drawer_opened', {
+          organization,
+          dataset,
+          source,
+          tab,
+        });
+      }
+      void setDrawerQuery(
+        {droppedData: paramValue, contextTab: tab === 'dropped-data' ? null : tab},
+        {history: 'push'}
+      );
+    },
+    [organization, dataset, source, paramValue, setDrawerQuery]
+  );
 }

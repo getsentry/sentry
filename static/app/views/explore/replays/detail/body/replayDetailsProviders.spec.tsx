@@ -107,11 +107,7 @@ describe('ReplayDetailsProviders', () => {
       await screen.findByText('children');
       expect(Replayer).toHaveBeenCalledTimes(1);
 
-      const nextReplay = makeReader({
-        attachments,
-        fetching,
-        replayId: 'other-replay-id',
-      });
+      const nextReplay = makeReader({attachments, fetching, replayId: 'other-replay-id'});
       rerender(
         <ReplayDetailsProviders replay={nextReplay} projectSlug={project.slug}>
           <TestPlayer />

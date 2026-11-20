@@ -98,10 +98,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
   // oxlint-disable-next-line react/refs
   const [isSmallNav, setSmallNav] = useState(checkNavIsSmall);
 
-  useResizeObserver({
-    ref: navigationRef,
-    onResize: () => setSmallNav(checkNavIsSmall),
-  });
+  useResizeObserver({ref: navigationRef, onResize: () => setSmallNav(checkNavIsSmall)});
 
   // `autofix-page` rolls out with Seer, so the orgs that hide AI keep the
   // dropdown rather than getting the tab list ahead of everyone else.
@@ -125,9 +122,7 @@ export function IssueEventNavigation({event, group}: IssueEventNavigationProps) 
     hasDatasetSelector(organization) ? SavedQueryDatasets.ERRORS : undefined
   );
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
   const replaysCount = getReplayCountForIssue(group.id, group.issueCategory) ?? 0;
 
   const attachments = useGroupEventAttachments({

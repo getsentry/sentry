@@ -17,12 +17,7 @@ const initializeData = (settings = {}, features: string[] = []) => {
     ProjectFixture({id: '1', slug: '1'}),
     ProjectFixture({id: '2', slug: '2'}),
   ];
-  return _initializeData({
-    features,
-    projects,
-    selectedProject: projects[0],
-    ...settings,
-  });
+  return _initializeData({features, projects, selectedProject: projects[0], ...settings});
 };
 
 function WrappedComponent({data, ...rest}: any) {
@@ -50,39 +45,17 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
     id: '1',
     name: 'my query',
     fields: [
-      {
-        field: 'team_key_transaction',
-      },
-      {
-        field: 'transaction',
-      },
-      {
-        field: 'project',
-      },
-      {
-        field: 'tpm()',
-      },
-      {
-        field: 'p50()',
-      },
-      {
-        field: 'p95()',
-      },
-      {
-        field: 'failure_rate()',
-      },
-      {
-        field: 'apdex()',
-      },
-      {
-        field: 'count_unique(user)',
-      },
-      {
-        field: 'count_miserable(user)',
-      },
-      {
-        field: 'user_misery()',
-      },
+      {field: 'team_key_transaction'},
+      {field: 'transaction'},
+      {field: 'project'},
+      {field: 'tpm()'},
+      {field: 'p50()'},
+      {field: 'p95()'},
+      {field: 'failure_rate()'},
+      {field: 'apdex()'},
+      {field: 'count_unique(user)'},
+      {field: 'count_miserable(user)'},
+      {field: 'user_misery()'},
     ],
     sorts: [{field: 'tpm  ', kind: 'desc'}],
     query: 'event.type:transaction transaction:/api*',
@@ -105,10 +78,7 @@ function mockEventView(data: ReturnType<typeof initializeData>) {
 describe('Performance > Table', () => {
   let eventsMock: jest.Mock;
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
     const eventsMetaFieldsMock = {
       user: 'string',
       transaction: 'string',
@@ -171,10 +141,7 @@ describe('Performance > Table', () => {
     ];
     eventsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        meta: {fields: eventsMetaFieldsMock},
-        data: eventsBodyMock,
-      },
+      body: {meta: {fields: eventsMetaFieldsMock}, data: eventsBodyMock},
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -189,9 +156,7 @@ describe('Performance > Table', () => {
 
   describe('with events', () => {
     it('renders correct cell actions without feature', async () => {
-      const data = initializeData({
-        query: 'event.type:transaction transaction:/api*',
-      });
+      const data = initializeData({query: 'event.type:transaction transaction:/api*'});
 
       ProjectsStore.loadInitialData(data.projects);
 
@@ -203,9 +168,7 @@ describe('Performance > Table', () => {
           summaryConditions=""
           projects={data.projects}
         />,
-        {
-          initialRouterConfig: data.initialRouterConfig,
-        }
+        {initialRouterConfig: data.initialRouterConfig}
       );
       const initialLocation = router.location;
 
@@ -242,16 +205,12 @@ describe('Performance > Table', () => {
 
       expect(router.location).not.toEqual(initialLocation);
       expect(router.location.query).toEqual(
-        expect.objectContaining({
-          query: 'transaction:/apple/cart',
-        })
+        expect.objectContaining({query: 'transaction:/apple/cart'})
       );
     });
 
     it('hides cell actions when withStaticFilters is true', async () => {
-      const data = initializeData({
-        query: 'event.type:transaction transaction:/api*',
-      });
+      const data = initializeData({query: 'event.type:transaction transaction:/api*'});
 
       render(
         <WrappedComponent
@@ -329,12 +288,9 @@ describe('Performance > Table', () => {
     });
 
     it('sends MEP param when setting enabled', async () => {
-      const data = initializeData(
-        {
-          query: 'event.type:transaction transaction:/api*',
-        },
-        ['dynamic-sampling']
-      );
+      const data = initializeData({query: 'event.type:transaction transaction:/api*'}, [
+        'dynamic-sampling',
+      ]);
 
       render(
         <WrappedComponent

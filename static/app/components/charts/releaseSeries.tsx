@@ -26,10 +26,7 @@ import {makeReleasesPathname} from 'sentry/views/explore/releases/utils/pathname
 
 import {markLine as createMarkLine} from './components/markLine';
 
-type ReleaseMetaBasic = {
-  date: string;
-  version: string;
-};
+type ReleaseMetaBasic = {date: string; version: string};
 
 type ReleaseConditions = {
   end: DateString;
@@ -63,11 +60,7 @@ function getOrganizationReleases(
     getApiUrl('/organizations/$organizationIdOrSlug/releases/stats/', {
       path: {organizationIdOrSlug: organization.slug},
     }),
-    {
-      includeAllArgs: true,
-      method: 'GET',
-      query,
-    }
+    {includeAllArgs: true, method: 'GET', query}
   ) as Promise<[ReleaseMetaBasic[], any, ResponseMeta]>;
 }
 
@@ -96,10 +89,7 @@ interface UseReleaseSeriesProps {
   utc?: boolean | null;
 }
 
-type ReleaseSeriesState = {
-  releaseSeries: Series[];
-  releases: ReleaseMetaBasic[] | null;
-};
+type ReleaseSeriesState = {releaseSeries: Series[]; releases: ReleaseMetaBasic[] | null};
 
 function buildReleaseSeries({
   releases,
@@ -119,23 +109,14 @@ function buildReleaseSeries({
   function makeOneSeries(items: ReleaseMetaBasic[], lineStyle = {}): Series {
     const markLine = createMarkLine({
       animation: false,
-      lineStyle: {
-        color,
-        opacity: 0.3,
-        type: 'solid',
-        ...lineStyle,
-      },
-      label: {
-        show: false,
-      },
+      lineStyle: {color, opacity: 0.3, type: 'solid', ...lineStyle},
+      label: {show: false},
       data: items.map(release => ({
         xAxis: +new Date(release.date),
         name: formatVersion(release.version, true),
         value: formatVersion(release.version, true),
         onClick: () => onReleaseClick(release.version),
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
+        label: {formatter: () => formatVersion(release.version, true)},
       })),
       tooltip: tooltip || {
         trigger: 'item',
@@ -165,13 +146,7 @@ function buildReleaseSeries({
       },
     });
 
-    return {
-      id: 'release-lines',
-      seriesName: 'Releases',
-      color,
-      data: [],
-      markLine,
-    };
+    return {id: 'release-lines', seriesName: 'Releases', color, data: [], markLine};
   }
 
   if (!emphasizeReleases?.length) {

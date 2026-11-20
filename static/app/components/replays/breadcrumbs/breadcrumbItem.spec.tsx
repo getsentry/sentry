@@ -9,9 +9,7 @@ import {hydrateBreadcrumbs} from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {BreadcrumbItem} from './breadcrumbItem';
 
 const [MOCK_FRAME] = hydrateBreadcrumbs(ReplayRecordFixture(), [
-  ReplayClickFrameFixture({
-    timestamp: new Date('2024/06/21'),
-  }),
+  ReplayClickFrameFixture({timestamp: new Date('2024/06/21')}),
 ]);
 
 describe('BreadcrumbItem', () => {

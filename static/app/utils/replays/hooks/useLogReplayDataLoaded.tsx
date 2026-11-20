@@ -13,9 +13,7 @@ interface Props {
 
 export function useLogReplayDataLoaded({projectId, replay}: Props) {
   const organization = useOrganization();
-  const project = useProjectFromId({
-    project_id: projectId ?? undefined,
-  });
+  const project = useProjectFromId({project_id: projectId ?? undefined});
 
   useEffect(() => {
     if (!project || replay.getReplay().is_archived) {

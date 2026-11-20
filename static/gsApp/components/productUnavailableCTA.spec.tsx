@@ -40,10 +40,7 @@ function renderMockRequests({
 
   act(() => SubscriptionStore.set(organization.slug, subscription));
 
-  MockApiClient.addMockResponse({
-    url: `/customers/${organization.slug}/`,
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: `/customers/${organization.slug}/`, body: {}});
 
   const requestUpdatePlan = MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/plan-upgrade-request/`,
@@ -56,13 +53,9 @@ function renderMockRequests({
 describe('ProductUnavailableCTA', () => {
   describe('with no billing access', () => {
     it('renders no alert', () => {
-      const organization = OrganizationFixture({
-        features: ['session-replay'],
-      });
+      const organization = OrganizationFixture({features: ['session-replay']});
 
-      renderMockRequests({
-        organization,
-      });
+      renderMockRequests({organization});
 
       const {container} = render(<ProductUnavailableCTA organization={organization} />);
 
@@ -72,10 +65,7 @@ describe('ProductUnavailableCTA', () => {
     it('without session replay on an ancient plan', async () => {
       const {organization} = initializeOrg();
 
-      const mockRequests = renderMockRequests({
-        isAncientPlan: true,
-        organization,
-      });
+      const mockRequests = renderMockRequests({isAncientPlan: true, organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
@@ -90,21 +80,15 @@ describe('ProductUnavailableCTA', () => {
       await waitFor(() => {
         expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
           '/organizations/org-slug/plan-upgrade-request/',
-          expect.objectContaining({
-            method: 'POST',
-          })
+          expect.objectContaining({method: 'POST'})
         );
       });
     });
 
     it('without session replay', async () => {
-      const {organization} = initializeOrg({
-        organization: {},
-      });
+      const {organization} = initializeOrg({organization: {}});
 
-      const mockRequests = renderMockRequests({
-        organization,
-      });
+      const mockRequests = renderMockRequests({organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
@@ -118,9 +102,7 @@ describe('ProductUnavailableCTA', () => {
       await waitFor(() => {
         expect(mockRequests.requestUpdatePlan).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/plan-upgrade-request/`,
-          expect.objectContaining({
-            method: 'POST',
-          })
+          expect.objectContaining({method: 'POST'})
         );
       });
     });
@@ -133,9 +115,7 @@ describe('ProductUnavailableCTA', () => {
         features: ['session-replay'],
       });
 
-      renderMockRequests({
-        organization,
-      });
+      renderMockRequests({organization});
 
       const {container} = render(<ProductUnavailableCTA organization={organization} />);
 
@@ -149,10 +129,7 @@ describe('ProductUnavailableCTA', () => {
         },
       });
 
-      renderMockRequests({
-        isAncientPlan: true,
-        organization,
-      });
+      renderMockRequests({isAncientPlan: true, organization});
 
       render(<ProductUnavailableCTA organization={organization} />);
 
@@ -173,10 +150,7 @@ describe('ProductUnavailableCTA', () => {
       });
 
       // can self-serve
-      renderMockRequests({
-        organization,
-        canSelfServe: true,
-      });
+      renderMockRequests({organization, canSelfServe: true});
 
       const MockUsePreviewData = jest.mocked(usePreviewData);
       const mockReservations: Reservations = {
@@ -221,10 +195,7 @@ describe('ProductUnavailableCTA', () => {
       ).toBeInTheDocument();
 
       // can not self-serve
-      renderMockRequests({
-        organization,
-        canSelfServe: false,
-      });
+      renderMockRequests({organization, canSelfServe: false});
       rerender(<ProductUnavailableCTA organization={organization} />);
       expect(
         await screen.findByRole('button', {name: /manage subscription/i})

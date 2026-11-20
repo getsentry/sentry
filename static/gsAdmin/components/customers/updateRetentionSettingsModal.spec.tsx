@@ -56,28 +56,14 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 45,
-            downsampled: 15,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 45, downsampled: 15}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: 1234567, downsampled: null},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -96,22 +82,13 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -140,22 +117,13 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -186,22 +154,13 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 0,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 0}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -212,12 +171,7 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 45,
-            downsampled: null,
-          },
-        }),
+        logBytes: MetricHistoryFixture({retention: {standard: 45, downsampled: null}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -229,11 +183,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -264,10 +214,7 @@ describe('UpdateRetentionSettingsModal', () => {
           method: 'POST',
           data: expect.objectContaining({
             retentions: expect.objectContaining({
-              logBytes: {
-                standard: 45,
-                downsampled: null,
-              },
+              logBytes: {standard: 45, downsampled: null},
             }),
           }),
         })
@@ -279,27 +226,13 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        transactions: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 60,
-            downsampled: 30,
-          },
-        }),
+        transactions: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 60, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am2_f'),
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -316,28 +249,14 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: null,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: null,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: null}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: null}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -352,18 +271,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: 120, downsampled: null},
@@ -375,11 +284,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -397,19 +302,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: 390,
-              downsampled: null,
-            },
+            orgRetention: {standard: 390, downsampled: null},
             retentions: {
-              spans: {
-                standard: 120,
-                downsampled: 60,
-              },
-              logBytes: {
-                standard: 60,
-                downsampled: 30,
-              },
+              spans: {standard: 120, downsampled: 60},
+              logBytes: {standard: 60, downsampled: 30},
             },
           },
         })
@@ -423,18 +319,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        transactions: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
+        transactions: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am2_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -446,11 +332,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -467,19 +349,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              transactions: {
-                standard: 120,
-                downsampled: 60,
-              },
-              logBytes: {
-                standard: 60,
-                downsampled: 30,
-              },
+              transactions: {standard: 120, downsampled: 60},
+              logBytes: {standard: 60, downsampled: 30},
             },
           },
         })
@@ -493,18 +366,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: 120, downsampled: null},
@@ -516,11 +379,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -537,19 +396,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              spans: {
-                standard: null,
-                downsampled: null,
-              },
-              logBytes: {
-                standard: 30,
-                downsampled: null,
-              },
+              spans: {standard: null, downsampled: null},
+              logBytes: {standard: 30, downsampled: null},
             },
           },
         })
@@ -563,18 +413,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: null,
-            downsampled: null,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: null,
-            downsampled: null,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: null, downsampled: null}}),
+        logBytes: MetricHistoryFixture({retention: {standard: null, downsampled: null}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -586,11 +426,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -610,19 +446,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              spans: {
-                standard: null,
-                downsampled: null,
-              },
-              logBytes: {
-                standard: null,
-                downsampled: null,
-              },
+              spans: {standard: null, downsampled: null},
+              logBytes: {standard: null, downsampled: null},
             },
           },
         })
@@ -636,18 +463,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: null,
-            downsampled: null,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: null,
-            downsampled: null,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: null, downsampled: null}}),
+        logBytes: MetricHistoryFixture({retention: {standard: null, downsampled: null}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -659,11 +476,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -679,19 +492,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              spans: {
-                standard: 90,
-                downsampled: null,
-              },
-              logBytes: {
-                standard: null,
-                downsampled: null,
-              },
+              spans: {standard: 90, downsampled: null},
+              logBytes: {standard: null, downsampled: null},
             },
           },
         })
@@ -705,18 +509,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -728,11 +522,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -747,19 +537,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              spans: {
-                standard: 180,
-                downsampled: 90,
-              },
-              logBytes: {
-                standard: 30,
-                downsampled: 30,
-              },
+              spans: {standard: 180, downsampled: 90},
+              logBytes: {standard: 30, downsampled: 30},
             },
           },
         })
@@ -771,18 +552,8 @@ describe('UpdateRetentionSettingsModal', () => {
     const subscription = SubscriptionFixture({
       organization,
       categories: {
-        spans: MetricHistoryFixture({
-          retention: {
-            standard: 90,
-            downsampled: 30,
-          },
-        }),
-        logBytes: MetricHistoryFixture({
-          retention: {
-            standard: 30,
-            downsampled: 30,
-          },
-        }),
+        spans: MetricHistoryFixture({retention: {standard: 90, downsampled: 30}}),
+        logBytes: MetricHistoryFixture({retention: {standard: 30, downsampled: 30}}),
       },
       planDetails: PlanDetailsLookupFixture('am3_f'),
       orgRetention: {standard: null, downsampled: null},
@@ -794,11 +565,7 @@ describe('UpdateRetentionSettingsModal', () => {
       body: {},
     });
 
-    openUpdateRetentionSettingsModal({
-      subscription,
-      organization,
-      onSuccess,
-    });
+    openUpdateRetentionSettingsModal({subscription, organization, onSuccess});
 
     await loadModal();
 
@@ -813,19 +580,10 @@ describe('UpdateRetentionSettingsModal', () => {
         expect.objectContaining({
           method: 'POST',
           data: {
-            orgRetention: {
-              standard: null,
-              downsampled: null,
-            },
+            orgRetention: {standard: null, downsampled: null},
             retentions: {
-              spans: {
-                standard: 90,
-                downsampled: 30,
-              },
-              logBytes: {
-                standard: 60,
-                downsampled: 30,
-              },
+              spans: {standard: 90, downsampled: 30},
+              logBytes: {standard: 60, downsampled: 30},
             },
           },
         })

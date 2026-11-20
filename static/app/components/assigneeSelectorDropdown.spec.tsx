@@ -21,9 +21,7 @@ import {
   type AssignableEntity,
 } from './assigneeSelectorDropdown';
 
-jest.mock('sentry/actionCreators/modal', () => ({
-  openInviteMembersModal: jest.fn(),
-}));
+jest.mock('sentry/actionCreators/modal', () => ({openInviteMembersModal: jest.fn()}));
 
 describe('AssigneeSelectorDropdown', () => {
   let USER_1: User;
@@ -38,70 +36,29 @@ describe('AssigneeSelectorDropdown', () => {
   let GROUP_3: Group;
 
   beforeEach(() => {
-    USER_1 = UserFixture({
-      id: '1',
-      name: 'Apple Bees',
-      email: 'applebees@example.com',
-    });
-    USER_2 = UserFixture({
-      id: '2',
-      name: 'Cert Depo',
-      email: 'cd@example.com',
-    });
-    USER_3 = UserFixture({
-      id: '3',
-      name: 'Epic Fail',
-      email: 'epicf@example.com',
-    });
-    USER_4 = UserFixture({
-      id: '4',
-      name: 'Git Hub',
-      email: 'github@example.com',
-    });
+    USER_1 = UserFixture({id: '1', name: 'Apple Bees', email: 'applebees@example.com'});
+    USER_2 = UserFixture({id: '2', name: 'Cert Depo', email: 'cd@example.com'});
+    USER_3 = UserFixture({id: '3', name: 'Epic Fail', email: 'epicf@example.com'});
+    USER_4 = UserFixture({id: '4', name: 'Git Hub', email: 'github@example.com'});
 
-    TEAM_1 = TeamFixture({
-      id: '3',
-      name: 'COOL TEAM',
-      slug: 'cool-team',
-    });
+    TEAM_1 = TeamFixture({id: '3', name: 'COOL TEAM', slug: 'cool-team'});
 
-    TEAM_2 = TeamFixture({
-      id: '4',
-      name: 'LAME TEAM',
-      slug: 'lame-team',
-    });
+    TEAM_2 = TeamFixture({id: '4', name: 'LAME TEAM', slug: 'lame-team'});
 
-    PROJECT_1 = ProjectFixture({
-      teams: [TEAM_1, TEAM_2],
-    });
+    PROJECT_1 = ProjectFixture({teams: [TEAM_1, TEAM_2]});
 
-    GROUP_1 = GroupFixture({
-      id: '1337',
-      project: PROJECT_1,
-    });
+    GROUP_1 = GroupFixture({id: '1337', project: PROJECT_1});
 
     GROUP_2 = GroupFixture({
       id: '1338',
       project: PROJECT_1,
-      owners: [
-        {
-          type: 'suspectCommit',
-          owner: `user:${USER_1.id}`,
-          date_added: '',
-        },
-      ],
+      owners: [{type: 'suspectCommit', owner: `user:${USER_1.id}`, date_added: ''}],
     });
 
     GROUP_3 = GroupFixture({
       id: '1339',
       project: PROJECT_1,
-      owners: [
-        {
-          type: 'suspectCommit',
-          owner: `user:${USER_4.id}`,
-          date_added: '',
-        },
-      ],
+      owners: [{type: 'suspectCommit', owner: `user:${USER_4.id}`, date_added: ''}],
     });
 
     TeamStore.reset();
@@ -148,10 +105,7 @@ describe('AssigneeSelectorDropdown', () => {
       const api = new Client();
       await api.requestPromise(`/organizations/org-slug/issues/${group.id}/`, {
         method: 'PUT',
-        data: {
-          assignedTo: '',
-          assignedBy: 'assignee_selector',
-        },
+        data: {assignedTo: '', assignedBy: 'assignee_selector'},
       });
     }
   };
@@ -206,10 +160,7 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully assigns users', async () => {
-    const assignedGroup: Group = {
-      ...GROUP_1,
-      assignedTo: {...USER_1, type: 'user'},
-    };
+    const assignedGroup: Group = {...GROUP_1, assignedTo: {...USER_1, type: 'user'}};
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -260,10 +211,7 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully assigns teams', async () => {
-    const assignedGroup: Group = {
-      ...GROUP_1,
-      assignedTo: {...TEAM_1, type: 'team'},
-    };
+    const assignedGroup: Group = {...GROUP_1, assignedTo: {...TEAM_1, type: 'team'}};
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -294,11 +242,7 @@ describe('AssigneeSelectorDropdown', () => {
       )
     );
     expect(updateGroupSpy).toHaveBeenCalledWith(GROUP_1, {
-      assignee: {
-        id: `team:${TEAM_1.id}`,
-        name: TEAM_1.slug,
-        type: 'team',
-      },
+      assignee: {id: `team:${TEAM_1.id}`, name: TEAM_1.slug, type: 'team'},
       id: TEAM_1.id,
       type: 'team',
       suggestedAssignee: undefined,
@@ -318,14 +262,8 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully switches an assignee', async () => {
-    const assignedGroupUser1: Group = {
-      ...GROUP_1,
-      assignedTo: {...USER_1, type: 'user'},
-    };
-    const assignedGroupUser2: Group = {
-      ...GROUP_1,
-      assignedTo: {...USER_2, type: 'user'},
-    };
+    const assignedGroupUser1: Group = {...GROUP_1, assignedTo: {...USER_1, type: 'user'}};
+    const assignedGroupUser2: Group = {...GROUP_1, assignedTo: {...USER_2, type: 'user'}};
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -404,10 +342,7 @@ describe('AssigneeSelectorDropdown', () => {
   });
 
   it('successfully clears assignment', async () => {
-    const assignedGroup: Group = {
-      ...GROUP_1,
-      assignedTo: {...USER_2, type: 'user'},
-    };
+    const assignedGroup: Group = {...GROUP_1, assignedTo: {...USER_2, type: 'user'}};
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -455,19 +390,14 @@ describe('AssigneeSelectorDropdown', () => {
     await waitFor(() =>
       expect(assignMock).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/1337/',
-        expect.objectContaining({
-          data: {assignedTo: '', assignedBy: 'assignee_selector'},
-        })
+        expect.objectContaining({data: {assignedTo: '', assignedBy: 'assignee_selector'}})
       )
     );
     expect(assignMock).toHaveBeenCalledTimes(1);
   });
 
   it('filters user by email and selects with keyboard', async () => {
-    const assignedGroup: Group = {
-      ...GROUP_2,
-      assignedTo: {...USER_2, type: 'user'},
-    };
+    const assignedGroup: Group = {...GROUP_2, assignedTo: {...USER_2, type: 'user'}};
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
@@ -543,10 +473,7 @@ describe('AssigneeSelectorDropdown', () => {
   it('successfully shows suggested assignees and suggestion reason', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
 
-    const assignedGroup: Group = {
-      ...GROUP_2,
-      assignedTo: {...USER_1, type: 'user'},
-    };
+    const assignedGroup: Group = {...GROUP_2, assignedTo: {...USER_1, type: 'user'}};
 
     const assignGroup2Mock = MockApiClient.addMockResponse({
       method: 'PUT',

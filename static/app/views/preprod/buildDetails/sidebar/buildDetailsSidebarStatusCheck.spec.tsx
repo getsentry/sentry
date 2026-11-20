@@ -31,10 +31,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   });
 
   it('renders success message with link when status check succeeds', () => {
-    const statusCheck = {
-      success: true as const,
-      check_id: '12345',
-    };
+    const statusCheck = {success: true as const, check_id: '12345'};
 
     render(
       <BuildDetailsSidebarStatusCheck statusCheck={statusCheck} vcsInfo={mockVcsInfo} />
@@ -46,10 +43,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   });
 
   it('renders nothing when status check succeeds but has no check_id', () => {
-    const statusCheck = {
-      success: true as const,
-      check_id: null,
-    };
+    const statusCheck = {success: true as const, check_id: null};
 
     const {container} = render(
       <BuildDetailsSidebarStatusCheck statusCheck={statusCheck} vcsInfo={mockVcsInfo} />
@@ -109,10 +103,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   });
 
   it('renders error message when error_type is null', () => {
-    const statusCheck = {
-      success: false as const,
-      error_type: null,
-    };
+    const statusCheck = {success: false as const, error_type: null};
 
     render(
       <BuildDetailsSidebarStatusCheck statusCheck={statusCheck} vcsInfo={mockVcsInfo} />
@@ -126,10 +117,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   });
 
   it('capitalizes provider name in success message', () => {
-    const statusCheck = {
-      success: true as const,
-      check_id: '12345',
-    };
+    const statusCheck = {success: true as const, check_id: '12345'};
 
     render(
       <BuildDetailsSidebarStatusCheck statusCheck={statusCheck} vcsInfo={mockVcsInfo} />
@@ -139,15 +127,9 @@ describe('BuildDetailsSidebarStatusCheck', () => {
   });
 
   it('renders nothing for success when provider is not set', () => {
-    const statusCheck = {
-      success: true as const,
-      check_id: '12345',
-    };
+    const statusCheck = {success: true as const, check_id: '12345'};
 
-    const vcsInfoWithoutProvider = {
-      ...mockVcsInfo,
-      provider: null,
-    };
+    const vcsInfoWithoutProvider = {...mockVcsInfo, provider: null};
 
     const {container} = render(
       <BuildDetailsSidebarStatusCheck
@@ -165,10 +147,7 @@ describe('BuildDetailsSidebarStatusCheck', () => {
       error_type: StatusCheckErrorType.INTEGRATION_ERROR,
     };
 
-    const vcsInfoWithoutProvider = {
-      ...mockVcsInfo,
-      provider: null,
-    };
+    const vcsInfoWithoutProvider = {...mockVcsInfo, provider: null};
 
     const {container} = render(
       <BuildDetailsSidebarStatusCheck

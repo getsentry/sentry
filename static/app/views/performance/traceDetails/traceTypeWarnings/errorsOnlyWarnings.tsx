@@ -160,9 +160,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
       title={title}
       description={tct(
         'Spans are being dropped. To start seeing traces with spans, increase your [billingType].',
-        {
-          billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota'),
-        }
+        {billingType: subscription?.onDemandBudgets?.enabled ? t('budget') : t('quota')}
       )}
       onSecondaryButtonClick={() => {
         traceAnalytics.trackQuotaExceededLearnMoreClicked(
@@ -177,9 +175,7 @@ function PerformanceQuotaExceededWarning(props: ErrorOnlyWarningsProps) {
         );
         navigate({
           pathname: '/checkout/?referrer=trace-view',
-          query: {
-            skipBundles: true,
-          },
+          query: {skipBundles: true},
         });
       }}
       docsRoute={getPricingDocsLinkForEventType(

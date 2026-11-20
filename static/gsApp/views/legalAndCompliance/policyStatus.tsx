@@ -7,14 +7,9 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import type {Policy} from 'getsentry/types';
 
-type PolicyStatusProps = {
-  policy: Policy;
-};
+type PolicyStatusProps = {policy: Policy};
 
-type StatusIconProps = {
-  icon: React.ReactNode;
-  tooltip: string;
-};
+type StatusIconProps = {icon: React.ReactNode; tooltip: string};
 
 export function StatusIconWithTooltip({icon, tooltip}: StatusIconProps) {
   return (

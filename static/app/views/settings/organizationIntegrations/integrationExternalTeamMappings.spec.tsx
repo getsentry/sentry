@@ -64,9 +64,7 @@ describe('IntegrationExternalTeamMappings', () => {
       },
     });
 
-    render(<IntegrationExternalTeamMappings integration={integration} />, {
-      organization,
-    });
+    render(<IntegrationExternalTeamMappings integration={integration} />, {organization});
     renderGlobalModal();
 
     await waitFor(() => {
