@@ -92,11 +92,17 @@ const flagAnnotations: AnnotationItem[] = [
 
 const changeAnnotations: AnnotationItem[] = (
   [
-    [8, 'high', 'Sentry outage', 12],
-    [14, 'low', 'SDK update'],
-    [30, 'high', 'Infrastructure change', 'ongoing'],
+    [8, 'high', 'sentry_outage', 'Delayed event ingestion in the US region', 12],
+    [14, 'low', 'sdk_update', 'Upgraded @sentry/browser to 10.0.0'],
+    [
+      30,
+      'high',
+      'infrastructure_change',
+      'Moved span ingestion to a new Kafka cluster',
+      'ongoing',
+    ],
   ] as const
-).map(([index, severity, title, endIndex]) => ({
+).map(([index, severity, annotationType, title, endIndex]) => ({
   id: `change:${index}`,
   kind: 'timeseriesAnnotation',
   start: sampleThroughputTimeSeries.values.at(index)!.timestamp,
@@ -105,6 +111,7 @@ const changeAnnotations: AnnotationItem[] = (
       ? sampleThroughputTimeSeries.values.at(endIndex)!.timestamp
       : endIndex,
   title,
+  annotationType,
   severity,
 }));
 
@@ -1270,8 +1277,9 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           line with a circle on top, at the center of their time bucket. Severe
           annotations in the same bucket share one marker. A severe annotation that covers
           a range of time also gets a solid line along the top of the plot, up to the
-          bucket it ends in, or to the right edge when it's ongoing. Every annotation,
-          severe or not, still counts toward the band under the plot.
+          bucket it ends in, or to the right edge when it's ongoing. Hovering a marker
+          shows the annotations it stands for. Every annotation, severe or not, still
+          counts toward the band under the plot.
         </p>
 
         <MediumWidget>

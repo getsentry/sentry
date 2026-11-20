@@ -3,14 +3,18 @@ import type {
   CustomSeriesRenderItemAPI,
   CustomSeriesRenderItemParams,
 } from 'echarts';
+import type {CallbackDataParams} from 'echarts/types/dist/shared';
 
-import {renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
+import {act, renderHookWithProviders} from 'sentry-test/reactTestingLibrary';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 
 import {useAnnotationMarkers} from './useAnnotationMarkers';
 
 const MINUTE = 60_000;
+
+const chartRef = {current: null};
 
 const buckets = Array.from({length: 10}, (_, index) => ({
   start: index * MINUTE,
@@ -35,7 +39,9 @@ const params = {
 } as unknown as CustomSeriesRenderItemParams;
 
 function renderMarkers(items: AnnotationItem[]) {
-  const {result} = renderHookWithProviders(() => useAnnotationMarkers({buckets, items}));
+  const {result} = renderHookWithProviders(() =>
+    useAnnotationMarkers({buckets, chartRef, items})
+  );
   const series = result.current;
   if (!series || typeof series.renderItem !== 'function') {
     throw new Error('Expected the marker series to render items');
@@ -49,10 +55,14 @@ function renderMarkers(items: AnnotationItem[]) {
 }
 
 describe('useAnnotationMarkers', () => {
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
   it('returns no markers without severe annotations', () => {
     const {result} = renderHookWithProviders(() =>
       useAnnotationMarkers({
         buckets,
+        chartRef,
         items: [
           {id: '1.0.0', kind: 'release', start: MINUTE, title: '1.0.0'},
           change('medium', 2 * MINUTE, 'medium'),
@@ -124,5 +134,37 @@ describe('useAnnotationMarkers', () => {
     ]);
 
     expect(merged).toMatchObject({children: [{shape: {x1: 120, x2: 360}}, {}, {}, {}]});
+  });
+
+  it('shows the annotations of the hovered marker in its tooltip', async () => {
+    const ele = document.createElement('div');
+    const querySelector = document.querySelector.bind(document);
+    jest
+      .spyOn(document, 'querySelector')
+      .mockImplementation(selector =>
+        selector === '.echarts-for-react:hover' ? ele : querySelector(selector)
+      );
+    const hoveredChartRef = {current: {ele} as unknown as ReactEchartsRef};
+
+    const {result} = renderHookWithProviders(() =>
+      useAnnotationMarkers({
+        buckets,
+        chartRef: hoveredChartRef,
+        items: [
+          change('outage', 2 * MINUTE, 'high'),
+          change('cluster', 5 * MINUTE, 'high'),
+        ],
+        utc: true,
+      })
+    );
+    const formatter = result.current?.tooltip?.formatter as (
+      params: CallbackDataParams
+    ) => string;
+
+    const tooltip = document.createElement('div');
+    tooltip.innerHTML = await act(() => formatter({dataIndex: 1} as CallbackDataParams));
+
+    expect(tooltip).toHaveTextContent('cluster');
+    expect(tooltip).not.toHaveTextContent('outage');
   });
 });

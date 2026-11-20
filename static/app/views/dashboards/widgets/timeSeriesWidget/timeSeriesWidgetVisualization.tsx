@@ -518,7 +518,9 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   });
   const annotationMarkers = useAnnotationMarkers({
     buckets: bandBuckets,
+    chartRef,
     items: props.annotations,
+    utc,
   });
   const annotationMarkerSeries = annotationMarkers
     ? {...annotationMarkers, yAxisIndex: yAxes.length}

@@ -3,6 +3,9 @@ import {useTheme, type Theme} from '@emotion/react';
 import type {CustomSeriesOption, CustomSeriesRenderItem} from 'echarts';
 import sortedLastIndex from 'lodash/sortedLastIndex';
 
+import {useTimezone} from '@sentry/scraps/dateTime';
+import {useRenderToString} from '@sentry/scraps/renderToString';
+
 import {isSevere} from 'sentry/components/charts/annotations/severity';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {
@@ -11,11 +14,15 @@ import {
   type BandElement,
   type CartesianCoordSys,
 } from 'sentry/components/charts/bands/bandShapes';
+import {itemTooltipBelowAnchor} from 'sentry/components/charts/bands/bandTooltip';
 import {
   bucketAnnotations,
   type AnnotationBucket,
 } from 'sentry/components/charts/bands/bucketAnnotations';
+import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
+
+import {AnnotationMarkerTooltip} from './annotationMarkerTooltip';
 
 const ANNOTATION_MARKERS_SERIES_ID = '__annotation_markers__';
 
@@ -150,7 +157,9 @@ function annotationMarkerRenderItem(
 
 interface UseAnnotationMarkersParams {
   buckets: BandBucket[];
+  chartRef: React.RefObject<ReactEchartsRef | null>;
   items?: readonly AnnotationItem[];
+  utc?: boolean | null;
 }
 
 /**
@@ -159,13 +168,19 @@ interface UseAnnotationMarkersParams {
  * annotation covers a range that ends in a later bucket, a solid line runs
  * along the top of the plot to the center of that bucket. Ranges that started
  * before the first bucket only get that line, from the left edge. Hovering a
- * marker turns its dotted line solid and grows its circle.
+ * marker turns its dotted line solid, grows its circle, and opens a tooltip
+ * under the pointer.
  */
 export function useAnnotationMarkers({
   buckets,
+  chartRef,
   items,
+  utc,
 }: UseAnnotationMarkersParams): CustomSeriesOption | null {
   const theme = useTheme();
+  const renderToString = useRenderToString();
+  const userTimezone = useTimezone();
+  const timezone = utc ? 'UTC' : userTimezone;
 
   return useMemo(() => {
     const starts = buckets.map(bucket => bucket.start);
@@ -200,9 +215,20 @@ export function useAnnotationMarkers({
       color: theme.tokens.dataviz.semantic.bad,
       z: BAND_Z - 1,
       clip: false,
-      tooltip: {show: false},
+      tooltip: itemTooltipBelowAnchor(
+        chartRef,
+        point => ({x: point[0], bottom: point[1]}),
+        dataIndex => {
+          const marker = data[dataIndex];
+          return marker
+            ? renderToString(
+                <AnnotationMarkerTooltip items={marker.items} timezone={timezone} />
+              )
+            : '';
+        }
+      ),
       animation: false,
       legendHoverLink: false,
     };
-  }, [buckets, items, theme]);
+  }, [buckets, chartRef, items, renderToString, theme, timezone]);
 }
