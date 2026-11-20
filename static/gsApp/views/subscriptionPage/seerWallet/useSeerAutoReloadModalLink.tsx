@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useRef} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {
@@ -28,12 +28,20 @@ export function useSeerAutoReloadModalLink(organization: Organization) {
   const isLinked = hash === SEER_AUTO_RELOAD_MODAL_HASH;
   const denialReason = parseDenialReason(reason);
   const hasSeerWallet = organization.features.includes('token-billed-seer-enabled');
+  const hasOpenedRef = useRef(false);
 
   useEffect(() => {
+    // Reset once the hash is gone, so following the link again opens the modal
+    // again.
     if (!isLinked) {
+      hasOpenedRef.current = false;
       return;
     }
-    if (hasSeerWallet) {
+    // Clearing the hash lands later, so the effect can run again before it
+    // does, such as when the organization reloads. Opening again would remount
+    // the modal.
+    if (hasSeerWallet && !hasOpenedRef.current) {
+      hasOpenedRef.current = true;
       openSeerAutoTopUpModal({organization, denialReason});
     }
     // Clear the hash so a refresh doesn't open the modal again. The modal

@@ -1,8 +1,10 @@
+import {useEffect, useState} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
-import {act, render, screen} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as modalActions from '@sentry/scraps/modal';
 import {GlobalModal} from '@sentry/scraps/modal';
 
 import type {Organization} from 'sentry/types/organization';
@@ -13,6 +15,20 @@ import {useSeerAutoReloadModalLink} from 'getsentry/views/subscriptionPage/seerW
 function LinkedPage({organization}: {organization: Organization}) {
   useSeerAutoReloadModalLink(organization);
   return <GlobalModal />;
+}
+
+/**
+ * Gets a new organization object right after the link opens the modal, before
+ * the navigation that clears the hash lands, as when the organization reloads.
+ */
+function LinkedPageWithOrganizationUpdate({organization}: {organization: Organization}) {
+  const [current, setCurrent] = useState(organization);
+  useSeerAutoReloadModalLink(current);
+  // Runs after the hook's effect, in the same commit, so the update renders
+  // before the navigation does.
+  // oxlint-disable-next-line react/set-state-in-effect, react-you-might-not-need-an-effect/no-derived-state
+  useEffect(() => setCurrent(previous => ({...previous})), []);
+  return null;
 }
 
 describe('useSeerAutoReloadModalLink', () => {
@@ -67,5 +83,47 @@ describe('useSeerAutoReloadModalLink', () => {
 
     expect(router.location.hash).toBe('');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('opens the modal once when the organization updates before the hash clears', async () => {
+    const openModal = jest.spyOn(modalActions, 'openModal').mockImplementation(() => {});
+    const organization = OrganizationFixture({
+      access: ['org:read'],
+      features: ['token-billed-seer-enabled'],
+    });
+
+    const {router} = render(
+      <LinkedPageWithOrganizationUpdate organization={organization} />,
+      {
+        organization,
+        initialRouterConfig: {
+          location: {
+            pathname: `/organizations/${organization.slug}/issues/#open-seer-auto-reload-modal`,
+          },
+        },
+      }
+    );
+
+    await waitFor(() => expect(router.location.hash).toBe(''));
+    expect(openModal).toHaveBeenCalledTimes(1);
+    openModal.mockRestore();
+  });
+
+  it('opens the modal again when the link is followed again', async () => {
+    const openModal = jest.spyOn(modalActions, 'openModal').mockImplementation(() => {});
+    const organization = OrganizationFixture({
+      access: ['org:read'],
+      features: ['token-billed-seer-enabled'],
+    });
+    const path = `/settings/${organization.slug}/billing/overview/`;
+
+    const {router} = renderLink(organization, `${path}#open-seer-auto-reload-modal`);
+    await waitFor(() => expect(router.location.hash).toBe(''));
+
+    // The credit meter links to the same page.
+    act(() => router.navigate(`${path}#open-seer-auto-reload-modal`));
+
+    await waitFor(() => expect(openModal).toHaveBeenCalledTimes(2));
+    openModal.mockRestore();
   });
 });
