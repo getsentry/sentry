@@ -11,7 +11,6 @@ import {
 import {useTheme} from '@emotion/react';
 
 import type {
-  BackgroundVariant,
   BorderVariant,
   BorderWidth,
   BreakpointSize,
@@ -310,25 +309,6 @@ function getBorderWidth(
   }
 
   return theme.border[width];
-}
-
-export function getBackground(
-  background: BackgroundVariant | undefined,
-  _breakpoint: ResponsiveBreakpoint | undefined,
-  theme: Theme
-): string | undefined {
-  switch (background) {
-    case undefined:
-      return undefined;
-    case 'primary':
-    case 'secondary':
-    case 'tertiary':
-      return theme.tokens.background[background];
-    case 'translucent':
-      return theme.tokens.background.transparent.neutral.muted;
-    default:
-      return theme.tokens.background[background].vibrant;
-  }
 }
 
 export function getRadius(

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {BackgroundVariant, BorderVariant, BorderWidth} from '@sentry/scraps/theme';
+import type {BorderVariant, BorderWidth} from '@sentry/scraps/theme';
 
 const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
   'primary',
@@ -17,18 +17,6 @@ const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
 ];
 
 const BORDER_WIDTHS: BorderWidth[] = ['md', 'lg', 'xl', '2xl'];
-
-const BACKGROUNDS: BackgroundVariant[] = [
-  'primary',
-  'secondary',
-  'tertiary',
-  'translucent',
-  'accent',
-  'danger',
-  'warning',
-  'success',
-  'promotion',
-];
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
   return (
@@ -93,20 +81,6 @@ describe('Container', () => {
           xl bottom
         </Swatch>
         <Swatch borderWidth="xl">xl, no color</Swatch>
-      </Gallery>
-    ),
-    {tags: {area: 'core'}}
-  );
-
-  it.snapshot(
-    'backgrounds',
-    () => (
-      <Gallery>
-        {BACKGROUNDS.map(background => (
-          <Swatch key={background} background={background}>
-            {background}
-          </Swatch>
-        ))}
       </Gallery>
     ),
     {tags: {area: 'core'}}

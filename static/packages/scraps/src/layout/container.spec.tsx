@@ -35,14 +35,9 @@ describe('Container', () => {
     expect(screen.getByText('Hello')).not.toHaveAttribute('borderColor', 'primary');
   });
 
-  it('does not forward border and background props to the DOM', () => {
+  it('does not forward border props to the DOM', () => {
     render(
-      <Container
-        borderColor="translucent"
-        borderTopColor="danger"
-        borderWidth="xl"
-        background="accent"
-      >
+      <Container borderColor="translucent" borderTopColor="danger" borderWidth="xl">
         Hello
       </Container>,
       {wrapper: ThemeWrapper}
@@ -52,7 +47,6 @@ describe('Container', () => {
     expect(element).not.toHaveAttribute('borderColor');
     expect(element).not.toHaveAttribute('borderTopColor');
     expect(element).not.toHaveAttribute('borderWidth');
-    expect(element).not.toHaveAttribute('background');
   });
 
   it('render prop guards against invalid attributes', () => {

@@ -57,21 +57,6 @@ export type MotionDuration = 'fast' | 'moderate' | 'slow';
 export type SurfaceVariant = 'primary' | 'secondary' | 'tertiary';
 
 /**
- * Background color variant for layout primitives.
- *
- * - `primary` | `secondary` | `tertiary`: surface levels
- * - semantic variants (`accent`, `danger`, …): `tokens.background.<variant>.vibrant`
- * - `translucent`: `tokens.background.transparent.neutral.muted`
- *
- * `overlay` is intentionally excluded: it also needs a border, radius and
- * shadow, so use `<Surface variant="overlay">` instead.
- */
-export type BackgroundVariant =
-  | SurfaceVariant
-  | Exclude<SemanticVariant, 'neutral'>
-  | 'translucent';
-
-/**
  * Semantic color variant for conveying meaning through color.
  */
 type SemanticVariant =

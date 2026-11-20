@@ -5,16 +5,15 @@ import {mergeRefs} from '@react-aria/utils';
 
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
-  BackgroundVariant,
   BorderVariant,
   BorderWidth,
   RadiusSize,
   SpaceSize,
+  SurfaceVariant,
 } from '@sentry/scraps/theme';
 
 import {
   ContainerQueryProvider,
-  getBackground,
   getBorderLonghands,
   getMargin,
   getRadius,
@@ -28,7 +27,7 @@ type Margin = SpaceSize | 'auto' | '0';
 
 /* eslint-disable @sentry/sort-interface-keys */
 interface ContainerLayoutProps {
-  background?: Responsive<BackgroundVariant>;
+  background?: Responsive<Exclude<SurfaceVariant, 'overlay'>>;
   display?: Responsive<CSS['display']>;
 
   padding?: Responsive<Shorthand<SpaceSize, 4>>;
@@ -381,7 +380,10 @@ export const Container = styled(
   ${p => rc('margin-left', p.marginLeft, p.theme, getMargin)};
   ${p => rc('margin-right', p.marginRight, p.theme, getMargin)};
 
-  ${p => rc('background', p.background, p.theme, getBackground)};
+  ${p =>
+    rc('background', p.background, p.theme, v =>
+      v ? p.theme.tokens.background[v] : undefined
+    )};
 
   ${p => rc('border-radius', p.radius, p.theme, getRadius)};
 
