@@ -44,7 +44,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
-from sentry.seer.credits import SeerCreditDenialReason
+from sentry.seer.credits import SeerCreditDenialReason, SeerOperation
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -1291,7 +1291,12 @@ class MockAgentEntrypoint(SeerAgentEntrypoint[MockCachePayload]):
         return {"thread_id": self.thread_id}
 
     @staticmethod
-    def on_agent_update(cache_payload: MockCachePayload, run_id: int, state: SeerRunState) -> None:
+    def on_agent_update(
+        cache_payload: MockCachePayload,
+        run_id: int,
+        state: SeerRunState,
+        denial_reason: SeerCreditDenialReason | None = None,
+    ) -> None:
         return None
 
 
@@ -1423,6 +1428,32 @@ class TestRefreshAgentRun(TestCase):
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             run_id=MOCK_RUN_ID,
             state=state,
+            denial_reason=None,
+        )
+
+    @patch(
+        "sentry.seer.entrypoints.operator.get_current_denial_reason",
+        return_value="daily_cap_exceeded",
+    )
+    @patch("sentry.seer.entrypoints.operator.fetch_run_status")
+    def test_execute_passes_why_an_out_of_credits_run_was_refused(
+        self, mock_fetch: MagicMock, mock_denial_reason: MagicMock
+    ) -> None:
+        state = self._make_state(blocks=[], status="error")
+        state.failure_reason = "out_of_credits"
+        state.billing_feature = SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+        mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
+
+        mock_denial_reason.assert_called_once_with(
+            self.organization,
+            SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
+            SeerOperation.AGENT_CHAT_MESSAGE,
+        )
+        mock_entrypoint_cls.on_agent_update.assert_called_once_with(
+            cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
+            run_id=MOCK_RUN_ID,
+            state=state,
+            denial_reason="daily_cap_exceeded",
         )
 
     @patch("sentry.seer.entrypoints.operator.SeerAgentOperator.has_access", return_value=True)
@@ -1481,7 +1512,7 @@ class TestRefreshAgentRun(TestCase):
 
         mock_no_access.on_agent_update.assert_not_called()
         mock_has_access.on_agent_update.assert_called_once_with(
-            cache_payload=cache_payload, run_id=MOCK_RUN_ID, state=state
+            cache_payload=cache_payload, run_id=MOCK_RUN_ID, state=state, denial_reason=None
         )
 
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")

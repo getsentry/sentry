@@ -5,13 +5,6 @@ from unittest.mock import ANY, MagicMock, Mock, patch
 
 import pytest
 from django.db.models import QuerySet
-from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
-    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
-)
-from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
-    CheckSeerCreditsResponse,
-)
 from slack_sdk.models.blocks import ActionsBlock, ButtonElement, LinkButtonElement, SectionBlock
 from slack_sdk.web import SlackResponse
 
@@ -67,7 +60,6 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
-from sentry.seer.credits import SeerOperation
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
     SeerOperatorInvestigationCache,
@@ -457,61 +449,37 @@ class SlackAutofixEntrypointTest(TestCase):
         assert AUTOFIX_DAILY_LIMIT_MESSAGE in blocks
         assert "View billing" in blocks
 
-    def _post_run_out_of_credits(self) -> str:
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    @patch(
+        "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
+        return_value={"ok": True, "ts": "1234567890.000100"},
+    )
+    def test_out_of_credits_run_at_the_daily_limit_posts_daily_limit_message(
+        self,
+        mock_send_threaded_message: MagicMock,
+        _mock_has_access: MagicMock,
+    ) -> None:
         SeerOperatorAutofixCache.populate_post_autofix_cache(
             entrypoint_key=SeerEntrypointKey.SLACK,
             run_id=MOCK_RUN_ID,
             cache_payload=self._get_entrypoint().create_autofix_cache_payload(),
         )
-        with (
-            patch.object(SeerAutofixOperator, "has_access", return_value=True),
-            patch(
-                "sentry.integrations.slack.integration.SlackIntegration.send_threaded_message",
-                return_value={"ok": True, "ts": "1234567890.000100"},
-            ) as mock_send_threaded_message,
-            self.tasks(),
-        ):
+
+        with self.tasks():
             process_autofix_updates(
                 event_type=SentryAppEventType.SEER_ERRORED,
                 event_payload={
                     "run_id": MOCK_RUN_ID,
                     "group_id": self.group.id,
                     "failure_reason": "out_of_credits",
+                    "denial_reason": "daily_cap_exceeded",
                 },
                 organization_id=self.organization.id,
             )
-        return str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
 
-    @patch(
-        "sentry.seer.entrypoints.slack.entrypoint.check_seer_operation",
-        return_value=CheckSeerCreditsResponse(
-            has_enough_credits=False,
-            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
-        ),
-    )
-    def test_out_of_credits_run_at_the_daily_limit_posts_daily_limit_message(
-        self, mock_check: MagicMock
-    ) -> None:
-        blocks = self._post_run_out_of_credits()
-
-        mock_check.assert_called_once_with(
-            self.organization,
-            SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-            SeerOperation.AUTOFIX_OPEN_PR,
-        )
+        blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_DAILY_LIMIT_MESSAGE in blocks
         assert "View billing" in blocks
-
-    @patch(
-        "sentry.seer.entrypoints.slack.entrypoint.check_seer_operation",
-        side_effect=RuntimeError("billing down"),
-    )
-    def test_out_of_credits_run_still_posts_when_the_credit_check_fails(
-        self, _mock_check: MagicMock
-    ) -> None:
-        blocks = self._post_run_out_of_credits()
-
-        assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(
@@ -1505,29 +1473,20 @@ class SlackAgentEntrypointTest(TestCase):
         assert isinstance(data, SeerAgentOutOfCredits)
         assert data.denial_reason is None
 
-    @patch(
-        "sentry.seer.entrypoints.slack.entrypoint.check_seer_operation",
-        return_value=CheckSeerCreditsResponse(
-            has_enough_credits=False,
-            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
-        ),
-    )
     @patch("sentry.seer.entrypoints.slack.entrypoint.send_thread_update", return_value="1.1")
-    def test_on_agent_update_out_of_credits_at_the_daily_limit(
-        self, mock_send: MagicMock, mock_check: MagicMock
-    ) -> None:
+    def test_on_agent_update_out_of_credits_at_the_daily_limit(self, mock_send: MagicMock) -> None:
         cache_payload = self._get_entrypoint().create_agent_cache_payload()
         state = _agent_state(SEER_OUT_OF_CREDITS_TEXT)
         state.status = "error"
         state.failure_reason = "out_of_credits"
 
-        SlackAgentEntrypoint.on_agent_update(cache_payload=cache_payload, run_id=12345, state=state)
-
-        mock_check.assert_called_once_with(
-            self.organization,
-            SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
-            SeerOperation.AGENT_CHAT_MESSAGE,
+        SlackAgentEntrypoint.on_agent_update(
+            cache_payload=cache_payload,
+            run_id=12345,
+            state=state,
+            denial_reason="daily_cap_exceeded",
         )
+
         data = mock_send.call_args.kwargs["data"]
         assert isinstance(data, SeerAgentOutOfCredits)
         assert data.denial_reason == "daily_cap_exceeded"

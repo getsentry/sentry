@@ -6,10 +6,6 @@ from collections.abc import Mapping, Sequence
 from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
 
 import orjson
-from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
-    SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-    SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
-)
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.services.integration.service import integration_service
@@ -35,13 +31,7 @@ from sentry.seer.agent.client_models import (
 )
 from sentry.seer.autofix.single_run import single_run_stopping_point
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
-from sentry.seer.credits import (
-    OUT_OF_CREDITS,
-    SeerCreditDenialReason,
-    SeerOperation,
-    check_seer_operation,
-    get_denial_reason,
-)
+from sentry.seer.credits import OUT_OF_CREDITS, SeerCreditDenialReason
 from sentry.seer.endpoints.agent_request import (
     AgentApprovalRequestData,
     AgentApprovalRequestSerializer,
@@ -82,33 +72,6 @@ AUTOFIX_RUN_FAILED_MESSAGE = (
 if TYPE_CHECKING:
     from sentry.integrations.slack.requests.action import SlackActionRequest
     from sentry.models.group import Group
-
-
-def _current_denial_reason(
-    *, organization_id: int, feature: int, operation: SeerOperation
-) -> SeerCreditDenialReason | None:
-    """Asks billing why it refuses the operation now, since Seer's failure reason doesn't say."""
-    try:
-        organization = Organization.objects.get_from_cache(id=organization_id)
-        return get_denial_reason(check_seer_operation(organization, feature, operation))
-    except Exception:
-        # The reason only picks the copy, so a failed check must not drop the notice.
-        logger.exception(
-            "seer.entrypoint.slack.credit_denial_reason_failed",
-            extra={"organization_id": organization_id},
-        )
-        return None
-
-
-def _agent_out_of_credits(organization_id: int) -> SeerAgentOutOfCredits:
-    return SeerAgentOutOfCredits(
-        organization_id=organization_id,
-        denial_reason=_current_denial_reason(
-            organization_id=organization_id,
-            feature=SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
-            operation=SeerOperation.AGENT_CHAT_MESSAGE,
-        ),
-    )
 
 
 class EntrypointSetupError(Exception):
@@ -484,11 +447,7 @@ class SlackAutofixEntrypoint(
                 elif event_payload.get("failure_reason") == OUT_OF_CREDITS:
                     message = SeerAutofixOutOfCredits(
                         organization_id=cache_payload["organization_id"],
-                        denial_reason=_current_denial_reason(
-                            organization_id=cache_payload["organization_id"],
-                            feature=SEER_BILLING_FEATURE_AUTOFIX_INTEGRATIONS,
-                            operation=SeerOperation.AUTOFIX_OPEN_PR,
-                        ),
+                        denial_reason=event_payload.get("denial_reason"),
                     )
                 else:
                     message = SeerAutofixError(
@@ -719,6 +678,7 @@ class SlackAgentEntrypoint(
         cache_payload: SlackAgentCachePayload,
         run_id: int,
         state: SeerRunState,
+        denial_reason: SeerCreditDenialReason | None = None,
     ) -> None:
         """Make the thread match the run: post its latest reply once, then keep PR links current."""
         from sentry.integrations.slack.integration import SlackIntegration
@@ -746,7 +706,10 @@ class SlackAgentEntrypoint(
         next_reply = None
         if state.status != "processing":
             next_reply = _next_agent_reply(
-                cache_payload=cache_payload, state=state, replies=replies
+                cache_payload=cache_payload,
+                state=state,
+                replies=replies,
+                denial_reason=denial_reason,
             )
         if next_reply:
             key, data = next_reply
@@ -788,7 +751,9 @@ class SlackAgentEntrypoint(
                 else send_thread_update(
                     install=install,
                     thread=thread,
-                    data=_agent_out_of_credits(organization_id),
+                    data=SeerAgentOutOfCredits(
+                        organization_id=organization_id, denial_reason=denial_reason
+                    ),
                 )
             )
             if message_ts:
@@ -874,6 +839,7 @@ def _next_agent_reply(
     cache_payload: SlackAgentCachePayload,
     state: SeerRunState,
     replies: Mapping[str, SlackSeerAgentReply],
+    denial_reason: SeerCreditDenialReason | None,
 ) -> tuple[str, SeerAgentError | SeerAgentResponse | SeerAgentOutOfCredits] | None:
     """The reply to post and its cache key, or None if the thread is up to date.
 
@@ -936,7 +902,9 @@ def _next_agent_reply(
         key = _out_of_credits_key(state)
         if key in replies:
             return None
-        return key, _agent_out_of_credits(organization_id)
+        return key, SeerAgentOutOfCredits(
+            organization_id=organization_id, denial_reason=denial_reason
+        )
     else:
         turn = next((turn for turn in reversed(state.get_turns()) if turn.answer), None)
         if turn is None or turn.answer is None:

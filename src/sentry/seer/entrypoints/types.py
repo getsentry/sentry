@@ -154,11 +154,14 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         cache_payload: CachePayloadT,
         run_id: int,
         state: SeerRunState,
+        denial_reason: SeerCreditDenialReason | None = None,
     ) -> None:
         """
         Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
         and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
         service match ``state``, whichever of those caused the call.
+
+        `denial_reason` is why billing refuses credit, set when the run is out of credits.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 
