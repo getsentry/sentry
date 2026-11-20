@@ -1,6 +1,7 @@
 import type {SeriesOption} from 'echarts';
 
 import {defined} from 'sentry/utils/defined';
+import {mergeTimeRanges, type TimeRange} from 'sentry/utils/timeSeries/mergeTimeRanges';
 import {scaleTimeSeriesData} from 'sentry/utils/timeSeries/scaleTimeSeriesData';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {timeSeriesItemToEChartsDataPoint} from 'sentry/utils/timeSeries/timeSeriesItemToEChartsDataPoint';
@@ -108,6 +109,27 @@ export abstract class ContinuousTimeSeries<
     }
 
     return values.some(isExtrapolated) ? 'high' : 'full';
+  }
+
+  /**
+   * Stretches of time covered by low confidence buckets. A bucket spans half an
+   * interval either side of its timestamp, the slot a bar fills, so consecutive
+   * buckets merge into one range. Incomplete buckets don't count, as in `confidence`
+   */
+  get lowConfidenceRanges(): TimeRange[] {
+    const {interval} = this.timeSeries.meta;
+
+    return mergeTimeRanges(
+      this.timeSeries.values
+        .filter(
+          datum =>
+            datum.value !== null && !datum.incomplete && isLowConfidenceDataPoint(datum)
+        )
+        .map(({timestamp}) => ({
+          start: timestamp - interval / 2,
+          end: timestamp + interval / 2,
+        }))
+    );
   }
 
   get needsColor(): boolean {
