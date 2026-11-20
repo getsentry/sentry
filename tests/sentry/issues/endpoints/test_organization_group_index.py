@@ -3719,6 +3719,19 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         response = self.get_success_response(query="is:unresolved", sort_by="date", method="get")
         assert len(response.data) == 0
 
+    def test_bulk_resolve_sort_by_inbox(self) -> None:
+        group = self.create_group(status=GroupStatus.UNRESOLVED)
+        add_group_to_inbox(group, GroupInboxReason.NEW)
+        self.login_as(user=self.user)
+
+        self.get_success_response(
+            qs_params={"query": "is:unresolved is:for_review", "sort": "inbox"},
+            status="resolved",
+        )
+
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+
     def test_bulk_resolve_with_stats_period(self) -> None:
         older_group = self.store_event(
             data={"fingerprint": ["older"], "timestamp": before_now(days=2).isoformat()},
