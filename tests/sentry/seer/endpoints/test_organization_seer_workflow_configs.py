@@ -482,6 +482,29 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         assert response.data["projects"] == []
         assert self.selected_project_ids(config) == []
 
+    def test_put_replaces_environments(self) -> None:
+        config = self.create_config(version=3)
+        Factories.create_seer_workflow_config_project(config, self.project)
+
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=["production"]
+        )
+
+        assert response.data["environments"] == ["production"]
+        assert response.data["projects"] == [self.project.id]
+        assert response.data["version"] == 4
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
+
+        # An empty list selects all environments.
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=[]
+        )
+
+        assert response.data["environments"] == []
+        config.refresh_from_db()
+        assert config.filters["environments"] == []
+
     def test_put_sets_updated_by(self) -> None:
         config = self.create_config()
         config.update(
@@ -685,6 +708,30 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
 
         assert response.data["projects"] == [other_accessible.id]
         assert self.selected_project_ids(config) == sorted([other_accessible.id, hidden.id])
+
+    def test_member_cannot_put_environments_with_partial_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config(filters={"environments": ["production"]})
+        for project in (accessible, hidden):
+            Factories.create_seer_workflow_config_project(config, project)
+        self.login_as(member)
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["staging"],
+            status_code=403,
+        )
+
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
 
     def test_put_breached_metric_member_keeps_inaccessible_monitors(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
