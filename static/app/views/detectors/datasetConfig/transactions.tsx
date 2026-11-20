@@ -58,13 +58,7 @@ function getAggregateOptions(
     ...base,
     'function:apdex': {
       ...apdex,
-      value: {
-        kind: FieldValueKind.FUNCTION,
-        meta: {
-          name: 'apdex',
-          parameters: [],
-        },
-      },
+      value: {kind: FieldValueKind.FUNCTION, meta: {name: 'apdex', parameters: []}},
     },
   };
 }

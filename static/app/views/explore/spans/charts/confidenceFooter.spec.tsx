@@ -15,9 +15,7 @@ describe('ConfidenceFooter', () => {
   describe('without raw counts', () => {
     describe('low confidence', () => {
       it('loaded 1', async () => {
-        render(<ConfidenceFooter sampleCount={1} confidence="low" />, {
-          wrapper: Wrapper,
-        });
+        render(<ConfidenceFooter sampleCount={1} confidence="low" />, {wrapper: Wrapper});
         expect(screen.getByTestId('wrapper')).toHaveTextContent('Estimated from 1 span');
         await userEvent.hover(
           screen.getByText((_, element) => element?.textContent === '1 span')
@@ -140,14 +138,8 @@ describe('ConfidenceFooter', () => {
 
   describe('with raw counts', () => {
     const rawSpanCounts = {
-      normal: {
-        count: 100,
-        isLoading: false,
-      },
-      total: {
-        count: 1000,
-        isLoading: false,
-      },
+      normal: {count: 100, isLoading: false},
+      total: {count: 1000, isLoading: false},
     };
 
     describe('unextrapolated', () => {
@@ -159,9 +151,7 @@ describe('ConfidenceFooter', () => {
               extrapolate={false}
               sampleCount={100}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent('100 spans');
         });
@@ -174,9 +164,7 @@ describe('ConfidenceFooter', () => {
               sampleCount={100}
               topEvents={5}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 spans for top 5 groups'
@@ -193,9 +181,7 @@ describe('ConfidenceFooter', () => {
               extrapolate={false}
               sampleCount={100}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K spans'
@@ -211,9 +197,7 @@ describe('ConfidenceFooter', () => {
               sampleCount={100}
               topEvents={5}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K spans for top 5 groups'
@@ -231,9 +215,7 @@ describe('ConfidenceFooter', () => {
               isSampled={false}
               sampleCount={100}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent('100 spans');
         });
@@ -246,9 +228,7 @@ describe('ConfidenceFooter', () => {
               sampleCount={100}
               topEvents={5}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 spans for top 5 groups'
@@ -265,9 +245,7 @@ describe('ConfidenceFooter', () => {
               isSampled={false}
               sampleCount={100}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K spans'
@@ -283,9 +261,7 @@ describe('ConfidenceFooter', () => {
               sampleCount={100}
               topEvents={5}
             />,
-            {
-              wrapper: Wrapper,
-            }
+            {wrapper: Wrapper}
           );
           expect(screen.getByTestId('wrapper')).toHaveTextContent(
             '100 matches of 1K spans for top 5 groups'

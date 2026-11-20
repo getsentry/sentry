@@ -8,14 +8,9 @@ import type {Organization} from 'sentry/types/organization';
 import type {DetailedProject} from 'sentry/types/project';
 import {useUpdateProjectMutationOptions} from 'sentry/utils/project/useUpdateProject';
 
-const schema = z.object({
-  enableNativeSourceServerMapping: z.boolean(),
-});
+const schema = z.object({enableNativeSourceServerMapping: z.boolean()});
 
-type Props = {
-  organization: Organization;
-  project: DetailedProject;
-};
+type Props = {organization: Organization; project: DetailedProject};
 
 export function SourceServerMapping({organization, project}: Props) {
   const projectMutationOptions = useUpdateProjectMutationOptions(project);

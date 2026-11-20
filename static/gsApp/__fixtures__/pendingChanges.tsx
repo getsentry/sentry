@@ -13,9 +13,7 @@ export function PendingChangesFixture(
     onDemandEffectiveDate: '2021-02-01',
     onDemandMaxSpend: 0,
     plan: 'am1_team',
-    planDetails: PlanFixture({
-      name: 'Team',
-    }),
+    planDetails: PlanFixture({name: 'Team'}),
     planName: 'Team',
     reserved: {},
     reservedBudgets: [],

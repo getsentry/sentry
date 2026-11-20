@@ -19,7 +19,7 @@ export interface ChartBand {
   height: number;
   id: string;
   series: (offset: number) => CustomSeriesOption;
-  onClick?: () => void;
+  onClick?: (start: number) => void;
   tooltipSection?: (start: number) => React.ReactElement | null;
 }
 
@@ -78,7 +78,10 @@ export function mergeChartBands(
     onClick: (event, instance) => {
       const clickedBand = visibleBands.find(band => band.id === event.seriesId);
       if (clickedBand) {
-        clickedBand.onClick?.();
+        const bucket = clickedBand.buckets[event.dataIndex];
+        if (bucket) {
+          clickedBand.onClick?.(bucket.start);
+        }
         return;
       }
       onClick?.(event, instance);

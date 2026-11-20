@@ -182,11 +182,7 @@ export function EventsTable({
 
           navigate({
             pathname: location.pathname,
-            query: {
-              ...location.query,
-              cursor: undefined,
-              environment: newEnvs,
-            },
+            query: {...location.query, cursor: undefined, environment: newEnvs},
           });
           return;
         }

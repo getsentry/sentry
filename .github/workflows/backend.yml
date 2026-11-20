@@ -10,6 +10,9 @@ on:
     types: [checks_requested]
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 # Cancel in progress workflows on pull_requests.
 # https://docs.github.com/en/actions/using-jobs/using-concurrency#example-using-a-fallback-value
 concurrency:
@@ -44,6 +47,8 @@ jobs:
       skip_selective_testing: "${{ github.event_name == 'pull_request' && contains(github.event.pull_request.labels.*.name, 'Trigger: Override Selective Testing') }}"
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@7b450fff21473bca461d4b92ce414b9d0420d706 # v4.0.2
@@ -61,6 +66,8 @@ jobs:
       DEVSERVICES_TIMEOUT: '10'
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry python env
         uses: $/.github/actions/setup-sentry
@@ -97,10 +104,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   # Builds, typechecks and tests the @sentry/api client against this commit's
   # API spec, so a spec change that breaks the client cannot merge. It builds
@@ -116,6 +120,8 @@ jobs:
       SENTRY_API_TARBALL: ${{ github.workspace }}/.artifacts/sentry-api.tgz
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Setup sentry python env
         uses: $/.github/actions/setup-sentry
@@ -185,6 +191,8 @@ jobs:
       test-item-count: ${{ steps.compute-tests.outputs.test-item-count }}
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Get changed files
         id: changed
@@ -208,21 +216,7 @@ jobs:
 
       - name: Download coverage database
         id: download-coverage
-        run: |
-          mkdir -p .artifacts/coverage
-
-          GCS_PATH="gs://getsentry-coverage-data/latest/.coverage.combined"
-          echo "Fetching coverage DB from: $GCS_PATH"
-          gcloud storage ls -l "$GCS_PATH" 2>/dev/null || true
-
-          if ! gcloud storage cp "$GCS_PATH" \
-            .artifacts/coverage/.coverage.combined 2>/dev/null; then
-            echo "Warning: Failed to download coverage from GCS, will run full test suite"
-            echo "coverage-file=" >> "$GITHUB_OUTPUT"
-          else
-            ls -lh .artifacts/coverage/.coverage.combined
-            echo "coverage-file=.artifacts/coverage/.coverage.combined" >> "$GITHUB_OUTPUT"
-          fi
+        run: .github/workflows/scripts/download-coverage-db.sh
 
       - name: Compute selected tests
         id: compute-tests
@@ -274,6 +268,8 @@ jobs:
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
         if: needs.select-tests.outputs.has-selected-tests == 'true'
+        with:
+          persist-credentials: false
 
       - name: Download selected tests artifact
         if: needs.select-tests.outputs.has-selected-tests == 'true'
@@ -325,6 +321,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Start resource monitor
         run: python3 .github/workflows/scripts/monitor-resources.py --start
@@ -347,46 +345,10 @@ jobs:
       # default, and each ORM call is multiple round-trips — switching to a Unix socket
       # eliminates TCP loopback overhead and saves ~36s per shard.
       - name: Reconnect postgres via Unix socket
-        run: |
-          mkdir -p /tmp/pg-sock
-          PG_IMAGE=$(docker inspect postgres-postgres-1 --format '{{.Config.Image}}')
-          docker stop postgres-postgres-1 && docker rm postgres-postgres-1
-          docker run -d --name postgres-postgres-1 \
-            --network devservices --label orchestrator=devservices \
-            -p 127.0.0.1:5432:5432 \
-            -v postgres-data:/var/lib/postgresql/data \
-            -v /tmp/pg-sock:/var/run/postgresql \
-            -e POSTGRES_HOST_AUTH_METHOD=trust -e POSTGRES_DB=sentry \
-            "$PG_IMAGE" postgres \
-              -c wal_level=logical -c max_replication_slots=1 -c max_wal_senders=1 \
-              -c fsync=off -c synchronous_commit=off -c full_page_writes=off
-          # On an empty volume, the image's entrypoint runs initdb with a temporary
-          # server that listens only on the socket, then stops it and starts the
-          # real one. The socket alone can vanish a moment after it appears, so also
-          # wait for TCP, which only the real server listens on. docker run -d
-          # returns 0 even if postgres dies right after, so the wait is bounded.
-          for _ in $(seq 1 60); do
-            if [ -S "/tmp/pg-sock/.s.PGSQL.5432" ] &&
-              docker exec postgres-postgres-1 pg_isready --quiet --host 127.0.0.1 --port 5432; then
-              echo "SENTRY_DB_SOCKET=/tmp/pg-sock" >> "$GITHUB_ENV"
-              exit 0
-            fi
-            sleep 1
-          done
-          echo "::error::postgres was not ready on its Unix socket after 60s"
-          docker logs postgres-postgres-1 2>&1 | tail -30 || true
-          exit 1
+        run: .github/workflows/scripts/reconnect-postgres-socket.sh
 
       - name: Download odiff binary
-        run: |
-          case "$(uname -m)" in
-            aarch64) odiff=odiff-linux-arm64 ;;
-            *) odiff=odiff-linux-x64 ;;
-          esac
-          curl -sL https://registry.npmjs.org/odiff-bin/-/odiff-bin-4.3.8.tgz \
-            | tar -xz --strip-components=2 "package/raw_binaries/$odiff"
-          sudo install -m 755 "$odiff" /usr/local/bin/odiff
-          rm "$odiff"
+        run: .github/workflows/scripts/install-odiff.sh
 
       - name: Bootstrap per-worker Snuba instances
         if: env.XDIST_PER_WORKER_SNUBA == '1'
@@ -430,19 +392,7 @@ jobs:
       - name: Run backend test (${{ steps.setup.outputs.matrix-instance-number }} of ${{ steps.setup.outputs.matrix-instance-total }})
         env:
           SELECTED_TESTS_FILE: ${{ needs.select-tests.outputs.has-selected-tests == 'true' && '.artifacts/selected-tests.txt' || '' }}
-        run: |
-          if [ -n "${XDIST_WORKERS}" ]; then
-            export PYTEST_ADDOPTS="$PYTEST_ADDOPTS -n ${XDIST_WORKERS} --dist=loadfile"
-            timeout -k 30 1200 make test-python-ci || {
-              rc=$?
-              if [ "$rc" -eq 124 ]; then
-                echo "::error::Test run timed out after 20 minutes (possible xdist hang)"
-              fi
-              exit "$rc"
-            }
-          else
-            make test-python-ci
-          fi
+        run: .github/workflows/scripts/run-backend-tests.sh
 
       - name: Stop resource monitor
         if: always()
@@ -500,17 +450,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
-
-          if [ "${XDIST_PER_WORKER_SNUBA}" = "1" ]; then
-            for i in $(seq 0 $(( ${XDIST_WORKERS} - 1 ))); do
-              echo "--- snuba-gw${i} logs ---"
-              docker logs "snuba-gw${i}" 2>&1 | tail -30 || true
-            done
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   backend-migration-tests:
     if: >-
@@ -530,10 +470,14 @@ jobs:
       pull-requests: write
     env:
       MIGRATION_DB_DIR: .artifacts/migration-test-db
+      # v1 dumps hold rows that tests left in seer_workflowtriggerbinding.
+      MIGRATION_DB_CACHE_PREFIX: migration-test-db-v2-
       SAVE_MIGRATION_DB: ${{ github.ref == 'refs/heads/master' }}
 
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -548,19 +492,20 @@ jobs:
         uses: actions/cache/restore@1bd1e32a3bdc45362d1e726936510720a7c30a57 # v4.2.0
         with:
           path: ${{ env.MIGRATION_DB_DIR }}
-          key: migration-test-db-v1-${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
-          restore-keys: migration-test-db-v1-
+          key: ${{ env.MIGRATION_DB_CACHE_PREFIX }}${{ hashFiles('src/**/migrations/*.py', 'src/sentry/new_migrations/**/*.py') }}
+          restore-keys: ${{ env.MIGRATION_DB_CACHE_PREFIX }}
 
       - name: Load migrated test databases
         run: .github/workflows/scripts/migration-test-db.py restore "$MIGRATION_DB_DIR"
 
-      - name: run tests
-        run: |
-          make test-migrations-ci
-
+      # Dump before the tests run, so the cache never holds rows that tests leave behind.
       - name: Dump migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
         run: .github/workflows/scripts/migration-test-db.py save "$MIGRATION_DB_DIR"
+
+      - name: run tests
+        run: |
+          make test-migrations-ci
 
       - name: Save migrated test databases
         if: env.SAVE_MIGRATION_DB == 'true' && steps.db-cache.outputs.cache-hit != 'true'
@@ -583,10 +528,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   cli:
     if: needs.files-changed.outputs.backend == 'true'
@@ -596,6 +538,8 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -613,10 +557,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   requirements:
     if: needs.files-changed.outputs.backend_dependencies == 'true'
@@ -633,6 +574,8 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
@@ -672,6 +615,8 @@ jobs:
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
 
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -698,6 +643,8 @@ jobs:
     steps:
       - name: Checkout sentry
         uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -714,10 +661,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   monolith-dbs:
     if: needs.files-changed.outputs.backend == 'true'
@@ -732,6 +676,8 @@ jobs:
       pull-requests: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: false
 
       - name: Setup sentry env
         uses: $/.github/actions/setup-sentry
@@ -760,10 +706,7 @@ jobs:
 
       - name: Inspect failure
         if: failure()
-        run: |
-          if command -v devservices; then
-            devservices logs
-          fi
+        run: .github/workflows/scripts/inspect-failure.sh
 
   typing:
     if: needs.files-changed.outputs.backend == 'true'
@@ -773,6 +716,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - uses: astral-sh/setup-uv@884ad927a57e558e7a70b92f2bccf9198a4be546 # v6
         with:
@@ -859,6 +804,7 @@ jobs:
     # This is necessary since a failed/skipped dependent job would cause this job to be skipped
     if: always()
     runs-on: ${{ github.event_name == 'pull_request' && 'ubuntu-26.04-arm' || 'ubuntu-24.04' }}
+    permissions: {}
     steps:
       # If any jobs we depend on fail, we will fail since this is a required check
       # NOTE: A timeout is considered a failure

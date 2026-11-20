@@ -48,6 +48,7 @@ class ResolvedDefinition:
     key: str
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
+    binary_threshold: float | None
 
 
 # A JSON-serializable telemetry item to classify. Datasets decide what it contains.

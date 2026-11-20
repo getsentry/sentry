@@ -93,11 +93,7 @@ describe('ScmGithubMultiOrgInstall', () => {
     renderComponent({
       installations: [
         makeInstallation({installationId: '100', githubAccount: 'my-org', count: 0}),
-        makeInstallation({
-          installationId: '200',
-          githubAccount: 'other-org',
-          count: 0,
-        }),
+        makeInstallation({installationId: '200', githubAccount: 'other-org', count: 0}),
       ],
     });
 

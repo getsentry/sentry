@@ -86,10 +86,7 @@ describe('TimeSeriesWidgetVisualization', () => {
 
     expect(annotationBand?.data).toEqual(
       sampleThroughputTimeSeries.values.map(({timestamp}, index) =>
-        expect.objectContaining({
-          start: timestamp,
-          items: index === 2 ? annotations : [],
-        })
+        expect.objectContaining({start: timestamp, items: index === 2 ? annotations : []})
       )
     );
     expect(series?.find(({name}) => name === 'Releases')).toBeUndefined();

@@ -69,10 +69,7 @@ export function useValidatedLogsTabColumns() {
 
   const onColumnsChange = useCallback(
     (newFields: string[]) => {
-      setPersistentParams(prev => ({
-        ...prev,
-        fields: newFields,
-      }));
+      setPersistentParams(prev => ({...prev, fields: newFields}));
       setFields(newFields);
     },
     [setFields, setPersistentParams]

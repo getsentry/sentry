@@ -181,9 +181,7 @@ function ProjectAttributesSettings() {
           value={type}
           options={typeOptions}
           onChange={option =>
-            updateQuery({
-              type: option.value === ALL_OPTION_VALUE ? null : option.value,
-            })
+            updateQuery({type: option.value === ALL_OPTION_VALUE ? null : option.value})
           }
         />
         <Container flexGrow={1}>

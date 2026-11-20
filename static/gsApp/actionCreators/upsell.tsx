@@ -22,11 +22,7 @@ export function sendUpgradeRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/plan-upgrade-request/`;
   const data = {type};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 export function sendTrialRequest({
@@ -83,11 +79,7 @@ export function sendAddEventsRequest({
 }) {
   const endpoint = `/organizations/${organization.slug}/event-limit-increase-request/`;
   const data = {types: eventTypes, notificationType};
-  return sendBasicRequest({
-    endpoint,
-    data,
-    ...rest,
-  });
+  return sendBasicRequest({endpoint, data, ...rest});
 }
 
 async function sendBasicRequest({
@@ -105,10 +97,7 @@ async function sendBasicRequest({
 }) {
   try {
     toast.loading(t('Requesting\u2026'));
-    await api.requestPromise(endpoint, {
-      method: 'POST',
-      data,
-    });
+    await api.requestPromise(endpoint, {method: 'POST', data});
     toast.success(successMessage);
     handleSuccess?.();
   } catch (err) {

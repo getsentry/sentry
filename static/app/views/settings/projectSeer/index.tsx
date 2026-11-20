@@ -70,9 +70,7 @@ const SeerSelectLabel = styled('div')`
   margin-bottom: ${p => p.theme.space.xs};
 `;
 
-const seerScannerAutomationSchema = z.object({
-  seerScannerAutomation: z.boolean(),
-});
+const seerScannerAutomationSchema = z.object({seerScannerAutomation: z.boolean()});
 
 const autofixAutomationTuningSchema = z.object({
   autofixAutomationTuning: z.enum(SEER_THRESHOLD_MAP),
@@ -103,13 +101,9 @@ const stoppingPointSchema = z.object({
   ]),
 });
 
-const autoCreatePrSchema = z.object({
-  auto_create_pr: z.boolean(),
-});
+const autoCreatePrSchema = z.object({auto_create_pr: z.boolean()});
 
-const integrationIdSchema = z.object({
-  integration_id: z.string(),
-});
+const integrationIdSchema = z.object({integration_id: z.string()});
 
 function CodingAgentSettings({
   setting,
@@ -226,12 +220,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
     knownAgentIntegrationsQueryOptions({organization})
   );
   const {mutateAsync: updateSeerSettings} = useMutation(
-    getMutateSeerProjectSettingsOptions({
-      organization,
-      project,
-      queryClient,
-      knownAgents,
-    })
+    getMutateSeerProjectSettingsOptions({organization, project, queryClient, knownAgents})
   );
 
   const canWriteProject = hasEveryAccess(['project:read'], {organization, project});
@@ -294,10 +283,7 @@ function ProjectSeerGeneralForm({project}: {project: DetailedProject}) {
           autoCreatePr: false,
         });
       }
-      return updateSeerSettings({
-        agentOption: 'seer',
-        stoppingPoint: value,
-      });
+      return updateSeerSettings({agentOption: 'seer', stoppingPoint: value});
     },
     [
       organization,

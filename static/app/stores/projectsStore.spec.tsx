@@ -5,12 +5,8 @@ import {ProjectsStore} from './projectsStore';
 import {TeamStore} from './teamStore';
 
 describe('ProjectsStore', () => {
-  const teamFoo = TeamFixture({
-    slug: 'team-foo',
-  });
-  const teamBar = TeamFixture({
-    slug: 'team-bar',
-  });
+  const teamFoo = TeamFixture({slug: 'team-foo'});
+  const teamBar = TeamFixture({slug: 'team-bar'});
   const projectFoo = ProjectFixture({
     id: '2',
     slug: 'foo',
@@ -30,10 +26,7 @@ describe('ProjectsStore', () => {
     });
 
     it('correctly manages loading state', () => {
-      expect(ProjectsStore.getState()).toMatchObject({
-        projects: [],
-        loading: true,
-      });
+      expect(ProjectsStore.getState()).toMatchObject({projects: [], loading: true});
       ProjectsStore.loadInitialData([projectFoo, projectBar]);
       expect(ProjectsStore.getState()).toMatchObject({
         projects: [projectBar, projectFoo], // projects are returned sorted
@@ -64,9 +57,7 @@ describe('ProjectsStore', () => {
     it('updates when slug changes', async () => {
       ProjectsStore.onChangeSlug('foo', 'new-project');
       await tick();
-      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
-        slug: 'new-project',
-      });
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({slug: 'new-project'});
       expect(ProjectsStore.getById(projectBar.id)).toBeDefined();
     });
 
@@ -84,10 +75,7 @@ describe('ProjectsStore', () => {
         slug: 'foo',
         name: 'Foo',
       });
-      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
-        id: '10',
-        slug: 'bar',
-      });
+      expect(ProjectsStore.getById(projectBar.id)).toMatchObject({id: '10', slug: 'bar'});
     });
 
     it('updates a project in store', () => {
@@ -139,15 +127,11 @@ describe('ProjectsStore', () => {
       expect(ProjectsStore.getById(projectBar.id)).toMatchObject({
         teams: [expect.objectContaining({slug: 'team-bar'})],
       });
-      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({
-        teams: [],
-      });
+      expect(ProjectsStore.getById(projectFoo.id)).toMatchObject({teams: []});
     });
 
     it('can add a team to a project', () => {
-      const team = TeamFixture({
-        slug: 'new-team',
-      });
+      const team = TeamFixture({slug: 'new-team'});
       ProjectsStore.onAddTeam(team, 'foo');
 
       expect(ProjectsStore.getById(projectBar.id)).toMatchObject({

@@ -87,6 +87,7 @@ function annotationBandRenderItem(
 interface UseAnnotationBandParams {
   buckets: BandBucket[];
   items?: readonly AnnotationItem[];
+  onClick?: (items: AnnotationItem[]) => void;
 }
 
 /**
@@ -96,6 +97,7 @@ interface UseAnnotationBandParams {
 export function useAnnotationBand({
   buckets,
   items,
+  onClick,
 }: UseAnnotationBandParams): ChartBand | null {
   const theme = useTheme();
 
@@ -128,6 +130,12 @@ export function useAnnotationBand({
       id: ANNOTATION_BAND_SERIES_ID,
       buckets: annotationBuckets,
       height: BAND_HEIGHT,
+      onClick: start => {
+        const bucket = bucketsByStart.get(start);
+        if (bucket && bucket.items.length > 0) {
+          onClick?.(bucket.items);
+        }
+      },
       tooltipSection: start => {
         const bucket = bucketsByStart.get(start);
         return bucket ? (
@@ -153,5 +161,5 @@ export function useAnnotationBand({
         legendHoverLink: false,
       }),
     };
-  }, [buckets, items, theme]);
+  }, [buckets, items, onClick, theme]);
 }

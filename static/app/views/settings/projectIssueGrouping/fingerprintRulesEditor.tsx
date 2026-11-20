@@ -46,9 +46,9 @@ function normalizeNewlines(text: string) {
 
 // The highlighting is only a hint, so a tokenizer bug shows plain text instead of breaking
 // the field. The backend still validates the rules on save.
-function tokenize(text: string): ReturnType<typeof tokenizeFingerprintRules> & {
-  error?: unknown;
-} {
+function tokenize(
+  text: string
+): ReturnType<typeof tokenizeFingerprintRules> & {error?: unknown} {
   try {
     return tokenizeFingerprintRules(text);
   } catch (error) {

@@ -37,9 +37,7 @@ export function groupByTrend<T extends {trend: number}>(data: T[]): T[] {
 export const barAxisLabel = (): React.ComponentProps<typeof BaseChart>['xAxis'] => {
   return {
     type: 'category',
-    axisTick: {
-      alignWithLabel: true,
-    },
+    axisTick: {alignWithLabel: true},
     axisLabel: {
       formatter: (date: string) => {
         return moment(new Date(Number(date))).format('MMM D');
@@ -76,16 +74,8 @@ export function dataDatetime(
   const utc = utcString === 'true';
   if (start && end) {
     return utc
-      ? {
-          start: moment.utc(start).format(),
-          end: moment.utc(end).format(),
-          utc,
-        }
-      : {
-          start: moment(start).utc().format(),
-          end: moment(end).utc().format(),
-          utc,
-        };
+      ? {start: moment.utc(start).format(), end: moment.utc(end).format(), utc}
+      : {start: moment(start).utc().format(), end: moment(end).utc().format(), utc};
   }
 
   return {period: INSIGHTS_DEFAULT_STATS_PERIOD};

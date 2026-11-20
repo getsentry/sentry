@@ -71,9 +71,7 @@ export const Heading = styled(
 
     return <HeadingComponent {...rest}>{children}</HeadingComponent>;
   },
-  {
-    shouldForwardProp: p => isPropValid(p),
-  }
+  {shouldForwardProp: p => isPropValid(p)}
 )`
   ${p =>
     p.variant === 'inherit' && p.size === undefined

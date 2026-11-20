@@ -90,10 +90,7 @@ export function PrimaryNavSeerConfigReminder() {
 
   useEffect(() => {
     if (canSeeReminder) {
-      trackAnalytics('seer.config_reminder.rendered', {
-        organization,
-        ...analyticsParams,
-      });
+      trackAnalytics('seer.config_reminder.rendered', {organization, ...analyticsParams});
     }
   }, [canSeeReminder, analyticsParams, organization]);
 
@@ -108,10 +105,7 @@ export function PrimaryNavSeerConfigReminder() {
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
         indicator="accent"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconSeer />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconSeer />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

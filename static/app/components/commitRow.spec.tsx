@@ -50,10 +50,7 @@ describe('commitRow', () => {
   it('renders invite flow for non associated users', async () => {
     const commit = {
       ...baseCommit,
-      author: {
-        ...baseCommit.author,
-        id: undefined as unknown as string,
-      },
+      author: {...baseCommit.author, id: undefined as unknown as string},
     } as Commit;
 
     render(<CommitRow commit={commit} />);
@@ -77,10 +74,7 @@ describe('commitRow', () => {
   it('renders commit info', () => {
     const commit = {
       ...baseCommit,
-      author: {
-        ...baseCommit.author,
-        id: '0' as unknown as string,
-      },
+      author: {...baseCommit.author, id: '0' as unknown as string},
     } as Commit;
 
     render(<CommitRow commit={commit} />);
@@ -101,10 +95,7 @@ describe('commitRow', () => {
           id: '14',
           name: 'example',
           url: '',
-          provider: {
-            id: 'unknown',
-            name: 'Unknown Provider',
-          },
+          provider: {id: 'unknown', name: 'Unknown Provider'},
           status: RepositoryStatus.ACTIVE,
           dateCreated: '2022-10-07T19:35:27.370422Z',
           integrationId: '14',

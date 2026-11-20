@@ -134,10 +134,7 @@ function useImageSrc(definition?: ImageDefinition): {
     return () => img?.removeEventListener('error', handleError);
   }, []);
 
-  return {
-    ref,
-    src: resolvedSrc === erroredSrc ? null : resolvedSrc,
-  };
+  return {ref, src: resolvedSrc === erroredSrc ? null : resolvedSrc};
 }
 
 /**

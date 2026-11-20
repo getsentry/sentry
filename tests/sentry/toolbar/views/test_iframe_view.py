@@ -1,7 +1,6 @@
 from django.http import HttpResponse
 from django.test import override_settings
 from django.urls import reverse
-from django.utils.html import escapejs
 
 from sentry.testutils.cases import APITestCase
 from sentry.toolbar.views.iframe_view import TEMPLATE
@@ -12,26 +11,10 @@ class IframeViewTest(APITestCase):
 
     def setUp(self) -> None:
         super().setUp()
-        self.login_as(user=self.user)
         self.url = reverse(self.view_name, args=(self.organization.slug, self.project.slug))
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_missing_project(self) -> None:
-        referrer = "https://example.com"
-        url = reverse(self.view_name, args=(self.organization.slug, "abc123xyz"))
-        res = self.client.get(url, HTTP_REFERER=referrer)
-
-        assert res.status_code == 200
-        assert res.headers.get("X-Frame-Options") == "ALLOWALL"
-        assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
-        assert _has_nonce(res)
-
-        self.assertTemplateUsed(res, TEMPLATE)
-        assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('missing-project')}';" in res.content.decode("utf-8")
-
-    @override_settings(CSP_REPORT_ONLY=False)
-    def test_default_no_allowed_origins(self) -> None:
+    def test_logged_out_without_auth(self) -> None:
         referrer = "https://example.com"
         res = self.client.get(self.url, HTTP_REFERER=referrer)
 
@@ -41,67 +24,35 @@ class IframeViewTest(APITestCase):
         assert _has_nonce(res)
 
         self.assertTemplateUsed(res, TEMPLATE)
-        assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
+        content = res.content.decode("utf-8")
+        assert f"const referrer = '{referrer}';" in content
+        assert "postStateMessage('logged-out');" in content
+        assert "port-connect" not in content
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_allowed_origins_basic(self) -> None:
-        referrer = "https://sentry.io:127/replays"
-        self.project.update_option("sentry:toolbar_allowed_origins", ["sentry.io"])
+    def test_logged_in_user_is_still_logged_out(self) -> None:
+        self.login_as(user=self.user)
+        res = self.client.get(self.url, HTTP_REFERER="https://example.com")
 
-        res = self.client.get(self.url, HTTP_REFERER=referrer)
         assert res.status_code == 200
-        assert res.headers.get("X-Frame-Options") == "ALLOWALL"
-        assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
-        assert _has_nonce(res)
-
-        self.assertTemplateUsed(res, TEMPLATE)
-        assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
+        assert "postStateMessage('logged-out');" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
-    def test_allowed_origins_wildcard_subdomain(self) -> None:
-        referrer = "https://foo.nugettrends.com"
-        self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
+    def test_unknown_org_and_project(self) -> None:
+        url = reverse(self.view_name, args=("does-not-exist", "abc123xyz"))
+        res = self.client.get(url, HTTP_REFERER="https://example.com")
 
-        res = self.client.get(self.url, HTTP_REFERER=referrer)
         assert res.status_code == 200
-        assert res.headers.get("X-Frame-Options") == "ALLOWALL"
-        assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
-        assert _has_nonce(res)
-
         self.assertTemplateUsed(res, TEMPLATE)
-        assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('logged-in')}';" in res.content.decode("utf-8")
-
-    @override_settings(CSP_REPORT_ONLY=False)
-    def test_only_single_wildcard_subdomain(self) -> None:
-        referrer = "https://foo.bar.nugettrends.com"
-        self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
-
-        res = self.client.get(self.url, HTTP_REFERER=referrer)
-        assert res.status_code == 200
-        assert res.headers.get("X-Frame-Options") == "ALLOWALL"
-        assert f"frame-ancestors {referrer}" in _get_csp_parts(res)
-        assert _has_nonce(res)
-
-        self.assertTemplateUsed(res, TEMPLATE)
-        assert f"const referrer = '{referrer}';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
     @override_settings(CSP_REPORT_ONLY=False)
     def test_no_referrer(self) -> None:
-        self.project.update_option("sentry:toolbar_allowed_origins", ["*.nugettrends.com"])
-
         res = self.client.get(self.url)
+
         assert res.status_code == 200
         assert res.headers.get("X-Frame-Options") == "DENY"
         assert "frame-ancestors 'none'" in _get_csp_parts(res)
-        assert _has_nonce(res)
-
-        self.assertTemplateUsed(res, TEMPLATE)
         assert "const referrer = '';" in res.content.decode("utf-8")
-        assert f"const state = '{escapejs('invalid-domain')}';" in res.content.decode("utf-8")
 
 
 def _get_csp_parts(response: HttpResponse) -> list[str]:

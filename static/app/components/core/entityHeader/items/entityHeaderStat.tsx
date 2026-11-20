@@ -47,9 +47,7 @@ type EntityHeaderStatLinkBehavior = {
  * One half of a stat — its label or its value: what it shows, and how it
  * behaves.
  */
-type EntityHeaderStatPart<TContent> = {
-  content: TContent;
-} & EntityHeaderStatPartBehavior;
+type EntityHeaderStatPart<TContent> = {content: TContent} & EntityHeaderStatPartBehavior;
 
 export interface EntityHeaderStatProps {
   /**

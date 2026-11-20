@@ -124,11 +124,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       method: 'PUT',
-      body: {
-        ...organization,
-        sensitiveFields: ['email'],
-        safeFields: [],
-      },
+      body: {...organization, sensitiveFields: ['email'], safeFields: []},
     });
 
     render(<OrganizationSecurityAndPrivacy />);
@@ -187,12 +183,7 @@ describe('OrganizationSecurityAndPrivacy', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         '/organizations/org-slug/',
-        expect.objectContaining({
-          method: 'PUT',
-          data: {
-            require2FA: true,
-          },
-        })
+        expect.objectContaining({method: 'PUT', data: {require2FA: true}})
       );
     });
   });

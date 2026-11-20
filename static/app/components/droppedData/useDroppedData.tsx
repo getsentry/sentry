@@ -4,7 +4,6 @@ import moment from 'moment-timezone';
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {defined} from 'sentry/utils/defined';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
@@ -21,20 +20,7 @@ const REFERRER = 'api.explore.dropped-data-annotations';
 interface DroppedEventsResponse {
   acceptedEvents: OutcomeRow[];
   droppedEvents: OutcomeRow[];
-  meta: {
-    dataset: string;
-    end: number;
-    interval: number;
-    start: number;
-  };
-}
-
-export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {
-  return [
-    getApiUrl('/organizations/$organizationIdOrSlug/events-dropped/', {
-      path: {organizationIdOrSlug: organizationSlug},
-    }),
-  ] as const;
+  meta: {dataset: string; end: number; interval: number; start: number};
 }
 
 export interface UseDroppedDataParams {

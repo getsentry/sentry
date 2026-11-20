@@ -79,10 +79,7 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({
-        start: '2026-11-09',
-        end: '2026-11-09',
-      })
+      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-11-09');
     expect(screen.getByLabelText('Last day (UTC)')).toHaveValue('2026-11-09');
@@ -149,10 +146,7 @@ describe('InvoiceComparison', () => {
   it('does not say a range is empty when every row is a hidden small mismatch', async () => {
     MockApiClient.addMockResponse({
       url: COMPARISON_URL,
-      body: {
-        ...comparisonBody({hiddenSmallMismatchCount: 2}),
-        rows: [],
-      },
+      body: {...comparisonBody({hiddenSmallMismatchCount: 2}), rows: []},
     });
 
     renderComparison({start: '2026-11-09', end: '2026-11-09'});
@@ -179,18 +173,12 @@ describe('InvoiceComparison', () => {
 
     expect(await screen.findByRole('link', {name: 'org-slug'})).toBeInTheDocument();
     expect(mock.mock.calls[0][1].query).toEqual(
-      expect.objectContaining({
-        start: '2026-11-09',
-        end: '2026-11-09',
-      })
+      expect.objectContaining({start: '2026-11-09', end: '2026-11-09'})
     );
   });
 
   it('queries whole UTC days for the selected dates', async () => {
-    MockApiClient.addMockResponse({
-      url: COMPARISON_URL,
-      body: comparisonBody(),
-    });
+    MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
     const {router} = renderComparison({});
     const startInput = screen.getByLabelText('First day (UTC)');
@@ -237,10 +225,7 @@ describe('InvoiceComparison', () => {
     });
 
     it('writes a typed cutoff to the URL on Run', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
       const {router} = renderComparison({start: '2026-11-09', end: '2026-11-09'});
       const input = screen.getByLabelText('Hide mismatches under ($)');
@@ -253,10 +238,7 @@ describe('InvoiceComparison', () => {
     });
 
     it('disables Run while the cutoff is empty', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
       renderComparison({start: '2026-11-09', end: '2026-11-09'});
       await userEvent.clear(screen.getByLabelText('Hide mismatches under ($)'));
@@ -278,10 +260,7 @@ describe('InvoiceComparison', () => {
       COMPARISON_URL,
       expect.objectContaining({
         host: US_URL,
-        query: expect.objectContaining({
-          start: '2026-01-01',
-          end: '2026-01-03',
-        }),
+        query: expect.objectContaining({start: '2026-01-01', end: '2026-01-03'}),
       })
     );
     expect(screen.getByLabelText('First day (UTC)')).toHaveValue('2026-01-01');
@@ -381,10 +360,7 @@ describe('InvoiceComparison', () => {
   });
 
   it('pins the window when rewriting an unsupported page size', async () => {
-    MockApiClient.addMockResponse({
-      url: COMPARISON_URL,
-      body: comparisonBody(),
-    });
+    MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
 
     const {router} = renderComparison({page_size: '200'});
 
@@ -440,14 +416,8 @@ describe('InvoiceComparison', () => {
     });
 
     it('persists the selected region to the URL', async () => {
-      MockApiClient.addMockResponse({
-        url: COMPARISON_URL,
-        body: comparisonBody(),
-      });
-      MockApiClient.addMockResponse({
-        url: DE_COMPARISON_URL,
-        body: comparisonBody(),
-      });
+      MockApiClient.addMockResponse({url: COMPARISON_URL, body: comparisonBody()});
+      MockApiClient.addMockResponse({url: DE_COMPARISON_URL, body: comparisonBody()});
 
       const {router} = renderComparison({start, end});
 

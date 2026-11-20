@@ -111,18 +111,20 @@ beforeEach(() => {
     url: '/organizations/org-slug/releases/stats/',
     body: [],
   });
-  jest.mocked(WidgetCardDataLoader).mockImplementation(({children}: any) =>
-    children({
-      timeseriesResults,
-      tableResults,
-      loading: false,
-      errorMessage: undefined,
-      confidence: undefined,
-      dataScanned: undefined,
-      isSampled: undefined,
-      sampleCount: undefined,
-    })
-  );
+  jest
+    .mocked(WidgetCardDataLoader)
+    .mockImplementation(({children}: any) =>
+      children({
+        timeseriesResults,
+        tableResults,
+        loading: false,
+        errorMessage: undefined,
+        confidence: undefined,
+        dataScanned: undefined,
+        isSampled: undefined,
+        sampleCount: undefined,
+      })
+    );
 });
 
 afterEach(() => {
@@ -252,11 +254,7 @@ describe('VisualizationWidget memoization', () => {
 describe('VisualizationWidget threshold time windows', () => {
   const thresholdWidget = {
     ...spansBreakdownWidget,
-    thresholds: {
-      max_values: {max1: 100, max2: 200},
-      unit: null,
-      timeWindow: '10m',
-    },
+    thresholds: {max_values: {max1: 100, max2: 200}, unit: null, timeWindow: '10m'},
   };
 
   it('updates rendered threshold ranges when the widget interval changes', () => {
@@ -296,28 +294,24 @@ describe('VisualizationWidget threshold time windows', () => {
           orderby: '-release',
         },
       ],
-      thresholds: {
-        max_values: {max1: 100, max2: 200},
-        unit: null,
-        timeWindow: '1h',
-      },
+      thresholds: {max_values: {max1: 100, max2: 200}, unit: null, timeWindow: '1h'},
     };
-    jest.mocked(WidgetCardDataLoader).mockImplementationOnce(({children}: any) =>
-      children({
-        timeseriesResults: [
-          makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
-        ],
-        timeseriesInterval: '1h',
-        loading: false,
-      })
-    );
+    jest
+      .mocked(WidgetCardDataLoader)
+      .mockImplementationOnce(({children}: any) =>
+        children({
+          timeseriesResults: [
+            makeResult('sum(session)', [{key: 'release', value: 'v1'}], 10),
+          ],
+          timeseriesInterval: '1h',
+          loading: false,
+        })
+      );
 
     render(
       <VisualizationWidget
         widget={releaseWidget}
-        selection={PageFiltersFixture({
-          datetime: {...selection.datetime, period: '14d'},
-        })}
+        selection={PageFiltersFixture({datetime: {...selection.datetime, period: '14d'}})}
         widgetInterval="3h"
       />,
       {organization: OrganizationFixture()}
@@ -329,10 +323,7 @@ describe('VisualizationWidget threshold time windows', () => {
   it('keeps fixed threshold ranges unchanged when the widget interval changes', () => {
     const fixedThresholdWidget = {
       ...thresholdWidget,
-      thresholds: {
-        max_values: {max1: 100, max2: 200},
-        unit: null,
-      },
+      thresholds: {max_values: {max1: 100, max2: 200}, unit: null},
     };
     const {rerender} = render(
       <VisualizationWidget

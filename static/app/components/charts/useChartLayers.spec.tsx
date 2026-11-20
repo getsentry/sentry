@@ -9,6 +9,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 
+import type {AnnotationItem} from './annotations/types';
 import {useChartLayers} from './useChartLayers';
 
 jest.mock('sentry/utils/analytics');
@@ -103,13 +104,13 @@ describe('useChartLayers', () => {
       tags: {},
     };
 
-    const releaseAnnotation = {
+    const releaseAnnotation: AnnotationItem = {
       id: 'release:ui@1.0.0',
       kind: 'release',
       start: new Date('2026-11-03T12:00:00Z').getTime(),
       title: 'ui@1.0.0',
     };
-    const flagAnnotation = {
+    const flagAnnotation: AnnotationItem = {
       id: 'flag:1',
       kind: 'flag',
       start: new Date('2026-11-03T13:00:00Z').getTime(),
@@ -164,9 +165,7 @@ describe('useChartLayers', () => {
       await waitFor(() =>
         expect(flagLogRequest).toHaveBeenCalledWith(
           `/organizations/${annotationsOrganization.slug}/flags/logs/`,
-          expect.objectContaining({
-            query: expect.objectContaining({sort: 'created_at'}),
-          })
+          expect.objectContaining({query: expect.objectContaining({sort: 'created_at'})})
         )
       );
     });
@@ -205,6 +204,29 @@ describe('useChartLayers', () => {
         organization: annotationsOrganization,
         selected: false,
       });
+    });
+
+    it('opens the drawer on the first tab with annotations in a clicked bucket', async () => {
+      const {result, router} = renderAnnotationsHook({
+        releases: [release],
+        flags: [flagChange],
+      });
+      await waitFor(() => expect(result.current.annotations).toHaveLength(2));
+
+      act(() => result.current.onAnnotationClick([flagAnnotation, releaseAnnotation]));
+
+      await waitFor(() => expect(router.location.query.contextTab).toBe('releases'));
+      expect(router.location.query.droppedData).toBe('spans');
+      expect(trackAnalytics).toHaveBeenCalledWith('explore.chart_context.drawer_opened', {
+        organization: annotationsOrganization,
+        dataset: DiscoverDatasets.SPANS,
+        source: 'explore',
+        tab: 'releases',
+      });
+
+      act(() => result.current.onAnnotationClick([flagAnnotation]));
+
+      await waitFor(() => expect(router.location.query.contextTab).toBe('flags'));
     });
 
     it('disables the Releases and Flags layers when the range has neither', async () => {
