@@ -6,7 +6,7 @@ import os
 from collections.abc import Callable, Iterator
 from copy import deepcopy
 from functools import cache
-from typing import Any, cast
+from typing import Any
 
 import google.auth
 import jsonschema
@@ -592,7 +592,7 @@ def _sources_validator() -> Validator:
     # So build the validator once: the class `jsonschema.validate` would pick, with no format
     # checker. An invalid schema raises `SchemaError` on every call, since `cache` doesn't store
     # exceptions.
-    schema = cast(dict[str, Any], SOURCES_WITHOUT_APPSTORE_CONNECT)
+    schema = SOURCES_WITHOUT_APPSTORE_CONNECT
     validator_cls: type[Validator] = jsonschema.validators.validator_for(schema)
     validator_cls.check_schema(schema)
     return validator_cls(schema)

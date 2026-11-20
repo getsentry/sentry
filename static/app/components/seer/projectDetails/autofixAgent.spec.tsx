@@ -5,6 +5,7 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 
 import type {DetailedProject} from 'sentry/types/project';
 import {NON_GITHUB_HANDOFF_WARNING} from 'sentry/utils/seer/preferredAgent';
+import {NON_GITHUB_PR_ITERATION_WARNING} from 'sentry/utils/seer/prIteration';
 
 import {AutofixAgent} from './autofixAgent';
 
@@ -219,7 +220,7 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite project={project} />, {organization});
 
     const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    expect(select).toBeEnabled();
+    await waitFor(() => expect(select).toBeEnabled());
     expect(screen.getByText('Off')).toBeInTheDocument();
   });
 
@@ -228,9 +229,9 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    await userEvent.click(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
-    );
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(select).toBeEnabled());
+    await userEvent.click(select);
     await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
 
     await waitFor(() =>
@@ -249,5 +250,69 @@ describe('AutofixAgent', () => {
     expect(
       await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
+  });
+
+  // The reason is shown via the field's DisabledTip lock icon.
+  async function expectPrIterationDisabledWithReason() {
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(select).toBeDisabled());
+    await userEvent.hover(await screen.findByRole('img', {name: 'Disabled'}));
+    expect(await screen.findByText(NON_GITHUB_PR_ITERATION_WARNING)).toBeInTheDocument();
+  }
+
+  it('disables Auto-Iterate on PRs and explains why when no repo is on github.com', async () => {
+    const putMock = mockEndpoints({repos: [seerRepo({provider: 'gitlab'})]});
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    await expectPrIterationDisabledWithReason();
+    // Shown as off, but the stored value is left alone.
+    expect(screen.getAllByText('Off').length).toBeGreaterThan(0);
+    expect(putMock).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({data: expect.objectContaining({prIteration: false})})
+    );
+  });
+
+  it('enables Auto-Iterate on PRs when any repo is on github.com', async () => {
+    mockEndpoints({
+      repos: [
+        seerRepo({id: '1', provider: 'integrations:github'}),
+        seerRepo({id: '3', provider: 'gitlab'}),
+      ],
+    });
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+  });
+
+  it('keeps Auto-Iterate on PRs disabled while the repos query is still loading', async () => {
+    mockEndpoints({repos: [seerRepo({provider: 'github'})], reposAsyncDelay: 100_000});
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    expect(
+      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+    ).toBeDisabled();
+    expect(screen.queryByRole('img', {name: 'Disabled'})).not.toBeInTheDocument();
+  });
+
+  it('keeps Auto-Iterate on PRs available when the repos request fails', async () => {
+    mockEndpoints({repos: []});
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/seer/repos/`,
+      method: 'GET',
+      statusCode: 500,
+      body: {},
+    });
+
+    render(<AutofixAgent canWrite project={project} />, {organization});
+
+    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
+    await waitFor(() => expect(select).toBeEnabled());
+    expect(screen.getByText('On')).toBeInTheDocument();
   });
 });

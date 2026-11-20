@@ -38,14 +38,46 @@ class InboxItemEventResponse(TypedDict):
     dateAdded: Annotated[datetime, ApiDescription("When the event was recorded")]
 
 
+class InboxSubjectProjectResponse(TypedDict):
+    id: Annotated[str, ApiDescription("The project ID")]
+    slug: Annotated[str, ApiDescription("The project slug")]
+
+
+class InboxIssueSubjectMetadataResponse(TypedDict):
+    shortId: Annotated[str, ApiDescription("The issue's short ID, such as PROJECT-1A")]
+    project: Annotated[InboxSubjectProjectResponse, ApiDescription("The issue's project")]
+
+
+class InboxEmptySubjectMetadataResponse(TypedDict):
+    """An empty metadata object."""
+
+
+class InboxIssueSubjectResponse(TypedDict):
+    id: Annotated[str, ApiDescription("The issue ID")]
+    type: Annotated[Literal["issue"], ApiDescription("The subject type")]
+    title: Annotated[str, ApiDescription("The issue's current title")]
+    metadata: Annotated[
+        InboxIssueSubjectMetadataResponse, ApiDescription("Issue-specific subject details")
+    ]
+
+
+class InboxNotebookSubjectResponse(TypedDict):
+    id: Annotated[str, ApiDescription("The notebook (investigation) ID")]
+    type: Annotated[Literal["notebook"], ApiDescription("The subject type")]
+    title: Annotated[str, ApiDescription("The notebook's current title")]
+    metadata: Annotated[
+        InboxEmptySubjectMetadataResponse, ApiDescription("Notebook-specific subject details")
+    ]
+
+
+InboxSubjectResponse = InboxIssueSubjectResponse | InboxNotebookSubjectResponse
+
+
 class InboxItemResponse(TypedDict):
     id: Annotated[str, ApiDescription("The inbox item ID")]
-    subjectType: Annotated[
-        str, ApiDescription("The subject type: issue or notebook (investigation)")
-    ]
-    subjectId: Annotated[str, ApiDescription("The subject ID within its subject type")]
-    title: Annotated[
-        str | None, ApiDescription("The subject's current title, or null if unavailable")
+    subject: Annotated[
+        InboxSubjectResponse,
+        ApiDescription("The issue or notebook (investigation) the item is about"),
     ]
     url: Annotated[str, ApiDescription("A link to the item's latest activity")]
     subtitle: Annotated[str, ApiDescription("The latest event's summary")]

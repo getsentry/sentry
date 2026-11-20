@@ -9,7 +9,7 @@ import threading
 from collections.abc import Callable, Generator, Iterator, MutableSequence, Sequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Generic, Literal, Mapping, TypeVar
 from urllib.parse import urlparse
 
 import pytest
@@ -98,9 +98,7 @@ class Browser:
         Adapted from https://stackoverflow.com/questions/41721734/take-screenshot-of-full-page-with-selenium-python-with-chromedriver/52572919#52572919
         """
 
-        return cast(
-            "int", self.driver.execute_script("return document.body.parentNode.scrollHeight")
-        )
+        return self.driver.execute_script("return document.body.parentNode.scrollHeight")
 
     def set_window_size(
         self,
@@ -374,9 +372,8 @@ class Browser:
         Retrieve all items in local storage
         """
 
-        return cast(
-            "dict[str, str]",
-            self.driver.execute_script("Object.fromEntries(Object.entries(window.localStorage));"),
+        return self.driver.execute_script(
+            "Object.fromEntries(Object.entries(window.localStorage));"
         )
 
     def get_local_storage_item(self, key: str) -> str | None:
@@ -384,9 +381,7 @@ class Browser:
         Retrieve key from local storage, this will fail if you use single quotes in your keys.
         """
 
-        return cast(
-            "str | None", self.driver.execute_script(f"window.localStorage.getItem('{key}')")
-        )
+        return self.driver.execute_script(f"window.localStorage.getItem('{key}')")
 
     def save_cookie(
         self,

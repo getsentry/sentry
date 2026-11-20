@@ -1397,7 +1397,7 @@ class OnDemandMetricSpec:
         return rule_condition
 
     def _extend_parsed_query(self, parsed_query_result: QueryParsingResult) -> QueryParsingResult:
-        conditions = cast(list[QueryToken], parsed_query_result.conditions)
+        conditions = parsed_query_result.conditions
 
         new_conditions: list[QueryToken] = []
         if self.environment is not None:

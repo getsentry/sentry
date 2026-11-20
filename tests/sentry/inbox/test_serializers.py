@@ -25,6 +25,7 @@ from sentry.inbox.notebook import (
     NotebookCompletedData,
     NotebookMentionedData,
     NotebookParticipantAddedData,
+    NotebookSubject,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxItemEventResponse
@@ -83,6 +84,7 @@ def test_latest_event_url(
 
     result = serialize(item, default_user, InboxItemSerializer())
 
+    assert result is not None
     assert result["latestEvent"]["id"] == str(latest.id)
     organization = default_group.organization
     expected_url = organization.absolute_url(
@@ -92,7 +94,7 @@ def test_latest_event_url(
 
 
 class InboxItemSerializerTest(TestCase):
-    def test_notebook_titles(self) -> None:
+    def test_notebook_subjects(self) -> None:
         first = self.create_notebook(organization=self.organization, title="First notebook")
         archived = self.create_notebook(
             organization=self.organization,
@@ -110,7 +112,7 @@ class InboxItemSerializerTest(TestCase):
         assert NOTEBOOK.get_subject_id(first) == str(first.id)
         assert NOTEBOOK.get_organization_id(first) == self.organization.id
         with self.assertNumQueries(1):
-            titles = NOTEBOOK.get_titles(
+            subjects = NOTEBOOK.get_subjects(
                 organization=self.organization,
                 subject_ids=[
                     str(first.id),
@@ -120,7 +122,10 @@ class InboxItemSerializerTest(TestCase):
                     "invalid",
                 ],
             )
-        assert titles == {str(first.id): "First notebook", str(archived.id): "Archived notebook"}
+        assert subjects == {
+            str(first.id): NotebookSubject(id=first.id, title="First notebook"),
+            str(archived.id): NotebookSubject(id=archived.id, title="Archived notebook"),
+        }
 
         items = [
             self.create_inbox_item(subject_type="notebook", subject_id=subject_id)
@@ -134,12 +139,16 @@ class InboxItemSerializerTest(TestCase):
         with self.assertNumQueries(3):
             results = serialize(items, self.user, InboxItemSerializer())
 
-        assert [result["title"] for result in results] == [
-            "First notebook",
-            "Archived notebook",
-            None,
-            None,
+        assert [result["subject"] for result in results if result is not None] == [
+            {"id": str(first.id), "type": "notebook", "title": "First notebook", "metadata": {}},
+            {
+                "id": str(archived.id),
+                "type": "notebook",
+                "title": "Archived notebook",
+                "metadata": {},
+            },
         ]
+        assert results[2:] == [None, None]
 
     def test_notebook_url_without_inbox_item(self) -> None:
         notebook = self.create_notebook(organization=self.organization, title="Notebook")
@@ -155,7 +164,8 @@ class InboxItemSerializerTest(TestCase):
 
     def test_bulk_summaries_and_unread_counts(self) -> None:
         first = self.create_group(project=self.project, data={"title": "First issue"})
-        second = self.create_group(project=self.project, data={"title": "Second issue"})
+        other_project = self.create_project()
+        second = self.create_group(project=other_project, data={"title": "Second issue"})
         older = before_now(minutes=5)
         item = self.create_inbox_item(subject_id=str(first.id), last_read_at=older)
         other = self.create_inbox_item(subject_id=str(second.id))
@@ -175,7 +185,17 @@ class InboxItemSerializerTest(TestCase):
         with self.assertNumQueries(3):
             results = serialize([item, other], self.user, InboxItemSerializer())
 
-        assert results[0]["title"] == "First issue"
+        assert results[0] is not None
+        assert results[1] is not None
+        assert results[0]["subject"] == {
+            "id": str(first.id),
+            "type": "issue",
+            "title": "First issue",
+            "metadata": {
+                "shortId": first.qualified_short_id,
+                "project": {"id": str(self.project.id), "slug": self.project.slug},
+            },
+        }
         assert results[0]["subtitle"] == "Mentioned you in a comment"
         assert results[0]["eventCount"] == 2
         assert results[0]["unreadEventCount"] == 1
@@ -186,14 +206,22 @@ class InboxItemSerializerTest(TestCase):
             f"/organizations/{self.organization.slug}/inbox/issue/{first.id}/",
             fragment="activity-123",
         )
-        assert results[1]["title"] == "Second issue"
+        assert results[1]["subject"] == {
+            "id": str(second.id),
+            "type": "issue",
+            "title": "Second issue",
+            "metadata": {
+                "shortId": second.qualified_short_id,
+                "project": {"id": str(other_project.id), "slug": other_project.slug},
+            },
+        }
         assert results[1]["url"] == self.organization.absolute_url(
             f"/organizations/{self.organization.slug}/inbox/issue/{second.id}/",
             fragment="activity-1",
         )
 
     def test_unregistered_event_type(self) -> None:
-        item = self.create_inbox_item(subject_type="removed.type", subject_id="missing")
+        item = self.create_inbox_item(subject_id=str(self.group.id))
         self.create_inbox_item_event(inbox_item=item, type="removed.event", data={})
 
         with pytest.raises(NoRegistrationExistsError, match="removed.event"):
@@ -205,14 +233,7 @@ class InboxItemSerializerTest(TestCase):
             inbox_item=item, data={"assignment_source": None, "activity_id": 1}
         )
 
-        result = serialize(item, self.user, InboxItemSerializer())
-
-        assert result["title"] is None
-        assert result["url"] == self.organization.absolute_url(
-            f"/organizations/{self.organization.slug}/inbox/issue/{self.group.id}/",
-            fragment="activity-1",
-        )
-        assert result["subtitle"] == "Assigned to you"
+        assert serialize(item, self.user, InboxItemSerializer()) is None
 
     def test_deleted_subject(self) -> None:
         group = self.create_group(project=self.project)
@@ -222,7 +243,7 @@ class InboxItemSerializerTest(TestCase):
         )
         group.delete()
 
-        assert serialize(item, self.user, InboxItemSerializer())["title"] is None
+        assert serialize(item, self.user, InboxItemSerializer()) is None
 
 
 class TestNotebookEvents:
@@ -295,7 +316,9 @@ class TestNotebookEvents:
         expected_url = default_organization.absolute_url(
             f"/organizations/{default_organization.slug}/inbox/notebook/{notebook.id}/"
         )
-        assert serialize(item, default_user, InboxItemSerializer())["url"] == expected_url
+        item_result = serialize(item, default_user, InboxItemSerializer())
+        assert item_result is not None
+        assert item_result["url"] == expected_url
 
 
 class InboxItemEventSerializerTest(TestCase):
