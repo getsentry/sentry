@@ -14,6 +14,7 @@ import {
 } from 'sentry/views/explore/conversations/hooks/useConversation';
 import {useConversationScrollRestoration} from 'sentry/views/explore/conversations/hooks/useConversationScrollRestoration';
 import {useConversationSelection} from 'sentry/views/explore/conversations/hooks/useConversationSelection';
+import type {ConversationMessage} from 'sentry/views/explore/conversations/utils/conversationMessages';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {getDefaultSelectedNode} from 'sentry/views/insights/pages/agents/utils/getDefaultSelectedNode';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
@@ -38,6 +39,8 @@ interface ConversationViewContentProps {
   activeTab: ConversationViewTab;
   conversation: UseConversationsOptions;
   focusedTool?: string | null;
+  /** The transcript, for a page that already built it. Passed to `MessagesPanel`. */
+  messages?: ConversationMessage[];
   onDeselectSpan?: () => void;
   onSelectSpan?: (spanId: string) => void;
   onViewTimeline?: () => void;
@@ -46,6 +49,7 @@ interface ConversationViewContentProps {
 
 export function ConversationViewContent({
   conversation,
+  messages,
   activeTab,
   selectedSpanId,
   onSelectSpan,
@@ -189,6 +193,7 @@ export function ConversationViewContent({
               <MessagesPanel
                 isLoading={isLoading}
                 nodes={nodes}
+                messages={messages}
                 selectedNodeId={displayedNode?.id ?? null}
                 onSelectNode={handleSelectAndOpenDetail}
                 onViewTimeline={onViewTimeline}

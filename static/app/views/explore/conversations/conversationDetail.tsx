@@ -157,6 +157,7 @@ function ConversationDetailPage() {
         <ConversationViewContainer>
           <ConversationViewContent
             conversation={conversation}
+            messages={messages}
             activeTab={activeTab}
             selectedSpanId={queryState.spanId}
             onSelectSpan={handleSelectSpan}

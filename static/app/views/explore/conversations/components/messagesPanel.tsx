@@ -57,6 +57,11 @@ interface MessagesPanelProps {
   selectedNodeId: string | null;
   isLoading?: boolean;
   /**
+   * The transcript of `nodes`, for a caller that already built it. Built here
+   * when omitted.
+   */
+  messages?: ConversationMessage[];
+  /**
    * Switches the conversation view to the Timeline tab. Surfaced from the
    * empty transcript state when a conversation has no inference spans.
    */
@@ -72,8 +77,12 @@ export function MessagesPanel({
   onSelectNode,
   onViewTimeline,
   isLoading,
+  messages: messagesProp,
 }: MessagesPanelProps) {
-  const messages = useMemo(() => extractMessagesFromNodes(nodes), [nodes]);
+  const messages = useMemo(
+    () => messagesProp ?? extractMessagesFromNodes(nodes),
+    [messagesProp, nodes]
+  );
   const systemPrompt = useMemo(() => getConversationSystemPrompt(nodes), [nodes]);
 
   const nodeMap = useMemo(() => {
