@@ -5,6 +5,7 @@ from uuid import uuid4
 
 import orjson
 from django.test import override_settings
+from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry.api.serializers import serialize
@@ -18,6 +19,12 @@ from sentry.issues.related.contributing import (
     NOT_A_METRIC_ISSUE_DETAIL,
     UNSUPPORTED_DATASET_DETAIL,
     UNSUPPORTED_QUERY_DETAIL,
+)
+from sentry.issues.related.same_supergroup import (
+    NON_ERROR_ISSUE_DETAIL,
+    NOT_ENABLED_DETAIL,
+    NOT_IN_A_SUPERGROUP_DETAIL,
+    SUPERGROUPS_UNAVAILABLE_DETAIL,
 )
 from sentry.issues.related.same_title import ERRORS_ONLY_DETAIL, NO_EVENT_DETAIL
 from sentry.issues.related.same_trace import NO_TRACE_DETAIL, TRACE_SEARCH_UNAVAILABLE_DETAIL
@@ -74,6 +81,7 @@ ERROR_EVENT_DATA = {
 # Only external services are mocked: Seer's HTTP call, and a Snuba query when a test needs it to
 # fail.
 SEER_URLOPEN = "sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen"
+SUPERGROUPS_URLOPEN = "sentry.seer.signed_seer_api.seer_autofix_default_connection_pool.urlopen"
 TRACE_SNUBA_QUERY = "sentry.issues.related.trace_connected.bulk_snuba_queries"
 ISSUE_SEARCH_SNUBA_QUERY = "sentry.search.snuba.executors.bulk_raw_query"
 
@@ -89,6 +97,32 @@ def detector_query(**overrides: Any) -> dict[str, Any]:
         "event_types": ["error", "default"],
         **overrides,
     }
+
+
+SUPERGROUP_FEATURES = [
+    "organizations:related-issues-supergroups",
+    "organizations:supergroups-lightweight-rca-clustering-write",
+]
+SUPERGROUP_TITLE = "Postgres connection pool exhaustion in checkout workers"
+
+
+def supergroups_response(*supergroups: list[int]) -> HTTPResponse:
+    """Seer's answer for the supergroups with these issues: one, or none when the issue isn't in one."""
+    data = [
+        {
+            "id": 4821,
+            "title": SUPERGROUP_TITLE,
+            "summary": "Checkout workers run out of database connections under load.",
+            "error_type": "OperationalError",
+            "code_area": "Checkout service",
+            "group_ids": group_ids,
+            "project_ids": [],
+            "created_at": "2024-01-01T00:00:00Z",
+            "updated_at": "2024-01-01T00:00:00Z",
+        }
+        for group_ids in supergroups
+    ]
+    return HTTPResponse(orjson.dumps({"data": data}), status=200)
 
 
 def seer_response(*matches: tuple[str, float]) -> HTTPResponse:
@@ -355,6 +389,11 @@ class GroupRelatedEndpointTest(
                         "eventId": latest_event.event_id,
                         "title": "No stack trace here",
                     },
+                    {
+                        "type": "same_supergroup",
+                        "status": "not_applicable",
+                        "detail": NOT_ENABLED_DETAIL,
+                    },
                 ]
             },
         }
@@ -400,6 +439,11 @@ class GroupRelatedEndpointTest(
                     "status": "ok",
                     "eventId": self.event.event_id,
                     "title": ERROR_TITLE,
+                },
+                {
+                    "type": "same_supergroup",
+                    "status": "not_applicable",
+                    "detail": NOT_ENABLED_DETAIL,
                 },
             ]
         }
@@ -518,6 +562,11 @@ class GroupRelatedEndpointTest(
                     "status": "not_applicable",
                     "detail": NO_EVENT_DETAIL,
                 },
+                {
+                    "type": "same_supergroup",
+                    "status": "not_applicable",
+                    "detail": NOT_ENABLED_DETAIL,
+                },
             ]
         }
         mock_seer_request.assert_not_called()
@@ -602,6 +651,11 @@ class GroupRelatedEndpointTest(
                         "eventId": self.event.event_id,
                         "title": ERROR_TITLE,
                     },
+                    {
+                        "type": "same_supergroup",
+                        "status": "not_applicable",
+                        "detail": NOT_ENABLED_DETAIL,
+                    },
                 ]
             },
         }
@@ -636,6 +690,11 @@ class GroupRelatedEndpointTest(
                     "status": "ok",
                     "eventId": self.event.event_id,
                     "title": ERROR_TITLE,
+                },
+                {
+                    "type": "same_supergroup",
+                    "status": "not_applicable",
+                    "detail": NOT_ENABLED_DETAIL,
                 },
             ]
         }
@@ -858,6 +917,147 @@ class GroupRelatedEndpointTest(
         assert [item["issue"]["id"] for item in response.data["data"]] == [str(match.group_id)]
         [meta] = response.data["meta"]["types"]
         assert meta["title"] == f"ValueError: {value}"
+
+    @mock.patch(SUPERGROUPS_URLOPEN)
+    def test_same_supergroup(self, mock_seer_request: mock.MagicMock) -> None:
+        # Closed membership: a member can read only their own teams' projects
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, role="member", teams=[self.team]
+        )
+        other_project = self.create_project(organization=self.organization, teams=[self.team])
+        hidden_project = self.create_project(
+            organization=self.organization, teams=[self.create_team(organization=self.organization)]
+        )
+        older_event = self.store_event(
+            data={
+                "message": "Pool timeout in cart",
+                "timestamp": before_now(minutes=5).isoformat(),
+            },
+            project_id=self.project.id,
+        )
+        recent_event = self.store_event(
+            data={
+                "message": "Pool timeout in checkout",
+                "timestamp": before_now(minutes=2).isoformat(),
+            },
+            project_id=other_project.id,
+        )
+        hidden_event = self.store_event(
+            data={"message": "Pool timeout in billing"}, project_id=hidden_project.id
+        )
+        assert older_event.group and recent_event.group and hidden_event.group
+        # Seer returns every issue in the supergroup, this one included
+        mock_seer_request.return_value = supergroups_response(
+            [self.group.id, older_event.group.id, recent_event.group.id, hidden_event.group.id]
+        )
+        self.login_as(member)
+
+        with self.feature(SUPERGROUP_FEATURES):
+            response = self.client.get(self.path, {"type": "same_supergroup"})
+
+        assert response.status_code == 200
+        # Most recently seen first, without this issue or the one the member can't read
+        assert response.data == {
+            "data": [
+                {
+                    "issue": serialize(Group.objects.get(id=recent_event.group.id), member),
+                    "relations": [{"type": "same_supergroup"}],
+                },
+                {
+                    "issue": serialize(Group.objects.get(id=older_event.group.id), member),
+                    "relations": [{"type": "same_supergroup"}],
+                },
+            ],
+            "meta": {
+                "types": [
+                    {
+                        "type": "same_supergroup",
+                        "status": "ok",
+                        "supergroup": {"id": "4821", "title": SUPERGROUP_TITLE},
+                    }
+                ]
+            },
+        }
+        seer_request = orjson.loads(mock_seer_request.call_args.kwargs["body"])
+        assert seer_request == {
+            "organization_id": self.organization.id,
+            "group_ids": [self.group.id],
+        }
+
+    @mock.patch(SUPERGROUPS_URLOPEN)
+    def test_same_supergroup_not_applicable(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.return_value = supergroups_response()
+        metric_issue = self.create_group(project=self.project, type=MetricIssue.type_id)
+
+        # Without the clustering flag, Seer builds no supergroups for the organization
+        with self.feature("organizations:related-issues-supergroups"):
+            response = self.client.get(self.path, {"type": "same_supergroup"})
+
+        assert response.data["meta"]["types"] == [
+            {"type": "same_supergroup", "status": "not_applicable", "detail": NOT_ENABLED_DETAIL}
+        ]
+
+        with self.feature(SUPERGROUP_FEATURES):
+            response = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/issues/{metric_issue.id}/related/",
+                {"type": "same_supergroup"},
+            )
+
+        assert response.data["meta"]["types"] == [
+            {
+                "type": "same_supergroup",
+                "status": "not_applicable",
+                "detail": NON_ERROR_ISSUE_DETAIL,
+            }
+        ]
+        mock_seer_request.assert_not_called()
+
+        # An error issue Seer hasn't put in a supergroup
+        with self.feature(SUPERGROUP_FEATURES):
+            response = self.client.get(self.path, {"type": "same_supergroup"})
+
+        assert response.data["meta"]["types"] == [
+            {
+                "type": "same_supergroup",
+                "status": "not_applicable",
+                "detail": NOT_IN_A_SUPERGROUP_DETAIL,
+            }
+        ]
+
+    @mock.patch(SUPERGROUPS_URLOPEN)
+    def test_supergroups_error(self, mock_seer_request: mock.MagicMock) -> None:
+        mock_seer_request.side_effect = [
+            HTTPResponse(b"", status=500),
+            Urllib3TimeoutError("Read timed out."),
+        ]
+
+        with self.feature(SUPERGROUP_FEATURES):
+            responses = [
+                self.client.get(self.path, {"type": "same_supergroup"}),
+                self.client.get(self.path, {"type": ["same_supergroup", "same_title"]}),
+            ]
+
+        # The only requested type failed
+        assert responses[0].status_code == 503
+        assert responses[0].data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
+        # same_title still answered
+        assert responses[1].status_code == 200
+        assert responses[1].data["meta"]["types"] == [
+            {
+                "type": "same_title",
+                "status": "ok",
+                "eventId": self.event.event_id,
+                "title": ERROR_TITLE,
+            },
+            {
+                "type": "same_supergroup",
+                "status": "unavailable",
+                "detail": SUPERGROUPS_UNAVAILABLE_DETAIL,
+            },
+        ]
 
     @mock.patch(ISSUE_SEARCH_SNUBA_QUERY, side_effect=QueryExecutionError("timeout"))
     def test_issue_search_error(self, mock_snuba_query: mock.MagicMock) -> None:

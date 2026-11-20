@@ -15,6 +15,7 @@ from sentry.issues.related.types import (
     RelatedIssuesResponse,
     RelationType,
     RelationTypeStatus,
+    SameSupergroupMeta,
     SameTitleMeta,
     SameTraceMeta,
     SimilarStacktraceMeta,
@@ -343,6 +344,7 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 {"type": RelationType.SIMILAR_STACKTRACE, "score": 0.9787},
                 {"type": RelationType.SAME_TRACE},
                 {"type": RelationType.SAME_TITLE},
+                {"type": RelationType.SAME_SUPERGROUP},
             ],
         }
     ],
@@ -369,6 +371,14 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                 status=RelationTypeStatus.OK,
                 eventId="60fc17404bf4445c81675be939ef74d6",
                 title="ValueError: invalid literal for int() with base 10: 'abc'",
+            ),
+            SameSupergroupMeta(
+                type=RelationType.SAME_SUPERGROUP,
+                status=RelationTypeStatus.OK,
+                supergroup={
+                    "id": numeric_id("4821"),
+                    "title": "Unvalidated quantity strings parsed as integers in order forms",
+                },
             ),
         ],
     },

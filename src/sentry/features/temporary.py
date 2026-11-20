@@ -588,6 +588,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
 
     # Enable lightweight RCA clustering write path (generate embeddings on new issues)
     manager.add("organizations:supergroups-lightweight-rca-clustering-write", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Return issues in the same supergroup from the related issues endpoint (type=same_supergroup)
+    manager.add("organizations:related-issues-supergroups", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
 
     manager.add("projects:workflow-engine-performance-detectors", ProjectFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
 

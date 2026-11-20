@@ -18,6 +18,7 @@ def get_supergroups_by_group_ids(
     group_ids: Sequence[int],
     *,
     user_id: int | None = None,
+    timeout: float = 10,
 ) -> SupergroupsByGroupIdsResponse:
     response = make_supergroups_get_by_group_ids_request(
         {
@@ -25,7 +26,7 @@ def get_supergroups_by_group_ids(
             "group_ids": list(group_ids),
         },
         SeerViewerContext(organization_id=organization.id, user_id=user_id),
-        timeout=10,
+        timeout=timeout,
     )
     if response.status >= 400:
         raise SeerApiError("Seer request failed", response.status)
