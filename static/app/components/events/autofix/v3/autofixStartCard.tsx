@@ -127,7 +127,7 @@ export function AutofixStartCard({
           variant="muted"
         />
       ) : null}
-      <Flex borderColor="muted" radius="md" padding="lg" containerType="inline-size">
+      <Flex borderColor="secondary" radius="md" padding="lg" containerType="inline-size">
         <Flex
           gap="lg"
           width="100%"
@@ -186,7 +186,7 @@ export function AutofixStartCard({
 function LegacyStartCardContent() {
   return (
     <Flex
-      borderColor="muted"
+      borderColor="secondary"
       radius="md"
       padding="lg"
       gap="lg"

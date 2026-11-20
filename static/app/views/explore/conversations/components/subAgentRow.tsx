@@ -86,7 +86,7 @@ export function SubAgentRow({
       }}
     >
       <Container padding="xs 0 xs sm">
-        <Container borderLeftColor="muted" paddingLeft="md">
+        <Container borderLeftColor="secondary" paddingLeft="md">
           {renderMessages(call.messages, selectedNodeId)}
         </Container>
       </Container>

@@ -222,22 +222,7 @@ function resolveMargin(sizeComponent: Margin, theme: Theme) {
   return theme.space[sizeComponent] ?? theme.space['0'];
 }
 
-function borderValue(key: Exclude<BorderVariant, 'none'>, theme: Theme): string {
-  switch (key) {
-    case 'muted':
-      return theme.tokens.border.secondary;
-    case 'accent':
-    case 'danger':
-    case 'promotion':
-    case 'success':
-    case 'warning':
-      return theme.tokens.border[key].vibrant;
-    default:
-      return resolveBorderToken(key, theme);
-  }
-}
-
-function resolveBorderToken(path: BorderToken, theme: Theme): string {
+function borderValue(path: BorderToken, theme: Theme): string {
   let node: unknown = theme.tokens.border;
   for (const segment of path.split('.')) {
     node = (node as Record<string, unknown>)[segment];
@@ -260,7 +245,7 @@ export function getBorder(
 
   return border
     .split(' ')
-    .map(b => `1px solid ${borderValue(b as Exclude<BorderVariant, 'none'>, theme)}`)
+    .map(b => `1px solid ${borderValue(b as BorderToken, theme)}`)
     .join(' ');
 }
 

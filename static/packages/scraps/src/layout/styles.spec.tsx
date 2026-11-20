@@ -204,15 +204,6 @@ describe('getBorder', () => {
     expect(paths).toHaveLength(40);
   });
 
-  it('resolves shorthands to their tokens', () => {
-    expect(getBorder('muted', undefined, theme)).toBe(
-      `1px solid ${theme.tokens.border.secondary}`
-    );
-    expect(getBorder('accent', undefined, theme)).toBe(
-      `1px solid ${theme.tokens.border.accent.vibrant}`
-    );
-  });
-
   it('returns "none" so a border can be turned off responsively', () => {
     expect(getBorder('none', undefined, theme)).toBe('none');
   });

@@ -73,7 +73,7 @@ function VisualizationCell({detector}: {detector: CronDetector}) {
     <SimpleTable.RowCell
       column="-3 / -1"
       padding="lg 0"
-      borderLeftColor="muted"
+      borderLeftColor="secondary"
       height="100%"
     >
       <Stack gap="sm" width="100%" ref={elementRef}>
@@ -247,7 +247,7 @@ export default function CronDetectorsList() {
             <SimpleTable.RowCell
               column="-3 / -1"
               padding="lg 0"
-              borderLeftColor="muted"
+              borderLeftColor="secondary"
               height="100%"
             >
               <CheckInPlaceholder />

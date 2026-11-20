@@ -68,16 +68,7 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'transparent.success.moderate'
     | 'transparent.success.vibrant'
   >();
-  expectTypeOf<BorderVariant>().toEqualTypeOf<
-    | BorderToken
-    | 'accent'
-    | 'danger'
-    | 'promotion'
-    | 'success'
-    | 'warning'
-    | 'muted'
-    | 'none'
-  >();
+  expectTypeOf<BorderVariant>().toEqualTypeOf<BorderToken | 'none'>();
   expectTypeOf<TagVariant>().toEqualTypeOf<
     'muted' | 'info' | 'success' | 'warning' | 'danger' | 'promotion'
   >();

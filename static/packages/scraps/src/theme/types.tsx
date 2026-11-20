@@ -90,16 +90,9 @@ type TokenPath<T> = {
 export type BorderToken = TokenPath<(typeof lightTheme)['tokens']['border']>;
 
 /**
- * Border color variant: any border token path, `none`, or a shorthand.
- *
- * - `muted`: `tokens.border.secondary`
- * - `accent`, `danger`, `promotion`, `success`, `warning`: `tokens.border.<variant>.vibrant`
+ * Border color variant: a border token path, or `none` to remove the border.
  */
-export type BorderVariant =
-  | BorderToken
-  | Exclude<SemanticVariant, 'neutral'>
-  | 'muted'
-  | 'none';
+export type BorderVariant = BorderToken | 'none';
 
 // Component Variants (should be moved locally, aligned to SemanticVariant)
 

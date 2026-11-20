@@ -177,7 +177,7 @@ function SelectorCardPlaceholder() {
   return (
     <Fragment>
       <Container paddingTop="md" />
-      <LoadingContainer borderTopColor="muted">
+      <LoadingContainer borderTopColor="secondary">
         <Stack gap="xs">
           <Placeholder style={{height: '32px'}} />
           <Placeholder style={{height: '32px'}} />

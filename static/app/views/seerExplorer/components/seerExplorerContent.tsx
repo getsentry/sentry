@@ -1131,7 +1131,7 @@ function RestartNotice({onCancel}: {onCancel: () => void}) {
       gap="md"
       padding="md lg"
       radius="md"
-      borderColor="accent"
+      borderColor="accent.vibrant"
       background="secondary"
       data-test-id="seer-explorer-restart-notice"
     >

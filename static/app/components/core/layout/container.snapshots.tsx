@@ -45,12 +45,6 @@ const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
   'transparent.success.muted',
   'transparent.success.moderate',
   'transparent.success.vibrant',
-  'muted',
-  'accent',
-  'danger',
-  'warning',
-  'success',
-  'promotion',
 ];
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
@@ -92,7 +86,7 @@ describe('Container', () => {
         <Swatch borderRightColor="primary">right</Swatch>
         <Swatch borderBottomColor="primary">bottom</Swatch>
         <Swatch borderLeftColor="primary">left</Swatch>
-        <Swatch borderColor="primary" borderTopColor="danger">
+        <Swatch borderColor="primary" borderTopColor="danger.vibrant">
           danger top
         </Swatch>
         <Swatch borderColor="primary" borderBottomColor="none">
@@ -115,7 +109,9 @@ describe('Container', () => {
         width="100%"
         background="primary"
       >
-        <Swatch borderColor={{zero: 'primary', md: 'danger'}}>primary → danger</Swatch>
+        <Swatch borderColor={{zero: 'primary', md: 'danger.vibrant'}}>
+          primary → danger
+        </Swatch>
         <Swatch borderBottomColor={{zero: 'primary', md: 'none'}}>bottom → none</Swatch>
       </Flex>
     ),

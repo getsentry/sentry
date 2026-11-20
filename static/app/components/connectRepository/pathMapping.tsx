@@ -44,7 +44,11 @@ export function PathMapping({
   const hasWarning = isExactWarning(warning);
 
   return (
-    <Stack borderColor={hasWarning ? 'warning' : 'muted'} radius="md" overflow="hidden">
+    <Stack
+      borderColor={hasWarning ? 'warning.vibrant' : 'secondary'}
+      radius="md"
+      overflow="hidden"
+    >
       {showSummary && (
         <PathMappingSummary
           {...value}
@@ -56,7 +60,7 @@ export function PathMapping({
           onExpandToggle={onExpandToggle}
         />
       )}
-      {showSummary && editing && <Container borderTopColor="muted" />}
+      {showSummary && editing && <Container borderTopColor="secondary" />}
       {editing && (
         <PathMappingEdit
           // TODO(scttcper): Remove once TanStack Form's useFieldGroup handles `fields`

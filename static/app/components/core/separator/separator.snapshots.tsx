@@ -5,11 +5,11 @@ import type {BorderVariant} from '@sentry/scraps/theme';
 
 const COLORS: BorderVariant[] = [
   'primary',
-  'muted',
+  'secondary',
   'accent.moderate',
   'transparent.neutral.muted',
   'transparent.danger.moderate',
-  'danger',
+  'danger.vibrant',
 ];
 
 describe('Separator', () => {

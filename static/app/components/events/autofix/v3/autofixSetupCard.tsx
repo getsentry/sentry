@@ -69,7 +69,7 @@ export function AutofixSetupCard({group, project, setupType}: AutofixSetupCardPr
   return (
     <Stack
       background="primary"
-      borderColor="muted"
+      borderColor="secondary"
       radius="md"
       padding="lg"
       gap="lg"

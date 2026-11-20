@@ -407,7 +407,7 @@ function FaultPanel({crash}: {crash: GPUCrashContext}) {
   ].filter(([, value]) => defined(value) && value !== '');
 
   return (
-    <Container borderColor="danger" radius="md" padding="lg">
+    <Container borderColor="danger.vibrant" radius="md" padding="lg">
       <Stack gap="lg">
         <Flex gap="sm" align="center">
           <IconWarning size="sm" />
@@ -472,7 +472,12 @@ function LastOperation({marker, operation}: {operation: string; marker?: RawCrum
     .join(' · ');
 
   return (
-    <Container background="secondary" borderColor="accent" radius="md" padding="lg">
+    <Container
+      background="secondary"
+      borderColor="accent.vibrant"
+      radius="md"
+      padding="lg"
+    >
       <Stack gap="xs">
         <Flex gap="xs" align="center">
           <Text size="xs" variant="muted" uppercase>
@@ -508,7 +513,7 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
   return (
     <Grid columns="repeat(auto-fit, minmax(320px, 1fr))" gap="lg" align="start">
       {markers.length ? (
-        <Container borderColor="muted" radius="md" padding="md">
+        <Container borderColor="secondary" radius="md" padding="md">
           <Stack gap="sm">
             <Flex gap="xs" align="center">
               <Text size="xs" bold uppercase variant="muted">
@@ -543,7 +548,7 @@ function Markers({crumbs}: {crumbs: RawCrumb[]}) {
         </Container>
       ) : null}
       {callstack.length ? (
-        <Container borderColor="muted" radius="md" padding="md">
+        <Container borderColor="secondary" radius="md" padding="md">
           <Stack gap="sm">
             <Flex gap="xs" align="center">
               <Text size="xs" bold uppercase variant="muted">

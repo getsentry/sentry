@@ -85,8 +85,8 @@ function HiddenStepsRow({
   return (
     <Container
       padding="sm md"
-      borderBottomColor={position === 'top' ? 'muted' : undefined}
-      borderTopColor={position === 'bottom' ? 'muted' : undefined}
+      borderBottomColor={position === 'top' ? 'secondary' : undefined}
+      borderTopColor={position === 'bottom' ? 'secondary' : undefined}
     >
       <Text size="sm" variant="muted">
         <Link

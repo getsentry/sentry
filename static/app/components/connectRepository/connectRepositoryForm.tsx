@@ -31,7 +31,7 @@ import {hasExactDuplicate} from './warnings';
 function PathsPlaceholder() {
   return (
     <Container
-      borderColor="muted"
+      borderColor="secondary"
       radius="md"
       padding="2xl"
       style={{borderStyle: 'dashed'}}

@@ -106,7 +106,7 @@ export function PreprodOnboardingPanel({platform, onDocsClick}: Props) {
             display={{sm: 'none', '2xl': 'block'}}
             flex={1}
             minWidth={0}
-            borderLeftColor="muted"
+            borderLeftColor="secondary"
             paddingLeft="xl"
           >
             <iframe
