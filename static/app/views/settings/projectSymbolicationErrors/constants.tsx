@@ -142,7 +142,7 @@ export const GUIDES: Record<GuideKey, GuideStep[]> = {
     },
     {
       text: t(
-        'If your server needs authentication, set the "Security Token" of this project. This token belongs to the project. It is not a personal token or an organization token. You find it under "Client Security" in the general settings of the project. Sentry sends it as a header with each request to your "Allowed Domains".'
+        'If your server needs authentication, set the "Security Token" of this project. You find it under "Client Security" in the general settings of the project. Sentry sends it as a header with each request to your "Allowed Domains".'
       ),
     },
     {
