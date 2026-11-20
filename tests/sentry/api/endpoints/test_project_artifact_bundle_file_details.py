@@ -2,23 +2,21 @@ import base64
 import io
 import zipfile
 from typing import Any
-from uuid import uuid4
 
 import orjson
 from django.urls import reverse
 
-from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
-from sentry.models.files.file import File
+from sentry.models.artifactbundle import ProjectArtifactBundle
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.response import close_streaming_response
+from sentry.testutils.objectstore import artifact_bundles_test_both_backends
 
 
+@artifact_bundles_test_both_backends
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
-    def get_compressed_zip_file(
-        artifact_name: str, files: dict[str, Any], type: str = "artifact.bundle"
-    ) -> File:
+    def get_compressed_zip_file(files: dict[str, Any]) -> bytes:
         def remove_and_return(dictionary: dict[str, Any], key: str) -> dict[str, Any]:
             dictionary.pop(key)
             return dictionary
@@ -40,18 +38,12 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
                     }
                 ).decode(),
             )
-        compressed.seek(0)
-
-        file = File.objects.create(name=artifact_name, type=type)
-        file.putfile(compressed)
-
-        return file
+        return compressed.getvalue()
 
     def test_archive_download(self) -> None:
         project = self.create_project(name="foo")
 
-        file = self.get_compressed_zip_file(
-            "bundle.zip",
+        payload = self.get_compressed_zip_file(
             {
                 "files/_/_/index.js.map": {
                     "url": "~/index.js.map",
@@ -73,9 +65,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
             },
         )
 
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
-        )
+        artifact_bundle = self.create_artifact_bundle(payload=payload, artifact_count=2)
         ProjectArtifactBundle.objects.create(
             organization_id=self.organization.id,
             project_id=project.id,
@@ -221,8 +211,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     def test_archive_download_with_invalid_project(self) -> None:
         project = self.create_project(name="foo")
 
-        file = self.get_compressed_zip_file(
-            "bundle.zip",
+        payload = self.get_compressed_zip_file(
             {
                 "files/_/_/index.js.map": {
                     "url": "~/index.js.map",
@@ -244,9 +233,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
             },
         )
 
-        artifact_bundle = ArtifactBundle.objects.create(
-            organization_id=self.organization.id, bundle_id=uuid4(), file=file, artifact_count=2
-        )
+        artifact_bundle = self.create_artifact_bundle(payload=payload, artifact_count=2)
 
         # Download as a superuser
         url = reverse(
