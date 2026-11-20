@@ -67,6 +67,13 @@ class DetectorException(Exception):
     pass
 
 
+class ActionTargetNotFoundError(ValueError):
+    """
+    The action's target no longer exists, for example a Sentry App that was uninstalled.
+    Retrying can't succeed until someone updates the action.
+    """
+
+
 class DetectorType(StrEnum):
     """Detector implementation identities. Values are persisted and used by the API."""
 

@@ -11,6 +11,7 @@ from sentry.notifications.notification_action.registry import activity_handler_r
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
+from sentry.workflow_engine.types import ActionTargetNotFoundError
 from sentry.workflow_engine.typings.notification_action import ActionTarget
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
@@ -290,8 +291,11 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
         mock_task.delay.assert_called_once()
         assert mock_task.delay.call_args[1]["sentry_app_id"] == self.sentry_app.id
 
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_failure")
     @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
-    def test_missing_installation_raises(self, mock_task: mock.MagicMock) -> None:
+    def test_missing_installation_raises(
+        self, mock_task: mock.MagicMock, mock_record_failure: mock.MagicMock
+    ) -> None:
         self.action.update(
             config={"target_identifier": "99999", "target_type": ActionTarget.SENTRY_APP.value}
         )
@@ -307,7 +311,8 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
             workflow_id=self.workflow.id,
         )
 
-        with pytest.raises(ValueError, match="Expected 1 sentry app installation"):
+        with pytest.raises(ActionTargetNotFoundError):
             SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
         mock_task.delay.assert_not_called()
+        mock_record_failure.assert_not_called()
