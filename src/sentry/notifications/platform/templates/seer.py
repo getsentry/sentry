@@ -82,7 +82,7 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
         )
 
 
-# The thread is public, so everyone gets the same copy. NO_RELOADS is for auto-reload already on.
+# NO_RELOADS is for when auto-reload is already on.
 AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
 
