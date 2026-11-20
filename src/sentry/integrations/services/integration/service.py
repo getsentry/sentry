@@ -371,5 +371,18 @@ class IntegrationService(RpcService):
     ) -> str | None:
         pass
 
+    @rpc_method
+    @abstractmethod
+    def get_jira_integration_by_client_key(
+        self,
+        *,
+        client_key: str,
+    ) -> RpcIntegration | None:
+        """
+        Returns the Jira integration for a Connect clientKey, including one already
+        rekeyed to its cloud ID. Temporary, for Connect requests while Jira integrations
+        move to cloud ID keys.
+        """
+
 
 integration_service = IntegrationService.create_delegation()

@@ -8,6 +8,7 @@ __all__ = (
     "Integration",
     "IntegrationExternalProject",
     "IntegrationFeature",
+    "JiraConnectClientKey",
     "OrganizationIntegration",
     "ProjectIntegration",
     "RepositoryProjectPathConfig",
@@ -23,5 +24,6 @@ from .gcp_service_account import GcpServiceAccount
 from .integration import Integration
 from .integration_external_project import IntegrationExternalProject
 from .integration_feature import IntegrationFeature
+from .jira_connect_client_key import JiraConnectClientKey
 from .organization_integration import OrganizationIntegration
 from .repository_project_path_config import RepositoryProjectPathConfig

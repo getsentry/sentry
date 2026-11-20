@@ -11,6 +11,7 @@ from rest_framework import status
 
 from sentry.constants import ObjectStatus
 from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.jira_connect_client_key import JiraConnectClientKey
 from sentry.integrations.project_management.metrics import ProjectManagementFailuresReason
 from sentry.integrations.types import EventLifecycleOutcome
 from sentry.integrations.utils.atlassian_connect import (
@@ -252,6 +253,38 @@ class JiraInstalledTest(APITestCase):
         assert integration.metadata["shared_secret"] == self.shared_secret
         assert integration.metadata["icon"] == "https://example.com/icon.png"
 
+    @responses.activate
+    def test_reinstall_updates_integration_rekeyed_to_cloud_id(self) -> None:
+        self.add_response()
+        integration = self.create_provider_integration(
+            provider="jira", external_id="cloud-id", metadata={"shared_secret": "old-secret"}
+        )
+        self.create_jira_connect_client_key(integration=integration, client_key=self.external_id)
+
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+        )
+
+        assert list(Integration.objects.filter(provider="jira")) == [integration]
+        integration.refresh_from_db()
+        assert integration.external_id == "cloud-id"
+        assert integration.metadata["shared_secret"] == self.shared_secret
+
+    @responses.activate
+    def test_records_client_key(self) -> None:
+        self.add_response()
+
+        self.get_success_response(
+            **self.body(),
+            extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn()),
+        )
+
+        integration = Integration.objects.get(provider="jira", external_id=self.external_id)
+        assert (
+            JiraConnectClientKey.objects.get(client_key=self.external_id).integration == integration
+        )
+
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate
     def test_missing_expiration(self, mock_record_event: MagicMock) -> None:
@@ -265,6 +298,26 @@ class JiraInstalledTest(APITestCase):
         )
 
         assert_halt_metric(mock_record_event, "JWT is missing required claim")
+
+    @responses.activate
+    def test_ignores_unsigned_client_key(self) -> None:
+        self.add_response()
+        # The token is for this site and the body's external_id matches it, but the body
+        # names another site's clientKey, which the token doesn't vouch for.
+        body = {
+            **self.body(client_key="some-other-tenant"),
+            "external_id": self.external_id,
+            "metadata": {
+                "shared_secret": self.shared_secret,
+                "base_url": "https://example.atlassian.net",
+            },
+        }
+
+        self.get_success_response(
+            **body, extra_headers=dict(HTTP_AUTHORIZATION="JWT " + self.jwt_token_cdn())
+        )
+
+        assert not JiraConnectClientKey.objects.filter(client_key="some-other-tenant").exists()
 
     @patch("sentry.integrations.utils.metrics.EventLifecycle.record_event")
     @responses.activate

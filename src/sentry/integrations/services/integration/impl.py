@@ -29,6 +29,7 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.models.gcp_service_account import GcpServiceAccount
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
+from sentry.integrations.models.jira_connect_client_key import get_jira_integration_by_client_key
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.metrics import record_lifecycle_termination_level
@@ -671,6 +672,10 @@ class DatabaseBackedIntegrationService(IntegrationService):
         except GcpServiceAccount.DoesNotExist:
             return None
         return sa.service_account_email
+
+    def get_jira_integration_by_client_key(self, *, client_key: str) -> RpcIntegration | None:
+        integration = get_jira_integration_by_client_key(client_key)
+        return serialize_integration(integration) if integration else None
 
     def refresh_github_access_token(
         self, *, integration_id: int, organization_id: int
