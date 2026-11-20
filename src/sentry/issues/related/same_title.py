@@ -14,7 +14,6 @@ from django.utils import timezone
 from sentry import search
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
-from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.contributing import ISSUE_SEARCH_UNAVAILABLE_DETAIL
 from sentry.issues.related.types import (
     RelatedIssueRelation,
@@ -42,8 +41,6 @@ SEARCH_RANGE = timedelta(days=14)
 def same_title_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     """Error issues in the project with the same title as `ctx.event`, most recently seen first."""
     group, event = ctx.group, ctx.event
-    if group.issue_category != GroupCategory.ERROR:
-        return _result(RelationTypeStatus.NOT_APPLICABLE, detail=ERRORS_ONLY_DETAIL)
     if event is None:
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NO_EVENT_DETAIL)
 

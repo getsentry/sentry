@@ -6,15 +6,12 @@ for one of the issue's events and groups issues whose root causes describe the s
 project of the organization. An issue is in at most one supergroup.
 """
 
-from collections.abc import Sequence
-
 import orjson
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
 from sentry import features
 from sentry.auth.principal import acting_user_id
-from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.types import (
     RelatedIssueRelation,
     RelatedIssuesContext,
@@ -25,7 +22,6 @@ from sentry.issues.related.types import (
     SameSupergroupMeta,
 )
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.seer.models import SeerApiError
 from sentry.seer.supergroups.by_group import get_supergroups_by_group_ids
 
@@ -46,12 +42,10 @@ SUPERGROUPS_UNAVAILABLE_DETAIL = "Supergroups are temporarily unavailable. Try a
 SEER_TIMEOUT = 1
 
 
-def same_supergroup_issues(
-    ctx: RelatedIssuesContext, projects: Sequence[Project]
-) -> RelationTypeResult:
+def same_supergroup_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     """
-    The other issues in this issue's supergroup that are in `projects`, most recently seen first. A
-    supergroup can cross projects, so callers pass every project the user can read.
+    The other issues in this issue's supergroup that the caller can read, most recently seen first.
+    A supergroup can cross projects.
     """
     group = ctx.group
     organization = group.project.organization
@@ -61,8 +55,6 @@ def same_supergroup_issues(
         and features.has("organizations:supergroups-lightweight-rca-clustering-write", organization)
     ):
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NOT_ENABLED_DETAIL)
-    if group.issue_category != GroupCategory.ERROR:
-        return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NON_ERROR_ISSUE_DETAIL)
 
     try:
         response = get_supergroups_by_group_ids(
@@ -77,7 +69,8 @@ def same_supergroup_issues(
     # Seer returns every issue in the supergroup, including ones in projects the caller can't read
     group_ids = (
         Group.objects.filter(
-            id__in=supergroup["group_ids"], project_id__in=[project.id for project in projects]
+            id__in=supergroup["group_ids"],
+            project_id__in=[project.id for project in ctx.readable_projects],
         )
         .exclude(id=group.id)
         .order_by("-last_seen")

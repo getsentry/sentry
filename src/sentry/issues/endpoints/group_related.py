@@ -25,17 +25,7 @@ from sentry.constants import ObjectStatus
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.combine import combine
-from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
-from sentry.issues.related.same_supergroup import (
-    SAME_SUPERGROUP_DESCRIPTION,
-    same_supergroup_issues,
-)
-from sentry.issues.related.same_title import SAME_TITLE_DESCRIPTION, same_title_issues
-from sentry.issues.related.same_trace import SAME_TRACE_DESCRIPTION, same_trace_issues
-from sentry.issues.related.similar_stacktrace import (
-    SIMILAR_STACKTRACE_DESCRIPTION,
-    similar_stacktrace_issues,
-)
+from sentry.issues.related.registry import RELATION_TYPES, find_related_issues
 from sentry.issues.related.types import (
     RelatedIssuesContext,
     RelatedIssuesResponse,
@@ -59,11 +49,7 @@ EVENT_NOT_FOUND_DETAIL = (
 
 # Each type and what it finds. The type parameter's description lists them.
 TYPE_DESCRIPTIONS = [
-    (RelationType.SIMILAR_STACKTRACE.value, SIMILAR_STACKTRACE_DESCRIPTION),
-    (RelationType.SAME_TRACE.value, SAME_TRACE_DESCRIPTION),
-    (RelationType.CONTRIBUTING.value, CONTRIBUTING_DESCRIPTION),
-    (RelationType.SAME_TITLE.value, SAME_TITLE_DESCRIPTION),
-    (RelationType.SAME_SUPERGROUP.value, SAME_SUPERGROUP_DESCRIPTION),
+    (definition.type.value, definition.description) for definition in RELATION_TYPES
 ]
 
 
@@ -152,23 +138,14 @@ class GroupRelatedEndpoint(GroupEndpoint):
             event=event,
             limit=params["limit"],
             user=request.user,
+            readable_projects=_readable_projects(request, group.project.organization_id),
         )
         requested_types = params.get("type")  # empty means all
-        results: dict[RelationType, RelationTypeResult] = {}
-        if not requested_types or RelationType.SIMILAR_STACKTRACE in requested_types:
-            results[RelationType.SIMILAR_STACKTRACE] = similar_stacktrace_issues(ctx)
-        if not requested_types or RelationType.SAME_TRACE in requested_types:
-            results[RelationType.SAME_TRACE] = same_trace_issues(
-                ctx, _readable_projects(request, group.project.organization_id)
-            )
-        if not requested_types or RelationType.CONTRIBUTING in requested_types:
-            results[RelationType.CONTRIBUTING] = contributing_issues(ctx)
-        if not requested_types or RelationType.SAME_TITLE in requested_types:
-            results[RelationType.SAME_TITLE] = same_title_issues(ctx)
-        if not requested_types or RelationType.SAME_SUPERGROUP in requested_types:
-            results[RelationType.SAME_SUPERGROUP] = same_supergroup_issues(
-                ctx, _readable_projects(request, group.project.organization_id)
-            )
+        results: dict[RelationType, RelationTypeResult] = {
+            definition.type: find_related_issues(definition, ctx)
+            for definition in RELATION_TYPES
+            if not requested_types or definition.type in requested_types
+        }
 
         if all(
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()

@@ -7,8 +7,6 @@ It reuses trace_connected_issues(), which also backs the trace section of the Si
 90 days.
 """
 
-from collections.abc import Sequence
-
 from sentry.issues.related.trace_connected import trace_connected_issues
 from sentry.issues.related.types import (
     RelatedIssueRelation,
@@ -19,7 +17,6 @@ from sentry.issues.related.types import (
     SameTraceMeta,
 )
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.services.eventstore.models import GroupEvent
 from sentry.utils.snuba import SnubaError
 
@@ -31,10 +28,10 @@ NO_TRACE_DETAIL = "This issue's event has no trace."
 TRACE_SEARCH_UNAVAILABLE_DETAIL = "Trace search is temporarily unavailable. Try again later."
 
 
-def same_trace_issues(ctx: RelatedIssuesContext, projects: Sequence[Project]) -> RelationTypeResult:
+def same_trace_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     """
-    Issues in `projects` with errors in the same trace as `ctx.event`, most recently seen first. A
-    trace can cross projects, so callers pass every project the user can read.
+    Issues the caller can read with errors in the same trace as `ctx.event`, most recently seen
+    first. A trace can cross projects.
     """
     event = ctx.event
     if event is None:
@@ -43,7 +40,7 @@ def same_trace_issues(ctx: RelatedIssuesContext, projects: Sequence[Project]) ->
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NO_TRACE_DETAIL, event=event)
 
     try:
-        group_ids, _meta = trace_connected_issues(event, list(projects))
+        group_ids, _meta = trace_connected_issues(event, list(ctx.readable_projects))
     except SnubaError:
         return _result(
             RelationTypeStatus.UNAVAILABLE, detail=TRACE_SEARCH_UNAVAILABLE_DETAIL, event=event

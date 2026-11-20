@@ -16,7 +16,6 @@ from sentry import search
 from sentry.api.event_search import SearchFilter
 from sentry.api.helpers.group_index.index import parse_and_convert_issue_search_query
 from sentry.api.helpers.group_index.validators import ValidationError
-from sentry.incidents.grouptype import MetricIssue
 from sentry.issues.related.types import (
     ContributingMeta,
     RelatedIssueRelation,
@@ -56,8 +55,6 @@ DEFAULT_ERROR_EVENT_TYPES = {"error", "default"}
 def contributing_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     """Error issues matching the detector's query while the metric issue was open, most events first."""
     group, event = ctx.group, ctx.event
-    if group.type != MetricIssue.type_id:
-        return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NOT_A_METRIC_ISSUE_DETAIL)
     snuba_query = _detector_query(event)
     if snuba_query is None:
         return _result(
