@@ -14,7 +14,7 @@ function scanLine(line: string) {
   let seenCode = false;
 
   for (let i = 0; i < line.length; i++) {
-    const char = line[i]!;
+    const char = line.charAt(i);
     if (char === '\\') {
       i++;
       seenCode = true;
