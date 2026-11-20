@@ -9,8 +9,9 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
+from django.db.models import Q
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -163,19 +164,62 @@ def set_commits_on_release(
     else:
         last_commit_id = latest_commit.id
 
+    author_ids = list(
+        ReleaseCommit.objects.filter(release=release, commit__author_id__isnull=False)
+        .values_list("commit__author_id", flat=True)
+        .distinct()
+    )
+    if features.has("organizations:release-commit-coauthors", release.organization):
+        author_ids = list(
+            dict.fromkeys([*author_ids, *_get_coauthor_ids(release.organization_id, commits)])
+        )
+
     release.update(
         commit_count=len(commit_list),
-        authors=[
-            str(a_id)
-            for a_id in ReleaseCommit.objects.filter(
-                release=release, commit__author_id__isnull=False
-            )
-            .values_list("commit__author_id", flat=True)
-            .distinct()
-        ],
+        authors=[str(a_id) for a_id in author_ids],
         last_commit_id=last_commit_id,
     )
     return head_commit_by_repo, commit_author_by_commit
+
+
+_COAUTHOR_TRAILER_RE = re.compile(
+    r"^co-authored-by:[ \t]*[^<\n]*<([^<>\s]+@[^<>\s]+)>[ \t]*$", re.IGNORECASE | re.MULTILINE
+)
+_GITHUB_NOREPLY_RE = re.compile(r"^(?:\d+\+)?([^@+]+)@users\.noreply\.github\.com$", re.IGNORECASE)
+
+
+def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[int]:
+    """
+    Return the existing commit authors named in the commits' `Co-authored-by` trailers.
+
+    Bots open pull requests for people and credit them only in trailers, so the
+    commit author alone misses the people who made the change. Trailers match
+    existing authors only: a commit message can list any number of addresses and
+    must not be able to create authors. A GitHub noreply address also matches by
+    login, because the push webhook files authors under their real email with a
+    `github:<login>` external id, and only that email resolves to a Sentry user.
+    """
+    emails: set[str] = set()
+    external_ids: set[str] = set()
+    for commit in commits:
+        for email in _COAUTHOR_TRAILER_RE.findall(commit.message or ""):
+            if len(email) > COMMIT_AUTHOR_EMAIL_LENGTH:
+                continue
+            emails.add(email.lower())
+            if noreply := _GITHUB_NOREPLY_RE.match(email):
+                external_ids.add(f"github:{noreply.group(1)}")
+
+    if not emails:
+        return []
+
+    return list(
+        CommitAuthor.objects.filter(
+            Q(email__in=emails) | Q(external_id__in=external_ids),
+            organization_id=organization_id,
+        )
+        .order_by("id")
+        .values_list("id", flat=True)
+    )
 
 
 def upsert_commit(data: _CommitData, release: Release) -> Commit:

@@ -1102,6 +1102,63 @@ class SetCommitsTestCase(TestCase):
         commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
         assert commit_d.author is None
 
+    def _set_commits_with_coauthors(self) -> tuple[Release, dict[str, CommitAuthor]]:
+        org = self.create_organization(owner=Factories.create_user())
+        project = self.create_project(organization=org)
+        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
+        authors = {
+            "by_email": CommitAuthor.objects.create(
+                organization_id=org.id, email="coauthor@example.com", name="Co Author"
+            ),
+            "by_login": CommitAuthor.objects.create(
+                organization_id=org.id,
+                email="octocat@example.com",
+                name="Octo Cat",
+                external_id="github:OctoCat",
+            ),
+        }
+
+        release = Release.objects.create(version="abcdabc", organization=org)
+        release.add_project(project)
+        release.set_commits(
+            [
+                {
+                    "id": "a" * 40,
+                    "repository": repo.name,
+                    "author_email": "123+some-bot[bot]@users.noreply.github.com",
+                    "author_name": "some-bot[bot]",
+                    "message": (
+                        "feat: Do a thing\n\n"
+                        "Co-authored-by: Co Author <CoAuthor@example.com>\n"
+                        "Co-Authored-By: Octo Cat <456+OctoCat@users.noreply.github.com>\n"
+                        "co-authored-by: Stranger <stranger@example.com>"
+                    ),
+                },
+            ]
+        )
+        authors["bot"] = CommitAuthor.objects.get(
+            organization_id=org.id, email="123+some-bot[bot]@users.noreply.github.com"
+        )
+        release.refresh_from_db()
+        return release, authors
+
+    def test_coauthors_are_release_authors(self) -> None:
+        with self.feature("organizations:release-commit-coauthors"):
+            release, authors = self._set_commits_with_coauthors()
+
+        assert release.authors == [
+            str(authors["bot"].id),
+            str(authors["by_email"].id),
+            str(authors["by_login"].id),
+        ]
+        # A trailer never creates an author.
+        assert not CommitAuthor.objects.filter(email="stranger@example.com").exists()
+
+    def test_coauthors_ignored_without_feature(self) -> None:
+        release, authors = self._set_commits_with_coauthors()
+
+        assert release.authors == [str(authors["bot"].id)]
+
     @override_options({"releases.set-commits.max-commits": 2})
     def test_keeps_only_newest_commits_over_limit(self) -> None:
         org = self.create_organization(owner=Factories.create_user())
