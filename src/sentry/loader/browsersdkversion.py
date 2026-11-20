@@ -3,7 +3,7 @@ import logging
 import os
 import re
 from collections.abc import Sequence
-from typing import TYPE_CHECKING, TypedDict, cast
+from typing import TYPE_CHECKING, TypedDict
 
 import orjson
 from django.conf import settings
@@ -32,7 +32,7 @@ def load_registry(path: str) -> _SDKRegistry | None:
     fn = os.path.join(LOADER_FOLDER, path + ".json")
     try:
         with open(fn, "rb") as f:
-            return cast("_SDKRegistry", orjson.loads(f.read()))
+            return orjson.loads(f.read())
     except OSError:
         return None
 
@@ -97,10 +97,8 @@ def get_browser_sdk_version(project_key: "ProjectKey") -> Version:
 
 
 def get_selected_browser_sdk_version(project_key: "ProjectKey") -> str:
-    return cast(
-        str,
-        project_key.data.get("browserSdkVersion")
-        or get_default_sdk_version_for_project(project_key.project),
+    return project_key.data.get("browserSdkVersion") or get_default_sdk_version_for_project(
+        project_key.project
     )
 
 

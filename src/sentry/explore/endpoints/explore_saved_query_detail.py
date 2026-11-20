@@ -223,7 +223,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        query.visits = cast(int, F("visits") + 1)
+        query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

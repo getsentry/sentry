@@ -1,7 +1,7 @@
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict
 
 from django.db.models import OuterRef, Subquery
 
@@ -233,10 +233,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "dateUpdated": obj.date_updated,
             "dataSources": attrs.get("data_sources"),
             "conditionGroup": attrs.get("condition_group"),
-            "config": cast(
-                DetectorConfigResponse,
-                convert_dict_key_case(attrs.get("config", {}), snake_to_camel_case),
-            ),
+            "config": convert_dict_key_case(attrs.get("config", {}), snake_to_camel_case),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),
             "ruleId": alert_rule_mapping.get("rule_id"),

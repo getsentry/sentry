@@ -272,7 +272,7 @@ class _TypedExtension:
         cast("Callable[..., None]", super().__init__)(target)
 
     def __init_subclass__(cls, **kwargs: object) -> None:
-        cast("Callable[..., None]", super().__init_subclass__)(**kwargs)
+        super().__init_subclass__(**kwargs)
 
 
 class TokenAuthExtension(_TypedExtension, OpenApiAuthenticationExtension):
