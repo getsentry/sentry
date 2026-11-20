@@ -23,7 +23,7 @@ from sentry.models.custominboundfilter import (
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
-from sentry.relay.types.rule_condition import NotCondition
+from sentry.relay.types.rule_condition import GlobCondition, NotCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.signals import inbound_filter_toggled
 from sentry.tsdb.base import TSDBModel
@@ -736,6 +736,33 @@ _CONDITION_MATCHERS: Mapping[
     },
 }
 
+
+def _has_field(name: str) -> GlobCondition:
+    # Relay globs only strings, and `*` matches an empty one too.
+    return {"op": "glob", "name": name, "value": ["*"]}
+
+
+# Restricts a filter to the items of its data type. Relay checks every filter against every
+# item, and other item types answer some of the same fields.
+_DATA_TYPE_GUARDS: Mapping[DataType, RuleCondition] = {
+    # Matches error events but not transactions, which an `event.*` field would also match.
+    # Relay reads the event's own type as the path prefix, and errors are the `error`,
+    # `default` and `csp` event types.
+    DataType.ERROR: {
+        "op": "or",
+        "inner": [
+            _has_field("error.platform"),
+            _has_field("default.platform"),
+            _has_field("csp.platform"),
+        ],
+    },
+    # Relay sets the received timestamp on every span, log and trace metric before
+    # filtering.
+    DataType.SPAN: _has_field("span.attributes.sentry.observed_timestamp_nanos.value"),
+    DataType.LOG: _has_field("log.attributes.sentry.observed_timestamp_nanos.value"),
+    DataType.METRIC: _has_field("trace_metric.attributes.sentry.observed_timestamp_nanos.value"),
+}
+
 _SINGLE_DATA_TYPES = frozenset(DataType) - {DataType.ALL}
 
 
@@ -829,6 +856,10 @@ def _custom_filter_condition(
             rule_conditions.append(matcher.match(operator, values))
         else:
             rule_conditions.append(_negation(matcher, negated, values))
+
+    data_type_guard = _DATA_TYPE_GUARDS.get(DataType(data_type))
+    if data_type_guard is not None:
+        rule_conditions.insert(0, data_type_guard)
 
     if len(rule_conditions) == 1:
         return rule_conditions[0]

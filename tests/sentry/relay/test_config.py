@@ -301,7 +301,20 @@ def test_project_config_custom_inbound_filters_v2(
             {
                 "id": f"{CUSTOM_INBOUND_FILTER_ID_PREFIX}{active_filter.id}",
                 "isEnabled": True,
-                "condition": {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
+                "condition": {
+                    "op": "and",
+                    "inner": [
+                        {
+                            "op": "or",
+                            "inner": [
+                                {"op": "glob", "name": "error.platform", "value": ["*"]},
+                                {"op": "glob", "name": "default.platform", "value": ["*"]},
+                                {"op": "glob", "name": "csp.platform", "value": ["*"]},
+                            ],
+                        },
+                        {"op": "glob", "name": "event.release", "value": ["1.2.3"]},
+                    ],
+                },
             }
         ]
     else:
