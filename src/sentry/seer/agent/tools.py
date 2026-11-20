@@ -1037,8 +1037,8 @@ def _find_repository(
     """Find the one repository with this name or URL path. They're the same except on GitLab, where
     the name is a display name ("My Group / App") and the path is "my-group/app".
 
-    Several matches are ambiguous: a re-installed integration leaves a second row with the same
-    name, and a GitHub repository and its GitLab mirror share a URL path."""
+    Several matches are ambiguous: one name can be on two supported providers, and a GitHub
+    repository and its GitLab mirror share a URL path."""
     candidates = (
         _openable_repositories(organization_id, providers)
         .filter(Q(name=repo_full_name) | Q(url__iendswith=f"/{repo_full_name}"))

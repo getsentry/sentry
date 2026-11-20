@@ -3358,9 +3358,8 @@ class TestGetRepositoryDefinition(APITransactionTestCase):
 
     def test_get_repository_definition_github_and_gitlab_mirror_is_ambiguous(self) -> None:
         """A GitHub repo and its GitLab mirror share a URL path: refuse rather than guess."""
-        # The same goes for one name on two supported providers, and for the two rows with one
-        # name and provider that a re-installed integration leaves. Here one row matches by name
-        # and the other by URL path.
+        # The same goes for one name on two supported providers. Here one row matches by name and
+        # the other by URL path.
         self._create_repo(
             name="acme/app", url="https://github.com/acme/app", provider="integrations:github"
         )

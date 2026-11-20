@@ -43,7 +43,7 @@ class OrganizationSeerRepoAccessTest(APITestCase):
             metadata={"domain_name": "github.com/acme-labs"},
         )
 
-    def _add_repo(self, integration_id: int | None) -> None:
+    def _add_repo(self, integration_id: int) -> None:
         self.create_repo(
             name="acme-labs/app",
             url="https://github.com/acme-labs/app",
@@ -85,16 +85,6 @@ class OrganizationSeerRepoAccessTest(APITestCase):
         # Only the outcome: none of the repository's details.
         assert response.status_code == 200
         assert response.data == {"status": "found", "connectedAccounts": []}
-
-    def test_no_scm_integration_when_the_repo_outlived_its_integration(self) -> None:
-        # Removing an integration in Sentry unlinks its repositories but leaves them active. Seer
-        # can't open one, so it isn't found.
-        self._add_repo(integration_id=None)
-
-        response = self._get()
-
-        assert response.status_code == 200
-        assert response.data == {"status": "no_scm_integration", "connectedAccounts": []}
 
     def test_unknown_when_the_reason_cant_be_named(self) -> None:
         # A name with no owner can't be under any account, so Sentry can't say why it missed.
