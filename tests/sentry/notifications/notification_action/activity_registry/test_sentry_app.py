@@ -1,9 +1,11 @@
+from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.notifications.notification_action.activity_registry.sentry_app import (
     SentryAppActivityHandler,
+    SentryAppInstallationNotFoundError,
     _build_activity_data,
     _build_workflow_data,
 )
@@ -290,11 +292,7 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
         mock_task.delay.assert_called_once()
         assert mock_task.delay.call_args[1]["sentry_app_id"] == self.sentry_app.id
 
-    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
-    def test_missing_installation_raises(self, mock_task: mock.MagicMock) -> None:
-        self.action.update(
-            config={"target_identifier": "99999", "target_type": ActionTarget.SENTRY_APP.value}
-        )
+    def _invocation(self) -> tuple[Any, Any]:
         activity = self.create_group_activity(
             group=self.group,
             type=ActivityType.SEER_RCA_STARTED.value,
@@ -306,8 +304,74 @@ class TestSentryAppActivityHandlerInvokeAction(BaseWorkflowTest):
             detector=self.detector,
             workflow_id=self.workflow.id,
         )
+        return invocation, activity
 
-        with pytest.raises(ValueError, match="Expected 1 sentry app installation"):
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk.capture_exception")
+    @mock.patch("sentry.integrations.utils.metrics.EventLifecycle.record_halt")
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_missing_installation_halts(
+        self,
+        mock_task: mock.MagicMock,
+        mock_record_halt: mock.MagicMock,
+        mock_capture: mock.MagicMock,
+    ) -> None:
+        self.action.update(
+            config={"target_identifier": "99999", "target_type": ActionTarget.SENTRY_APP.value}
+        )
+        invocation, activity = self._invocation()
+
+        SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_task.delay.assert_not_called()
+        mock_capture.assert_not_called()
+        mock_record_halt.assert_called_once()
+        halt_reason = mock_record_halt.call_args[0][0]
+        assert isinstance(halt_reason, SentryAppInstallationNotFoundError)
+        assert mock_record_halt.call_args[1]["extra"]["target_identifier"] == "99999"
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk.capture_exception")
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_uninstalled_webhook_app_halts(
+        self, mock_task: mock.MagicMock, mock_capture: mock.MagicMock
+    ) -> None:
+        other_org = self.create_organization()
+        other_app = self.create_sentry_app(organization=other_org, name="Not Installed")
+        self.action.update(
+            type=Action.Type.WEBHOOK,
+            config={"target_identifier": other_app.slug, "target_type": None},
+        )
+        invocation, activity = self._invocation()
+
+        SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_task.delay.assert_not_called()
+        mock_capture.assert_not_called()
+
+    @mock.patch("sentry.integrations.utils.metrics.sentry_sdk.capture_exception")
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_unknown_webhook_slug_halts(
+        self, mock_task: mock.MagicMock, mock_capture: mock.MagicMock
+    ) -> None:
+        self.action.update(
+            type=Action.Type.WEBHOOK,
+            config={"target_identifier": "does-not-exist", "target_type": None},
+        )
+        invocation, activity = self._invocation()
+
+        SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
+
+        mock_task.delay.assert_not_called()
+        mock_capture.assert_not_called()
+
+    @mock.patch("sentry.notifications.notification_action.activity_registry.sentry_app.app_service")
+    @mock.patch("sentry.sentry_apps.tasks.sentry_apps.send_activity_alert_webhook")
+    def test_multiple_installations_still_raises(
+        self, mock_task: mock.MagicMock, mock_app_service: mock.MagicMock
+    ) -> None:
+        mock_app_service.get_many.return_value = [mock.MagicMock(), mock.MagicMock()]
+        invocation, activity = self._invocation()
+
+        with pytest.raises(ValueError, match="but got 2"):
             SentryAppActivityHandler.invoke_action(invocation=invocation, activity=activity)
 
         mock_task.delay.assert_not_called()

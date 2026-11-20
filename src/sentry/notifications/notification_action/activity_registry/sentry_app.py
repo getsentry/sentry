@@ -57,6 +57,20 @@ ACTIVITY_TYPE_TO_ACTIVITY_ALERT_TYPE: dict[int, ActivityAlertType] = {
 }
 
 
+class SentryAppInstallationNotFoundError(ValueError):
+    """
+    The action's target Sentry App does not exist or is not installed in the organization.
+
+    This is a customer configuration state (e.g. the app was uninstalled after the alert was
+    configured), not a code defect, so callers should halt rather than report a failure.
+    """
+
+    def __init__(self, message: str, *, target_identifier: str, action_type: str) -> None:
+        super().__init__(message)
+        self.target_identifier = target_identifier
+        self.action_type = action_type
+
+
 class ActivityData(TypedDict):
     type: ActivityAlertType
     details: dict[str, Any]
@@ -93,7 +107,11 @@ def _get_sentry_app_installation(
     else:
         sentry_app = app_service.get_sentry_app_by_slug(slug=target_identifier)
         if not sentry_app:
-            raise ValueError(f"Sentry app not found: {target_identifier}")
+            raise SentryAppInstallationNotFoundError(
+                f"Sentry app not found: {target_identifier}",
+                target_identifier=target_identifier,
+                action_type=action.type,
+            )
         installations = app_service.get_many(
             filter=dict(
                 app_ids=[sentry_app.id],
@@ -102,8 +120,18 @@ def _get_sentry_app_installation(
             )
         )
 
-    if not installations or len(installations) != 1:
-        raise ValueError(f"Expected 1 sentry app installation, got {len(installations)}")
+    if not installations:
+        raise SentryAppInstallationNotFoundError(
+            f"Expected 1 sentry app installation for action type: {action.type}, "
+            f"target_identifier: {target_identifier}, but got 0",
+            target_identifier=target_identifier,
+            action_type=action.type,
+        )
+    if len(installations) != 1:
+        raise ValueError(
+            f"Expected 1 sentry app installation for action type: {action.type}, "
+            f"target_identifier: {target_identifier}, but got {len(installations)}"
+        )
     return installations[0]
 
 
@@ -214,7 +242,21 @@ class SentryAppActivityHandler(ActivityHandler):
                 }
             )
 
-            install = _get_sentry_app_installation(action, organization)
+            try:
+                install = _get_sentry_app_installation(action, organization)
+            except SentryAppInstallationNotFoundError as e:
+                # The target app was removed or uninstalled after the alert was configured.
+                # Nothing can be delivered and retrying won't help, so record a halt (still
+                # logged and counted in metrics) instead of a failure that creates an issue.
+                lifecycle.record_halt(
+                    e,
+                    extra={
+                        "target_identifier": e.target_identifier,
+                        "action_type": e.action_type,
+                        "workflow_id": invocation.workflow_id,
+                    },
+                )
+                return
             payload = ActivityAlertWebhookPayload(
                 issue=_webhook_issue_data(group=group, serialized_group=serialize(group)),
                 activity=_build_activity_data(activity=activity),
