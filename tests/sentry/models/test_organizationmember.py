@@ -722,12 +722,14 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
         service = DatabaseBackedOrganizationService()
         owner = self.create_user()
         self.create_member(organization=self.org, user=owner, role="owner")
+        to_user_id = self.member.user_id
+        assert to_user_id is not None
         with self.options({self.OPTION: True}):
             assert self._drains(
                 lambda: service.merge_users(
                     organization_id=self.org.id,
                     from_user_id=owner.id,
-                    to_user_id=self.member.user_id,
+                    to_user_id=to_user_id,
                 )
             )
 
