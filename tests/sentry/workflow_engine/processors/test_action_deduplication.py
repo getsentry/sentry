@@ -657,7 +657,7 @@ class TestActionDeduplication(TestCase):
             config=self.slack_action.config,
         )
         with (
-            patch.object(ActionHandler, "supports_group_less", True),
+            patch.object(Action, "get_handler", return_value=ActionHandler),
             # Investigation serialization belongs to the subsequent task-transport change.
             patch(
                 "sentry.workflow_engine.processors.action.build_trigger_action_task_params",
