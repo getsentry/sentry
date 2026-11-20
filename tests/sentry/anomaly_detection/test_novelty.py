@@ -5,6 +5,7 @@ from datetime import datetime, timedelta
 import pytest
 
 from sentry.anomaly_detection.contracts import ChangeEvent, ChangeType, Metric, SeriesKey, Signal
+from sentry.anomaly_detection.correlation.shared_dependencies import learn
 from sentry.anomaly_detection.evaluation import quality
 from sentry.anomaly_detection.evaluation.baseline import Baseline
 from sentry.anomaly_detection.evaluation.novelty import Novelty, mask_dim
@@ -307,3 +308,116 @@ def test_gaps_do_not_count_as_quiet_history_or_excursion_duration() -> None:
 
     assert verdict.history_days == pytest.approx(5 / 1440)
     assert verdict.similar == 0
+
+
+def test_shared_learning_uses_joint_coverage_not_unobserved_history() -> None:
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    novelty = Novelty()
+    end = T0 + timedelta(hours=5)
+    observe_window(novelty, QUIET, T0, end)
+    observe_window(novelty, replica, T0 - timedelta(days=13), end)
+    for offset in range(3):
+        onset = T0 + timedelta(hours=offset)
+        novelty.record(excursion(QUIET, onset, 10.0))
+        novelty.record(excursion(replica, onset, 10.0))
+
+    dependencies = learn(novelty.state.history, end, coverage=novelty.state.coverage)
+
+    assert dependencies.get(QUIET, replica) is None
+
+
+def test_shared_learning_does_not_depend_on_project_order() -> None:
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    end = T0 + timedelta(days=14)
+    dense = [T0 + timedelta(hours=hour, minutes=phase) for hour in range(336) for phase in (10, 16)]
+    sparse = [T0 + timedelta(hours=hour, minutes=13) for hour in range(10)]
+    same_onsets = [T0 + timedelta(hours=hour, minutes=40) for hour in range(22)]
+
+    for dense_key, sparse_key in ((QUIET, replica), (replica, QUIET)):
+        novelty = Novelty()
+        observe_window(novelty, dense_key, T0, end)
+        observe_window(novelty, sparse_key, T0, end)
+        for key, starts in ((dense_key, dense), (sparse_key, sparse)):
+            for onset in [*starts, *same_onsets]:
+                novelty.record(excursion(key, onset, 10.0))
+
+        assert (
+            learn(novelty.state.history, end, coverage=novelty.state.coverage).get(QUIET, replica)
+            is None
+        )
+
+
+def test_shared_learning_counts_staggered_cross_metric_incidents_once() -> None:
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    rate = SeriesKey(
+        QUIET.project_id, QUIET.env, QUIET.signal, Metric.FAILED_PER_REQUEST, QUIET.dim_value
+    )
+    replica_rate = SeriesKey(
+        replica.project_id, replica.env, replica.signal, rate.metric, replica.dim_value
+    )
+    end = T0 + timedelta(days=14)
+    starts = [T0 + timedelta(hours=hour, minutes=phase) for hour, phase in ((1, 10), (4, 30))]
+    observed = {T0 + timedelta(hours=hour): (1 << 60) - 1 for hour in range(336)}
+    # The failure-rate metric of each slice starts one minute after its latency metric.
+    lags = {QUIET: timedelta(), replica: timedelta(), rate: MINUTE, replica_rate: MINUTE}
+    history: dict[SeriesKey, list[ChangeEvent]] = {}
+    for key, lag in lags.items():
+        history[key] = []
+        for start in starts:
+            event = excursion(key, start + lag, 10.0)
+            event.ended_at = start + 3 * MINUTE
+            history[key].append(event)
+    coverage = dict.fromkeys(history, observed)
+
+    assert learn(history, end, coverage=coverage).get(QUIET, replica) is None
+
+    # A nearby start after the preceding excursion ends is a distinct incident.
+    for key in (rate, replica_rate):
+        history[key].append(excursion(key, starts[-1] + 3 * MINUTE, 10.0))
+
+    pair = learn(history, end, coverage=coverage).get(QUIET, replica)
+    assert pair is not None
+    assert pair.co == 3
+
+
+def test_shared_learning_uses_joint_phase_opportunities_across_hour_boundary() -> None:
+    replica = SeriesKey(2, QUIET.env, QUIET.signal, QUIET.metric, QUIET.dim_value)
+    end = T0 + timedelta(days=14)
+    mostly_observed = ((1 << 59) - 1) & ~1  # Minutes 1–58, not the incident phases.
+    sparse = {T0 + timedelta(hours=hour): mostly_observed for hour in range(336)}
+    dense = {hour: (1 << 60) - 1 for hour in sparse}
+    history: dict[SeriesKey, list[ChangeEvent]] = {QUIET: [], replica: []}
+    for hour in range(3):
+        left = T0 + timedelta(hours=hour, minutes=59)
+        right = left + MINUTE
+        sparse[left.replace(minute=0)] |= 1 << 59
+        sparse[right] |= 1
+        history[QUIET].append(excursion(QUIET, left, 10.0))
+        history[replica].append(excursion(replica, right, 10.0))
+
+    assert learn(history, end, coverage={QUIET: dense, replica: dense}).get(QUIET, replica)
+    assert learn(history, end, coverage={QUIET: dense, replica: sparse}).get(QUIET, replica) is None
+
+
+def test_shared_learning_ignores_coverage_before_capped_history() -> None:
+    # Two services call the same API from hourly jobs, so their onsets coincide by schedule.
+    job = SeriesKey(1, "prod", Signal.OUTBOUND_HTTP, Metric.P95_DURATION, "api.example.com")
+    other_job = SeriesKey(2, job.env, job.signal, job.metric, job.dim_value)
+    until = T0 + timedelta(days=14)
+    novelty = Novelty()
+    for key in (job, other_job):
+        observe_window(novelty, key, T0, until)
+        for hour in range(14 * 24):
+            novelty.record(excursion(key, T0 + timedelta(hours=hour, minutes=5), 10.0))
+
+    novelty.cap_history(64)
+    shared = learn(
+        novelty.state.history,
+        until,
+        coverage=novelty.state.coverage,
+        complete_since=novelty.state.complete_since,
+    )
+
+    # Counting the dropped onsets' hours as quiet opportunities would make 64 scheduled
+    # co-onsets look far beyond chance.
+    assert shared.get(job, other_job) is None
