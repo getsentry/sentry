@@ -820,10 +820,16 @@ export interface NativeFrameVariableValue {
    */
   members?: Record<string, NativeFrameVariableValue | string>;
   /**
-   * The pointer chain: one address per pointer level, outermost first, ending at the
-   * first address that cannot be dereferenced.
+   * Dereferenced value of a pointer.
+   * TODO: Remove once https://github.com/getsentry/symbolicator/pull/2211 is deployed.
    */
-  pointer_address?: string[];
+  pointee?: NativeFrameVariableValue;
+  /**
+   * The pointer chain: one address per pointer level, outermost first, ending at the
+   * first address that cannot be dereferenced. A single address until
+   * https://github.com/getsentry/symbolicator/pull/2211 is deployed.
+   */
+  pointer_address?: string | string[];
   /**
    * Type name, empty when Symbolicator does not support the type. Missing when Relay's
    * size limit cut the value.

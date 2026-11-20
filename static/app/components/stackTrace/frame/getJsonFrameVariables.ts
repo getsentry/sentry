@@ -38,11 +38,21 @@ function toNativeVariable(
   value: NativeFrameVariableValue,
   meta: unknown
 ): FrameVariable {
-  // Symbolicator still sends a single address with the value nested under `pointee`.
-  // Only the flattened list is read, so those pointers are unavailable.
-  const addresses = Array.isArray(value.pointer_address) ? value.pointer_address : [];
-  const localMeta = isRecord(meta) ? meta : undefined;
-  const ownMeta = localMeta?.[''];
+  const addresses: string[] = [];
+  let target = value;
+  let targetMeta = isRecord(meta) ? meta : undefined;
+  for (;;) {
+    addresses.push(...[target.pointer_address ?? []].flat());
+    // TODO: Remove once https://github.com/getsentry/symbolicator/pull/2211 is deployed
+    // and pointees are part of the pointer's own value.
+    if (!isNativeValue(target.pointee)) {
+      break;
+    }
+    targetMeta = isRecord(targetMeta?.pointee) ? targetMeta.pointee : undefined;
+    target = target.pointee;
+  }
+
+  const ownMeta = targetMeta?.[''];
   const base = {
     name,
     type: value.type || undefined,
@@ -50,8 +60,8 @@ function toNativeVariable(
   };
   const pointer = addresses.length > 0 ? {pointerAddresses: addresses} : undefined;
 
-  if (isRecord(value.members) && Object.keys(value.members).length > 0) {
-    const membersMeta = isRecord(localMeta?.members) ? localMeta.members : undefined;
+  if (isRecord(target.members) && Object.keys(target.members).length > 0) {
+    const membersMeta = isRecord(targetMeta?.members) ? targetMeta.members : undefined;
     const collectionMeta = membersMeta?.[''];
     return {
       ...base,
@@ -60,15 +70,20 @@ function toNativeVariable(
       kind: 'object',
       // Keep the order of the payload. Symbolicator lists members in declaration order,
       // but Relay sorts the keys of a stored event, so they arrive in alphabetical order.
-      children: Object.entries(value.members).map(([memberName, member]) =>
+      children: Object.entries(target.members).map(([memberName, member]) =>
         toNativeMember(memberName, member, membersMeta?.[memberName])
       ),
     };
   }
 
-  if (value.value !== undefined) {
+  // A pointee that is not a value was serialized to a string by Relay's depth limit.
+  const [formatted, formattedMeta] =
+    target.value === undefined
+      ? [target.pointee, targetMeta?.pointee]
+      : [target.value, targetMeta?.value];
+  if (formatted !== undefined) {
     return {
-      ...toVariable(name, value.value, localMeta?.value, 'native'),
+      ...toVariable(name, formatted, formattedMeta, 'native'),
       ...pointer,
       type: base.type,
     };
