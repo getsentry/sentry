@@ -380,8 +380,7 @@ before event-level deduplication and task execution. A tuple is suppressed when 
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
 
-Inbox workflows bypass group-frequency suppression, including when they match
-the same issue Activity as other workflows. All non-Inbox workflows retain it.
+Inbox workflows bypass group-frequency suppression; all other workflows retain it.
 
 ### Event-level deduplication
 
@@ -398,8 +397,7 @@ The processor updates frequency statuses and creates
 removes unsupported or inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
-filtered or deduplicated. Sharing an action with an eligible workflow does not create
-history for a suppressed workflow.
+filtered or deduplicated.
 
 The action task:
 
