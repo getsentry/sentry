@@ -180,6 +180,9 @@ function formatCountOrNA(n: number | null | undefined) {
 }
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+// Long enough to hold every day of the month, so an org whose legacy and
+// platform sides bill on different days has both invoices in the window.
+const DEFAULT_WINDOW_DAYS = 31;
 
 // The window covers whole UTC days. Most invoices of both kinds are created
 // in a burst just after 00:00 UTC, and the platform one can land an hour or
@@ -251,17 +254,23 @@ export function InvoiceComparison() {
     parseDollars(location.query.min_mismatch) ?? DEFAULT_MIN_MISMATCH_DOLLARS;
 
   // Without a window in the URL (first visit, or a link that only carries
-  // pagination params) query yesterday, the last complete UTC day, so the
-  // tables load without waiting on Run. Frozen at mount so paginating doesn't
-  // shift the window.
-  const [defaultDay] = useState(() => utcDay(Date.now() - DAY_MS));
+  // pagination params) query the last `DEFAULT_WINDOW_DAYS` complete UTC days,
+  // ending yesterday, so the tables load without waiting on Run. Frozen at
+  // mount so paginating doesn't shift the window.
+  const [defaultWindow] = useState(() => {
+    const yesterday = Date.now() - DAY_MS;
+    return {
+      startDay: utcDay(yesterday - (DEFAULT_WINDOW_DAYS - 1) * DAY_MS),
+      endDay: utcDay(yesterday),
+    };
+  });
   // A single bound in the URL is not a range. Filling the other side from the
   // default makes the endpoint reject `end < start`, or loads every invoice
   // since an old start (`compare_invoices` reads the whole window, then
   // paginates), so don't query until both are set.
   const urlHasBound = Boolean(queryStart || queryEnd);
-  const startDay = urlHasBound ? (queryStart ?? '') : defaultDay;
-  const endDay = urlHasBound ? (queryEnd ?? '') : defaultDay;
+  const startDay = urlHasBound ? (queryStart ?? '') : defaultWindow.startDay;
+  const endDay = urlHasBound ? (queryEnd ?? '') : defaultWindow.endDay;
   const hasWindow = Boolean(startDay && endDay);
 
   const [startInput, setStartInput] = useState(startDay);
