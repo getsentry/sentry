@@ -434,6 +434,7 @@ class Referrer(StrEnum):
     API_ISSUES_ISSUE_EVENTS = "api.issues.issue_events"
     API_ISSUES_RELATED_ISSUES = "api.issues.related_issues"
     API_ISSUES_AGENT_RUN_HAS_ACTIVE_AI_SPAN = "api.issues.agent-run.has-active-ai-span"
+    API_ISSUES_AGENT_RUN_SPAN_ANCESTRY = "api.issues.agent-run.span-ancestry"
     API_METRICS_TOTALS = "api.metrics.totals"
     API_METRICS_TOTALS_INITIAL_QUERY = "api.metrics.totals.initial_query"
     API_METRICS_TOTALS_SECOND_QUERY = "api.metrics.totals.second_query"
