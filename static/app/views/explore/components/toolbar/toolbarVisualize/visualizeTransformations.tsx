@@ -35,11 +35,7 @@ const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
   {value: 'smooth', label: t('Smooth')},
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
-  {
-    value: 'zero',
-    label: t('Zero'),
-    details: t('Fills missing values with zero.'),
-  },
+  {value: 'zero', label: t('Zero'), details: t('Fills missing values with zero.')},
   {
     value: 'locf',
     label: t('LOCF'),
@@ -94,20 +90,20 @@ function parseTransformation(raw: string): Transformation | null {
   if (method === 'asap' && args.length === 1) {
     return {kind: 'smooth', method};
   }
-  const window = Number(args[1]);
-  if (!WINDOW_OPTIONS.some(option => option.value === window)) {
+  const smoothingWindow = Number(args[1]);
+  if (!WINDOW_OPTIONS.some(option => option.value === smoothingWindow)) {
     return null;
   }
   if ((method === 'sma' || method === 'asap') && args.length === 2) {
-    return {kind: 'smooth', method, window};
+    return {kind: 'smooth', method, window: smoothingWindow};
   }
   if (method === 'ema') {
     if (args.length === 2) {
-      return {kind: 'smooth', method, window};
+      return {kind: 'smooth', method, window: smoothingWindow};
     }
     const factor = Number(args[2]);
     if (args.length === 3 && FACTOR_OPTIONS.some(option => option.value === factor)) {
-      return {kind: 'smooth', method, window, factor};
+      return {kind: 'smooth', method, window: smoothingWindow, factor};
     }
   }
   return null;
@@ -231,6 +227,7 @@ export function VisualizeTransformationRows({
 }
 
 interface AddTransformationButtonProps extends Props {
+  disabled?: boolean;
   iconOnly?: boolean;
   variant?: 'transparent' | 'link';
 }
@@ -239,6 +236,7 @@ export function AddTransformationButton({
   transformations,
   onChange,
   traceItemDataset,
+  disabled = false,
   iconOnly = false,
   analyticsSource = 'explore',
   variant = 'transparent',
@@ -252,7 +250,7 @@ export function AddTransformationButton({
   return (
     <CompactSelect
       options={kindOptions}
-      disabled={transformations.length >= KIND_OPTIONS.length}
+      disabled={disabled || transformations.length >= KIND_OPTIONS.length}
       value={undefined}
       trigger={props =>
         iconOnly ? (
@@ -494,19 +492,19 @@ function SmoothingSettings({
             </OverlayTrigger.Button>
           )}
           onChange={(option: SelectOption<number> | undefined) => {
-            const window = option?.value;
-            if (window !== transformation.window) {
+            const smoothingWindow = option?.value;
+            if (smoothingWindow !== transformation.window) {
               trackAnalytics('explore.visualize.transformation.window_changed', {
                 organization,
                 ...analyticsParams,
                 method: transformation.method,
-                window: window ?? null,
+                window: smoothingWindow ?? null,
               });
             }
             if (transformation.method === 'asap') {
-              onChange({...transformation, window});
-            } else if (window !== undefined) {
-              onChange({...transformation, window});
+              onChange({...transformation, window: smoothingWindow});
+            } else if (smoothingWindow !== undefined) {
+              onChange({...transformation, window: smoothingWindow});
             }
           }}
         />

@@ -8,20 +8,10 @@ describe('jsSelfProfile', () => {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          timestamp: 0,
-          stackId: 0,
-        },
-        {
-          timestamp: 1000,
-          stackId: 0,
-        },
+        {timestamp: 0, stackId: 0},
+        {timestamp: 1000, stackId: 0},
       ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      stacks: [{frameId: 0}],
     };
 
     const profile = JSSelfProfile.FromProfile(
@@ -41,17 +31,8 @@ describe('jsSelfProfile', () => {
     const trace: JSSelfProfiling.Trace = {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
-      samples: [
-        {
-          timestamp: 0,
-          stackId: 0,
-        },
-      ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      samples: [{timestamp: 0, stackId: 0}],
+      stacks: [{frameId: 0}],
     };
 
     const profile = JSSelfProfile.FromProfile(
@@ -67,20 +48,10 @@ describe('jsSelfProfile', () => {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          timestamp: 0,
-          stackId: 0,
-        },
-        {
-          timestamp: -1,
-          stackId: 0,
-        },
+        {timestamp: 0, stackId: 0},
+        {timestamp: -1, stackId: 0},
       ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      stacks: [{frameId: 0}],
     };
 
     const profile = JSSelfProfile.FromProfile(
@@ -96,24 +67,11 @@ describe('jsSelfProfile', () => {
       resources: ['app.js', 'vendor.js'],
       frames: [{name: 'ReactDOM.render', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          timestamp: 5,
-          stackId: 0,
-        },
-        {
-          timestamp: 10,
-          stackId: 0,
-        },
-        {
-          timestamp: 15,
-          stackId: 0,
-        },
+        {timestamp: 5, stackId: 0},
+        {timestamp: 10, stackId: 0},
+        {timestamp: 15, stackId: 0},
       ],
-      stacks: [
-        {
-          frameId: 0,
-        },
-      ],
+      stacks: [{frameId: 0}],
     };
 
     const profile = JSSelfProfile.FromProfile(
@@ -135,14 +93,8 @@ describe('jsSelfProfile', () => {
         {name: 'afterProfiler.init', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 1,
-          timestamp: 500,
-        },
-        {
-          stackId: 2,
-          timestamp: 1500,
-        },
+        {stackId: 1, timestamp: 500},
+        {stackId: 2, timestamp: 1500},
       ],
       stacks: [
         {frameId: 0, parentId: undefined},
@@ -196,14 +148,8 @@ describe('jsSelfProfile', () => {
         {name: 'f1', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          timestamp: 1000,
-          stackId: 0,
-        },
+        {stackId: 0, timestamp: 0},
+        {timestamp: 1000, stackId: 0},
       ],
       stacks: [{frameId: 1, parentId: 1}, {frameId: 0}],
     };
@@ -241,14 +187,8 @@ describe('jsSelfProfile', () => {
       resources: ['app.js'],
       frames: [{name: 'f0', line: 1, column: 1, resourceId: 0}],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
+        {stackId: 0, timestamp: 0},
+        {stackId: 0, timestamp: 0},
       ],
       stacks: [{frameId: 0, parentId: 1}, {frameId: 0}],
     };
@@ -270,14 +210,8 @@ describe('jsSelfProfile', () => {
         {name: 'f1', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          stackId: 2,
-          timestamp: 100,
-        },
+        {stackId: 0, timestamp: 0},
+        {stackId: 2, timestamp: 100},
       ],
       stacks: [
         {frameId: 0, parentId: undefined},
@@ -306,18 +240,9 @@ describe('jsSelfProfile', () => {
         {name: 'f2', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          stackId: 2,
-          timestamp: 10,
-        },
-        {
-          stackId: 3,
-          timestamp: 100,
-        },
+        {stackId: 0, timestamp: 0},
+        {stackId: 2, timestamp: 10},
+        {stackId: 3, timestamp: 100},
       ],
       stacks: [
         {frameId: 0, parentId: undefined},
@@ -344,15 +269,8 @@ describe('jsSelfProfile', () => {
         {name: 'f0', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          timestamp: 10,
-          marker: 'gc',
-          stackId: 0,
-        },
+        {stackId: 0, timestamp: 0},
+        {timestamp: 10, marker: 'gc', stackId: 0},
       ],
       stacks: [
         {frameId: 0, parentId: 1},
@@ -391,18 +309,9 @@ describe('jsSelfProfile', () => {
         {name: 'f0', line: 1, column: 1, resourceId: 0},
       ],
       samples: [
-        {
-          stackId: 0,
-          timestamp: 0,
-        },
-        {
-          timestamp: 10,
-          stackId: 1,
-        },
-        {
-          timestamp: 20,
-          stackId: 0,
-        },
+        {stackId: 0, timestamp: 0},
+        {timestamp: 10, stackId: 1},
+        {timestamp: 20, stackId: 0},
       ],
       stacks: [
         {frameId: 0, parentId: undefined},

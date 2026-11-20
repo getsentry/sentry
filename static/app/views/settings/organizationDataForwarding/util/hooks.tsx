@@ -135,9 +135,7 @@ export function useMutateDataForwarderProject({
     mutationFn: data => api.requestPromise(endpoint, {method: 'PUT', data}),
     onSuccess: () => {
       toast.success(
-        tct('Updated project override for [project]', {
-          project: project.slug,
-        })
+        tct('Updated project override for [project]', {project: project.slug})
       );
       queryClient.invalidateQueries({
         queryKey: makeDataForwarderDetailsApiOptions({dataForwarderId, orgSlug}).queryKey,

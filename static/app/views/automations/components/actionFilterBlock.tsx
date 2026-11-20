@@ -51,10 +51,7 @@ function useSendTestNotification(actionFilterActions: Action[]) {
 
   const {mutate, isPending} = useSendTestNotificationMutation({
     onError: (error: RequestError) => {
-      setErrors(prev => ({
-        ...prev,
-        ...error?.responseJSON,
-      }));
+      setErrors(prev => ({...prev, ...error?.responseJSON}));
     },
   });
 
@@ -158,9 +155,7 @@ export function ActionFilterBlock({actionFilter}: ActionFilterBlockProps) {
       </Step>
       <Step>
         <StepLead>
-          {tct('[then:Then] perform these actions', {
-            then: <ConditionBadge />,
-          })}
+          {tct('[then:Then] perform these actions', {then: <ConditionBadge />})}
         </StepLead>
         <ActionNodeList
           placeholder={t('Select an action')}

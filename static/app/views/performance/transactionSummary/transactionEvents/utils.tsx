@@ -12,10 +12,7 @@ import {
   filterToField,
   SpanOperationBreakdownFilter,
 } from 'sentry/views/performance/transactionSummary/filter';
-import {
-  getTransactionSummaryBaseUrl,
-  TransactionFilterOptions,
-} from 'sentry/views/performance/transactionSummary/utils';
+import {getTransactionSummaryBaseUrl} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum EventsDisplayFilterName {
   P50 = 'p50',
@@ -120,19 +117,6 @@ export function decodeEventsDisplayFilterFromLocation(location: Location) {
   return stringToFilter(
     decodeScalar(location.query.showTransactions, EventsDisplayFilterName.P100)
   );
-}
-
-export function mapShowTransactionToPercentile(
-  showTransaction: any
-): EventsDisplayFilterName | undefined {
-  switch (showTransaction) {
-    case TransactionFilterOptions.OUTLIER:
-      return EventsDisplayFilterName.P100;
-    case TransactionFilterOptions.SLOW:
-      return EventsDisplayFilterName.P95;
-    default:
-      return undefined;
-  }
 }
 
 export function generateTransactionEventsEventView({

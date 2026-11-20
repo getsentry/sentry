@@ -30,10 +30,7 @@ describe('FeedbackAssignedTo', () => {
     });
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/events/${feedbackEvent.id}/owners/`,
-      body: {
-        owners: [],
-        rules: [],
-      },
+      body: {owners: [], rules: []},
     });
   });
 
@@ -89,9 +86,7 @@ describe('FeedbackAssignedTo', () => {
     await waitFor(() =>
       expect(assignMock).toHaveBeenLastCalledWith(
         `/organizations/${organization.slug}/issues/${feedbackIssue.id}/`,
-        expect.objectContaining({
-          data: {assignedBy: 'assignee_selector', assignedTo: ''},
-        })
+        expect.objectContaining({data: {assignedBy: 'assignee_selector', assignedTo: ''}})
       )
     );
     expect(assignMock).toHaveBeenCalledTimes(1);

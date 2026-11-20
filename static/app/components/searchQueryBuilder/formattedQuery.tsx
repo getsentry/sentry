@@ -33,13 +33,9 @@ export type FormattedQueryProps = {
   getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
-type ProvidedFormattedQueryProps = FormattedQueryProps & {
-  allowRegexOperators?: boolean;
-};
+type ProvidedFormattedQueryProps = FormattedQueryProps & {allowRegexOperators?: boolean};
 
-type TokenProps = {
-  token: ParseResultToken;
-};
+type TokenProps = {token: ParseResultToken};
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>
@@ -80,7 +76,7 @@ function Filter({token}: {token: TokenResult<Token.FILTER>}) {
   );
 }
 
-function Boolean({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
+function BooleanToken({token}: {token: TokenResult<Token.LOGIC_BOOLEAN>}) {
   const label = token.text.toUpperCase();
   return <Chip size="sm" value={label} aria-label={label} />;
 }
@@ -102,7 +98,7 @@ function QueryToken({token}: TokenProps) {
         </Paren>
       );
     case Token.LOGIC_BOOLEAN:
-      return <Boolean token={token} />;
+      return <BooleanToken token={token} />;
     default:
       return null;
   }

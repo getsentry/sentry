@@ -80,6 +80,7 @@ class SupportedTraceItemType(str, Enum):
     PROCESSING_ERRORS = "processing_errors"
     OCCURRENCES = "occurrences"
     REPLAYS = "replays"
+    ENRICHMENT_ATTRIBUTES = "enrichment_attributes"
 
 
 class AttributeSourceType(str, Enum):

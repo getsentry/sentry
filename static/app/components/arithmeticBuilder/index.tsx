@@ -163,9 +163,7 @@ export function ArithmeticBuilder({
   );
 }
 
-const Wrapper = styled(Input.withComponent('div'))<{
-  state: 'valid' | 'invalid';
-}>`
+const Wrapper = styled(Input.withComponent('div'))<{state: 'valid' | 'invalid'}>`
   min-height: ${p => p.theme.form.md.minHeight};
   padding: 0;
   height: auto;

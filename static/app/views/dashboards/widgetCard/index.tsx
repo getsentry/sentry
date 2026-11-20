@@ -2,10 +2,11 @@ import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import type {LegendComponentOption} from 'echarts';
 import {parseAsString, useQueryStates} from 'nuqs';
-import qs from 'query-string';
+
+import {DateTime} from '@sentry/scraps/dateTime';
 
 import {openWidgetViewerModal} from 'sentry/actionCreators/modal';
-import {DateTime} from 'sentry/components/dateTime';
+import {ChartLayersControl} from 'sentry/components/charts/chartLayersControl';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {
   isWidgetViewerPath,
@@ -27,6 +28,7 @@ import {getFieldDefinition} from 'sentry/utils/fields';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {isSeerExplorerEnabled} from 'sentry/utils/seer/isSeerExplorerEnabled';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {copyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -53,6 +55,7 @@ import {useLLMContext} from 'sentry/views/seerExplorer/contexts/llmContext';
 import {registerLLMContext} from 'sentry/views/seerExplorer/contexts/registerLLMContext';
 import {useSeerExplorerContext} from 'sentry/views/seerExplorer/useSeerExplorerContext';
 
+import {useWidgetChartLayers} from './useWidgetChartLayers';
 import {VisualizationWidget} from './visualizationWidget';
 import {WidgetCardChartContainer} from './widgetCardChartContainer';
 import {
@@ -76,7 +79,9 @@ const SESSION_DURATION_INGESTION_STOP_DATE = new Date('2023-01-12');
 const SESSION_DURATION_ALERT_TEXT = tct(
   'session.duration is no longer being recorded as of [date]. Data in this widget may be incomplete.',
   {
-    date: <DateTime dateOnly year date={SESSION_DURATION_INGESTION_STOP_DATE} />,
+    date: (
+      <DateTime date={SESSION_DURATION_INGESTION_STOP_DATE} mode="date" year="always" />
+    ),
   }
 );
 
@@ -253,6 +258,15 @@ function WidgetCard(props: Props) {
     dashboardFilters,
   });
 
+  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
+  const chartLayers = useWidgetChartLayers({
+    widget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+    // disableFullscreen is true while creating or editing a widget.
+    hidden: disableFullscreen,
+  });
+
   const onDataFetchStart = useCallback(() => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -358,7 +372,8 @@ function WidgetCard(props: Props) {
         props.onDuplicate,
         props.onEdit,
         data?.timeseriesResults,
-        canAskSeer ? askSeer : undefined
+        canAskSeer ? askSeer : undefined,
+        dashboardQueryPriority
       )
     : [];
   const actions = props.onContextMenuAction
@@ -379,7 +394,6 @@ function WidgetCard(props: Props) {
     );
   };
 
-  const canUseTimeseriesVisualization = widgetCanUseTimeSeriesVisualization(widget);
   if (canUseTimeseriesVisualization) {
     // Legend state requires a stable widget ID to persist to the URL.
     // Unsaved widgets (no ID yet, e.g. in the widget builder preview) skip this.
@@ -416,6 +430,11 @@ function WidgetCard(props: Props) {
             onFullScreenViewClick={disableFullscreen ? undefined : onFullScreenViewClick}
             borderless={props.borderless}
             revealTooltip={props.forceDescriptionTooltip ? 'always' : undefined}
+            headerActions={
+              chartLayers.layerControl && (
+                <ChartLayersControl triggerLabel="icon" {...chartLayers.layerControl} />
+              )
+            }
           >
             <VisualizationWidget
               widget={widget}
@@ -428,7 +447,9 @@ function WidgetCard(props: Props) {
               showConfidenceWarning={showConfidenceWarning}
               legendSelection={legendSelectionForWidget}
               onLegendSelectionChange={handleLegendSelectionChange}
-              disableFullscreen={disableFullscreen}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
             />
           </WidgetFrame>
         </VisuallyCompleteWithData>
@@ -525,9 +546,7 @@ function useTimeRangeWarning({widget}: {widget: TWidget}) {
   ) {
     return tct(
       "You've selected a time range longer than the retention period for some datasets. Data older than [numDays] days may be unavailable.",
-      {
-        numDays: retentionLimitDays,
-      }
+      {numDays: retentionLimitDays}
     );
   }
 

@@ -31,13 +31,7 @@ const RRWEB_EVENTS = [
     timestamp: INCR_DATE,
     data: {
       source: IncrementalSource.Mutation,
-      adds: [
-        {
-          node: RRWebHelloWorldFrameFixture(),
-          parentId: 0,
-          nextId: null,
-        },
-      ],
+      adds: [{node: RRWebHelloWorldFrameFixture(), parentId: 0, nextId: null}],
       removes: [],
       texts: [],
       attributes: [],
@@ -71,10 +65,7 @@ describe('replayPlayerStateContext', () => {
 
   it('should track basic state when replayer instances change', () => {
     const {result} = renderHook(
-      () => ({
-        state: useReplayPlayerState(),
-        dispatch: useReplayPlayerStateDispatch(),
-      }),
+      () => ({state: useReplayPlayerState(), dispatch: useReplayPlayerStateDispatch()}),
       {wrapper}
     );
 
@@ -92,43 +83,28 @@ describe('replayPlayerStateContext', () => {
 
     act(() => dispatch({type: 'didStart'}));
     expect(result.current.state).toStrictEqual(
-      expect.objectContaining({
-        playerState: 'playing',
-        isFinished: false,
-      })
+      expect.objectContaining({playerState: 'playing', isFinished: false})
     );
 
     act(() => dispatch({type: 'didPause'}));
     expect(result.current.state).toStrictEqual(
-      expect.objectContaining({
-        playerState: 'paused',
-        isFinished: false,
-      })
+      expect.objectContaining({playerState: 'paused', isFinished: false})
     );
 
     act(() => dispatch({type: 'didResume'}));
     expect(result.current.state).toStrictEqual(
-      expect.objectContaining({
-        playerState: 'playing',
-        isFinished: false,
-      })
+      expect.objectContaining({playerState: 'playing', isFinished: false})
     );
 
     act(() => dispatch({type: 'didFinish'}));
     expect(result.current.state).toStrictEqual(
-      expect.objectContaining({
-        playerState: 'paused',
-        isFinished: true,
-      })
+      expect.objectContaining({playerState: 'paused', isFinished: true})
     );
   });
 
   it('should track mounted and unmounted Replayer instances', () => {
     const {result} = renderHook(
-      () => ({
-        state: useReplayPlayerState(),
-        dispatch: useReplayPlayerStateDispatch(),
-      }),
+      () => ({state: useReplayPlayerState(), dispatch: useReplayPlayerStateDispatch()}),
       {wrapper}
     );
 

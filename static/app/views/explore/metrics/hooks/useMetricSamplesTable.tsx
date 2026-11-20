@@ -10,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {formatSort} from 'sentry/views/explore/contexts/pageParamsContext/sortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import type {RPCQueryExtras} from 'sentry/views/explore/hooks/useProgressiveQuery';
 import {
   SAMPLING_MODE,
@@ -159,10 +160,7 @@ function useMetricsQueryOptions({
     ingestionDelaySeconds
   );
 
-  const pageFilters = {
-    ...selection,
-    datetime: baseDatetime,
-  };
+  const pageFilters = {...selection, datetime: baseDatetime};
   const dataset = DiscoverDatasets.TRACEMETRICS;
 
   const eventView = getEventView(
@@ -216,13 +214,7 @@ function useMetricsQueryOptions({
     staleTime: 0,
   });
 
-  return {
-    queryOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {queryOptions, other: {eventView, pageFiltersReady}};
 }
 
 export function useMetricSamplesTable({
@@ -235,6 +227,7 @@ export function useMetricSamplesTable({
   requiredQuery,
   staleTime,
 }: UseMetricSamplesTableOptions) {
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
   const canTriggerHighAccuracy = useCallback(
     (result: MetricSamplesTableResult['result']) => {
       const canGoToHigherAccuracyTier = result.meta?.dataScanned === 'partial';
@@ -247,7 +240,7 @@ export function useMetricSamplesTable({
   return useProgressiveQuery<typeof useMetricSamplesTableImpl>({
     queryHookImplementation: useMetricSamplesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled: !disabled,
+      enabled: !disabled && querySpeedReady,
       limit,
       traceMetric,
       fields,
@@ -256,9 +249,7 @@ export function useMetricSamplesTable({
       requiredQuery,
       staleTime,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 }
 

@@ -327,6 +327,7 @@ def pytest_configure(config: pytest.Config) -> None:
             "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
+            # getsentry master still reads these through options.get().
             "slack.client-id": "slack-client-id",
             "slack.client-secret": "slack-client-secret",
             "slack.verification-token": "slack-verification-token",
@@ -357,7 +358,30 @@ def pytest_configure(config: pytest.Config) -> None:
             "aws-lambda.python.layer-version": "34",
         }
     )
-    settings.EMAIL_BACKEND = settings.SENTRY_OPTIONS["mail.backend"]
+    settings.EMAIL_BACKEND = "django.core.mail.backends.locmem.EmailBackend"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_INSTALLATION_ID = "123123123"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_PRIVATE_KEY = "github-private-key"
+    settings.SENTRY_SLACK_CLIENT_ID = "slack-client-id"
+    settings.SENTRY_SLACK_CLIENT_SECRET = "slack-client-secret"
+    settings.SENTRY_SLACK_VERIFICATION_TOKEN = "slack-verification-token"
+    settings.SENTRY_SLACK_SIGNING_SECRET = "slack-signing-secret"
+    settings.SENTRY_GITHUB_APP_NAME = "sentry-test-app"
+    settings.SENTRY_GITHUB_APP_CLIENT_ID = "github-client-id"
+    settings.SENTRY_GITHUB_APP_CLIENT_SECRET = "github-client-secret"
+    settings.SENTRY_GITHUB_APP_WEBHOOK_SECRET = "b3002c3e321d4b7880360d397db2ccfd"
+    settings.SENTRY_GITHUB_CONSOLE_SDK_APP_ID = 42
+    settings.SENTRY_VSTS_CLIENT_ID = "vsts-client-id"
+    settings.SENTRY_VSTS_CLIENT_SECRET = "vsts-client-secret"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_ID = "vsts-limited-client-id"
+    settings.SENTRY_VSTS_LIMITED_CLIENT_SECRET = "vsts-limited-client-secret"
+    settings.SENTRY_VERCEL_CLIENT_ID = "vercel-client-id"
+    settings.SENTRY_VERCEL_CLIENT_SECRET = "vercel-client-secret"
+    settings.SENTRY_MSTEAMS_CLIENT_ID = "msteams-client-id"
+    settings.SENTRY_MSTEAMS_CLIENT_SECRET = "msteams-client-secret"
+    settings.SENTRY_AWS_LAMBDA_ACCESS_KEY_ID = "aws-key-id"
+    settings.SENTRY_AWS_LAMBDA_SECRET_ACCESS_KEY = "aws-secret-access-key"
+    settings.SENTRY_AWS_LAMBDA_CLOUDFORMATION_URL = "https://example.com/file.json"
+    settings.SENTRY_AWS_LAMBDA_ACCOUNT_NUMBER = "1234"
     settings.SENTRY_OPTIONS_COMPLAIN_ON_ERRORS = True
     settings.VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = False
 
@@ -372,15 +396,14 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.ASANA_CLIENT_SECRET = "123"
     settings.BITBUCKET_CONSUMER_KEY = "abc"
     settings.BITBUCKET_CONSUMER_SECRET = "123"
-    settings.SENTRY_OPTIONS["github-login.client-id"] = "abc"
-    settings.SENTRY_OPTIONS["github-login.client-secret"] = "123"
+    settings.GITHUB_APP_ID = "abc"
+    settings.GITHUB_API_SECRET = "123"
+    settings.SENTRY_OPTIONS["github-login.client-id"] = settings.GITHUB_APP_ID
+    settings.SENTRY_OPTIONS["github-login.client-secret"] = settings.GITHUB_API_SECRET
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
     settings.SENTRY_OPTIONS["filestore.control.options"] = {"location": "/tmp/sentry-files"}
-
-    # This is so tests can assume this feature is off by default
-    settings.SENTRY_FEATURES["organizations:performance-view"] = False
 
     # If a request hits the wrong silo, replace the 404 response with an error state
     settings.FAIL_ON_UNAVAILABLE_API_CALL = True

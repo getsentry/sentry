@@ -9,14 +9,8 @@ import {TagPanel} from 'sentry/views/explore/replays/detail/tagPanel';
 
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
-    tags: {
-      foo: ['bar', 'baz'],
-      my_custom_tag: ['a wordy value'],
-    },
+    browser: {name: 'Chrome', version: '110.0.0'},
+    tags: {foo: ['bar', 'baz'], my_custom_tag: ['a wordy value']},
   }),
   errors: [],
   fetching: false,

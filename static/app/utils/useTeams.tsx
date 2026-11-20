@@ -6,7 +6,6 @@ import {fetchUserTeams} from 'sentry/actionCreators/teams';
 import type {Client} from 'sentry/api';
 import {OrganizationStore} from 'sentry/stores/organizationStore';
 import {TeamStore} from 'sentry/stores/teamStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Team} from 'sentry/types/organization';
 
 import {getApiUrl} from './api/getApiUrl';
@@ -102,11 +101,7 @@ async function fetchTeams(
   orgId: string,
   {slugs, search, limit, lastSearch, cursor}: FetchTeamOptions = {}
 ) {
-  const query: {
-    cursor?: typeof cursor;
-    per_page?: number;
-    query?: string;
-  } = {};
+  const query: {cursor?: typeof cursor; per_page?: number; query?: string} = {};
 
   if (slugs !== undefined && slugs.length > 0) {
     query.query = slugs.map(slug => `slug:${slug}`).join(' ');
@@ -132,10 +127,7 @@ async function fetchTeams(
     getApiUrl('/organizations/$organizationIdOrSlug/teams/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -173,7 +165,7 @@ async function fetchTeams(
 export function useTeams({limit, slugs, provideUserTeams}: Options = {}) {
   const api = useApi();
   const organization = useStore(OrganizationStore, state => state.organization);
-  const store = useLegacyStore(TeamStore);
+  const store = useStore(TeamStore);
 
   const orgId = organization?.slug;
 

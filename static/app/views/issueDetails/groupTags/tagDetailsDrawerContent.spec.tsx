@@ -1,5 +1,4 @@
 import {NuqsAdapter} from 'nuqs/adapters/react-router/v8';
-import * as qs from 'query-string';
 import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TagsFixture} from 'sentry-fixture/tags';
@@ -15,6 +14,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {TagValue, TagWithTopValues} from 'sentry/types/group';
+import * as qs from 'sentry/utils/url/qs';
 
 import {TagDetailsDrawerContent} from './tagDetailsDrawerContent';
 
@@ -25,10 +25,7 @@ const pageLinks =
   '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:100:0>; rel="next"; results="true"; cursor="0:100:0"';
 
 const makeInitialRouterConfig = (tagKey: string) => ({
-  location: {
-    pathname: `/organizations/org-slug/issues/1/tags/${tagKey}/`,
-    query: {},
-  },
+  location: {pathname: `/organizations/org-slug/issues/1/tags/${tagKey}/`, query: {}},
   route: '/organizations/:orgId/issues/:groupId/tags/:tagKey/',
 });
 
@@ -212,9 +209,7 @@ describe('TagDetailsDrawerContent', () => {
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
     expect(
-      screen.getByRole('menuitemradio', {
-        name: 'View other events with this tag value',
-      })
+      screen.getByRole('menuitemradio', {name: 'View other events with this tag value'})
     ).toHaveAttribute(
       'href',
       '/organizations/org-slug/issues/1/events/?query=user.username%3Adavid'
@@ -288,9 +283,7 @@ describe('TagDetailsDrawerContent', () => {
   });
 
   it('navigates to explore with issue + tag query', async () => {
-    const discoverOrganization = OrganizationFixture({
-      features: ['discover-basic'],
-    });
+    const discoverOrganization = OrganizationFixture({features: ['discover-basic']});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -305,9 +298,7 @@ describe('TagDetailsDrawerContent', () => {
       await screen.findByRole('button', {name: 'Tag Value Actions Menu'})
     );
 
-    const discoverMenuItem = screen.getByRole('menuitemradio', {
-      name: 'Open in Explore',
-    });
+    const discoverMenuItem = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
     expect(discoverMenuItem).toBeInTheDocument();
 
     const link = new URL(discoverMenuItem.getAttribute('href') ?? '', 'http://localhost');
@@ -320,7 +311,7 @@ describe('TagDetailsDrawerContent', () => {
       interval: '1m',
       name: 'RequestError: GET /issues/ 404',
       project: '2',
-      query: 'issue:JAVASCRIPT-6QS (user.username:david)',
+      query: 'issue.id:1 (user.username:david)',
       queryDataset: 'error-events',
       statsPeriod: '14d',
       yAxis: ['count()', 'count_unique(user)'],

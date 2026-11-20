@@ -36,9 +36,7 @@ export function GroupReplaysPlayer({
   overlayContent,
   replayReaderResult,
 }: Props) {
-  useLogEventReplayStatus({
-    readerResult: replayReaderResult,
-  });
+  useLogEventReplayStatus({readerResult: replayReaderResult});
 
   return (
     <ReplayLoadingState

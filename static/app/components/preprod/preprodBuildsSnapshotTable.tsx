@@ -86,10 +86,7 @@ export function PreprodBuildsSnapshotTable({
   showProjectColumn,
 }: PreprodBuildsSnapshotTableProps) {
   const rows = builds.map(build => {
-    const linkUrl = getSnapshotPath({
-      organizationSlug,
-      snapshotId: build.id,
-    });
+    const linkUrl = getSnapshotPath({organizationSlug, snapshotId: build.id});
     const info = build.snapshot_comparison_info;
     const appId = build.app_info?.app_id;
     return (

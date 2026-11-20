@@ -2,12 +2,11 @@ import React, {Fragment} from 'react';
 import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone, DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {AutoSelectText} from 'sentry/components/autoSelectText';
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration/duration';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -62,11 +61,16 @@ function TimestampTooltipBody({
         <DescriptionList.Details>
           <TimestampValues>
             <AutoSelectText>
-              <DateTime date={timestampToUse} seconds milliseconds timeZone />
+              <DateTime date={timestampToUse} precision="millisecond" showTimezone />
             </AutoSelectText>
             {!isUTCLocalTimezone && (
               <AutoSelectText>
-                <DateTime date={timestampToUse} seconds milliseconds timeZone utc />
+                <DateTime
+                  date={timestampToUse}
+                  precision="millisecond"
+                  showTimezone
+                  timezone="UTC"
+                />
               </AutoSelectText>
             )}
             <TimestampLabel>
@@ -112,7 +116,7 @@ function TimestampTooltipBody({
               {observedTime ? (
                 <TimestampValues>
                   <AutoSelectText>
-                    <DateTime date={observedTime} seconds timeZone />
+                    <DateTime date={observedTime} precision="second" showTimezone />
                   </AutoSelectText>
                 </TimestampValues>
               ) : (

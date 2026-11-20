@@ -388,9 +388,7 @@ The tool parses log entries with the following structure:
       "1231231231231231:6a499a5de1f6e3b412adb0ef12345678:2303:26557"
     ]
   },
-  "labels": {
-    "k8s-pod/consumer": "process-spans-6"
-  }
+  "labels": {"k8s-pod/consumer": "process-spans-6"}
 }
 ```
 

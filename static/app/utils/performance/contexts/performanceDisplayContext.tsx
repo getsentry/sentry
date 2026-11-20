@@ -2,9 +2,7 @@ import {createContext, useContext} from 'react';
 
 import type {ProjectPerformanceType} from 'sentry/views/performance/utils';
 
-type UseCurrentPerformanceView = {
-  performanceType: ProjectPerformanceType;
-};
+type UseCurrentPerformanceView = {performanceType: ProjectPerformanceType};
 
 export const PerformanceDisplayContext = createContext<
   UseCurrentPerformanceView | undefined

@@ -12,11 +12,7 @@ describe('RelatedIssues', () => {
   const transaction = 'test-transaction';
 
   const location = LocationFixture({
-    query: {
-      transaction: 'test-transaction',
-      project: '1',
-      statsPeriod: '14d',
-    },
+    query: {transaction: 'test-transaction', project: '1', statsPeriod: '14d'},
   });
 
   beforeEach(() => {
@@ -26,10 +22,7 @@ describe('RelatedIssues', () => {
       body: issues,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
   });
 
   afterAll(() => {

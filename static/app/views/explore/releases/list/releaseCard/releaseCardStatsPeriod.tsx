@@ -7,9 +7,7 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import {HealthStatsPeriodOption} from 'sentry/types/release';
 
-type Props = {
-  location: Location;
-};
+type Props = {location: Location};
 
 export function ReleaseCardStatsPeriod({location}: Props) {
   const {selection} = usePageFilters();

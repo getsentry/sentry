@@ -58,10 +58,7 @@ export function SelectableRepoItem({repo, isSelected, onToggle}: Props) {
   );
 }
 
-const RepoListItemContainer = styled('div')<{
-  selected: boolean;
-  disabled?: boolean;
-}>`
+const RepoListItemContainer = styled('div')<{selected: boolean; disabled?: boolean}>`
   display: flex;
   flex-direction: column;
   width: 100%;

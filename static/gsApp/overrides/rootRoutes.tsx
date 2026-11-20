@@ -13,20 +13,14 @@ export const rootRoutes = (): SentryRouteObject => ({
       component: withDomainRequired(errorHandler(OrganizationSubscriptionContext)),
       customerDomainOnlyRoute: true,
       children: [
-        {
-          index: true,
-          component: make(() => import('getsentry/views/decideCheckout')),
-        },
+        {index: true, component: make(() => import('getsentry/views/decideCheckout'))},
       ],
     },
     {
       path: '/checkout/:orgId/',
       component: withDomainRedirect(errorHandler(OrganizationSubscriptionContext)),
       children: [
-        {
-          index: true,
-          component: make(() => import('getsentry/views/decideCheckout')),
-        },
+        {index: true, component: make(() => import('getsentry/views/decideCheckout'))},
       ],
     },
   ],

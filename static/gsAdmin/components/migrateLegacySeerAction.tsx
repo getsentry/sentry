@@ -11,15 +11,9 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import type {AdminConfirmRenderProps} from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
-type Props = {
-  orgId: string;
-  subscription: Subscription;
-} & AdminConfirmRenderProps;
+type Props = {orgId: string; subscription: Subscription} & AdminConfirmRenderProps;
 
-type MigrationOptions = {
-  addSeerTrial: boolean;
-  applyImmediately: boolean;
-};
+type MigrationOptions = {addSeerTrial: boolean; applyImmediately: boolean};
 
 /**
  * Rendered as part of an openAdminConfirmModal call.

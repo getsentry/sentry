@@ -41,6 +41,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 import {makeProjectsPathname} from 'sentry/views/projects/pathname';
 
 import {AgenticCreateProject} from './agenticCreateProject';
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {useProjectCreationPageOrigin} from './projectCreationOrigin';
 import {WIZARD_STORAGE_KEY, type WizardState} from './scmCreateProjectSession';
 
@@ -56,10 +57,7 @@ const INITIAL_STATE: WizardState = {
   selectedRepository: undefined,
 };
 
-const autoFillParsers = {
-  referrer: parseAsString,
-  project: parseAsString,
-};
+const autoFillParsers = {referrer: parseAsString, project: parseAsString};
 
 export function ScmCreateProject() {
   const organization = useOrganization();
@@ -83,10 +81,7 @@ export function ScmCreateProject() {
 
   // Above the keyed wizard so the per-mount sampling decision survives the
   // restore remount below.
-  useReplayForCriticalFlow({
-    flowName: 'scm_project_creation',
-    sampleRate: 0.5,
-  });
+  useReplayForCriticalFlow({flowName: 'scm_project_creation', sampleRate: 0.5});
 
   // Snapshot of the last completed wizard session, written when a project is
   // created (see handleComplete in the wizard). Restored when this mount is a
@@ -251,21 +246,24 @@ function ScmCreateProjectWizard({
         createdProjectSlug: project.slug,
         projectDetailsForm: submittedForm,
       });
-      navigate({
-        pathname: makeProjectsPathname({
-          path: `/${project.slug}/getting-started/`,
-          organization,
-        }),
-        // Carry both the creating flow and upfront product selection into the
-        // setup-docs and getting-started analytics to the SCM variant; the
-        // product query seeds the selected instructions.
-        query: {
-          projectCreationVariant: 'scm',
-          ...(wizardState.selectedFeatures
-            ? {product: wizardState.selectedFeatures}
-            : {}),
+      navigate(
+        {
+          pathname: makeProjectsPathname({
+            path: `/${project.slug}/getting-started/`,
+            organization,
+          }),
+          // Carry both the creating flow and upfront product selection into the
+          // setup-docs and getting-started analytics to the SCM variant; the
+          // product query seeds the selected instructions.
+          query: {
+            projectCreationVariant: 'scm',
+            ...(wizardState.selectedFeatures
+              ? {product: wizardState.selectedFeatures}
+              : {}),
+          },
         },
-      });
+        {state: FROM_PROJECT_CREATION_STATE}
+      );
     },
     [wizardState, navigate, organization]
   );

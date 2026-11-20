@@ -12,10 +12,7 @@ interface SortableItemProps extends QueryFieldProps {
 export function SortableQueryField({dragId, ...props}: SortableItemProps) {
   const theme = useTheme();
   const {listeners, setNodeRef, transform, transition, attributes, isDragging} =
-    useSortable({
-      id: dragId,
-      transition: null,
-    });
+    useSortable({id: dragId, transition: null});
 
   let style = {
     transform: CSS.Transform.toString(transform),

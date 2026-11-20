@@ -346,9 +346,7 @@ describe('useScmProviders', () => {
     expect(integrationsRequest).toHaveBeenCalledWith(
       expect.anything(),
       expect.objectContaining({
-        query: expect.objectContaining({
-          integrationType: 'source_code_management',
-        }),
+        query: expect.objectContaining({integrationType: 'source_code_management'}),
       })
     );
   });

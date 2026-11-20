@@ -15,12 +15,7 @@ export function SentryAppComponentFixture(
       create: {
         uri: '',
         required_fields: [
-          {
-            type: 'text',
-            name: 'title',
-            label: 'Title',
-            default: 'issue.title',
-          },
+          {type: 'text', name: 'title', label: 'Title', default: 'issue.title'},
           {
             type: 'textarea',
             name: 'description',
@@ -38,16 +33,7 @@ export function SentryAppComponentFixture(
           },
         ],
       },
-      link: {
-        uri: '',
-        required_fields: [
-          {
-            type: 'text',
-            name: 'issue',
-            label: 'Issue',
-          },
-        ],
-      },
+      link: {uri: '', required_fields: [{type: 'text', name: 'issue', label: 'Issue'}]},
     },
     sentryApp: {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -80,16 +66,7 @@ export function SentryAppComponentAsyncFixture(
           },
         ],
       },
-      link: {
-        uri: '',
-        required_fields: [
-          {
-            type: 'text',
-            name: 'issue',
-            label: 'Issue',
-          },
-        ],
-      },
+      link: {uri: '', required_fields: [{type: 'text', name: 'issue', label: 'Issue'}]},
     },
     sentryApp: {
       uuid: 'b468fed3-afba-4917-80d6-bdac99c1ec05',
@@ -136,12 +113,7 @@ export function SentryAppComponentDependentFixture(
       },
       create: {
         required_fields: [
-          {
-            default: 'issue.title',
-            type: 'text',
-            name: 'title',
-            label: 'Title',
-          },
+          {default: 'issue.title', type: 'text', name: 'title', label: 'Title'},
           {
             default: 'issue.description',
             type: 'textarea',

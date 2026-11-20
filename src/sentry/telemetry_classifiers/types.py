@@ -1,4 +1,6 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 from django.db import models
@@ -34,6 +36,8 @@ class PrebuiltClassifier:
     description: str
     # Suggested result attribute name, without RESULT_ATTRIBUTE_PREFIX. Customers can change it.
     result_attribute: str
+    # Only set for binary classifiers.
+    binary_threshold: float | None = None
 
 
 @dataclass(frozen=True)
@@ -44,6 +48,7 @@ class ResolvedDefinition:
     key: str
     dataset: Dataset
     output_type: TelemetryClassifierOutputType
+    binary_threshold: float | None
 
 
 # A JSON-serializable telemetry item to classify. Datasets decide what it contains.
@@ -57,3 +62,21 @@ class PreparedInput:
     events: tuple[Event, ...]
     # Older events were left out to fit MAX_INPUT_CHARS.
     truncated: bool
+
+
+@dataclass(frozen=True)
+class TelemetryInput:
+    """One entity's telemetry, loaded for classification."""
+
+    # Oldest first.
+    events: list[Event]
+    # Loading hit its limits, so some telemetry is missing or shortened.
+    truncated: bool
+    # Where the result is written in EAP, taken from the newest span.
+    trace_id: str
+    timestamp: datetime
+    client_sample_rate: float
+    conversation_id: str | None
+    # Attributes of the newest span copied onto the result, by EAP attribute name, so results can be
+    # filtered and grouped like the telemetry they were classified from.
+    copied_attributes: Mapping[str, str]

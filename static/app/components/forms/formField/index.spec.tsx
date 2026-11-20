@@ -87,10 +87,7 @@ describe('FormField + model', () => {
   });
 
   it('preserves current value when softRemove field is unmounted and remounted', async () => {
-    const initialData = {
-      firstName: 'first',
-      lastName: 'last',
-    };
+    const initialData = {firstName: 'first', lastName: 'last'};
 
     function TestComponent() {
       const [showFields, setShowFields] = useState(true);

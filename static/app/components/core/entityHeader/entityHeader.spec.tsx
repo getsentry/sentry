@@ -1,10 +1,16 @@
 import {Fragment} from 'react';
 import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
+import {
+  isInaccessible,
+  render,
+  screen,
+  userEvent,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
-import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
+import type {EntityHeaderProps, EntityHeaderStatProps} from '@sentry/scraps/entityHeader';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -212,7 +218,7 @@ describe('EntityHeader', () => {
   });
 
   describe('stats and metadata', () => {
-    it('names a stat link by what it leads to, not by its number', () => {
+    it('names a label link by its label, leaving the count beside it', () => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
@@ -220,32 +226,129 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'link',
-                label: 'Dead Clicks',
+                label: {
+                  type: 'link',
+                  content: 'Dead Clicks',
+                  to: '/replays/1/?t_main=breadcrumbs',
+                },
                 value: 4,
-                to: '/replays/1/?t_main=breadcrumbs',
               },
-              {type: 'text', label: 'Rage Clicks', value: 0},
+              {label: 'Rage Clicks', value: 0},
             ],
           }}
         />
       );
 
-      // A link named "4" says nothing in a links list. The label navigates, and
-      // the name carries the value with it, so moving element by element reads
-      // "4 Dead Clicks" in one go rather than "4", then "link, Dead Clicks".
-      expect(screen.getByRole('link', {name: '4 Dead Clicks'})).toHaveAttribute(
-        'href',
-        '/replays/1/?t_main=breadcrumbs'
-      );
-      expect(screen.queryByRole('link', {name: '4'})).not.toBeInTheDocument();
+      // The label navigates, so a links list reads "Dead Clicks" rather than
+      // a bare "4". The count sits beside it in the same list item.
+      const link = screen.getByRole('link', {name: 'Dead Clicks'});
+      expect(link).toHaveAttribute('href', '/replays/1/?t_main=breadcrumbs');
+      expect(link).not.toHaveAttribute('aria-label');
+      expect(link).not.toHaveTextContent('4');
 
-      // And not announced a second time on its own, now the name speaks it.
-      expect(screen.getByText('4')).toHaveAttribute('aria-hidden', 'true');
+      // The count is read as itself, not hidden behind the link's name.
+      expect(screen.getByText('4')).not.toHaveAttribute('aria-hidden');
 
       // A text stat links nothing at all.
       expect(screen.getByText('Rage Clicks')).toBeInTheDocument();
       expect(screen.queryByRole('link', {name: 'Rage Clicks'})).not.toBeInTheDocument();
+    });
+
+    it('reads the label before the value in every kind of stat', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {label: 'Text', value: 1},
+              {label: {type: 'link', content: 'Link', to: '/a/'}, value: 2},
+              {label: {type: 'text', content: 'Label tip', tooltip: 'About'}, value: 3},
+              {label: 'Value tip', value: {type: 'text', content: 4, tooltip: 'Split'}},
+              {
+                label: {type: 'link', content: 'Both tips', to: '/b/', tooltip: 'About'},
+                value: {type: 'text', content: 5, tooltip: 'Split'},
+              },
+              {label: 'Value link', value: {type: 'link', content: 6, to: '/c/'}},
+              {
+                label: {type: 'link', content: 'Both links', to: '/d/'},
+                value: {type: 'link', content: 7, to: '/d/'},
+              },
+            ],
+          }}
+        />
+      );
+
+      // A number is never read before what it counts.
+      const items = within(screen.getByRole('list', {name: 'Replay stats'})).getAllByRole(
+        'listitem'
+      );
+      expect(items[0]).toHaveTextContent(/^Text1$/);
+      expect(items[1]).toHaveTextContent(/^Link2$/);
+      expect(items[2]).toHaveTextContent(/^Label tip3$/);
+      expect(items[3]).toHaveTextContent(/^Value tip4$/);
+      expect(items[4]).toHaveTextContent(/^Both tips5$/);
+      expect(items[5]).toHaveTextContent(/^Value link6$/);
+      expect(items[6]).toHaveTextContent(/^Both links7$/);
+    });
+
+    it('visits each tooltip in turn, label first, each opening its own', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {
+                  type: 'text',
+                  content: 'Errors',
+                  tooltip: 'Errors recorded during this replay',
+                },
+                value: {type: 'text', content: 3, tooltip: 'From 2 projects'},
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.tab();
+      expect(screen.getByText('Errors')).toHaveFocus();
+      expect(
+        await screen.findByText('Errors recorded during this replay')
+      ).toBeInTheDocument();
+      expect(screen.queryByText('From 2 projects')).not.toBeInTheDocument();
+
+      await userEvent.tab();
+      expect(screen.getByText('3')).toHaveFocus();
+      expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
+    });
+
+    it('lets a link stat carry a value tooltip after the link', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: {type: 'text', content: 3, tooltip: 'From 2 projects'},
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.tab();
+      expect(screen.getByRole('link', {name: 'Errors'})).toHaveFocus();
+
+      // The value is its own trigger, not nested inside the anchor.
+      await userEvent.tab();
+      const value = screen.getByText('3');
+      expect(value).toHaveFocus();
+      expect(screen.getByRole('link', {name: 'Errors'})).not.toContainElement(value);
+      expect(await screen.findByText('From 2 projects')).toBeInTheDocument();
     });
 
     it('explains a stat label through a tooltip without restyling it', async () => {
@@ -256,10 +359,12 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'text',
-                label: 'Dead Clicks',
+                label: {
+                  type: 'text',
+                  content: 'Dead Clicks',
+                  tooltip: 'A click that did not change anything.',
+                },
                 value: 4,
-                labelTooltip: 'A click that did not change anything.',
               },
             ],
           }}
@@ -280,22 +385,24 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'text',
                 label: 'Errors',
-                value: 3,
-                valueTooltip: (
-                  <Fragment>
-                    <Tooltip.Header>Errors</Tooltip.Header>
-                    <Tooltip.Grid columns="1fr max-content">
-                      <Tooltip.Row trailingItems={<span>2</span>}>
-                        <span>javascript</span>
-                      </Tooltip.Row>
-                      <Tooltip.Row trailingItems={<span>1</span>}>
-                        <span>python</span>
-                      </Tooltip.Row>
-                    </Tooltip.Grid>
-                  </Fragment>
-                ),
+                value: {
+                  type: 'text',
+                  content: 3,
+                  tooltip: (
+                    <Fragment>
+                      <Tooltip.Header>Errors</Tooltip.Header>
+                      <Tooltip.Grid columns="1fr max-content">
+                        <Tooltip.Row trailingItems={<span>2</span>}>
+                          <span>javascript</span>
+                        </Tooltip.Row>
+                        <Tooltip.Row trailingItems={<span>1</span>}>
+                          <span>python</span>
+                        </Tooltip.Row>
+                      </Tooltip.Grid>
+                    </Fragment>
+                  ),
+                },
               },
             ],
           }}
@@ -318,22 +425,30 @@ describe('EntityHeader', () => {
             label: 'Replay stats',
             items: [
               {
-                type: 'link',
-                label: 'Errors',
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/?t_main=errors',
+                  tooltip: 'Errors recorded during this replay',
+                },
                 value: 3,
-                to: '/replays/1/?t_main=errors',
-                labelTooltip: 'Errors recorded during this replay',
               },
             ],
           }}
         />
       );
 
-      const link = screen.getByRole('link', {name: '3 Errors'});
+      const link = screen.getByRole('link', {name: 'Errors'});
       expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
 
       // The link is the only tab stop; InfoText would add a second one inside
       // the anchor.
+      await userEvent.tab();
+      expect(link).toHaveFocus();
+      await userEvent.tab();
+      expect(link).not.toHaveFocus();
+      expect(document.body).toHaveFocus();
+
       await userEvent.hover(link);
       expect(
         await screen.findByText('Errors recorded during this replay')
@@ -347,12 +462,16 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 0, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 0,
+              },
             ],
           }}
         />
       );
-      const before = screen.getByRole('link', {name: '0 Errors'});
+      const before = screen.getByRole('link', {name: 'Errors'});
+      expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors0$/);
 
       rerender(
         <EntityHeader
@@ -360,13 +479,221 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 3,
+              },
             ],
           }}
         />
       );
 
-      expect(screen.getByRole('link', {name: '3 Errors'})).toBe(before);
+      expect(screen.getByRole('link', {name: 'Errors'})).toBe(before);
+      expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors3$/);
+    });
+
+    it('names a value link by its own text, after the label', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          stats={{
+            label: 'Conversation stats',
+            items: [
+              {
+                label: 'Errors',
+                value: {type: 'link', content: 7, to: '/explore/traces/?query=errors'},
+              },
+            ],
+          }}
+        />
+      );
+
+      // Nothing is renamed: the link reads "7", and the label beside it in the
+      // same list item says what it counts.
+      const link = screen.getByRole('link', {name: '7'});
+      expect(link).toHaveAttribute('href', '/explore/traces/?query=errors');
+      expect(link).not.toHaveAttribute('aria-label');
+      expect(screen.queryByRole('link', {name: 'Errors'})).not.toBeInTheDocument();
+      expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors7$/);
+    });
+
+    it('attaches a value tooltip to the value link rather than nesting a tab stop', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+          stats={{
+            label: 'Conversation stats',
+            items: [
+              {
+                label: 'Errors',
+                value: {
+                  type: 'link',
+                  content: 7,
+                  to: '/explore/traces/?query=errors',
+                  tooltip: 'From 2 tools',
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      const link = screen.getByRole('link', {name: '7'});
+
+      await userEvent.tab();
+      expect(link).toHaveFocus();
+      expect(await screen.findByText('From 2 tools')).toBeInTheDocument();
+
+      await userEvent.tab();
+      expect(document.body).toHaveFocus();
+    });
+
+    it('lets both halves link, visiting the label first', async () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: {type: 'link', content: 3, to: '/issues/?query=replay'},
+              },
+            ],
+          }}
+        />
+      );
+
+      const label = screen.getByRole('link', {name: 'Errors'});
+      const value = screen.getByRole('link', {name: '3'});
+      expect(label).toHaveAttribute('href', '/replays/1/?t_main=errors');
+      expect(value).toHaveAttribute('href', '/issues/?query=replay');
+      expect(label).not.toContainElement(value);
+
+      await userEvent.tab();
+      expect(label).toHaveFocus();
+      await userEvent.tab();
+      expect(value).toHaveFocus();
+    });
+
+    it('opens an external stat link in a new tab, on either half', () => {
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Build', value: '1.0.0'}}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {
+                label: {
+                  type: 'link',
+                  content: 'Install Size',
+                  externalHref: 'https://docs.sentry.io/size/',
+                },
+                value: {
+                  type: 'link',
+                  content: '12 MB',
+                  externalHref: 'https://github.com/getsentry/sentry/pull/1',
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      const label = screen.getByRole('link', {name: 'Install Size'});
+      expect(label).toHaveAttribute('href', 'https://docs.sentry.io/size/');
+      expect(label).toHaveAttribute('target', '_blank');
+
+      const value = screen.getByRole('link', {name: '12 MB'});
+      expect(value).toHaveAttribute('href', 'https://github.com/getsentry/sentry/pull/1');
+      expect(value).toHaveAttribute('target', '_blank');
+    });
+
+    it('calls each half its own click handler', async () => {
+      const onLabelClick = jest.fn();
+      const onValueClick = jest.fn();
+
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Replay user', value: 'Session'}}
+          stats={{
+            label: 'Replay stats',
+            items: [
+              {
+                label: {
+                  type: 'link',
+                  content: 'Errors',
+                  to: '/replays/1/?t_main=errors',
+                  onClick: onLabelClick,
+                },
+                value: {
+                  type: 'link',
+                  content: 3,
+                  to: '/issues/?query=replay',
+                  onClick: onValueClick,
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: 'Errors'}));
+      expect(onLabelClick).toHaveBeenCalledTimes(1);
+      expect(onValueClick).not.toHaveBeenCalled();
+
+      await userEvent.click(screen.getByRole('link', {name: '3'}));
+      expect(onValueClick).toHaveBeenCalledTimes(1);
+      expect(onLabelClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('calls the click handler of an external link half', async () => {
+      const onClick = jest.fn();
+
+      render(
+        <EntityHeader
+          title={{type: 'text', label: 'Build', value: '1.0.0'}}
+          stats={{
+            label: 'Build stats',
+            items: [
+              {
+                label: 'Install Size',
+                value: {
+                  type: 'link',
+                  content: '12 MB',
+                  externalHref: 'https://github.com/getsentry/sentry/pull/1',
+                  onClick,
+                },
+              },
+            ],
+          }}
+        />
+      );
+
+      await userEvent.click(screen.getByRole('link', {name: '12 MB'}));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('keeps the same element when a value link receives its value', () => {
+      const build = (content: number): EntityHeaderProps => ({
+        title: {type: 'text', label: 'Replay user', value: 'Session'},
+        stats: {
+          label: 'Replay stats',
+          items: [
+            {
+              label: 'Errors',
+              value: {type: 'link', content, to: '/issues/?query=replay'},
+            },
+          ],
+        },
+      });
+
+      const {rerender} = render(<EntityHeader {...build(0)} />);
+      const before = screen.getByRole('link', {name: '0'});
+
+      rerender(<EntityHeader {...build(3)} />);
+
+      expect(screen.getByRole('link', {name: '3'})).toBe(before);
     });
 
     it('drops null entries so callers can inline conditionals', () => {
@@ -377,10 +704,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              isVideoReplay
-                ? null
-                : {type: 'text' as const, label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 2},
+              isVideoReplay ? null : {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 2},
             ],
           }}
           metadata={{
@@ -409,8 +734,8 @@ describe('EntityHeader', () => {
             stats={{
               label: 'Replay stats',
               items: [
-                showViewers ? {type: 'text' as const, label: 'Seen By', value: 2} : null,
-                {type: 'text', label: 'Note', value: 7},
+                showViewers ? {label: 'Seen By', value: 2} : null,
+                {label: 'Note', value: 7},
               ],
             }}
           />
@@ -437,10 +762,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -450,10 +772,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -520,10 +839,7 @@ describe('EntityHeader', () => {
               },
             ],
           }}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -545,10 +861,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [UserFixture({id: '1', name: 'Alice'})], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -574,10 +887,7 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -590,10 +900,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -615,7 +922,7 @@ describe('EntityHeader', () => {
       );
 
       // A links list showing "8.42.0" says nothing about what it leads to.
-      // The mirror of a stat, where the label links and carries the count.
+      // Unlike a stat, the key is hidden, so the link has to carry it.
       expect(screen.getByRole('link', {name: 'Version 8.42.0'})).toHaveAttribute(
         'href',
         '/releases/8.42.0/'
@@ -714,9 +1021,7 @@ describe('EntityHeader', () => {
       expect(screen.getByText('144.0.0')).toBeVisible();
       // Both keys are present for a screen reader, clipped out of the layout.
       expect(screen.getByText('Browser')).toHaveStyle({clipPath: 'inset(50%)'});
-      expect(screen.getByText('Browser version')).toHaveStyle({
-        clipPath: 'inset(50%)',
-      });
+      expect(screen.getByText('Browser version')).toHaveStyle({clipPath: 'inset(50%)'});
 
       rerender(
         <EntityHeader
@@ -740,41 +1045,303 @@ describe('EntityHeader', () => {
       // is unchanged, and the child key stays hidden either way.
       const item = screen.getByRole('listitem');
       expect(screen.getByText('Browser')).not.toHaveStyle({clipPath: 'inset(50%)'});
-      expect(screen.getByText('Browser version')).toHaveStyle({
-        clipPath: 'inset(50%)',
-      });
+      expect(screen.getByText('Browser version')).toHaveStyle({clipPath: 'inset(50%)'});
       expect(item).toHaveTextContent(/^BrowserChromeBrowser version144\.0\.0$/);
     });
 
-    it('never hides a focusable element on a link stat', () => {
+    it.each<[string, EntityHeaderStatProps]>([
+      [
+        'a link label with a tooltip',
+        {label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'}, value: 3},
+      ],
+      [
+        'a link label with a value tooltip',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/'},
+          value: {type: 'text', content: 3, tooltip: 'Split'},
+        },
+      ],
+      [
+        'a link value with a tooltip',
+        {label: 'Errors', value: {type: 'link', content: 3, to: '/e/', tooltip: 'Split'}},
+      ],
+      [
+        'a link label and a link value, both with tooltips',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'},
+          value: {type: 'link', content: 3, to: '/e/', tooltip: 'Split'},
+        },
+      ],
+      [
+        'a text label and a text value, both with tooltips',
+        {
+          label: {type: 'text', content: 'Errors', tooltip: 'Why'},
+          value: {type: 'text', content: 3, tooltip: 'Split'},
+        },
+      ],
+      [
+        'an empty value under a link label with a tooltip',
+        {
+          label: {type: 'link', content: 'Errors', to: '/e/', tooltip: 'Why'},
+          value: null,
+        },
+      ],
+      [
+        'an empty link value with a tooltip',
+        {
+          label: 'Errors',
+          value: {type: 'link', content: null, to: '/e/', tooltip: 'Not recorded'},
+        },
+      ],
+      [
+        'an empty text value with a tooltip',
+        {label: 'Errors', value: {type: 'text', content: null, tooltip: 'Not recorded'}},
+      ],
+      [
+        'an empty text value, both with tooltips',
+        {
+          label: {type: 'text', content: 'Errors', tooltip: 'Why'},
+          value: {type: 'text', content: null, tooltip: 'Not recorded'},
+        },
+      ],
+    ])('never hides a focusable element on %s', (_, stat) => {
       render(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [
-              {
-                type: 'link',
-                label: 'Errors',
-                value: 3,
-                to: '/replays/1/?t_main=errors',
-                labelTooltip: 'From 2 projects',
-              },
-            ],
-          }}
+          stats={{label: 'Replay stats', items: [stat]}}
         />
       );
 
-      // The value is hidden on a link stat, because the link speaks it as part
-      // of its own name. Anything hidden must also be unreachable: a tab stop
-      // that announces nothing is focus landing somewhere a screen reader
-      // cannot follow.
-      const header = screen.getByRole('banner');
-      const hiddenFocusable = header.querySelectorAll(
-        '[aria-hidden="true"] [tabindex], [aria-hidden="true"][tabindex]'
-      );
+      // A tab stop that announces nothing is focus landing somewhere a screen
+      // reader cannot follow.
+      const tabStops = screen
+        .getByRole('banner')
+        .querySelectorAll('a[href], button, [tabindex]:not([tabindex="-1"])');
 
-      expect(hiddenFocusable).toHaveLength(0);
+      expect(tabStops.length).toBeGreaterThan(0);
+      expect([...tabStops].filter(isInaccessible)).toEqual([]);
+    });
+
+    describe('with no data', () => {
+      it('shows a dash but reads the stat as having no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{label: 'Build stats', items: [{label: 'Cost', value: null}]}}
+          />
+        );
+
+        // The dash is for the eye only. Read aloud it would be "dash", which
+        // sounds like a value.
+        expect(screen.getByText('—')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByText('No data')).toBeInTheDocument();
+
+        // Still label first, then the value: "Cost", "No data".
+        const item = within(screen.getByRole('list', {name: 'Build stats'})).getByRole(
+          'listitem'
+        );
+        expect(item).toHaveTextContent(/^Cost—No data$/);
+      });
+
+      it('keeps an empty link stat a link, named by its label', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{
+              label: 'Replay stats',
+              items: [
+                {
+                  label: {
+                    type: 'link',
+                    content: 'Errors',
+                    to: '/replays/1/?t_main=errors',
+                  },
+                  value: null,
+                },
+              ],
+            }}
+          />
+        );
+
+        // The type may not change once the data loads, so it links regardless.
+        expect(screen.getByRole('link', {name: 'Errors'})).toHaveAttribute(
+          'href',
+          '/replays/1/?t_main=errors'
+        );
+        expect(screen.getByRole('listitem')).toContainElement(
+          screen.getByText('No data')
+        );
+      });
+
+      it('keeps an empty link value a link, read as no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{
+              label: 'Replay stats',
+              items: [
+                {
+                  label: 'Errors',
+                  value: {type: 'link', content: null, to: '/replays/1/?t_main=errors'},
+                },
+              ],
+            }}
+          />
+        );
+
+        // Named by its own text, the same as any value link — the dash is
+        // hidden and "No data" is read in its place.
+        const link = screen.getByRole('link', {name: 'No data'});
+        expect(link).toHaveAttribute('href', '/replays/1/?t_main=errors');
+        expect(within(link).getByText('—')).toHaveAttribute('aria-hidden', 'true');
+        expect(screen.getByRole('listitem')).toHaveTextContent(/^Errors—No data$/);
+      });
+
+      it('explains why there is no value from the value trigger', async () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {
+                  label: 'Cost',
+                  value: {
+                    type: 'text',
+                    content: null,
+                    tooltip: 'No cost is recorded for local builds',
+                  },
+                },
+              ],
+            }}
+          />
+        );
+
+        await userEvent.tab();
+        expect(document.activeElement).not.toHaveAttribute('aria-hidden');
+        expect(document.activeElement).toContainElement(screen.getByText('No data'));
+        expect(
+          await screen.findByText('No cost is recorded for local builds')
+        ).toBeInTheDocument();
+
+        await userEvent.tab();
+        expect(document.body).toHaveFocus();
+      });
+
+      it('still reads no data when the label carries the tooltip', async () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {
+                  label: {
+                    type: 'text',
+                    content: 'Install Size',
+                    tooltip: 'Size on device',
+                  },
+                  value: null,
+                },
+              ],
+            }}
+          />
+        );
+
+        await userEvent.tab();
+        expect(screen.getByText('Install Size')).toHaveFocus();
+        expect(await screen.findByText('Size on device')).toBeInTheDocument();
+        expect(screen.getByRole('listitem')).toContainElement(
+          screen.getByText('No data')
+        );
+      });
+
+      it('reads a zero as a zero, not as no data', () => {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay user', value: 'Session'}}
+            stats={{label: 'Replay stats', items: [{label: 'Errors', value: 0}]}}
+          />
+        );
+
+        expect(screen.getByText('0')).toBeInTheDocument();
+        expect(screen.queryByText('No data')).not.toBeInTheDocument();
+        expect(screen.queryByText('—')).not.toBeInTheDocument();
+      });
+
+      it('shows the skeleton rather than the dash while loading', () => {
+        const warn = jest.spyOn(console, 'warn');
+
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [{label: 'Cost', value: null, isLoading: true}],
+            }}
+          />
+        );
+
+        expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument();
+        expect(screen.queryByText('—')).not.toBeInTheDocument();
+        expect(screen.queryByText('No data')).not.toBeInTheDocument();
+        expect(warn).not.toHaveBeenCalled();
+
+        warn.mockRestore();
+      });
+
+      it('warns once per label when a placeholder is passed as the value', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+        // Labels are unique to this test: the warning is deduplicated for the
+        // life of the module.
+        const {rerender} = render(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {label: 'Placeholder Size', value: '-'},
+                {label: 'Real Size', value: '12 MB'},
+              ],
+            }}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('Placeholder Size'));
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('value: null'));
+        // A warning, not a correction: the value renders as given.
+        expect(screen.getByText('-')).toBeInTheDocument();
+
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{
+              label: 'Build stats',
+              items: [
+                {label: 'Placeholder Size', value: '-'},
+                {label: 'Real Size', value: '13 MB'},
+              ],
+            }}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(1);
+
+        // Padding around a placeholder does not hide it.
+        rerender(
+          <EntityHeader
+            title={{type: 'text', label: 'Build', value: '1.0.0'}}
+            stats={{label: 'Build stats', items: [{label: 'Padded Size', value: ' — '}]}}
+          />
+        );
+
+        expect(warn).toHaveBeenCalledTimes(2);
+        expect(warn).toHaveBeenLastCalledWith(expect.stringContaining('Padded Size'));
+
+        warn.mockRestore();
+      });
     });
 
     it('renders a tooltip on a metadata item', async () => {
@@ -810,8 +1377,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'text', label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 2},
+              {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 2},
             ],
           }}
           metadata={{
@@ -854,10 +1421,7 @@ describe('EntityHeader', () => {
             hasData ? {label: 'Browser', type: 'text', value: 'Chrome'} : null,
           ],
         },
-        stats: {
-          label: 'Replay stats',
-          items: [{type: 'text', label: 'Errors', value: 0}],
-        },
+        stats: {label: 'Replay stats', items: [{label: 'Errors', value: 0}]},
       });
 
       const {rerender} = render(<EntityHeader {...build(false)} />);
@@ -877,10 +1441,7 @@ describe('EntityHeader', () => {
           isLoading
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -890,10 +1451,7 @@ describe('EntityHeader', () => {
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           people={{users: [], isLoading: true, label: 'Viewed by'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -908,8 +1466,8 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'text', label: 'Dead Clicks', value: 4},
-              {type: 'text', label: 'Errors', value: 0, isLoading: true},
+              {label: 'Dead Clicks', value: 4},
+              {label: 'Errors', value: 0, isLoading: true},
             ],
           }}
         />
@@ -928,7 +1486,7 @@ describe('EntityHeader', () => {
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
           stats={{
             label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 0, isLoading: true}],
+            items: [{label: 'Errors', value: 0, isLoading: true}],
           }}
         />
       );
@@ -938,10 +1496,7 @@ describe('EntityHeader', () => {
       rerender(
         <EntityHeader
           title={{type: 'text', label: 'Replay user', value: 'Session'}}
-          stats={{
-            label: 'Replay stats',
-            items: [{type: 'text', label: 'Errors', value: 2}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 2}]}}
         />
       );
 
@@ -957,7 +1512,10 @@ describe('EntityHeader', () => {
           stats={{
             label: 'Replay stats',
             items: [
-              {type: 'link', label: 'Errors', value: 3, to: '/replays/1/?t_main=errors'},
+              {
+                label: {type: 'link', content: 'Errors', to: '/replays/1/?t_main=errors'},
+                value: 3,
+              },
             ],
           }}
           metadata={{
@@ -982,7 +1540,7 @@ describe('EntityHeader', () => {
 
       const title = screen.getByRole('heading', {level: 2});
       const metadata = screen.getByText('Chrome 144');
-      const stat = screen.getByRole('link', {name: '3 Errors'});
+      const stat = screen.getByRole('link', {name: 'Errors'});
 
       expect(follows(title, metadata)).toBe(true);
       expect(follows(metadata, stat)).toBe(true);

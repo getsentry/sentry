@@ -115,10 +115,7 @@ export function FilterSelector({
   // Get operator info from the picker or no value token
   const {initialOperator, operatorDropdownItems} = useMemo(() => {
     if (!pickerToken) {
-      return {
-        initialOperator: TermOperator.DEFAULT,
-        operatorDropdownItems: [],
-      };
+      return {initialOperator: TermOperator.DEFAULT, operatorDropdownItems: []};
     }
 
     const operatorInfo = getOperatorInfo({filterToken: pickerToken, fieldDefinition});
@@ -217,9 +214,7 @@ export function FilterSelector({
       searchQuery,
     ]
   );
-  const [queryKey] = useDebouncedValue(baseQueryKey, {
-    wait: DEFAULT_DEBOUNCE_DURATION,
-  });
+  const [queryKey] = useDebouncedValue(baseQueryKey, {wait: DEFAULT_DEBOUNCE_DURATION});
 
   const queryResult = useQuery({
     queryKey,
@@ -361,10 +356,7 @@ export function FilterSelector({
     setActiveFilterValues(opts);
     if (opts.length === 0) {
       setStagedOperator(TermOperator.DEFAULT);
-      onUpdateFilter({
-        ...globalFilter,
-        value: '',
-      });
+      onUpdateFilter({...globalFilter, value: ''});
       return;
     }
 
@@ -396,10 +388,7 @@ export function FilterSelector({
       ? buildNoValueFilterQuery(globalFilter.tag.key, stagedOperator, valueQuery)
       : valueQuery;
 
-    onUpdateFilter({
-      ...globalFilter,
-      value: newValue,
-    });
+    onUpdateFilter({...globalFilter, value: newValue});
   };
 
   const hasOperatorChanges =
@@ -438,7 +427,7 @@ export function FilterSelector({
         multiple={false}
         disabled={false}
         options={translatedOptions}
-        value={activeFilterValues.length > 0 ? activeFilterValues[0] : undefined}
+        value={activeFilterValues[0]}
         onChange={option => {
           const newValue = option?.value;
           handleChange(newValue ? [newValue] : []);
@@ -617,7 +606,10 @@ const translateKnownFilterOptions = (
   const key = globalFilter.tag.key;
   const dataset = globalFilter.dataset;
 
-  if (key === SpanFields.USER_GEO_SUBREGION && dataset === WidgetType.SPANS) {
+  if (
+    key === SpanFields.USER_GEO_SUBREGION &&
+    (dataset === WidgetType.SPANS || dataset === WidgetType.TRACEMETRICS)
+  ) {
     return options.map(option => {
       const translatedLabel =
         subregionCodeToName[option.value as SubregionCode] || option.label;

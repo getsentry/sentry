@@ -20,16 +20,10 @@ export const logs = <PlatformOptions extends BasePlatformOptions = BasePlatformO
           type: 'text',
           text: tct(
             'Install our Go SDK using [code:go get]. The minimum version of the SDK that supports logs is [code:0.33.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'go get github.com/getsentry/sentry-go',
-        },
+        {type: 'code', language: 'bash', code: 'go get github.com/getsentry/sentry-go'},
       ],
     },
   ],

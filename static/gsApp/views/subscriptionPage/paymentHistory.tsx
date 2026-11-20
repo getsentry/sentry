@@ -123,10 +123,7 @@ function UsageCsvDownloads({
             </OverlayTrigger.Button>
           )
         }
-        search={{
-          placeholder: t('Filter projects'),
-          onChange: onProjectSearch,
-        }}
+        search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
         options={projects.map(project => ({
           value: project.slug,
           label: project.slug,

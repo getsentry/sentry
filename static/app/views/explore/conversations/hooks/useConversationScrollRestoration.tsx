@@ -30,10 +30,7 @@ export function useConversationScrollRestoration({
   // Last-known scroll offset per tab. Written continuously from a scroll
   // listener so the outgoing tab's offset is captured before swapping views
   // clamps scrollTop against the other view's (usually shorter) height.
-  const offsetByTab = useRef({
-    transcript: 0,
-    timeline: 0,
-  });
+  const offsetByTab = useRef({transcript: 0, timeline: 0});
 
   // The scroll listener is attached once, so it reads the active tab from a ref
   // to always record against the tab that is currently visible.

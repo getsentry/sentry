@@ -2,12 +2,12 @@ import {Fragment, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {useQuery} from '@tanstack/react-query';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 
 import {sentryAppApiOptions} from 'sentry/actionCreators/sentryApps';
 import {BarChart} from 'sentry/components/charts/barChart';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -31,10 +31,7 @@ type Stats = {
   uninstallStats: Array<[number, number]>;
 };
 
-type TimeRange = {
-  since: number;
-  until: number;
-};
+type TimeRange = {since: number; until: number};
 
 function sentryAppStatsApiOptions({
   appSlug,
@@ -105,11 +102,7 @@ function SentryApplicationDashboard() {
 
 export default SentryApplicationDashboard;
 
-type InstallDataSectionProps = {
-  app: SentryApp;
-  appSlug: string;
-  timeRange: TimeRange;
-};
+type InstallDataSectionProps = {app: SentryApp; appSlug: string; timeRange: TimeRange};
 
 function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) {
   const {
@@ -135,7 +128,7 @@ function InstallDataSection({app, appSlug, timeRange}: InstallDataSectionProps) 
         {app.datePublished ? (
           <Container>
             <StatsHeader>{t('Date published')}</StatsHeader>
-            <DateTime dateOnly date={app.datePublished} />
+            <DateTime date={app.datePublished} mode="date" />
           </Container>
         ) : null}
         <Container data-test-id="installs">
@@ -161,17 +154,11 @@ function InstallCharts({installStats, uninstallStats}: InstallChartsProps) {
   const theme = useTheme();
 
   const installSeries = {
-    data: installStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: installStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('installed'),
   };
   const uninstallSeries = {
-    data: uninstallStats.map(point => ({
-      name: point[0] * 1000,
-      value: point[1],
-    })),
+    data: uninstallStats.map(point => ({name: point[0] * 1000, value: point[1]})),
     seriesName: t('uninstalled'),
   };
 

@@ -10,9 +10,7 @@ type ScmMessagingNotification = 'email_only' | 'integration';
  * The only identifier the messaging-step interaction events carry. Workspace,
  * integration, channel, team, and project identifiers or names are never sent.
  */
-type ScmMessagingProviderParams = {
-  provider: ScmMessagingProviderKey;
-};
+type ScmMessagingProviderParams = {provider: ScmMessagingProviderKey};
 
 export type OnboardingSkipReason =
   | 'stuck'
@@ -27,18 +25,6 @@ export type OnboardingEventParameters = {
     product: 'logs' | 'traces' | 'conversations' | 'agents';
     source: 'install_command' | 'prompt';
   };
-  'onboarding.data_removal_modal_dismissed': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.data_removal_modal_rendered': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.js_loader_optional_configuration_shown': {
-    platform: string;
-    project_id: string;
-  };
   'onboarding.scm_back_button_clicked': {
     browserBackButton: boolean;
     from: string;
@@ -50,10 +36,7 @@ export type OnboardingEventParameters = {
     // the user explicitly switched via the selector.
     source: 'default' | 'manual';
   };
-  'onboarding.scm_connect_repo_selected': {
-    provider: string;
-    repo: string;
-  };
+  'onboarding.scm_connect_repo_selected': {provider: string; repo: string};
   'onboarding.scm_connect_step_viewed': Record<string, unknown>;
   'onboarding.scm_data_removal_modal_confirm_button_clicked': {
     platform: string;
@@ -64,17 +47,9 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.scm_dsn_copied': {
-    platform: string;
-  };
-  'onboarding.scm_header_skip_clicked': {
-    opens_modal: boolean;
-    step: string;
-  };
-  'onboarding.scm_js_loader_npm_docs_shown': {
-    platform: string;
-    project_id: string;
-  };
+  'onboarding.scm_dsn_copied': {platform: string};
+  'onboarding.scm_header_skip_clicked': {opens_modal: boolean; step: string};
+  'onboarding.scm_js_loader_npm_docs_shown': {platform: string; project_id: string};
   'onboarding.scm_messaging_channel_selected': ScmMessagingProviderParams & {
     // Whether the channel came from the loaded list or was typed in.
     source: 'list' | 'typed';
@@ -82,9 +57,7 @@ export type OnboardingEventParameters = {
   'onboarding.scm_messaging_channel_validation_failed': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_cancelled': ScmMessagingProviderParams;
   'onboarding.scm_messaging_choose_destination_clicked': ScmMessagingProviderParams;
-  'onboarding.scm_messaging_completed': {
-    notification: ScmMessagingNotification;
-  };
+  'onboarding.scm_messaging_completed': {notification: ScmMessagingNotification};
   'onboarding.scm_messaging_connect_clicked': ScmMessagingProviderParams;
   'onboarding.scm_messaging_destination_edit_cancelled': ScmMessagingProviderParams;
   'onboarding.scm_messaging_destination_edit_clicked': ScmMessagingProviderParams;
@@ -113,26 +86,15 @@ export type OnboardingEventParameters = {
     platform: string;
   };
   'onboarding.scm_platform_features_step_viewed': Record<string, unknown>;
-  'onboarding.scm_platform_selected': {
-    platform: string;
-    source: 'detected' | 'manual';
-  };
+  'onboarding.scm_platform_selected': {platform: string; source: 'detected' | 'manual'};
   'onboarding.scm_project_created': {
     notification: ScmMessagingNotification;
     platform: string;
     project_id: string;
   };
-  'onboarding.scm_select_framework_modal_rendered': {
-    platform: string;
-  };
-  'onboarding.scm_setup_loader_docs_rendered': {
-    platform: string;
-    project_id: string;
-  };
-  'onboarding.scm_setup_platform_later_clicked': {
-    platform: string;
-    project_id: string;
-  };
+  'onboarding.scm_select_framework_modal_rendered': {platform: string};
+  'onboarding.scm_setup_loader_docs_rendered': {platform: string; project_id: string};
+  'onboarding.scm_setup_platform_later_clicked': {platform: string; project_id: string};
   'onboarding.scm_skip_detection_clicked': Record<string, unknown>;
   'onboarding.scm_source_maps_wizard_button_copy_clicked': {
     platform: string;
@@ -142,42 +104,28 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
-  'onboarding.scm_take_to_error_clicked': {
-    platform?: string;
-  };
-  'onboarding.scm_view_sample_event_clicked': {
-    platform?: string;
-  };
+  'onboarding.scm_take_to_error_clicked': {platform?: string};
+  'onboarding.scm_view_sample_event_clicked': {platform?: string};
   'onboarding.scm_welcome_agent_command_copied': {
+    handoff_id: string;
     source: 'install_command' | 'prompt';
+    run_id?: string;
   };
   'onboarding.scm_welcome_agent_snippet_selected': {
     source: 'install_command' | 'prompt';
+    run_id?: string;
   };
   'onboarding.scm_welcome_agentic_setup_viewed': Record<string, unknown>;
   'onboarding.scm_welcome_continue_clicked': Record<string, unknown>;
-  'onboarding.scm_welcome_present_agentic_interstitial_clicked': Record<string, unknown>;
   'onboarding.scm_welcome_step_viewed': Record<string, unknown>;
   'onboarding.select_framework_modal_configure_sdk_button_clicked': {
     framework: string;
     platform: string;
   };
-  'onboarding.select_framework_modal_rendered': {
-    platform: string;
-  };
-  'onboarding.select_framework_modal_skip_button_clicked': {
-    platform: string;
-  };
-  'onboarding.skip_feedback_clicked': {
-    step: string;
-  };
-  'onboarding.skip_reason_submitted': {
-    reason: OnboardingSkipReason;
-    step: string;
-  };
-  'onboarding.slack_setup_clicked': {
-    project_id: string;
-  };
+  'onboarding.select_framework_modal_rendered': {platform: string};
+  'onboarding.select_framework_modal_skip_button_clicked': {platform: string};
+  'onboarding.skip_feedback_clicked': {step: string};
+  'onboarding.skip_reason_submitted': {reason: OnboardingSkipReason; step: string};
   'onboarding.take_me_to_issues_clicked': {
     platform: string;
     products: string[];
@@ -187,8 +135,6 @@ export type OnboardingEventParameters = {
 
 export const onboardingEventMap: Record<keyof OnboardingEventParameters, string> = {
   'onboarding.ai_prompt_copied': 'Onboarding: AI Prompt Copied',
-  'onboarding.js_loader_optional_configuration_shown':
-    'Onboarding: JS Loader Optional Configuration Expanded',
   'onboarding.select_framework_modal_configure_sdk_button_clicked':
     'Onboarding: Framework Modal Configure SDK Button Clicked',
   'onboarding.select_framework_modal_rendered': 'Onboarding: Framework Modal Rendered',
@@ -196,10 +142,7 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Framework Modal Skip Button Clicked',
   'onboarding.skip_reason_submitted': 'Onboarding: Skip Reason Submitted',
   'onboarding.skip_feedback_clicked': 'Onboarding: Skip Feedback Clicked',
-  'onboarding.data_removal_modal_dismissed': 'Onboarding: Data Removal Modal Dismissed',
-  'onboarding.data_removal_modal_rendered': 'Onboarding: Data Removal Modal Rendered',
   'onboarding.take_me_to_issues_clicked': 'Onboarding: Take Me to Issues Clicked',
-  'onboarding.slack_setup_clicked': 'Onboarding: Slack Setup Clicked',
   'onboarding.scm_back_button_clicked': 'Onboarding: SCM Back Button Clicked',
   'onboarding.scm_connect_integration_selected':
     'Onboarding: SCM Connect Integration Selected',
@@ -267,7 +210,5 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
   'onboarding.scm_welcome_agentic_setup_viewed':
     'Onboarding: SCM Welcome Agentic Setup Viewed',
   'onboarding.scm_welcome_continue_clicked': 'Onboarding: SCM Welcome Continue Clicked',
-  'onboarding.scm_welcome_present_agentic_interstitial_clicked':
-    'Onboarding: SCM Welcome Present Agentic Interstitial Clicked',
   'onboarding.scm_welcome_step_viewed': 'Onboarding: SCM Welcome Step Viewed',
 };

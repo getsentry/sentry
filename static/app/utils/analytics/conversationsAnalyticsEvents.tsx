@@ -6,15 +6,13 @@ export type ConversationsEventParameters = {
   'conversations.detail.copy-conversation': Record<string, unknown>;
   'conversations.detail.copy-conversation-id': Record<string, unknown>;
   'conversations.detail.expand-embedding': {expanded: boolean};
+  'conversations.detail.expand-subagent': {expanded: boolean};
   'conversations.detail.expand-thinking': {expanded: boolean};
   'conversations.detail.expand-tool-calls': {expanded: boolean};
   'conversations.detail.export-conversation': Record<string, unknown>;
   'conversations.detail.page-view': Record<string, unknown>;
   'conversations.detail.select-span': Record<string, unknown>;
-  'conversations.detail.tab-switch': {
-    fromTab: string;
-    toTab: string;
-  };
+  'conversations.detail.tab-switch': {fromTab: string; toTab: string};
   'conversations.message.click': Record<string, unknown>;
   'conversations.message.click-evaluation': Record<string, unknown>;
   'conversations.message.click-extraction': Record<string, unknown>;
@@ -39,21 +37,14 @@ export type ConversationsEventParameters = {
     empty_state: 'no_agent_spans' | 'no_conversations';
   };
   'conversations.page-view': Record<string, unknown>;
-  'conversations.save_as': {
-    chart: string;
-    save_type: 'alert' | 'dashboard';
-  };
+  'conversations.save_as': {chart: string; save_type: 'alert' | 'dashboard'};
   'conversations.save_query_modal': {
     action: 'open' | 'submit';
     save_type?: 'save_new_query' | 'rename_query';
     ui_source?: 'table';
   };
-  'conversations.table.page-view': {
-    tab: AgentsTableTab;
-  };
-  'conversations.table.paginate': {
-    direction: 'next' | 'previous';
-  };
+  'conversations.table.page-view': {tab: AgentsTableTab};
+  'conversations.table.paginate': {direction: 'next' | 'previous'};
 };
 
 export const conversationsEventMap: Record<keyof ConversationsEventParameters, string> = {
@@ -65,6 +56,7 @@ export const conversationsEventMap: Record<keyof ConversationsEventParameters, s
   'conversations.table.page-view': 'Conversations: Table Page View',
   'conversations.table.paginate': 'Conversations: Table Paginate',
   'conversations.detail.expand-embedding': 'Conversations: Detail Expand Embedding',
+  'conversations.detail.expand-subagent': 'Conversations: Detail Expand Sub-Agent',
   'conversations.detail.expand-thinking': 'Conversations: Detail Expand Thinking',
   'conversations.detail.expand-tool-calls': 'Conversations: Detail Expand Tool Calls',
   'conversations.detail.page-view': 'Conversations: Detail Page View',

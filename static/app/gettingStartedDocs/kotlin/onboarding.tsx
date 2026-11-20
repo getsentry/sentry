@@ -137,16 +137,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-            {
-              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
-            }
+            {link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
-        },
+        {type: 'code', language: 'bash', code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___'},
         {
           type: 'conditional',
           condition: params.platformOptions.packageManager === PackageManager.GRADLE,
@@ -163,11 +157,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'groovy',
-              code: getGradleInstallSnippet(params),
-            },
+            {type: 'code', language: 'groovy', code: getGradleInstallSnippet(params)},
           ],
         },
         {
@@ -186,11 +176,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'xml',
-              code: getMavenInstallSnippet(params),
-            },
+            {type: 'code', language: 'xml', code: getMavenInstallSnippet(params)},
           ],
         },
         {
@@ -217,11 +203,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             "Configure Sentry as soon as possible in your application's lifecycle:"
           ),
         },
-        {
-          type: 'code',
-          language: 'kotlin',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'kotlin', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -236,11 +218,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'kotlin',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'kotlin', code: getVerifySnippet()},
         {
           type: 'text',
           text: [

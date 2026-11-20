@@ -89,9 +89,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Make sure the SDK is up to date. The minimum version of the SDK required for profiling is [code:4.3.0].',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -113,9 +111,7 @@ export const profiling: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-            {
-              sentryProfilingPackage: <code />,
-            }
+            {sentryProfilingPackage: <code />}
           ),
         },
         {

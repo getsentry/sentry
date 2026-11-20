@@ -1,4 +1,5 @@
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime} from '@sentry/scraps/dateTime';
+
 import {ResultGrid} from 'sentry/components/resultGrid';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 
@@ -13,10 +14,7 @@ function auditNote(row: any): React.ReactNode {
   return data.notes ?? '—';
 }
 
-type Props = {
-  orgSlug: string;
-  targetId: string;
-};
+type Props = {orgSlug: string; targetId: string};
 
 export function CustomerAuditLog({orgSlug, targetId}: Props) {
   return (

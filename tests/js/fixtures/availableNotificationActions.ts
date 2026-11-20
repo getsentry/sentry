@@ -14,10 +14,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'default',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       {
@@ -29,10 +26,7 @@ export function AvailableNotificationActionsFixture(
           integrationName: 'sentry-ecosystem',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
           {
             name: 'targetIdentifier',
             description: "Slack channel ID (e.g. 'C123ABC45DE')",
@@ -52,10 +46,7 @@ export function AvailableNotificationActionsFixture(
           integrationName: 'sentry-enterprise',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
           {
             name: 'targetIdentifier',
             description: "Slack channel ID (e.g. 'C123ABC45DE')",
@@ -77,10 +68,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'Default Service',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       {
@@ -94,10 +82,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'Test 2',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       {
@@ -111,10 +96,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'Test 1',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       {
@@ -128,10 +110,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'opsgenie-test-team-2',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       {
@@ -145,10 +124,7 @@ export function AvailableNotificationActionsFixture(
           targetDisplay: 'opsgenie-test-team',
         },
         requires: [
-          {
-            name: 'projects',
-            description: 'Project slugs which will receive the action',
-          },
+          {name: 'projects', description: 'Project slugs which will receive the action'},
         ],
       },
       ...params,

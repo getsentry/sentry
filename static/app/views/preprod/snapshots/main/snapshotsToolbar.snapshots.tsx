@@ -10,9 +10,7 @@ import {OrganizationContext} from 'sentry/utils/organizationContext';
 
 import type {DiffMode} from './imageDisplay/diffImageDisplay';
 
-jest.mock('@sentry/scraps/compactSelect', () => ({
-  CompactSelect: mockCompactSelect,
-}));
+jest.mock('@sentry/scraps/compactSelect', () => ({CompactSelect: mockCompactSelect}));
 
 import {Container} from '@sentry/scraps/layout';
 
@@ -52,21 +50,9 @@ function SnapshotsToolbarWithControls({
     overlayOpacity: number;
     showSplit?: boolean;
   };
-  progress?: {
-    current: number;
-    percent: number;
-    total: number;
-  };
-  solo?:
-    | 'base'
-    | {
-        isActive: boolean;
-        onToggle: () => void;
-      };
-  sort?: {
-    onChange: (sort: SortBy) => void;
-    value: SortBy;
-  };
+  progress?: {current: number; percent: number; total: number};
+  solo?: 'base' | {isActive: boolean; onToggle: () => void};
+  sort?: {onChange: (sort: SortBy) => void; value: SortBy};
 }) {
   let soloDiffToggle: React.ReactNode = null;
   if (solo === 'base') {

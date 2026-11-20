@@ -19,11 +19,7 @@ import GroupUptimeChecks from './groupUptimeChecks';
 
 describe('GroupUptimeChecks', () => {
   const detectorId = '123';
-  const event = EventFixture({
-    occurrence: {
-      evidenceData: {detectorId},
-    },
-  });
+  const event = EventFixture({occurrence: {evidenceData: {detectorId}}});
   const group = GroupFixture({
     issueCategory: IssueCategory.UPTIME,
     issueType: IssueType.UPTIME_DOMAIN_FAILURE,
@@ -90,9 +86,7 @@ describe('GroupUptimeChecks', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.uptime-checks-grid',
@@ -105,10 +99,7 @@ describe('GroupUptimeChecks', () => {
       <GroupIdProvider groupId={group.id}>
         <GroupUptimeChecks />
       </GroupIdProvider>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
     expect(await screen.findByText('All Uptime Checks')).toBeInTheDocument();
     expect(screen.queryByText('No matching uptime checks found')).not.toBeInTheDocument();
@@ -138,9 +129,7 @@ describe('GroupUptimeChecks', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [{trace: uptimeCheck.traceId, 'count()': 10}],
-      },
+      body: {data: [{trace: uptimeCheck.traceId, 'count()': 10}]},
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.uptime-checks-grid',
@@ -185,9 +174,7 @@ describe('GroupUptimeChecks', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-      },
+      body: {data: []},
       match: [
         MockApiClient.matchQuery({
           referrer: 'api.uptime-checks-grid',

@@ -24,11 +24,7 @@ export function useGridList<T>({props, ref, state}: UseGridListProps<T>) {
   }, [ref, state]);
 
   const {gridProps} = useGridListAria(
-    {
-      ...props,
-      shouldFocusWrap: false,
-      keyboardDelegate: delegate,
-    },
+    {...props, shouldFocusWrap: false, keyboardDelegate: delegate},
     state,
     ref
   );

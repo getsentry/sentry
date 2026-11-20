@@ -15,6 +15,11 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.timeseries_annotations.models import (
+    AnnotationScope,
+    AnnotationType,
+    TimeseriesAnnotation,
+)
 
 
 class CustomInboundFiltersTest(APITestCase):
@@ -359,6 +364,34 @@ class CustomInboundFiltersTest(APITestCase):
                 f"{value} is not a release with a version such as 1.2.0 or myapp@1.2.0."
             )
 
+    def test_environment_condition_requires_feature(self) -> None:
+        conditions = [{"type": "environment", "operator": "equals", "value": ["staging"]}]
+
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=400,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+        assert str(response.data["conditions"][0]) == (
+            "The environment condition is not enabled for this organization."
+        )
+
+        with self.feature([*self.features, "organizations:inbound-filters-environment-condition"]):
+            self.get_success_response(
+                self.organization.slug,
+                self.project.slug,
+                method="post",
+                status_code=201,
+                name="Staging",
+                dataType="error",
+                conditions=conditions,
+            )
+
     def test_without_inbound_filters_v2_feature(self) -> None:
         with self.feature(["projects:custom-inbound-filters"]):
             self.get_error_response(self.organization.slug, self.project.slug, status_code=404)
@@ -380,7 +413,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on error data cannot use the log_message condition. "
-                "It accepts error_type, error_message, release, ip_address, geo_country_code.",
+                "It accepts error_type, error_message, release, environment, ip_address, geo_country_code.",
             ),
             (
                 "log",
@@ -389,7 +422,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "log_message", "operator": "starts_with", "value": ["Rate limit"]},
                 ],
                 "A filter on log data cannot use the error_type condition. "
-                "It accepts log_message, release, ip_address.",
+                "It accepts log_message, release, environment, ip_address.",
             ),
             (
                 "span",
@@ -398,7 +431,7 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "metric_name", "operator": "starts_with", "value": ["counter."]},
                 ],
                 "A filter on span data cannot use the metric_name condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
             (
                 "all",
@@ -407,13 +440,13 @@ class CustomInboundFiltersTest(APITestCase):
                     {"type": "error_message", "operator": "starts_with", "value": ["TypeError"]},
                 ],
                 "A filter on all data cannot use the error_message condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
             (
                 "all",
                 [{"type": "geo_country_code", "operator": "equals", "value": ["US"]}],
                 "A filter on all data cannot use the geo_country_code condition. "
-                "It accepts release, ip_address.",
+                "It accepts release, environment, ip_address.",
             ),
         ]
 
@@ -1046,7 +1079,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on error data cannot use the log_message condition. "
-            "It accepts error_type, error_message, release, ip_address, geo_country_code."
+            "It accepts error_type, error_message, release, environment, ip_address, geo_country_code."
         )
 
     def test_put_to_catch_all(self) -> None:
@@ -1108,7 +1141,7 @@ class CustomInboundFilterDetailsTest(APITestCase):
         assert (
             str(response.data["conditions"][0])
             == "A filter on all data cannot use the error_message condition. "
-            "It accepts release, ip_address."
+            "It accepts release, environment, ip_address."
         )
         error_filter.refresh_from_db()
         assert error_filter.data_type == "error"
@@ -1302,3 +1335,117 @@ class CustomInboundFilterProjectConfigInvalidationTest(APITestCase):
             mock_invalidate.assert_called_once_with(
                 project_id=self.project.id, trigger="custom_inbound_filters"
             )
+
+
+class CustomInboundFilterAnnotationTest(APITestCase):
+    features = [
+        "organizations:inbound-filters-v2",
+        "projects:custom-inbound-filters",
+        "organizations:timeseries-annotations",
+        "organizations:timeseries-annotations-usecase-filter-change",
+    ]
+
+    def setUp(self) -> None:
+        super().setUp()
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization)
+        self.project = self.create_project(organization=self.organization, teams=[self.team])
+        self.login_as(user=self.user)
+        self.list_url = reverse(
+            "sentry-api-0-project-custom-inbound-filters",
+            args=[self.organization.slug, self.project.slug],
+        )
+
+    def _post_a_filter(self) -> None:
+        self.client.post(
+            self.list_url,
+            {
+                "dataType": "error",
+                "conditions": [{"type": "error_message", "value": ["TypeError*"]}],
+            },
+            format="json",
+        )
+
+    def _details_url(self, filter_id: int) -> str:
+        return reverse(
+            "sentry-api-0-project-custom-inbound-filter-details",
+            args=[self.organization.slug, self.project.slug, filter_id],
+        )
+
+    def test_create_records_annotation_with_dataset_scope(self) -> None:
+        with self.feature(self.features), outbox_runner():
+            response = self.client.post(
+                self.list_url,
+                {
+                    "dataType": "error",
+                    "conditions": [
+                        {"type": "error_message", "operator": "contains", "value": ["TypeError"]}
+                    ],
+                },
+                format="json",
+            )
+        assert response.status_code == 201, response.data
+
+        annotation = TimeseriesAnnotation.objects.get(project_id=self.project.id)
+        assert annotation.annotation_type == AnnotationType.INBOUND_FILTER_CHANGE
+        assert annotation.scope == AnnotationScope.ERRORS
+        assert annotation.tags == {"filter_id": response.data["id"], "data_type": "error"}
+        assert annotation.created_by_id == self.user.id
+
+    def test_update_records_annotation(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["TypeError*"]}],
+        )
+        with self.feature(self.features), outbox_runner():
+            response = self.client.put(
+                self._details_url(custom_filter.id), {"active": False}, format="json"
+            )
+        assert response.status_code == 200, response.data
+
+        annotation = TimeseriesAnnotation.objects.get(project_id=self.project.id)
+        assert annotation.scope == AnnotationScope.ERRORS
+
+    def test_name_only_update_records_no_annotation(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="error",
+            conditions=[{"type": "error_message", "value": ["TypeError*"]}],
+        )
+        with self.feature(self.features), outbox_runner():
+            response = self.client.put(
+                self._details_url(custom_filter.id), {"name": "Renamed"}, format="json"
+            )
+        assert response.status_code == 200, response.data
+
+        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()
+
+    def test_delete_records_annotation(self) -> None:
+        custom_filter = self.create_project_custom_inbound_filter(
+            project=self.project,
+            data_type="span",
+            conditions=[{"type": "release", "value": ["1.*"]}],
+        )
+        with self.feature(self.features), outbox_runner():
+            response = self.client.delete(self._details_url(custom_filter.id), format="json")
+        assert response.status_code == 204, response.data
+
+        annotation = TimeseriesAnnotation.objects.get(project_id=self.project.id)
+        assert annotation.scope == AnnotationScope.SPANS
+
+    def test_no_annotation_without_usecase_feature(self) -> None:
+        # Framework flag on, use-case flag off: the producer stays silent.
+        with (
+            self.feature(
+                [
+                    "organizations:inbound-filters-v2",
+                    "projects:custom-inbound-filters",
+                    "organizations:timeseries-annotations",
+                ]
+            ),
+            outbox_runner(),
+        ):
+            self._post_a_filter()
+
+        assert not TimeseriesAnnotation.objects.filter(project_id=self.project.id).exists()

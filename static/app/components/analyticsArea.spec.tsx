@@ -14,10 +14,7 @@ function TestButton({org}: {org: Organization}) {
     <button
       data-test-id="my-button"
       onClick={() => {
-        analytics.trackAnalytics('button-clicked', {
-          organization: org,
-          area,
-        });
+        analytics.trackAnalytics('button-clicked', {organization: org, area});
       }}
     />
   );

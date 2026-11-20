@@ -516,10 +516,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
           })
           // Reported rather than deleted — a row should never disappear for want of wording — but
           // given a generic label, since a raw route reads worse than no row at all.
-          .map(row => ({
-            ...row,
-            label: row.label ?? fallbackCallLabel(row.record),
-          }));
+          .map(row => ({...row, label: row.label ?? fallbackCallLabel(row.record)}));
 
         const residualNavItems = navItems.filter(
           item => !claimedLinkKinds.has(item.kind)
@@ -594,7 +591,7 @@ export function ToolCallList({block, latestTodos, getPageReferrer}: ToolCallList
                     url: toolUrl,
                     failure: failureTooltip,
                     // Only the first classic row shows the block status; call rows carry their own.
-                    // oxlint-disable-next-line react/todo
+                    // oxlint-disable-next-line react/immutability
                     status: ++rendered === 1 ? blockStatus : undefined,
                   }}
                   onLinkClick={handleLinkClick}

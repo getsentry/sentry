@@ -1,12 +1,14 @@
 import type * as React from 'react';
-import {memo, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import {memo, useContext, useMemo, useRef, useState} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import type {AriaMenuOptions} from '@react-aria/menu';
-import {useMenu, useMenuTrigger} from '@react-aria/menu';
+import {useMenu, useSubmenuTrigger} from '@react-aria/menu';
 import {useSeparator} from '@react-aria/separator';
 import {Item, Section} from '@react-stately/collections';
+import type {RootMenuTriggerState} from '@react-stately/menu';
 import type {TreeProps, TreeState} from '@react-stately/tree';
 import {useTreeState} from '@react-stately/tree';
 import type {Key, Node} from '@react-types/shared';
@@ -32,7 +34,6 @@ import {
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
-import type {OverlayState} from './context';
 import {DropdownMenuContext} from './context';
 import type {
   DropdownMenuContentSizeOptions,
@@ -46,7 +47,7 @@ import type {DropdownMenuSeparatorProps} from './separator';
 import {DropdownMenuSeparator} from './separator';
 import {useDropdownMenuKeyboard} from './useDropdownMenuKeyboard';
 import {useDropdownMenuRowLayout} from './useDropdownMenuRowLayout';
-import {useSafetyTriangle} from './useSafetyTriangle';
+import {useDropdownSubmenuState} from './useDropdownSubmenuState';
 import {
   countMenuItems,
   filterMenuItems,
@@ -67,11 +68,11 @@ export interface DropdownMenuListProps
     >,
     TreeProps<MenuItemProps>,
     DropdownMenuContentSizeOptions {
-  overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
-   * The open state of the current overlay that contains this menu
+   * Where this menu sits in the menu tree.
    */
-  overlayState: OverlayState;
+  menuLevel: DropdownMenuLevel;
+  overlayPositionProps: React.HTMLAttributes<HTMLDivElement>;
   /**
    * Whether the menu should close when an item has been clicked/selected
    */
@@ -81,6 +82,11 @@ export interface DropdownMenuListProps
    */
   disableTextSelection?: boolean;
   emptyMessage?: React.ReactNode;
+  /**
+   * Whether interacting outside the menu closes it. Submenus inherit the
+   * setting of their parent menu.
+   */
+  isDismissable?: boolean;
   /**
    * Whether only the items near the viewport are rendered. Computed by
    * `DropdownMenuContent` from `virtualizeThreshold`, so it is not part of the
@@ -115,6 +121,26 @@ export interface DropdownMenuListProps
    */
   zIndex?: number;
 }
+
+/**
+ * A root menu starts a menu tree, even when it renders inside another menu.
+ * A submenu belongs to the tree of the menu that contains its trigger, and
+ * reads the root menu state from context.
+ */
+type DropdownMenuLevel =
+  | {state: RootMenuTriggerState; type: 'root'}
+  | {
+      /** Closes this submenu and returns focus to its trigger. */
+      close: () => void;
+      /**
+       * Index of this submenu in the root menu's `expandedKeysStack`: 0 for a
+       * submenu of the root menu, 1 for a submenu of that submenu, and so on.
+       */
+      level: number;
+      /** Ref for the menu element, so the trigger can move focus into it. */
+      ref: React.RefObject<HTMLUListElement | null>;
+      type: 'submenu';
+    };
 
 type DropdownMenuCollectionProps = {
   closeOnSelect: boolean;
@@ -295,18 +321,22 @@ function DropdownMenuList({
   menuFooter,
   searchState,
   disableTextSelection,
-  overlayState,
   overlayPositionProps,
   zIndex,
   isVirtualized: virtualized = false,
-  // Only provided to submenus through context, which inherit it.
+  // Only provided to submenus through context, which inherit them.
+  isDismissable,
   virtualizeThreshold,
+  menuLevel,
+  autoFocus,
   ...props
 }: DropdownMenuListProps) {
   const {t} = useTranslation();
   const theme = useTheme();
-  const {rootOverlayState, parentMenuState} = useContext(DropdownMenuContext);
-  const safetyTriangle = useSafetyTriangle();
+  const context = useContext(DropdownMenuContext);
+  const isRootMenu = menuLevel.type === 'root';
+  const rootMenuState = isRootMenu ? menuLevel.state : context.rootMenuState;
+  const submenuLevel = isRootMenu ? 0 : menuLevel.level + 1;
   const state = useTreeState<MenuItemProps>({...props, selectionMode: 'single'});
   const stateCollection = useMemo(() => [...state.collection], [state.collection]);
   const flatNodes = useMemo(() => flattenSections(stateCollection), [stateCollection]);
@@ -329,9 +359,19 @@ function DropdownMenuList({
   );
 
   // Implement focus states, keyboard navigation, aria-label,...
-  const menuRef = useRef<HTMLUListElement>(null);
+  const ownMenuRef = useRef<HTMLUListElement>(null);
+  const menuRef = isRootMenu ? ownMenuRef : menuLevel.ref;
   const searchRef = useRef<HTMLInputElement>(null);
-  const {menuProps} = useMenu({...props, selectionMode: 'single'}, state, menuRef);
+  const {menuProps} = useMenu(
+    {
+      ...props,
+      // A searchable menu focuses its search field instead (see FocusScope below).
+      autoFocus: searchState ? false : autoFocus,
+      selectionMode: 'single',
+    },
+    state,
+    menuRef
+  );
   const {separatorProps} = useSeparator({elementType: 'li'});
 
   // The menu sizes its width to its rows. Keep the item with the longest label
@@ -350,28 +390,36 @@ function DropdownMenuList({
   // The width a virtualized menu keeps until it closes, see `DropdownMenuRows`.
   const [lockedWidth, setLockedWidth] = useState<number>();
 
-  const {
-    focusItem,
-    hasFocus,
-    menuProps: keyboardMenuProps,
-  } = useDropdownMenuKeyboard({
+  const {focusItem, menuProps: keyboardMenuProps} = useDropdownMenuKeyboard({
     focusableKeys,
     menuProps,
     menuRef,
-    parentMenuState,
     searchRef,
     state,
-    stateCollection,
   });
+
+  // Submenus render into this element. It sits inside the root overlay, but
+  // outside every menu element.
+  const [ownPortalContainer, setOwnPortalContainer] = useState<HTMLElement | null>(null);
+  const portalContainer = isRootMenu ? ownPortalContainer : context.portalContainer;
 
   const contextValue = useMemo(
     () => ({
-      rootOverlayState: rootOverlayState ?? overlayState,
-      parentMenuState: state,
-      safetyTriangle,
+      rootMenuState,
+      parentMenuRef: menuRef,
+      portalContainer,
+      submenuLevel,
+      isDismissable,
       virtualizeThreshold,
     }),
-    [rootOverlayState, overlayState, state, safetyTriangle, virtualizeThreshold]
+    [
+      rootMenuState,
+      menuRef,
+      portalContainer,
+      submenuLevel,
+      isDismissable,
+      virtualizeThreshold,
+    ]
   );
   const searchInput = searchState && (
     <DropdownMenuSearch
@@ -402,7 +450,13 @@ function DropdownMenuList({
       ? overlayPositionProps.style?.maxWidth
       : `min(${typeof maxWidth === 'number' ? `${maxWidth}px` : maxWidth}, ${availableMaxWidth})`;
   return (
-    <FocusScope restoreFocus autoFocus>
+    // A root menu, and a submenu opened from the keyboard, take focus. A
+    // searchable submenu always does, so typing filters it right away. A
+    // submenu opened by hover leaves focus on its trigger.
+    <FocusScope
+      restoreFocus
+      autoFocus={isRootMenu || Boolean(autoFocus) || Boolean(searchState)}
+    >
       <PositionWrapper
         zIndex={zIndex === undefined ? theme.zIndex.dropdown : Number(zIndex)}
         {...overlayPositionProps}
@@ -414,15 +468,22 @@ function DropdownMenuList({
               <Overlay
                 {...stackProps}
                 onKeyDownCapture={event => {
-                  // Handle Escape before React Aria closes the entire menu tree.
-                  if (event.key === 'Escape' && parentMenuState && hasFocus) {
+                  // Escape closes only this submenu. Handle it before React Aria
+                  // closes the entire menu tree. This also covers the search
+                  // field, which sits outside the menu element. Deeper submenus
+                  // are portaled out of this overlay, so they handle their own.
+                  if (
+                    event.key === 'Escape' &&
+                    menuLevel.type === 'submenu' &&
+                    event.currentTarget.contains(event.target as HTMLElement)
+                  ) {
                     event.stopPropagation();
                     // Let the IME cancel composition without dismissing the submenu.
                     if (event.nativeEvent.isComposing) {
                       return;
                     }
                     event.preventDefault();
-                    parentMenuState.selectionManager.clearSelection();
+                    menuLevel.close();
                   }
                 }}
                 style={{
@@ -487,6 +548,7 @@ function DropdownMenuList({
               </Overlay>
             )}
           </Stack>
+          {isRootMenu && <Container display="contents" ref={setOwnPortalContainer} />}
         </DropdownMenuContext>
       </PositionWrapper>
     </FocusScope>
@@ -496,25 +558,25 @@ function DropdownMenuList({
 export type DropdownMenuContentProps = Omit<
   DropdownMenuListProps,
   'searchState' | 'isVirtualized'
-> & {
-  items: MenuItemProps[];
-  search?: DropdownMenuSearchOptions;
-};
+> & {items: MenuItemProps[]; search?: DropdownMenuSearchOptions};
 
 export function DropdownMenuContent({
   items,
   disabledKeys,
   size,
   search,
+  isDismissable,
   virtualizeThreshold,
   ...props
 }: DropdownMenuContentProps) {
   // Updated in a transition by the search field, see `DropdownMenuSearch`.
   const [searchValue, setSearchValue] = useState('');
   // A submenu renders inside its parent menu's context, so it inherits the
-  // parent's threshold unless it sets its own.
-  const {virtualizeThreshold: inheritedVirtualizeThreshold} =
-    useContext(DropdownMenuContext);
+  // parent's settings unless it sets its own.
+  const {
+    isDismissable: inheritedIsDismissable,
+    virtualizeThreshold: inheritedVirtualizeThreshold,
+  } = useContext(DropdownMenuContext);
   const resolveHref = useResolveLinkHref();
   const activeItems = useMemo(
     () => removeHiddenItemsAndSetHref(items, resolveHref),
@@ -543,6 +605,7 @@ export function DropdownMenuContent({
       disabledKeys={disabledKeys ?? defaultDisabledKeys}
       items={visibleItems}
       isVirtualized={isVirtualized}
+      isDismissable={isDismissable ?? inheritedIsDismissable}
       virtualizeThreshold={resolvedVirtualizeThreshold}
       searchState={
         search ? {...search, value: searchValue, onChange: setSearchValue} : undefined
@@ -598,51 +661,59 @@ function DropdownSubmenu({
   onClose,
   size,
 }: DropdownSubmenuProps) {
-  const {rootOverlayState} = useContext(DropdownMenuContext);
+  const {rootMenuState, parentMenuRef, portalContainer, submenuLevel, isDismissable} =
+    useContext(DropdownMenuContext);
+  if (!rootMenuState || !parentMenuRef || submenuLevel === undefined) {
+    throw new Error('DropdownSubmenu must be rendered inside a DropdownMenu');
+  }
   const submenu = node.value?.submenu;
   const options = typeof submenu === 'object' ? submenu : {};
-  const isDisabled = state.disabledKeys.has(node.key) || items.length === 0;
+  const isDisabled = state.disabledKeys.has(node.key);
+  const submenuState = useDropdownSubmenuState({
+    level: submenuLevel,
+    rootMenuState,
+    triggerKey: node.key,
+  });
+  const submenuRef = useRef<HTMLUListElement>(null);
   const {
     isOpen,
-    state: overlayState,
     triggerRef,
     triggerProps: {ref: setTriggerElement},
     overlayProps,
-    overlayRef,
   } = useOverlay({
-    isOpen: state.selectionManager.isSelected(node.key),
-    onClose: rootOverlayState?.close,
+    isOpen: submenuState.isOpen,
+    onClose: rootMenuState.close,
+    isDismissable,
     disableTrigger: isDisabled,
+    // The submenu handles Escape itself, closing only this level.
+    isKeyboardDismissDisabled: true,
+    // Only a click outside the whole menu closes it. The portal container sits
+    // in the root menu's position wrapper, next to the root menu and every
+    // submenu. A click inside it can land on the parent menu's panel while
+    // React Aria blocks pointer events on the parent menu as the pointer heads
+    // toward this submenu, and should not close the menu.
+    shouldCloseOnInteractOutside: target =>
+      !portalContainer?.parentElement?.contains(target),
     position: options.position ?? 'right-start',
     offset: -4,
-    preventOverflowOptions: {
-      boundary: document.body,
-      crossAxis: true,
-    },
+    preventOverflowOptions: {boundary: document.body, crossAxis: true},
   });
-  const {menuTriggerProps, menuProps} = useMenuTrigger(
-    {type: 'menu', isDisabled},
-    {...overlayState, focusStrategy: 'first'},
+  const {submenuTriggerProps, submenuProps} = useSubmenuTrigger<MenuItemProps>(
+    {parentMenuRef, submenuRef, isDisabled, type: 'menu'},
+    submenuState,
     triggerRef
   );
-  const isFocused = state.selectionManager.focusedKey === node.key;
+  const {
+    submenuLevel: _submenuLevel,
+    onClose: _closeAll,
+    ...submenuMenuProps
+  } = submenuProps;
+
   return (
     <Container as="li" display="contents" role="presentation">
       <DropdownMenuItem
-        menuItemRef={useCallback(
-          element => {
-            setTriggerElement(element);
-            if (element && !isOpen && isFocused && rootOverlayState?.isOpen) {
-              element.focus();
-            }
-          },
-          [isOpen, isFocused, rootOverlayState, setTriggerElement]
-        )}
-        id={menuTriggerProps.id}
-        aria-haspopup={menuTriggerProps['aria-haspopup']}
-        aria-expanded={isOpen}
-        aria-controls={menuTriggerProps['aria-controls']}
-        submenuRef={isOpen ? overlayRef : undefined}
+        menuItemRef={setTriggerElement}
+        submenuTriggerProps={submenuTriggerProps}
         renderAs="div"
         node={node}
         isVirtualized={isVirtualized}
@@ -650,31 +721,39 @@ function DropdownSubmenu({
         state={state}
         closeOnSelect={false}
       />
-      {isOpen && (
-        <DropdownMenuContent
-          onClose={onClose}
-          closeOnSelect={closeOnSelect}
-          disableTextSelection={disableTextSelection}
-          menuTitle={options.title}
-          emptyMessage={options.emptyMessage}
-          maxHeight={options.maxHeight}
-          maxWidth={options.maxWidth}
-          search={options.search}
-          size={size}
-          {...menuProps}
-          items={items}
-          autoFocus={false}
-          overlayState={overlayState}
-          overlayPositionProps={overlayProps}
-        />
-      )}
+      {isOpen &&
+        portalContainer &&
+        createPortal(
+          <DropdownMenuContent
+            onClose={onClose}
+            closeOnSelect={closeOnSelect}
+            disableTextSelection={disableTextSelection}
+            menuTitle={options.title}
+            emptyMessage={options.emptyMessage}
+            maxHeight={options.maxHeight}
+            maxWidth={options.maxWidth}
+            search={options.search}
+            size={size}
+            {...submenuMenuProps}
+            menuLevel={{
+              type: 'submenu',
+              level: submenuLevel,
+              ref: submenuRef,
+              close: () => {
+                submenuState.close();
+                triggerRef.current?.focus();
+              },
+            }}
+            items={items}
+            overlayPositionProps={overlayProps}
+          />,
+          portalContainer
+        )}
     </Container>
   );
 }
 
-const DropdownMenuListWrap = styled(Stack)<{
-  disableTextSelection?: boolean;
-}>`
+const DropdownMenuListWrap = styled(Stack)<{disableTextSelection?: boolean}>`
   /* Keep both insets visible while the menu items scroll. */
   margin: ${p => p.theme.space.xs} 0;
   padding: 0;

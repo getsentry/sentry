@@ -105,9 +105,7 @@ export function InsightDiffRow({
                   <IconChevron
                     direction={isExpanded ? 'up' : 'down'}
                     size="sm"
-                    style={{
-                      transition: 'transform 0.2s ease',
-                    }}
+                    style={{transition: 'transform 0.2s ease'}}
                   />
                 </Button>
               </Flex>

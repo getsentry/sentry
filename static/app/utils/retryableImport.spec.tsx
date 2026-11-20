@@ -4,23 +4,11 @@ describe('retryableImport', () => {
   it('can dynamically import successfully on first try', async () => {
     const importMock = jest.fn();
 
-    importMock.mockReturnValue(
-      new Promise(resolve =>
-        resolve({
-          default: {
-            foo: 'bar',
-          },
-        })
-      )
-    );
+    importMock.mockReturnValue(new Promise(resolve => resolve({default: {foo: 'bar'}})));
 
     const result = await retryableImport(importMock);
 
-    expect(result).toEqual({
-      default: {
-        foo: 'bar',
-      },
-    });
+    expect(result).toEqual({default: {foo: 'bar'}});
     expect(importMock).toHaveBeenCalledTimes(1);
   });
 
@@ -49,23 +37,11 @@ describe('retryableImport', () => {
       .mockReturnValueOnce(
         new Promise((_resolve, reject) => reject(new Error('Loading chunk 123 failed')))
       )
-      .mockReturnValue(
-        new Promise(resolve =>
-          resolve({
-            default: {
-              foo: 'bar',
-            },
-          })
-        )
-      );
+      .mockReturnValue(new Promise(resolve => resolve({default: {foo: 'bar'}})));
 
     const result = await retryableImport(importMock);
 
-    expect(result).toEqual({
-      default: {
-        foo: 'bar',
-      },
-    });
+    expect(result).toEqual({default: {foo: 'bar'}});
     expect(importMock).toHaveBeenCalledTimes(3);
   });
 

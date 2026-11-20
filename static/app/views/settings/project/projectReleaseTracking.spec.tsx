@@ -24,10 +24,7 @@ describe('ProjectReleaseTracking', () => {
     MockApiClient.addMockResponse({
       url,
       method: 'GET',
-      body: {
-        webhookUrl: 'webhook-url',
-        token: 'token token token',
-      },
+      body: {webhookUrl: 'webhook-url', token: 'token token token'},
     });
   });
 
@@ -61,10 +58,7 @@ describe('ProjectReleaseTracking', () => {
     const mock = MockApiClient.addMockResponse({
       url,
       method: 'POST',
-      body: {
-        webhookUrl: 'webhook-url',
-        token: 'token2 token2 token2',
-      },
+      body: {webhookUrl: 'webhook-url', token: 'token2 token2 token2'},
     });
 
     // Click Regenerate Token
@@ -83,22 +77,12 @@ describe('ProjectReleaseTracking', () => {
     });
     expect(mock).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({
-        method: 'POST',
-        data: {
-          project: project.slug,
-        },
-      })
+      expect.objectContaining({method: 'POST', data: {project: project.slug}})
     );
   });
 
   it('renders placeholders on 403', async () => {
-    MockApiClient.addMockResponse({
-      url,
-      method: 'GET',
-      status: 403,
-      body: undefined,
-    });
+    MockApiClient.addMockResponse({url, method: 'GET', status: 403, body: undefined});
 
     render(<ProjectReleaseTracking />, {
       organization: org,

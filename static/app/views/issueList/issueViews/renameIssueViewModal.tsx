@@ -19,9 +19,7 @@ interface RenameIssueViewModalProps extends ModalRenderProps {
   view: GroupSearchView;
 }
 
-const schema = z.object({
-  name: z.string().min(1, t('Name is required')),
-});
+const schema = z.object({name: z.string().min(1, t('Name is required'))});
 
 export function RenameIssueViewModal({
   Header,

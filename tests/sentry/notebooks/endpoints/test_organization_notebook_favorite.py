@@ -27,7 +27,7 @@ class OrganizationNotebooksFavoriteTest(APITestCase):
             "sentry-api-0-organization-notebook-favorite",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 
@@ -59,7 +59,7 @@ class OrganizationNotebooksFavoriteTest(APITestCase):
             "sentry-api-0-organization-notebook-favorite",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": notebook.id,
+                "notebook_id": notebook.id,
             },
         )
 

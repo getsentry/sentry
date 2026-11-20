@@ -26,6 +26,7 @@ class Referrer(StrEnum):
     )
     API_AUTH_TOKEN_EVENTS = "api.auth-token.events"
     API_AUTH_TOKEN_EVENTS_FIND_TOPN = "api.auth-token.events.find-topn"
+    API_CLASSIFIERS_DETAIL_INSTANCES_CHART = "api.classifiers.detail.instances-chart"
 
     # ** Dashboards **
 
@@ -642,6 +643,8 @@ class Referrer(StrEnum):
     EVENTSTORE_GET_UNFETCHED_TRANSACTIONS = "eventstore.get_unfetched_transactions"
     EXPORT_EVENTS = "export-events"
     FETCH_EVENTS_FOR_DELETION = "fetch_events_for_deletion"
+    GETSENTRY_API_CUSTOMER_LLM_COST_STATS = "getsentry.api.customer-llm-cost-stats"
+    GETSENTRY_API_CUSTOMER_SEER_USAGE_STATS = "getsentry.api.customer-seer-usage-stats"
     GETSENTRY_API_PENDO_DETAILS = "getsentry.api.pendo-details"
     GETSENTRY_EXPORT_SPANS_GET_TRACES = "getsentry.export.spans.get_traces"
     GETSENTRY_EXPORT_SPANS_GET_ITEM_DETAILS = "getsentry.export.spans.get_item_details"
@@ -863,6 +866,8 @@ class Referrer(StrEnum):
     TASKS_PROCESS_PROJECTS_WITH_SESSIONS_SESSION_COUNT = (
         "tasks.process_projects_with_sessions.session_count"
     )
+    TELEMETRY_CLASSIFIERS_CONVERSATIONS_SELECT = "telemetry_classifiers.conversations.select"
+    TELEMETRY_CLASSIFIERS_CONVERSATIONS_LOAD = "telemetry_classifiers.conversations.load"
     TRANSACTION_ANOMALY_DETECTION = "transaction-anomaly-detection"
 
     TSDB_MODELID_1 = "tsdb-modelid:1"

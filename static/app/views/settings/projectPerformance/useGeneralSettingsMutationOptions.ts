@@ -11,10 +11,7 @@ import type {GeneralSettings} from './projectPerformanceSettings';
 export const getGeneralSettingsQueryOptions = (orgSlug: string, projectSlug: string) =>
   apiOptions.as<GeneralSettings>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/performance/configure/',
-    {
-      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug}, staleTime: 0}
   );
 
 export function useGeneralSettingsMutationOptions() {

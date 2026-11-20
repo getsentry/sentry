@@ -13,13 +13,9 @@ export const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
   crashReportOnboarding: crashReport,
-  featureFlagOnboarding: featureFlag({
-    packageName: '@sentry/cloudflare',
-  }),
+  featureFlagOnboarding: featureFlag({packageName: '@sentry/cloudflare'}),
   logsOnboarding: logs,
-  agentMonitoringOnboarding: agentMonitoring({
-    packageName: '@sentry/cloudflare',
-  }),
+  agentMonitoringOnboarding: agentMonitoring({packageName: '@sentry/cloudflare'}),
   mcpOnboarding: mcp,
   metricsOnboarding: metrics,
 };

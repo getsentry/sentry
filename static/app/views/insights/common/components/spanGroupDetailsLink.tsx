@@ -1,9 +1,9 @@
 import styled from '@emotion/styled';
-import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {type ModuleName} from 'sentry/views/insights/types';
@@ -23,10 +23,7 @@ export function SpanGroupDetailsLink({moduleName, group, projectId, description}
 
   const moduleURL = useModuleURL(moduleName);
 
-  const queryString = {
-    ...location.query,
-    project: projectId,
-  };
+  const queryString = {...location.query, project: projectId};
 
   return (
     <OverflowEllipsisTextContainer>

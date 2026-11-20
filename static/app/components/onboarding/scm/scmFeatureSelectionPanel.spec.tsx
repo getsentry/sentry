@@ -51,15 +51,13 @@ function defaultProps(overrides: Partial<Record<string, unknown>> = {}) {
 
 describe('ScmFeatureSelectionPanel', () => {
   const organization = OrganizationFixture({
-    features: ['performance-view', 'session-replay', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   it('shows the trial banner and per-feature volumes during onboarding', async () => {
     render(
       <ScmFeatureSelectionPanel {...defaultProps({analyticsFlow: 'onboarding'})} />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(await screen.findByText('What do you want to track?')).toBeInTheDocument();

@@ -18,10 +18,7 @@ describe('OpenSeerButton', () => {
   it('opens the seer drawer for the run and tracks the click', async () => {
     const {router} = render(
       <OpenSeerButton run={run()} section="needs_investigation" size="xs" />,
-      {
-        organization,
-        initialRouterConfig: {location: {pathname: '/seer/overview/'}},
-      }
+      {organization, initialRouterConfig: {location: {pathname: '/seer/overview/'}}}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Open Seer'}));

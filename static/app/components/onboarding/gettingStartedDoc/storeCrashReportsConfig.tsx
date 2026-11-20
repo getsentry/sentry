@@ -28,9 +28,7 @@ interface StoreCrashReportsConfigProps {
   projectSlug: Project['slug'];
 }
 
-const schema = z.object({
-  storeCrashReports: z.number().nullable(),
-});
+const schema = z.object({storeCrashReports: z.number().nullable()});
 
 export function StoreCrashReportsConfig({
   projectSlug,

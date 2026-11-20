@@ -19,6 +19,7 @@ from sentry.api.helpers.error_upsampling import (
     transform_query_columns_for_error_upsampling,
 )
 from sentry.api.serializers.snuba import StatsTimeSeriesResult
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import acting_user
 from sentry.constants import MAX_TOP_EVENTS
@@ -123,7 +124,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsEndpointBase):
             200: inline_sentry_response_serializer(
                 "OrganizationEventsStatsResponse",
                 StatsTimeSeriesResult | dict[str, StatsTimeSeriesResult],
-            )
+            ),
+            400: RESPONSE_BAD_REQUEST,
         },
     )
     def get(self, request: Request, organization: Organization) -> Response:

@@ -20,8 +20,6 @@ const displaySelectOptions: Array<SelectOption<PreprodBuildsDisplay>> = [
   {value: PreprodBuildsDisplay.DISTRIBUTION, label: t('Distribution')},
 ];
 
-const DISTRIBUTION_FREEFORM_KEYS = ['install_groups'];
-
 interface PreprodBuildsSearchControlsProps {
   /**
    * Current display mode value from URL query
@@ -77,10 +75,6 @@ export function PreprodBuildsSearchControls({
       : display === PreprodBuildsDisplay.DISTRIBUTION
         ? MOBILE_BUILDS_DISTRIBUTION_ALLOWED_KEYS
         : MOBILE_BUILDS_ALLOWED_KEYS;
-  const displayFreeformKeys =
-    display === PreprodBuildsDisplay.DISTRIBUTION
-      ? DISTRIBUTION_FREEFORM_KEYS
-      : undefined;
 
   return (
     <Flex
@@ -93,7 +87,6 @@ export function PreprodBuildsSearchControls({
         <PreprodSearchBar
           initialQuery={initialQuery}
           allowedKeys={displayAllowedKeys}
-          freeformKeys={displayFreeformKeys}
           onChange={onChange}
           onSearch={onSearch}
           projects={projects}

@@ -85,6 +85,7 @@ import {useEngagedViewTracking} from './useEngagedViewTracking';
 import {groupApiOptions, useGroup} from './useGroup';
 import {useGroupDetailsRoute} from './useGroupDetailsRoute';
 import {RESERVED_EVENT_IDS, useGroupEvent} from './useGroupEvent';
+import {ISSUE_DRAWER_TABS, useIssueDrawerReturnPath} from './useIssueDrawerReturnPath';
 import {
   getGroupReprocessingStatus,
   markEventSeen,
@@ -96,10 +97,7 @@ import {
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
 // Issue list links add `_allp` ("all projects") when no project is selected, so this page doesn't pin the issue's project into the URL and Back returns to the unfiltered list (#14731).
-const allProjectsQueryParsers = {
-  _allp: parseAsString,
-  project: parseAsString,
-};
+const allProjectsQueryParsers = {_allp: parseAsString, project: parseAsString};
 
 const loadAllProjectsQuery = createLoader(allProjectsQueryParsers);
 
@@ -192,10 +190,7 @@ function getReprocessingNewRoute({
     reprocessingStatus === ReprocessingStatus.REPROCESSING &&
     currentTab !== Tab.DETAILS
   ) {
-    return {
-      pathname: baseUrl,
-      query: location.query,
-    };
+    return {pathname: baseUrl, query: location.query};
   }
 
   if (
@@ -203,10 +198,7 @@ function getReprocessingNewRoute({
     currentTab !== Tab.ACTIVITY &&
     currentTab !== Tab.USER_FEEDBACK
   ) {
-    return {
-      pathname: `${baseUrl}${Tab.ACTIVITY}/`,
-      query: location.query,
-    };
+    return {pathname: `${baseUrl}${Tab.ACTIVITY}/`, query: location.query};
   }
 
   return;
@@ -278,10 +270,7 @@ export function useFetchGroupDetails(): FetchGroupDetailsState {
     data: event,
     isPending: loadingEvent,
     refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId,
-  });
+  } = useGroupEvent({groupId, eventId});
 
   const {
     data: groupData,
@@ -635,18 +624,28 @@ function GroupDetailsContentInner({
   const includeFlagDistributions = featureFlagDrawerPlatforms.includes(
     project.platform ?? 'other'
   );
+  const {currentTab, baseUrl} = useGroupDetailsRoute();
+  const location = useLocation();
+  const getReturnPath = useIssueDrawerReturnPath({
+    baseUrl,
+    currentTab,
+    pathname: location.pathname,
+  });
   const {openDistributionsDrawer} = useGroupDistributionsDrawer({
+    getReturnPath,
     group,
     includeFeatureFlagsTab: includeFlagDistributions,
   });
-  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({group, project});
-  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({group, project});
-  const {openIssueActivityDrawer} = useIssueActivityDrawer({group});
+  const {openSimilarIssuesDrawer} = useSimilarIssuesDrawer({
+    getReturnPath,
+    group,
+    project,
+  });
+  const {openMergedIssuesDrawer} = useMergedIssuesDrawer({getReturnPath, group, project});
+  const {openIssueActivityDrawer} = useIssueActivityDrawer({getReturnPath, group});
   const {openSeerDrawer} = useOpenSeerDrawer({group, project});
   const {isAnyDrawerOpen} = useDrawer();
 
-  const {currentTab} = useGroupDetailsRoute();
-  const location = useLocation();
   const autofixPage = hasAutofixPage(organization);
   // nuqs flips this as soon as the drawer closes, before the URL catches up, so
   // closing the drawer doesn't reopen it.
@@ -694,14 +693,7 @@ function GroupDetailsContentInner({
     openSeerDrawer,
   ]);
 
-  useTrackView({
-    group,
-    event,
-    project,
-    tab: currentTab,
-    organization,
-    hasAutofixQuota,
-  });
+  useTrackView({group, event, project, tab: currentTab, organization, hasAutofixQuota});
 
   useEngagedViewTracking({group, project});
 
@@ -746,13 +738,8 @@ function GroupDetailsContentInner({
     ...(tagKey ? {tagKey} : {}),
   });
 
-  const isDisplayingEventDetails = [
-    Tab.DETAILS,
-    Tab.DISTRIBUTIONS,
-    Tab.SIMILAR_ISSUES,
-    Tab.MERGED,
-    Tab.ACTIVITY,
-  ].includes(currentTab);
+  const isDisplayingEventDetails =
+    currentTab === Tab.DETAILS || ISSUE_DRAWER_TABS.has(currentTab);
 
   if (redirectToAutofixTab) {
     return (
@@ -800,10 +787,7 @@ function GroupDetailsPageContent(props: GroupDetailsPageContentProps) {
 
   // Preload detailed project data for highlighted data section
   useDetailedProject(
-    {
-      orgSlug: organization.slug,
-      projectSlug: projectSlug ?? '',
-    },
+    {orgSlug: organization.slug, projectSlug: projectSlug ?? ''},
     {enabled: !!projectSlug}
   );
 

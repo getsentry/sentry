@@ -29,14 +29,8 @@ interface Props {
 }
 
 const suggestedOptions = [
-  {
-    label: t('My Teams'),
-    value: 'myteams',
-  },
-  {
-    label: t('Unassigned'),
-    value: 'unassigned',
-  },
+  {label: t('My Teams'), value: 'myteams'},
+  {label: t('Unassigned'), value: 'unassigned'},
 ];
 
 const makeTeamOption = (team: Team) => ({

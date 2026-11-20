@@ -37,11 +37,7 @@ export function getAccessibilityContextData({
           value: data.accessible_navigation,
         };
       case AccessibilityContextKeys.BOLD_TEXT:
-        return {
-          key: ctxKey,
-          subject: t('Bold Text'),
-          value: data.bold_text,
-        };
+        return {key: ctxKey, subject: t('Bold Text'), value: data.bold_text};
       case AccessibilityContextKeys.DISABLE_ANIMATIONS:
         return {
           key: ctxKey,
@@ -49,23 +45,11 @@ export function getAccessibilityContextData({
           value: data.disable_animations,
         };
       case AccessibilityContextKeys.HIGH_CONTRAST:
-        return {
-          key: ctxKey,
-          subject: t('High Contrast'),
-          value: data.high_contrast,
-        };
+        return {key: ctxKey, subject: t('High Contrast'), value: data.high_contrast};
       case AccessibilityContextKeys.INVERT_COLORS:
-        return {
-          key: ctxKey,
-          subject: t('Invert Colors'),
-          value: data.invert_colors,
-        };
+        return {key: ctxKey, subject: t('Invert Colors'), value: data.invert_colors};
       case AccessibilityContextKeys.REDUCE_MOTION:
-        return {
-          key: ctxKey,
-          subject: t('Reduce Motion'),
-          value: data.reduce_motion,
-        };
+        return {key: ctxKey, subject: t('Reduce Motion'), value: data.reduce_motion};
       default:
         return {
           key: ctxKey,

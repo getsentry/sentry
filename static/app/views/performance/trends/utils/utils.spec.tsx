@@ -14,10 +14,7 @@ import {ProjectPerformanceType} from 'sentry/views/performance/utils';
 describe('Trend parameter utils', () => {
   describe('performanceTypeToTrendParameterLabel', () => {
     it('returns correct trend parameter label based on performance type', () => {
-      const lcp = {
-        label: TrendParameterLabel.LCP,
-        column: TrendParameterColumn.LCP,
-      };
+      const lcp = {label: TrendParameterLabel.LCP, column: TrendParameterColumn.LCP};
 
       const duration = {
         label: TrendParameterLabel.DURATION,

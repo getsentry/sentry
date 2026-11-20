@@ -18,7 +18,6 @@ import {QueryClientProvider} from '@tanstack/react-query';
 import * as rtl from '@testing-library/react'; // eslint-disable-line no-restricted-imports
 import {userEvent} from '@testing-library/user-event'; // eslint-disable-line no-restricted-imports
 import type {OnUrlUpdateFunction} from 'nuqs/adapters/testing';
-import * as qs from 'query-string';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
@@ -32,6 +31,7 @@ import {SentryOverlayProvider} from 'sentry/scrapsProviders/overlay';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {ProvideAriaRouter} from 'sentry/utils/provideAriaRouter';
+import * as qs from 'sentry/utils/url/qs';
 import {GlobalAlertProvider} from 'sentry/views/app/globalAlerts';
 import {TopBarSlots} from 'sentry/views/navigation/topBarSlot';
 import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
@@ -240,19 +240,10 @@ function makeRouter({
 }) {
   const childRoutes = createRoutesFromConfig(children, config);
   const routes = outletContext
-    ? [
-        {
-          path: '/',
-          element: <Outlet context={outletContext} />,
-          children: childRoutes,
-        },
-      ]
+    ? [{path: '/', element: <Outlet context={outletContext} />, children: childRoutes}]
     : childRoutes;
 
-  const router = UNSAFE_createRouter({
-    history,
-    routes,
-  }).initialize();
+  const router = UNSAFE_createRouter({history, routes}).initialize();
 
   return router;
 }
@@ -268,10 +259,7 @@ class TestRouter {
     // Return parsed query params for convenience
     const query = qs.parse(this.router.state.location.search);
 
-    return {
-      ...this.router.state.location,
-      query,
-    };
+    return {...this.router.state.location, query};
   }
 
   /**
@@ -302,9 +290,7 @@ function parseLocationConfig(location: LocationConfig | undefined): InitialEntry
     return location.pathname;
   }
 
-  const config: InitialEntry = {
-    pathname: location.pathname,
-  };
+  const config: InitialEntry = {pathname: location.pathname};
 
   if (location.query) {
     config.search = parseQueryString(location.query);
@@ -353,9 +339,7 @@ function getInitialRouterConfig(options: InitialRouterOptions): {
 function render(ui: React.ReactElement, options: RenderOptions = {}): RenderReturn {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = UNSAFE_createMemoryHistory({
-    initialEntries: [initialEntry],
-  });
+  const history = UNSAFE_createMemoryHistory({initialEntries: [initialEntry]});
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
@@ -389,11 +373,7 @@ function render(ui: React.ReactElement, options: RenderOptions = {}): RenderRetu
 
   const testRouter = new TestRouter(memoryRouter);
 
-  return {
-    ...renderResult,
-    rerender,
-    router: testRouter,
-  } as RenderReturn;
+  return {...renderResult, rerender, router: testRouter} as RenderReturn;
 }
 
 function renderHookWithProviders<Result = unknown, Props = unknown>(
@@ -402,9 +382,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
 ): rtl.RenderHookResult<Result, Props> & {router: TestRouter} {
   const {initialEntry, config, outletContext} = getInitialRouterConfig(options);
 
-  const history = UNSAFE_createMemoryHistory({
-    initialEntries: [initialEntry],
-  });
+  const history = UNSAFE_createMemoryHistory({initialEntries: [initialEntry]});
 
   const AllTheProviders = makeAllTheProviders({
     organization: options.organization,
@@ -439,10 +417,7 @@ function renderHookWithProviders<Result = unknown, Props = unknown>(
   }
   const testRouter = new TestRouter(memoryRouter);
 
-  return {
-    ...hookResult,
-    router: testRouter,
-  };
+  return {...hookResult, router: testRouter};
 }
 
 /**

@@ -182,11 +182,7 @@ describe('spansWidgetQueries', () => {
 
     expect(normalModeMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'NORMAL',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({sampling: 'NORMAL'})})
     );
   });
 
@@ -207,9 +203,7 @@ describe('spansWidgetQueries', () => {
 
     const normalModeMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{a: 'normal mode'}],
-      },
+      body: {data: [{a: 'normal mode'}]},
       match: [
         function (_url: string, options: Record<string, any>) {
           return options.query.sampling === 'NORMAL';
@@ -233,11 +227,7 @@ describe('spansWidgetQueries', () => {
 
     expect(normalModeMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'NORMAL',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({sampling: 'NORMAL'})})
     );
   });
 
@@ -269,9 +259,7 @@ describe('spansWidgetQueries', () => {
           </div>
         )}
       </SpansWidgetQueries>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     expect(await screen.findByText('idle:Invalid series filter')).toBeInTheDocument();
@@ -324,9 +312,7 @@ describe('spansWidgetQueries', () => {
     expect(lowPriorityMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'LOW_PRIORITY',
-        }),
+        query: expect.objectContaining({sampling: 'LOW_PRIORITY'}),
       })
     );
   });
@@ -369,9 +355,7 @@ describe('spansWidgetQueries', () => {
       </SavedDashboardQueryPriorityProvider>,
       {
         organization: OrganizationFixture({features: ['low-priority-queries']}),
-        initialRouterConfig: {
-          location: {pathname: '/', query: {}},
-        },
+        initialRouterConfig: {location: {pathname: '/', query: {}}},
       }
     );
 
@@ -379,9 +363,7 @@ describe('spansWidgetQueries', () => {
     expect(lowPriorityMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'LOW_PRIORITY',
-        }),
+        query: expect.objectContaining({sampling: 'LOW_PRIORITY'}),
       })
     );
   });
@@ -431,11 +413,7 @@ describe('spansWidgetQueries', () => {
     expect(await screen.findByText('1')).toBeInTheDocument();
     expect(normalModeMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-timeseries/',
-      expect.objectContaining({
-        query: expect.objectContaining({
-          sampling: 'NORMAL',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({sampling: 'NORMAL'})})
     );
   });
 });

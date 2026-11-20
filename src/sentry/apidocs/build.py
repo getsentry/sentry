@@ -32,6 +32,11 @@ OPENAPI_TAGS = [
         "x-display-description": True,
     },
     {
+        "name": "Notebooks",
+        "description": "Endpoints for notebooks, which people and Seer agents write. Requires the organizations:investigations feature and open organization membership. A notebook's version is an optimistic concurrency token.",
+        "x-display-description": True,
+    },
+    {
         "name": "Teams",
         "description": "Endpoints for teams",
         "x-display-description": False,

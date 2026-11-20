@@ -69,9 +69,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
-            {
-              gemfileCode: <code />,
-            }
+            {gemfileCode: <code />}
           ),
         },
         {
@@ -92,20 +90,12 @@ export const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getInstallSnippet(params)},
         {
           type: 'text',
           text: t('After adding the gems, run the following to install the SDK:'),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: 'bundle install',
-        },
+        {type: 'code', language: 'ruby', code: 'bundle install'},
       ],
     },
   ],
@@ -120,11 +110,7 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -138,11 +124,7 @@ export const onboarding: OnboardingConfig = {
             "This snippet contains a deliberate error and message sent to Sentry and can be used as a test to make sure that everything's working as expected."
           ),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'ruby', code: getVerifySnippet()},
       ],
     },
   ],

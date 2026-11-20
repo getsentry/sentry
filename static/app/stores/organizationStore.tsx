@@ -40,15 +40,7 @@ function onUpdate(
     replace ? updatedOrg : {...store.getState().organization, ...updatedOrg}
   ) as Organization;
 
-  store.setState(
-    {
-      loading: false,
-      errorType: null,
-      error: null,
-      organization,
-    },
-    true
-  );
+  store.setState({loading: false, errorType: null, error: null, organization}, true);
 
   callSetOrganizationCallback(organization);
 }
@@ -85,15 +77,7 @@ export const OrganizationStore = {
       default:
     }
 
-    store.setState(
-      {
-        errorType,
-        error: err,
-        loading: false,
-        organization: null,
-      },
-      true
-    );
+    store.setState({errorType, error: err, loading: false, organization: null}, true);
   },
 
   setNoOrganization(): void {

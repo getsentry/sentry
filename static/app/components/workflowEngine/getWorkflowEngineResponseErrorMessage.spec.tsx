@@ -29,9 +29,7 @@ describe('getWorkflowEngineResponseErrorMessage', () => {
 
   it('handles {actions: [{field: "message"}]} shape', () => {
     expect(
-      getWorkflowEngineResponseErrorMessage({
-        actions: [{repo: 'Repository is required'}],
-      })
+      getWorkflowEngineResponseErrorMessage({actions: [{repo: 'Repository is required'}]})
     ).toBe('Repository is required');
   });
 

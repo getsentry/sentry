@@ -13,10 +13,6 @@ describe('projectSelectControl', () => {
     ProjectsStore.loadInitialData(projects);
   });
 
-  afterEach(() => {
-    ProjectsStore.reset();
-  });
-
   it('removes options that are filtered out', async () => {
     const {rerender} = render(
       <ProjectSelectControl

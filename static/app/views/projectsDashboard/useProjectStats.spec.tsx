@@ -44,10 +44,9 @@ describe('useProjectStats', () => {
       })),
     });
 
-    const {result} = renderHookWithProviders(
-      () => useProjectStats({organization, hasPerformance: true}),
-      {organization}
-    );
+    const {result} = renderHookWithProviders(() => useProjectStats({organization}), {
+      organization,
+    });
 
     act(() => {
       expect(result.current.getOne(projectWithInitialStats).stats).toEqual(initialStats);
@@ -80,7 +79,7 @@ describe('useProjectStats', () => {
     const project = ProjectFixture({id: '1', slug: 'm'});
 
     function TestComponent() {
-      const {getOne} = useProjectStats({organization, hasPerformance: false});
+      const {getOne} = useProjectStats({organization});
       const {stats} = getOne(project);
       return <div>{stats ? 'loaded' : 'missing'}</div>;
     }
@@ -99,12 +98,7 @@ describe('useProjectStats', () => {
 
     const mock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/projects/`,
-      body: [
-        {
-          ...project,
-          stats: responseStats,
-        },
-      ],
+      body: [{...project, stats: responseStats, transactionStats: responseStats}],
     });
 
     render(<TestHarness />, {organization});

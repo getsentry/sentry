@@ -50,10 +50,7 @@ function setupDefaultMocks() {
     url: `/organizations/org-slug/integrations/${GITHUB_INTEGRATION.id}/`,
     body: GITHUB_INTEGRATION,
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/repos/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/code-mappings/',
     body: [],
@@ -82,10 +79,7 @@ describe('OrganizationRepositories', () => {
       url: '/organizations/org-slug/integrations/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/code-mappings/',
       body: [],
@@ -108,6 +102,81 @@ describe('OrganizationRepositories', () => {
       await screen.findByRole('button', {name: 'Connect new provider'})
     ).toBeInTheDocument();
   });
+
+  it.each([false, true])(
+    'requests installation without starting a pipeline (existing integrations: %s)',
+    async hasIntegrations => {
+      setupDefaultMocks();
+      if (!hasIntegrations) {
+        MockApiClient.addMockResponse({
+          url: '/organizations/org-slug/integrations/',
+          body: [],
+        });
+      }
+      const initializePipeline = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/pipeline/integration_pipeline/',
+        method: 'POST',
+        statusCode: 403,
+        body: {detail: 'You do not have permission to perform this action.'},
+      });
+      const requestInstallation = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integration-requests/',
+        method: 'POST',
+        statusCode: 201,
+      });
+
+      render(<OrganizationRepositories />, {
+        organization: OrganizationFixture({access: ['org:read']}),
+        initialRouterConfig: {
+          location: {
+            pathname: '/settings/org-slug/repos/',
+            query: {showInstallModal: '1'},
+          },
+        },
+      });
+      renderGlobalModal();
+
+      await userEvent.click(
+        await screen.findByRole('button', {
+          name: hasIntegrations
+            ? 'Request provider installation'
+            : 'Request Installation',
+        })
+      );
+      if (hasIntegrations) {
+        await userEvent.click(screen.getByRole('menuitemradio', {name: 'GitHub'}));
+      }
+
+      expect(await screen.findByText('Request GitHub Installation')).toBeInTheDocument();
+      expect(requestInstallation).not.toHaveBeenCalled();
+      await userEvent.click(screen.getByRole('button', {name: 'Send Request'}));
+
+      await waitFor(() =>
+        expect(requestInstallation).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {providerSlug: 'github', providerType: 'first_party', message: ''},
+          })
+        )
+      );
+      await waitFor(() =>
+        expect(screen.queryByText('Request GitHub Installation')).not.toBeInTheDocument()
+      );
+      if (hasIntegrations) {
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Request provider installation'})
+        );
+        expect(
+          screen.getByRole('menuitemradio', {name: 'GitHub (installation requested)'})
+        ).toHaveAttribute('aria-disabled', 'true');
+      } else {
+        expect(
+          screen.getByRole('button', {name: 'Installation Requested'})
+        ).toBeDisabled();
+      }
+      expect(initializePipeline).not.toHaveBeenCalled();
+    }
+  );
 
   it('renders a table for each provider that has an installation', async () => {
     setupDefaultMocks();
@@ -236,10 +305,7 @@ describe('OrganizationRepositories', () => {
       body: GITHUB_INTEGRATION,
       asyncDelay: 10_000,
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/repos/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/repos/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/code-mappings/',
       body: [],

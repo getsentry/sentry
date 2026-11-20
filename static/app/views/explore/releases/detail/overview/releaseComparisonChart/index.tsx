@@ -105,10 +105,7 @@ type EventsTotals = {
   releaseTransactionCount: number;
 } | null;
 
-type IssuesTotals = {
-  handled: number;
-  unhandled: number;
-} | null;
+type IssuesTotals = {handled: number; unhandled: number} | null;
 
 export function ReleaseComparisonChart({
   release,
@@ -132,10 +129,7 @@ export function ReleaseComparisonChart({
   const [isOtherExpanded, setIsOtherExpanded] = useState(false);
   const charts: ReleaseComparisonRow[] = [];
   const additionalCharts: ReleaseComparisonRow[] = [];
-  const hasDiscover =
-    organization.features.includes('discover-basic') ||
-    organization.features.includes('performance-view');
-  const hasPerformance = organization.features.includes('performance-view');
+
   const {
     statsPeriod: period,
     start,
@@ -144,10 +138,7 @@ export function ReleaseComparisonChart({
   } = useMemo(
     () =>
       // Memoizing this so that it does not calculate different `end` for releases without events+sessions each rerender
-      getReleaseParams({
-        location,
-        releaseBounds: getReleaseBounds(release),
-      }),
+      getReleaseParams({location, releaseBounds: getReleaseBounds(release)}),
     [release, location]
   );
 
@@ -315,12 +306,10 @@ export function ReleaseComparisonChart({
   ]);
 
   useEffect(() => {
-    if (hasDiscover || hasPerformance) {
-      // oxlint-disable-next-line react/set-state-in-effect
-      fetchEventsTotals();
-      fetchIssuesTotals();
-    }
-  }, [fetchEventsTotals, fetchIssuesTotals, hasDiscover, hasPerformance]);
+    // oxlint-disable-next-line react/set-state-in-effect
+    fetchEventsTotals();
+    fetchIssuesTotals();
+  }, [fetchEventsTotals, fetchIssuesTotals]);
 
   const releaseCrashFreeSessions = getCrashFreeRate(
     releaseSessions?.groups,
@@ -881,26 +870,24 @@ export function ReleaseComparisonChart({
     }
   }
 
-  if (hasPerformance) {
-    charts.push({
-      type: ReleaseComparisonChartType.FAILURE_RATE,
-      role: 'default',
-      drilldown: null,
-      thisRelease: eventsTotals?.releaseFailureRate
-        ? formatPercentage(eventsTotals?.releaseFailureRate)
-        : null,
-      allReleases: eventsTotals?.allFailureRate
-        ? formatPercentage(eventsTotals?.allFailureRate)
-        : null,
-      diff: diffFailure ? formatPercentage(Math.abs(diffFailure)) : null,
-      diffDirection: diffFailure ? (diffFailure > 0 ? 'up' : 'down') : null,
-      diffColor: diffFailure
-        ? diffFailure > 0
-          ? theme.tokens.content.danger
-          : theme.tokens.content.success
-        : null,
-    });
-  }
+  charts.push({
+    type: ReleaseComparisonChartType.FAILURE_RATE,
+    role: 'default',
+    drilldown: null,
+    thisRelease: eventsTotals?.releaseFailureRate
+      ? formatPercentage(eventsTotals?.releaseFailureRate)
+      : null,
+    allReleases: eventsTotals?.allFailureRate
+      ? formatPercentage(eventsTotals?.allFailureRate)
+      : null,
+    diff: diffFailure ? formatPercentage(Math.abs(diffFailure)) : null,
+    diffDirection: diffFailure ? (diffFailure > 0 ? 'up' : 'down') : null,
+    diffColor: diffFailure
+      ? diffFailure > 0
+        ? theme.tokens.content.danger
+        : theme.tokens.content.success
+      : null,
+  });
 
   if (hasHealthData) {
     additionalCharts.push({
@@ -931,52 +918,39 @@ export function ReleaseComparisonChart({
     }
   }
 
-  if (hasDiscover) {
-    additionalCharts.push({
-      type: ReleaseComparisonChartType.ERROR_COUNT,
-      role: 'default',
-      drilldown: null,
-      thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
-        <Count value={eventsTotals?.releaseErrorCount} />
-      ) : null,
-      allReleases: defined(eventsTotals?.allErrorCount) ? (
-        <Count value={eventsTotals?.allErrorCount} />
-      ) : null,
-      diff: null,
-      diffDirection: null,
-      diffColor: null,
-    });
-  }
+  additionalCharts.push({
+    type: ReleaseComparisonChartType.ERROR_COUNT,
+    role: 'default',
+    drilldown: null,
+    thisRelease: defined(eventsTotals?.releaseErrorCount) ? (
+      <Count value={eventsTotals?.releaseErrorCount} />
+    ) : null,
+    allReleases: defined(eventsTotals?.allErrorCount) ? (
+      <Count value={eventsTotals?.allErrorCount} />
+    ) : null,
+    diff: null,
+    diffDirection: null,
+    diffColor: null,
+  });
 
-  if (hasPerformance) {
-    additionalCharts.push({
-      type: ReleaseComparisonChartType.TRANSACTION_COUNT,
-      role: 'default',
-      drilldown: null,
-      thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
-        <Count value={eventsTotals?.releaseTransactionCount} />
-      ) : null,
-      allReleases: defined(eventsTotals?.allTransactionCount) ? (
-        <Count value={eventsTotals?.allTransactionCount} />
-      ) : null,
-      diff: null,
-      diffDirection: null,
-      diffColor: null,
-    });
-  }
+  additionalCharts.push({
+    type: ReleaseComparisonChartType.TRANSACTION_COUNT,
+    role: 'default',
+    drilldown: null,
+    thisRelease: defined(eventsTotals?.releaseTransactionCount) ? (
+      <Count value={eventsTotals?.releaseTransactionCount} />
+    ) : null,
+    allReleases: defined(eventsTotals?.allTransactionCount) ? (
+      <Count value={eventsTotals?.allTransactionCount} />
+    ) : null,
+    diff: null,
+    diffDirection: null,
+    diffColor: null,
+  });
 
   function handleChartChange(chartType: ReleaseComparisonChartType) {
-    trackAnalytics('releases.change_chart_type', {
-      organization,
-      chartType,
-    });
-    navigate({
-      ...location,
-      query: {
-        ...location.query,
-        chart: chartType,
-      },
-    });
+    trackAnalytics('releases.change_chart_type', {organization, chartType});
+    navigate({...location, query: {...location.query, chart: chartType}});
   }
 
   function handleExpanderToggle(chartType: ReleaseComparisonChartType) {
@@ -1023,9 +997,7 @@ export function ReleaseComparisonChart({
     location.query.chart,
     hasHealthData
       ? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
-      : hasPerformance
-        ? ReleaseComparisonChartType.FAILURE_RATE
-        : ReleaseComparisonChartType.ERROR_COUNT
+      : ReleaseComparisonChartType.FAILURE_RATE
   ) as ReleaseComparisonChartType;
 
   let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);
@@ -1132,10 +1104,7 @@ export function ReleaseComparisonChart({
         columns={[
           {
             key: 'description',
-            width: {
-              zero: 'minmax(min-content, 1fr)',
-              '4xl': 'minmax(400px, auto)',
-            },
+            width: {zero: 'minmax(min-content, 1fr)', '4xl': 'minmax(400px, auto)'},
           },
           {key: 'releases', width: 'minmax(min-content, 1fr)'},
           {key: 'release', width: 'minmax(min-content, 1fr)'},

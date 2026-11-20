@@ -12,9 +12,7 @@ import {
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-type FakePipWindow = Window & {
-  __listeners: Record<string, Array<() => void>>;
-};
+type FakePipWindow = Window & {__listeners: Record<string, Array<() => void>>};
 
 function createFakePipWindow(): FakePipWindow {
   const doc = document.implementation.createHTMLDocument('pip');
@@ -245,8 +243,8 @@ describe('usePictureInPicture', () => {
 it('leaves body-class policy to the consumer and initializes a window before publishing it', async () => {
   const pip = createFakePipWindow();
   const requestWindow = stubDocumentPictureInPicture(pip);
-  const onWindowOpen = jest.fn(window => {
-    window.document.body.className = 'consumer-theme';
+  const onWindowOpen = jest.fn(pipWindow => {
+    pipWindow.document.body.className = 'consumer-theme';
   });
   const {result, unmount} = renderHook(() => usePictureInPicture(), {
     wrapper: ({children}: {children: React.ReactNode}) => (

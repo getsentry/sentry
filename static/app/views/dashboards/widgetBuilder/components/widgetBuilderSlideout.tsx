@@ -551,9 +551,7 @@ function Section({children}: {children: React.ReactNode}) {
   );
 }
 
-type DisableModeProps = {
-  children: React.ReactNode;
-};
+type DisableModeProps = {children: React.ReactNode};
 
 function DisableTransactionWidget({children}: DisableModeProps) {
   const disableTransactionWidget = useDisableTransactionWidget();
@@ -565,18 +563,9 @@ function DisableTransactionWidget({children}: DisableModeProps) {
   return (
     <div
       data-test-id="transaction-widget-disabled-wrapper"
-      style={{
-        opacity: 0.6,
-        cursor: 'not-allowed',
-      }}
+      style={{opacity: 0.6, cursor: 'not-allowed'}}
     >
-      <div
-        style={{
-          pointerEvents: 'none',
-        }}
-      >
-        {children}
-      </div>
+      <div style={{pointerEvents: 'none'}}>{children}</div>
     </div>
   );
 }

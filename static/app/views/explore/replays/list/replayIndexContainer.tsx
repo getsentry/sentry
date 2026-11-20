@@ -47,10 +47,7 @@ export function ReplayIndexContainer({
     data: response,
     isPending,
     error,
-  } = useQuery({
-    ...replayListOptions,
-    select: selectJsonWithHeaders,
-  });
+  } = useQuery({...replayListOptions, select: selectJsonWithHeaders});
   const replays = response?.json?.data?.map(mapResponseToReplayRecord) ?? [];
 
   const pageLinks = response?.headers.Link ?? null;

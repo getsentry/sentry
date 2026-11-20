@@ -32,9 +32,7 @@ function ActivityStatusBanner({
   group,
   project,
   resolvedCopy,
-}: StatusBannerProps & {
-  group: StatusGroup;
-}) {
+}: StatusBannerProps & {group: StatusGroup}) {
   const isResolved = group.status === GroupStatus.RESOLVED;
 
   return (

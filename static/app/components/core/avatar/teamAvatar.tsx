@@ -30,30 +30,15 @@ export function getTeamAvatarProps(
   const name = explodeSlug(team.slug);
 
   if (!team.avatar?.avatarType) {
-    return {
-      type: 'letter_avatar',
-      identifier,
-      name,
-      title: name,
-    };
+    return {type: 'letter_avatar', identifier, name, title: name};
   }
 
   switch (team.avatar.avatarType) {
     case 'letter_avatar':
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
     case 'upload':
       if (!team.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
       return {
         type: 'upload',
@@ -64,12 +49,7 @@ export function getTeamAvatarProps(
       };
     case 'gravatar':
       if (!team.avatar.avatarUrl) {
-        return {
-          type: 'letter_avatar',
-          identifier,
-          name,
-          title: name,
-        };
+        return {type: 'letter_avatar', identifier, name, title: name};
       }
       return {
         type: 'gravatar',
@@ -79,11 +59,6 @@ export function getTeamAvatarProps(
         title: name,
       };
     default:
-      return {
-        type: 'letter_avatar',
-        identifier,
-        name,
-        title: name,
-      };
+      return {type: 'letter_avatar', identifier, name, title: name};
   }
 }

@@ -33,9 +33,7 @@ describe('Discover > QueryList', () => {
 
   beforeEach(() => {
     jest.resetAllMocks();
-    organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
-    });
+    organization = OrganizationFixture({features: ['discover-basic', 'discover-query']});
     savedQueries = [
       DiscoverSavedQueryFixture(),
       DiscoverSavedQueryFixture({name: 'saved query 2', id: '2'}),
@@ -58,10 +56,7 @@ describe('Discover > QueryList', () => {
     duplicateMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/discover/saved/',
       method: 'POST',
-      body: {
-        id: '3',
-        name: 'Saved query copy',
-      },
+      body: {id: '3', name: 'Saved query copy'},
     });
 
     updateHomepageMock = MockApiClient.addMockResponse({
@@ -132,9 +127,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('renders pre-built queries with dataset', async () => {
-    organization = OrganizationFixture({
-      features: ['discover-basic', 'discover-query', 'performance-view'],
-    });
+    organization = OrganizationFixture({features: ['discover-basic', 'discover-query']});
     const {router} = render(
       <QueryList
         savedQuerySearchQuery=""
@@ -189,9 +182,7 @@ describe('Discover > QueryList', () => {
   });
 
   it('passes dataset to the query if flag is enabled', async () => {
-    const org = OrganizationFixture({
-      features: ['discover-basic', 'discover-query'],
-    });
+    const org = OrganizationFixture({features: ['discover-basic', 'discover-query']});
     render(
       <QueryList
         savedQuerySearchQuery=""
@@ -248,10 +239,7 @@ describe('Discover > QueryList', () => {
 
     await waitFor(() => {
       expect(router.location).toEqual(
-        expect.objectContaining({
-          pathname: location.pathname,
-          query: {},
-        })
+        expect.objectContaining({pathname: location.pathname, query: {}})
       );
     });
 
@@ -364,10 +352,7 @@ describe('Discover > QueryList', () => {
 
   it('passes yAxis from the savedQuery to MiniGraph', async () => {
     const yAxis = ['count()', 'failure_count()'];
-    const savedQueryWithMultiYAxis = {
-      ...savedQueries.slice(1)[0]!,
-      yAxis,
-    };
+    const savedQueryWithMultiYAxis = {...savedQueries.slice(1)[0]!, yAxis};
 
     render(
       <QueryList
@@ -386,9 +371,7 @@ describe('Discover > QueryList', () => {
     expect(eventsStatsMock).toHaveBeenCalledWith(
       '/organizations/org-slug/events-stats/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          yAxis: ['count()', 'failure_count()'],
-        }),
+        query: expect.objectContaining({yAxis: ['count()', 'failure_count()']}),
       })
     );
   });

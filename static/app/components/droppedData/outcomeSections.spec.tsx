@@ -4,6 +4,7 @@ import {
   droppedEventsToOutcomeGroups,
   droppedEventsToOutcomeSections,
   filterDroppedEventsByScope,
+  unexpectedDroppedShare,
 } from './outcomeSections';
 
 describe('droppedEventsToOutcomeSections', () => {
@@ -15,12 +16,7 @@ describe('droppedEventsToOutcomeSections', () => {
     const sections = droppedEventsToOutcomeSections(
       [
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
-        OutcomeRowFixture({
-          outcome: 'invalid',
-          reason: 'timestamp',
-          start: 0,
-          count: 3,
-        }),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'timestamp', start: 0, count: 3}),
         OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'web-crawlers',
@@ -43,12 +39,7 @@ describe('droppedEventsToOutcomeSections', () => {
     const sections = droppedEventsToOutcomeSections(
       [
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
-        OutcomeRowFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 60_000,
-          count: 4,
-        }),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 60_000, count: 4}),
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
       ],
       []
@@ -60,14 +51,7 @@ describe('droppedEventsToOutcomeSections', () => {
   it('computes share against total events (accepted + dropped)', () => {
     const sections = droppedEventsToOutcomeSections(
       [OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
-      [
-        OutcomeRowFixture({
-          outcome: 'accepted',
-          reason: 'accepted',
-          start: 0,
-          count: 75,
-        }),
-      ]
+      [OutcomeRowFixture({outcome: 'accepted', reason: 'accepted', start: 0, count: 75})]
     );
 
     expect(sections[0]!.shareRatio).toBe(0.25);
@@ -162,5 +146,23 @@ describe('filterDroppedEventsByScope', () => {
 
   it('keeps every drop in the all scope', () => {
     expect(filterDroppedEventsByScope(droppedEvents, 'all')).toEqual(droppedEvents);
+  });
+});
+
+describe('unexpectedDroppedShare', () => {
+  it('divides unexpected drops by those drops plus accepted events', () => {
+    expect(
+      unexpectedDroppedShare(
+        [
+          OutcomeRowFixture({count: 10, tags: ['unintentional']}),
+          OutcomeRowFixture({count: 30, tags: ['intentional']}),
+        ],
+        [OutcomeRowFixture({outcome: 'accepted', count: 90})]
+      )
+    ).toBe(0.1);
+  });
+
+  it('is zero when there are no events', () => {
+    expect(unexpectedDroppedShare([], [])).toBe(0);
   });
 });

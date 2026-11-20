@@ -29,7 +29,7 @@ from sentry.apidocs.response_types import (
     as_validation_errors,
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.auth.principal import is_owned_by_acting_user
+from sentry.auth.principal import is_owned_by_acting_user, require_user
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
@@ -135,6 +135,12 @@ class TeamProjectPermission(TeamPermission):
         "DELETE": ["project:admin"],
     }
 
+    def has_permission(self, request: Request, view: APIView) -> bool:
+        # Service accounts can't create projects for now, whatever their team access.
+        if request.method == "POST" and request.user.is_authenticated:
+            require_user(request)
+        return super().has_permission(request, view)
+
     def has_object_permission(self, request: Request, view: APIView, team: Any) -> bool:
         if super().has_object_permission(request, view, team):
             return True
@@ -201,6 +207,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
             200: inline_sentry_response_serializer(
                 "ListTeamProjectResponse", list[OrganizationProjectResponse]
             ),
+            400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
         },
