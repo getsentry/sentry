@@ -1,7 +1,7 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, TypedDict, TypeVar
+from typing import Any, TypeVar
 
 from django.conf import settings
 from django.utils import timezone
@@ -16,11 +16,6 @@ ONE_DAY = ONE_HOUR * 24
 TSDBKey = TypeVar("TSDBKey", str, int)
 TSDBItem = TypeVar("TSDBItem", str, int)
 SnubaCondition = tuple[str, str, Any]
-
-
-class IncrMultiOptions(TypedDict):
-    timestamp: datetime
-    count: int
 
 
 class TSDBModel(Enum):
@@ -112,20 +107,6 @@ class BaseTSDB(Service):
         ]
     )
 
-    __write_methods__ = frozenset(
-        [
-            "incr",
-            "incr_multi",
-            "merge",
-            "delete",
-            "record",
-            "record_multi",
-            "merge_distinct_counts",
-            "delete_distinct_counts",
-            "flush",
-        ]
-    )
-
     __all__ = (
         frozenset(
             [
@@ -139,7 +120,6 @@ class BaseTSDB(Service):
                 "rollup",
             ]
         )
-        | __write_methods__
         | __read_methods__
     )
 
@@ -321,85 +301,6 @@ class BaseTSDB(Service):
         lifespan = timedelta(seconds=seconds)
         return self.normalize_to_epoch(timestamp - lifespan, rollup)
 
-    def incr(
-        self,
-        model: TSDBModel,
-        key: TSDBKey,
-        timestamp: datetime | None = None,
-        count: int = 1,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Increment project ID=1:
-
-        >>> incr(TimeSeriesModel.project, 1)
-        """
-        raise NotImplementedError
-
-    def incr_multi(
-        self,
-        items: Sequence[tuple[TSDBModel, TSDBKey] | tuple[TSDBModel, TSDBKey, IncrMultiOptions]],
-        timestamp: datetime | None = None,
-        count: int = 1,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Increment project ID=1 and group ID=5:
-
-        >>> incr_multi([(TimeSeriesModel.project, 1), (TimeSeriesModel.group, 5)])
-
-        Increment individual timestamps:
-
-        >>> incr_multi([(TimeSeriesModel.project, 1, {"timestamp": ...}),
-        ...             (TimeSeriesModel.group, 5, {"timestamp": ...})])
-        """
-        for item in items:
-            if len(item) == 2:
-                model, key = item
-                _timestamp: datetime | None = timestamp
-                _count: int = count
-            elif len(item) == 3:
-                model, key, options = item
-                _timestamp = options.get("timestamp", timestamp) or timestamp
-                _count = options.get("count", count) or count
-            else:
-                raise AssertionError("unreachable")
-
-            self.incr(
-                model,
-                key,
-                timestamp=_timestamp,
-                count=_count,
-                environment_id=environment_id,
-            )
-
-    def merge(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Transfer all counters from the source keys to the destination key.
-        """
-        raise NotImplementedError
-
-    def delete(
-        self,
-        models: list[TSDBModel],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int | None] | None = None,
-    ) -> None:
-        """
-        Delete all counters.
-        """
-        raise NotImplementedError
-
     def get_range(
         self,
         model: TSDBModel,
@@ -543,31 +444,6 @@ class BaseTSDB(Service):
                     last_new_ts = new_ts
         return result
 
-    def record(
-        self,
-        model: TSDBModel,
-        key: int,
-        values: Iterable[str],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Record occurrence of items in a single distinct counter.
-        """
-        raise NotImplementedError
-
-    def record_multi(
-        self,
-        items: Iterable[tuple[TSDBModel, int, Iterable[str]]],
-        timestamp: datetime | None = None,
-        environment_id: int | None = None,
-    ) -> None:
-        """
-        Record occurrence of items in multiple distinct counters.
-        """
-        for model, key, values in items:
-            self.record(model, key, values, timestamp, environment_id=environment_id)
-
     def get_distinct_counts_series(
         self,
         model: TSDBModel,
@@ -605,34 +481,6 @@ class BaseTSDB(Service):
         """
         raise NotImplementedError
 
-    def merge_distinct_counts(
-        self,
-        model: TSDBModel,
-        destination: int,
-        sources: list[int],
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Transfer all distinct counters from the source keys to the
-        destination key.
-        """
-        raise NotImplementedError
-
-    def delete_distinct_counts(
-        self,
-        models: list[TSDBModel],
-        keys: list[int],
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-        environment_ids: Iterable[int] | None = None,
-    ) -> None:
-        """
-        Delete all distinct counters.
-        """
-        raise NotImplementedError
-
     def get_frequency_series(
         self,
         model: TSDBModel,
@@ -654,11 +502,5 @@ class BaseTSDB(Service):
         Results are returned as a mapping, where the key is the key requested
         and the value is a list of ``(timestamp, {item: score, ...})`` pairs
         over the series.
-        """
-        raise NotImplementedError
-
-    def flush(self) -> None:
-        """
-        Delete all data.
         """
         raise NotImplementedError
