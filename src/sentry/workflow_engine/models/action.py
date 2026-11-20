@@ -139,12 +139,7 @@ class Action(DefaultFieldsModel, JSONConfigBase):
         handler = self.get_handler()
         self.validate_event_data(event_data)
         detector = get_preferred_detector(event_data)
-        detector_organization_id = (
-            detector.project.organization_id
-            if detector.project is not None
-            else detector.config.get("organization_id")
-        )
-        if detector_organization_id != organization.id:
+        if detector.get_organization_id() != organization.id:
             raise UnsupportedActionEvent(
                 "Action detector and event must belong to the same organization"
             )
