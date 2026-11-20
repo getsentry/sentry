@@ -30,13 +30,15 @@ export function groupApiOptions({
   });
 }
 
-type GroupQueryKeyParameters = Pick<
+type GroupQueryFilterParameters = Pick<
   GroupApiOptionsParameters,
   'groupId' | 'organizationSlug'
 >;
 
-export function groupQueryKey(params: GroupQueryKeyParameters) {
-  return [groupApiOptions({...params, environments: []}).queryKey[0]] as const;
+export function groupQueryFilter(params: GroupQueryFilterParameters) {
+  return apiOptions.queryFilter('/organizations/$organizationIdOrSlug/issues/$issueId/', {
+    path: {organizationIdOrSlug: params.organizationSlug, issueId: params.groupId},
+  });
 }
 
 interface UseGroupOptions {

@@ -1,13 +1,12 @@
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 
-import {
-  classifierDetailsApiOptions,
-  classifierListApiOptions,
-} from './classifierApiOptions';
+import {classifierDetailsApiOptions} from './classifierApiOptions';
 
 export function useClassifier(classifierId: string) {
   const organization = useOrganization();
@@ -23,7 +22,11 @@ export function useUpdateClassifier(classifierId: string) {
 
   return useMutation({
     mutationFn: (data: UpdateClassifierPayload) =>
-      fetchMutation<TelemetryClassifier>({url: options.queryKey[0], method: 'PUT', data}),
+      fetchMutation<TelemetryClassifier>({
+        url: parseQueryKey(options.queryKey).url,
+        method: 'PUT',
+        data,
+      }),
     onSuccess: classifier => {
       queryClient.setQueryData(options.queryKey, prev =>
         prev ? {...prev, json: classifier} : prev
@@ -39,13 +42,17 @@ export function useDeleteClassifier(classifierId: string) {
   return useMutation({
     mutationFn: () =>
       fetchMutation<void>({
-        url: classifierDetailsApiOptions(organization.slug, classifierId).queryKey[0],
+        url: parseQueryKey(
+          classifierDetailsApiOptions(organization.slug, classifierId).queryKey
+        ).url,
         method: 'DELETE',
       }),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: [classifierListApiOptions(organization.slug).queryKey[0]],
-      });
+      queryClient.invalidateQueries(
+        apiOptions.queryFilter('/organizations/$organizationIdOrSlug/classifiers/', {
+          path: {organizationIdOrSlug: organization.slug},
+        })
+      );
     },
   });
 }

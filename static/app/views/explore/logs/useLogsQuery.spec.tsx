@@ -223,7 +223,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.infinite)!;
 
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style
@@ -383,7 +383,7 @@ describe('useInfiniteLogsQuery', () => {
 
     const queryCache = queryClient.getQueryCache();
     const queryKeys = queryCache.getAll().map(query => query.queryKey);
-    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.isInfinite)!;
+    const infiniteQueryKey = queryKeys.find(key => safeParseQueryKey(key)?.infinite)!;
 
     // https://github.com/typescript-eslint/typescript-eslint/issues/10722
     // eslint-disable-next-line @typescript-eslint/non-nullable-type-assertion-style

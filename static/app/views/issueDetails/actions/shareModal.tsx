@@ -25,7 +25,7 @@ import {useApi} from 'sentry/utils/useApi';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {SectionDivider} from 'sentry/views/issueDetails/foldSection';
-import {groupQueryKey} from 'sentry/views/issueDetails/useGroup';
+import {groupQueryFilter} from 'sentry/views/issueDetails/useGroup';
 
 interface ShareIssueModalProps extends ModalRenderProps {
   event: Event | null;
@@ -110,9 +110,9 @@ export function ShareIssueModal({
         itemIds: [groupId],
         data: {isPublic: reshare ?? !isPublished},
       });
-      queryClient.invalidateQueries({
-        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId}),
-      });
+      queryClient.invalidateQueries(
+        groupQueryFilter({organizationSlug: organization.slug, groupId})
+      );
     } catch {
       toast.error(t('Error sharing'));
       // oxlint-disable-next-line react/todo

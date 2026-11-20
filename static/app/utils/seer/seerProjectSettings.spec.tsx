@@ -8,6 +8,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 import {CodingAgentProvider} from 'sentry/components/events/autofix/types';
 
 import {
+  allSeerProjectsSettingsFilter,
   getInfiniteSeerProjectsSettingsQueryOptions,
   getMutateSeerProjectSettingsOptions,
   getMutateSeerProjectsSettingsOptions,
@@ -761,7 +762,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
         body: {detail: 'Internal Error'},
       });
 
-      const {result, queryClient, infiniteQueryKey} = renderBulkMutationHook();
+      const {result, queryClient} = renderBulkMutationHook();
       const invalidateSpy = jest.spyOn(queryClient, 'invalidateQueries');
 
       await act(async () => {
@@ -777,7 +778,7 @@ describe('getMutateSeerProjectsSettingsOptions', () => {
 
       await waitFor(() => {
         expect(invalidateSpy).toHaveBeenCalledWith(
-          expect.objectContaining({queryKey: [infiniteQueryKey[0]], exact: false})
+          expect.objectContaining(allSeerProjectsSettingsFilter(organization))
         );
       });
     });

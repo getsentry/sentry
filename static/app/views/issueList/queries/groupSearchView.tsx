@@ -12,7 +12,7 @@ export function groupSearchViewApiOptions({
   return queryOptions({
     ...apiOptions.as<GroupSearchView>()(
       '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
-      {path: {organizationIdOrSlug: orgSlug, viewId: id}, staleTime: 30_000}
+      {path: {organizationIdOrSlug: orgSlug, viewId: String(id)}, staleTime: 30_000}
     ),
     retry: false,
   });
