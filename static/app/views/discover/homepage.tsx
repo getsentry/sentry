@@ -77,9 +77,7 @@ function Homepage() {
         dataset = SavedQueryDatasets.ERRORS;
       } else {
         const eventView = EventView.fromSavedQuery(savedQuery);
-        query = {
-          ...eventView.generateQueryStringObject(),
-        };
+        query = {...eventView.generateQueryStringObject()};
       }
 
       // Handle locked filters explicitly because we can't expect
@@ -106,16 +104,7 @@ function Homepage() {
         });
       }
 
-      navigate(
-        {
-          ...location,
-          query: {
-            ...query,
-            queryDataset: dataset,
-          },
-        },
-        {replace: true}
-      );
+      navigate({...location, query: {...query, queryDataset: dataset}}, {replace: true});
     }
   }, [
     savedQuery,
@@ -162,9 +151,7 @@ function Homepage() {
 }
 
 export default function HomepageContainer() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.ERRORS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.ERRORS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
   return (
     <PageFiltersContainer skipInitializeUrlParams {...datePageFilterProps}>

@@ -165,8 +165,5 @@ export function associateTagsWithMeta({
   tags: EventTag[];
   meta?: Record<string, any>;
 }): EventTagWithMeta[] {
-  return tags.map((tag, index) => ({
-    ...tag,
-    meta: meta?.[index],
-  }));
+  return tags.map((tag, index) => ({...tag, meta: meta?.[index]}));
 }

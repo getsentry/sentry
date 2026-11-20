@@ -9,10 +9,7 @@ interface ProjectsState {
   readonly projects: Project[];
 }
 
-const initialState: ProjectsState = {
-  projects: [],
-  loading: true,
-};
+const initialState: ProjectsState = {projects: [], loading: true};
 
 const store = createStore<ProjectsState>()(() => initialState);
 

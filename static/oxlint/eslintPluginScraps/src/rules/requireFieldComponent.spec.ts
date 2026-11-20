@@ -2,11 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {requireFieldComponent} from './requireFieldComponent';
 
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {lang: 'tsx'},
-  },
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
 const errors = [{messageId: 'missingComponent'}];
 

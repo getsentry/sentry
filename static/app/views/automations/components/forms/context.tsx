@@ -26,11 +26,7 @@ export function AutomationFormProvider({
 
   return (
     <AutomationFormContext.Provider
-      value={{
-        hasSetAutomationName,
-        setHasSetAutomationName,
-        automation,
-      }}
+      value={{hasSetAutomationName, setHasSetAutomationName, automation}}
     >
       {children}
     </AutomationFormContext.Provider>

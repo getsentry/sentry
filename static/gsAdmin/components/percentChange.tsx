@@ -1,9 +1,6 @@
 import styled from '@emotion/styled';
 
-type Props = {
-  current: number;
-  prev: number;
-};
+type Props = {current: number; prev: number};
 
 export function PercentChange({current, prev}: Props) {
   if (!current || !prev) {

@@ -1,5 +1,6 @@
 import {Fragment, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
+import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
 import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
@@ -28,6 +29,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {
   getNextUpdate,
   type AutomationConfig,
@@ -42,6 +44,7 @@ import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automa
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
@@ -50,6 +53,8 @@ import {
 import type {AutomationDetailOutletContext} from './configuration';
 
 export default function AutomationDetail() {
+  const theme = useTheme();
+  const {pageContentTop} = useTopOffset();
   const organization = useOrganization();
   const location = useLocation();
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
@@ -61,7 +66,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -85,6 +93,13 @@ export default function AutomationDetail() {
       setIsConfiguring(false);
     }
   }
+  // Start each tab at the top. Reset every ancestor's scroll on tab change.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const scrollToTop = () => {
+    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+      node.scrollTop = 0;
+    }
+  };
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
@@ -244,6 +259,7 @@ export default function AutomationDetail() {
       />
       <Button
         size="sm"
+        variant="primary"
         icon={<IconEdit />}
         disabled={isUpdatingConfig}
         onClick={() => {
@@ -251,11 +267,12 @@ export default function AutomationDetail() {
           setIsConfiguring(true);
           // The form lives on the configuration tab
           if (activeTab !== 'configuration') {
+            scrollToTop();
             navigate(basePath);
           }
         }}
       >
-        {t('Configure')}
+        {t('Edit')}
       </Button>
     </Flex>
   );
@@ -280,7 +297,7 @@ export default function AutomationDetail() {
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <Stack>
+      <Stack ref={pageRef}>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: title}}
@@ -297,6 +314,9 @@ export default function AutomationDetail() {
           padding="xl xl 0 xl"
           background="secondary"
           borderBottom="primary"
+          position="sticky"
+          top={pageContentTop}
+          style={{zIndex: theme.zIndex.stickyHeader}}
         >
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">
@@ -332,7 +352,7 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <LinkTabs value={activeTab} size="sm">
+          <LinkTabs value={activeTab} size="sm" onChange={scrollToTop}>
             {({TabList}) => (
               <TabList>
                 <TabList.Item

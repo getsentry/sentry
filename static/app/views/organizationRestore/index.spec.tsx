@@ -36,9 +36,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -62,9 +60,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -74,10 +70,7 @@ describe('OrganizationRestore', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {cancelDeletion: 1},
-      })
+      expect.objectContaining({method: 'PUT', data: {cancelDeletion: 1}})
     );
     expect(testableWindowLocation.assign).toHaveBeenCalledWith(
       `/organizations/${pendingDeleteOrg.slug}/issues/`
@@ -102,9 +95,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: pendingDeleteOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${pendingDeleteOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });
@@ -131,9 +122,7 @@ describe('OrganizationRestore', () => {
     render(<OrganizationRestore />, {
       organization: deleteInProgressOrg,
       initialRouterConfig: {
-        location: {
-          pathname: `/organizations/${deleteInProgressOrg.slug}/restore/`,
-        },
+        location: {pathname: `/organizations/${deleteInProgressOrg.slug}/restore/`},
         route: '/organizations/:orgId/restore/',
       },
     });

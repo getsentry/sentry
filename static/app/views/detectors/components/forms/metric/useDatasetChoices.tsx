@@ -30,18 +30,10 @@ export function useDatasetChoices(): Array<SelectValue<DetectorDataset>> {
 
   return useMemo(() => {
     const datasetChoices: Array<SelectValue<DetectorDataset>> = [
-      {
-        value: DetectorDataset.ERRORS,
-        label: t('Errors'),
-      },
+      {value: DetectorDataset.ERRORS, label: t('Errors')},
       ...(shouldHideTransactionsDataset
         ? []
-        : [
-            {
-              value: DetectorDataset.TRANSACTIONS,
-              label: t('Transactions'),
-            },
-          ]),
+        : [{value: DetectorDataset.TRANSACTIONS, label: t('Transactions')}]),
       ...(organization.features.includes('visibility-explore-view')
         ? [{value: DetectorDataset.SPANS, label: t('Spans')}]
         : []),

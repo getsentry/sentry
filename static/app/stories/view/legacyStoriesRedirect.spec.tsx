@@ -24,9 +24,7 @@ describe('LegacyStoriesRedirect', () => {
   it('does not replace an organization slug named stories', async () => {
     const {router} = render(<LegacyStoriesRedirect />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/organizations/stories/stories/core/button/',
-        },
+        location: {pathname: '/organizations/stories/stories/core/button/'},
       },
     });
 

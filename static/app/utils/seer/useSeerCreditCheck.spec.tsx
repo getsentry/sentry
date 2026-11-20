@@ -57,10 +57,7 @@ describe('useSeerCreditCheck', () => {
   });
 
   it('rechecks when the window regains focus', async () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: true},
-    });
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: true}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause'),
@@ -78,10 +75,7 @@ describe('useSeerCreditCheck', () => {
   });
 
   it('does not call the endpoint without token-billed-seer-enabled', () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: false},
-    });
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: false}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause'),
@@ -95,10 +89,7 @@ describe('useSeerCreditCheck', () => {
   });
 
   it('does not call the endpoint when disabled', () => {
-    const request = MockApiClient.addMockResponse({
-      url,
-      body: {hasEnoughCredits: false},
-    });
+    const request = MockApiClient.addMockResponse({url, body: {hasEnoughCredits: false}});
 
     const {result} = renderHookWithProviders(
       () => useSeerCreditCheck('autofix_root_cause', {enabled: false}),

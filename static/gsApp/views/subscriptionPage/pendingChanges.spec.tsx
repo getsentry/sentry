@@ -40,9 +40,7 @@ describe('Subscription > PendingChanges', () => {
       onDemandMaxSpend: 10000,
       pendingChanges: PendingChangesFixture({
         plan: 'mm2_b_100k',
-        reserved: {
-          errors: 100_000,
-        },
+        reserved: {errors: 100_000},
         onDemandMaxSpend: 0,
         effectiveDate: '2021-02-01',
         onDemandEffectiveDate: '2021-02-01',
@@ -162,15 +160,11 @@ describe('Subscription > PendingChanges', () => {
   });
 
   it('renders AM plan and pending shared ondemand changes', async () => {
-    const org = OrganizationFixture({
-      features: ['ondemand-budgets'],
-    });
+    const org = OrganizationFixture({features: ['ondemand-budgets']});
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
-      categories: {
-        errors: MetricHistoryFixture({reserved: 500000}),
-      },
+      categories: {errors: MetricHistoryFixture({reserved: 500000})},
       onDemandMaxSpend: 10000,
       onDemandBudgets: {
         enabled: true,
@@ -214,9 +208,7 @@ describe('Subscription > PendingChanges', () => {
   });
 
   it('renders AM plan and pending per-category ondemand changes', async () => {
-    const org = OrganizationFixture({
-      features: ['ondemand-budgets'],
-    });
+    const org = OrganizationFixture({features: ['ondemand-budgets']});
     const sub = SubscriptionFixture({
       organization: org,
       plan: 'am1_business',
@@ -311,11 +303,7 @@ describe('Subscription > PendingChanges', () => {
       onDemandBudgets: {
         enabled: true,
         budgetMode: OnDemandBudgetMode.PER_CATEGORY,
-        budgets: {
-          errors: 1000,
-          transactions: 0,
-          attachments: 0,
-        },
+        budgets: {errors: 1000, transactions: 0, attachments: 0},
         usedSpends: {},
       },
       pendingChanges: PendingChangesFixture({
@@ -375,9 +363,7 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanDetailsLookupFixture('am3_business'),
         plan: 'am3_business',
         planName: 'Business',
-        reserved: {
-          errors: 100_000,
-        },
+        reserved: {errors: 100_000},
       }),
     });
     sub.categories = {
@@ -400,17 +386,12 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanDetailsLookupFixture('am3_business'),
         plan: 'am3_business',
         planName: 'Business',
-        reserved: {
-          sizeAnalyses: 100,
-        },
+        reserved: {sizeAnalyses: 100},
       }),
     });
     sub.categories = {
       ...sub.categories,
-      sizeAnalyses: MetricHistoryFixture({
-        category: 'sizeAnalyses' as any,
-        reserved: 50,
-      }),
+      sizeAnalyses: MetricHistoryFixture({category: 'sizeAnalyses' as any, reserved: 50}),
     };
 
     render(<PendingChanges organization={organization} subscription={sub} />);
@@ -428,10 +409,7 @@ describe('Subscription > PendingChanges', () => {
         planDetails: PlanDetailsLookupFixture('am3_team'),
         plan: 'am3_team',
         planName: 'Team',
-        reserved: {
-          seerAutofix: 0,
-          seerScanner: 0,
-        },
+        reserved: {seerAutofix: 0, seerScanner: 0},
       }),
     });
 
@@ -461,17 +439,11 @@ describe('Subscription > PendingChanges', () => {
         },
         reservedBudgets: [
           PendingReservedBudgetFixture({
-            categories: {
-              seerAutofix: true,
-              seerScanner: true,
-            },
+            categories: {seerAutofix: true, seerScanner: true},
             reservedBudget: SeerReservedBudgetFixture({}).reservedBudget,
           }),
         ],
-        reservedCpe: {
-          seerAutofix: 1_00,
-          seerScanner: 1,
-        },
+        reservedCpe: {seerAutofix: 1_00, seerScanner: 1},
       }),
     });
 
@@ -493,15 +465,10 @@ describe('Subscription > PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         plan: 'am3_team',
         planDetails: PlanDetailsLookupFixture('am3_team'),
-        reserved: {
-          spans: 5_000_000,
-        },
+        reserved: {spans: 5_000_000},
       }),
     });
-    sub.categories.spans = {
-      ...sub.categories.spans!,
-      reserved: 10_000_000,
-    };
+    sub.categories.spans = {...sub.categories.spans!, reserved: 10_000_000};
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(screen.queryByRole('button', {name: 'Expand'})).not.toBeInTheDocument();
     expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
@@ -547,20 +514,11 @@ describe('Subscription > PendingChanges', () => {
       pendingChanges: PendingChangesFixture({
         plan: 'am3_team',
         planDetails: PlanDetailsLookupFixture('am3_team'),
-        reserved: {
-          spans: 5_000_000,
-          replays: 50,
-        },
+        reserved: {spans: 5_000_000, replays: 50},
       }),
     });
-    sub.categories.spans = {
-      ...sub.categories.spans!,
-      reserved: 10_000_000,
-    };
-    sub.categories.replays = {
-      ...sub.categories.replays!,
-      reserved: 10_000,
-    };
+    sub.categories.spans = {...sub.categories.spans!, reserved: 10_000_000};
+    sub.categories.replays = {...sub.categories.replays!, reserved: 10_000};
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
     expect(screen.getByTestId('pending-list-0')).toBeInTheDocument();
@@ -592,15 +550,10 @@ describe('Subscription > PendingChanges', () => {
         plan: 'am3_team',
         planDetails: PlanDetailsLookupFixture('am3_team'),
         onDemandMaxSpend: 1000,
-        reserved: {
-          spans: 5_000_000,
-        },
+        reserved: {spans: 5_000_000},
       }),
     });
-    sub.categories.spans = {
-      ...sub.categories.spans!,
-      reserved: 10_000_000,
-    };
+    sub.categories.spans = {...sub.categories.spans!, reserved: 10_000_000};
     render(<PendingChanges organization={organization} subscription={sub} />);
     expect(screen.getByRole('button', {name: 'Expand'})).toBeInTheDocument();
     expect(

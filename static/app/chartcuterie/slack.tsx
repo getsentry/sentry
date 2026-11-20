@@ -10,15 +10,9 @@ export const DEFAULT_FONT_FAMILY = 'sans-serif';
 /**
  * Size configuration for SLACK_* type charts
  */
-export const slackChartSize = {
-  height: 150,
-  width: 450,
-};
+export const slackChartSize = {height: 150, width: 450};
 
-export const slackGeoChartSize = {
-  height: 200,
-  width: 450,
-};
+export const slackGeoChartSize = {height: 200, width: 450};
 
 /**
  * Default echarts option config for slack charts

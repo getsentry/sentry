@@ -24,9 +24,7 @@ export enum ImageFeature {
   HAS_SYMBOLS = 'has_symbols',
 }
 
-type CandidateProcessingInfoOkStatus = {
-  status: CandidateProcessingStatus.OK;
-};
+type CandidateProcessingInfoOkStatus = {status: CandidateProcessingStatus.OK};
 
 type CandidateProcessingInfoOtherStatus = {
   status: CandidateProcessingStatus.MALFORMED | CandidateProcessingStatus.ERROR;

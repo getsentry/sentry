@@ -38,12 +38,7 @@ export function OrganizationSelectHeader({
         })}
         onChange={(option: any) => handleOrgChange(option.value)}
         value={organizationId ?? null}
-        styles={{
-          container: provided => ({
-            ...provided,
-            minWidth: '200px',
-          }),
-        }}
+        styles={{container: provided => ({...provided, minWidth: '200px'})}}
       />
     </Flex>
   );

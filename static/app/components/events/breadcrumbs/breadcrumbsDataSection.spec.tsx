@@ -67,12 +67,7 @@ describe('BreadcrumbsDataSection', () => {
   it('can switch between display time formats', async () => {
     const singleCrumbEvent = EventFixture({
       entries: [
-        {
-          type: EntryType.BREADCRUMBS,
-          data: {
-            values: [MOCK_BREADCRUMBS[0]],
-          },
-        },
+        {type: EntryType.BREADCRUMBS, data: {values: [MOCK_BREADCRUMBS[0]]}},
         MOCK_EXCEPTION_ENTRY,
       ],
     });
@@ -114,9 +109,7 @@ describe('BreadcrumbsDataSection', () => {
     expect(
       screen.getByRole('complementary', {name: 'breadcrumb drawer'})
     ).toBeInTheDocument();
-    const drawerControl = screen.getByRole('textbox', {
-      name: 'Search All Breadcrumbs',
-    });
+    const drawerControl = screen.getByRole('textbox', {name: 'Search All Breadcrumbs'});
     expect(drawerControl).toBeInTheDocument();
     expect(drawerControl).toHaveFocus();
   });

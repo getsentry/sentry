@@ -51,8 +51,6 @@ describe('AutomationStatsChart time range', () => {
     );
 
     expect(await screen.findByText('1')).toBeInTheDocument();
-    expect(mockChartOptions).toMatchObject({
-      xAxis: {type: 'time', min: start, max: end},
-    });
+    expect(mockChartOptions).toMatchObject({xAxis: {type: 'time', min: start, max: end}});
   });
 });

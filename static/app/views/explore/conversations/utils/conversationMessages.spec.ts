@@ -47,14 +47,8 @@ function createMockNode(overrides: {
     op: 'gen_ai.generate',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
-    attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
-      ...attributes,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client', ...attributes},
     errors: new Set(),
   };
 }
@@ -73,10 +67,7 @@ function createMockToolNode(overrides: {
     op: 'gen_ai.execute_tool',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'tool',
       [SpanFields.GEN_AI_TOOL_NAME]: toolName,
@@ -108,10 +99,7 @@ function createMockEmbeddingNode(overrides: {
     op: 'gen_ai.embeddings',
     startTimestamp,
     endTimestamp: end,
-    value: {
-      start_timestamp: startTimestamp,
-      end_timestamp: end,
-    },
+    value: {start_timestamp: startTimestamp, end_timestamp: end},
     attributes: {
       [SpanFields.GEN_AI_OPERATION_TYPE]: 'ai_client',
       [SpanFields.GEN_AI_OPERATION_NAME]: 'embeddings',
@@ -221,10 +209,7 @@ type Turn = Parameters<typeof turnsToMessages>[0][number];
 
 function makeTurn(overrides: Partial<Turn> = {}): Turn {
   return {
-    generation: {
-      id: 'gen-1',
-      value: {start_timestamp: 1000, end_timestamp: 1100},
-    } as any,
+    generation: {id: 'gen-1', value: {start_timestamp: 1000, end_timestamp: 1100}} as any,
     userContent: null,
     assistantContent: null,
     toolCalls: [],
@@ -267,10 +252,7 @@ function createSpan(overrides: {
       parent_span_id: parentId,
       name,
     },
-    attributes: {
-      [SpanFields.GEN_AI_OPERATION_TYPE]: opType,
-      ...attributes,
-    },
+    attributes: {[SpanFields.GEN_AI_OPERATION_TYPE]: opType, ...attributes},
     errors: new Set(),
   } as any;
 }
@@ -297,9 +279,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'user', content: 'User input'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('User input');
     });
@@ -308,9 +288,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'user', content: 'Request message'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Request message');
     });
@@ -351,9 +329,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Last user');
     });
@@ -362,9 +338,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'system', content: 'System only'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBeNull();
     });
@@ -372,9 +346,7 @@ describe('conversationMessages utilities', () => {
     it('treats a plain string as the user message', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json',
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: 'not valid json'},
       });
       expect(parseUserContent(node as any)).toBe('not valid json');
     });
@@ -384,9 +356,7 @@ describe('conversationMessages utilities', () => {
         '[{"role":"assistant","content":[{"type":"tool_use","name":"search","input":"{}"}]},{"role":"user","content":[{"type":"tool_result","tool_use_id":"toolu_123","content":"GoCD API 401 Unautho';
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: truncatedJson},
       });
       expect(parseUserContent(node as any)).toBeNull();
     });
@@ -399,9 +369,7 @@ describe('conversationMessages utilities', () => {
     it('returns [Filtered] when input messages are scrubbed', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]',
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: '[Filtered]'},
       });
       expect(parseUserContent(node as any)).toBe('[Filtered]');
     });
@@ -409,9 +377,7 @@ describe('conversationMessages utilities', () => {
     it('keeps the marks of scrubbed input messages', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: MARKED_FILTERED},
       });
       expect(parseUserContent(node as any)).toBe(MARKED_FILTERED);
       expect(getInputMessageStats(node as any)).toEqual({
@@ -426,9 +392,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_INPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_INPUT_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Parts question');
     });
@@ -439,9 +403,7 @@ describe('conversationMessages utilities', () => {
       });
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_REQUEST_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_REQUEST_MESSAGES]: messages},
       });
       expect(parseUserContent(node as any)).toBe('Wrapped question');
     });
@@ -498,9 +460,7 @@ describe('conversationMessages utilities', () => {
       const messages = JSON.stringify([{role: 'assistant', content: 'Output response'}]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Output response');
     });
@@ -508,9 +468,7 @@ describe('conversationMessages utilities', () => {
     it('falls back to gen_ai.response.text', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback',
-        },
+        attributes: {[SpanFields.GEN_AI_RESPONSE_TEXT]: 'Response text fallback'},
       });
       expect(parseAssistantContent(node as any).content).toBe('Response text fallback');
     });
@@ -518,9 +476,7 @@ describe('conversationMessages utilities', () => {
     it('falls back to gen_ai.response.object', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback',
-        },
+        attributes: {[SpanFields.GEN_AI_RESPONSE_OBJECT]: 'Response object fallback'},
       });
       expect(parseAssistantContent(node as any).content).toBe('Response object fallback');
     });
@@ -548,9 +504,7 @@ describe('conversationMessages utilities', () => {
       const outputObj = JSON.stringify({content: 'Object content response'});
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: outputObj},
       });
       expect(parseAssistantContent(node as any).content).toBe('Object content response');
     });
@@ -570,9 +524,7 @@ describe('conversationMessages utilities', () => {
     it('returns [Filtered] when output messages are scrubbed', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]',
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: '[Filtered]'},
       });
       expect(parseAssistantContent(node as any).content).toBe('[Filtered]');
     });
@@ -580,9 +532,7 @@ describe('conversationMessages utilities', () => {
     it('keeps the marks of scrubbed output messages', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: MARKED_FILTERED},
       });
       expect(parseAssistantContent(node as any)).toEqual({
         content: MARKED_FILTERED,
@@ -593,9 +543,7 @@ describe('conversationMessages utilities', () => {
     it('treats a plain string output.messages as the assistant response', () => {
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response',
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: 'just a plain response'},
       });
       expect(parseAssistantContent(node as any).content).toBe('just a plain response');
     });
@@ -606,9 +554,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Parts response');
     });
@@ -655,9 +601,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       expect(parseAssistantContent(node as any).content).toBe('Let me search for that');
     });
@@ -1031,10 +975,7 @@ describe('conversationMessages utilities', () => {
       // assistant text. The tool calls must stay attached to their reasoning
       // turn, not pile onto the final turn.
       const turns = [
-        makeTurn({
-          generation: {id: 'gen-1'} as any,
-          reasoning: 'Thinking 1',
-        }),
+        makeTurn({generation: {id: 'gen-1'} as any, reasoning: 'Thinking 1'}),
         makeTurn({
           generation: {id: 'gen-2'} as any,
           reasoning: 'Thinking 2',
@@ -1093,10 +1034,7 @@ describe('conversationMessages utilities', () => {
         content: 'Hello',
         userEmail: 'user@example.com',
       });
-      expect(messages[1]).toMatchObject({
-        role: 'assistant',
-        content: 'Hi there',
-      });
+      expect(messages[1]).toMatchObject({role: 'assistant', content: 'Hi there'});
     });
 
     // Same user text in two turns: collapse only for a cumulative tool loop.
@@ -1411,12 +1349,7 @@ describe('conversationMessages utilities', () => {
     });
 
     it('creates an assistant message for reasoning-only turns without content or tool calls', () => {
-      const turns = [
-        makeTurn({
-          userContent: 'Question',
-          reasoning: 'Thinking only...',
-        }),
-      ];
+      const turns = [makeTurn({userContent: 'Question', reasoning: 'Thinking only...'})];
 
       const messages = turnsToMessages(turns);
       const assistant = messages.find(m => m.role === 'assistant');
@@ -1784,9 +1717,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBe('The answer is 42');
@@ -1799,9 +1730,7 @@ describe('conversationMessages utilities', () => {
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBe('Just text');
@@ -1814,20 +1743,13 @@ describe('conversationMessages utilities', () => {
           role: 'assistant',
           parts: [
             {type: 'reasoning', content: 'Thinking only...'},
-            {
-              type: 'tool_call',
-              toolCallId: 'tc-1',
-              toolName: 'search',
-              args: {},
-            },
+            {type: 'tool_call', toolCallId: 'tc-1', toolName: 'search', args: {}},
           ],
         },
       ]);
       const node = createMockNode({
         id: 'node-1',
-        attributes: {
-          [SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages,
-        },
+        attributes: {[SpanFields.GEN_AI_OUTPUT_MESSAGES]: messages},
       });
       const result = parseAssistantContent(node as any);
       expect(result.content).toBeNull();
@@ -1893,13 +1815,7 @@ describe('conversationMessages utilities', () => {
 
     it('formats user messages without email as User', () => {
       const result = messagesToMarkdown([
-        {
-          id: 'user-1',
-          role: 'user',
-          content: 'Hello',
-          timestamp: 1000,
-          nodeId: 'n1',
-        },
+        {id: 'user-1', role: 'user', content: 'Hello', timestamp: 1000, nodeId: 'n1'},
       ]);
       expect(result).toBe('### User\n\nHello');
     });
@@ -2299,12 +2215,7 @@ describe('conversationMessages utilities', () => {
         }))
       ).toEqual([
         {id: 'user-gen-1', content: NOT_REPORTED, reasoning: undefined, tools: undefined},
-        {
-          id: 'assistant-gen-1',
-          content: '',
-          reasoning: NOT_REPORTED,
-          tools: undefined,
-        },
+        {id: 'assistant-gen-1', content: '', reasoning: NOT_REPORTED, tools: undefined},
         {
           id: 'assistant-gen-3',
           content: NOT_REPORTED,

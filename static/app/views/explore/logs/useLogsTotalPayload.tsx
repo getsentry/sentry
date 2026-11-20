@@ -11,9 +11,7 @@ import {getStaleTimeForEventView} from 'sentry/views/insights/common/queries/use
 
 import {useLogsFrozenProjectIds} from './logsFrozenContext';
 
-type TotalPayloadResult = {
-  data: Array<{'sum(payload_size)': number}>;
-};
+type TotalPayloadResult = {data: Array<{'sum(payload_size)': number}>};
 
 export function useLogsTotalPayload({enabled}: {enabled: boolean}): number | undefined {
   const organization = useOrganization();

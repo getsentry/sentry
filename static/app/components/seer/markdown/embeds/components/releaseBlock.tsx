@@ -37,10 +37,7 @@ function releaseEmbedApiOptions({
 }) {
   return apiOptions.as<ReleaseWithHealth>()(
     '/organizations/$organizationIdOrSlug/releases/$version/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, version},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, version}, staleTime: 30_000}
   );
 }
 
@@ -59,10 +56,7 @@ function getCommitSummary(commitCount: number, authorCount: number) {
 
   return authorCount === 1
     ? tct('[commitCount] commits by 1 author', {commitCount})
-    : tct('[commitCount] commits by [authorCount] authors', {
-        authorCount,
-        commitCount,
-      });
+    : tct('[commitCount] commits by [authorCount] authors', {authorCount, commitCount});
 }
 
 /**

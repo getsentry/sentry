@@ -19,13 +19,7 @@ export function buildFrameTree(frames: StacktraceFrame[]): StacktraceTreeNode[] 
   const nodes = new Map<number, StacktraceTreeNode>();
 
   frames.forEach((frame, index) => {
-    nodes.set(index, {
-      frame,
-      frameIndex: index,
-      children: [],
-      parent: null,
-      depth: 0,
-    });
+    nodes.set(index, {frame, frameIndex: index, children: [], parent: null, depth: 0});
   });
 
   // Build parent-child relationships

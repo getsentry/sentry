@@ -303,10 +303,7 @@ export function ListBox<T extends ListItemBase>({
           <Container {...virtualizer.wrapperProps}>
             <ListWrap
               {...mergedProps}
-              style={{
-                ...mergedProps.style,
-                ...virtualizer.listWrapStyle,
-              }}
+              style={{...mergedProps.style, ...virtualizer.listWrapStyle}}
               onKeyDown={onKeyDown}
               onMouseEnter={onMouseEnter}
               onMouseLeave={onMouseLeave}

@@ -85,10 +85,7 @@ function EditRepositoryFormBody({
 
   const form = useScrapsForm({
     ...defaultFormOptions,
-    defaultValues: {
-      repository: null as string | null,
-      pathMappings: seededPathMappings,
-    },
+    defaultValues: {repository: null as string | null, pathMappings: seededPathMappings},
     onSubmit: () => {},
   });
 

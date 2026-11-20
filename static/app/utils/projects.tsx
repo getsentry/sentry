@@ -211,9 +211,7 @@ export function Projects({
     let fetchError = null;
 
     try {
-      const {results} = await fetchProjects(api, orgId, {
-        slugs: Array.from(queue),
-      });
+      const {results} = await fetchProjects(api, orgId, {slugs: Array.from(queue)});
       fetched = results;
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
@@ -361,10 +359,7 @@ export function Projects({
     } catch (err) {
       console.error(err); // eslint-disable-line no-console
 
-      setState({
-        fetching: false,
-        fetchError: err as RequestError,
-      });
+      setState({fetching: false, fetchError: err as RequestError});
     }
   };
 
@@ -443,10 +438,7 @@ async function fetchProjects(
     const loading = ProjectsStore.isLoading();
     // If the projects store is loaded then return all projects from the store
     if (!loading) {
-      return {
-        results: projects,
-        hasMore: false,
-      };
+      return {results: projects, hasMore: false};
     }
     // Otherwise mark the query to fetch all projects from the API
     query.all_projects = 1;
@@ -458,10 +450,7 @@ async function fetchProjects(
     getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -478,11 +467,7 @@ async function fetchProjects(
     ProjectsStore.loadInitialData(data);
   }
 
-  return {
-    results: data,
-    hasMore,
-    nextCursor,
-  };
+  return {results: data, hasMore, nextCursor};
 }
 
 interface ProjectAnalyticsData {

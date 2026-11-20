@@ -303,11 +303,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
+      {id: automation.id, name: automation.name, enabled: newEnabled},
       {
         onSuccess: () => {
           toast.success(newEnabled ? t('Alert enabled') : t('Alert disabled'));

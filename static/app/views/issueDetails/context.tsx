@@ -196,10 +196,7 @@ type UpdateDetectorDetailsAction = {
   type: 'UPDATE_DETECTOR_DETAILS';
 };
 
-type RemoveEventSectionAction = {
-  key: FoldSectionKey;
-  type: 'REMOVE_EVENT_SECTION';
-};
+type RemoveEventSectionAction = {key: FoldSectionKey; type: 'REMOVE_EVENT_SECTION'};
 
 type IssueDetailsActions =
   | UpdateEventSectionAction

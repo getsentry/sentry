@@ -19,11 +19,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import type {ErrorMessage} from './interfaces/crashContent/exception/actionableItems';
 import {useActionableItemsWithProguardErrors} from './interfaces/crashContent/exception/useActionableItems';
 
-type Props = {
-  event: Event;
-  isShare: boolean;
-  project: Project;
-};
+type Props = {event: Event; isShare: boolean; project: Project};
 
 const keyMapping = {
   image_uuid: 'Debug ID',

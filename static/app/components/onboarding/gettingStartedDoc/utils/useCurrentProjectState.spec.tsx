@@ -19,23 +19,14 @@ function mockPageFilterStore(projects: Project[]) {
   PageFiltersStore.onInitializeUrlState({
     projects: projects.map(p => parseInt(p.id, 10)),
     environments: [],
-    datetime: {
-      period: '7d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '7d', start: null, end: null, utc: null},
   });
 }
 
 describe('useCurrentProjectState', () => {
   const rust_1 = ProjectFixture({id: '1', platform: 'rust', slug: 'project-a'});
   const rust_2 = ProjectFixture({id: '2', platform: 'rust', slug: 'project-b'});
-  const javascript = ProjectFixture({
-    id: '3',
-    platform: 'javascript',
-    slug: 'project-c',
-  });
+  const javascript = ProjectFixture({id: '3', platform: 'javascript', slug: 'project-c'});
   const angular = ProjectFixture({
     id: '4',
     platform: 'javascript-angular',
@@ -66,9 +57,7 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: angular.id}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: angular.id}}},
     });
     expect(result.current.currentProject).toBeUndefined();
   });
@@ -97,9 +86,7 @@ describe('useCurrentProjectState', () => {
         onboardingPlatforms: replayOnboardingPlatforms,
         allPlatforms: replayOnboardingPlatforms,
       },
-      initialRouterConfig: {
-        location: {pathname: '/', query: {project: angular.id}},
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {project: angular.id}}},
     });
     expect(result.current.currentProject).toBe(angular);
   });

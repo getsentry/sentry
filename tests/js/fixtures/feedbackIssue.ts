@@ -25,18 +25,14 @@ export function FeedbackIssueFixture(
     substatus: null,
     isPublic: false,
     platform: 'javascript',
-    project: ProjectFixture({
-      platform: 'javascript',
-    }),
+    project: ProjectFixture({platform: 'javascript'}),
     type: EventOrGroupType.GENERIC,
     filtered: null,
     numComments: 0,
     assignedTo: null,
     isBookmarked: false,
     isSubscribed: false,
-    subscriptionDetails: {
-      disabled: true,
-    },
+    subscriptionDetails: {disabled: true},
     hasSeen: true,
     annotations: [],
     issueType: 'feedback',
@@ -64,10 +60,7 @@ export function FeedbackIssueFixture(
       message: 'feedback test 4',
       name: 'Josh Ferge',
       source: 'new_feedback_envelope',
-      sdk: {
-        name: 'sentry.javascript.react',
-        name_normalized: 'sentry.javascript.react',
-      },
+      sdk: {name: 'sentry.javascript.react', name_normalized: 'sentry.javascript.react'},
       ...params.metadata,
     },
   };

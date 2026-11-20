@@ -11,9 +11,7 @@ import {
 } from 'sentry/utils/replays/types';
 import {filterItems} from 'sentry/views/explore/replays/detail/utils';
 
-type Options = {
-  frames: BreadcrumbFrame[];
-};
+type Options = {frames: BreadcrumbFrame[]};
 
 type Return = {
   expandPathsRef: RefObject<Map<number, Set<string>>>;
@@ -45,15 +43,7 @@ const FILTERS = {
 
 function sortBySeverity(a: string, b: string) {
   const UNKNOWN_LEVEL = 10;
-  const levels = {
-    issue: 0,
-    fatal: 1,
-    error: 2,
-    warning: 3,
-    info: 4,
-    debug: 5,
-    trace: 6,
-  };
+  const levels = {issue: 0, fatal: 1, error: 2, warning: 3, info: 4, debug: 5, trace: 6};
 
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
   const aRank = levels[a] ?? UNKNOWN_LEVEL;
@@ -98,10 +88,7 @@ export function useConsoleFilters({frames}: Options): Return {
       )
         .filter(defined)
         .sort(sortBySeverity)
-        .map(value => ({
-          value,
-          label: value,
-        })),
+        .map(value => ({value, label: value})),
     [frames, logLevel]
   );
 

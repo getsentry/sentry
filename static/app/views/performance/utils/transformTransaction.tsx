@@ -9,10 +9,7 @@ export function transformTransaction(
   transaction: BreakpointTransaction
 ): BreakpointTransaction {
   if (transaction?.breakpoint) {
-    return {
-      ...transaction,
-      breakpoint: transaction.breakpoint * 1000,
-    };
+    return {...transaction, breakpoint: transaction.breakpoint * 1000};
   }
   return transaction;
 }

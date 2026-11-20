@@ -25,10 +25,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {displayRawContent} from './interfaces/crashContent/stackTrace/rawContent';
 import {useStacktraceContext} from './interfaces/stackTraceContext';
 
-const sortByOptions = {
-  'recent-first': t('Newest'),
-  'recent-last': t('Oldest'),
-};
+const sortByOptions = {'recent-first': t('Newest'), 'recent-last': t('Oldest')};
 
 export const stackTraceDisplayOptionLabels = {
   'absolute-addresses': t('Absolute addresses'),
@@ -96,12 +93,7 @@ export function TraceEventDataSection({
       isFullOptionClicked
         ? 'stack-trace.full_stack_trace_clicked'
         : 'stack-trace.most_relevant_clicked',
-      {
-        organization,
-        project_slug: projectSlug,
-        platform,
-        is_mobile: isMobile,
-      }
+      {organization, project_slug: projectSlug, platform, is_mobile: isMobile}
     );
 
     setIsFullStackTrace(isFullOptionClicked);
@@ -114,12 +106,7 @@ export function TraceEventDataSection({
       isRecentFirst
         ? 'stack-trace.sort_option_recent_first_clicked'
         : 'stack-trace.sort_option_recent_last_clicked',
-      {
-        organization,
-        project_slug: projectSlug,
-        platform,
-        is_mobile: isMobile,
-      }
+      {organization, project_slug: projectSlug, platform, is_mobile: isMobile}
     );
 
     setIsNewestFramesFirst(isRecentFirst);
@@ -436,10 +423,7 @@ export function TraceEventDataSection({
         disabled: !hasMinified,
         tooltip: hasMinified ? undefined : t('Minified version not available'),
       },
-      {
-        label: stackTraceDisplayOptionLabels['raw-stack-trace'],
-        value: 'raw-stack-trace',
-      },
+      {label: stackTraceDisplayOptionLabels['raw-stack-trace'], value: 'raw-stack-trace'},
     ];
   }
 

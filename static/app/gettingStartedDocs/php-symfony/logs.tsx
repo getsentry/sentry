@@ -48,20 +48,14 @@ export const logs: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Logs for Symfony are supported in Sentry Symfony SDK version [code:5.4.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
           type: 'text',
           text: t('Make sure you have the latest version of the Sentry Symfony bundle:'),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-symfony',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-symfony'},
       ],
     },
   ],
@@ -85,10 +79,7 @@ monolog:
             type: service
             id: Sentry\\SentryBundle\\Monolog\\LogsHandler`,
         },
-        {
-          type: 'text',
-          text: t('Configure the service and choose a minimum log level:'),
-        },
+        {type: 'text', text: t('Configure the service and choose a minimum log level:')},
         {
           type: 'code',
           language: 'yaml',
@@ -98,10 +89,7 @@ services:
         arguments:
             - !php/const Monolog\\Logger::INFO`,
         },
-        {
-          type: 'text',
-          text: t('Enable the logs option:'),
-        },
+        {type: 'text', text: t('Enable the logs option:')},
         {
           type: 'code',
           language: 'yaml',
@@ -123,9 +111,6 @@ sentry:
     },
   ],
   verify: (params: DocsParams) => [
-    {
-      type: StepType.VERIFY,
-      content: [logsVerify(params)],
-    },
+    {type: StepType.VERIFY, content: [logsVerify(params)]},
   ],
 };

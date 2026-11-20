@@ -205,9 +205,7 @@ export function sanitizeHtml(html: MarkedOutput): TrustedHTML {
 const noHighlightingMarked = new Marked<TrustedHTML, MarkedOutput>({
   async: false,
   renderer: new SafeRenderer(),
-  hooks: {
-    postprocess: sanitizeHtml,
-  },
+  hooks: {postprocess: sanitizeHtml},
 });
 
 const highlightingMarked = new Marked<TrustedHTML, MarkedOutput>(
@@ -252,13 +250,7 @@ const highlightingMarked = new Marked<TrustedHTML, MarkedOutput>(
       });
     },
   }) as unknown as MarkedExtension<TrustedHTML, MarkedOutput>
-).use({
-  async: true,
-  renderer: new SafeRenderer(),
-  hooks: {
-    postprocess: sanitizeHtml,
-  },
-});
+).use({async: true, renderer: new SafeRenderer(), hooks: {postprocess: sanitizeHtml}});
 
 /**
  * Renders markdown and sanitizes the output.

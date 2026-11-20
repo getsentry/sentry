@@ -23,9 +23,7 @@ const organization = OrganizationFixture({
 const detailUrl = '/organizations/org-slug/notebooks/investigation-1/';
 const commentsUrl = `${detailUrl}comments/`;
 const initialRouterConfig = {
-  location: {
-    pathname: '/organizations/org-slug/seer/investigations/investigation-1/',
-  },
+  location: {pathname: '/organizations/org-slug/seer/investigations/investigation-1/'},
   route: '/organizations/:orgId/seer/investigations/:investigationId/',
 };
 

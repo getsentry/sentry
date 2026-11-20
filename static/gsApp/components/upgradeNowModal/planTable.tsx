@@ -112,12 +112,8 @@ export function PlanTable({
 
         <TableItem
           isTotal
-          prev={displayPriceWithCents({
-            cents: billedAmount,
-          })}
-          next={displayPriceWithCents({
-            cents: billedAmount,
-          })}
+          prev={displayPriceWithCents({cents: billedAmount})}
+          next={displayPriceWithCents({cents: billedAmount})}
         >
           {t('Total Due')}
         </TableItem>

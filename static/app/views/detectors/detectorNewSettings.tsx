@@ -40,19 +40,13 @@ export default function DetectorNewSettings() {
     detectorTypeIsAvailableForCreation(detectorType, organization);
   const duplicatePath =
     canDuplicateMonitors && duplicateFrom && isDetectorTypeAvailable
-      ? {
-          organizationIdOrSlug: organization.slug,
-          detectorId: duplicateFrom,
-        }
+      ? {organizationIdOrSlug: organization.slug, detectorId: duplicateFrom}
       : skipToken;
 
   const duplicateQuery = useQuery({
     ...apiOptions.as<Detector>()(
       '/organizations/$organizationIdOrSlug/detectors/$detectorId/',
-      {
-        path: duplicatePath,
-        staleTime: 0,
-      }
+      {path: duplicatePath, staleTime: 0}
     ),
     retry: false,
   });

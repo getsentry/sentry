@@ -12,13 +12,7 @@ ruleTester.run('no-dynamic-translations', noDynamicTranslations, {
     {code: "tct('Hello [name]', {name})"},
   ],
   invalid: [
-    {
-      code: 't(`Hello ${name}`)',
-      errors: [{messageId: 'interpolation'}],
-    },
-    {
-      code: 't(dynamicVariable)',
-      errors: [{messageId: 'dynamic'}],
-    },
+    {code: 't(`Hello ${name}`)', errors: [{messageId: 'interpolation'}]},
+    {code: 't(dynamicVariable)', errors: [{messageId: 'dynamic'}]},
   ],
 });

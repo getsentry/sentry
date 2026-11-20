@@ -31,10 +31,7 @@ describe('getMessageFilter', () => {
   });
 
   it('uses the message value when filtering on the message field and no template is available', () => {
-    const row = {
-      ...baseRow,
-      [OurLogKnownFieldKey.MESSAGE]: 'User 123 logged in',
-    };
+    const row = {...baseRow, [OurLogKnownFieldKey.MESSAGE]: 'User 123 logged in'};
 
     const filter = getMessageFilter(
       OurLogKnownFieldKey.MESSAGE,
@@ -68,16 +65,10 @@ describe('getMessageFilter', () => {
   });
 
   it('uses the field and cell value when filtering on a non-message field', () => {
-    const row = {
-      ...baseRow,
-      [OurLogKnownFieldKey.TEMPLATE]: 'User {id} logged in',
-    };
+    const row = {...baseRow, [OurLogKnownFieldKey.TEMPLATE]: 'User {id} logged in'};
 
     const filter = getMessageFilter(OurLogKnownFieldKey.SEVERITY, row, 'error');
 
-    expect(filter).toEqual({
-      key: OurLogKnownFieldKey.SEVERITY,
-      value: 'error',
-    });
+    expect(filter).toEqual({key: OurLogKnownFieldKey.SEVERITY, value: 'error'});
   });
 });

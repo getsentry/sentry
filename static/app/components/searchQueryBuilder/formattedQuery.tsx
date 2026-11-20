@@ -33,13 +33,9 @@ export type FormattedQueryProps = {
   getFilterTokenWarning?: (key: string) => React.ReactNode;
 };
 
-type ProvidedFormattedQueryProps = FormattedQueryProps & {
-  allowRegexOperators?: boolean;
-};
+type ProvidedFormattedQueryProps = FormattedQueryProps & {allowRegexOperators?: boolean};
 
-type TokenProps = {
-  token: ParseResultToken;
-};
+type TokenProps = {token: ParseResultToken};
 
 const EMPTY_FILTER_KEYS: TagCollection = {};
 const defaultFieldDefinitionGetter: FieldDefinitionGetter = key =>

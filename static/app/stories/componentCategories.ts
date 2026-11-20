@@ -1,9 +1,6 @@
 interface ComponentCategoryConfig {
   label: string;
-  subgroups?: ReadonlyArray<{
-    components: readonly string[];
-    label: string;
-  }>;
+  subgroups?: ReadonlyArray<{components: readonly string[]; label: string}>;
 }
 
 const componentCategoryConfig = {

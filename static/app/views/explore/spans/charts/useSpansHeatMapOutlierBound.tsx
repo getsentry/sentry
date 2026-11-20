@@ -31,9 +31,7 @@ const CUTOFF_QUANTILES: Record<OutlierCutoff, {minSampleCount: number; z: number
   'p99.99': {minSampleCount: 10_000, z: 3.719},
 };
 
-type OutlierBoundResponse = {
-  data: Array<Record<string, number | null>>;
-};
+type OutlierBoundResponse = {data: Array<Record<string, number | null>>};
 
 export interface HeatMapYBounds {
   yMax: number;

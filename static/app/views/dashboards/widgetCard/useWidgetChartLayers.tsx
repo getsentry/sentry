@@ -50,10 +50,7 @@ export function useWidgetChartLayers({
     : undefined;
   const dataset = droppedDataDataset ?? DiscoverDatasets.SPANS;
   const droppedData = useDroppedDataLayer(
-    {
-      dataset,
-      interval: interval ?? '',
-    },
+    {dataset, interval: interval ?? ''},
     {
       source: 'dashboards',
       enabled:
@@ -102,9 +99,5 @@ export function useWidgetChartLayers({
   const layerControl: ChartLayersControlProps | undefined =
     layers.length > 0 ? {layers, onChange: onLayerChange} : undefined;
 
-  return {
-    showReleases: supportsReleases && isReleasesLayerOn,
-    droppedData,
-    layerControl,
-  };
+  return {showReleases: supportsReleases && isReleasesLayerOn, droppedData, layerControl};
 }

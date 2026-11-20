@@ -89,11 +89,7 @@ describe('decodeWebhookBody', () => {
   });
 
   it('handles an empty body', () => {
-    expect(decodeWebhookBody('')).toEqual({
-      parsed: null,
-      raw: '',
-      maybeTruncated: false,
-    });
+    expect(decodeWebhookBody('')).toEqual({parsed: null, raw: '', maybeTruncated: false});
   });
 
   it('measures the size cap against the stored body, not the decoded one', () => {

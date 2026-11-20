@@ -69,11 +69,7 @@ describe('EventIdField', () => {
       body: {suggestions: [{type: 'value', value: '$message'}]},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onSuggestionsLoaded,
-      onErrorChange,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onSuggestionsLoaded, onErrorChange});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();
@@ -95,10 +91,7 @@ describe('EventIdField', () => {
       body: {suggestions: [{type: 'value', value: '$message'}]},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onSuggestionsLoaded,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onSuggestionsLoaded});
 
     await userEvent.type(screen.getByRole('textbox'), '{enter}');
 
@@ -121,10 +114,7 @@ describe('EventIdField', () => {
 
   it('calls onErrorChange with error for invalid event ID on blur', async () => {
     const onErrorChange = jest.fn();
-    renderEventIdField({
-      value: 'tooshort',
-      onErrorChange,
-    });
+    renderEventIdField({value: 'tooshort', onErrorChange});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();
@@ -142,10 +132,7 @@ describe('EventIdField', () => {
       body: {suggestions: []},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onErrorChange,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onErrorChange});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();
@@ -166,10 +153,7 @@ describe('EventIdField', () => {
       body: {detail: 'Internal Error'},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onErrorChange,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onErrorChange});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();
@@ -189,10 +173,7 @@ describe('EventIdField', () => {
       body: {suggestions: []},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onSuggestionsLoaded,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onSuggestionsLoaded});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();
@@ -211,10 +192,7 @@ describe('EventIdField', () => {
       body: {detail: 'Internal Error'},
     });
 
-    renderEventIdField({
-      value: VALID_EVENT_ID,
-      onSuggestionsLoaded,
-    });
+    renderEventIdField({value: VALID_EVENT_ID, onSuggestionsLoaded});
 
     await userEvent.click(screen.getByRole('textbox'));
     await userEvent.tab();

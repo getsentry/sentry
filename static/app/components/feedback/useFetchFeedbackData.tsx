@@ -40,9 +40,5 @@ export function useFetchFeedbackData({feedbackId}: Props) {
     }
   }, [project?.isMember, issueData, issueResult.isFetched, markAsRead]);
 
-  return {
-    eventData,
-    issueData,
-    issueResult,
-  };
+  return {eventData, issueData, issueResult};
 }

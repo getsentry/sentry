@@ -52,10 +52,8 @@ function BuildButton({
   const project = ProjectsStore.getById(String(projectId));
 
   const buildUrl =
-    getSizeBuildPath({
-      organizationSlug: organization.slug,
-      baseArtifactId: buildId,
-    }) ?? '';
+    getSizeBuildPath({organizationSlug: organization.slug, baseArtifactId: buildId}) ??
+    '';
   const platform = buildDetails.app_info?.platform ?? null;
 
   const dateToShow = dateBuilt || dateAdded;
@@ -146,7 +144,7 @@ const StyledLinkButton = styled(LinkButton)`
   align-self: stretch;
 
   /* Override ButtonLabel overflow to allow close button to extend beyond */
-  > span:last-child {
+  && > [data-button-label] {
     overflow: visible;
   }
 `;

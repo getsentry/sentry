@@ -49,16 +49,8 @@ describe('parseLinkHeader', () => {
     const parsed = parseLinkHeader(prevOnly);
 
     expect(parsed).toStrictEqual({
-      foo: {
-        href: 'http://example.com',
-        results: false,
-        cursor: '0:0:1',
-      },
-      bar: {
-        href: 'http://example.com',
-        results: false,
-        cursor: '0:0:1',
-      },
+      foo: {href: 'http://example.com', results: false, cursor: '0:0:1'},
+      bar: {href: 'http://example.com', results: false, cursor: '0:0:1'},
     });
   });
 });

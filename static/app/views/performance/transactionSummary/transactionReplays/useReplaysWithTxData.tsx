@@ -2,14 +2,9 @@ import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 import type {EventSpanData} from './useReplaysFromTransaction';
 
-type Opts = {
-  events: EventSpanData[];
-  replays: undefined | ReplayListRecord[];
-};
+type Opts = {events: EventSpanData[]; replays: undefined | ReplayListRecord[]};
 
-export type ReplayListRecordWithTx = ReplayListRecord & {
-  txEvent: Record<string, any>;
-};
+export type ReplayListRecordWithTx = ReplayListRecord & {txEvent: Record<string, any>};
 
 type Return = undefined | ReplayListRecordWithTx[];
 
@@ -29,10 +24,7 @@ export function useReplaysWithTxData({events, replays}: Opts): Return {
         : slowest;
     }, {});
 
-    return {
-      ...replay,
-      txEvent: slowestEvent ?? {},
-    };
+    return {...replay, txEvent: slowestEvent ?? {}};
   });
 
   return replaysWithTx;

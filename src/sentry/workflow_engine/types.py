@@ -350,6 +350,8 @@ class DataConditionHandler(Generic[T]):
     comparison_json_schema: ClassVar[dict[str, Any]]
     condition_result_schema: ClassVar[dict[str, Any]] = {}
     label_template = ""
+    # Internal conditions can be provisioned by code, but not configured through APIs.
+    is_internal: ClassVar[bool] = False
 
     @staticmethod
     def evaluate_value(value: T, comparison: Any) -> DataConditionResult:

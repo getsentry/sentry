@@ -20,13 +20,7 @@ jest.mock('@tanstack/react-query', () => ({
   useQuery: (options: UseQueryOptions) => mockUseQuery(options),
 }));
 
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: {
-      retry: false,
-    },
-  },
-});
+const queryClient = new QueryClient({defaultOptions: {queries: {retry: false}}});
 
 const wrapper = ({children}: {children: React.ReactNode}) => (
   <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
@@ -39,17 +33,10 @@ describe('ChartWidgetLoader', () => {
     jest.spyOn(Sentry, 'captureException').mockImplementation(() => '123');
   });
 
-  const defaultProps = {
-    id: 'test-widget' as ChartId,
-    height: '200px',
-  };
+  const defaultProps = {id: 'test-widget' as ChartId, height: '200px'};
 
   it('renders loading state', () => {
-    mockUseQuery.mockReturnValue({
-      isPending: true,
-      isError: false,
-      data: undefined,
-    });
+    mockUseQuery.mockReturnValue({isPending: true, isError: false, data: undefined});
 
     render(<ChartWidgetLoader {...defaultProps} />, {wrapper});
     expect(screen.getByTestId('loading-placeholder')).toBeInTheDocument(); // Placeholder component

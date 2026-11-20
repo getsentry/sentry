@@ -3,9 +3,7 @@ import path from 'node:path';
 
 import type {Compiler, RspackPluginInstance} from '@rspack/core';
 
-type Options = {
-  basePath: string;
-};
+type Options = {basePath: string};
 
 class LastBuiltPlugin implements RspackPluginInstance {
   basePath: string;

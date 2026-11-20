@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import {skipToken, useInfiniteQuery} from '@tanstack/react-query';
 
 import type {RawFlagData} from 'sentry/components/featureFlags/utils';
@@ -68,10 +68,10 @@ export function useOrganizationFlagLogInfinite({
     }
   }, [isFetching, hasNextPage, fetchNextPage, maxPages, currentNumberPages]);
 
-  return {
-    data: infiniteData?.pages.flatMap(page => page.json.data),
-    isPending,
-    isError,
-    error,
-  };
+  const data = useMemo(
+    () => infiniteData?.pages.flatMap(page => page.json.data),
+    [infiniteData]
+  );
+
+  return {data, isPending, isError, error};
 }

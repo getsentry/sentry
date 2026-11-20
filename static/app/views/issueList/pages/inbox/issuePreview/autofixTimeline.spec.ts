@@ -126,20 +126,14 @@ describe('getAutofixTimelineItems', () => {
       {
         provider: 'github',
         repo_name: 'org/repo',
-        pull_request: {
-          pr_number: 123,
-          pr_url: pullRequest.externalUrl,
-        },
+        pull_request: {pr_number: 123, pr_url: pullRequest.externalUrl},
       },
     ];
     const prCreated = ActivityFeedFixture({
       id: 'pr-created',
       type: GroupActivityType.SEER_PR_CREATED,
       dateCreated: completed.dateCreated,
-      data: {
-        run_id: runId,
-        pull_requests: pullRequests,
-      },
+      data: {run_id: runId, pull_requests: pullRequests},
     });
     const reference = ActivityFeedFixture({
       id: 'pr-reference',
@@ -158,11 +152,7 @@ describe('getAutofixTimelineItems', () => {
       step: 'code_changes',
       blocks: [
         ExplorerAutofixBlockFixture({
-          message: {
-            role: 'assistant',
-            content: 'Fix',
-            metadata: {step: 'code_changes'},
-          },
+          message: {role: 'assistant', content: 'Fix', metadata: {step: 'code_changes'}},
         }),
       ],
     };

@@ -36,10 +36,7 @@ describe('WebAuthn2FAMethod', () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     render(
       <WebAuthn2FAMethod
@@ -86,10 +83,7 @@ describe('WebAuthn2FAMethod', () => {
     const challengeRequest = MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     await userEvent.click(screen.getByRole('button', {name: 'Try again'}));
 
@@ -106,10 +100,7 @@ describe('WebAuthn2FAMethod', () => {
     MockApiClient.addMockResponse({
       url: '/auth/2fa/challenge/',
       method: 'POST',
-      body: {
-        method: 'u2f',
-        challenge: {webAuthnAuthenticationData: 'challenge'},
-      },
+      body: {method: 'u2f', challenge: {webAuthnAuthenticationData: 'challenge'}},
     });
     const onSubmit = jest.fn();
     const {rerender} = render(

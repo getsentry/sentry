@@ -67,13 +67,15 @@ function renderDetail(
   width: number,
   result: Partial<ReturnType<typeof useFetchConfigs>>
 ) {
-  jest.mocked(useFetchConfigs).mockReturnValue({
-    data: undefined,
-    isPending: false,
-    isError: false,
-    refetch: jest.fn(),
-    ...result,
-  } as ReturnType<typeof useFetchConfigs>);
+  jest
+    .mocked(useFetchConfigs)
+    .mockReturnValue({
+      data: undefined,
+      isPending: false,
+      isError: false,
+      refetch: jest.fn(),
+      ...result,
+    } as ReturnType<typeof useFetchConfigs>);
 
   const queryClient = makeSnapshotQueryClient([
     [

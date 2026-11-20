@@ -32,10 +32,7 @@ export async function updateUptimeRule(
           },
         }
       ),
-      {
-        method: 'PUT',
-        data,
-      }
+      {method: 'PUT', data}
     );
     toast.dismiss();
 
@@ -88,9 +85,7 @@ export async function deleteUptimeRule(
           },
         }
       ),
-      {
-        method: 'DELETE',
-      }
+      {method: 'DELETE'}
     );
     toast.dismiss();
   } catch (_err) {

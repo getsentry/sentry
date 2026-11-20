@@ -9,9 +9,7 @@ export function widgetCalloutBlock({link}: {link: string}): ContentBlock {
     alertType: 'info',
     text: tct(
       'Want to receive user feedback at any time, not just when an error happens? [link:Read the docs] to learn how to set up our customizable widget.',
-      {
-        link: <ExternalLink href={link} />,
-      }
+      {link: <ExternalLink href={link} />}
     ),
   };
 }

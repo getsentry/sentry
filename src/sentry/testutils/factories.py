@@ -205,7 +205,6 @@ from sentry.seer.models.workflow import (
     SeerWorkflowConfigProject,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
-    SeerWorkflowTriggerBinding,
 )
 from sentry.seer.workflows.base import ConfigUpdate, LockedConfig, SelectedMonitors
 from sentry.seer.workflows.definitions import get_definition
@@ -2747,9 +2746,7 @@ class Factories:
             "result_attribute": "result",
             "dataset": telemetry_classifier_types.Dataset.CONVERSATION,
             "filter_query": "",
-            "natural_language_prompt": "Is the user frustrated?",
-            "compiled_prompt": "Return yes when the user is frustrated.",
-            "output_type": telemetry_classifier_types.TelemetryClassifierOutputType.BINARY,
+            "prebuilt_classifier_key": "conversation_user_frustration",
         }
         return TelemetryClassifier.objects.create(project=project, **{**defaults, **kwargs})
 
@@ -3628,13 +3625,10 @@ class Factories:
     def create_seer_workflow_config(
         organization: Organization,
         *,
-        trigger_actions: Sequence[Action] = (),
         monitors: Sequence[Detector] = (),
         **kwargs: Any,
     ) -> SeerWorkflowConfig:
         config = SeerWorkflowConfig.objects.create(organization=organization, **kwargs)
-        for action in trigger_actions:
-            Factories.create_seer_workflow_trigger_binding(config, action)
         if config.strategy in SEER_CONFIGURABLE_WORKFLOW_STRATEGIES:
             update = ConfigUpdate(LockedConfig(config), get_definition(config.strategy))
             update.setup_backing_workflow(name=None, created_by_id=None, enabled=config.enabled)
@@ -3645,15 +3639,6 @@ class Factories:
                 update.set_scope(SelectedMonitors(tuple(monitor.id for monitor in monitors)))
             config.refresh_from_db()
         return config
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.CELL)
-    def create_seer_workflow_trigger_binding(
-        config: SeerWorkflowConfig, action: Action
-    ) -> SeerWorkflowTriggerBinding:
-        return SeerWorkflowTriggerBinding.objects.create(
-            workflow_config=config, trigger_action=action
-        )
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CELL)

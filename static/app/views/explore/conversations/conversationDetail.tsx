@@ -90,9 +90,7 @@ function ConversationDetailPage() {
     : undefined;
 
   useEffect(() => {
-    trackAnalytics('conversations.detail.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.detail.page-view', {organization});
     // oxlint-disable-next-line react/exhaustive-effect-dependencies
   }, [organization, conversationId]);
 

@@ -90,10 +90,7 @@ export function RootCauseCard({autofix, groupId, section}: RootCauseCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'root_cause',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'root_cause'});
 
   const evidence = useAutofixSectionEvidence({section});
   const evidenceDetails =

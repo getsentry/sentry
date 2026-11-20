@@ -16,7 +16,11 @@ import {analyzeFrameForRootCause} from 'sentry/components/events/interfaces/anal
 import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {SourceMapsDebuggerModal} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import {useStacktraceContext} from 'sentry/components/events/interfaces/stackTraceContext';
-import {getThreadById} from 'sentry/components/events/interfaces/utils';
+import {
+  findImageForAddress,
+  getImageName,
+  getThreadById,
+} from 'sentry/components/events/interfaces/utils';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {StrictClick} from 'sentry/components/strictClick';
 import {t, tn} from 'sentry/locale';
@@ -183,6 +187,10 @@ export function DeprecatedLine({
     sdk_version: event.sdk?.version,
   };
 
+  const fallbackPackageName = getImageName(
+    findImageForAddress({event, addrMode: data.addrMode, address: data.instructionAddr})
+  );
+
   const activeLineNumber = data.lineNo;
   const contextLine = data.context?.find(([lineNo]) => lineNo === activeLineNumber);
   // InApp or .NET because of: https://learn.microsoft.com/en-us/dotnet/standard/library-guidance/sourcelink
@@ -228,6 +236,7 @@ export function DeprecatedLine({
                     isHoverPreviewed={isHoverPreviewed}
                     meta={frameMeta}
                     isPotentiallyThirdParty={isPotentiallyThirdPartyFrame(data, event)}
+                    fallbackPackageName={fallbackPackageName}
                   />
                 </Container>
               </Flex>

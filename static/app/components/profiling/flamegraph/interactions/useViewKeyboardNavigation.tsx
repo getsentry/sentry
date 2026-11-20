@@ -21,10 +21,7 @@ function rafAnimation(
   cb: (easing: number) => void,
   done: () => void
 ) {
-  const time = {
-    start: 0,
-    total: 160,
-  };
+  const time = {start: 0, total: 160};
 
   function tick(now: number) {
     if (!time.start) {

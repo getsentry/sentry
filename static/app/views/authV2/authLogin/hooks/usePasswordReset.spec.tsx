@@ -22,10 +22,7 @@ describe('usePasswordReset', () => {
     );
     expect(request).toHaveBeenCalledWith(
       '/auth/recovery/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {user: 'user@example.com'},
-      })
+      expect.objectContaining({method: 'POST', data: {user: 'user@example.com'}})
     );
   });
 

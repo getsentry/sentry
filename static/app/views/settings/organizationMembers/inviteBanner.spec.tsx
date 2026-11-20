@@ -16,17 +16,9 @@ const missingMembers = {
   users: MissingMembersFixture(),
 };
 
-const noMissingMembers = {
-  integration: 'github',
-  enabled: true,
-  users: [],
-};
+const noMissingMembers = {integration: 'github', enabled: true, users: []};
 
-const nudgeDisabled = {
-  integration: 'github',
-  enabled: false,
-  users: [],
-};
+const nudgeDisabled = {integration: 'github', enabled: false, users: []};
 
 describe('inviteBanner', () => {
   beforeEach(() => {
@@ -39,10 +31,7 @@ describe('inviteBanner', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/prompts-activity/',
       method: 'GET',
-      body: {
-        dismissed_ts: undefined,
-        snoozed_ts: undefined,
-      },
+      body: {dismissed_ts: undefined, snoozed_ts: undefined},
     });
   });
 

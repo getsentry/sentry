@@ -92,12 +92,7 @@ describe('GroupAutofix', () => {
   });
 
   it('renders the autofix panel with the feature enabled', async () => {
-    renderPage(
-      OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['autofix-page'],
-      })
-    );
+    renderPage(OrganizationFixture({hideAiFeatures: false, features: ['autofix-page']}));
 
     // The toolbar renders in the issue navigation row, not in the tab.
     expect(
@@ -201,12 +196,7 @@ describe('GroupAutofix', () => {
       },
     });
 
-    renderPage(
-      OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['autofix-page'],
-      })
-    );
+    renderPage(OrganizationFixture({hideAiFeatures: false, features: ['autofix-page']}));
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set Up Seer'})).toHaveAttribute(
@@ -227,12 +217,7 @@ describe('GroupAutofix', () => {
       }),
     });
 
-    renderPage(
-      OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['autofix-page'],
-      })
-    );
+    renderPage(OrganizationFixture({hideAiFeatures: false, features: ['autofix-page']}));
 
     expect(await screen.findByText('Finish Configuring Seer')).toBeInTheDocument();
     expect(
@@ -280,12 +265,7 @@ describe('GroupAutofix', () => {
       body: ExplorerAutofixResponseFixture(),
     });
 
-    renderPage(
-      OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['autofix-page'],
-      })
-    );
+    renderPage(OrganizationFixture({hideAiFeatures: false, features: ['autofix-page']}));
 
     expect(
       await screen.findByText('The issue was caused by an unexpected value.')
@@ -299,12 +279,7 @@ describe('GroupAutofix', () => {
       statusCode: 500,
     });
 
-    renderPage(
-      OrganizationFixture({
-        hideAiFeatures: false,
-        features: ['autofix-page'],
-      })
-    );
+    renderPage(OrganizationFixture({hideAiFeatures: false, features: ['autofix-page']}));
 
     expect(
       await screen.findByRole('button', {name: 'Start Analysis'})
@@ -326,10 +301,7 @@ describe('GroupAutofix', () => {
 
   it('redirects when AI features are hidden for the organization', async () => {
     const {router} = renderPage(
-      OrganizationFixture({
-        hideAiFeatures: true,
-        features: ['autofix-page'],
-      })
+      OrganizationFixture({hideAiFeatures: true, features: ['autofix-page']})
     );
 
     await waitFor(() => {

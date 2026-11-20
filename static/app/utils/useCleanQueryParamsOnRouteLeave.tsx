@@ -103,10 +103,7 @@ export function useCleanQueryParamsOnRouteLeave<Q>({
       });
 
       if (cleanLocation) {
-        navigate(cleanLocation, {
-          replace: true,
-          preventScrollReset: true,
-        });
+        navigate(cleanLocation, {replace: true, preventScrollReset: true});
       }
     };
   }, [navigate]);

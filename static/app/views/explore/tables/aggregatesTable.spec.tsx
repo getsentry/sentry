@@ -18,11 +18,7 @@ import {SpanFields} from 'sentry/views/insights/types';
 import {AggregatesTable} from './aggregatesTable';
 
 const stringTags: TagCollection = {
-  'span.op': {
-    key: 'span.op',
-    name: 'span.op',
-    kind: FieldKind.TAG,
-  },
+  'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
 };
 
 const numberTags: TagCollection = {
@@ -43,13 +39,7 @@ function createAggregatesQueryResult(
     isError: false,
     isFetched: true,
     isPending: false,
-    meta: {
-      fields: {
-        'span.op': 'string',
-        'count()': 'integer',
-      },
-      units: {},
-    },
+    meta: {fields: {'span.op': 'string', 'count()': 'integer'}, units: {}},
     pageLinks: undefined,
     ...overrides,
   } as unknown as AggregatesTableResult['result'];
@@ -62,11 +52,7 @@ function createAggregatesTableResult({
   result?: Partial<AggregatesTableResult['result']>;
 } = {}): AggregatesTableResult {
   const eventView = EventView.fromLocation(
-    LocationFixture({
-      query: {
-        field: ['span.op', 'count()'],
-      },
-    })
+    LocationFixture({query: {field: ['span.op', 'count()']}})
   );
 
   return {
@@ -133,12 +119,7 @@ describe('AggregatesTable', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
   });
 
@@ -187,10 +168,7 @@ describe('AggregatesTable', () => {
         ),
         result: {
           data,
-          meta: {
-            fields: {project: 'string', 'count()': 'integer'},
-            units: {},
-          },
+          meta: {fields: {project: 'string', 'count()': 'integer'}, units: {}},
         },
       });
 
@@ -252,13 +230,7 @@ describe('AggregatesTable', () => {
             isError: false,
             isFetched: true,
             isPending: false,
-            meta: {
-              fields: {
-                'span.op': 'string',
-                'count()': 'integer',
-              },
-              units: {},
-            },
+            meta: {fields: {'span.op': 'string', 'count()': 'integer'}, units: {}},
             pageLinks: undefined,
           },
         })}
@@ -317,10 +289,7 @@ describe('AggregatesTable', () => {
           result: {
             data: [{[field]: value, 'count()': 1}],
             meta: {
-              fields: {
-                [field]: FieldValueType.STRING,
-                'count()': FieldValueType.INTEGER,
-              },
+              fields: {[field]: FieldValueType.STRING, 'count()': FieldValueType.INTEGER},
               units: {},
             },
           },
@@ -331,10 +300,7 @@ describe('AggregatesTable', () => {
           ...initialRouterConfig,
           location: {
             ...initialRouterConfig.location,
-            query: {
-              ...initialRouterConfig.location.query,
-              groupBy: field,
-            },
+            query: {...initialRouterConfig.location.query, groupBy: field},
           },
         },
         organization,
@@ -347,11 +313,7 @@ describe('AggregatesTable', () => {
 
   it('uses validated field types when aggregate metadata is missing', async () => {
     const eventView = EventView.fromLocation(
-      LocationFixture({
-        query: {
-          field: ['sentry.duration', 'count()'],
-        },
-      })
+      LocationFixture({query: {field: ['sentry.duration', 'count()']}})
     );
 
     render(
@@ -360,18 +322,8 @@ describe('AggregatesTable', () => {
         aggregatesTableResult={createAggregatesTableResult({
           eventView,
           result: {
-            data: [
-              {
-                'sentry.duration': 123,
-                'count()': 10,
-              },
-            ],
-            meta: {
-              fields: {
-                'count()': FieldValueType.INTEGER,
-              },
-              units: {},
-            },
+            data: [{'sentry.duration': 123, 'count()': 10}],
+            meta: {fields: {'count()': FieldValueType.INTEGER}, units: {}},
           },
         })}
       />,
@@ -380,10 +332,7 @@ describe('AggregatesTable', () => {
           ...initialRouterConfig,
           location: {
             ...initialRouterConfig.location,
-            query: {
-              ...initialRouterConfig.location.query,
-              groupBy: 'sentry.duration',
-            },
+            query: {...initialRouterConfig.location.query, groupBy: 'sentry.duration'},
           },
         },
         organization,
@@ -417,11 +366,7 @@ describe('AggregatesTable', () => {
       <AggregatesTableWithParamsProvider
         aggregateNumberTags={{
           ...numberTags,
-          [aggregate]: {
-            key: aggregate,
-            name: aggregate,
-            kind: FieldKind.MEASUREMENT,
-          },
+          [aggregate]: {key: aggregate, name: aggregate, kind: FieldKind.MEASUREMENT},
         }}
         aggregatesTableResult={createAggregatesTableResult({
           eventView,

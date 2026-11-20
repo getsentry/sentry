@@ -15,14 +15,8 @@ figma.connect(
   'https://www.figma.com/design/eTJz6aPgudMY9E6mzyZU0B/%F0%9F%90%A6-Components?node-id=3537-20061&m=draw&t=ITviPfKTjIMGFJOi-11',
   {
     props: {
-      size: figma.enum('size', {
-        sm: 'sm',
-        md: 'md',
-      }),
-      state: figma.enum('state', {
-        default: false,
-        disabled: true,
-      }),
+      size: figma.enum('size', {sm: 'sm', md: 'md'}),
+      state: figma.enum('state', {default: false, disabled: true}),
     },
     example: props => <TextArea size={props.size} disabled={props.state} />,
   }

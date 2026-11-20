@@ -10,9 +10,7 @@ import {type DataExportPayload, ExportQueryType, useDataExport} from './useDataE
 
 jest.mock('sentry/utils/downloadFromHref');
 
-const mockAuthorizedOrg = OrganizationFixture({
-  features: ['discover-query'],
-});
+const mockAuthorizedOrg = OrganizationFixture({features: ['discover-query']});
 
 const mockPayload = {
   queryType: ExportQueryType.ISSUES_BY_TAG,
@@ -32,10 +30,7 @@ describe('useDataExport', () => {
   });
 
   it('should display default error message on failure when none is provided', async () => {
-    MockApiClient.addMockResponse({
-      ...requestBase,
-      statusCode: 400,
-    });
+    MockApiClient.addMockResponse({...requestBase, statusCode: 400});
 
     const {result} = renderHookWithProviders(() => useDataExport(), {
       organization: mockAuthorizedOrg,
@@ -53,11 +48,7 @@ describe('useDataExport', () => {
   it('should display the provided error message on failure when one is provided', async () => {
     const detail = 'Oh no!';
 
-    MockApiClient.addMockResponse({
-      ...requestBase,
-      statusCode: 400,
-      body: {detail},
-    });
+    MockApiClient.addMockResponse({...requestBase, statusCode: 400, body: {detail}});
 
     const {result} = renderHookWithProviders(() => useDataExport(), {
       organization: mockAuthorizedOrg,
@@ -71,11 +62,7 @@ describe('useDataExport', () => {
   });
 
   it('should notify when export is queued (201, no fileName)', async () => {
-    MockApiClient.addMockResponse({
-      ...requestBase,
-      statusCode: 201,
-      body: {id: 721},
-    });
+    MockApiClient.addMockResponse({...requestBase, statusCode: 201, body: {id: 721}});
 
     const {result} = renderHookWithProviders(() => useDataExport(), {
       organization: mockAuthorizedOrg,
@@ -91,11 +78,7 @@ describe('useDataExport', () => {
   });
 
   it('should notify when a duplicate export is detected (non-201)', async () => {
-    MockApiClient.addMockResponse({
-      ...requestBase,
-      statusCode: 200,
-      body: {id: 721},
-    });
+    MockApiClient.addMockResponse({...requestBase, statusCode: 200, body: {id: 721}});
 
     const {result} = renderHookWithProviders(() => useDataExport(), {
       organization: mockAuthorizedOrg,
@@ -169,11 +152,7 @@ describe('useDataExport', () => {
   });
 
   it('should settle into a success state once an export is queued', async () => {
-    MockApiClient.addMockResponse({
-      ...requestBase,
-      statusCode: 201,
-      body: {id: 721},
-    });
+    MockApiClient.addMockResponse({...requestBase, statusCode: 201, body: {id: 721}});
 
     const {result} = renderHookWithProviders(() => useDataExport(), {
       organization: mockAuthorizedOrg,

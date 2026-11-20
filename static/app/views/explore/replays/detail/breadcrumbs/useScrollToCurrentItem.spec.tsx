@@ -20,10 +20,7 @@ function makeVirtualizer(
   scrollElement: HTMLElement | null = document.createElement('div')
 ) {
   const scrollToIndex = jest.fn();
-  return {
-    scrollToIndex,
-    virtualizer: {scrollElement, scrollToIndex},
-  };
+  return {scrollToIndex, virtualizer: {scrollElement, scrollToIndex}};
 }
 
 describe('useScrollToCurrentItem', () => {

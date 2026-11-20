@@ -1,11 +1,7 @@
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
-type Props = {
-  children: React.ReactNode;
-  description: React.ReactNode;
-  title: string;
-};
+type Props = {children: React.ReactNode; description: React.ReactNode; title: string};
 
 export function DescriptionCard({title, description, children}: Props) {
   return (

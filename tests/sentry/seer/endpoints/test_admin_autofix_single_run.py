@@ -43,10 +43,25 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         self.organization = self.create_organization(slug="sentry")
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
+        tier = patch(
+            "sentry.seer.endpoints.admin_autofix_single_run.is_seer_seat_or_token_billed_enabled",
+            return_value=True,
+        )
+        self.seat_or_token_billed = tier.start()
+        self.addCleanup(tier.stop)
 
     def get_response(self, *args: Any, **params: Any) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
+
+    def test_legacy_org_is_rejected(self, mock_trigger: MagicMock) -> None:
+        self.seat_or_token_billed.return_value = False
+
+        self.get_error_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        )
+
+        mock_trigger.assert_not_called()
 
     def test_starts_single_run_and_returns_link(self, mock_trigger: MagicMock) -> None:
         mock_trigger.return_value = self.create_seer_run(

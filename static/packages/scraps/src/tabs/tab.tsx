@@ -15,9 +15,7 @@ import {Tooltip, type TooltipProps} from '@sentry/scraps/tooltip';
 import {TabsContext} from './context';
 import {isModifiedClick, tabsShouldForwardProp} from './utils';
 
-const StyledTabWrap = styled('li', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const StyledTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;
   selected: boolean;
 }>`

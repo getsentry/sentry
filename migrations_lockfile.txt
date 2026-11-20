@@ -23,11 +23,11 @@ insights: 0001_squashed_0002_backfill_team_starred
 
 investigations: 0018_add_orchestration_run_notebook_fk
 
-monitors: 0030_backfill_incident_last_successful_timestamp
+monitors: 0033_drop_checkin_config_fk
 
 nodestore: 0001_squashed_0002_nodestore_no_dictfield
 
-notebooks: 0004_add_notebook_org_auth_token_creator
+notebooks: 0005_add_comment_mentions
 
 notifications: 0019_require_inbox_event_idempotency_key
 
@@ -37,11 +37,11 @@ releases: 0004_cleanup_failed_safe_deletes
 
 replays: 0001_squashed_0007_organizationmember_replay_access
 
-seer: 0047_convert_seer_workflow_actions
+seer: 0048_remove_seer_workflow_trigger_binding
 
 seer_workflow_outputs: 0001_initial
 
-sentry: 1262_remove_gal_project_option_value_id_index
+sentry: 1263_add_groupsearchview_non_user_creator
 
 service_accounts: 0008_add_owner_kind
 
@@ -51,8 +51,8 @@ telemetry_classifiers: 0001_create_telemetry_classifier
 
 tempest: 0001_squashed_0003_use_encrypted_char_field
 
-timeseries_annotations: 0001_create_timeseries_annotation
+timeseries_annotations: 0002_add_environment_and_severity
 
 uptime: 0056_encrypt_uptime_subscription_headers_body
 
-workflow_engine: 0126_workflowfirehistory_nullable_group
+workflow_engine: 0127_normalize_string_condition_results

@@ -27,9 +27,7 @@ import {
 import type {TraceTree} from './traceModels/traceTree';
 import {useTraceQueryParams} from './useTraceQueryParams';
 
-type PageDataProviderProps = {
-  children: React.ReactNode;
-};
+type PageDataProviderProps = {children: React.ReactNode};
 
 export function TraceViewLogsQueryParamsProvider({
   traceSlug,

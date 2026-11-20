@@ -18,11 +18,13 @@ describe('resolveImageAvatarColors', () => {
     jest.spyOn(window, 'Image').mockImplementation(() => image);
     const fetchSpy = jest.spyOn(window, 'fetch');
     const context = document.createElement('canvas').getContext('2d')!;
-    jest.spyOn(context, 'getImageData').mockReturnValue({
-      data: makePixelData((col, row) =>
-        col === 0 || row === 0 ? [0, 0, 0, 0] : [100, 150, 50, 255]
-      ),
-    } as ImageData);
+    jest
+      .spyOn(context, 'getImageData')
+      .mockReturnValue({
+        data: makePixelData((col, row) =>
+          col === 0 || row === 0 ? [0, 0, 0, 0] : [100, 150, 50, 255]
+        ),
+      } as ImageData);
     jest.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(context);
 
     const result = resolveImageAvatarColors('https://example.com/avatar/logo/');

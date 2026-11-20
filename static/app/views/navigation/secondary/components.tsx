@@ -153,9 +153,7 @@ function SecondarySidebarPanel({
     <Container
       height="100%"
       right="0"
-      {...mergeProps(props, {
-        [NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true,
-      })}
+      {...mergeProps(props, {[NAVIGATION_SECONDARY_SIDEBAR_DATA_ATTRIBUTE]: true})}
       width={isMobile ? '100%' : `${size}px`}
       ref={isMobile ? undefined : containerRef}
     >
@@ -720,10 +718,7 @@ function Collapsible(props: CollapsibleProps) {
           direction="column-reverse"
           key="collapsible-content"
           variants={{
-            collapsed: {
-              height: 0,
-              overflow: 'hidden',
-            },
+            collapsed: {height: 0, overflow: 'hidden'},
             expanded: {
               height: 'auto',
               // Let focus rings and other content extend beyond the expanded section.
@@ -873,12 +868,8 @@ function SecondaryNavigationReorderableList<T extends {id: string | number}>(
   props: SecondaryNavigationReorderableListProps<T>
 ) {
   const sensors = useSensors(
-    useSensor(NavigationPointerSensor, {
-      activationConstraint: {distance: 5},
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
+    useSensor(NavigationPointerSensor, {activationConstraint: {distance: 5}}),
+    useSensor(KeyboardSensor, {coordinateGetter: sortableKeyboardCoordinates})
   );
 
   // We need to hold a copy of the local state because dnd-kit does not play well
@@ -1170,9 +1161,7 @@ const DotIndicator = styled('div')<{variant: 'accent' | 'danger' | 'warning'}>`
 
 const StyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   color: ${p => p.theme.tokens.interactive.link.neutral.rest};
   border: 0;
   user-select: none;
@@ -1230,9 +1219,7 @@ const StyledReorderableLink = styled(Link, {
 
 const LegacyStyledReorderableLink = styled(Link, {
   shouldForwardProp: prop => prop !== 'layout',
-})<{
-  layout: 'mobile' | 'sidebar';
-}>`
+})<{layout: 'mobile' | 'sidebar'}>`
   display: flex;
   gap: ${p => p.theme.space.sm};
   justify-content: center;

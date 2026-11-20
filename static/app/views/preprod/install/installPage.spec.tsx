@@ -142,9 +142,7 @@ describe('InstallPage', () => {
           size_metrics: [],
           base_size_metrics: [],
         },
-        {
-          app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'}),
-        }
+        {app_info: PreprodAppInfoFixture({date_added: '2017-10-16T19:41:20+00:00'})}
       ),
     });
 

@@ -19,9 +19,7 @@ const schema = z.object({
   scopes: z.array(z.string()).min(1, 'Select at least one scope'),
 });
 
-const typedSchema = z.object({
-  scopes: z.array(z.enum(['read', 'write'])),
-});
+const typedSchema = z.object({scopes: z.array(z.enum(['read', 'write']))});
 
 type Scope = z.infer<typeof typedSchema>['scopes'][number];
 

@@ -14,11 +14,7 @@ type SentryNuqsTestingAdapterProps = {
   /**
    * Default options to pass to nuqs
    */
-  defaultOptions?: {
-    clearOnDefault?: boolean;
-    scroll?: boolean;
-    shallow?: boolean;
-  };
+  defaultOptions?: {clearOnDefault?: boolean; scroll?: boolean; shallow?: boolean};
   /**
    * A function that will be called whenever the URL is updated.
    * Connect that to a spy in your tests to assert the URL updates.
@@ -49,11 +45,7 @@ function useSentryAdapter(): AdapterInterface {
   const updateUrl = useCallback<AdapterInterface['updateUrl']>(
     (search, options) => {
       const queryString = renderQueryString(search);
-      onUrlUpdate?.({
-        searchParams: new URLSearchParams(search),
-        queryString,
-        options,
-      });
+      onUrlUpdate?.({searchParams: new URLSearchParams(search), queryString, options});
 
       const current = router.state.location;
       const navigation = router.navigate(

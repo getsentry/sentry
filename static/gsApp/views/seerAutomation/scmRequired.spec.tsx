@@ -10,9 +10,7 @@ describe('SeerAutomationSCMRequired', () => {
   });
 
   it('allows free Autofix access without a paid or trial plan', async () => {
-    const organization = OrganizationFixture({
-      features: ['seer-user-billing-launch'],
-    });
+    const organization = OrganizationFixture({features: ['seer-user-billing-launch']});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       body: {
@@ -48,9 +46,7 @@ describe('SeerAutomationSCMRequired', () => {
   });
 
   it('does not grant free access to Code Review settings', async () => {
-    const organization = OrganizationFixture({
-      features: ['seer-user-billing-launch'],
-    });
+    const organization = OrganizationFixture({features: ['seer-user-billing-launch']});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/setup-check/`,
       body: {

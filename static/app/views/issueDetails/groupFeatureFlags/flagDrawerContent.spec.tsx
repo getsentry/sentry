@@ -52,9 +52,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
 
     expect(mockTagsEndpoint).toHaveBeenCalledWith(
       '/organizations/org-slug/issues/1/tags/',
-      expect.objectContaining({
-        query: expect.objectContaining({useFlagsBackend: '1'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({useFlagsBackend: '1'})})
     );
 
     expect(screen.getByText('feature.organizations:my-feature')).toBeInTheDocument();
@@ -65,9 +63,7 @@ describe('GroupFeatureFlagsDrawerContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/',
       statusCode: 400,
-      body: {
-        detail: 'Bad request',
-      },
+      body: {detail: 'Bad request'},
     });
 
     const group = GroupFixture();

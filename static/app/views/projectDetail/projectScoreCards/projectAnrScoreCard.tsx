@@ -70,10 +70,7 @@ export function ProjectAnrScoreCard({
 
     queryClient
       .fetchQuery(
-        sessionsApiOptions({
-          ...requestData,
-          ...normalizeDateTimeParams(datetime),
-        })
+        sessionsApiOptions({...requestData, ...normalizeDateTimeParams(datetime)})
       )
       .then(response => {
         if (unmounted) {
@@ -90,13 +87,7 @@ export function ProjectAnrScoreCard({
 
   useEffect(() => {
     let unmounted = false;
-    if (
-      shouldFetchPreviousPeriod({
-        start,
-        end,
-        period,
-      })
-    ) {
+    if (shouldFetchPreviousPeriod({start, end, period})) {
       const requestData = {
         orgSlug: organization.slug,
         field: ['anr_rate()'],
@@ -157,10 +148,7 @@ export function ProjectAnrScoreCard({
     sort: 'freq',
   };
 
-  const issueSearch = {
-    pathname: endpointPath,
-    query: queryParams,
-  };
+  const issueSearch = {pathname: endpointPath, query: queryParams};
 
   const cardTitle = getANRRateText(platform);
   const cardHelp = getSessionTermDescription(SessionTerm.ANR_RATE, platform || null);
@@ -185,9 +173,7 @@ export function ProjectAnrScoreCard({
             size="xs"
             to={issueSearch}
             onClick={() => {
-              trackAnalytics('project_detail.open_anr_issues', {
-                organization,
-              });
+              trackAnalytics('project_detail.open_anr_issues', {organization});
             }}
           >
             {t('View Issues')}
