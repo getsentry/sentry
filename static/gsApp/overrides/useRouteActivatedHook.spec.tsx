@@ -1,5 +1,11 @@
 import {useEffect} from 'react';
-import {Outlet, useMatches, type UIMatch} from 'react-router';
+import {
+  NavigationType,
+  Outlet,
+  useMatches,
+  useNavigationType,
+  type UIMatch,
+} from 'react-router';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
@@ -7,9 +13,11 @@ import {ProjectFixture} from 'getsentry-test/fixtures/project';
 import {SubscriptionFixture} from 'getsentry-test/fixtures/subscription';
 import {act, render, renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {Redirect} from 'sentry/components/redirect';
 import {translateSentryRoute} from 'sentry/router/translateSentryRoute';
 import type {SentryRouteObject} from 'sentry/router/types';
 import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 
 import {
   DELAY_TIME_MS,
@@ -55,6 +63,7 @@ describe('useRouteActivatedHook', () => {
       routes: [],
       router: {} as any,
       matches: SETTINGS_MATCHES,
+      navigationType: NavigationType.Push,
       ...extraRouteParams,
     };
     return props;
@@ -328,6 +337,7 @@ describe('useRouteActivatedHook', () => {
       const {setOrganization} = useRouteActivatedHook({
         location: useLocation(),
         matches: useMatches(),
+        navigationType: useNavigationType(),
       });
       useEffect(() => setOrganization(organization), [setOrganization]);
       return <Outlet />;
@@ -341,9 +351,25 @@ describe('useRouteActivatedHook', () => {
       return null;
     }
 
+    // Redirects from inside a component, like withDomainRedirect
+    function ComponentRedirect() {
+      return <Redirect to="/settings/account/details/" />;
+    }
+
+    // Redirects from an effect, like AppRoot
+    function EffectRedirect() {
+      const navigate = useNavigate();
+      useEffect(() => {
+        navigate('/settings/account/details/', {replace: true});
+      }, [navigate]);
+      return null;
+    }
+
     const childRoutes: SentryRouteObject[] = [
       {path: '/organizations/:orgId/issues/', component: Page},
       {path: '/account/', redirectTo: '/settings/account/details/'},
+      {path: '/component-redirect/', component: ComponentRedirect},
+      {path: '/effect-redirect/', component: EffectRedirect},
       {
         path: '/settings/account/',
         component: Layout,
@@ -373,12 +399,17 @@ describe('useRouteActivatedHook', () => {
 
     const issuesUrl = `/organizations/${organization.slug}/issues/`;
 
-    it('does not count a redirect route as the previous route', () => {
+    it.each([
+      ['an index redirectTo', '/settings/account/'],
+      ['a top-level redirectTo', '/account/'],
+      ['a component redirect', '/component-redirect/'],
+      ['an effect redirect', '/effect-redirect/'],
+    ])('does not count %s route as the previous route', (_, url) => {
       jest.useFakeTimers();
       const router = renderRouter(issuesUrl);
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-      router.navigate('/settings/account/');
+      act(() => router.navigate(url));
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
       expect(getPageViews().at(-1)).toEqual({
@@ -387,12 +418,12 @@ describe('useRouteActivatedHook', () => {
       });
     });
 
-    it('does not count a top-level redirect route as the previous route', () => {
+    it('counts a page left with a replace navigation after its page view', () => {
       jest.useFakeTimers();
       const router = renderRouter(issuesUrl);
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-      router.navigate('/account/');
+      act(() => router.navigate('/settings/account/details/', {replace: true}));
       act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
       expect(getPageViews().at(-1)).toEqual({
@@ -401,18 +432,20 @@ describe('useRouteActivatedHook', () => {
       });
     });
 
-    it.each(['/settings/account/', '/account/'])(
-      'sends no previous route when the page load starts on the redirect %s',
-      url => {
-        jest.useFakeTimers();
-        renderRouter(url);
-        act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
+    it.each([
+      '/settings/account/',
+      '/account/',
+      '/component-redirect/',
+      '/effect-redirect/',
+    ])('sends no previous route when the page load starts on the redirect %s', url => {
+      jest.useFakeTimers();
+      renderRouter(url);
+      act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
 
-        expect(getPageViews().at(-1)).toEqual({
-          path: 'settings.account.details',
-          previousPath: undefined,
-        });
-      }
-    );
+      expect(getPageViews().at(-1)).toEqual({
+        path: 'settings.account.details',
+        previousPath: undefined,
+      });
+    });
   });
 });
