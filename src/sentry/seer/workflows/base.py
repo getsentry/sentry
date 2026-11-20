@@ -25,6 +25,7 @@ from sentry.seer.models.workflow import (
     WorkflowRunSnapshot,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.slack_channel import SlackChannel
 from sentry.service_accounts.models import (
     GrantableScope,
     InvalidScopeError,
@@ -172,6 +173,10 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         """Replace the config's scope, marking ``update`` only when something changed."""
         ...
 
+    def set_slack_channel(self, update: ConfigUpdate, channel: SlackChannel | None) -> None:
+        if channel is not None:
+            raise WorkflowUpdateError("Only metric automations support Slack channels.")
+
     def sync(self, config: SeerWorkflowConfig) -> None:
         """Bring anything the trigger keeps outside the config in line with it."""
         return None
@@ -193,7 +198,7 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         filters = SeerWorkflowFilters.parse_obj(config.filters)
         return (
             self.is_enabled(config)
-            and (not filters.environments or environment in filters.environments)
+            and filters.matches_environment(environment)
             and self.projects(config).filter(id=project_id).exists()
         )
 
@@ -401,6 +406,9 @@ class ConfigUpdate:
             )
             raise WorkflowUpdateError("The automation's service account can't be found")
         return replica
+
+    def set_slack_channel(self, channel: SlackChannel | None) -> None:
+        self.definition.set_slack_channel(self, channel)
 
     def set_scope(self, selection: ScopeSelection) -> None:
         """Replace which projects the automation covers, in the form its trigger takes.

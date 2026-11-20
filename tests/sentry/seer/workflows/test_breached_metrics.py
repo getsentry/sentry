@@ -4,6 +4,7 @@ from collections.abc import Sequence
 from copy import deepcopy
 from dataclasses import replace
 from datetime import timedelta
+from threading import Barrier
 from typing import Any
 from unittest import mock
 from uuid import uuid4
@@ -22,6 +23,10 @@ from sentry.investigations.models import InvestigationOrchestrationStatus
 from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook, NotebookSourceType
+from sentry.seer.entrypoints.slack.investigation import (
+    SlackInvestigationEntrypoint,
+    _get_alert_threads,
+)
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionStatus,
@@ -43,6 +48,7 @@ from sentry.seer.workflows.breached_metrics import (
     SeerInvestigationActionHandler,
     get_config_monitors_bulk,
 )
+from sentry.seer.workflows.slack_channel import SlackChannel, get_slack_channels
 from sentry.seer.workflows.workflow import SeerWorkflow
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.seer_workflow_outputs.tasks import finish_investigation_executions
@@ -51,12 +57,15 @@ from sentry.services.eventstore.models import GroupEvent
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
+from sentry.utils.concurrent import ContextPropagatingThreadPoolExecutor
 from sentry.viewer_context import ActorId, ActorType
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
+from sentry.workflow_engine.endpoints.validators.base import BaseActionValidator
 from sentry.workflow_engine.models import (
     Action,
     Detector,
@@ -64,7 +73,7 @@ from sentry.workflow_engine.models import (
     Workflow,
 )
 from sentry.workflow_engine.models.data_condition import Condition
-from sentry.workflow_engine.processors.action import is_action_permitted
+from sentry.workflow_engine.processors.action import get_unique_active_actions, is_action_permitted
 from sentry.workflow_engine.processors.evaluations import ProcessWorkflowsResult
 from sentry.workflow_engine.processors.workflow import process_workflows
 from sentry.workflow_engine.types import (
@@ -302,6 +311,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             name="Example error monitor",
         )
         self.create_data_source_detector(data_source=data_source, detector=self.detector)
+        self.subscription_id = subscription.id
         self.create_detector_group(detector=self.detector, group=self.group)
         triggers = self.create_data_condition_group(organization=self.organization)
         self.create_data_condition(
@@ -328,6 +338,179 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             condition_result=True,
         )
         self.config.update(backing_workflow=self.workflow)
+
+    def configure_slack(self, integration_id: int, channel_id: str) -> None:
+        self.login_as(self.user)
+        with mock.patch("sentry.integrations.slack.utils.channel.SlackSdkClient") as client:
+            client.return_value.conversations_info.return_value.data = {
+                "channel": {"is_channel": True, "name": "on-call"}
+            }
+            response = self.client.put(
+                f"/api/0/organizations/{self.organization.slug}/seer/workflows/configs/{self.config.id}/",
+                {"slackChannel": {"integrationId": str(integration_id), "channelId": channel_id}},
+                content_type="application/json",
+            )
+        assert response.status_code == 200, response.content
+
+    def notification_event(self) -> GroupEvent:
+        event = self.breach_event(detector_id=self.detector.id)
+        assert event.occurrence is not None
+        event.occurrence = replace(
+            event.occurrence,
+            priority=DetectorPriorityLevel.HIGH.value,
+            evidence_data={
+                **event.occurrence.evidence_data,
+                "alert_id": None,
+                "data_packet_source_id": str(self.subscription_id),
+            },
+        )
+        event.occurrence.save()
+        return event
+
+    def mock_metric_slack_delivery(self) -> mock.Mock:
+        self.enterContext(self.feature("organizations:integrations-alert-rule"))
+        self.enterContext(self.feature("organizations:notification-platform.internal-testing"))
+        self.enterContext(
+            override_options(
+                {
+                    "notifications.platform-rollout.internal-testing": {"metric-alert": 1.0},
+                    "notifications.platform.alert-providers": {"metric-alert": ["slack"]},
+                }
+            )
+        )
+        client = self.enterContext(
+            mock.patch("sentry.integrations.slack.integration.SlackSdkClient")
+        )
+        post = client.return_value.chat_postMessage
+        post.return_value.data = {"ok": True, "ts": "123.456"}
+        return post
+
+    def test_slack_opening_post_and_investigation_thread(self) -> None:
+        post = self.mock_metric_slack_delivery()
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack", name="Workspace"
+        )
+        self.workflow.update(type=Workflow.Type.SEER_INVESTIGATION)
+        self.configure_slack(integration.id, "C123")
+        self.process_breach_workflow(self.notification_event())
+        post.assert_called_once()
+        opening = post.call_args.kwargs
+        assert opening["channel"] == "C123"
+        assert "thread_ts" not in opening
+        assert "/monitors/alerts/" not in str(opening["attachments"])
+        assert (
+            "count() of errors was 180.0" in opening["attachments"][0]["blocks"][0]["text"]["text"]
+        )
+        period = get_latest_open_period(self.group)
+        assert period is not None
+        notebook = self.create_notebook(
+            self.organization,
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source={"ref": {"groupId": self.group.id, "openPeriodId": period.id}},
+            source_key=f"metric_open_period:{self.group.id}:{period.id}",
+            source_revision=1,
+        )
+        run = Factories.create_investigation_orchestration_run(
+            notebook, status=InvestigationOrchestrationStatus.PROCESSING
+        )
+        SlackInvestigationEntrypoint.on_investigation_update(None, run)
+        assert post.call_count == 2
+        assert post.call_args.kwargs["channel"] == "C123"
+        assert post.call_args.kwargs["thread_ts"] == "123.456"
+        self.configure_slack(integration.id, "C456")
+        self.process_breach_workflow(self.notification_event())
+        assert post.call_args.kwargs["channel"] == "C456"
+        assert "thread_ts" not in post.call_args.kwargs
+
+    def test_shared_channel_when_ordinary_alert_wins(self) -> None:
+        self.assert_shared_alert_thread(ordinary_alert_wins=True)
+
+    def test_shared_channel_when_seer_workflow_wins(self) -> None:
+        self.assert_shared_alert_thread(ordinary_alert_wins=False)
+
+    def assert_shared_alert_thread(self, *, ordinary_alert_wins: bool) -> None:
+        post = self.mock_metric_slack_delivery()
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack"
+        )
+        self.workflow.update(type=Workflow.Type.SEER_INVESTIGATION)
+        self.configure_slack(integration.id, "C123")
+        alert = self.create_workflow(organization=self.organization)
+        self.create_detector_workflow(workflow=alert, detector=self.detector)
+        group = self.create_data_condition_group(organization=self.organization)
+        self.create_workflow_data_condition_group(workflow=alert, condition_group=group)
+        with mock.patch(
+            "sentry.integrations.slack.actions.form.get_slack_entity_name", return_value="on-call"
+        ):
+            validator = BaseActionValidator(
+                context={"organization": self.organization},
+                data={
+                    "type": "slack",
+                    "integrationId": integration.id,
+                    "data": {},
+                    "config": {"targetType": "specific", "targetIdentifier": "C123"},
+                },
+            )
+            validator.is_valid(raise_exception=True)
+            alert_action = validator.save()
+            self.create_data_condition_group_action(condition_group=group, action=alert_action)
+        seer_action = Action.objects.get(
+            dataconditiongroupaction__condition_group=self.action_conditions, type=Action.Type.SLACK
+        )
+        # The last equivalent action wins. Exercise both possible database row orders.
+        ordering = "id" if ordinary_alert_wins else "-id"
+        with (
+            mock.patch(
+                "sentry.workflow_engine.processors.action.get_unique_active_actions",
+                side_effect=lambda actions, group: get_unique_active_actions(
+                    actions.order_by(ordering), group
+                ),
+            ),
+            mock.patch(
+                "sentry.seer.workflows.base.AutomationDefinition.has_quota_available",
+                return_value=False,
+            ),
+        ):
+            self.process_breach_workflow(self.notification_event())
+        assert (
+            SeerWorkflowRun.objects.get(workflow_config=self.config).status
+            == SeerWorkflowRunStatus.REJECTED
+        )
+        post.assert_called_once()
+        assert post.call_args.kwargs["channel"] == "C123"
+        period = get_latest_open_period(self.group)
+        assert period is not None
+        [thread] = _get_alert_threads(period)
+        assert thread.key_data["action_id"] == (
+            alert_action.id if ordinary_alert_wins else seer_action.id
+        )
+        assert (thread.target_id, thread.thread_identifier) == ("C123", "123.456")
+
+    @with_feature("organizations:integrations-alert-rule")
+    @mock.patch(
+        "sentry.integrations.slack.handlers.slack_action_handler.SlackActionHandler.execute"
+    )
+    def test_slack_action_respects_automation_scope(self, send: mock.Mock) -> None:
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack"
+        )
+        self.workflow.update(type=Workflow.Type.SEER_INVESTIGATION)
+        self.configure_slack(integration.id, "C123")
+        event = self.breach_event(detector_id=self.detector.id)
+        self.config.update(filters={"environments": ["staging"]})
+        self.process_breach_workflow(event)
+        self.config.update(filters={"environments": ["production"]})
+        self.workflow.update(enabled=False)
+        self.process_breach_workflow(event)
+        send.assert_not_called()
+        self.workflow.update(enabled=True)
+        with self.feature({"organizations:seer-automations": False}):
+            self.process_breach_workflow(event)
+        send.assert_called_once()
+        assert not SeerWorkflowRun.objects.filter(workflow_config=self.config).exists()
+        DetectorWorkflow.objects.filter(detector=self.detector, workflow=self.workflow).delete()
+        self.process_breach_workflow(event)
+        send.assert_called_once()
 
     def test_matching_breach_runs_once_and_preserves_original_trigger(self) -> None:
         self.config.update(filters={"all_projects": True, "environments": ["production"]})
@@ -714,6 +897,33 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         return group_event, detector
 
 
+class ConcurrentSlackChannelTest(TransactionTestCase):
+    def test_competing_writes_leave_one_binding(self) -> None:
+        config = Factories.create_seer_workflow_config(
+            self.organization, strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION
+        )
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack"
+        )
+        workflow = SeerWorkflow(config_id=config.id, organization_id=config.organization_id)
+        start = Barrier(2)
+
+        def save(channel_id: str) -> None:
+            try:
+                start.wait(timeout=10)
+                with workflow.update_config() as update:
+                    update.set_slack_channel(SlackChannel(integration.id, channel_id, "on-call"))
+            finally:
+                connections.close_all()
+
+        with ContextPropagatingThreadPoolExecutor(max_workers=2) as pool:
+            list(pool.map(save, ["C123", "C456"]))
+
+        assert Action.objects.filter(type=Action.Type.SLACK).count() == 1
+        assert get_slack_channels([config])[config.id].channel_id in {"C123", "C456"}
+        assert workflow.get_config().version == config.version + 2
+
+
 class GetConfigMonitorsBulkTest(TestCase):
     def test_returns_monitors_and_projects_for_metric_configs(self) -> None:
         first_project, second_project, hidden_project = (self.create_project() for _ in range(3))
@@ -778,6 +988,50 @@ class MetricMonitorSelectionTest(OccurrenceTestMixin, TestCase):
         ) == sorted(self.monitor_ids)
         assert self.project_ids() == {monitor.project_id for monitor in self.monitors}
         assert updated.version == 2
+
+    def test_slack_binding_changes_only_its_own_workflow(self) -> None:
+        integration, _ = self.create_provider_integration_for(
+            self.organization, self.user, provider="slack"
+        )
+        channel = SlackChannel(integration.id, "C123", "on-call")
+        first = create_metric_workflow(
+            self.organization.id,
+            monitor_ids=self.monitor_ids,
+            slack_channel=channel,
+            service_account_grant=GRANT,
+        )
+        second = create_metric_workflow(
+            self.organization.id, slack_channel=channel, service_account_grant=GRANT
+        )
+        config = first.get_config()
+        other = second.get_config()
+        with CaptureQueriesContext(connections[router.db_for_read(Action)]) as queries:
+            assert get_slack_channels([config, other]) == {config.id: channel, other.id: channel}
+        assert len(queries) == 1
+
+        with pytest.raises(ValueError, match="rollback"), first.update_config() as update:
+            update.set_slack_channel(None)
+            raise ValueError("rollback")
+        assert get_slack_channels([config]) == {config.id: channel}
+
+        with first.update_config() as update:
+            update.set_slack_channel(replace(channel, channel_id="C456"))
+        with first.update_config() as update:
+            update.set_slack_channel(None)
+        assert get_slack_channels([config, other]) == {other.id: channel}
+        assert (
+            Action.objects.filter(
+                dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow_id=config.backing_workflow_id,
+                type=Action.Type.SEER_INVESTIGATION,
+            ).count()
+            == 1
+        )
+        assert list(
+            DetectorWorkflow.objects.filter(workflow_id=config.backing_workflow_id)
+            .order_by("detector_id")
+            .values_list("detector_id", flat=True)
+        ) == sorted(self.monitor_ids)
+        assert first.get_config().version == 3
 
     def test_replaces_selection_idempotently_preserving_other_alerts(self) -> None:
         self.select_monitors(self.monitor_ids[:2])

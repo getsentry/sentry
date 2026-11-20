@@ -21,9 +21,11 @@ from sentry.models.groupopenperiod import get_latest_open_period
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.notebooks.models import Notebook
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.seer.models.workflow import (
     SeerWorkflowConfig,
     SeerWorkflowExecutionExtras,
+    SeerWorkflowFilters,
     SeerWorkflowRun,
     SeerWorkflowRunExecution,
     SeerWorkflowStrategy,
@@ -40,6 +42,7 @@ from sentry.seer.workflows.base import (
     lock_config,
 )
 from sentry.seer.workflows.runs import SeerWorkflowRunLifecycle
+from sentry.seer.workflows.slack_channel import SlackChannel
 from sentry.seer_workflow_outputs.executions import finish_execution_if_outputs_done
 from sentry.seer_workflow_outputs.models import SeerWorkflowOutputLink
 from sentry.services.eventstore.models import GroupEvent
@@ -75,6 +78,20 @@ class MetricBreachInputs(BaseModel):
     invocation_source: Literal["wfe"] = "wfe"
     workflow_id: int
     action_id: int
+
+
+def workflows_matching_environment(
+    workflows: set[Workflow], organization: Organization, environment: str | None
+) -> set[Workflow]:
+    configs = SeerWorkflowConfig.objects.filter(
+        organization=organization, backing_workflow__in=workflows
+    ).values_list("backing_workflow_id", "filters")
+    allowed_ids = {
+        workflow_id
+        for workflow_id, filters in configs
+        if SeerWorkflowFilters.parse_obj(filters).matches_environment(environment)
+    }
+    return {workflow for workflow in workflows if workflow.id in allowed_ids}
 
 
 class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
@@ -128,6 +145,56 @@ class MetricAlertDefinition(AutomationDefinition[MetricBreachInputs]):
         )
         WorkflowDataConditionGroup.objects.create(workflow=workflow, condition_group=action_group)
         DataConditionGroupAction.objects.create(condition_group=action_group, action=action)
+
+    def set_slack_channel(self, update: ConfigUpdate, channel: SlackChannel | None) -> None:
+        """Reconcile the binding while the caller holds the config lock."""
+        config = update.config
+        workflow = config.backing_workflow
+        if workflow is None or workflow.status != ObjectStatus.ACTIVE:
+            raise WorkflowUpdateError("A Slack channel requires an active metric workflow.")
+
+        groups = DataConditionGroup.objects.filter(
+            organization_id=config.organization_id,
+            workflowdataconditiongroup__workflow=workflow,
+            dataconditiongroupaction__action__type=Action.Type.SEER_INVESTIGATION,
+        ).distinct()
+        try:
+            group = groups.get()
+        except (DataConditionGroup.DoesNotExist, DataConditionGroup.MultipleObjectsReturned) as exc:
+            raise WorkflowUpdateError("Cannot identify the investigation action group.") from exc
+        binding = (
+            DataConditionGroupAction.objects.filter(
+                condition_group=group, action__type=Action.Type.SLACK
+            )
+            .select_related("action")
+            .get_or_none()
+        )
+        if binding is None and channel is None:
+            return
+        if binding is not None:
+            action = binding.action
+            if channel and (
+                action.integration_id == channel.integration_id
+                and action.config["target_identifier"] == channel.channel_id
+            ):
+                return
+            binding.delete()
+            if not action.dataconditiongroupaction_set.exists():
+                action.delete()
+
+        if channel is not None:
+            action = Action.objects.create(
+                type=Action.Type.SLACK,
+                integration_id=channel.integration_id,
+                config={
+                    "target_type": ActionTarget.SPECIFIC.value,
+                    "target_identifier": channel.channel_id,
+                    "target_display": channel.channel_name,
+                },
+                data={},
+            )
+            DataConditionGroupAction.objects.create(condition_group=group, action=action)
+        update.mark_related_changed()
 
     def set_scope(self, update: ConfigUpdate, selection: ScopeSelection) -> None:
         """Callers must authorize and audit the change."""

@@ -616,6 +616,14 @@ def process_workflows(
         )
         workflows = workflows - wrong_org_workflows
 
+    seer_workflows = {wf for wf in workflows if wf.type == Workflow.Type.SEER_INVESTIGATION}
+    if seer_workflows:
+        from sentry.seer.workflows.breached_metrics import workflows_matching_environment
+
+        workflows = (workflows - seer_workflows) | workflows_matching_environment(
+            seer_workflows, organization, environment.name if environment else None
+        )
+
     if not workflows:
         return _build_process_workflows_result(
             event_data=event_data,

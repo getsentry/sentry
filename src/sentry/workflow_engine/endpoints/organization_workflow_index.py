@@ -108,14 +108,7 @@ parse_workflow_query = partial(base_parse_search_query, config=workflow_search_c
 
 
 def parse_visible_workflow_types(raw_types: list[str]) -> frozenset[Workflow.Type]:
-    """
-    Handle the requested `type` value
-    - If not specified, all visible types are returned
-    - Reject any value that is not a visible type
-    """
-    if not raw_types:
-        return VISIBLE_WORKFLOW_TYPES
-
+    """Validate the requested workflow type filter."""
     invalid_types = [
         raw_type for raw_type in raw_types if raw_type not in VISIBLE_WORKFLOW_TYPE_VALUES
     ]
@@ -146,10 +139,9 @@ class OrganizationWorkflowEndpoint(OrganizationEndpoint):
         args, kwargs = super().convert_args(request, *args, **kwargs)
         validated_workflow_id = to_valid_int_id("workflow_id", workflow_id, raise_404=True)
         try:
-            kwargs["workflow"] = Workflow.objects.get(
+            kwargs["workflow"] = Workflow.objects.visible_in_alerts().get(
                 organization=kwargs["organization"],
                 id=validated_workflow_id,
-                type__in=VISIBLE_WORKFLOW_TYPES,
             )
         except Workflow.DoesNotExist:
             raise ResourceDoesNotExist
@@ -184,11 +176,11 @@ class OrganizationWorkflowIndexEndpoint(OrganizationEndpoint):
         access workflows connected to projects they have access to.
         Only workflow types in VISIBLE_WORKFLOW_TYPES are ever returned.
         """
-        visible_types = parse_visible_workflow_types(request.GET.getlist("type"))
-
-        queryset: QuerySet[Workflow] = Workflow.objects.filter(
-            organization_id=organization.id, type__in=visible_types
+        queryset: QuerySet[Workflow] = Workflow.objects.visible_in_alerts().filter(
+            organization_id=organization.id
         )
+        if raw_types := request.GET.getlist("type"):
+            queryset = queryset.filter(type__in=parse_visible_workflow_types(raw_types))
 
         if raw_idlist := request.GET.getlist("id"):
             ids = to_valid_int_id_list("id", raw_idlist)
