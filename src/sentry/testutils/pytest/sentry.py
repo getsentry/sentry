@@ -324,34 +324,8 @@ def pytest_configure(config: pytest.Config) -> None:
                     "key_prefix": xdist.get_redis_cluster_key_prefix(),
                 },
             },
-            "mail.backend": "django.core.mail.backends.locmem.EmailBackend",
             "system.url-prefix": "http://testserver",
             "system.secret-key": "a" * 52,
-            # getsentry master still reads these through options.get().
-            "slack.client-id": "slack-client-id",
-            "slack.client-secret": "slack-client-secret",
-            "slack.verification-token": "slack-verification-token",
-            "slack.signing-secret": "slack-signing-secret",
-            "github-app.name": "sentry-test-app",
-            "github-app.client-id": "github-client-id",
-            "github-app.client-secret": "github-client-secret",
-            "github-console-sdk-app.id": 42,
-            "github-console-sdk-app.client-id": "github-client-id",
-            "github-console-sdk-app.client-secret": "github-client-secret",
-            "github-console-sdk-app.installation-id": "123123123",
-            "github-console-sdk-app.private-key": "github-private-key",
-            "vsts.client-id": "vsts-client-id",
-            "vsts.client-secret": "vsts-client-secret",
-            "vsts-limited.client-id": "vsts-limited-client-id",
-            "vsts-limited.client-secret": "vsts-limited-client-secret",
-            "vercel.client-id": "vercel-client-id",
-            "vercel.client-secret": "vercel-client-secret",
-            "msteams.client-id": "msteams-client-id",
-            "msteams.client-secret": "msteams-client-secret",
-            "aws-lambda.access-key-id": "aws-key-id",
-            "aws-lambda.secret-access-key": "aws-secret-access-key",
-            "aws-lambda.cloudformation-url": "https://example.com/file.json",
-            "aws-lambda.account-number": "1234",
             "aws-lambda.node.layer-name": "my-layer",
             "aws-lambda.node.layer-version": "3",
             "aws-lambda.python.layer-name": "my-python-layer",
@@ -398,8 +372,6 @@ def pytest_configure(config: pytest.Config) -> None:
     settings.BITBUCKET_CONSUMER_SECRET = "123"
     settings.GITHUB_APP_ID = "abc"
     settings.GITHUB_API_SECRET = "123"
-    settings.SENTRY_OPTIONS["github-login.client-id"] = settings.GITHUB_APP_ID
-    settings.SENTRY_OPTIONS["github-login.client-secret"] = settings.GITHUB_API_SECRET
 
     # Configure control backend settings for storage
     settings.SENTRY_OPTIONS["filestore.control.backend"] = "filesystem"
