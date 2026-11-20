@@ -218,9 +218,9 @@ describe('AutofixAgent', () => {
 
     render(<AutofixAgent canWrite project={project} />, {organization});
 
-    const select = await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'});
-    expect(select).toBeEnabled();
-    expect(screen.getByText('Off')).toBeInTheDocument();
+    const toggle = await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'});
+    expect(toggle).toBeEnabled();
+    expect(toggle).not.toBeChecked();
   });
 
   it('saves Auto-Iterate on PRs when changed', async () => {
@@ -229,9 +229,8 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite project={project} />, {organization});
 
     await userEvent.click(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
     );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
 
     await waitFor(() =>
       expect(putMock).toHaveBeenCalledWith(
@@ -247,7 +246,29 @@ describe('AutofixAgent', () => {
     render(<AutofixAgent canWrite={false} project={project} />, {organization});
 
     expect(
-      await screen.findByRole('textbox', {name: 'Auto-Iterate on PRs'})
+      await screen.findByRole('checkbox', {name: 'Auto-Iterate on PRs'})
     ).toBeDisabled();
+  });
+
+  it('shows an Open PRs switch instead of Automation Steps for single-run orgs', async () => {
+    const putMock = mockEndpoints({repos: [seerRepo({provider: 'github'})]});
+
+    render(<AutofixAgent canWrite project={project} />, {
+      organization: OrganizationFixture({
+        features: ['autofix-single-run'],
+      }),
+    });
+
+    await userEvent.click(await screen.findByRole('checkbox', {name: 'Open PRs'}));
+
+    await waitFor(() =>
+      expect(putMock).toHaveBeenCalledWith(
+        `/projects/${organization.slug}/${project.slug}/seer/settings/`,
+        expect.objectContaining({
+          data: expect.objectContaining({stoppingPoint: 'open_pr'}),
+        })
+      )
+    );
+    expect(screen.queryByText('Automation Steps')).not.toBeInTheDocument();
   });
 });

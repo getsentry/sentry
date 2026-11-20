@@ -1,13 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -185,7 +179,7 @@ describe('SeerProjectTable', () => {
     expect(errorSpy).not.toHaveBeenCalled();
   });
 
-  it('saves the PR iteration dropdown for a project', async () => {
+  it('saves the PR iteration switch for a project', async () => {
     const settingsPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/seer/settings/`,
       method: 'PUT',
@@ -291,20 +285,17 @@ describe('SeerProjectTable', () => {
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
   }
 
-  function getRowPrIterationSelect(slug: string) {
-    return screen.getByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`});
+  function getRowPrIterationSwitch(slug: string) {
+    return screen.getByRole('checkbox', {name: `Auto-iterate on PRs for ${slug}`});
   }
 
   async function chooseRowPrIteration(slug: string, label: 'On' | 'Off') {
-    // The row dropdown's menu renders outside the row, in the page body.
-    await userEvent.click(
-      await screen.findByRole('textbox', {name: `Auto-iterate on PRs for ${slug}`})
-    );
-    await userEvent.click(await screen.findByRole('menuitemradio', {name: label}));
-  }
-
-  function getRow(slug: string) {
-    return screen.getByRole('row', {name: new RegExp(slug)});
+    const toggle = await screen.findByRole('checkbox', {
+      name: `Auto-iterate on PRs for ${slug}`,
+    });
+    if ((toggle as HTMLInputElement).checked !== (label === 'On')) {
+      await userEvent.click(toggle);
+    }
   }
 
   async function chooseBulkPrIteration(label: 'On' | 'Off') {
@@ -319,7 +310,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
 
     await chooseBulkPrIteration('Off');
@@ -330,9 +321,9 @@ describe('SeerProjectTable', () => {
       )
     );
     await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked()
     );
-    expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument();
+    expect(getRowPrIterationSwitch('other-project')).not.toBeChecked();
 
     await chooseBulkPrIteration('On');
     await waitFor(() =>
@@ -341,13 +332,11 @@ describe('SeerProjectTable', () => {
         expect.objectContaining({data: expect.objectContaining({prIteration: true})})
       )
     );
-    await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('On')).toBeInTheDocument()
-    );
-    expect(within(getRow('other-project')).getByText('On')).toBeInTheDocument();
+    await waitFor(() => expect(getRowPrIterationSwitch('project-slug')).toBeChecked());
+    expect(getRowPrIterationSwitch('other-project')).toBeChecked();
   });
 
-  it('updates a PR iteration dropdown that was already changed when the bulk menu is used', async () => {
+  it('updates a PR iteration switch that was already changed when the bulk menu is used', async () => {
     const {bulkPut, rowPuts} = mockTwoProjects();
 
     render(<SeerProjectTable />, {organization});
@@ -372,9 +361,9 @@ describe('SeerProjectTable', () => {
 
     // Both rows, including the one changed by hand, now show the bulk value.
     await waitFor(() =>
-      expect(within(getRow('other-project')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('other-project')).not.toBeChecked()
     );
-    expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument();
+    expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked();
   });
 
   it('updates an automation steps dropdown that was already changed when the bulk menu is used', async () => {
@@ -417,7 +406,7 @@ describe('SeerProjectTable', () => {
     expect(screen.queryByText('Stop after PR drafted')).not.toBeInTheDocument();
   });
 
-  it('marks a row PR iteration dropdown invalid when its save fails', async () => {
+  it('marks a row PR iteration switch invalid when its save fails', async () => {
     mockTwoProjects();
     const failedPut = MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/project-slug/seer/settings/`,
@@ -433,14 +422,14 @@ describe('SeerProjectTable', () => {
     // The row keeps its form through its own save, so the form can show that
     // the save failed.
     await waitFor(() =>
-      expect(getRowPrIterationSelect('project-slug')).toHaveAttribute(
+      expect(getRowPrIterationSwitch('project-slug')).toHaveAttribute(
         'aria-invalid',
         'true'
       )
     );
   });
 
-  it('keeps a row PR iteration dropdown in place while its own save is in flight', async () => {
+  it('keeps a row PR iteration switch in place while its own save is in flight', async () => {
     mockTwoProjects();
     const delay = makeDelay();
     MockApiClient.addMockResponse({
@@ -451,7 +440,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    const rowSelect = await screen.findByRole('textbox', {
+    const rowSelect = await screen.findByRole('checkbox', {
       name: 'Auto-iterate on PRs for project-slug',
     });
     await chooseRowPrIteration('project-slug', 'Off');
@@ -460,7 +449,7 @@ describe('SeerProjectTable', () => {
     // row must keep the same dropdown through that, because the dropdown's form
     // is what shows an error if the save then fails.
     await waitFor(() =>
-      expect(within(getRow('project-slug')).getByText('Off')).toBeInTheDocument()
+      expect(getRowPrIterationSwitch('project-slug')).not.toBeChecked()
     );
     expect(rowSelect).toBeInTheDocument();
 
@@ -480,7 +469,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
     await selectAllProjects();
     const bulkMenu = await screen.findByRole('button', {name: 'Auto-Iterate on PRs'});
     expect(bulkMenu).toBeEnabled();
@@ -506,7 +495,7 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
@@ -530,20 +519,20 @@ describe('SeerProjectTable', () => {
 
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for other-project'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for other-project'});
     await selectAllProjects();
     await chooseBulkPrIteration('Off');
 
-    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeDisabled());
+    await waitFor(() => expect(getRowPrIterationSwitch('other-project')).toBeDisabled());
 
     delay.release();
-    await waitFor(() => expect(getRowPrIterationSelect('other-project')).toBeEnabled());
+    await waitFor(() => expect(getRowPrIterationSwitch('other-project')).toBeEnabled());
   });
 
   it('leaves the built-in repos filter out of the selection banner', async () => {
     render(<SeerProjectTable />, {organization});
 
-    await screen.findByRole('textbox', {name: 'Auto-iterate on PRs for project-slug'});
+    await screen.findByRole('checkbox', {name: 'Auto-iterate on PRs for project-slug'});
     // The first checkbox in the table is the header's "select all".
     await userEvent.click(screen.getAllByRole('checkbox')[0]!);
 
@@ -559,6 +548,56 @@ describe('SeerProjectTable', () => {
     expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
   });
 
+  describe('Open PRs toggle', () => {
+    const singleRunOrg = OrganizationFixture({
+      access: ['org:write'],
+      features: ['autofix-single-run'],
+    });
+
+    it('replaces Automation Steps with an Open PRs switch per project', async () => {
+      const {rowPuts} = mockTwoProjects();
+
+      render(<SeerProjectTable />, {organization: singleRunOrg});
+
+      const toggle = await screen.findByRole('checkbox', {
+        name: 'Open PRs for project-slug',
+      });
+      expect(toggle).not.toBeChecked();
+      expect(screen.queryByText('Automation Steps')).not.toBeInTheDocument();
+
+      await userEvent.click(toggle);
+      await waitFor(() =>
+        expect(rowPuts['project-slug']).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({stoppingPoint: 'open_pr'}),
+          })
+        )
+      );
+    });
+
+    it('turns Open PRs off for all selected projects', async () => {
+      const {bulkPut} = mockTwoProjects();
+
+      render(<SeerProjectTable />, {organization: singleRunOrg});
+
+      await screen.findByRole('checkbox', {name: 'Open PRs for other-project'});
+      await selectAllProjects();
+      const bulkMenu = await screen.findByRole('button', {name: 'Open PRs'});
+      await waitFor(() => expect(bulkMenu).toBeEnabled());
+      await userEvent.click(bulkMenu);
+      await userEvent.click(await screen.findByRole('menuitemradio', {name: 'Off'}));
+
+      await waitFor(() =>
+        expect(bulkPut).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: expect.objectContaining({automationTuning: 'off'}),
+          })
+        )
+      );
+    });
+  });
   describe('empty state', () => {
     beforeEach(() => {
       MockApiClient.addMockResponse({
