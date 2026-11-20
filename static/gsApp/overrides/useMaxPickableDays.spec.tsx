@@ -246,4 +246,55 @@ describe('useMaxPickableDays', () => {
       });
     });
   });
+
+  describe('trace metrics retention', () => {
+    const organization = OrganizationFixture();
+
+    function renderTraceMetrics(
+      effectiveRetentions: ReturnType<typeof SubscriptionFixture>['effectiveRetentions']
+    ) {
+      SubscriptionStore.set(
+        organization.slug,
+        SubscriptionFixture({organization, effectiveRetentions})
+      );
+      return renderHookWithProviders(
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
+        {organization}
+      );
+    }
+
+    it('uses a configured standard retention longer than 30 days', () => {
+      const {result} = renderTraceMetrics({
+        traceMetric: {standard: 90, downsampled: 396},
+      });
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 90,
+        maxUpgradableDays: 90,
+      });
+    });
+
+    it('ignores the downsampled retention', () => {
+      const {result} = renderTraceMetrics({
+        traceMetric: {standard: 30, downsampled: 396},
+      });
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+      });
+    });
+
+    it('returns 30 days without trace metrics retention', () => {
+      const {result} = renderTraceMetrics({});
+
+      expect(result.current).toEqual({
+        defaultPeriod: '24h',
+        maxPickableDays: 30,
+        maxUpgradableDays: 30,
+      });
+    });
+  });
 });
