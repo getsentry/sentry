@@ -14,6 +14,7 @@ interface RowProps {
   errorMessage?: string;
   hasError?: boolean;
   hideDeleteButton?: boolean;
+  infoMessage?: string | null;
   warningMessages?: string[];
 }
 
@@ -23,6 +24,7 @@ export function AutomationBuilderRow({
   hasError,
   errorMessage,
   hideDeleteButton,
+  infoMessage,
   warningMessages = [],
 }: RowProps) {
   return (
@@ -55,6 +57,7 @@ export function AutomationBuilderRow({
           {t('This action is incompatible with the current configuration.')}
         </Alert>
       )}
+      {infoMessage && <Alert variant="muted">{infoMessage}</Alert>}
     </Stack>
   );
 }
