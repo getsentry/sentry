@@ -1,12 +1,15 @@
+import {useCallback} from 'react';
 import {useStore} from 'zustand';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import type {OrganizationSummary} from 'sentry/types/organization';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
-import {localizeDomain} from 'sentry/utils/resolveRoute';
+import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useOrganizations} from 'sentry/utils/useOrganizations';
 
-type CreateOrganizationLink = {href: string} | {to: string};
+export type CreateOrganizationLink = {href: string} | {to: string};
 
 interface OrganizationSwitcher {
   /**
@@ -21,9 +24,15 @@ interface OrganizationSwitcher {
    * of any organization's customer domain, so the link is an absolute `href`.
    */
   createOrganizationLink: CreateOrganizationLink | null;
+  /**
+   * Opens `path` in `organization`. The organization can live on another
+   * customer domain or region, which takes a full page load.
+   */
+  switchTo: (organization: OrganizationSummary, path: string) => void;
 }
 
 export function useOrganizationSwitcher(): OrganizationSwitcher {
+  const navigate = useNavigate();
   const organization = useOrganization({allowNull: true});
   const organizations = useOrganizations();
   const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
@@ -44,5 +53,17 @@ export function useOrganizationSwitcher(): OrganizationSwitcher {
         : {to: '/organizations/new/'}
       : null;
 
-  return {canSwitch, createOrganizationLink};
+  const switchTo = useCallback(
+    (target: OrganizationSummary, path: string) => {
+      const url = resolveRoute(path, null, target);
+      if (url.startsWith('http')) {
+        window.location.assign(url);
+      } else {
+        navigate(url);
+      }
+    },
+    [navigate]
+  );
+
+  return {canSwitch, createOrganizationLink, switchTo};
 }

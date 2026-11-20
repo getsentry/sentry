@@ -46,14 +46,14 @@ export type SettingsEventParameters = {
    */
   'settings.org_menu.project_clicked': {source: SettingsOrgMenuProjectSource};
   /**
-   * A different project was picked in the project selector at the top of the
-   * project settings sidebar.
-   */
-  /**
    * A different organization was picked in the organization selector at the
    * top of the organization settings sidebar.
    */
   'settings.organization_selector.changed': Record<string, unknown>;
+  /**
+   * A different project was picked in the project selector at the top of the
+   * project settings sidebar.
+   */
   'settings.project_selector.changed': Record<string, unknown>;
   'sidebar.item_clicked': {dest: string; project_id?: string; sidebar_item_id?: string};
 };

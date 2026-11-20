@@ -6,7 +6,6 @@ import orderBy from 'lodash/orderBy';
 
 import {OrganizationAvatar, ProjectAvatar} from '@sentry/scraps/avatar';
 import {CompactSelect, MenuComponents} from '@sentry/scraps/compactSelect';
-import {InfoTip} from '@sentry/scraps/info';
 import {Container, Flex, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger, type TriggerProps} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -14,9 +13,10 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
 import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {resolveRoute} from 'sentry/utils/resolveRoute';
+import {unreachable} from 'sentry/utils/unreachable';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -57,20 +57,11 @@ export function SettingsNavigation({
   ...otherProps
 }: Props) {
   const navWithHooks = navigationObjects.concat(hookConfigs);
-  const settingsV3 = useSettingsV3();
-  const {scope} = useSettingsScope();
-  const title = settingsV3 && scope ? getSettingsScopeTitle(scope) : t('Settings');
 
   return (
     <ErrorBoundary customComponent={null}>
       <SecondaryNavigation.Header>
-        {settingsV3 && scope === 'project' ? (
-          <SettingsProjectSelector />
-        ) : settingsV3 && scope === 'org' ? (
-          <SettingsOrganizationHeader />
-        ) : (
-          <SecondaryNavigation.HeaderTitle>{title}</SecondaryNavigation.HeaderTitle>
-        )}
+        <SettingsNavigationHeader />
       </SecondaryNavigation.Header>
       <SecondaryNavigation.Body>
         {navWithHooks.map((config, index) => (
@@ -83,6 +74,32 @@ export function SettingsNavigation({
       </SecondaryNavigation.Body>
     </ErrorBoundary>
   );
+}
+
+function SettingsNavigationHeader() {
+  const settingsV3 = useSettingsV3();
+  const {scope} = useSettingsScope();
+
+  if (!settingsV3 || !scope) {
+    return (
+      <SecondaryNavigation.HeaderTitle>{t('Settings')}</SecondaryNavigation.HeaderTitle>
+    );
+  }
+
+  switch (scope) {
+    case 'project':
+      return <SettingsProjectSelector />;
+    case 'org':
+      return <SettingsOrganizationHeader />;
+    case 'account':
+      return (
+        <SecondaryNavigation.HeaderTitle>
+          {getSettingsScopeTitle(scope)}
+        </SecondaryNavigation.HeaderTitle>
+      );
+    default:
+      return unreachable(scope);
+  }
 }
 
 function SettingsProjectSelector() {
@@ -198,44 +215,47 @@ function SettingsOrganizationHeader() {
   const organization = useOrganization();
   const {canSwitch} = useOrganizationSwitcher();
 
-  if (!canSwitch) {
-    return (
-      <SecondaryNavigation.HeaderTitle>
-        <Flex as="span" align="center" gap="sm" minWidth="0">
-          <OrganizationAvatar organization={organization} size={16} />
-          <Text ellipsis>{organization.name}</Text>
-        </Flex>
-      </SecondaryNavigation.HeaderTitle>
-    );
+  if (canSwitch) {
+    return <SettingsOrganizationSelector />;
   }
 
-  return <SettingsOrganizationSelector />;
+  // Same height, padding and icon spacing as the selector trigger, so the
+  // header doesn't shift between users with one organization and with several.
+  return (
+    <Flex
+      align="center"
+      gap="md"
+      height="32px"
+      minWidth="0"
+      paddingLeft="lg"
+      paddingRight="lg"
+    >
+      <Flex flexShrink={0}>
+        <OrganizationAvatar organization={organization} size={16} />
+      </Flex>
+      <Text ellipsis>{organization.name}</Text>
+    </Flex>
+  );
 }
 
 /**
- * The first path segment after the organization in a settings URL, e.g.
- * `members` for `/settings/org-slug/members/123/`. Deeper segments usually
- * point at objects that only exist in the current organization, so switching
- * organizations keeps the section and drops the rest.
+ * The settings section the user is on, e.g. `members` for
+ * `/settings/org-slug/members/123/`. Deeper segments point at objects of the
+ * current organization, so switching organizations keeps only the section.
  */
-function getOrganizationSettingsSection(pathname: string, hasOrgInPath: boolean) {
-  // Customer domain routes leave the organization slug out of the path. Rely on
-  // the matched route rather than comparing segments to the slug, which could
-  // match a section name.
-  return pathname.split('/').filter(Boolean)[hasOrgInPath ? 2 : 1];
+function useOrganizationSettingsSection(): string | undefined {
+  const {pathname} = useLocation();
+  // Read the matched route rather than our useParams, which fills in orgId on
+  // customer domains even though their paths have no slug.
+  const {orgId} = useRouteParams();
+  return pathname.split('/').filter(Boolean)[orgId === undefined ? 1 : 2];
 }
 
 function SettingsOrganizationSelector() {
-  const navigate = useNavigate();
-  const location = useLocation();
   const organization = useOrganization();
   const organizations = useOrganizations();
-  const {createOrganizationLink} = useOrganizationSwitcher();
-
-  // Read the matched route directly: our useParams fills in orgId on customer
-  // domains even when the path has no slug.
-  const {orgId} = useRouteParams();
-  const section = getOrganizationSettingsSection(location.pathname, orgId !== undefined);
+  const {createOrganizationLink, switchTo} = useOrganizationSwitcher();
+  const section = useOrganizationSettingsSection();
 
   return (
     <Container width="100%">
@@ -268,13 +288,8 @@ function SettingsOrganizationSelector() {
           }
           options={orderBy(organizations, ['name']).map(org => ({
             value: org.slug,
-            label: org.name,
             textValue: org.name,
-            leadingItems: <OrganizationAvatar organization={org} size={16} />,
-            trailingItems:
-              org.status.id === 'active' ? undefined : (
-                <InfoTip size="sm" title={org.status.name} />
-              ),
+            ...getOrganizationItemProps(org),
           }))}
           onChange={selection => {
             const org = organizations.find(o => o.slug === selection.value);
@@ -282,16 +297,7 @@ function SettingsOrganizationSelector() {
               return;
             }
             trackAnalytics('settings.organization_selector.changed', {organization});
-            const url = resolveRoute(
-              `/settings/${org.slug}/${section ? `${section}/` : ''}`,
-              null,
-              org
-            );
-            if (url.startsWith('http')) {
-              window.location.assign(url);
-            } else {
-              navigate(url);
-            }
+            switchTo(org, `/settings/${org.slug}/${section ? `${section}/` : ''}`);
           }}
         />
       )}

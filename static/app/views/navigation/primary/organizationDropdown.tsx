@@ -19,7 +19,6 @@ import {
   type DropdownMenuProps,
   type MenuItemProps,
 } from '@sentry/scraps/dropdownMenu';
-import {InfoTip} from '@sentry/scraps/info';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
@@ -32,7 +31,11 @@ import {t, tn} from 'sentry/locale';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
+import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
+import {
+  type CreateOrganizationLink,
+  useOrganizationSwitcher,
+} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -168,7 +171,8 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       )}
     </SettingsNavigationTourElement>
   );
-  const createOrganizationItem = makeCreateOrganizationMenuItem(createOrganizationLink);
+  const createOrganizationItem =
+    createOrganizationLink && makeCreateOrganizationMenuItem(createOrganizationLink);
 
   if (settingsV3) {
     const memberProjects = sortProjectsByBookmarkAndMembership(
@@ -277,13 +281,13 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       {
                         key: 'inactive-orgs',
                         children: orderBy(inactiveOrgs, ['name']).map(
-                          makeInactiveOrganizationMenuItem
+                          makeOrganizationMenuItem
                         ),
                         hidden: inactiveOrgs.length === 0,
                       },
                     ],
                   },
-                  createOrganizationItem,
+                  ...(createOrganizationItem ? [createOrganizationItem] : []),
                 ],
               },
               {
@@ -426,18 +430,16 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                 },
                 {
                   key: 'inactive-ogs',
-                  children: orderBy(inactiveOrgs, ['name']).map(
-                    makeInactiveOrganizationMenuItem
-                  ),
+                  children: orderBy(inactiveOrgs, ['name']).map(makeOrganizationMenuItem),
                   // Hide entire submenu if there are no inactive organizations
                   hidden: inactiveOrgs.length === 0,
                 },
                 {
                   key: 'create-organization-section',
-                  children: [
-                    {...createOrganizationItem, label: t('Create a new organization')},
-                  ],
-                  hidden: createOrganizationItem.hidden,
+                  children: createOrganizationItem
+                    ? [{...createOrganizationItem, label: t('Create a new organization')}]
+                    : [],
+                  hidden: !createOrganizationItem,
                 },
               ],
             },
@@ -466,29 +468,16 @@ function makeProjectMenuItem(
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
-    label: org.name,
-    // The avatar goes in the leading slot, not the label, so these rows line up
-    // with items that have icons instead of getting an empty slot before the badge.
-    leadingItems: <OrganizationAvatar organization={org} size={16} />,
+    ...getOrganizationItemProps(org),
     to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
   };
 }
 
-function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
-  return {
-    ...makeOrganizationMenuItem(org),
-    trailingItems: <InfoTip size="sm" title={org.status.name} />,
-  };
-}
-
-function makeCreateOrganizationMenuItem(
-  link: {href: string} | {to: string} | null
-): MenuItemProps {
+function makeCreateOrganizationMenuItem(link: CreateOrganizationLink): MenuItemProps {
   return {
     key: 'create-organization',
     leadingItems: <IconAdd />,
     label: t('Create Organization'),
-    hidden: link === null,
-    ...(link === null ? {} : 'href' in link ? {externalHref: link.href} : {to: link.to}),
+    ...('href' in link ? {externalHref: link.href} : {to: link.to}),
   };
 }
