@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconStar} from '@sentry/icons/star';
 import {useQuery, useQueryClient} from '@tanstack/react-query';
-import {parseAsString, useQueryStates} from 'nuqs';
+import {parseAsArrayOf, parseAsString, parseAsStringLiteral, useQueryStates} from 'nuqs';
 
 import {Alert} from '@sentry/scraps/alert';
 import {UserAvatar} from '@sentry/scraps/avatar';
@@ -75,24 +75,63 @@ const TableWrapper = styled('div')`
   }
 `;
 
+const RUN_STATUSES = [
+  'pending',
+  'processing',
+  'awaiting_input',
+  'completed',
+  'failed',
+  'cancelled',
+] as const;
+type RunStatus = (typeof RUN_STATUSES)[number];
+const RUN_STATUS_LABELS: Record<RunStatus, string> = {
+  pending: t('Queued'),
+  processing: t('Running'),
+  awaiting_input: t('Needs input'),
+  completed: t('Completed'),
+  failed: t('Failed'),
+  cancelled: t('Cancelled'),
+};
+
+const BREACHED_METRICS_STRATEGY = 'breached_metric_investigation';
+const TRIGGER_FILTERS = [
+  'me',
+  'all',
+  'user',
+  'automation',
+  BREACHED_METRICS_STRATEGY,
+] as const;
+type TriggerFilter = (typeof TRIGGER_FILTERS)[number];
+
+const TRIGGER_FILTER_OPTIONS: Array<{label: string; value: TriggerFilter}> = [
+  {value: 'me', label: t('Me')},
+  {value: 'all', label: t('All')},
+  {value: 'user', label: t('People')},
+  {value: 'automation', label: t('Automations')},
+  {value: BREACHED_METRICS_STRATEGY, label: getStrategyLabel(BREACHED_METRICS_STRATEGY)},
+];
+
+function getTriggerQuery(filter: TriggerFilter) {
+  switch (filter) {
+    case 'all':
+      return {};
+    case BREACHED_METRICS_STRATEGY:
+      return {strategy: filter};
+    default:
+      return {trigger: filter};
+  }
+}
+
+const SORTS = ['dateUpdated', 'dateCreated'] as const;
+const SORT_OPTIONS: Array<{label: string; value: (typeof SORTS)[number]}> = [
+  {value: 'dateUpdated', label: t('Last Modified')},
+  {value: 'dateCreated', label: t('Date Created')},
+];
+
 function getStatusLabel({orchestration}: InvestigationListItem) {
   // Manual investigations have no run, and Seer can add statuses we don't know yet.
-  switch (orchestration?.status) {
-    case 'pending':
-      return t('Queued');
-    case 'processing':
-      return t('Running');
-    case 'awaiting_input':
-      return t('Needs input');
-    case 'completed':
-      return t('Completed');
-    case 'failed':
-      return t('Failed');
-    case 'cancelled':
-      return t('Cancelled');
-    default:
-      return t('Active');
-  }
+  const status = RUN_STATUSES.find(known => known === orchestration?.status);
+  return status ? RUN_STATUS_LABELS[status] : t('Active');
 }
 
 function isRunActive(investigation: InvestigationListItem) {
@@ -223,15 +262,22 @@ export function InvestigationsPage() {
   const organization = useOrganization();
   const queryClient = useQueryClient();
   const {copy} = useCopyToClipboard();
-  const [{query, cursor}, setQueryParams] = useQueryStates({
+  const [{query, cursor, trigger, runStatus, sort}, setQueryParams] = useQueryStates({
     query: parseAsString,
     cursor: parseAsString,
+    // People mostly come here for investigations they started.
+    trigger: parseAsStringLiteral(TRIGGER_FILTERS).withDefault('me'),
+    runStatus: parseAsArrayOf(parseAsStringLiteral(RUN_STATUSES)).withDefault([]),
+    sort: parseAsStringLiteral(SORTS).withDefault('dateUpdated'),
   });
 
   const listOptions = investigationListQueryOptions({
     organizationSlug: organization.slug,
     query: query ?? undefined,
     cursor: cursor ?? undefined,
+    runStatus: runStatus.length ? runStatus : undefined,
+    sort,
+    ...getTriggerQuery(trigger),
   });
   const {data, isPending, isError, error} = useQuery({
     ...listOptions,
@@ -358,7 +404,10 @@ export function InvestigationsPage() {
             <Layout.Body>
               <Layout.Main width="full">
                 <Grid
-                  columns={{zero: 'auto', xl: 'auto max-content'}}
+                  columns={{
+                    zero: 'auto',
+                    xl: 'auto max-content max-content max-content',
+                  }}
                   gap="md"
                   marginBottom="xl"
                 >
@@ -369,11 +418,45 @@ export function InvestigationsPage() {
                   />
                   <CompactSelect
                     trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Trigger')} />
+                    )}
+                    value={trigger}
+                    options={TRIGGER_FILTER_OPTIONS}
+                    onChange={option =>
+                      setQueryParams({trigger: option.value, cursor: null})
+                    }
+                    position="bottom-end"
+                  />
+                  <CompactSelect
+                    multiple
+                    clearable
+                    trigger={triggerProps => (
+                      <OverlayTrigger.Button {...triggerProps} prefix={t('Status')}>
+                        {runStatus.length ? triggerProps.children : t('All')}
+                      </OverlayTrigger.Button>
+                    )}
+                    value={runStatus}
+                    options={RUN_STATUSES.map(status => ({
+                      value: status,
+                      label: RUN_STATUS_LABELS[status],
+                    }))}
+                    onChange={options =>
+                      setQueryParams({
+                        runStatus: options.map(option => option.value),
+                        cursor: null,
+                      })
+                    }
+                    position="bottom-end"
+                  />
+                  <CompactSelect
+                    trigger={triggerProps => (
                       <OverlayTrigger.Button {...triggerProps} prefix={t('Sort By')} />
                     )}
-                    value="recentActivity"
-                    options={[{label: t('Recent Activity'), value: 'recentActivity'}]}
-                    onChange={() => null}
+                    value={sort}
+                    options={SORT_OPTIONS}
+                    onChange={option =>
+                      setQueryParams({sort: option.value, cursor: null})
+                    }
                     position="bottom-end"
                     data-test-id="investigations-sort"
                   />

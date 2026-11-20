@@ -34,18 +34,26 @@ type ListOptions = {
   organizationSlug: string;
   cursor?: string;
   query?: string;
+  runStatus?: string[];
+  sort?: 'dateUpdated' | 'dateCreated';
+  strategy?: string;
+  trigger?: 'me' | 'user' | 'automation';
 };
 
 export function investigationListQueryOptions({
   organizationSlug,
   cursor,
   query,
+  runStatus,
+  sort,
+  strategy,
+  trigger,
 }: ListOptions) {
   return apiOptions.as<InvestigationListItem[]>()(
     '/organizations/$organizationIdOrSlug/notebooks/',
     {
       path: {organizationIdOrSlug: organizationSlug},
-      query: {status: 'active', cursor, query},
+      query: {status: 'active', cursor, query, runStatus, sort, strategy, trigger},
       staleTime: 0,
     }
   );
