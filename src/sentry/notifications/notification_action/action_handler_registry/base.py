@@ -18,7 +18,7 @@ from sentry.workflow_engine.types import (
 logger = logging.getLogger(__name__)
 
 
-class NotificationActionHandler(ActionHandler):
+class IssueNotificationActionHandler(ActionHandler):
     @staticmethod
     @override
     def validate_event_data(event_data: WorkflowEventData) -> None:
@@ -32,7 +32,7 @@ class NotificationActionHandler(ActionHandler):
             raise UnsupportedActionEvent("This action requires a project-scoped detector")
 
 
-class IntegrationActionHandler(NotificationActionHandler, ABC):
+class IntegrationActionHandler(IssueNotificationActionHandler, ABC):
     provider_slug: IntegrationProviderSlug
 
 

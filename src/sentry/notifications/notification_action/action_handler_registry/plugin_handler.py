@@ -2,7 +2,7 @@ import logging
 from typing import override
 
 from sentry.notifications.notification_action.action_handler_registry.base import (
-    NotificationActionHandler,
+    IssueNotificationActionHandler,
 )
 from sentry.sentry_apps.services.legacy_webhook.service import send_legacy_webhooks_for_invocation
 from sentry.services.eventstore.models import GroupEvent
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 @action_handler_registry.register(Action.Type.PLUGIN)
-class PluginActionHandler(NotificationActionHandler):
+class PluginActionHandler(IssueNotificationActionHandler):
     group = ActionHandler.Group.OTHER
 
     config_schema = {

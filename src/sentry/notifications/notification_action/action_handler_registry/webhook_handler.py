@@ -3,7 +3,7 @@ from typing import override
 
 from sentry.models.activity import Activity
 from sentry.notifications.notification_action.action_handler_registry.base import (
-    NotificationActionHandler,
+    IssueNotificationActionHandler,
 )
 from sentry.notifications.notification_action.utils import execute_via_activity_type_registry
 from sentry.sentry_apps.services.legacy_webhook.service import (
@@ -26,7 +26,7 @@ def _handle_legacy_webhooks(invocation: ActionInvocation) -> None:
 
 
 @action_handler_registry.register(Action.Type.WEBHOOK)
-class WebhookActionHandler(NotificationActionHandler):
+class WebhookActionHandler(IssueNotificationActionHandler):
     group = ActionHandler.Group.OTHER
 
     config_schema = {
