@@ -7,6 +7,7 @@ import {
   escapeTagValueForSearch,
   formatFilterValue,
   getValidOpsForFilter,
+  splitAggregateParameters,
   unescapeAsteriskSearchValue,
   unescapeTagValue,
 } from './utils';
@@ -354,5 +355,22 @@ describe('formatFilterValue', () => {
         } as any,
       })
     ).toBe('foo\\\\*bar');
+  });
+});
+
+describe('splitAggregateParameters', () => {
+  it.each([
+    ['', ['']],
+    ['span.duration,greater,300', ['span.duration', 'greater', '300']],
+    ['tags[foo,number],bar', ['tags[foo,number]', 'bar']],
+    ['"a, b",c', ['"a, b"', 'c']],
+    ['"say \\"a, b\\"",c', ['"say \\"a, b\\""', 'c']],
+    [
+      '`span.op:[db,http] span.description:"a, b"`,span.duration',
+      ['`span.op:[db,http] span.description:"a, b"`', 'span.duration'],
+    ],
+    ['`span.op:db', ['`span.op:db']],
+  ])('splits %s', (text, expected) => {
+    expect(splitAggregateParameters(text)).toEqual(expected);
   });
 });

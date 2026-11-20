@@ -7,6 +7,7 @@ import {
   escapeTagValue,
   escapeTagValueForSearch,
   getArgsToken,
+  splitAggregateParameters,
   unescapeAsteriskSearchValue,
 } from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
 import {getDefaultValueForValueType} from 'sentry/components/searchQueryBuilder/tokens/utils';
@@ -860,7 +861,10 @@ function updateAggregateArgs(
   action: UpdateAggregateArgsAction,
   {getFieldDefinition}: {getFieldDefinition: FieldDefinitionGetter}
 ): QueryBuilderState {
-  const fieldDefinition = getFieldDefinition(getKeyName(action.token.key));
+  const newArgs = splitAggregateParameters(action.value).map(arg => arg.trim());
+  const fieldDefinition = getFieldDefinition(getKeyName(action.token.key), {
+    aggregateArgs: newArgs,
+  });
   const focusOverride =
     action.focusOverride === undefined ? state.focusOverride : action.focusOverride;
 
@@ -872,9 +876,7 @@ function updateAggregateArgs(
     };
   }
 
-  const newValueType = fieldDefinition.parameterDependentValueType(
-    action.value.split(',').map(arg => arg.trim())
-  );
+  const newValueType = fieldDefinition.parameterDependentValueType(newArgs);
   const oldValueType = convertTokenTypeToValueType(action.token.value.type);
 
   if (newValueType === oldValueType) {

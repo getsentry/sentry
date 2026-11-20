@@ -40,6 +40,16 @@ describe('Explore equation conditional aggregates', () => {
     });
   });
 
+  it('resolves the value type from the arguments after the filter', () => {
+    const definition = getExploreEquationFieldDefinition('p95_if');
+    expect(
+      definition?.parameterDependentValueType?.(['`span.op:db`', 'span.duration'])
+    ).toBe('duration');
+    expect(definition?.parameterDependentValueType?.(['``', 'span.duration'])).toBe(
+      'duration'
+    );
+  });
+
   it('keeps Discover avg_if when existing args are not backtick filters', () => {
     const definition = getExploreEquationFieldDefinition('avg_if', undefined, [
       'span.duration',

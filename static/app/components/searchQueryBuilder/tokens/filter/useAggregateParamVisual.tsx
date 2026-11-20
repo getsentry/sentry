@@ -4,6 +4,8 @@ import {useSearchQueryBuilderConfig} from 'sentry/components/searchQueryBuilder/
 import {getKeyLabel} from 'sentry/components/searchQueryBuilder/tokens/filterKeyListBox/getKeyLabel';
 import type {AggregateFilter} from 'sentry/components/searchSyntax/parser';
 
+import {getAggregateArgTexts} from './utils';
+
 interface UseAggregateParamVisualOptions {
   token: AggregateFilter;
 }
@@ -12,7 +14,9 @@ export function useAggregateParamVisual({token}: UseAggregateParamVisualOptions)
   const {filterKeys, getFieldDefinition} = useSearchQueryBuilderConfig();
 
   return useMemo(() => {
-    const aggregateDefinition = getFieldDefinition(token.key.name.text);
+    const aggregateDefinition = getFieldDefinition(token.key.name.text, {
+      aggregateArgs: getAggregateArgTexts(token),
+    });
 
     const params =
       token.key.args?.args?.map((arg, i) => {

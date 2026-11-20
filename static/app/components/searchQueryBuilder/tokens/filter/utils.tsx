@@ -338,3 +338,47 @@ export function areWildcardOperatorsAllowed(
 
   return false;
 }
+
+/**
+ * Raw text of each argument of an aggregate filter key, such as
+ * ['`span.op:db`', 'span.duration'] for count_if(`span.op:db`,span.duration).
+ */
+export function getAggregateArgTexts(token: AggregateFilter): string[] {
+  return token.key.args?.args.map(arg => arg.value?.text ?? '') ?? [];
+}
+
+/**
+ * Split aggregate parameter text on commas. Commas inside explicit tags
+ * (`tags[foo,number]`), quoted values, and backtick-delimited `_if` filters
+ * (`` `span.op:[db,http]` ``) do not split.
+ */
+export function splitAggregateParameters(text: string): string[] {
+  const parameters: string[] = [];
+  let closingDelimiter: string | null = null;
+  let start = 0;
+
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (closingDelimiter) {
+      if (c === '\\' && closingDelimiter === '"') {
+        i++;
+      } else if (c === closingDelimiter) {
+        closingDelimiter = null;
+      }
+      continue;
+    }
+
+    if (c === '[') {
+      closingDelimiter = ']';
+    } else if (c === '"' || c === '`') {
+      closingDelimiter = c;
+    } else if (c === ',') {
+      parameters.push(text.slice(start, i));
+      start = i + 1;
+    }
+  }
+
+  parameters.push(text.slice(start));
+
+  return parameters;
+}

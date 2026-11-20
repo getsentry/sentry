@@ -275,6 +275,33 @@ describe('searchSyntax/parser', () => {
     });
   });
 
+  it.each([
+    '',
+    'span.op:db',
+    'x:1 AND (y:2 OR z:3)',
+    'span.description:"hello world"',
+    'gen_ai.tool.name:["search docs",calculator]',
+    'span.description:"say \\"hello\\""',
+  ])('parses backtick-delimited `_if` filter argument %s', predicate => {
+    const result = parseSearch(`count_if(\`${predicate}\`,span.duration):>0`);
+
+    expect(result).toHaveLength(3);
+    expect(result![1]).toMatchObject({
+      type: Token.FILTER,
+      filter: FilterType.AGGREGATE_NUMERIC,
+      key: {
+        type: Token.KEY_AGGREGATE,
+        name: {value: 'count_if'},
+        args: {
+          args: [
+            {value: {type: Token.KEY_AGGREGATE_PARAMS, value: `\`${predicate}\``}},
+            {value: {type: Token.KEY_AGGREGATE_PARAMS, value: 'span.duration'}},
+          ],
+        },
+      },
+    });
+  });
+
   it('returns token warnings', () => {
     const result = parseSearch('foo:bar bar:baz tags[foo]:bar tags[bar]:baz', {
       getFilterTokenWarning: key => (key === 'foo' ? 'foo warning' : null),

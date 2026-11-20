@@ -18,6 +18,7 @@ import type {AggregationKey} from 'sentry/utils/fields';
 import {
   ATTRIBUTE_SEARCH_SECONDARY_ALIASES,
   FieldKind,
+  getExploreEquationFieldDefinition,
   getFieldDefinition,
 } from 'sentry/utils/fields';
 import {getHasTag} from 'sentry/utils/tag';
@@ -94,11 +95,13 @@ function getTraceItemFieldDefinitionFunction(
     // Array membership keys carry a `[*]` suffix (eg. `foo[*]`); strip it so the
     // field definition resolves to the attribute's stored backend key.
     const baseKey = stripArrayMembershipOperator(key);
-    return getFieldDefinition(
-      baseKey,
-      typeMap[itemType],
-      options?.kind ?? tags[baseKey]?.kind
-    );
+    const kind = options?.kind ?? tags[baseKey]?.kind;
+    if (itemType === TraceItemDataset.SPANS) {
+      // Use the equation builder's `_if` signatures so new aggregate filters take a
+      // search filter, while Discover-style arguments keep their old signature.
+      return getExploreEquationFieldDefinition(baseKey, kind, options?.aggregateArgs);
+    }
+    return getFieldDefinition(baseKey, typeMap[itemType], kind);
   };
 }
 

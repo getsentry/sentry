@@ -14,7 +14,15 @@ export type FocusOverride = {itemKey: string | 'end'; part?: 'value' | 'key' | '
 
 export type FieldDefinitionGetter = (
   key: string,
-  options?: {kind?: FieldKind}
+  options?: {
+    /**
+     * Raw argument texts of the aggregate being resolved. Lets a getter choose
+     * between signatures of the same function, such as Discover-style and
+     * filter-first `count_if`.
+     */
+    aggregateArgs?: readonly string[];
+    kind?: FieldKind;
+  }
 ) => FieldDefinition | null;
 
 export type CallbackSearchState = {

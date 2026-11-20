@@ -375,7 +375,15 @@ function_args
     }
 
 aggregate_param
-  = explicit_tag_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+  = explicit_tag_aggregate_param / query_aggregate_param / quoted_aggregate_param / raw_aggregate_param
+
+// Backtick-delimited search query used as the filter argument of an `_if` aggregate,
+// eg. count_if(`span.op:db AND span.description:"a, b"`,span.duration). Mirrors
+// `query_aggregate_param` in src/sentry/api/event_search.py.
+query_aggregate_param
+  = param:$('`' ('"' ('\\"' / [^"])* '"' / [^`"]+)* '`') {
+      return tc.tokenKeyAggregateParam(param, false);
+    }
 
 raw_aggregate_param
   = param:$[^()\t\n, \"]+ {
