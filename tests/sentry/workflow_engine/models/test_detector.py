@@ -31,6 +31,12 @@ class DetectorTest(BaseWorkflowTest):
     def setUp(self) -> None:
         self.detector = self.create_detector()
 
+    def test_get_organization_id_uses_project_cache(self) -> None:
+        detector = Detector.objects.get(id=self.detector.id)
+        project = Project.objects.get_from_cache(id=detector.project_id)
+        with self.assertNumQueries(0):
+            assert detector.get_organization_id() == project.organization_id
+
     def test_queryset(self) -> None:
         """
         Test that we filter out objects with statuses other than 'active'
