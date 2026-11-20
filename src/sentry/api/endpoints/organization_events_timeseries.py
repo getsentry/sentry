@@ -600,20 +600,25 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 if "timestamp" in [col.strip("-") for col in raw_orderby]:
                     raise ParseError("Cannot order by timestamp")
             if dataset in RPC_DATASETS:
-                rpc_top_events = dataset.run_top_events_timeseries_query(
-                    params=snuba_params,
-                    query_string=query,
-                    y_axes=query_columns,
-                    raw_groupby=raw_groupby,
-                    orderby=self.get_orderby(request),
-                    limit=top_events,
-                    include_other=include_other,
-                    referrer=referrer,
-                    config=self.get_rpc_config(dataset, request, organization),
-                    sampling_mode=snuba_params.sampling_mode,
-                    equations=self.get_equation_list(organization, request, param_name="groupBy"),
-                    additional_queries=additional_queries,
-                    transformations=transformations,
+                rpc_top_events = cast(
+                    "SnubaTSResult | dict[str, SnubaTSResult]",
+                    dataset.run_top_events_timeseries_query(
+                        params=snuba_params,
+                        query_string=query,
+                        y_axes=query_columns,
+                        raw_groupby=raw_groupby,
+                        orderby=self.get_orderby(request),
+                        limit=top_events,
+                        include_other=include_other,
+                        referrer=referrer,
+                        config=self.get_rpc_config(dataset, request, organization),
+                        sampling_mode=snuba_params.sampling_mode,
+                        equations=self.get_equation_list(
+                            organization, request, param_name="groupBy"
+                        ),
+                        additional_queries=additional_queries,
+                        transformations=transformations,
+                    ),
                 )
                 return rpc_top_events
             return dataset.top_events_timeseries(
@@ -636,16 +641,19 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
             )
 
         if dataset in RPC_DATASETS:
-            result = dataset.run_timeseries_query(
-                params=snuba_params,
-                query_string=query,
-                y_axes=query_columns,
-                referrer=referrer,
-                config=self.get_rpc_config(dataset, request, organization),
-                sampling_mode=snuba_params.sampling_mode,
-                comparison_delta=comparison_delta,
-                additional_queries=additional_queries,
-                transformations=transformations,
+            result = cast(
+                "SnubaTSResult | dict[str, SnubaTSResult]",
+                dataset.run_timeseries_query(
+                    params=snuba_params,
+                    query_string=query,
+                    y_axes=query_columns,
+                    referrer=referrer,
+                    config=self.get_rpc_config(dataset, request, organization),
+                    sampling_mode=snuba_params.sampling_mode,
+                    comparison_delta=comparison_delta,
+                    additional_queries=additional_queries,
+                    transformations=transformations,
+                ),
             )
             if incremental_loading and not skip_cache and is_cache_candidate:
                 with traces.start_span("set_cache"):

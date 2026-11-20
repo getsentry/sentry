@@ -325,7 +325,9 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        request = cast(
+            "HttpRequest", getattr(RequestFactory(), method.lower())(path, query_params=GET)
+        )
         if subdomain:
             setattr(request, "subdomain", subdomain)
         request.META["REMOTE_ADDR"] = "127.0.0.1"
@@ -2070,7 +2072,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        values = value if isinstance(value, list) else [value]
+        values = cast(list[int | dict[str, int]], value if isinstance(value, list) else [value])
         for subvalue in values:
             self.store_metric(
                 org_id,

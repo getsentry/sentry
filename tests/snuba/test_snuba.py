@@ -2,6 +2,7 @@ import copy
 import time
 import uuid
 from datetime import datetime, timedelta
+from typing import cast
 from unittest import mock
 
 import pytest
@@ -57,13 +58,16 @@ class SnubaTest(TestCase, SnubaTestCase):
                 {},
             )
         )
-        result = snuba.query(
-            start=now - timedelta(days=1),
-            end=now + timedelta(days=1),
-            groupby=["project_id"],
-            filter_keys={"project_id": [self.project.id]},
-            referrer="testing.test",
-            tenant_ids={"referrer": "testing.test", "organization_id": 1},
+        result = cast(
+            "dict[int, int]",
+            snuba.query(
+                start=now - timedelta(days=1),
+                end=now + timedelta(days=1),
+                groupby=["project_id"],
+                filter_keys={"project_id": [self.project.id]},
+                referrer="testing.test",
+                tenant_ids={"referrer": "testing.test", "organization_id": 1},
+            ),
         )
         assert result == {self.project.id: 1}
 

@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import abc
+from typing import cast
 
 from django.conf import settings
 
@@ -25,7 +26,7 @@ class GitHubCopilotIdentityService(RpcService):
         class_path = getattr(settings, "GITHUB_COPILOT_IDENTITY_SERVICE", None)
         if class_path is None:
             return _DefaultGitHubCopilotIdentityService()
-        impl_class = import_string(class_path)
+        impl_class = cast("type[RpcService]", import_string(class_path))
         return impl_class()
 
     @rpc_method

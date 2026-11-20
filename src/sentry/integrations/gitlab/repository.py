@@ -74,7 +74,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
 
         repo_id = setup_config["identifier"]
-        instance = installation.model.metadata["instance"]
+        instance = cast(str, installation.model.metadata["instance"])
 
         try:
             project = cast(GitLabProject, client.get_project(repo_id))
@@ -203,7 +203,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
                 return self._format_commits(client, repo, commits)
             else:
                 comparison = client.compare_commits(repo.config["project_id"], start_sha, end_sha)
-                commits = comparison["commits"]
+                commits = cast(Sequence[GitLabCommit], comparison["commits"])
                 return self._format_commits(client, repo, commits)
         except Exception as e:
             raise installation.raise_error(e)
