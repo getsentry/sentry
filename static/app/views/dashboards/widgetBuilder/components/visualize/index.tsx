@@ -62,14 +62,7 @@ import {
   RATE_AGGREGATES_IN_EQUATION_DISABLED,
   TraceMetricRow,
 } from './traceMetrics/traceMetricRow';
-import {
-  getAggregateKey,
-  getUnifiedTraceMetricRows,
-  hasDuplicateAggregate,
-  isAggregateReferenced,
-  replaceAggregateInEquations,
-  type HiddenTraceMetricRow as HiddenTraceMetricRowData,
-} from './traceMetrics/unifiedEquations';
+import {useUnifiedTraceMetricRows} from './traceMetrics/useUnifiedTraceMetricRows';
 import {AggregateParameterField} from './aggregateParameterField';
 import {SelectRow} from './selectRow';
 import {buildTraceItemColumnOptions} from './traceItemColumnOptions';
@@ -492,127 +485,35 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     MAX_METRICS_ALLOWED
   );
 
-  // Hidden rows, row letters and the equation reference map for the unified
-  // trace metrics list. Hidden rows exist only inside equations.
-  // Where each hidden row sat in the list when it was hidden, keyed by
-  // aggregate. Keeps the row letters in place while editing; on a fresh load
-  // hidden rows sit above the equation that uses them.
-  const [hiddenRowPositions, setHiddenRowPositions] = useState(
-    () => new Map<string, number>()
-  );
-  const unifiedRows = useMemo(
-    () =>
-      isUnifiedTraceMetrics
-        ? getUnifiedTraceMetricRows(fields ?? [], hiddenRowPositions)
-        : null,
-    [isUnifiedTraceMetrics, fields, hiddenRowPositions]
-  );
-
-  // A new, empty row defaults to the first metric in the list. Skip a metric
-  // when that default would match an aggregate that only lives inside an
-  // equation, so adding a row does not look like it revealed a hidden one.
-  const hiddenRowAggregates = useMemo(
-    () => unifiedRows?.hiddenRows.map(row => row.aggregate) ?? [],
-    [unifiedRows]
-  );
-
-  const updateUnifiedField = (index: number, nextField: QueryFieldValue) => {
-    const currentFields = fields ?? [];
-    const previousField = currentFields[index];
-    let nextFields = currentFields.map((f, i) => (i === index ? nextField : f));
-    // Equations refer to aggregates by value, so they only need rewriting when
-    // this row was the last visible one with that aggregate.
-    if (
-      previousField?.kind === FieldValueKind.FUNCTION &&
-      nextField.kind === FieldValueKind.FUNCTION &&
-      !hasDuplicateAggregate(currentFields, index, generateFieldAsString(previousField))
-    ) {
-      nextFields = replaceAggregateInEquations(
-        nextFields,
-        generateFieldAsString(previousField),
-        generateFieldAsString(nextField)
-      );
-    }
-    dispatch({type: updateAction, payload: nextFields});
-    setError?.({...error, queries: []});
-  };
-
-  // Hiding a row removes it from the saved aggregates. It stays in the list as
-  // a hidden row, at the same spot, for as long as an equation uses it.
-  const hideRow = (index: number, field: QueryFieldValue) => {
-    const position = unifiedRows?.statePositions.get(index);
-    if (position !== undefined) {
-      setHiddenRowPositions(prev =>
-        new Map(prev).set(getAggregateKey(generateFieldAsString(field)), position)
-      );
-    }
-    dispatch({type: BuilderStateAction.DELETE_AGGREGATE, payload: index});
-  };
-
-  // A hidden row lives inside the equations, so editing it rewrites them.
-  const updateHiddenRow = (row: HiddenTraceMetricRowData, nextField: QueryFieldValue) => {
-    const nextAggregate = generateFieldAsString(nextField);
-    setHiddenRowPositions(prev => {
-      const position = prev.get(getAggregateKey(row.aggregate));
-      if (position === undefined) {
-        return prev;
-      }
-      const next = new Map(prev);
-      next.delete(getAggregateKey(row.aggregate));
-      next.set(getAggregateKey(nextAggregate), position);
-      return next;
-    });
-    dispatch({
-      type: updateAction,
-      payload: replaceAggregateInEquations(fields ?? [], row.aggregate, nextAggregate),
-    });
-    setError?.({...error, queries: []});
-  };
-
-  // Showing a hidden row adds it back to the saved aggregates where it sits.
-  const showHiddenRow = (row: HiddenTraceMetricRowData) => {
-    setHiddenRowPositions(prev => {
-      if (!prev.has(getAggregateKey(row.aggregate))) {
-        return prev;
-      }
-      const next = new Map(prev);
-      next.delete(getAggregateKey(row.aggregate));
-      return next;
-    });
-    const currentFields = fields ?? [];
-    const payload = [
-      ...currentFields.slice(0, row.anchorIndex),
-      row.field,
-      ...currentFields.slice(row.anchorIndex),
-    ];
-    dispatch({
-      type: updateAction,
-      payload,
-      ...(usesYAxisState && {
-        // The new row has no transformations to carry over.
-        sourceIndices: payload.map((_, i) =>
-          i < row.anchorIndex ? i : i === row.anchorIndex ? -1 : i - 1
-        ),
-      }),
-    });
-  };
+  // The row model behind the unified trace metrics list. Rows keep stable
+  // letters across reorders, hiding and edits; the builder fields are derived
+  // from them.
+  const unifiedRows = useUnifiedTraceMetricRows({
+    enabled: isUnifiedTraceMetrics,
+    fields: fields ?? [],
+    updateAction,
+    usesYAxisState,
+    dispatch,
+  });
 
   // Hidden rows are not sortable items. They render above the field at
   // `anchorIndex`, or after the last field.
   const renderHiddenRows = (anchorIndex: number, indent: boolean) =>
-    unifiedRows?.hiddenRowsByAnchor
-      .get(anchorIndex)
-      ?.map(row => (
-        <HiddenTraceMetricRow
-          key={row.aggregate}
-          row={row}
-          label={unifiedRows.hiddenLabels.get(row.aggregate) ?? ''}
-          indent={indent}
-          disabled={disableTransactionWidget}
-          onFieldChange={nextField => updateHiddenRow(row, nextField)}
-          onShow={() => showHiddenRow(row)}
-        />
-      )) ?? [];
+    isUnifiedTraceMetrics
+      ? (unifiedRows.hiddenRowsByAnchor.get(anchorIndex)?.map(row => (
+          <HiddenTraceMetricRow
+            key={row.id}
+            row={row}
+            indent={indent}
+            disabled={disableTransactionWidget}
+            onFieldChange={nextField => {
+              unifiedRows.setHiddenRowField(row, nextField);
+              setError?.({...error, queries: []});
+            }}
+            onShow={() => unifiedRows.show(row)}
+          />
+        )) ?? [])
+      : [];
 
   return (
     <Fragment>
@@ -655,7 +556,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                   const activeIndex = getIndex(active.id);
                   const overIndex = getIndex(over.id);
 
-                  if (activeIndex !== overIndex) {
+                  if (activeIndex !== overIndex && isUnifiedTraceMetrics) {
+                    unifiedRows.move(activeIndex, overIndex);
+                  } else if (activeIndex !== overIndex) {
                     dispatch({
                       type: updateAction,
                       payload: arrayMove(fields ?? [], activeIndex, overIndex),
@@ -797,10 +700,11 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       setError?.({...error, queries: []});
                     };
 
-                    const rowLabel = unifiedRows?.stateLabels.get(index);
+                    const rowLabel = isUnifiedTraceMetrics
+                      ? unifiedRows.getLabel(index)
+                      : undefined;
                     const isReferencedByEquation =
-                      unifiedRows !== null &&
-                      isAggregateReferenced(unifiedRows.referencedKeys, field);
+                      isUnifiedTraceMetrics && unifiedRows.isReferenced(index);
                     // Rows an equation uses can be hidden from the chart; their letter
                     // doubles as the toggle.
                     const unifiedRowLabel = rowLabel ? (
@@ -808,7 +712,9 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         label={rowLabel}
                         disabled={disableTransactionWidget}
                         onToggle={
-                          isReferencedByEquation ? () => hideRow(index, field) : undefined
+                          isReferencedByEquation
+                            ? () => unifiedRows.hide(index)
+                            : undefined
                         }
                       />
                     ) : null;
@@ -852,7 +758,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                         field={field}
                         onFieldChange={
                           isUnifiedTraceMetrics
-                            ? nextField => updateUnifiedField(index, nextField)
+                            ? nextField => {
+                                unifiedRows.setField(index, nextField);
+                                setError?.({...error, queries: []});
+                              }
                             : undefined
                         }
                         disabledAggregates={
@@ -861,7 +770,7 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                             : undefined
                         }
                         excludeDefaultAggregates={
-                          isUnifiedTraceMetrics ? hiddenRowAggregates : undefined
+                          isUnifiedTraceMetrics ? unifiedRows.hiddenAggregates : undefined
                         }
                         fieldSelector={autoSelectFirstColumn =>
                           field.kind === FieldValueKind.FIELD ? (
@@ -974,18 +883,12 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                       disabled={disableTransactionWidget}
                                     >
                                       <TraceMetricEquationRow
-                                        equation={field.field}
-                                        referenceMap={unifiedRows?.referenceMap ?? {}}
+                                        expression={unifiedRows.getExpression(index)}
+                                        resolved={field.field}
+                                        referenceMap={unifiedRows.referenceMap}
                                         disabled={disableTransactionWidget}
-                                        onUpdate={value => {
-                                          dispatch({
-                                            type: updateAction,
-                                            payload: fields.map((_field, i) =>
-                                              i === index
-                                                ? {..._field, field: value}
-                                                : _field
-                                            ),
-                                          });
+                                        onChange={expression => {
+                                          unifiedRows.setExpression(index, expression);
                                           setError?.({...error, queries: []});
                                         }}
                                       />
@@ -1035,9 +938,10 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                           alias={aliasInput}
                                           field={field}
                                           disabled={disableTransactionWidget}
-                                          onFieldChange={nextField =>
-                                            updateUnifiedField(index, nextField)
-                                          }
+                                          onFieldChange={nextField => {
+                                            unifiedRows.setField(index, nextField);
+                                            setError?.({...error, queries: []});
+                                          }}
                                         >
                                           {metricSelectRow}
                                         </TraceMetricRow>
