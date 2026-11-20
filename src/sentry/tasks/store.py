@@ -45,7 +45,7 @@ from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.event import track_event_since_received
 from sentry.utils.event_tracker import TransactionStageStatus, track_sampled_event
-from sentry.utils.kvstore.bigtable import bigtable_operation_timeout
+from sentry.utils.kvstore.bigtable import cap_bigtable_operation_timeout
 from sentry.utils.safe import safe_execute
 from sentry.utils.sdk import set_current_event_project
 from sentry.viewer_context import Actor, ActorType, ViewerContext, viewer_context_scope
@@ -56,7 +56,7 @@ info_logger = logging.getLogger("sentry.store")
 # Nodestore operations during save stop retrying after 25s. An in-flight
 # attempt may overrun that by up to ~5s, keeping one operation within ~30s,
 # well within the 65s processing deadline of the save tasks.
-SAVE_EVENT_NODESTORE_TIMEOUT = 25.0
+SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS = 25.0
 
 
 class RetryProcessing(Exception):
@@ -657,7 +657,7 @@ def _do_save_event(
                 nodestore_timeout = (
                     contextlib.nullcontext()
                     if options.get("store.save-event.bigtable-operation-timeout.disabled")
-                    else bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT)
+                    else cap_bigtable_operation_timeout(SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS)
                 )
                 with nodestore_timeout:
                     # event.project.organization is populated after this statement.

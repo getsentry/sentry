@@ -17,7 +17,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
-    SAVE_EVENT_NODESTORE_TIMEOUT,
+    SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS,
     is_process_disabled,
     preprocess_event,
     process_event,
@@ -459,7 +459,7 @@ def test_save_event_sets_viewer_context(default_project: Project) -> None:
 
 @django_db_all
 @pytest.mark.parametrize(
-    ("disabled", "expected_timeout"), [(False, SAVE_EVENT_NODESTORE_TIMEOUT), (True, None)]
+    ("disabled", "expected_timeout"), [(False, SAVE_EVENT_NODESTORE_TIMEOUT_SECONDS), (True, None)]
 )
 def test_save_event_bigtable_operation_timeout(
     default_project: Project, disabled: bool, expected_timeout: float | None

@@ -12,7 +12,7 @@ from google.rpc.status_pb2 import Status
 from sentry.utils.kvstore.bigtable import (
     BigtableError,
     BigtableKVStorage,
-    bigtable_operation_timeout,
+    cap_bigtable_operation_timeout,
 )
 
 
@@ -119,12 +119,12 @@ def test_get_uses_tighter_context_timeout() -> None:
     mock_table = mock.Mock()
     mock_table.read_row.return_value = None
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(2.0):
+        with cap_bigtable_operation_timeout(2.0):
             store.get("some-key")
         _, kwargs = mock_table.read_row.call_args
         assert kwargs["retry"]._timeout == 2.0
 
-        with bigtable_operation_timeout(30.0):
+        with cap_bigtable_operation_timeout(30.0):
             store.get("some-key")
         _, kwargs = mock_table.read_row.call_args
         assert kwargs["retry"]._timeout == 5.0
@@ -135,7 +135,7 @@ def test_get_many_uses_context_timeout() -> None:
     mock_table = mock.Mock()
     mock_table.read_rows.return_value = []
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(7.0):
+        with cap_bigtable_operation_timeout(7.0):
             list(store.get_many(["some-key"]))
 
     _, kwargs = mock_table.read_rows.call_args
@@ -159,7 +159,7 @@ def test_set_uses_context_timeout() -> None:
     mock_table.direct_row.return_value.table = mock_table
     mock_table.mutate_rows.return_value = [Status(code=0)]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(20.0):
+        with cap_bigtable_operation_timeout(20.0):
             store.set("some-key", b"value")
 
     _, kwargs = mock_table.mutate_rows.call_args
@@ -174,7 +174,7 @@ def test_attempt_timeout_follows_short_context_timeout() -> None:
     mock_table.direct_row.return_value.table = mock_table
     mock_table.mutate_rows.return_value = [Status(code=0)]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(3.0):
+        with cap_bigtable_operation_timeout(3.0):
             store.set("some-key", b"value")
 
     _, kwargs = mock_table.mutate_rows.call_args
@@ -188,7 +188,7 @@ def test_delete_attempt_timeout_is_at_least_one_second() -> None:
     mock_table.direct_row.return_value.table = mock_table
     mock_table.mutate_rows.return_value = [Status(code=0)]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(0.5):
+        with cap_bigtable_operation_timeout(0.5):
             store.delete("some-key")
 
     _, kwargs = mock_table.mutate_rows.call_args
@@ -203,7 +203,7 @@ def test_set_raises_when_mutation_times_out() -> None:
     # The client reports a ``None`` status for rows that ran out of retry time.
     mock_table.mutate_rows.return_value = [None]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(1.0), pytest.raises(BigtableError):
+        with cap_bigtable_operation_timeout(1.0), pytest.raises(BigtableError):
             store.set("some-key", b"value")
 
 
@@ -212,7 +212,7 @@ def test_delete_many_raises_when_mutation_times_out() -> None:
     mock_table = mock.Mock()
     mock_table.mutate_rows.return_value = [Status(code=0), None]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(1.0), pytest.raises(BigtableError):
+        with cap_bigtable_operation_timeout(1.0), pytest.raises(BigtableError):
             store.delete_many(["a", "b"])
 
 
@@ -222,13 +222,13 @@ def test_nested_context_cannot_loosen_timeout() -> None:
     mock_table.direct_row.return_value.table = mock_table
     mock_table.mutate_rows.return_value = [Status(code=0)]
     with mock.patch.object(store, "_get_table", return_value=mock_table):
-        with bigtable_operation_timeout(10.0):
-            with bigtable_operation_timeout(30.0):
+        with cap_bigtable_operation_timeout(10.0):
+            with cap_bigtable_operation_timeout(30.0):
                 store.set("some-key", b"value")
             _, kwargs = mock_table.mutate_rows.call_args
             assert kwargs["retry"]._timeout == 10.0
 
-            with bigtable_operation_timeout(5.0):
+            with cap_bigtable_operation_timeout(5.0):
                 store.set("some-key", b"value")
             _, kwargs = mock_table.mutate_rows.call_args
             assert kwargs["retry"]._timeout == 5.0
@@ -237,6 +237,15 @@ def test_nested_context_cannot_loosen_timeout() -> None:
             store.set("some-key", b"value")
             _, kwargs = mock_table.mutate_rows.call_args
             assert kwargs["retry"]._timeout == 10.0
+
+
+def test_cap_yields_effective_timeout() -> None:
+    with cap_bigtable_operation_timeout(10.0) as outer:
+        assert outer == 10.0
+        with cap_bigtable_operation_timeout(30.0) as clamped:
+            assert clamped == 10.0
+        with cap_bigtable_operation_timeout(5.0) as tightened:
+            assert tightened == 5.0
 
 
 def test_set_retries_once_and_records_metric() -> None:

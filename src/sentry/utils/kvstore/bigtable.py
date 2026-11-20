@@ -42,32 +42,24 @@ _bigtable_operation_timeout: ContextVar[float | None] = ContextVar(
 
 
 @contextlib.contextmanager
-def bigtable_operation_timeout(timeout: float) -> Generator[None]:
+def cap_bigtable_operation_timeout(timeout_seconds: float) -> Generator[float]:
     """
-    Caps how long, in seconds, each Bigtable operation within this context
-    keeps retrying before raising ``BigtableError``. The limit applies to each
-    operation individually, not to the block as a whole, so several slow
-    operations can together exceed it. It applies to every
-    ``BigtableKVStorage`` in the context (nodestore and any Bigtable-backed
-    processing store).
+    Only tightens, never loosens: an enclosing cap or an operation's own
+    default that is shorter wins, so this can't give calls more time. Yields
+    the effective cap.
 
-    Affected operations: ``get`` (only ever tightens its own 5s default),
-    ``get_many`` (retry budget), and ``set``, ``delete`` and ``delete_many``
-    (retry budget). ``bootstrap`` and ``destroy`` are unaffected.
+    Caps how long each Bigtable operation (not the block as a whole) keeps
+    retrying before raising ``BigtableError``. Applies to ``get``, ``get_many``,
+    ``set``, ``delete`` and ``delete_many`` on every ``BigtableKVStorage``.
 
-    For mutations, each attempt times out after 5s, or less if ``timeout`` is
-    shorter (see ``_mutate_rows``). ``timeout`` only decides whether to start
-    another attempt; it doesn't shorten one already running, so a mutation can
-    overrun ``timeout`` by up to one attempt.
-
-    This never loosens a tighter timeout, whether from an enclosing
-    ``bigtable_operation_timeout`` or an operation's own default.
+    A mutation attempt already running isn't cut short, so mutations can
+    overrun the cap by up to one attempt (at most 5s; see ``_mutate_rows``).
     """
     if (outer := _bigtable_operation_timeout.get()) is not None:
-        timeout = min(timeout, outer)
-    token = _bigtable_operation_timeout.set(timeout)
+        timeout_seconds = min(timeout_seconds, outer)
+    token = _bigtable_operation_timeout.set(timeout_seconds)
     try:
-        yield
+        yield timeout_seconds
     finally:
         _bigtable_operation_timeout.reset(token)
 
