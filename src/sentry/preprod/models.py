@@ -1,14 +1,20 @@
 from __future__ import annotations
 
+import logging
 from collections import defaultdict
 from enum import IntEnum, StrEnum
-from typing import ClassVar, Self, TypedDict, assert_never, cast
+from functools import partial
+from typing import IO, Any, ClassVar, Self, TypedDict, assert_never, cast
 
-from django.db import models
+from django.db import models, transaction
 from django.db.models import BooleanField, Case, IntegerField, OuterRef, Subquery, Sum, Value, When
 from django.db.models.functions import Coalesce
+from django.db.models.signals import pre_delete
+from django.dispatch import receiver
+from objectstore_client import Session
 
 from sentry.backup.scopes import RelocationScope
+from sentry.constants import DataCategory
 from sentry.db.models.base import DefaultFieldsModel, cell_silo_model
 from sentry.db.models.fields.bounded import (
     BoundedBigIntegerField,
@@ -21,8 +27,9 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.models.commitcomparison import CommitComparison
 from sentry.models.files.file import File
-from sentry.objectstore import UsecaseId
-from sentry.preprod.objectstore import ObjectstoreFile
+from sentry.models.project import Project
+from sentry.objectstore import UsecaseId, get_session
+from sentry.preprod.objectstore import ObjectstoreFile, retention_days
 
 HAS_INSTALLABLE_FILE = models.Q(installable_app_file_id__isnull=False) | models.Q(
     installable_app_storage_path__isnull=False
@@ -254,6 +261,36 @@ class PreprodArtifact(DefaultFieldsModel):
         return (
             self.installable_app_storage_path is not None
             or self.installable_app_file_id is not None
+        )
+
+    @staticmethod
+    def put_artifact_file(
+        project: Project, stream: IO[bytes], size: int, *, artifact_id: int
+    ) -> ObjectstoreFile:
+        # Launchpad uses the original build for both products.
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_ARTIFACTS,
+            project,
+            stream,
+            size,
+            filename=f"preprod_artifact_{artifact_id}.zip",
+            content_type="application/octet-stream",
+            ttl_days=max(
+                retention_days(project, DataCategory.SIZE_ANALYSIS),
+                retention_days(project, DataCategory.INSTALLABLE_BUILD),
+            ),
+        )
+
+    @staticmethod
+    def put_installable_file(project: Project, stream: IO[bytes], size: int) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_DISTRIBUTION,
+            project,
+            stream,
+            size,
+            filename="installable",
+            content_type="application/octet-stream",
+            ttl_days=retention_days(project, DataCategory.INSTALLABLE_BUILD),
         )
 
     def get_installable_file(self) -> File | ObjectstoreFile:
@@ -658,6 +695,18 @@ class PreprodArtifactSizeMetrics(DefaultFieldsModel):
     analysis_file_id = BoundedBigIntegerField(db_index=True, null=True)
     analysis_storage_path = models.TextField(null=True)
 
+    @staticmethod
+    def put_analysis_file(project: Project, stream: IO[bytes], size: int) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_SIZE,
+            project,
+            stream,
+            size,
+            filename="analysis.json",
+            content_type="application/json",
+            ttl_days=retention_days(project, DataCategory.SIZE_ANALYSIS),
+        )
+
     def get_analysis_file(self) -> File | ObjectstoreFile:
         if self.analysis_storage_path:
             return ObjectstoreFile.lookup(
@@ -730,6 +779,20 @@ class PreprodArtifactSizeComparison(DefaultFieldsModel):
     )
 
     organization_id = BoundedBigIntegerField(db_index=True)
+
+    @staticmethod
+    def put_result_file(
+        project: Project, stream: IO[bytes], size: int, *, filename: str = "comparison.json"
+    ) -> ObjectstoreFile:
+        return ObjectstoreFile.put(
+            UsecaseId.PREPROD_SIZE,
+            project,
+            stream,
+            size,
+            filename=filename,
+            content_type="application/json",
+            ttl_days=retention_days(project, DataCategory.SIZE_ANALYSIS),
+        )
 
     def get_result_file(self) -> File | ObjectstoreFile:
         if self.storage_path:
@@ -886,6 +949,58 @@ class PreprodComparisonApproval(DefaultFieldsModel):
     class Meta:
         app_label = "preprod"
         db_table = "sentry_preprodcomparisonapproval"
+
+
+def _delete_object(session: Session, key: str) -> None:
+    try:
+        session.delete(key)
+    except Exception:
+        logging.getLogger(__name__).exception(
+            "preprod.objectstore.delete_failed", extra={"key": key}
+        )
+
+
+@receiver(pre_delete, sender=PreprodArtifact)
+def _delete_build_objects(instance: PreprodArtifact, using: str, **kwargs: Any) -> None:
+    for usecase, key in (
+        (UsecaseId.PREPROD_ARTIFACTS, instance.storage_path),
+        (UsecaseId.PREPROD_DISTRIBUTION, instance.installable_app_storage_path),
+    ):
+        if key:
+            session = get_session(usecase, instance.project)
+            transaction.on_commit(partial(_delete_object, session, key), using=using)
+
+
+@receiver(pre_delete, sender=PreprodArtifactSizeComparison)
+def _delete_comparison_object(
+    instance: PreprodArtifactSizeComparison, using: str, **kwargs: Any
+) -> None:
+    if instance.storage_path:
+        session = get_session(
+            UsecaseId.PREPROD_SIZE, instance.head_size_analysis.preprod_artifact.project
+        )
+        transaction.on_commit(partial(_delete_object, session, instance.storage_path), using=using)
+
+
+@receiver(pre_delete, sender=PreprodArtifactSizeMetrics)
+def _delete_analysis_object(
+    instance: PreprodArtifactSizeMetrics, using: str, **kwargs: Any
+) -> None:
+    key = instance.analysis_storage_path
+    if key:
+        artifact_id = instance.preprod_artifact_id
+        session = get_session(UsecaseId.PREPROD_SIZE, instance.preprod_artifact.project)
+
+        def delete_unreferenced() -> None:
+            # Component metrics of the same build can share one report.
+            if (
+                not PreprodArtifactSizeMetrics.objects.using(using)
+                .filter(preprod_artifact_id=artifact_id, analysis_storage_path=key)
+                .exists()
+            ):
+                _delete_object(session, key)
+
+        transaction.on_commit(delete_unreferenced, using=using)
 
 
 from sentry.preprod.snapshots.models import PreprodSnapshotComparison, PreprodSnapshotMetrics
