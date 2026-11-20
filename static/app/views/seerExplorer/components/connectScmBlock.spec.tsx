@@ -2,7 +2,7 @@ import {Fragment, useState} from 'react';
 import {focusManager} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, cleanup, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -14,9 +14,15 @@ const REPO_ACCESS_URL = '/organizations/org-slug/seer/repo-access/';
 const INTEGRATIONS_LINK =
   '/settings/org-slug/integrations/?category=source%20code%20management';
 const REPOS_LINK = '/settings/org-slug/repos/';
+const INTEGRATION_REQUEST_URL = '/organizations/org-slug/integration-requests/';
 
 describe('ConnectScmBlock', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
+  // Can't install integrations.
+  const memberOrganization = OrganizationFixture({
+    slug: 'org-slug',
+    access: ['org:read', 'project:read', 'team:read'],
+  });
 
   function mockRepoAccess(status: string, connectedAccounts: string[] = []) {
     return MockApiClient.addMockResponse({
@@ -28,9 +34,8 @@ describe('ConnectScmBlock', () => {
 
   function renderBlock({
     failureReason = 'no_scm_integration',
-  }: {
-    failureReason?: string;
-  } = {}) {
+    org = organization,
+  }: {failureReason?: string; org?: typeof organization} = {}) {
     const respondToUserInput = jest.fn();
     const pendingInput: PendingUserInput = {
       id: 'input-id',
@@ -42,7 +47,7 @@ describe('ConnectScmBlock', () => {
         pendingInput={pendingInput}
         respondToUserInput={respondToUserInput}
       />,
-      {organization}
+      {organization: org}
     );
     return respondToUserInput;
   }
@@ -108,6 +113,135 @@ describe('ConnectScmBlock', () => {
     );
   });
 
+  it('lets a member request source control instead of linking to integrations', async () => {
+    mockRepoAccess('scm_account_not_connected', ['acme-labs']);
+    const request = MockApiClient.addMockResponse({
+      url: INTEGRATION_REQUEST_URL,
+      method: 'POST',
+      statusCode: 201,
+    });
+    renderBlock({failureReason: 'scm_account_not_connected', org: memberOrganization});
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Request installation'})
+    );
+
+    expect(
+      screen.queryByRole('button', {name: 'Go to integrations'})
+    ).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledWith(
+      INTEGRATION_REQUEST_URL,
+      expect.objectContaining({
+        data: {
+          providerType: 'category',
+          providerSlug: 'source code management',
+          message:
+            "Seer can't access acme/app. This repo's account isn't connected to this organization. Connected: acme-labs.",
+        },
+      })
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+  });
+
+  it('stops offering to correct the repo name once a member has requested it', async () => {
+    mockRepoAccess('no_scm_integration');
+    MockApiClient.addMockResponse({
+      url: INTEGRATION_REQUEST_URL,
+      method: 'POST',
+      statusCode: 201,
+    });
+    renderBlock({org: memberOrganization});
+    expect(
+      await screen.findByRole('button', {name: 'Correct repo name'})
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Request installation'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Correct repo name'})
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Continue without code'})
+    ).toBeInTheDocument();
+  });
+
+  it("keeps a member's request when the chat moves", async () => {
+    function MovingChat() {
+      const [place, setPlace] = useState('sidebar');
+      return (
+        <Fragment>
+          <Button onClick={() => setPlace('popped out')}>Pop out</Button>
+          <ConnectScmBlock
+            key={place}
+            pendingInput={{
+              id: 'input-id',
+              input_type: 'connect_scm',
+              data: {repo_name: 'acme/app', failure_reason: 'no_scm_integration'},
+            }}
+            respondToUserInput={jest.fn()}
+          />
+        </Fragment>
+      );
+    }
+    mockRepoAccess('no_scm_integration');
+    const request = MockApiClient.addMockResponse({
+      url: INTEGRATION_REQUEST_URL,
+      method: 'POST',
+      statusCode: 201,
+    });
+    render(<MovingChat />, {organization: memberOrganization});
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Request installation'})
+    );
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Pop out'}));
+
+    expect(
+      await screen.findByRole('button', {name: 'Installation requested'})
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', {name: 'Correct repo name'})
+    ).not.toBeInTheDocument();
+    expect(request).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets a member request source control when none is connected', async () => {
+    mockRepoAccess('no_scm_integration');
+    renderBlock({org: memberOrganization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Request installation'})
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Request it from your Sentry organization owners, and you can continue here once they connect it.'
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Connect source control'})
+    ).not.toBeInTheDocument();
+  });
+
+  it('links a member to repositories when the repo is not in Sentry', async () => {
+    mockRepoAccess('repo_not_in_sentry');
+    renderBlock({failureReason: 'repo_not_in_sentry', org: memberOrganization});
+
+    expect(
+      await screen.findByRole('button', {name: 'Go to repositories'})
+    ).toHaveAttribute('href', REPOS_LINK);
+    expect(
+      screen.queryByRole('button', {name: 'Request installation'})
+    ).not.toBeInTheDocument();
+  });
+
   it('retries on Continue once Seer can access the repo', async () => {
     mockRepoAccess('found');
     const respondToUserInput = renderBlock();
@@ -155,6 +289,7 @@ describe('ConnectScmBlock', () => {
     afterEach(() => {
       try {
         focusManager.setFocused(undefined);
+        cleanup();
         // The popup's own timers update its state.
         act(() => jest.runOnlyPendingTimers());
       } finally {
@@ -288,6 +423,39 @@ describe('ConnectScmBlock', () => {
       expect(screen.queryByRole('button', {name: 'Check again'})).not.toBeInTheDocument();
     });
 
+    it("lets a member request again when what's wrong changes", async () => {
+      const user = userEvent.setup({advanceTimers: jest.advanceTimersByTime});
+      mockRepoAccess('no_scm_integration');
+      const request = MockApiClient.addMockResponse({
+        url: INTEGRATION_REQUEST_URL,
+        method: 'POST',
+        statusCode: 201,
+      });
+      renderBlock({org: memberOrganization});
+      await user.click(await screen.findByRole('button', {name: 'Request installation'}));
+      expect(
+        await screen.findByRole('button', {name: 'Installation requested'})
+      ).toBeDisabled();
+
+      // An owner connected an account, but not the repo's.
+      MockApiClient.clearMockResponses();
+      mockRepoAccess('scm_account_not_connected', ['other-org']);
+      MockApiClient.addMockResponse({
+        url: INTEGRATION_REQUEST_URL,
+        method: 'POST',
+        statusCode: 201,
+      });
+      await act(() => jest.advanceTimersByTimeAsync(5_000));
+
+      expect(
+        await screen.findByText(
+          "This repo's account isn't connected to this organization. Connected: other-org."
+        )
+      ).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Request installation'})).toBeEnabled();
+      expect(request).toHaveBeenCalledTimes(1);
+    });
+
     describe('when it stops without an answer', () => {
       beforeEach(() => {
         MockApiClient.addMockResponse({url: REPO_ACCESS_URL, statusCode: 500});
@@ -384,6 +552,7 @@ describe('ConnectScmBlock', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         // The popup's own timers update its state.
         act(() => jest.runOnlyPendingTimers());
       } finally {

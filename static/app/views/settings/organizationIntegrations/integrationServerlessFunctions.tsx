@@ -100,10 +100,7 @@ export function IntegrationServerlessFunctions({
                     return previous;
                   }
                   const newServerlessFunctions = [...existingServerlessFunctions];
-                  const updatedFunction = {
-                    ...newServerlessFunctions[i]!,
-                    ...update,
-                  };
+                  const updatedFunction = {...newServerlessFunctions[i]!, ...update};
                   newServerlessFunctions[i] = updatedFunction;
                   return {
                     ...previous,

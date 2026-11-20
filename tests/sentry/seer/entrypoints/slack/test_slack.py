@@ -58,6 +58,7 @@ from sentry.seer.agent.client_models import (
     RepoPRState,
     SeerRunState,
 )
+from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.utils import AutofixStoppingPoint, CodingAgentProviderType
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAutofixCache,
@@ -100,6 +101,7 @@ from sentry.seer.entrypoints.slack.messaging import (
 from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 from sentry.seer.entrypoints.types import SeerEntrypointKey
 from sentry.seer.models import SeerAutomationHandoffConfiguration, SeerProjectPreference
+from sentry.seer.models.run import SeerRunType
 from sentry.sentry_apps.event_types import SentryAppEventType
 from sentry.shared_integrations.exceptions import (
     IntegrationConfigurationError,
@@ -306,6 +308,48 @@ class SlackAutofixEntrypointTest(TestCase):
                 organization_id=cache_payload["organization_id"],
                 data=ANY,
             )
+
+    def _update_for(self, event_type: SentryAppEventType) -> SeerAutofixUpdate:
+        ep = self._get_entrypoint()
+        with patch(
+            "sentry.seer.entrypoints.slack.entrypoint.schedule_all_thread_updates"
+        ) as mock_schedule:
+            ep.on_autofix_update(
+                event_type=event_type,
+                event_payload=MOCK_SEER_WEBHOOKS[event_type],
+                cache_payload=ep.create_autofix_cache_payload(),
+            )
+        return mock_schedule.call_args.kwargs["data"]
+
+    def _create_single_run(self, stopping_point: AutofixStoppingPoint) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            type=SeerRunType.FEATURE_RUN,
+            seer_run_state_id=MOCK_RUN_ID,
+        )
+        self.create_seer_agent_run(
+            run=run, source=SINGLE_RUN_FEATURE_ID, extras={"stopping_point": stopping_point.value}
+        )
+
+    def test_single_run_root_cause_hides_plan_a_solution(self) -> None:
+        self._create_single_run(AutofixStoppingPoint.CODE_CHANGES)
+        update = self._update_for(SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED)
+        assert update.has_next_trigger is False
+
+    def test_step_run_root_cause_keeps_plan_a_solution(self) -> None:
+        self.create_seer_run(organization=self.organization, seer_run_state_id=MOCK_RUN_ID)
+        update = self._update_for(SentryAppEventType.SEER_ROOT_CAUSE_COMPLETED)
+        assert update.has_next_trigger is True
+
+    def test_single_run_opening_its_own_pr_hides_draft_a_pr(self) -> None:
+        self._create_single_run(AutofixStoppingPoint.OPEN_PR)
+        update = self._update_for(SentryAppEventType.SEER_CODING_COMPLETED)
+        assert update.has_next_trigger is False
+
+    def test_single_run_stopping_at_code_changes_keeps_draft_a_pr(self) -> None:
+        self._create_single_run(AutofixStoppingPoint.CODE_CHANGES)
+        update = self._update_for(SentryAppEventType.SEER_CODING_COMPLETED)
+        assert update.has_next_trigger is True
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     @patch(

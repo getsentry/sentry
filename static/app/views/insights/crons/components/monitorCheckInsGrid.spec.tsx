@@ -12,10 +12,7 @@ describe('CheckInRow', () => {
   const project = ProjectFixture();
 
   it('represents a simple Missed check-in', () => {
-    const checkIn = CheckInFixture({
-      status: CheckInStatus.MISSED,
-      duration: null,
-    });
+    const checkIn = CheckInFixture({status: CheckInStatus.MISSED, duration: null});
 
     render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
@@ -24,9 +21,7 @@ describe('CheckInRow', () => {
   });
 
   it('represents a simple Okay check-in', async () => {
-    const checkIn = CheckInFixture({
-      status: CheckInStatus.OK,
-    });
+    const checkIn = CheckInFixture({status: CheckInStatus.OK});
 
     render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} />);
 
@@ -55,10 +50,7 @@ describe('CheckInRow', () => {
   });
 
   it('shows environments when hasMultiEnv', () => {
-    const checkIn = CheckInFixture({
-      status: CheckInStatus.OK,
-      environment: 'prod',
-    });
+    const checkIn = CheckInFixture({status: CheckInStatus.OK, environment: 'prod'});
 
     render(<MonitorCheckInsGrid project={project} checkIns={[checkIn]} hasMultiEnv />);
 

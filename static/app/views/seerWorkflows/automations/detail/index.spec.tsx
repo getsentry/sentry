@@ -84,11 +84,7 @@ describe('AutomationDetail', () => {
 
   it('shows the next run for daily schedules', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({
-        id: '42',
-        strategy: 'daily_strategy',
-        schedule: 'daily',
-      })
+      SeerWorkflowConfigFixture({id: '42', strategy: 'daily_strategy', schedule: 'daily'})
     );
     renderDetail();
     expect(await screen.findByText(/Next run/)).toBeInTheDocument();

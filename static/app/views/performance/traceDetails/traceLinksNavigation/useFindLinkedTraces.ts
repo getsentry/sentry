@@ -26,12 +26,7 @@ export function useFindAdjacentTrace({
   attributes: TraceItemResponseAttribute[];
   direction: ConnectedTraceConnection;
   links?: TraceItemResponseLink[];
-}): {
-  available: boolean;
-  isLoading: boolean;
-  id?: string;
-  trace?: string;
-} {
+}): {available: boolean; isLoading: boolean; id?: string; trace?: string} {
   const {
     projectId,
     currentTraceId,

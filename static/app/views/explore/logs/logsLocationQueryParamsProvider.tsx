@@ -41,10 +41,7 @@ export function LogsLocationQueryParamsProvider({
       }
 
       if (!isEmptyObject(toPersist)) {
-        setPersistentParams(prev => ({
-          ...prev,
-          ...toPersist,
-        }));
+        setPersistentParams(prev => ({...prev, ...toPersist}));
       }
     },
     [setPersistentParams]

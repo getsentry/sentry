@@ -469,12 +469,7 @@ export function MonitorCreateRedirect() {
 
   return (
     <Redirect
-      to={makeLegacyCreateRedirectPath({
-        alertType,
-        organization,
-        project,
-        query,
-      })}
+      to={makeLegacyCreateRedirectPath({alertType, organization, project, query})}
     />
   );
 }

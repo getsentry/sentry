@@ -51,10 +51,7 @@ describe('OrganizationDropdown', () => {
 
   it('shows the shared header in the settings v3 menu', async () => {
     render(<OrganizationDropdown />, {
-      organization: OrganizationFixture({
-        ...organization,
-        features: ['settings-v3'],
-      }),
+      organization: OrganizationFixture({...organization, features: ['settings-v3']}),
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Toggle organization menu'}));

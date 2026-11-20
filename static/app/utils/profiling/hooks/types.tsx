@@ -7,9 +7,7 @@ type BaseReference =
   | Profiling.BaseTransactionProfileReference
   | Profiling.BaseContinuousProfileReference;
 
-type SpecialColumns = {
-  'all_examples()': BaseReference[];
-};
+type SpecialColumns = {'all_examples()': BaseReference[]};
 
 export type EventsResultsDataRow<F extends string> = Pick<
   SpecialColumns,
@@ -27,10 +25,7 @@ export type EventsResults<F extends string> = {
   meta: EventsResultsMeta<F>;
 };
 
-export type Sort<F> = {
-  key: F;
-  order: 'asc' | 'desc';
-};
+export type Sort<F> = {key: F; order: 'asc' | 'desc'};
 
 export type TrendType = 'regression' | 'improvement';
 
@@ -55,10 +50,6 @@ type EpochTime = number;
 type DataPoint = {count: number};
 type FunctionTrendStatsData = [EpochTime, DataPoint];
 
-type FunctionTrendStats = {
-  data: FunctionTrendStatsData[];
-  end: number;
-  start: number;
-};
+type FunctionTrendStats = {data: FunctionTrendStatsData[]; end: number; start: number};
 
 type FunctionExample = [EpochTime, Profiling.BaseProfileReference];

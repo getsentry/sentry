@@ -45,13 +45,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          tabs: getWizardInstallSnippet({
-            platform: 'flutter',
-            params,
-          }),
-        },
+        {type: 'code', tabs: getWizardInstallSnippet({platform: 'flutter', params})},
         {
           type: 'text',
           text: t(
@@ -63,9 +57,7 @@ export const onboarding: OnboardingConfig = {
           items: [
             tct(
               'Configure the SDK with your DSN and performance monitoring options in your [main:main.dart] file.',
-              {
-                main: <code />,
-              }
+              {main: <code />}
             ),
             tct('Update your [pubspec:pubspec.yaml] with the Sentry package', {
               pubspec: <code />,
@@ -106,11 +98,7 @@ export const onboarding: OnboardingConfig = {
             'Create an intentional error, so you can test that everything is working. In the example below, pressing the button will throw an exception:'
           ),
         },
-        {
-          type: 'code',
-          language: 'dart',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'dart', code: getVerifySnippet(params)},
       ],
     },
   ],

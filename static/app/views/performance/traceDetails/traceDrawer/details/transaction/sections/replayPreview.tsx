@@ -6,10 +6,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-const REPLAY_CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const REPLAY_CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 function ReplaySection({
   replayId,

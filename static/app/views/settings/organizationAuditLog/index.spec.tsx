@@ -14,10 +14,7 @@ describe('OrganizationAuditLog', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
-      body: {
-        rows: AuditLogsFixture(),
-        options: AuditLogsApiEventNamesFixture(),
-      },
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
     });
 
     render(<OrganizationAuditLog />);
@@ -117,20 +114,14 @@ describe('OrganizationAuditLog', () => {
     const absoluteDateMockResponse = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/audit-logs/',
       method: 'GET',
-      body: {
-        rows: AuditLogsFixture(),
-        options: AuditLogsApiEventNamesFixture(),
-      },
+      body: {rows: AuditLogsFixture(), options: AuditLogsApiEventNamesFixture()},
     });
 
     render(<OrganizationAuditLog />, {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/audit-log/',
-          query: {
-            start: '2018-02-01T00:00:00.000Z',
-            end: '2018-02-28T23:59:59.999Z',
-          },
+          query: {start: '2018-02-01T00:00:00.000Z', end: '2018-02-28T23:59:59.999Z'},
         },
         route: '/organizations/:orgId/audit-log/',
       },

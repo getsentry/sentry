@@ -21,10 +21,7 @@ export const noFlagComments = defineRule({
             comment.type === 'Line' &&
             /^([-=*_#~─])\1{2,}\s*$/u.test(comment.value.trim())
           ) {
-            context.report({
-              loc: comment.loc,
-              messageId: 'noFlagComment',
-            });
+            context.report({loc: comment.loc, messageId: 'noFlagComment'});
           }
         }
       },
