@@ -282,7 +282,11 @@ describe('SeerDrawerContent', () => {
         autofix={makeAutofix({startStep})}
         group={GroupFixture()}
       />,
-      {organization: OrganizationFixture({features: ['autofix-single-run']})}
+      {
+        organization: OrganizationFixture({
+          features: ['autofix-single-run', 'seat-based-seer-enabled'],
+        }),
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
