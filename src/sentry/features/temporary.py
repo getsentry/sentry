@@ -340,6 +340,8 @@ def register_temporary_features(manager: FeatureManager) -> None:
     manager.add("organizations:seer-chat-suggestions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Enable action suggestions (create or edit items) alongside questions in Seer Agent chat suggestions
     manager.add("organizations:seer-chat-suggestions-actions", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enables the Seer agent harness conversation routes
+    manager.add("organizations:seer-agent-harness", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Gate Seer agent writes behind short-lived, scope-bound capability tokens + user-approved grants
     manager.add("organizations:seer-agent-token-flow", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enable the thinking blocks toggle in the Seer Agent top bar
