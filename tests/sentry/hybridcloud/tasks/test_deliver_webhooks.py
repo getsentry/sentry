@@ -1804,6 +1804,7 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         delivery_time_tags = self.distribution_tags(mock_metrics, DELIVERY_TIME_METRIC)
         assert len(delivery_time_tags) == 1
         tags = delivery_time_tags[0]
+        assert tags.get("destination_region") == "us"
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "github"
         # An event-typed provider whose mailbox carries no event suffix.
@@ -1837,6 +1838,7 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         delivery_time_tags = self.distribution_tags(mock_metrics, DELIVERY_TIME_METRIC)
         assert len(delivery_time_tags) == 1
         tags = delivery_time_tags[0]
+        assert tags.get("destination_region") == "us"
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "github"
         assert tags.get("event_type") == "pull_request"
@@ -1866,6 +1868,7 @@ class DeliveryTimeMetricsTest(MetricCallsMixin, TestCase):
         delivery_time_tags = self.distribution_tags(mock_metrics, DELIVERY_TIME_METRIC)
         assert len(delivery_time_tags) == 1
         tags = delivery_time_tags[0]
+        assert tags.get("destination_region") == "us"
         assert tags.get("region_sent_to") == "us"
         assert tags.get("provider") == "stripe"
         assert tags.get("event_type") == "none"
@@ -2054,6 +2057,42 @@ class DroppedDeliveryOutcomeTest(MetricCallsMixin, TestCase):
 
 
 @control_silo_test
+class DestinationRegionMetricTagTest(MetricCallsMixin, TestCase):
+    """
+    Per-payload outcomes name the cell they were sent to, so loss that only one
+    cell is causing can be told apart from loss spread across all of them.
+    """
+
+    @responses.activate
+    @override_cells([Cell("de", 2, "http://de.testserver")])
+    @override_options({"hybridcloud.webhookpayload.worker_threads": 1})
+    @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
+    def test_payload_outcomes_tagged_with_destination_region(self, mock_metrics: MagicMock) -> None:
+        responses.add(
+            responses.POST, "http://de.testserver/extensions/github/webhook/", status=200, body=""
+        )
+        stale = Factories.create_webhook_payload(
+            mailbox_name="github:123",
+            cell_name="de",
+            provider="github",
+            date_added=timezone.now() - timedelta(days=4),
+        )
+        Factories.create_webhook_payload(
+            mailbox_name="github:123", cell_name="de", provider="github", attempts=MAX_ATTEMPTS
+        )
+        Factories.create_webhook_payload(
+            mailbox_name="github:123", cell_name="de", provider="github"
+        )
+
+        drain_mailbox(stale.id, claimed_count=3, valid_until=fresh_deadline(), mailbox="github:123")
+
+        assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
+            {**UNATTRIBUTED, "provider": "github", "outcome": outcome, "destination_region": "de"}
+            for outcome in ("max_age", "attempts_exceed", "ok")
+        ]
+
+
+@control_silo_test
 class ProviderMetricTagTest(MetricCallsMixin, TestCase):
     """
     The `$provider` dashboard selector filters on this tag, so a delivery metric
@@ -2082,7 +2121,7 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "ok", "provider": "github"}
+            {**UNATTRIBUTED, "outcome": "ok", "provider": "github", "destination_region": "us"}
         ]
 
     @responses.activate
@@ -2134,7 +2173,12 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "conflict", "provider": "github"}
+            {
+                **UNATTRIBUTED,
+                "outcome": "conflict",
+                "provider": "github",
+                "destination_region": "us",
+            }
         ]
 
     @responses.activate
@@ -2157,7 +2201,12 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "dropped_4xx", "provider": "github"}
+            {
+                **UNATTRIBUTED,
+                "outcome": "dropped_4xx",
+                "provider": "github",
+                "destination_region": "us",
+            }
         ]
 
     @responses.activate
@@ -2183,7 +2232,7 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "ok", "provider": "github"}
+            {**UNATTRIBUTED, "outcome": "ok", "provider": "github", "destination_region": "us"}
         ]
 
     @responses.activate
@@ -2204,7 +2253,7 @@ class ProviderMetricTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {**UNATTRIBUTED, "outcome": "ok", "provider": "unknown"}
+            {**UNATTRIBUTED, "outcome": "ok", "provider": "unknown", "destination_region": "us"}
         ]
 
     @patch("sentry.hybridcloud.tasks.deliver_webhooks.metrics")
@@ -2299,7 +2348,12 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
         )
 
         assert self.tags_for(mock_metrics, DELIVERY_METRIC) == [
-            {"dispatcher": "scheduler", "outcome": "ok", "provider": "github"}
+            {
+                "dispatcher": "scheduler",
+                "outcome": "ok",
+                "provider": "github",
+                "destination_region": "us",
+            }
         ]
 
     @responses.activate
@@ -2329,6 +2383,7 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
         assert self.distribution_tags(mock_metrics, DELIVERY_TIME_METRIC) == [
             {
                 "dispatcher": "scheduler",
+                "destination_region": "us",
                 "region_sent_to": "us",
                 "provider": "github",
                 # This fixture's mailbox carries no event-type suffix to read.
@@ -2361,6 +2416,7 @@ class DeliveryDispatchTagTest(MetricCallsMixin, TestCase):
 
         expected = {
             "dispatcher": "push",
+            "destination_region": "us",
             "region_sent_to": "us",
             "provider": "github",
             "event_type": "unknown",
@@ -2847,6 +2903,7 @@ class DeadlineReleaseTest(MetricCallsMixin, TestCase):
             **UNATTRIBUTED,
             "provider": "github",
             "outcome": "abandoned",
+            "destination_region": "us",
         }
 
     @override_cells(cell_config)

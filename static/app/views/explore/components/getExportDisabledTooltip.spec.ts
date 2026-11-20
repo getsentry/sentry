@@ -40,11 +40,8 @@ describe('getExportDisabledTooltip', () => {
   });
 
   it('returns an error message when the empty and error options are provided', () => {
-    expect(
-      getExportDisabledTooltip({
-        isDataEmpty: true,
-        isDataError: true,
-      })
-    ).toBe('Unable to export due to an error');
+    expect(getExportDisabledTooltip({isDataEmpty: true, isDataError: true})).toBe(
+      'Unable to export due to an error'
+    );
   });
 });

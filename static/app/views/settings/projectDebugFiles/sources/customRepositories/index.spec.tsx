@@ -32,15 +32,9 @@ function TestComponent({
 }
 
 function getProps(props?: Parameters<typeof initializeOrg>[0]) {
-  const {organization, project} = initializeOrg({
-    router: props?.router,
-  });
+  const {organization, project} = initializeOrg({router: props?.router});
 
-  return {
-    organization,
-    project,
-    location: LocationFixture(props?.router?.location),
-  };
+  return {organization, project, location: LocationFixture(props?.router?.location)};
 }
 
 describe('Custom Repositories', () => {

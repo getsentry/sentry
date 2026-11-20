@@ -1,8 +1,9 @@
 import {Fragment, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 
+import {InlineCode} from '@sentry/scraps/code';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Markdown, stripAnnotations, type MarkdownProps} from '@sentry/scraps/markdown';
+import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 import {Heading, Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -84,9 +85,16 @@ function JsonTree({value: markedValue}: {value: unknown}) {
   );
 }
 
+function ScrubbedInlineCode({children}: {children: string}) {
+  return (
+    <InlineCode variant="neutral">
+      <ScrubbedText>{children}</ScrubbedText>
+    </InlineCode>
+  );
+}
+
 // Renders ```json code blocks as an interactive JSON tree, falling back to a
-// highlighted code block when the content isn't valid JSON. Only fenced code
-// blocks are handled; inline `code` spans are left untouched. Unknown {% tag %}
+// highlighted code block when the content isn't valid JSON. Unknown {% tag %}
 // tokens fall through to default Markdown, which echoes their original source.
 const markdownComponents: MarkdownProps['components'] = {
   CodeBlock: ({children, lang, Default}) => {
@@ -96,9 +104,9 @@ const markdownComponents: MarkdownProps['components'] = {
         return <JsonTree value={parsed} />;
       }
     }
-    return <Default lang={lang}>{stripAnnotations(children)}</Default>;
+    return <Default lang={lang}>{children}</Default>;
   },
-  InlineCode: ({children, Default}) => <Default>{stripAnnotations(children)}</Default>,
+  InlineCode: ScrubbedInlineCode,
   Annotation: ScrubbedAnnotation,
   Heading: ({children, level}) => (
     <Heading as={`h${level}`} size={HEADING_SIZES[level - 1]}>
@@ -108,6 +116,7 @@ const markdownComponents: MarkdownProps['components'] = {
 };
 
 const plainTextMarkdownComponents: MarkdownProps['components'] = {
+  InlineCode: ScrubbedInlineCode,
   Annotation: ScrubbedAnnotation,
 };
 

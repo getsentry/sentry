@@ -160,9 +160,7 @@ function useExploreTimeseriesImpl({
     dataset
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }
 
 export function shouldTriggerHighAccuracy(

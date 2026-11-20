@@ -20,9 +20,7 @@ export function useTransaction(props: UseTransactionProps) {
           projectIdOrSlug: props.project_slug,
           eventId: props.event_id,
         },
-        query: {
-          referrer: 'trace-details-summary',
-        },
+        query: {referrer: 'trace-details-summary'},
         staleTime: 1000 * 60 * 10,
       }
     ),

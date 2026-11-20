@@ -221,12 +221,7 @@ export function GroupActions({
         method: 'POST',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/issues/$issueId/impact/assess/',
-          {
-            path: {
-              organizationIdOrSlug: organization.slug,
-              issueId: group.id,
-            },
-          }
+          {path: {organizationIdOrSlug: organization.slug, issueId: group.id}}
         ),
       }),
     onMutate: () => {
@@ -357,10 +352,7 @@ export function GroupActions({
       // oxlint-disable-next-line react/todo
     } finally {
       queryClient.invalidateQueries({
-        queryKey: groupQueryKey({
-          organizationSlug: organization.slug,
-          groupId: group.id,
-        }),
+        queryKey: groupQueryKey({organizationSlug: organization.slug, groupId: group.id}),
       });
     }
   };
@@ -372,9 +364,7 @@ export function GroupActions({
   const onTogglePublicShare = () => {
     const newIsPublic = !group.isPublic;
     if (newIsPublic) {
-      trackAnalytics('issue.shared_publicly', {
-        organization,
-      });
+      trackAnalytics('issue.shared_publicly', {organization});
     }
     trackIssueAction('shared');
   };
@@ -399,11 +389,7 @@ export function GroupActions({
 
   const onDiscard = () => {
     trackIssueAction('discarded');
-    discardIssue({
-      groupId: group.id,
-      orgSlug: organization.slug,
-      projectId: project.id,
-    });
+    discardIssue({groupId: group.id, orgSlug: organization.slug, projectId: project.id});
   };
 
   const renderDiscardModal = ({Body, Footer, closeModal}: ModalRenderProps) => {
@@ -507,10 +493,7 @@ export function GroupActions({
           >
             {resolveCap.enabled && !isResolved && !isIgnored && (
               <CMDKAction
-                display={{
-                  label: t('Resolve'),
-                  icon: <IconCheckmark />,
-                }}
+                display={{label: t('Resolve'), icon: <IconCheckmark />}}
                 onAction={() =>
                   onUpdate({
                     status: GroupStatus.RESOLVED,
@@ -558,10 +541,7 @@ export function GroupActions({
             )}
             {stacktraceBody && (
               <CMDKAction
-                display={{
-                  label: t('Copy Stack Trace'),
-                  icon: <IconCopy />,
-                }}
+                display={{label: t('Copy Stack Trace'), icon: <IconCopy />}}
                 keywords={['stacktrace', 'exception', 'error', 'trace', 'copy']}
                 onAction={() => copyToClipboard(stacktraceBody)}
               />
@@ -661,11 +641,7 @@ export function GroupActions({
                 !group.inbox || disabled ? t('Issue has been reviewed') : undefined,
               onAction: () => onUpdate({inbox: false}),
             },
-            {
-              key: bookmarkKey,
-              label: bookmarkTitle,
-              onAction: onToggleBookmark,
-            },
+            {key: bookmarkKey, label: bookmarkTitle, onAction: onToggleBookmark},
             {
               key: 'reprocess',
               label: t('Reprocess events'),

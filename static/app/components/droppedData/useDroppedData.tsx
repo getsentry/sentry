@@ -21,12 +21,7 @@ const REFERRER = 'api.explore.dropped-data-annotations';
 interface DroppedEventsResponse {
   acceptedEvents: OutcomeRow[];
   droppedEvents: OutcomeRow[];
-  meta: {
-    dataset: string;
-    end: number;
-    interval: number;
-    start: number;
-  };
+  meta: {dataset: string; end: number; interval: number; start: number};
 }
 
 export function makeDroppedDataQueryKeyPrefix(organizationSlug: string) {

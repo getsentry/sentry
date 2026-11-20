@@ -128,10 +128,7 @@ export function PolicyDetails() {
       ]}
       sections={[
         {content: overviewPanel},
-        {
-          content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />,
-          noPanel: true,
-        },
+        {content: <PolicyRevisions policy={policy} onUpdate={onUpdate} />, noPanel: true},
       ]}
     />
   );

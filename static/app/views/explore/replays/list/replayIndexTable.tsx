@@ -70,9 +70,7 @@ export function ReplayIndexTable({
         : undefined,
   });
 
-  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({
-    replays,
-  });
+  const needsJetpackComposePiiWarning = useNeedsJetpackComposePiiNotice({replays});
 
   const playlistQuery = usePlaylistQuery('replayList');
 

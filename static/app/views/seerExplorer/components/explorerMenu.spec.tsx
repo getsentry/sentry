@@ -58,10 +58,7 @@ describe.each(['main', 'pop-out'] as const)('Explorer menu in %s document', surf
     Object.defineProperty(
       ownerDocument.defaultView?.Element.prototype,
       'scrollIntoView',
-      {
-        configurable: true,
-        value: jest.fn(),
-      }
+      {configurable: true, value: jest.fn()}
     );
   });
 

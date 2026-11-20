@@ -47,10 +47,7 @@ async function startDashboardEditSession(
     method: 'POST',
     data: {
       prompt: message,
-      current_dashboard: {
-        title: dashboard.title,
-        widgets: dashboard.widgets,
-      },
+      current_dashboard: {title: dashboard.title, widgets: dashboard.widgets},
     },
   });
   return Number(response.run_id);
@@ -92,10 +89,9 @@ export function useSeerDashboardSession({
 
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const prevSessionStatusRef = useRef<{
-    status: string | null;
-    updated_at: string | null;
-  }>({status: null, updated_at: null});
+  const prevSessionStatusRef = useRef<{status: string | null; updated_at: string | null}>(
+    {status: null, updated_at: null}
+  );
   const completedAtRef = useRef<number | null>(null);
 
   const {data, isError} = useQuery({
@@ -130,10 +126,7 @@ export function useSeerDashboardSession({
     }
     const prevUpdatedAt = prevSessionStatusRef.current.updated_at;
     const prevStatus = prevSessionStatusRef.current.status;
-    prevSessionStatusRef.current = {
-      status: sessionStatus,
-      updated_at: sessionUpdatedAt,
-    };
+    prevSessionStatusRef.current = {status: sessionStatus, updated_at: sessionUpdatedAt};
 
     const isTerminal = statusIsTerminal(sessionStatus);
     const wasTerminal = statusIsTerminal(prevStatus);
@@ -204,11 +197,5 @@ export function useSeerDashboardSession({
     [organization.slug, queryClient, seerRunId, dashboard]
   );
 
-  return {
-    session,
-    isUpdating,
-    setIsUpdating,
-    isError,
-    sendFollowUpMessage,
-  };
+  return {session, isUpdating, setIsUpdating, isError, sendFollowUpMessage};
 }

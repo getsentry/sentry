@@ -3,10 +3,7 @@ import {queryOptions} from '@tanstack/react-query';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {GroupSearchView} from 'sentry/views/issueList/types';
 
-type FetchGroupSearchViewsParameters = {
-  id: string | number;
-  orgSlug: string;
-};
+type FetchGroupSearchViewsParameters = {id: string | number; orgSlug: string};
 
 export function groupSearchViewApiOptions({
   id,
@@ -15,10 +12,7 @@ export function groupSearchViewApiOptions({
   return queryOptions({
     ...apiOptions.as<GroupSearchView>()(
       '/organizations/$organizationIdOrSlug/group-search-views/$viewId/',
-      {
-        path: {organizationIdOrSlug: orgSlug, viewId: id},
-        staleTime: 30_000,
-      }
+      {path: {organizationIdOrSlug: orgSlug, viewId: id}, staleTime: 30_000}
     ),
     retry: false,
   });

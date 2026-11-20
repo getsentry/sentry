@@ -58,10 +58,7 @@ export function StarredSegmentCell({
           const oldTableData = oldResponse[0].data || [];
           const newData = oldTableData.map((row: TableRow): TableRow => {
             if (row.transaction === segmentName) {
-              return {
-                ...row,
-                is_starred_transaction: newIsStarred,
-              };
+              return {...row, is_starred_transaction: newIsStarred};
             }
             return row;
           });
@@ -75,10 +72,7 @@ export function StarredSegmentCell({
           const oldTableData = responseData.data || [];
           const newData = oldTableData.map((row: TableRow): TableRow => {
             if (row.transaction === segmentName) {
-              return {
-                ...row,
-                is_starred_transaction: newIsStarred,
-              };
+              return {...row, is_starred_transaction: newIsStarred};
             }
             return row;
           });

@@ -12,11 +12,7 @@ describe('apiQueryKey', () => {
     {baseKey: [getApiUrl('/api-tokens/'), {}, {infinite: true}]},
   ])('parses trailing metadata after the required API key fields (%#)', ({baseKey}) => {
     const queryKey = [...baseKey, {sessionKey: 'session'}, 'revision'] as const;
-    const expected = {
-      url: '/api-tokens/',
-      options: {},
-      isInfinite: baseKey[2].infinite,
-    };
+    const expected = {url: '/api-tokens/', options: {}, isInfinite: baseKey[2].infinite};
 
     expect(parseQueryKey(queryKey)).toEqual(expected);
     expect(safeParseQueryKey(queryKey)).toEqual(expected);

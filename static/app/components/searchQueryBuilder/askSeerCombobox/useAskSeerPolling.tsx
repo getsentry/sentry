@@ -50,9 +50,7 @@ const isPolling = <T extends QueryTokensProps>(
 
 const makeInitialAskSeerData = <
   T extends QueryTokensProps,
->(): AskSeerPollingResponse<T> => ({
-  session: null,
-});
+>(): AskSeerPollingResponse<T> => ({session: null});
 
 interface UseAskSeerPollingOptions {
   projectIds: number[];
@@ -137,10 +135,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
               project_ids: options.projectIds,
               strategy: options.strategy,
               referrer: options.referrer,
-              options: {
-                ...options.options,
-                code_mode: codeModeToggle,
-              },
+              options: {...options.options, code_mode: codeModeToggle},
             },
           }
         )) as AskSeerStartResponse;
@@ -156,9 +151,7 @@ export function useAskSeerPolling<T extends QueryTokensProps>(
         // Invalidate to start polling
         const newQueryKey = askSeerApiOptions<T>(orgSlug, newRunId).queryKey;
         if (newQueryKey) {
-          queryClient.invalidateQueries({
-            queryKey: newQueryKey,
-          });
+          queryClient.invalidateQueries({queryKey: newQueryKey});
         }
       } catch (error) {
         const startErr = error instanceof Error ? error : new Error(String(error));

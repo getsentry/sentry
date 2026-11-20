@@ -132,11 +132,7 @@ function useLogsApiOptions({
     orderby,
     per_page: limit ? limit : undefined,
     referrer,
-    sampling: getSamplingMode({
-      faster: speed === 'faster',
-      highAccuracy,
-      highFidelity,
-    }),
+    sampling: getSamplingMode({faster: speed === 'faster', highAccuracy, highFidelity}),
     caseInsensitive: caseInsensitive ? '1' : undefined,
     truncate,
   };
@@ -185,13 +181,7 @@ export function useLogsApiOptionsWithInfinite({
     highAccuracy,
     highFidelity,
   });
-  return {
-    infiniteApiOptions,
-    other: {
-      eventView,
-      pageFiltersReady,
-    },
-  };
+  return {infiniteApiOptions, other: {eventView, pageFiltersReady}};
 }
 
 export type LogsInfiniteQueryKey = ReturnType<

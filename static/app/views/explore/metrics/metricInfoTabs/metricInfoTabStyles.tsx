@@ -117,9 +117,7 @@ export const StyledSimpleTableHeader = styled(SimpleTable.HeaderRow)`
   top: 0;
 `;
 
-export const StickyTableRow = styled(SimpleTable.Row)<{
-  sticky?: boolean;
-}>`
+export const StickyTableRow = styled(SimpleTable.Row)<{sticky?: boolean}>`
   ${p =>
     p.sticky &&
     css`

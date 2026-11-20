@@ -15,10 +15,7 @@ import {BreadcrumbTitle} from 'sentry/views/settings/components/settingsBreadcru
 
 type Data = {
   config: Array<[key: string, value: string]>;
-  environment: {
-    config: string;
-    start_date: string;
-  };
+  environment: {config: string; start_date: string};
   pythonVersion: string;
 };
 

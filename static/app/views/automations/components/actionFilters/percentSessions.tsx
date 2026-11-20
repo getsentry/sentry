@@ -98,10 +98,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       aria-label={t('Comparison type')}
       value={condition.type}
       options={[
-        {
-          label: 'more than...',
-          value: DataConditionType.PERCENT_SESSIONS_COUNT,
-        },
+        {label: 'more than...', value: DataConditionType.PERCENT_SESSIONS_COUNT},
         {
           label: 'relatively higher than...',
           value: DataConditionType.PERCENT_SESSIONS_PERCENT,
@@ -110,10 +107,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
           type: option.value,
-          comparison: {
-            ...condition.comparison,
-            ...getDefaultComparison(option.value),
-          },
+          comparison: {...condition.comparison, ...getDefaultComparison(option.value)},
         });
         removeError(condition.id);
       }}

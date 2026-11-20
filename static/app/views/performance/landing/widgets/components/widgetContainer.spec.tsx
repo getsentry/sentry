@@ -5,7 +5,6 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import {ConfigStore} from 'sentry/stores/configStore';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {PerformanceDisplayContext} from 'sentry/utils/performance/contexts/performanceDisplayContext';
@@ -41,25 +40,18 @@ function WrappedComponent({data, withStaticFilters = false, ...rest}: any) {
 
   return (
     <OrganizationContext value={data.organization}>
-      <MetricsCardinalityProvider
-        location={data.router.location}
-        organization={data.organization}
-      >
-        <MEPSettingProvider forceTransactions>
-          <PerformanceDisplayContext
-            value={{performanceType: ProjectPerformanceType.ANY}}
-          >
-            <WidgetContainer
-              chartHeight={100}
-              allowedCharts={allowedCharts}
-              rowChartSettings={[]}
-              withStaticFilters={withStaticFilters}
-              {...data}
-              {...rest}
-            />
-          </PerformanceDisplayContext>
-        </MEPSettingProvider>
-      </MetricsCardinalityProvider>
+      <MEPSettingProvider forceTransactions>
+        <PerformanceDisplayContext value={{performanceType: ProjectPerformanceType.ANY}}>
+          <WidgetContainer
+            chartHeight={100}
+            allowedCharts={allowedCharts}
+            rowChartSettings={[]}
+            withStaticFilters={withStaticFilters}
+            {...data}
+            {...rest}
+          />
+        </PerformanceDisplayContext>
+      </MEPSettingProvider>
     </OrganizationContext>
   );
 }
@@ -91,10 +83,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     eventsMock = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [{}],
-        meta: {},
-      },
+      body: {data: [{}], meta: {}},
       match: [(...args) => !issuesPredicate(...args)],
     });
     issuesListMock = MockApiClient.addMockResponse({
@@ -113,18 +102,6 @@ describe('Performance > Widgets > WidgetContainer', () => {
         ],
       },
       match: [(...args) => issuesPredicate(...args)],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility/',
-      body: [],
-    });
-
-    MockApiClient.addMockResponse({
-      method: 'GET',
-      url: '/organizations/org-slug/metrics-compatibility-sums/',
-      body: [],
     });
   });
 
@@ -164,9 +141,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
     });
 
     // Change eventView statsperiod
-    const modifiedData = initializeData({
-      statsPeriod: '14d',
-    });
+    const modifiedData = initializeData({statsPeriod: '14d'});
 
     wrapper.rerender(
       <WrappedComponent
@@ -201,17 +176,13 @@ describe('Performance > Widgets > WidgetContainer', () => {
       method: 'GET',
       url: '/organizations/org-slug/events-stats/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
     MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events-timeseries/',
       statusCode: 400,
-      body: {
-        detail: 'Request did not work :(',
-      },
+      body: {detail: 'Request did not work :('},
     });
 
     wrapper = render(
@@ -707,12 +678,7 @@ describe('Performance > Widgets > WidgetContainer', () => {
   });
 
   it('Most slow frames widget - MEP', async () => {
-    const data = initializeData(
-      {},
-      {
-        features: ['dynamic-sampling'],
-      }
-    );
+    const data = initializeData({}, {features: ['dynamic-sampling']});
 
     wrapper = render(
       <WrappedComponent

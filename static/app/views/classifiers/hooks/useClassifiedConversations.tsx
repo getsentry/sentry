@@ -7,16 +7,13 @@ import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {Referrer} from 'sentry/views/classifiers/constants';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
-import {
-  getClassifierResultQuery,
-  getResultAttributeKey,
-} from 'sentry/views/classifiers/utils';
 import type {Conversation} from 'sentry/views/explore/conversations/hooks/useConversations';
 import {useTableCursor} from 'sentry/views/insights/pages/agents/hooks/useTableCursor';
 
+import {useClassifierOutput} from './useClassifierOutput';
 import {useClassifierPageFilters} from './useClassifierPageFilters';
-import {useClassifierResultFilter} from './useClassifierResultFilter';
 
 const CLASSIFIED_CONVERSATIONS_PER_PAGE = 20;
 
@@ -48,11 +45,9 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
       .withDefault('-age')
       .withOptions({history: 'replace'})
   );
-  const {resultFilter} = useClassifierResultFilter(classifier);
+  const {isFiltered, resultField, resultQuery} = useClassifierOutput(classifier);
   const sort: ClassifiedConversationSort =
-    resultFilter !== 'all' && sortState.endsWith('result') ? '-age' : sortState;
-  const resultField = `tags[${getResultAttributeKey(classifier.resultAttribute)},number]`;
-  const resultQuery = getClassifierResultQuery(classifier, resultFilter);
+    isFiltered && sortState.endsWith('result') ? '-age' : sortState;
   const project = [Number(classifier.projectId)];
 
   const sortDirection = sort.startsWith('-') ? '-' : '';
@@ -81,7 +76,7 @@ export function useClassifiedConversations(classifier: TelemetryClassifier) {
           project,
           environment: selection.environments,
           ...datetimeParams,
-          referrer: 'api.classifiers.detail.conversations',
+          referrer: Referrer.DETAIL_CONVERSATIONS,
         },
         staleTime: 60_000,
       }

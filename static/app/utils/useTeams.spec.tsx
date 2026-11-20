@@ -65,9 +65,7 @@ describe('useTeams', () => {
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
-    const {result} = renderHook(useTeams, {
-      initialProps: {provideUserTeams: true},
-    });
+    const {result} = renderHook(useTeams, {initialProps: {provideUserTeams: true}});
     const {teams} = result.current;
 
     expect(teams).toHaveLength(1);
@@ -83,9 +81,7 @@ describe('useTeams', () => {
       body: [teamFoo],
     });
 
-    const {result} = renderHook(useTeams, {
-      initialProps: {slugs: ['foo']},
-    });
+    const {result} = renderHook(useTeams, {initialProps: {slugs: ['foo']}});
 
     expect(result.current.initiallyLoaded).toBe(false);
     expect(mockRequest).toHaveBeenCalled();
@@ -99,9 +95,7 @@ describe('useTeams', () => {
   it('only loads slugs when needed', () => {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = renderHook(useTeams, {
-      initialProps: {slugs: [mockTeams[0]!.slug]},
-    });
+    const {result} = renderHook(useTeams, {initialProps: {slugs: [mockTeams[0]!.slug]}});
 
     const {teams, initiallyLoaded} = result.current;
     expect(initiallyLoaded).toBe(true);

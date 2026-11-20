@@ -61,11 +61,7 @@ export function useInfiniteLogsQuery({
   disabled,
   highFidelity,
   staleTime: staleTimeOverride,
-}: {
-  disabled?: boolean;
-  highFidelity?: boolean;
-  staleTime?: number;
-} = {}) {
+}: {disabled?: boolean; highFidelity?: boolean; staleTime?: number} = {}) {
   const _referrer = 'api.explore.logs-table';
   const autoRefresh = useLogsAutoRefreshEnabled();
   const {isReady: querySpeedReady} = useExploreQuerySpeed();
@@ -126,21 +122,14 @@ export function useInfiniteLogsQuery({
 
       // Build a v2 (non-infinite) query key for apiFetch — we drive pagination via
       // the query body, not via Link cursors, so we don't need apiFetchInfinite.
-      const fetchContext = {
-        client,
-        signal,
-        meta,
-      };
+      const fetchContext = {client, signal, meta};
 
       async function fetchPage(param: LogPageParam) {
         let response = await apiFetch<EventsLogsResult>({
           ...fetchContext,
           queryKey: [
             url,
-            {
-              ...baseOptions,
-              query: getParamBasedQuery(baseOptions?.query, param),
-            },
+            {...baseOptions, query: getParamBasedQuery(baseOptions?.query, param)},
             {infinite: false},
           ],
         });
@@ -159,10 +148,7 @@ export function useInfiniteLogsQuery({
             ...fetchContext,
             queryKey: [
               url,
-              {
-                ...retryOptions,
-                query: getParamBasedQuery(retryOptions.query, param),
-              },
+              {...retryOptions, query: getParamBasedQuery(retryOptions.query, param)},
               {infinite: false},
             ],
           });
@@ -247,10 +233,7 @@ export function useInfiniteLogsQuery({
         const pages = oldData.pages.filter((_, index) => keepPages[index]);
         const pageParams = oldData.pageParams.filter((_, index) => keepPages[index]);
 
-        return {
-          pages,
-          pageParams,
-        };
+        return {pages, pageParams};
       }
 
       const pageIndexWithMostRecentTimestamp =

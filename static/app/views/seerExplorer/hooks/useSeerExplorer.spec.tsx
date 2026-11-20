@@ -2,7 +2,12 @@ import {useQueryClient, type QueryClient} from '@tanstack/react-query';
 import moment from 'moment-timezone';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -21,21 +26,18 @@ describe('useSeerExplorer', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
     sessionStorage.clear();
-    jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-      getPageReferrer: () => '/issues/',
-    });
-    jest.spyOn(llmContextModule, 'useLLMContext').mockReturnValue({
-      getLLMContext: () => ({
-        version: 0,
-        nodes: [],
-        location: {
-          url: window.location.href,
-          name: '/issues/',
-          params: {},
-          query: {},
-        },
-      }),
-    });
+    jest
+      .spyOn(seerExplorerUtils, 'usePageReferrer')
+      .mockReturnValue({getPageReferrer: () => '/issues/'});
+    jest
+      .spyOn(llmContextModule, 'useLLMContext')
+      .mockReturnValue({
+        getLLMContext: () => ({
+          version: 0,
+          nodes: [],
+          location: {url: window.location.href, name: '/issues/', params: {}, query: {}},
+        }),
+      });
   });
 
   const organization = OrganizationFixture({
@@ -72,10 +74,7 @@ describe('useSeerExplorer', () => {
           run_id: 123,
           message: {
             id: 'msg-1',
-            message: {
-              role: 'assistant',
-              content: 'Response content',
-            },
+            message: {role: 'assistant', content: 'Response content'},
             timestamp: '2024-01-01T00:00:00Z',
             loading: false,
           },
@@ -91,10 +90,7 @@ describe('useSeerExplorer', () => {
             blocks: [
               {
                 id: 'msg-1',
-                message: {
-                  role: 'assistant',
-                  content: 'Response content',
-                },
+                message: {role: 'assistant', content: 'Response content'},
                 timestamp: '2024-01-01T00:00:00Z',
                 loading: false,
               },
@@ -120,10 +116,7 @@ describe('useSeerExplorer', () => {
           `/organizations/${organization.slug}/seer/explorer-chat/`,
           expect.objectContaining({
             method: 'POST',
-            data: expect.objectContaining({
-              query: 'Test query',
-              insert_index: 0,
-            }),
+            data: expect.objectContaining({query: 'Test query', insert_index: 0}),
           })
         );
 
@@ -133,12 +126,10 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends structured JSON on dashboard page with feature flag', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/dashboard/:dashboardId/',
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/dashboard/:dashboardId/'});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -190,12 +181,10 @@ describe('useSeerExplorer', () => {
       '/monitors/uptime/',
       '/seer/investigations/:investigationId/',
     ])('sends structured JSON on structured-context route %s', async (route: string) => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => route,
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => route});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -226,12 +215,10 @@ describe('useSeerExplorer', () => {
     });
 
     it('falls back to ASCII screenshot on non-structured-context page', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/settings/account/details/',
-      });
-      const org = OrganizationFixture({
-        features: ['seer-explorer'],
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
+      const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
         method: 'GET',
@@ -263,9 +250,9 @@ describe('useSeerExplorer', () => {
     });
 
     it('sends page_location even on a non-structured-context page', async () => {
-      jest.spyOn(seerExplorerUtils, 'usePageReferrer').mockReturnValue({
-        getPageReferrer: () => '/settings/account/details/',
-      });
+      jest
+        .spyOn(seerExplorerUtils, 'usePageReferrer')
+        .mockReturnValue({getPageReferrer: () => '/settings/account/details/'});
       const org = OrganizationFixture({features: ['seer-explorer']});
       MockApiClient.addMockResponse({
         url: `/organizations/${org.slug}/seer/explorer-chat/`,
@@ -526,10 +513,7 @@ describe('useSeerExplorer', () => {
           queryClient = useQueryClient();
           return useSeerExplorer();
         },
-        {
-          organization,
-          additionalWrapper: SeerExplorerChatStateProvider,
-        }
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
       );
       act(() => {
         result.current.switchToRun(runId);
@@ -612,10 +596,7 @@ describe('useSeerExplorer', () => {
           queryClient = useQueryClient();
           return useSeerExplorer();
         },
-        {
-          organization,
-          additionalWrapper: SeerExplorerChatStateProvider,
-        }
+        {organization, additionalWrapper: SeerExplorerChatStateProvider}
       );
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/seer/explorer-chat/${runId}/`,
@@ -1221,6 +1202,7 @@ describe('useSeerExplorer', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();
@@ -1381,9 +1363,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1429,9 +1409,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1489,9 +1467,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1537,9 +1513,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}456/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1570,9 +1544,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}321/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {
@@ -1603,9 +1575,7 @@ describe('useSeerExplorer', () => {
       MockApiClient.addMockResponse({
         url: `${chatUrl}321/`,
         method: 'GET',
-        body: {
-          session: serverSessionData,
-        },
+        body: {session: serverSessionData},
       });
 
       const {result} = renderHookWithProviders(() => useSeerExplorer(), {

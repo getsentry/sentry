@@ -16,11 +16,7 @@ export function getSecurityDsn(keyList: ProjectKey[]) {
   return endpoint;
 }
 
-type Props = {
-  keyList: ProjectKey[];
-  orgId: string;
-  projectId: string;
-};
+type Props = {keyList: ProjectKey[]; orgId: string; projectId: string};
 
 export function ReportUri({keyList, orgId, projectId}: Props) {
   return (
@@ -30,9 +26,7 @@ export function ReportUri({keyList, orgId, projectId}: Props) {
         <PanelAlert variant="info">
           {tct(
             "We've automatically pulled these credentials from your available [link:Client Keys]",
-            {
-              link: <Link to={`/settings/${orgId}/projects/${projectId}/keys/`} />,
-            }
+            {link: <Link to={`/settings/${orgId}/projects/${projectId}/keys/`} />}
           )}
         </PanelAlert>
         <Container padding="xl">

@@ -68,10 +68,7 @@ export function FeatureFlagsLogTable({
         data={flags ?? []}
         columnOrder={columns}
         fit="max-content"
-        grid={{
-          renderBodyCell,
-          onResizeColumn,
-        }}
+        grid={{renderBodyCell, onResizeColumn}}
         onRowMouseOver={onRowMouseOver}
         onRowMouseOut={onRowMouseOut}
         highlightedRowKey={highlightedRowKey}

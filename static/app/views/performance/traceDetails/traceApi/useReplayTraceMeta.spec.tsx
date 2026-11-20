@@ -19,14 +19,7 @@ describe('useReplayTraceMeta', () => {
     const eventsRequest = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/events/',
-      body: {
-        data: [
-          {
-            trace: 'trace1',
-            'min(precise.start_ts)': 1,
-          },
-        ],
-      },
+      body: {data: [{trace: 'trace1', 'min(precise.start_ts)': 1}]},
     });
     MockApiClient.addMockResponse({
       method: 'GET',
@@ -37,9 +30,7 @@ describe('useReplayTraceMeta', () => {
         metricsCount: 0,
         performanceIssuesCount: 2,
         spansCount: 4,
-        spansCountMap: {
-          op1: 4,
-        },
+        spansCountMap: {op1: 4},
         uptimeCount: 0,
       },
     });
@@ -64,9 +55,7 @@ describe('useReplayTraceMeta', () => {
       metricsCount: 0,
       performanceIssuesCount: 2,
       spansCount: 4,
-      spansCountMap: {
-        op1: 4,
-      },
+      spansCountMap: {op1: 4},
       uptimeCount: 0,
     });
   });

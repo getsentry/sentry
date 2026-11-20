@@ -49,7 +49,7 @@ runs:
         # If you have other things like python-version: [foo, bar, baz] then the sharding logic
         # isn't right because job-total will be 3x larger and you'd never run 2/3 of the tests.
         # MATRIX_INSTANCE_TOTAL: ${{ strategy.job-total }}
-      run: |
+      run: | # zizmor: ignore[github-env] -- fixed CI defaults, no PR or event data
         echo "SENTRY_SKIP_SERVICE_VALIDATION=1" >> $GITHUB_ENV
 
         # for actions/setup-python which always runs pip install
@@ -154,7 +154,7 @@ runs:
         DEVSERVICES_TIMEOUT: ${{ inputs.devservices-timeout-minutes }}
         DEVSERVICES_MODE: ${{ inputs.mode }}
         GITHUB_TOKEN: ${{ github.token }}
-      run: |
+      run: | # zizmor: ignore[github-env] -- fixed CI defaults, no PR or event data
         sentry init
 
         if [ "$EARLY_DEVSERVICES" = true ]; then

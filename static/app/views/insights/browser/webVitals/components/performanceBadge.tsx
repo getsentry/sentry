@@ -5,9 +5,7 @@ import {
   STATUS_TEXT,
 } from 'sentry/views/insights/browser/webVitals/utils/scoreToStatus';
 
-type Props = {
-  score: number;
-};
+type Props = {score: number};
 
 export function PerformanceBadge({score}: Props) {
   const status = scoreToStatus(score);

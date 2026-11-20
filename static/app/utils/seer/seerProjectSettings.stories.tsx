@@ -303,12 +303,7 @@ export default Storybook.story('SeerProjectSettings', story => {
     const queryOptions = infiniteQueryOptions({
       ...getInfiniteSeerProjectsSettingsQueryOptions({
         organization,
-        query: {
-          per_page: 25,
-          query: MutableSearch.fromQueryObject({
-            reposCount: '>0',
-          }),
-        },
+        query: {per_page: 25, query: MutableSearch.fromQueryObject({reposCount: '>0'})},
       }),
       select: ({pages}) => pages.flatMap(page => page.json),
     });
@@ -442,22 +437,14 @@ export default Storybook.story('SeerProjectSettings', story => {
               isDisabled={false}
               onChange={value => {
                 setLastAgent(value);
-                mutate({
-                  query: '',
-                  selectedIds,
-                  agentOption: value,
-                });
+                mutate({query: '', selectedIds, agentOption: value});
               }}
             />
             <StoppingPointDropdownMenu
               isDisabled={false}
               onChange={value => {
                 setLastStoppingPoint(value);
-                mutate({
-                  query: '',
-                  selectedIds,
-                  stoppingPoint: value,
-                });
+                mutate({query: '', selectedIds, stoppingPoint: value});
               }}
             />
           </Flex>

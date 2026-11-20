@@ -1,9 +1,10 @@
 import {useMutation} from '@tanstack/react-query';
 
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
+
+import {classifierListApiOptions} from './classifierApiOptions';
 
 type CreateClassifierPayload = Pick<
   TelemetryClassifier,
@@ -15,9 +16,7 @@ export function useCreateClassifier() {
   return useMutation({
     mutationFn: (data: CreateClassifierPayload) =>
       fetchMutation<TelemetryClassifier>({
-        url: getApiUrl('/organizations/$organizationIdOrSlug/classifiers/', {
-          path: {organizationIdOrSlug: organization.slug},
-        }),
+        url: classifierListApiOptions(organization.slug).queryKey[0],
         method: 'POST',
         data,
       }),

@@ -668,7 +668,5 @@ const modalCss = css`
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
-  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss});
 }

@@ -307,9 +307,7 @@ describe('Edit Modal', () => {
 });
 
 describe('Edit Modal with ourlogs-enabled', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 
   beforeEach(() => {
     localStorage.clear();

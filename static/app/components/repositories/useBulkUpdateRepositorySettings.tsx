@@ -11,11 +11,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {repositoryWithSettingsApiOptions} from './repositoryWithSettingsApiOptions';
 
 type RepositorySettings =
-  | {
-      enabledCodeReview: boolean;
-      repositoryIds: string[];
-      codeReviewTriggers?: never;
-    }
+  | {enabledCodeReview: boolean; repositoryIds: string[]; codeReviewTriggers?: never}
   | {
       codeReviewTriggers: CodeReviewTrigger[];
       repositoryIds: string[];
@@ -51,19 +47,13 @@ export function useBulkUpdateRepositorySettings(
       queryClient.invalidateQueries({
         queryKey: apiOptions.as<Repository[]>()(
           '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
+          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
         ).queryKey,
       });
       queryClient.invalidateQueries({
         queryKey: apiOptions.asInfinite<Repository[]>()(
           '/organizations/$organizationIdOrSlug/repos/',
-          {
-            path: {organizationIdOrSlug: organization.slug},
-            staleTime: 0,
-          }
+          {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
         ).queryKey,
       });
       (data ?? []).forEach(repo => {

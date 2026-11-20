@@ -36,9 +36,7 @@ const initialRouterConfig = {
 };
 
 describe('useSaveAsMetricItems', () => {
-  const organization = OrganizationFixture({
-    features: ['tracemetrics-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['tracemetrics-enabled']});
   const project = ProjectFixture({id: '1'});
 
   function Wrapper({children}: {children: ReactNode}) {
@@ -107,10 +105,7 @@ describe('useSaveAsMetricItems', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            id: 'test-query-id',
-          },
+          query: {...initialRouterConfig.location.query, id: 'test-query-id'},
         },
       },
     });
@@ -163,10 +158,7 @@ describe('useSaveAsMetricItems', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            metric: [encodedMetricQuery],
-          },
+          query: {...initialRouterConfig.location.query, metric: [encodedMetricQuery]},
         },
       },
     });
@@ -218,10 +210,7 @@ describe('useSaveAsMetricItems', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            metric: encodedMetricQueries,
-          },
+          query: {...initialRouterConfig.location.query, metric: encodedMetricQueries},
         },
       },
     });
@@ -229,13 +218,7 @@ describe('useSaveAsMetricItems', () => {
     const addToDashboardItem = result.current.find(
       item => item.key === 'add-to-dashboard'
     ) as
-      | {
-          children?: Array<{
-            key: string;
-            label: string;
-            onAction: () => void;
-          }>;
-        }
+      | {children?: Array<{key: string; label: string; onAction: () => void}>}
       | undefined;
 
     const equationChild = addToDashboardItem?.children?.find(
@@ -248,9 +231,7 @@ describe('useSaveAsMetricItems', () => {
 
     expect(mockHandleAddQueryToDashboard).toHaveBeenCalledWith(
       expect.objectContaining({
-        eventView: expect.objectContaining({
-          yAxis: equation,
-        }),
+        eventView: expect.objectContaining({yAxis: equation}),
         yAxis: equation,
       })
     );
@@ -299,10 +280,7 @@ describe('useSaveAsMetricItems', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            metric: [encodedMetricQuery],
-          },
+          query: {...initialRouterConfig.location.query, metric: [encodedMetricQuery]},
         },
       },
     });
@@ -342,10 +320,7 @@ describe('useSaveAsMetricItems', () => {
         ...initialRouterConfig,
         location: {
           ...initialRouterConfig.location,
-          query: {
-            ...initialRouterConfig.location.query,
-            metric: [encodedMetricQuery],
-          },
+          query: {...initialRouterConfig.location.query, metric: [encodedMetricQuery]},
         },
       },
     });

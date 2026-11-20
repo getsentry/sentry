@@ -74,9 +74,7 @@ export default function AccountSecurityDetails() {
       // if the device is defined, it means that U2f is being removed
       // reason for adding a trailing slash is a result of the endpoint on line 109 needing it but it can't be set there as if deviceId is None, the route will end with '//'
       const deviceId = device ? `${device.key_handle}/` : '';
-      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {
-        method: 'DELETE',
-      });
+      return api.requestPromise(`${ENDPOINT}${id}/${deviceId}`, {method: 'DELETE'});
     },
     onSuccess: (_, {device}) => {
       const deviceName = device ? device.name : t('Authenticator');
@@ -103,9 +101,7 @@ export default function AccountSecurityDetails() {
     }) => {
       return api.requestPromise(`${ENDPOINT}${id}/${device.key_handle}/`, {
         method: 'PUT',
-        data: {
-          name,
-        },
+        data: {name},
       });
     },
     onSuccess: () => {

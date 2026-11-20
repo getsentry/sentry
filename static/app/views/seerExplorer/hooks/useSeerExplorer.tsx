@@ -54,9 +54,7 @@ type SessionSnapshot = {
   previousData: SeerExplorerResponse | undefined;
 };
 
-type SeerExplorerUpdateResponse = {
-  run_id: number;
-};
+type SeerExplorerUpdateResponse = {run_id: number};
 
 /**
  * Build the explorer-update endpoint URL. `runId` can originate from an
@@ -403,21 +401,14 @@ export const useSeerExplorer = () => {
   const {mutate: interruptRunMutate} = useMutation<
     SeerExplorerUpdateResponse,
     RequestError,
-    {
-      orgSlug: string;
-      runId: SeerExplorerRunId | null;
-    }
+    {orgSlug: string; runId: SeerExplorerRunId | null}
   >({
     mutationFn: async params => {
       setHasSentInterrupt(true);
       return fetchMutation({
         url: makeExplorerUpdateUrl(params.orgSlug, params.runId),
         method: 'POST',
-        data: {
-          payload: {
-            type: 'interrupt',
-          },
-        },
+        data: {payload: {type: 'interrupt'}},
       });
     },
     onError: () => {
@@ -760,10 +751,7 @@ export const useSeerExplorer = () => {
       updated_at: new Date().toISOString(),
     };
 
-    return {
-      ...baseSession,
-      blocks: visibleBlocks,
-    };
+    return {...baseSession, blocks: visibleBlocks};
   }, [rawSessionData, runId, lastSentMessage, isPolling, isSendingMessage, isTimedOut]);
 
   return {

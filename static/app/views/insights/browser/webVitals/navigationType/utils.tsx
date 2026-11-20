@@ -42,11 +42,7 @@ export function useNavigationTypeExperiment(
     getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
   const buckets = getBucketsFromGlobalFilters(globalFilters);
 
-  return {
-    isEnabled,
-    buckets,
-    supportsThresholds: bucketsKeepThresholds(buckets),
-  };
+  return {isEnabled, buckets, supportsThresholds: bucketsKeepThresholds(buckets)};
 }
 
 // Only the switcher's own filter counts, so a hand-added chip filters data

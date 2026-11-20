@@ -47,10 +47,7 @@ describe('OrganizationDropdown', () => {
               />
             }
             items={[
-              {
-                key: 'organization',
-                children: [{key: 'settings', label: 'Settings'}],
-              },
+              {key: 'organization', children: [{key: 'settings', label: 'Settings'}]},
               {
                 key: 'project-settings',
                 label: 'Project Settings',

@@ -17,16 +17,15 @@ interface CollapsibleContentProps {
   title: ReactNode | ((isOpen: boolean) => ReactNode);
   /** Forwarded to the root `<details>`, so callers can style it with `styled()`. */
   className?: string;
-  /** Start expanded. Defaults to collapsed. */
+  /** Start expanded when uncontrolled. Defaults to collapsed. */
   defaultOpen?: boolean;
   /** Fires on expand/collapse with the new open state. */
-  onToggle?: (open: boolean) => void;
+  onOpenChange?: (open: boolean) => void;
   /**
-   * Expands the section whenever this turns true, e.g. when a selected item
-   * inside it loads after the section first rendered. The user can still
-   * collapse it afterwards.
+   * The open state, for a caller that controls it (paired with `onOpenChange`).
+   * Without it the section keeps its own state, starting from `defaultOpen`.
    */
-  openWhen?: boolean;
+  open?: boolean;
   /**
    * Show the leading caret. Turn it off for a title that shows its own open
    * state. Defaults to shown.
@@ -45,29 +44,24 @@ export function CollapsibleContent({
   title,
   className,
   defaultOpen = false,
-  openWhen = false,
+  open,
   showCaret = true,
-  onToggle,
+  onOpenChange,
 }: CollapsibleContentProps) {
-  const [isOpen, setIsOpen] = useState(defaultOpen || openWhen);
-  // Adjusts state during render when `openWhen` changes, rather than in an
-  // effect, so the section opens in the same render.
-  const [prevOpenWhen, setPrevOpenWhen] = useState(openWhen);
-  if (openWhen !== prevOpenWhen) {
-    setPrevOpenWhen(openWhen);
-    if (openWhen) {
-      setIsOpen(true);
-    }
-  }
+  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const isOpen = open ?? uncontrolledOpen;
 
   return (
     <Details
       open={isOpen}
       className={className}
       onToggle={e => {
-        const open = e.currentTarget.open;
-        setIsOpen(open);
-        onToggle?.(open);
+        const nextOpen = e.currentTarget.open;
+        if (nextOpen === isOpen) {
+          return;
+        }
+        setUncontrolledOpen(nextOpen);
+        onOpenChange?.(nextOpen);
       }}
     >
       <Flex

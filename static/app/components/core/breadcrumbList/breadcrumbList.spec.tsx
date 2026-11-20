@@ -110,9 +110,7 @@ describe('BreadcrumbList container-query collapse', () => {
     // The trigger names both its purpose and the current selection.
     // findBy lets CompactSelect's deferred mount-time state update flush in act.
     expect(
-      await screen.findByRole('button', {
-        name: 'Switch javascript',
-      })
+      await screen.findByRole('button', {name: 'Switch javascript'})
     ).toBeInTheDocument();
   });
 
@@ -280,11 +278,7 @@ describe('BreadcrumbList rich page-title items', () => {
         item={{
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
-          trailingActions: {
-            type: 'copy',
-            text: 'JAVASCRIPT-2X9',
-            label: 'Copy Short-ID',
-          },
+          trailingActions: {type: 'copy', text: 'JAVASCRIPT-2X9', label: 'Copy Short-ID'},
         }}
       />
     );
@@ -319,11 +313,7 @@ describe('BreadcrumbList rich page-title items', () => {
           type: 'page-title',
           label: 'JAVASCRIPT-2X9',
           trailingActions: [
-            {
-              type: 'copy',
-              text: 'JAVASCRIPT-2X9',
-              label: 'Copy Short-ID',
-            },
+            {type: 'copy', text: 'JAVASCRIPT-2X9', label: 'Copy Short-ID'},
             isPublic
               ? {
                   type: 'menu',

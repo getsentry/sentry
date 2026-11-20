@@ -113,10 +113,7 @@ describe('EntityHeader', () => {
               {label: 'Install Size', value: '12 MB'},
               {label: 'Cost', value: null},
               {label: {type: 'link', content: 'Errors', to: '/replays/1/'}, value: null},
-              {
-                label: 'Issues',
-                value: {type: 'link', content: null, to: '/issues/'},
-              },
+              {label: 'Issues', value: {type: 'link', content: null, to: '/issues/'}},
               {
                 label: 'Download Size',
                 value: {
@@ -147,10 +144,7 @@ describe('EntityHeader', () => {
               isLoading ? null : {label: 'Browser', type: 'text', value: 'Chrome'},
             ],
           }}
-          stats={{
-            label: 'Replay stats',
-            items: [{label: 'Errors', value: 0}],
-          }}
+          stats={{label: 'Replay stats', items: [{label: 'Errors', value: 0}]}}
         />
       ),
       isLoading => ({

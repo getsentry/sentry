@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 
 import {Button} from '@sentry/scraps/button';
 import {MessageRow} from '@sentry/scraps/chat';
-import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -13,13 +12,18 @@ import {
   AssistantMessageBlock,
   UserMessageBlock,
 } from 'sentry/components/ai/chat/messageBlock';
-import {TURN_META_WIDTH, TurnMeta} from 'sentry/components/ai/chat/turnMeta';
+import {
+  TURN_META_WIDTH,
+  TurnMeta,
+  TurnMetaValue,
+} from 'sentry/components/ai/chat/turnMeta';
 import {Count} from 'sentry/components/count';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {useSelectionOpenState} from 'sentry/views/explore/conversations/hooks/useSelectionOpenState';
 import {
   callContainsNode,
   type ConversationMessage,
@@ -410,18 +414,12 @@ function AssistantMeta({cost, duration}: {cost?: number; duration?: number}) {
     <TurnMeta
       metric={
         cost === undefined || cost <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
+          <TurnMetaValue>
             <LLMCosts cost={cost} />
-          </Text>
+          </TurnMetaValue>
         )
       }
-      duration={
-        duration === undefined || duration <= 0 ? null : (
-          <Text size="xs" variant="muted" tabular align="right">
-            {getDuration(duration, {precision: 2, style: 'short'})}
-          </Text>
-        )
-      }
+      duration={duration}
     />
   );
 }
@@ -440,11 +438,12 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const organization = useOrganization();
   const input = message.embeddingInput ?? '';
   const tokens = message.embeddingTokens;
+  const [isOpen, setIsOpen] = useSelectionOpenState(isSelected ? message.nodeId : null);
 
   return (
     <MessageRow from="assistant" density="line">
       <CollapsibleChatRow
-        openWhen={isSelected}
+        open={isOpen}
         title={
           <Text
             size="sm"
@@ -459,26 +458,21 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
           <TurnMeta
             metric={
               tokens === undefined || tokens <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
+                <TurnMetaValue>
                   <Count value={tokens} /> {t('tokens')}
-                </Text>
+                </TurnMetaValue>
               )
             }
-            duration={
-              message.duration === undefined || message.duration <= 0 ? null : (
-                <Text size="xs" variant="muted" tabular align="right">
-                  {getDuration(message.duration, {precision: 2, style: 'short'})}
-                </Text>
-              )
-            }
+            duration={message.duration}
           />
         }
-        onToggle={open =>
+        onOpenChange={open => {
+          setIsOpen(open);
           trackAnalytics('conversations.detail.expand-embedding', {
             organization,
             expanded: open,
-          })
-        }
+          });
+        }}
       >
         <Flex>
           <Container paddingTop="xs" paddingBottom="xs" flex="1" minWidth={0}>
@@ -661,7 +655,7 @@ function ReasoningSection({
           {t('Thinking...')} {isOpen ? null : <ScrubbedText>{reasoning}</ScrubbedText>}
         </Text>
       )}
-      onToggle={open =>
+      onOpenChange={open =>
         trackAnalytics('conversations.detail.expand-thinking', {
           organization,
           expanded: open,
@@ -744,9 +738,7 @@ function EmptyNotice({children}: {children: React.ReactNode}) {
  */
 export function MessagesPanelSkeleton() {
   const theme = useTheme();
-  const invertedPlaceholderStyle = {
-    backgroundColor: theme.tokens.background.primary,
-  };
+  const invertedPlaceholderStyle = {backgroundColor: theme.tokens.background.primary};
 
   return (
     <PanelContainer>

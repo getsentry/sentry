@@ -36,10 +36,7 @@ export function RepoDetailsForm({organization, repoWithSettings}: Props) {
 
   const repoMutationOpts = mutationOptions({
     mutationFn: (
-      data: Partial<{
-        codeReviewTriggers: CodeReviewTrigger[];
-        enabledCodeReview: boolean;
-      }>
+      data: Partial<{codeReviewTriggers: CodeReviewTrigger[]; enabledCodeReview: boolean}>
     ) => {
       return fetchMutation<RepositoryWithSettings[]>({
         method: 'PUT',

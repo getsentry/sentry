@@ -68,9 +68,7 @@ export function ConversationViewContent({
   } = useConversation({...conversation, autoFetchAll: false});
 
   const [detailState, setDetailState] = useQueryStates(
-    {
-      detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input'),
-    },
+    {detailTab: parseAsStringLiteral(CONVERSATION_SPAN_DETAIL_TABS).withDefault('input')},
     {history: 'replace'}
   );
 

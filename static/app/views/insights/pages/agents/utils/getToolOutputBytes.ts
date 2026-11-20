@@ -1,9 +1,8 @@
 import {stripAnnotations} from '@sentry/scraps/markdown/annotation';
 
 import {getTraceNodeAttribute} from './aiTraceNodes';
+import {getRawToolOutput} from './toolOutput';
 import type {AITraceSpanNode} from './types';
-
-const TOOL_OUTPUT_ATTRIBUTES = ['gen_ai.tool.call.result', 'gen_ai.tool.output'];
 
 /**
  * Returns the reported tool output size in bytes, falling back to the UTF-8 byte
@@ -27,13 +26,10 @@ export function getToolOutputBytesFromAttributes(
     return reportedSize;
   }
 
-  for (const key of TOOL_OUTPUT_ATTRIBUTES) {
-    const output = getAttribute(key);
-    if (output) {
-      return new TextEncoder().encode(stripAnnotations(output.toString())).length;
-    }
-  }
-  return 0;
+  const output = getRawToolOutput(getAttribute);
+  return output
+    ? new TextEncoder().encode(stripAnnotations(output.toString())).length
+    : 0;
 }
 
 /**
