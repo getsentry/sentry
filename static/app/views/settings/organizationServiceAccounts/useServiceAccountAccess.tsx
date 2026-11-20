@@ -16,10 +16,7 @@ export function useServiceAccountAccess() {
   const hasGlobalRole =
     organization.orgRoleList?.find(role => role.id === organization.orgRole)?.isGlobal ??
     false;
-  return {
-    canWrite: organization.access.includes('service_account:write'),
-    hasGlobalRole,
-  };
+  return {canWrite: organization.access.includes('service_account:write'), hasGlobalRole};
 }
 
 /** Why the account can't be changed here, or null when it can. */
