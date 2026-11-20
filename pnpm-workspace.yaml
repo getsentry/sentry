@@ -35,6 +35,7 @@ patchedDependencies:
   css-tree@3.2.1: patches/css-tree@3.2.1.patch
   jest-runtime@30.5.1: patches/jest-runtime@30.5.1.patch
   jest-resolve@30.5.1: patches/jest-resolve@30.5.1.patch
+  nuqs@2.10.2: patches/nuqs@2.10.2.patch
 allowBuilds:
   '@sentry-internal/node-cpu-profiler': true
   '@swc/core': true
