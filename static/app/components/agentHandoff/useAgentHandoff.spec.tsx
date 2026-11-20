@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -70,6 +71,23 @@ describe('useAgentHandoff', () => {
       await result.current.copyPrompt(options);
     });
     expect(mint).toHaveBeenCalledTimes(2);
+  });
+
+  it('tags the Sentry scope with the minted handoff ID', async () => {
+    const setTag = jest.spyOn(Sentry, 'setTag');
+    MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
+    });
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+    await act(async () => {
+      await result.current.copyPrompt(options);
+    });
+    expect(setTag).toHaveBeenCalledWith('agent_handoff.id', handoffId);
   });
 
   it('reports a safe error when minting fails', async () => {
