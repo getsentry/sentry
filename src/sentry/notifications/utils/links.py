@@ -25,6 +25,13 @@ def create_link_to_workflow(organization_slug: str, workflow_id: str) -> str:
     return f"/organizations/{organization_slug}/monitors/alerts/{workflow_id}/"
 
 
+def create_link_to_detector(organization_slug: str, detector_id: str) -> str:
+    """
+    Create a link to a detector (monitor)
+    """
+    return f"/organizations/{organization_slug}/monitors/{detector_id}/"
+
+
 def get_email_link_extra_params(
     referrer: str = "alert_email",
     environment: str | None = None,

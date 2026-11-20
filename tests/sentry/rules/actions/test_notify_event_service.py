@@ -10,6 +10,7 @@ from sentry.eventstream.types import EventStreamEventType
 from sentry.grouping.grouptype import ErrorGroupType
 from sentry.incidents.endpoints.serializers.incident import IncidentSerializerResponse
 from sentry.incidents.grouptype import MetricIssue
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType, AlertRuleThresholdType
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.typings.metric_detector import (
     AlertContext,
@@ -154,7 +155,17 @@ class TestSendIncidentAlertNotification(TestCase):
         self.alert_rule = self.create_alert_rule()
         group = self.create_group(project=self.project, type=MetricIssue.type_id)
         open_period = GroupOpenPeriod.objects.get(group=group)
-        self.alert_context = AlertContext.from_alert_rule_incident(self.alert_rule)
+        self.detector = self.create_detector(project=self.project)
+        self.alert_context = AlertContext(
+            name=self.detector.name,
+            action_identifier_id=self.detector.id,
+            threshold_type=AlertRuleThresholdType.ABOVE,
+            detection_type=AlertRuleDetectionType.STATIC,
+            comparison_delta=None,
+            sensitivity=None,
+            resolve_threshold=None,
+            alert_threshold=None,
+        )
         self.metric_issue_context = MetricIssueContext(
             id=group.id,
             open_period_identifier=open_period.id,
@@ -190,7 +201,7 @@ class TestSendIncidentAlertNotification(TestCase):
         assert call_kwargs["new_status"] == IncidentStatus.CRITICAL.value
         assert call_kwargs["organization_id"] == self.organization.id
         assert call_kwargs["project_id"] == self.project.id
-        assert call_kwargs["alert_id"] == self.alert_rule.id
+        assert call_kwargs["alert_id"] == self.detector.id
         assert call_kwargs["notification_uuid"] == self.notification_uuid
 
         attachment = json.loads(call_kwargs["incident_attachment_json"])

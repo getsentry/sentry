@@ -2,9 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import NotRequired, TypedDict, get_args
-from urllib import parse
+from urllib.parse import urlencode
 
-from django.urls import reverse
 from django.utils.translation import gettext as _
 
 from sentry import features
@@ -15,12 +14,11 @@ from sentry.discover.arithmetic import (
     parse_arithmetic,
     strip_equation,
 )
-from sentry.incidents.endpoints.serializers.utils import get_fake_id_from_object_id
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus
 from sentry.incidents.typings.metric_detector import AlertContext, MetricIssueContext
 from sentry.incidents.utils.format_duration import format_duration_idiomatic
 from sentry.models.organization import Organization
-from sentry.notifications.utils.links import create_link_to_workflow
+from sentry.notifications.utils.links import create_link_to_detector, create_link_to_workflow
 from sentry.search.eap.trace_metrics.definitions import TRACE_METRICS_DEFINITIONS
 from sentry.search.eap.trace_metrics.types import TraceMetricType
 from sentry.search.events.fields import is_function, parse_arguments
@@ -30,8 +28,6 @@ from sentry.snuba.metrics.naming_layer.mri import parse_mri_field
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.utils.assets import get_asset_url
 from sentry.utils.http import absolute_uri
-from sentry.workflow_engine.models.alertrule_detector import AlertRuleDetector
-from sentry.workflow_engine.models.incident_groupopenperiod import IncidentGroupOpenPeriod
 
 # Stored forms of aggregates that users never see. The monitor form shows the key instead.
 _CRASH_FREE_RATE_AGGREGATES = {
@@ -142,14 +138,6 @@ class AttachmentInfo(TypedDict):
     date_started: NotRequired[datetime | None]
 
 
-class TitleLinkParams(TypedDict, total=False):
-    alert: str
-    referrer: str
-    detection_type: str
-    notification_uuid: str
-    project_id: int | None
-
-
 def logo_url() -> str:
     return absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
 
@@ -200,22 +188,6 @@ def get_title(status: str, name: str) -> str:
     return f"{status}: {name}"
 
 
-def build_title_link(
-    identifier_id: int, organization: Organization, params: TitleLinkParams
-) -> str:
-    """Builds the URL for an alert rule with the given parameters."""
-    return organization.absolute_url(
-        reverse(
-            "sentry-metric-alert-details",
-            kwargs={
-                "organization_slug": organization.slug,
-                "alert_rule_id": identifier_id,
-            },
-        ),
-        query=parse.urlencode(params),
-    )
-
-
 def build_workflow_link(organization: Organization, workflow_id: int) -> str:
     return organization.absolute_url(create_link_to_workflow(organization.slug, str(workflow_id)))
 
@@ -242,38 +214,22 @@ def incident_attachment_info(
 
     title = get_title(status, alert_context.name)
 
-    title_link_params: TitleLinkParams = {
-        "alert": str(metric_issue_context.open_period_identifier),
+    title_link_params = {
         "referrer": referrer,
         "detection_type": alert_context.detection_type.value,
     }
     if notification_uuid:
         title_link_params["notification_uuid"] = notification_uuid
 
-    try:
-        alert_rule_id = AlertRuleDetector.objects.values_list("alert_rule_id", flat=True).get(
-            detector_id=alert_context.action_identifier_id
+    group = metric_issue_context.group
+    if group is not None:
+        title_link_params["openPeriod"] = str(metric_issue_context.open_period_identifier)
+        title_link = group.get_absolute_url(params=title_link_params)
+    else:
+        title_link = organization.absolute_url(
+            create_link_to_detector(organization.slug, str(alert_context.action_identifier_id)),
+            query=urlencode(title_link_params),
         )
-        if alert_rule_id is None:
-            raise ValueError("Alert rule id not found when querying for AlertRuleDetector")
-    except AlertRuleDetector.DoesNotExist:
-        # the corresponding metric detector was not dual written
-        alert_rule_id = get_fake_id_from_object_id(alert_context.action_identifier_id)
-
-    workflow_engine_params = title_link_params.copy()
-
-    try:
-        open_period_incident = IncidentGroupOpenPeriod.objects.get(
-            group_open_period_id=metric_issue_context.open_period_identifier
-        )
-        workflow_engine_params["alert"] = str(open_period_incident.incident_identifier)
-    except IncidentGroupOpenPeriod.DoesNotExist:
-        # the corresponding metric detector was not dual written
-        workflow_engine_params["alert"] = str(
-            get_fake_id_from_object_id(metric_issue_context.open_period_identifier)
-        )
-
-    title_link = build_title_link(alert_rule_id, organization, workflow_engine_params)
 
     return AttachmentInfo(
         title=title,
