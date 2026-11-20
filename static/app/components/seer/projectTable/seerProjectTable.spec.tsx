@@ -1,13 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {
-  render,
-  screen,
-  userEvent,
-  waitFor,
-  within,
-} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {toast} from '@sentry/scraps/toast';
 
@@ -357,10 +351,6 @@ describe('SeerProjectTable', () => {
     if ((toggle as HTMLInputElement).checked !== (label === 'On')) {
       await userEvent.click(toggle);
     }
-  }
-
-  function getRow(slug: string) {
-    return screen.getByRole('row', {name: new RegExp(slug)});
   }
 
   async function chooseBulkPrIteration(label: 'On' | 'Off') {
