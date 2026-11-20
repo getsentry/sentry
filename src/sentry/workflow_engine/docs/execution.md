@@ -374,7 +374,7 @@ imply Workflow execution order.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
-removes inactive actions and deduplicates by key. It then schedules
+removes unsupported or inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
 filtered or deduplicated.
