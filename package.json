@@ -112,7 +112,7 @@
     "getsentry-test": "workspace:@sentry-internal/getsentry-test@*",
     "knip": "6.42.1",
     "odiff-bin": "4.3.8",
-    "oxfmt": "^0.75.0",
+    "oxfmt": "^0.79.0",
     "oxlint": "1.94.0",
     "oxlint-plugin-eslint": "1.94.0",
     "postcss-styled-syntax": "0.7.0",
