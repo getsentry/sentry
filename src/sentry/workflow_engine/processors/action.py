@@ -263,7 +263,7 @@ def get_supported_actions(
     unsupported_ids = []
     for action in actions:
         try:
-            action.validate_event_data(event_data)
+            action.get_handler().validate_event_data(event_data)
         except UnsupportedActionEvent:
             unsupported_ids.append(action.id)
             logger.info(
