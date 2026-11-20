@@ -1163,9 +1163,11 @@ class RPCBase:
                 if other_term is not None:
                     other_row_conditions.extend(other_term)
             conditions.append(TraceItemFilter(and_filter=AndFilter(filters=row_conditions)))
-            other_conditions.append(
-                TraceItemFilter(or_filter=OrFilter(filters=other_row_conditions))
-            )
+            # Snuba rejects an empty or clause, so only add one when there is something to OR
+            if other_row_conditions:
+                other_conditions.append(
+                    TraceItemFilter(or_filter=OrFilter(filters=other_row_conditions))
+                )
         return (
             TraceItemFilter(or_filter=OrFilter(filters=conditions)),
             TraceItemFilter(and_filter=AndFilter(filters=other_conditions)),
@@ -1234,6 +1236,10 @@ class RPCBase:
         search_resolver = cls.get_resolver(params, config)
         # Need to change the project slug columns to project.id because timeseries requests don't take virtual_column_contexts
         groupby_columns = [col for col in raw_groupby if not is_function(col)]
+        # Without any non-aggregate columns there is a single top event covering all the data,
+        # so the other series would always be empty and its conditions can't be built
+        if not groupby_columns:
+            include_other = False
         groupby_columns_without_project = [
             col if col not in ["project", "project.name"] else "project.id"
             for col in groupby_columns
