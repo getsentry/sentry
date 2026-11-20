@@ -363,6 +363,9 @@ normal successful cleanup. They remain until expiry or manual cleanup.
 
 ## Action Selection and Dispatch
 
+Actions whose handlers reject the event are excluded before frequency checks and history
+creation. Evaluations without a group include only Inbox workflows.
+
 [`processors/action.py`](../processors/action.py) applies two different controls:
 
 ### Repeat frequency
@@ -387,7 +390,7 @@ imply Workflow execution order.
 
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows for eligible workflows before `fire_actions`
-removes unsupported or inactive actions and deduplicates by key. It then schedules
+removes inactive actions and deduplicates by key. It then schedules
 [`trigger_action`](../tasks/actions.py) for retained actions. Fire-history rows describe
 scheduling, not successful external delivery, and can exist for actions that are later
 filtered or deduplicated.
