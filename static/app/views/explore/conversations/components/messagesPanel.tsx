@@ -718,7 +718,7 @@ const SystemPromptSection = memo(function SystemPromptSectionImpl({
           {isOpen ? null : <ScrubbedText>{systemPrompt}</ScrubbedText>}
         </Text>
       )}
-      onToggle={open =>
+      onOpenChange={open =>
         trackAnalytics('conversations.detail.expand-system-prompt', {
           organization,
           expanded: open,
