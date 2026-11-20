@@ -5,8 +5,10 @@ import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {ListState} from '@react-stately/list';
 import type {Node, Selection} from '@react-types/shared';
 
-import {getSearchScore} from '@sentry/scraps/fzf';
 import {useTranslation} from '@sentry/scraps/translation';
+
+// oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
+import {getSearchScore} from '../fzf';
 
 import type {SelectProps} from './compactSelect';
 import {SectionToggleButton} from './styles';

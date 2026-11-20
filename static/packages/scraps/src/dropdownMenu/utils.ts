@@ -1,5 +1,7 @@
-import {getSearchScore} from '@sentry/scraps/fzf';
 import type {useResolveLinkHref} from '@sentry/scraps/link/linkBehaviorContext';
+
+// oxlint-disable-next-line import/no-relative-parent-imports -- Keep the shared search helper private to Scraps.
+import {getSearchScore} from '../fzf';
 
 import type {MenuItemProps} from './item';
 
