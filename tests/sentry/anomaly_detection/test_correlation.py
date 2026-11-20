@@ -5,6 +5,8 @@ from datetime import datetime, timedelta
 
 import pytest
 
+from sentry.anomaly_detection.checkpoint import codec
+from sentry.anomaly_detection.checkpoint.replay import snapshot
 from sentry.anomaly_detection.contracts import (
     ChangeAction,
     ChangeEvent,
@@ -33,6 +35,7 @@ from sentry.anomaly_detection.correlation.shared_dependencies import (
     learn,
 )
 from sentry.anomaly_detection.evaluation.novelty import Novelty
+from sentry.anomaly_detection.evaluation.organization import OrgEvaluator
 
 START = datetime(2024, 1, 1)
 MINUTE = timedelta(minutes=1)
@@ -320,6 +323,31 @@ def test_same_issue_matches_structured_identity_not_display_evidence(
     assert actions[0].kind == expected_action
     assert len(correlator.groups) == group_count
     assert opened.group.driving_issues == [123]
+
+
+def test_deferred_footprint_is_retried_after_checkpoint_restore() -> None:
+    checkout = _episode(CHECKOUT)
+    unrelated = _episode(
+        SeriesKey(3, "production", Signal.ENDPOINTS, LATENCY, "/help"), START + MINUTE
+    )
+    traces = _Traces({CHECKOUT: FOOTPRINT_DEFERRED})
+    projects = (CHECKOUT.project_id, ORDERS.project_id, unrelated.key.project_id)
+    evaluator = OrgEvaluator(traces, projects=projects)
+    (opened,) = evaluator.corr.step(checkout.start, [("open", checkout)])
+    evaluator.corr.step(unrelated.start, [("open", unrelated)])
+    assert (CHECKOUT, unrelated.start + MINUTE) in traces.calls
+
+    orders = _episode(ORDERS, START + 2 * MINUTE)
+    next_traces = _Traces({CHECKOUT: _checkout_footprint()})
+    checkpoint = codec.decode(codec.encode(snapshot(evaluator, orders.start)))
+    restored = OrgEvaluator(next_traces, projects=projects, checkpoint=checkpoint)
+    actions = restored.corr.step(orders.start, [("open", orders)])
+
+    assert (CHECKOUT, orders.start + MINUTE) in next_traces.calls
+    assert all(key != unrelated.key for key, _ in next_traces.calls)
+    assert actions[0].kind == "join"
+    assert actions[0].group.id == opened.group.id
+    assert actions[0].root is orders
 
 
 def test_shared_dependency_learning_links_repeated_co_onsets_without_traces() -> None:
