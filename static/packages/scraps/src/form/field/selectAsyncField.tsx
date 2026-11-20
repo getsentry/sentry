@@ -14,9 +14,7 @@ type SelectAsyncFieldProps<
   TData,
   TValue,
   TOption extends SelectValue<TValue>,
-> = BaseFieldProps<HTMLInputElement> & {
-  field: FieldWithValue<unknown>;
-} & DistributedOmit<
+> = BaseFieldProps<HTMLInputElement> & {field: FieldWithValue<unknown>} & DistributedOmit<
     SelectFieldProps<TValue, TOption>,
     'options' | 'isLoading' | 'onInputChange'
   > & {

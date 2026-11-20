@@ -10,13 +10,10 @@ export function TextAreaField({
   disabled,
   ref,
   ...props
-}: BaseFieldProps<HTMLTextAreaElement> & {
-  field: FieldWithValue<unknown>;
-} & Omit<TextAreaProps, 'value' | 'onChange' | 'onBlur' | 'disabled'> & {
-    onChange: (value: string) => void;
-    value: string;
-    disabled?: boolean | string;
-  }) {
+}: BaseFieldProps<HTMLTextAreaElement> & {field: FieldWithValue<unknown>} & Omit<
+    TextAreaProps,
+    'value' | 'onChange' | 'onBlur' | 'disabled'
+  > & {onChange: (value: string) => void; value: string; disabled?: boolean | string}) {
   return (
     <BaseFieldImpl field={field} disabled={disabled} ref={ref}>
       {(fieldProps, {indicator}) => (

@@ -328,9 +328,7 @@ export function FrameworkSuggestionModal({
   const form = useScrapsForm({
     defaultValues: {framework: selectedPlatform.key},
     validators: defaultFormValidators(
-      z.object({
-        framework: z.enum(listEntriesWithVanilla.map(platform => platform.id)),
-      })
+      z.object({framework: z.enum(listEntriesWithVanilla.map(platform => platform.id))})
     ),
     onSubmit: ({value}) => {
       if (isCreatingProjectAndRules) {

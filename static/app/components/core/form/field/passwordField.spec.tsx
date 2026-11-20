@@ -9,9 +9,7 @@ interface TestFormProps {
 }
 
 function TestForm({defaultValue = '', disabled, label = 'Password'}: TestFormProps) {
-  const form = useScrapsForm({
-    defaultValues: {password: defaultValue},
-  });
+  const form = useScrapsForm({defaultValues: {password: defaultValue}});
 
   return (
     <ScrapsForm form={form}>

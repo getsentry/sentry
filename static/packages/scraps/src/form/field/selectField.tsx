@@ -57,9 +57,7 @@ export function SelectField<
   value,
   ref,
   ...props
-}: SelectFieldProps<TValue, TOption> & {
-  field: FieldWithValue<unknown>;
-}) {
+}: SelectFieldProps<TValue, TOption> & {field: FieldWithValue<unknown>}) {
   const autoSaveContext = useAutoSaveContext();
   const selectVariantProps = multiple
     ? {multiple: true as const, clearable, value}

@@ -37,19 +37,8 @@ function TestForm({
   const form = useScrapsForm({
     defaultValues: {fruit: null as string | null},
     validators: validateOnBlur
-      ? [
-          {
-            run: z.object({
-              fruit: z.string('Select a fruit'),
-            }),
-            triggers: ['blur'],
-          },
-        ]
-      : defaultFormValidators(
-          z.object({
-            fruit: z.string('Select a fruit'),
-          })
-        ),
+      ? [{run: z.object({fruit: z.string('Select a fruit')}), triggers: ['blur']}]
+      : defaultFormValidators(z.object({fruit: z.string('Select a fruit')})),
     errorVisibility: validateOnBlur ? () => true : undefined,
   });
 

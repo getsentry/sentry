@@ -16,13 +16,10 @@ export function RangeField({
   value,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> & {
-  field: FieldWithValue<unknown>;
-} & DistributedOmit<SliderProps, 'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
-    onChange: (value: number) => void;
-    value: number;
-    disabled?: boolean | string;
-  }) {
+}: BaseFieldProps<HTMLInputElement> & {field: FieldWithValue<unknown>} & DistributedOmit<
+    SliderProps,
+    'value' | 'onChange' | 'onBlur' | 'disabled' | 'id'
+  > & {onChange: (value: number) => void; value: number; disabled?: boolean | string}) {
   const autoSaveContext = useAutoSaveContext();
   const labelId = getLabelId(field);
 

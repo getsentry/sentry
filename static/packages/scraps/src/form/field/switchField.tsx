@@ -11,9 +11,10 @@ export function SwitchField({
   disabled,
   ref,
   ...props
-}: BaseFieldProps<HTMLInputElement> & {
-  field: FieldWithValue<unknown>;
-} & Omit<SwitchProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'> & {
+}: BaseFieldProps<HTMLInputElement> & {field: FieldWithValue<unknown>} & Omit<
+    SwitchProps,
+    'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id'
+  > & {
     checked: boolean;
     onChange: (value: boolean) => void;
     disabled?: boolean | string;

@@ -5,9 +5,7 @@ import {ScrapsForm, useScrapsForm} from '@sentry/scraps/form';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
 
 function TestForm() {
-  const form = useScrapsForm({
-    defaultValues: {superuserAccessCategory: 'development'},
-  });
+  const form = useScrapsForm({defaultValues: {superuserAccessCategory: 'development'}});
 
   return (
     <ScrapsForm form={form}>

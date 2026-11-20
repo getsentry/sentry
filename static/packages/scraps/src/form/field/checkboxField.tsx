@@ -7,9 +7,10 @@ import {Container, Flex, Grid} from '@sentry/scraps/layout';
 
 import {BaseFieldImpl, type BaseFieldProps} from './baseField';
 
-type Props = BaseFieldProps<HTMLInputElement> & {
-  field: FieldWithValue<unknown>;
-} & Omit<CheckboxProps, 'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'> & {
+type Props = BaseFieldProps<HTMLInputElement> & {field: FieldWithValue<unknown>} & Omit<
+    CheckboxProps,
+    'checked' | 'onChange' | 'onBlur' | 'disabled' | 'id' | 'ref'
+  > & {
     checked: boolean;
     label: React.ReactNode;
     onChange: (checked: boolean) => void;

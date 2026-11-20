@@ -41,9 +41,7 @@ function CompactSelectField<TValue extends SelectKey>({
   ref,
   trigger,
   ...props
-}: CompactSelectFieldProps<TValue> & {
-  field: FieldWithValue<unknown>;
-}) {
+}: CompactSelectFieldProps<TValue> & {field: FieldWithValue<unknown>}) {
   const autoSaveContext = useAutoSaveContext();
   const selectProps = props.multiple
     ? {
