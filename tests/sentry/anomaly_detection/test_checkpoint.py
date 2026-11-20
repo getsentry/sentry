@@ -2,13 +2,15 @@ import zlib
 from collections import Counter, deque
 from collections.abc import Sequence
 from dataclasses import replace
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from math import copysign, inf
 from random import Random
 from unittest.mock import patch
 
 import pytest
 
+from sentry import options
+from sentry.anomaly_detection import schedule
 from sentry.anomaly_detection.checkpoint import codec
 from sentry.anomaly_detection.checkpoint.replay import advance_org, snapshot
 from sentry.anomaly_detection.checkpoint.retention import evict_stale_series, history_floor
@@ -34,6 +36,13 @@ from sentry.anomaly_detection.evaluation.organization import (
 )
 from sentry.anomaly_detection.evaluation.series import samples_key
 from sentry.anomaly_detection.inputs.measurements import MAX_ENVIRONMENTS, MAX_SLICES, SPAN_SLICES
+from sentry.anomaly_detection.inputs.trace_lookup import TraceLookup
+from sentry.models.anomaly_detection_state import AnomalyDetectionState
+from sentry.models.organization import Organization
+from sentry.models.project import Project
+from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import cell_silo_test
+from sentry.workflow_engine.types import DetectorType
 
 START = datetime(2024, 1, 8, 12)
 PROJECT = 42
@@ -863,3 +872,93 @@ def test_empty_advance_with_narrower_scope_keeps_other_projects_hourly_support()
     restored = _round_trip(checkpoint)
     assert set(restored.state.series_history.series_states) == set(keys)
     assert restored.hourly == {key: dict.fromkeys(hours, 100.0) for key in keys}
+
+
+def _measurement(key_index: int, minute_index: int, scale: float) -> float:
+    # Deterministic and non-repeating, so values don't compress to a pattern.
+    return scale * (1 + ((key_index * 104_729 + minute_index * 7_919) % 1_009) / 10_090)
+
+
+@cell_silo_test
+class TestDenseWorkerCheckpoint(TestCase):
+    def test_writes_and_restores_dense_checkpoint_at_project_limit(self) -> None:
+        projects = [
+            self.create_project(organization=self.organization)
+            for _ in range(options.get("anomaly_detection.max_projects_per_organization"))
+        ]
+        for project in projects:
+            self.create_detector(project=project, type=DetectorType.ANOMALY_DETECTION, enabled=True)
+        project_ids = {project.id for project in projects}
+        scale = {
+            Metric.COUNT: 1000.0,
+            Metric.COUNT_SAMPLE: 100.0,
+            Metric.P95_DURATION: 100.0,
+            Metric.FAILURE_RATE: 0.1,
+        }
+        series = [
+            SeriesKey(project, f"env-{env}", signal.name, metric, f"slice-{dim}")
+            for project in sorted(project_ids)
+            for env in range(MAX_ENVIRONMENTS)
+            for signal in SPAN_SLICES
+            for dim in range(MAX_SLICES)
+            for metric in signal.metrics
+        ]
+        # A full, non-repeating slice cohort at all project slots, shorter than warmup.
+        warm_minutes = 128
+        first_end = _at(warm_minutes)
+        second_end = _at(warm_minutes + 1)
+
+        def collect(
+            organization: Organization,
+            scoped_projects: Sequence[Project],
+            start: datetime,
+            end: datetime,
+            interval: str,
+        ) -> list[SeriesRow]:
+            assert organization == self.organization
+            assert {project.id for project in scoped_projects} == project_ids
+            assert interval == "1m"
+            first = max(start, START)
+            return [
+                SeriesRow(
+                    minute,
+                    key.signal,
+                    key.metric,
+                    key.project_id,
+                    key.env,
+                    key.dim_value,
+                    _measurement(
+                        index, (minute - START) // timedelta(minutes=1), scale[key.metric]
+                    ),
+                )
+                for offset in range((end - first) // timedelta(minutes=1))
+                for minute in [first + timedelta(minutes=offset)]
+                for index, key in enumerate(series)
+            ]
+
+        with (
+            self.feature(schedule.FEATURE),
+            patch.object(schedule, "collect", side_effect=collect),
+            patch.object(schedule, "hourly_rows", return_value=[]),
+            patch.object(schedule, "collect_new_failure_modes", return_value=[]),
+            patch.object(TraceLookup, "footprint", return_value=None),
+        ):
+            assert not schedule._run_organization(self.organization.id, first_end)
+            state = AnomalyDetectionState.objects.get(organization=self.organization)
+            assert state.next_minute == first_end.replace(tzinfo=UTC)
+            assert codec.decode(bytes(state.checkpoint)) is not None
+
+            assert not schedule._run_organization(self.organization.id, second_end)
+            state.refresh_from_db()
+            assert state.next_minute == second_end.replace(tzinfo=UTC)
+
+        restored = codec.decode(bytes(state.checkpoint))
+        assert restored is not None
+        assert restored.state.next_minute == second_end
+        assert restored.series.keys() == set(series)
+        assert all(len(points) == warm_minutes + 1 for points in restored.series.values())
+        for index, key in [(0, series[0]), (len(series) - 1, series[-1])]:
+            assert restored.series[key] == {
+                _at(minute): _measurement(index, minute, scale[key.metric])
+                for minute in range(warm_minutes + 1)
+            }
