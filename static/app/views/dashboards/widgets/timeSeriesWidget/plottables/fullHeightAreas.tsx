@@ -16,6 +16,12 @@ type FullHeightAreasConfig = {
    * through the gaps between stripes
    */
   color: string;
+  /**
+   * Type of the y axis to draw against. The areas don't read y values, but the
+   * chart puts every plottable on an axis by its type, so this should match an
+   * axis the chart already has
+   */
+  dataType: PlottableTimeSeriesValueType;
   name: string;
   /**
    * Ranges that overlap or touch are drawn as one area
@@ -38,7 +44,6 @@ export class FullHeightAreas implements Plottable {
   ranges: readonly TimeRange[];
 
   confidence: PlottableConfidence = 'full';
-  dataType: PlottableTimeSeriesValueType = 'number';
   dataUnit = null;
   needsColor = false;
 
@@ -51,6 +56,10 @@ export class FullHeightAreas implements Plottable {
 
   get name(): string {
     return this.config.name;
+  }
+
+  get dataType(): PlottableTimeSeriesValueType {
+    return this.config.dataType;
   }
 
   get label(): string {

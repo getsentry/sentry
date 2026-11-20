@@ -3,7 +3,7 @@ import type {CustomSeriesRenderItemAPI, CustomSeriesRenderItemParams} from 'echa
 import {FullHeightAreas} from './fullHeightAreas';
 
 describe('FullHeightAreas', () => {
-  const config = {name: 'areas', color: '#f0f0f2'};
+  const config = {name: 'areas', color: '#f0f0f2', dataType: 'number' as const};
 
   it('merges overlapping ranges and clips them to the bounds', () => {
     const areas = new FullHeightAreas({

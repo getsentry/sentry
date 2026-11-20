@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import type {CallbackDataParams} from 'echarts/types/dist/shared';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {OutcomeRowFixture} from 'sentry-fixture/outcomeRow';
@@ -212,6 +213,17 @@ describe('TimeSeriesWidgetVisualization', () => {
           throughputWithLowConfidence.values[5]!.timestamp + interval / 2,
         ],
       ]);
+    });
+
+    it('draws against an axis the chart already has', () => {
+      const captureException = jest.spyOn(Sentry, 'captureException');
+
+      render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />, {
+        organization: confidenceOrganization,
+      });
+
+      expect(getBackgroundSeries()).toBeDefined();
+      expect(captureException).not.toHaveBeenCalled();
     });
 
     it('skips series hidden from the legend', () => {

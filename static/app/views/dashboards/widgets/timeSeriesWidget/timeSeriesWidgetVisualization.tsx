@@ -660,6 +660,8 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
     ? new FullHeightAreas({
         name: LOW_CONFIDENCE_AREAS_NAME,
         color: theme.tokens.background.tertiary,
+        // The first plottable's type always gets the left axis
+        dataType: props.plottables[0]?.dataType ?? FALLBACK_TYPE,
         // Series hidden from the legend don't mark their low confidence data
         ranges: props.plottables
           .filter(plottable => !showLegend || legendSelection[plottable.name] !== false)
