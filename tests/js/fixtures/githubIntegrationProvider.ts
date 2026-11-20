@@ -23,14 +23,7 @@ export function GitHubIntegrationProviderFixture(
       noun: 'Installation',
       issue_url: 'http://example.com/integration_issue_url',
       source_url: 'http://example.com/integration_source_url',
-      aspects: {
-        alerts: [
-          {
-            variant: 'warning',
-            text: 'This is a an alert example',
-          },
-        ],
-      },
+      aspects: {alerts: [{variant: 'warning', text: 'This is a an alert example'}]},
     },
     ...params,
   };

@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import type {Sort} from 'sentry/utils/discover/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as qs from 'sentry/utils/url/qs';
 import {LOGS_GROUP_BY_KEY} from 'sentry/views/explore/contexts/logs/logsPageParams';
 import {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import type {TraceItemDetailsResponse} from 'sentry/views/explore/hooks/useTraceItemDetails';
@@ -85,9 +86,7 @@ describe('viewLogsSamplesTarget', () => {
 
   it('adds a boolean group by value to the samples query', () => {
     const location = LocationFixture({
-      query: {
-        logsQuery: 'message:resolver.deprecated_function_used',
-      },
+      query: {logsQuery: 'message:resolver.deprecated_function_used'},
     });
     const target = viewLogsSamplesTarget({
       location,
@@ -133,13 +132,8 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
             orderby: '-timestamp',
             groupby: ['severity'],
             visualize: [
-              {
-                yAxes: ['count(message)'],
-              },
-              {
-                yAxes: ['p75(foo)', 'p90(foo)'],
-                chartType: 1,
-              },
+              {yAxes: ['count(message)']},
+              {yAxes: ['p75(foo)', 'p90(foo)'], chartType: 1},
             ],
           },
         ],
@@ -173,13 +167,8 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
             orderby: '-timestamp',
             aggregateField: [
               {groupBy: 'severity'},
-              {
-                yAxes: ['count(message)'],
-              },
-              {
-                yAxes: ['p75(foo)', 'p90(foo)'],
-                chartType: 1,
-              },
+              {yAxes: ['count(message)']},
+              {yAxes: ['p75(foo)', 'p90(foo)'], chartType: 1},
             ],
           },
         ],
@@ -187,6 +176,37 @@ describe('getLogsUrlFromSavedQueryUrl', () => {
     });
     expect(target).toBe(
       '/organizations/org-slug/explore/logs/?aggregateField=%7B%22groupBy%22%3A%22severity%22%7D&aggregateField=%7B%22yAxes%22%3A%5B%22count%28message%29%22%5D%7D&aggregateField=%7B%22yAxes%22%3A%5B%22p75%28foo%29%22%2C%22p90%28foo%29%22%5D%2C%22chartType%22%3A1%7D&caseInsensitive=0&id=1&interval=5m&logsFields=timestamp&logsFields=severity&logsFields=message&logsQuery=message%3Afoo&logsSortBys=-timestamp&mode=samples&project=&title=foobar'
+    );
+  });
+
+  it('puts a saved query priority on the logs url', () => {
+    const target = getLogsUrlFromSavedQueryUrl({
+      organization,
+      savedQuery: new SavedQuery({
+        id: 1,
+        interval: '5m',
+        name: 'foobar',
+        projects: [],
+        dataset: 'logs',
+        dateAdded: '2025-05-06T00:00:00.000000Z',
+        dateUpdated: '2025-05-06T00:00:00.000000Z',
+        lastVisited: '2025-05-15T00:00:00.000000Z',
+        starred: true,
+        position: 7,
+        queryPriority: 'faster',
+        query: [
+          {
+            mode: Mode.SAMPLES,
+            query: 'message:foo',
+            fields: ['message'],
+            orderby: '-timestamp',
+          },
+        ],
+      }),
+    });
+
+    expect(qs.parse(new URL(target, 'https://sentry.io').search).queryPriority).toBe(
+      'faster'
     );
   });
 });
@@ -314,9 +334,7 @@ describe('compareLogRowsBySortBys', () => {
   });
 
   it('does not throw when timestamp_precise is not an integer', () => {
-    const invalid = logRow('invalid', {
-      [OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.5,
-    });
+    const invalid = logRow('invalid', {[OurLogKnownFieldKey.TIMESTAMP_PRECISE]: 1.5});
 
     expect(() =>
       sortedIds([invalid, older], [{field: OurLogKnownFieldKey.TIMESTAMP, kind: 'desc'}])

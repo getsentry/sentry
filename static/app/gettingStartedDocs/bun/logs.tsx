@@ -19,10 +19,7 @@ export const logs: OnboardingConfig = {
         ...getInstallContent(
           tct(
             'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-            {
-              code: <code />,
-              packageName: <code>{PACKAGE_NAME}</code>,
-            }
+            {code: <code />, packageName: <code>{PACKAGE_NAME}</code>}
           )
         ),
         getMigrationContent(),

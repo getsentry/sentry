@@ -25,14 +25,8 @@ describe('CodeOwnerFileTable', () => {
   });
 
   it('renders table w/ sync & delete actions', async () => {
-    const newCodeowner = {
-      ...codeowner,
-      raw: '# new codeowner rules',
-    };
-    const codeOwnerSyncData = {
-      ...codeowner,
-      raw: '# new codeowner rules',
-    };
+    const newCodeowner = {...codeowner, raw: '# new codeowner rules'};
+    const codeOwnerSyncData = {...codeowner, raw: '# new codeowner rules'};
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/${organization.slug}/code-mappings/${codeowner.codeMappingId}/codeowners/`,
@@ -60,9 +54,7 @@ describe('CodeOwnerFileTable', () => {
         onUpdate={onUpdate}
         disabled={false}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     expect(screen.getByText('example/repo-name')).toBeInTheDocument();

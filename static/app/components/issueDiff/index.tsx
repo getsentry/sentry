@@ -12,7 +12,6 @@ import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getStacktraceBody} from 'sentry/utils/getStacktraceBody';
-import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 const SplitDiffLazy = lazy(() => import('sentry/components/splitDiff'));
@@ -61,11 +60,9 @@ export function IssueDiff({
   hasSimilarityEmbeddingsProjectFeature,
 }: IssueDiffProps) {
   const organization = useOrganization();
-  const location = useLocation();
   const hasTrackedAnalytics = useRef(false);
 
-  const hasSimilarityEmbeddingsFeature =
-    hasSimilarityEmbeddingsProjectFeature || location.query.similarityEmbeddings === '1';
+  const hasSimilarityEmbeddingsFeature = hasSimilarityEmbeddingsProjectFeature ?? false;
 
   const newestFirst = isStacktraceNewestFirst();
 

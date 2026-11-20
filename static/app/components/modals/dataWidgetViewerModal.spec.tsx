@@ -49,10 +49,7 @@ type InitialData = {
 };
 
 const defaultInitialRouterConfig: RouterConfig & {location: LocationConfig} = {
-  location: {
-    pathname: '/mock-pathname/',
-    query: {},
-  },
+  location: {pathname: '/mock-pathname/', query: {}},
 };
 
 async function renderModal({
@@ -67,10 +64,7 @@ async function renderModal({
   queryPriority?: DashboardQueryPriority;
 }) {
   const routerLocation = initialRouterConfig.location;
-  const routerConfig: RouterConfig = {
-    ...initialRouterConfig,
-    location: routerLocation,
-  };
+  const routerConfig: RouterConfig = {...initialRouterConfig, location: routerLocation};
   const widgetLegendLocation = {
     ...routerLocation,
     hash: '',
@@ -98,10 +92,7 @@ async function renderModal({
       queryPriority={queryPriority}
       widgetLegendState={widgetLegendState}
     />,
-    {
-      organization,
-      initialRouterConfig: routerConfig,
-    }
+    {organization, initialRouterConfig: routerConfig}
   );
   if (widget.displayType === DisplayType.TABLE) {
     await act(tick);
@@ -115,10 +106,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
   let initialData: InitialData;
   let initialDataWithFlag: InitialData;
   beforeEach(() => {
+    ProjectsStore.reset();
     const projects = [ProjectFixture()];
-    const organization = OrganizationFixture({
-      features: ['discover-query'],
-    });
+    const organization = OrganizationFixture({features: ['discover-query']});
 
     initialData = {
       organization,
@@ -130,9 +120,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     };
 
     initialDataWithFlag = {
-      organization: OrganizationFixture({
-        features: [...organization.features],
-      }),
+      organization: OrganizationFixture({features: [...organization.features]}),
       projects,
       initialRouterConfig: {
         ...defaultInitialRouterConfig,
@@ -140,15 +128,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
       },
     };
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
@@ -165,7 +147,6 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('uses a saved faster priority when the url does not set one', async () => {
@@ -229,6 +210,52 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
   });
 
+  it('toggles Releases from the Layers menu', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {data: []},
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {
+        timeSeries: [
+          TimeSeriesFixture({
+            yAxis: 'count()',
+            values: [
+              {timestamp: 1646100000000, value: 1},
+              {timestamp: 1646120000000, value: 1},
+            ],
+          }),
+        ],
+      },
+    });
+    const widget = WidgetFixture({
+      title: 'Spans Widget',
+      displayType: DisplayType.LINE,
+      widgetType: WidgetType.SPANS,
+      queries: [
+        {
+          name: '',
+          conditions: '',
+          fields: ['count()'],
+          aggregates: ['count()'],
+          columns: [],
+          orderby: '',
+        },
+      ],
+    });
+
+    await renderModal({initialData, widget});
+
+    await userEvent.click(await screen.findByRole('button', {name: 'Chart layers'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Releases'}));
+
+    expect(screen.getByRole('option', {name: 'Releases'})).toHaveAttribute(
+      'aria-selected',
+      'false'
+    );
+  });
+
   describe('Errors Widgets', () => {
     describe('Area Chart Widget', () => {
       let mockQuery: WidgetQuery;
@@ -239,19 +266,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
         return MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           body: {
-            data: [
-              {
-                title: '/organizations/:orgId/dashboards/',
-                id: '1',
-                count: 1,
-              },
-            ],
+            data: [{title: '/organizations/:orgId/dashboards/', id: '1', count: 1}],
             meta: {
-              fields: {
-                title: 'string',
-                id: 'string',
-                count: 1,
-              },
+              fields: {title: 'string', id: 'string', count: 1},
               isMetricsData: false,
             },
           },
@@ -320,9 +337,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         ).toBeInTheDocument();
         expect(eventsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/events/',
-          expect.objectContaining({
-            query: expect.objectContaining({sort: ['-count()']}),
-          })
+          expect.objectContaining({query: expect.objectContaining({sort: ['-count()']})})
         );
       });
 
@@ -384,9 +399,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           jest.mocked(ReactEchartsCore).mock.calls[0]![0].onEvents!.datazoom!(undefined, {
             getModel: () => {
               return {
-                _payload: {
-                  batch: [{startValue: 1646100000000, endValue: 1646120000000}],
-                },
+                _payload: {batch: [{startValue: 1646100000000, endValue: 1646120000000}]},
               };
             },
           });
@@ -558,10 +571,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
             orderby: '',
           },
         ];
-        await renderModal({
-          initialData: initialDataWithFlag,
-          widget: mockWidget,
-        });
+        await renderModal({initialData: initialDataWithFlag, widget: mockWidget});
 
         const link = await screen.findByTestId('widget-viewer-transaction-link');
         expect(link).toHaveAttribute(
@@ -599,30 +609,12 @@ describe('Modals -> DataWidgetViewerModal', () => {
       }
 
       const eventsMockData = [
-        {
-          'error.type': ['Test Error 1a', 'Test Error 1b', 'Test Error 1c'],
-          count: 10,
-        },
-        {
-          'error.type': ['Test Error 2'],
-          count: 6,
-        },
-        {
-          'error.type': ['Test Error 3'],
-          count: 5,
-        },
-        {
-          'error.type': ['Test Error 4'],
-          count: 4,
-        },
-        {
-          'error.type': ['Test Error 5'],
-          count: 3,
-        },
-        {
-          'error.type': ['Test Error 6'],
-          count: 2,
-        },
+        {'error.type': ['Test Error 1a', 'Test Error 1b', 'Test Error 1c'], count: 10},
+        {'error.type': ['Test Error 2'], count: 6},
+        {'error.type': ['Test Error 3'], count: 5},
+        {'error.type': ['Test Error 4'], count: 4},
+        {'error.type': ['Test Error 5'], count: 3},
+        {'error.type': ['Test Error 6'], count: 2},
       ];
 
       function mockEvents() {
@@ -636,12 +628,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           },
           body: {
             data: eventsMockData,
-            meta: {
-              fields: {
-                'error.type': 'array',
-                count: 'integer',
-              },
-            },
+            meta: {fields: {'error.type': 'array', count: 'integer'}},
           },
         });
       }
@@ -672,18 +659,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
               '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:20:0>; rel="next"; results="true"; cursor="0:20:0"',
           },
           body: {
-            data: [
-              {
-                'error.type': ['Next Page Test Error'],
-                count: 1,
-              },
-            ],
-            meta: {
-              fields: {
-                'error.type': 'array',
-                count: 'integer',
-              },
-            },
+            data: [{'error.type': ['Next Page Test Error'], count: 1}],
+            meta: {fields: {'error.type': 'array', count: 'integer'}},
           },
         });
       });
@@ -707,16 +684,8 @@ describe('Modals -> DataWidgetViewerModal', () => {
               '<http://localhost/api/0/organizations/org-slug/events/?cursor=0:20:0>; rel="next"; results="false"; cursor="0:20:0"',
           },
           body: {
-            data: [
-              {
-                'error.type': ['No Pagination'],
-                count: 1,
-              },
-            ],
-            meta: {
-              'error.type': 'array',
-              count: 'integer',
-            },
+            data: [{'error.type': ['No Pagination'], count: 1}],
+            meta: {'error.type': 'array', count: 'integer'},
           },
         });
         await renderModal({initialData, widget: mockWidget});
@@ -760,9 +729,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           expect(eventsStatsMock).toHaveBeenCalledWith(
             '/organizations/org-slug/events-stats/',
             expect.objectContaining({
-              query: expect.objectContaining({
-                field: ['country', 'count()', 'epm()'],
-              }),
+              query: expect.objectContaining({field: ['country', 'count()', 'epm()']}),
             })
           );
         });
@@ -792,19 +759,9 @@ describe('Modals -> DataWidgetViewerModal', () => {
         return MockApiClient.addMockResponse({
           url: '/organizations/org-slug/events/',
           body: {
-            data: [
-              {
-                title: '/organizations/:orgId/dashboards/',
-                id: '1',
-                count: 1,
-              },
-            ],
+            data: [{title: '/organizations/:orgId/dashboards/', id: '1', count: 1}],
             meta: {
-              fields: {
-                title: 'string',
-                id: 'string',
-                count: 1,
-              },
+              fields: {title: 'string', id: 'string', count: 1},
               isMetricsData: false,
             },
           },
@@ -812,10 +769,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       }
       it('makes events requests when table is paginated', async () => {
         const eventsMock = mockEvents();
-        await renderModal({
-          initialData,
-          widget: mockWidget,
-        });
+        await renderModal({initialData, widget: mockWidget});
         await waitFor(() => {
           expect(eventsMock).toHaveBeenCalled();
         });
@@ -846,11 +800,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'GET',
-        match: [
-          MockApiClient.matchData({
-            cursor: '0:10:0',
-          }),
-        ],
+        match: [MockApiClient.matchData({cursor: '0:10:0'})],
         headers: {
           Link:
             '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -860,9 +810,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           {
             id: '2',
             title: 'Another Error: Failed',
-            project: {
-              id: '3',
-            },
+            project: {id: '3'},
             status: 'unresolved',
             lifetime: {count: 5},
             count: 3,
@@ -873,11 +821,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       issuesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         method: 'GET',
-        match: [
-          MockApiClient.matchData({
-            cursor: undefined,
-          }),
-        ],
+        match: [MockApiClient.matchData({cursor: undefined})],
         headers: {
           Link:
             '<http://localhost/api/0/organizations/org-slug/issues/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1",' +
@@ -887,9 +831,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
           {
             id: '1',
             title: 'Error: Failed',
-            project: {
-              id: '3',
-            },
+            project: {id: '3'},
             status: 'unresolved',
             lifetime: {count: 10},
             count: 6,
@@ -1125,10 +1067,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
 
     it('renders pagination buttons', async () => {
-      await renderModal({
-        initialData,
-        widget: mockWidget,
-      });
+      await renderModal({initialData, widget: mockWidget});
       expect(await screen.findByRole('button', {name: 'Previous'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Next'})).toBeInTheDocument();
     });
@@ -1143,10 +1082,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
     });
 
     it('makes a new sessions request after sorting by a table column', async () => {
-      const {router} = await renderModal({
-        initialData,
-        widget: mockWidget,
-      });
+      const {router} = await renderModal({initialData, widget: mockWidget});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(2));
       await userEvent.click(await screen.findByText('sum(session)'), {delay: null});
       await waitFor(() => expect(metricsMock).toHaveBeenCalledTimes(3));
@@ -1177,9 +1113,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         expect(metricsMock).toHaveBeenCalledWith(
           '/organizations/org-slug/metrics/data/',
           expect.objectContaining({
-            query: expect.objectContaining({
-              groupBy: ['release'],
-            }),
+            query: expect.objectContaining({groupBy: ['release']}),
           })
         );
       });
@@ -1208,9 +1142,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
       expect(metricsMock).toHaveBeenCalledWith(
         '/organizations/org-slug/metrics/data/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['environment'],
-          }),
+          query: expect.objectContaining({groupBy: ['environment']}),
         })
       );
     });
@@ -1218,10 +1150,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
   describe('Span Widgets', () => {
     beforeEach(() => {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/',
-        body: {},
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: {}});
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
         body: {timeSeries: []},
@@ -1381,6 +1310,37 @@ describe('Modals -> DataWidgetViewerModal', () => {
       ).toEqual(['http.status_code:200', 'http.status_code:500']);
     });
 
+    it('keeps the dashboard query speed on the metrics Open in Explore link', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'http.status_code:200',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({
+        initialData: {
+          ...initialData,
+          organization: OrganizationFixture({
+            features: ['discover-query', 'low-priority-queries'],
+          }),
+        },
+        widget,
+        queryPriority: 'faster',
+      });
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(url.searchParams.get('queryPriority')).toBe('faster');
+    });
+
     it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {
       const eventsTimeseriesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',
@@ -1421,9 +1381,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         url: '/organizations/org-slug/events/',
         body: {
           data: [{transaction: 'test-transaction', 'count()': 10}],
-          meta: {
-            fields: {transaction: 'string', 'count()': 'integer'},
-          },
+          meta: {fields: {transaction: 'string', 'count()': 'integer'}},
         },
       });
       const mockSpanWidget = WidgetFixture({
@@ -1447,9 +1405,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         widget: mockSpanWidget,
       });
 
-      const transactionCell = await screen.findByRole('cell', {
-        name: /test-transaction/,
-      });
+      const transactionCell = await screen.findByRole('cell', {name: /test-transaction/});
       await userEvent.click(
         within(transactionCell).getByRole('button', {name: 'Actions'})
       );
@@ -1472,9 +1428,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
         url: '/organizations/org-slug/events/',
         body: {
           data: [{transaction: 'test-transaction', 'count()': 10}],
-          meta: {
-            fields: {transaction: 'string', 'count()': 'integer'},
-          },
+          meta: {fields: {transaction: 'string', 'count()': 'integer'}},
         },
       });
       const mockSpanWidget = WidgetFixture({
@@ -1495,9 +1449,7 @@ describe('Modals -> DataWidgetViewerModal', () => {
 
       await renderModal({initialData, widget: mockSpanWidget});
 
-      const transactionCell = await screen.findByRole('cell', {
-        name: /test-transaction/,
-      });
+      const transactionCell = await screen.findByRole('cell', {name: /test-transaction/});
       await userEvent.click(
         within(transactionCell).getByRole('button', {name: 'Actions'})
       );

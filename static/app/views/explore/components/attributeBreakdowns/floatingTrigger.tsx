@@ -10,10 +10,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type Props = {
-  chartIndex: number;
-  params: SelectionCallbackParams;
-};
+type Props = {chartIndex: number; params: SelectionCallbackParams};
 
 export function FloatingTrigger({chartIndex, params}: Props) {
   const location = useLocation();
@@ -44,10 +41,7 @@ export function FloatingTrigger({chartIndex, params}: Props) {
     startTimestamp = Math.min(startTimestamp, endTimestamp - 60_000);
 
     updateDateTime(
-      {
-        start: getUtcDateString(startTimestamp),
-        end: getUtcDateString(endTimestamp),
-      },
+      {start: getUtcDateString(startTimestamp), end: getUtcDateString(endTimestamp)},
       location,
       navigate,
       {save: true}
@@ -65,10 +59,7 @@ export function FloatingTrigger({chartIndex, params}: Props) {
       organization,
     });
 
-    setSelectionState({
-      ...selectionState,
-      isActionMenuVisible: false,
-    });
+    setSelectionState({...selectionState, isActionMenuVisible: false});
 
     // Combine chartSelection and tab change into a single navigate() call.
     // Using setChartSelection (nuqs) + setTab (navigate) separately causes a
@@ -90,15 +81,37 @@ export function FloatingTrigger({chartIndex, params}: Props) {
   }, [selectionState, setSelectionState, chartIndex, navigate, location, organization]);
 
   return (
+    <FloatingTriggerMenu
+      onZoomIn={handleZoomIn}
+      onCompareAttributeBreakdowns={handleFindAttributeBreakdowns}
+      onClearSelection={clearSelection}
+    />
+  );
+}
+
+interface FloatingTriggerMenuProps {
+  onClearSelection: () => void;
+  onCompareAttributeBreakdowns: () => void;
+  onZoomIn: () => void;
+}
+
+export function FloatingTriggerMenu({
+  onZoomIn,
+  onCompareAttributeBreakdowns,
+  onClearSelection,
+}: FloatingTriggerMenuProps) {
+  const organization = useOrganization();
+
+  return (
     <List>
-      <ListItem onClick={handleZoomIn}>{t('Zoom in')}</ListItem>
-      <ListItem onClick={handleFindAttributeBreakdowns}>
+      <ListItem onClick={onZoomIn}>{t('Zoom in')}</ListItem>
+      <ListItem onClick={onCompareAttributeBreakdowns}>
         {t('Compare Attribute Breakdowns')}
       </ListItem>
       <ListItem
         onClick={() => {
           trackAnalytics('explore.floating_trigger.clear_selection', {organization});
-          clearSelection();
+          onClearSelection();
         }}
       >
         {t('Clear Selection')}

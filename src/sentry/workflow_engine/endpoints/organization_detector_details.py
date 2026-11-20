@@ -65,7 +65,7 @@ def check_metric_detector_allowed(detector: Detector, organization: Organization
             ).values(_source_int=Cast("source_id", output_field=BigIntegerField()))
         )
         .values_list("dataset", flat=True)
-        .first()
+        .first()  # noqa: S035
     )
     if dataset is None:
         return
@@ -178,9 +178,8 @@ class OrganizationDetectorDetailsEndpoint(OrganizationEndpoint):
                 enforce_scope(request, "alerts:write")
             raise PermissionDenied
 
-        detector_type = request.data.get("type") or detector.type
         validator = get_detector_validator(
-            request, detector.linked_project, detector_type, detector, partial=True
+            request, detector.linked_project, detector.type, detector, partial=True
         )
 
         if not validator.is_valid():

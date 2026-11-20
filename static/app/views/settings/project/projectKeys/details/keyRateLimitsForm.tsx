@@ -24,10 +24,7 @@ const PREDEFINED_RATE_LIMIT_VALUES = [
 ];
 
 const rateLimitSchema = z
-  .object({
-    count: z.number().int().min(0).nullable(),
-    window: z.number().int().min(0),
-  })
+  .object({count: z.number().int().min(0).nullable(), window: z.number().int().min(0)})
   .refine(value => !((value.count ?? 0) > 0 && value.window === 0), {
     message: t('A time window is required when a count is set'),
     path: ['window'],
@@ -58,26 +55,20 @@ export function KeyRateLimitsForm({
 }: KeyRateLimitsFormProps) {
   const endpoint = getApiUrl(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/$keyId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        projectIdOrSlug: projectId,
-        keyId,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectId, keyId}}
   );
 
   function getAllowedRateLimitValues(currentRateLimit?: number) {
     const {rateLimit} = data;
-    const {window} = rateLimit ?? {};
+    const {window: rateLimitWindow} = rateLimit ?? {};
 
-    if (defined(window)) {
-      if (currentRateLimit !== window) {
+    if (defined(rateLimitWindow)) {
+      if (currentRateLimit !== rateLimitWindow) {
         return PREDEFINED_RATE_LIMIT_VALUES;
       }
 
-      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(window)) {
-        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, window]);
+      if (!PREDEFINED_RATE_LIMIT_VALUES.includes(rateLimitWindow)) {
+        return sortBy([...PREDEFINED_RATE_LIMIT_VALUES, rateLimitWindow]);
       }
     }
 
@@ -86,11 +77,7 @@ export function KeyRateLimitsForm({
 
   const mutation = useMutation({
     mutationFn: (submitData: {rateLimit: ProjectKey['rateLimit']}) =>
-      fetchMutation<ProjectKey>({
-        url: endpoint,
-        method: 'PUT',
-        data: submitData,
-      }),
+      fetchMutation<ProjectKey>({url: endpoint, method: 'PUT', data: submitData}),
     onSuccess: responseData => {
       toast.success(t('Successfully saved rate limit.'));
       updateData(responseData);

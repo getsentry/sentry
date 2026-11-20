@@ -13,6 +13,10 @@ import {
   getFieldDefinition,
   NO_ARGUMENT_SPAN_AGGREGATES,
 } from 'sentry/utils/fields';
+import {
+  HEATMAP_AGGREGATE,
+  HEATMAP_FIELD_DEFINITION,
+} from 'sentry/views/explore/utils/heatMapAggregate';
 import {parseConditionalAggregate} from 'sentry/views/explore/utils/parseConditionalAggregate';
 import {ChartType} from 'sentry/views/insights/common/components/chart';
 import {SpanFields} from 'sentry/views/insights/types';
@@ -21,9 +25,7 @@ export const DEFAULT_VISUALIZATION_AGGREGATE = ALLOWED_EXPLORE_VISUALIZE_AGGREGA
 export const DEFAULT_VISUALIZATION_FIELD = ALLOWED_EXPLORE_VISUALIZE_FIELDS[0]!;
 export const DEFAULT_VISUALIZATION = `${DEFAULT_VISUALIZATION_AGGREGATE}(${DEFAULT_VISUALIZATION_FIELD})`;
 
-type VisualizeOptions = {
-  chartType?: ChartType;
-};
+type VisualizeOptions = {chartType?: ChartType};
 
 export interface BaseVisualize {
   yAxes: readonly string[];
@@ -54,9 +56,7 @@ export class Visualize {
   }
 
   clone(): Visualize {
-    return new Visualize(this.yAxis, {
-      chartType: this.selectedChartType,
-    });
+    return new Visualize(this.yAxis, {chartType: this.selectedChartType});
   }
 
   replace({chartType, yAxis}: {chartType?: ChartType; yAxis?: string}): Visualize {
@@ -66,9 +66,7 @@ export class Visualize {
   }
 
   toJSON(): BaseVisualize {
-    const json: BaseVisualize = {
-      yAxes: [this.yAxis],
-    };
+    const json: BaseVisualize = {yAxes: [this.yAxis]};
 
     if (defined(this.selectedChartType)) {
       json.chartType = this.selectedChartType;
@@ -110,9 +108,12 @@ export function updateVisualizeAggregate({
   }
 
   const newFieldDefinition = getFieldDefinition(newAggregate, 'span');
-  const oldFieldDefinition = oldAggregate
-    ? getFieldDefinition(oldAggregate, 'span')
-    : undefined;
+  const oldFieldDefinition =
+    oldAggregate === HEATMAP_AGGREGATE
+      ? HEATMAP_FIELD_DEFINITION
+      : oldAggregate
+        ? getFieldDefinition(oldAggregate, 'span')
+        : undefined;
 
   if (newFieldDefinition?.parameters?.length !== oldFieldDefinition?.parameters?.length) {
     const params = newFieldDefinition?.parameters?.map(p => p.defaultValue || '');

@@ -12,9 +12,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type ReleaseWithCount = Release & {
-  count?: number;
-};
+type ReleaseWithCount = Release & {count?: number};
 
 // Maximum releases per event count query to avoid overly long query strings
 const RELEASES_PER_CHUNK = 10;
@@ -36,10 +34,7 @@ export function useReleases(
   searchTerm: string,
   sortBy: ReleasesSortOption,
   eventCountsEnabled = false
-): {
-  data: ReleaseWithCount[];
-  isLoading: boolean;
-} {
+): {data: ReleaseWithCount[]; isLoading: boolean} {
   const organization = useOrganization();
   const {selection, isReady} = usePageFilters();
   const {environments, projects, datetime} = selection;

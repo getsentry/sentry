@@ -1,8 +1,6 @@
 import styled from '@emotion/styled';
 
-type Props = {
-  anchorRef: React.Ref<SVGForeignObjectElement>;
-};
+type Props = {anchorRef: React.Ref<SVGForeignObjectElement>};
 
 export function DeactivatedMember({anchorRef}: Props) {
   return (

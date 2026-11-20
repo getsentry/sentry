@@ -70,29 +70,13 @@ export function getUserContextData({
       .map(ctxKey => {
         switch (ctxKey) {
           case UserContextKeys.NAME:
-            return {
-              key: ctxKey,
-              subject: t('Name'),
-              value: data.name,
-            };
+            return {key: ctxKey, subject: t('Name'), value: data.name};
           case UserContextKeys.USERNAME:
-            return {
-              key: ctxKey,
-              subject: t('Username'),
-              value: data.username,
-            };
+            return {key: ctxKey, subject: t('Username'), value: data.username};
           case UserContextKeys.ID:
-            return {
-              key: ctxKey,
-              subject: t('ID'),
-              value: data.id,
-            };
+            return {key: ctxKey, subject: t('ID'), value: data.id};
           case UserContextKeys.IP_ADDRESS:
-            return {
-              key: ctxKey,
-              subject: t('IP Address'),
-              value: data.ip_address,
-            };
+            return {key: ctxKey, subject: t('IP Address'), value: data.ip_address};
           case UserContextKeys.EMAIL:
             return {
               key: ctxKey,
@@ -106,11 +90,7 @@ export function getUserContextData({
               },
             };
           case UserContextKeys.GEO:
-            return {
-              key: ctxKey,
-              subject: t('Geography'),
-              value: formatGeo(data.geo),
-            };
+            return {key: ctxKey, subject: t('Geography'), value: formatGeo(data.geo)};
           default:
             return {
               key: ctxKey,

@@ -18,9 +18,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-const joinRequestSchema = z.object({
-  email: z.email(t('Enter a valid email')),
-});
+const joinRequestSchema = z.object({email: z.email(t('Enter a valid email'))});
 
 export function OrganizationJoinRequest({organizationSlug}: {organizationSlug: string}) {
   const [isOpen, setIsOpen] = useState(false);
@@ -102,10 +100,7 @@ function JoinRequestForm({
         data,
       }),
     onSuccess: () => {
-      trackAnalytics('join_request.created', {
-        organization: organizationSlug,
-        referrer,
-      });
+      trackAnalytics('join_request.created', {organization: organizationSlug, referrer});
       onSuccess();
     },
     onError: () => {

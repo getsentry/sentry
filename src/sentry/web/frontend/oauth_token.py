@@ -5,6 +5,7 @@ import logging
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict
 
+from django.conf import settings
 from django.db import router, transaction
 from django.http import HttpRequest, HttpResponse, HttpResponseBase
 from django.utils import timezone
@@ -14,7 +15,8 @@ from django.views.decorators.csrf import csrf_exempt
 from django.views.generic.base import View
 from rest_framework.request import Request
 
-from sentry import options
+from sentry import analytics, options
+from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeRedeemedEvent
 from sentry.hybridcloud.models.outbox import OutboxDatabaseError, OutboxFlushError, outbox_context
 from sentry.locks import locks
 from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
@@ -432,11 +434,11 @@ class OAuthTokenView(View):
         token_data: _TokenGrantResult = {"token": api_token}
 
         # OpenID token generation (stays in endpoint)
-        if grant_has_openid and options.get("codecov.signing_secret"):
+        if grant_has_openid and settings.SENTRY_CODECOV_SIGNING_SECRET:
             open_id_token = OpenIDToken(
                 application.client_id,
                 grant_user_id,
-                options.get("codecov.signing_secret"),
+                settings.SENTRY_CODECOV_SIGNING_SECRET,
                 nonce=request.POST.get("nonce"),
             )
             # Use api_token.user instead of grant since grant is deleted
@@ -703,7 +705,14 @@ class OAuthTokenView(View):
             # The code is consumed by any redemption attempt, including an expired one.
             setup_code_id = setup_code.id
             setup_code.delete()
+            analytics_args = {
+                "user_id": setup_code.user_id,
+                "organization_id": setup_code.organization_id,
+                "application_id": application.id,
+                "setup_code_id": setup_code_id,
+            }
             if setup_code.is_expired():
+                analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="expired"))
                 return self.error(
                     request=request, name="invalid_grant", reason="setup code expired"
                 )
@@ -715,6 +724,7 @@ class OAuthTokenView(View):
                 scoping_organization_id=setup_code.organization_id,
             )
 
+        analytics.record(OAuthSetupCodeRedeemedEvent(**analytics_args, outcome="exchanged"))
         metrics.incr("oauth_setup_code.token_exchange", sample_rate=1.0)
         logger.info(
             "oauth.setup-code-exchanged",

@@ -12,15 +12,8 @@ export const getExcimerInstallSteps = (params: DocsParams): ContentBlock[] => {
   }
 
   return [
-    {
-      type: 'text',
-      text: t('Install the Excimer extension via PECL:'),
-    },
-    {
-      type: 'code',
-      language: 'bash',
-      code: 'pecl install excimer',
-    },
+    {type: 'text', text: t('Install the Excimer extension via PECL:')},
+    {type: 'code', language: 'bash', code: 'pecl install excimer'},
     {
       type: 'text',
       text: tct(

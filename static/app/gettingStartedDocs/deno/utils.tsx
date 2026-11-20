@@ -23,16 +23,8 @@ export function getInstallContent(text: React.ReactNode): ContentBlock[] {
     {
       type: 'code',
       tabs: [
-        {
-          label: 'deno add',
-          language: 'bash',
-          code: `deno add npm:${PACKAGE_NAME}`,
-        },
-        {
-          label: 'npm specifier',
-          language: 'javascript',
-          code: sentryImport,
-        },
+        {label: 'deno add', language: 'bash', code: `deno add npm:${PACKAGE_NAME}`},
+        {label: 'npm specifier', language: 'javascript', code: sentryImport},
       ],
     },
     {

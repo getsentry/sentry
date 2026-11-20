@@ -77,9 +77,9 @@ def is_sentry_app_with_permission(user: Any, organization: Organization) -> bool
 
 def granular_permissions_turned_off(organization: Organization) -> bool:
     """Check if granular replay permissions are disabled for the organization."""
-    org_option = OrganizationOption.objects.filter(
+    org_option = OrganizationOption.objects.get_or_none(
         organization=organization, key="sentry:granular-replay-permissions"
-    ).first()
+    )
     return not org_option or not org_option.value
 
 

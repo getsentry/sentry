@@ -6,6 +6,9 @@ from unittest.mock import MagicMock, Mock, call, patch
 import orjson
 import pytest
 from django.test import override_settings
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS,
+)
 
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
 from sentry.issues.grouptype import WebVitalsGroup
@@ -45,7 +48,7 @@ class TriggerAutofixTaskTest(TestCase):
     @patch("sentry.seer.autofix.issue_summary.SeerAutofixOperator.has_access", return_value=False)
     @patch("sentry.seer.autofix.issue_summary.trigger_autofix_agent", return_value=123)
     def test_post_process_kickoff_creates_system_activity(
-        self, _mock_trigger_autofix: MagicMock, _mock_operator_access: MagicMock
+        self, mock_trigger_autofix: MagicMock, _mock_operator_access: MagicMock
     ) -> None:
         group = self.create_group()
 
@@ -58,6 +61,10 @@ class TriggerAutofixTaskTest(TestCase):
                 referrer="issue_summary.post_process_fixability",
             )
 
+        assert (
+            mock_trigger_autofix.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_POST_PROCESS
+        )
         activity = Activity.objects.get(group=group, type=ActivityType.TRIGGER_AUTOFIX.value)
         assert activity.user_id is None
         assert activity.data == {"referrer": "issue_summary.post_process_fixability"}
@@ -889,7 +896,7 @@ class TestGetStoppingPointFromFixability:
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 class TestRunAutomationStoppingPoint(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1052,7 +1059,7 @@ class TestApplyUserPreferenceUpperBound:
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 class TestRunAutomationWithUpperBound(APITestCase, SnubaTestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -1308,6 +1315,18 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
 
         mock_fixability.assert_not_called()
 
+    @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
+    def test_returns_false_when_live_single_run_exists(self, mock_fixability: MagicMock) -> None:
+        run = self.create_seer_run(
+            organization=self.organization,
+            mirror_status="live",
+            seer_run_state_id=1,
+        )
+        self.create_seer_agent_run(run, source="autofix_single_run", group=self.group)
+        assert is_group_eligible_for_automation(self.group) is False
+
+        mock_fixability.assert_not_called()
+
     @patch("sentry.seer.autofix.issue_summary.is_seer_autotriggered_autofix_rate_limited")
     @patch("sentry.quotas.backend.check_seer_quota")
     @patch("sentry.seer.autofix.issue_summary.get_and_update_group_fixability_score")
@@ -1363,7 +1382,7 @@ class TestIsGroupEligibleForAutomation(APITestCase, SnubaTestCase):
         assert is_group_eligible_for_automation(self.group) is False
 
 
-@patch("sentry.seer.autofix.issue_summary.is_seer_seat_based_tier_enabled", return_value=True)
+@patch("sentry.seer.autofix.issue_summary.is_seer_seat_or_token_billed_enabled", return_value=True)
 @override_settings(SENTRY_SELF_HOSTED=False)
 class TestGetAutomationStoppingPoint(TestCase):
     def setUp(self) -> None:

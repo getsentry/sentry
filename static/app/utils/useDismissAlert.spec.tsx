@@ -21,9 +21,7 @@ describe('useDismissAlert', () => {
   });
 
   it('should return a stable ref for the dismiss() function', () => {
-    const {result, rerender} = renderHook(useDismissAlert, {
-      initialProps: {key},
-    });
+    const {result, rerender} = renderHook(useDismissAlert, {initialProps: {key}});
 
     const initialRef = result.current.dismiss;
 
@@ -35,9 +33,7 @@ describe('useDismissAlert', () => {
   it('should not be dismissed if there is no value in localstorage', () => {
     mockGetItem.mockReturnValue(null);
 
-    const hook = renderHook(useDismissAlert, {
-      initialProps: {key},
-    });
+    const hook = renderHook(useDismissAlert, {initialProps: {key}});
     const {result} = hook;
 
     expect(result.current.isDismissed).toBeFalsy();
@@ -46,17 +42,13 @@ describe('useDismissAlert', () => {
   it('should be dismissed if there is any value in localstorage and no expiration', () => {
     mockGetItem.mockReturnValue(JSON.stringify('some value'));
 
-    const {result} = renderHook(useDismissAlert, {
-      initialProps: {key},
-    });
+    const {result} = renderHook(useDismissAlert, {initialProps: {key}});
 
     expect(result.current.isDismissed).toBeTruthy();
   });
 
   it('should set the current timestamp into localstorage when an alert is dismissed', async () => {
-    const {result} = renderHook(useDismissAlert, {
-      initialProps: {key},
-    });
+    const {result} = renderHook(useDismissAlert, {initialProps: {key}});
 
     act(() => {
       result.current.dismiss();

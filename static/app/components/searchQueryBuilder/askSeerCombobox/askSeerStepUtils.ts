@@ -24,10 +24,7 @@ interface StepLabel {
 const TAG_INVESTIGATION_LABELS: StepLabel[] = [
   {loading: t('Investigating your tags...'), completed: t('Investigated tags')},
   {loading: t('Looking for more tags...'), completed: t('Found more tags')},
-  {
-    loading: t('Checking additional tags...'),
-    completed: t('Checked additional tags'),
-  },
+  {loading: t('Checking additional tags...'), completed: t('Checked additional tags')},
 ];
 
 /**
@@ -41,10 +38,7 @@ const STEP_LABELS: Record<string, StepLabel[]> = {
     {loading: t('Investigating your tags...'), completed: t('Investigated tags')},
     {loading: t('Building your query...'), completed: t('Built query')},
     {loading: t('Taking a closer look...'), completed: t('Looked closer')},
-    {
-      loading: t('Double-checking everything...'),
-      completed: t('Double-checked results'),
-    },
+    {loading: t('Double-checking everything...'), completed: t('Double-checked results')},
   ],
   query_agent_api_search: [
     {loading: t('Planning analysis...'), completed: t('Planned analysis')},
@@ -114,10 +108,7 @@ const STEP_LABELS: Record<string, StepLabel[]> = {
   ],
   validate_query: [
     {loading: t('Validating your query...'), completed: t('Validated your query')},
-    {
-      loading: t('Double-checking everything...'),
-      completed: t('Double-checked results'),
-    },
+    {loading: t('Double-checking everything...'), completed: t('Double-checked results')},
   ],
   thinking: [
     {loading: t('Thinking...'), completed: t('Thought about it')},

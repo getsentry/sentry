@@ -146,11 +146,7 @@ export function getNavigationConfiguration({
           keywords: [t('debug file'), t('debug files'), t('symbols'), t('dsyms')],
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,
         },
-        {
-          id: 'project_proguard',
-          path: `${pathPrefix}/proguard/`,
-          title: t('ProGuard'),
-        },
+        {id: 'project_proguard', path: `${pathPrefix}/proguard/`, title: t('ProGuard')},
         {
           id: 'project_source_maps',
           path: `${pathPrefix}/source-maps/`,
@@ -166,9 +162,7 @@ export function getNavigationConfiguration({
           id: 'project_performance',
           path: `${pathPrefix}/performance/`,
           title: t('Performance'),
-          show: () =>
-            !!organization?.features?.includes('performance-view') &&
-            !isSelfHostedErrorsOnly,
+          show: () => !isSelfHostedErrorsOnly,
         },
 
         {

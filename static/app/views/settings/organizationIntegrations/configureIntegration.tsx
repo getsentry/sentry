@@ -17,7 +17,7 @@ import {FieldGroup} from '@sentry/scraps/form';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {singleLineRenderer} from '@sentry/scraps/markdown';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
@@ -78,10 +78,7 @@ function organizationIntegrationApiOptions({
 }) {
   return apiOptions.as<OrganizationIntegration>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, integrationId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, integrationId}, staleTime: 0}
   );
 }
 
@@ -125,13 +122,7 @@ function withJiraStatusMappingRemovals(
       .map(key => [key, null])
   );
 
-  return {
-    ...data,
-    sync_status_forward: {
-      ...submittedMappings,
-      ...removedMappings,
-    },
-  };
+  return {...data, sync_status_forward: {...submittedMappings, ...removedMappings}};
 }
 
 function IntegrationAction({
@@ -147,7 +138,7 @@ function IntegrationAction({
 }) {
   const {startFlow} = useAddIntegration();
 
-  if (provider.key === 'linear') {
+  if (provider.key === 'linear' || provider.key === 'supabase') {
     return (
       <Button
         onClick={() =>
@@ -155,7 +146,7 @@ function IntegrationAction({
             provider,
             organization,
             // The default toast says the integration was "added", but this
-            // flow refreshes an existing workspace connection.
+            // flow refreshes an existing organization connection.
             suppressSuccessMessage: true,
             onInstall: () => {
               toast.success(t('%s reconnected', provider.name));
@@ -166,7 +157,7 @@ function IntegrationAction({
         disabled={!canManageIntegrations(organization)}
         size="sm"
       >
-        {t('Reconnect Linear')}
+        {provider.key === 'linear' ? t('Reconnect Linear') : t('Reconnect Supabase')}
       </Button>
     );
   }
@@ -206,7 +197,6 @@ function IntegrationMainTab({
   organization,
   provider,
   queryClient,
-  usesExplicitMappingRemovals,
 }: {
   gcpVerificationError: boolean;
   integration: OrganizationIntegration;
@@ -217,7 +207,6 @@ function IntegrationMainTab({
   organization: Organization;
   provider: IntegrationProvider;
   queryClient: QueryClient;
-  usesExplicitMappingRemovals: boolean;
 }) {
   const instructions =
     integration.dynamicDisplayInformation?.configure_integration?.instructions;
@@ -225,18 +214,14 @@ function IntegrationMainTab({
   const hasVercelProjectMappings =
     provider.key === 'vercel' &&
     integration.configOrganization?.some(field => field.name === 'project_mappings');
+  const usesExplicitMappingRemovals = provider.key === 'jira';
   const hasSettings =
     !hasVercelProjectMappings &&
     (externalUrl || (integration.configOrganization?.length ?? 0) > 0);
 
   const integrationEndpoint = getApiUrl(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        integrationId: integration.id,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, integrationId: integration.id}}
   );
 
   const integrationQueryOptions = organizationIntegrationApiOptions({
@@ -272,11 +257,7 @@ function IntegrationMainTab({
         );
       }
 
-      return fetchMutation({
-        method: 'POST',
-        url: integrationEndpoint,
-        data: requestData,
-      });
+      return fetchMutation({method: 'POST', url: integrationEndpoint, data: requestData});
     },
     onSuccess: async () => {
       const verifiesConnection = provider.key === 'gcp';
@@ -382,18 +363,14 @@ function IntegrationMainTab({
           <Alert variant="info" showIcon={false}>
             {instructions.length === 1 ? (
               <span
-                dangerouslySetInnerHTML={{
-                  __html: singleLineRenderer(instructions[0]!),
-                }}
+                dangerouslySetInnerHTML={{__html: singleLineRenderer(instructions[0]!)}}
               />
             ) : (
               <List symbol={<IconArrow size="xs" direction="right" />}>
                 {instructions.map((instruction, i) => (
                   <ListItem key={i}>
                     <span
-                      dangerouslySetInnerHTML={{
-                        __html: singleLineRenderer(instruction),
-                      }}
+                      dangerouslySetInnerHTML={{__html: singleLineRenderer(instruction)}}
                     />
                   </ListItem>
                 )) ?? null}
@@ -452,12 +429,10 @@ function ConfigureIntegration() {
     isError: isErrorConfig,
     refetch: refetchConfig,
   } = useQuery(
-    apiOptions.as<{
-      providers: IntegrationProvider[];
-    }>()('/organizations/$organizationIdOrSlug/config/integrations/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: 0,
-    })
+    apiOptions.as<{providers: IntegrationProvider[]}>()(
+      '/organizations/$organizationIdOrSlug/config/integrations/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: 0}
+    )
   );
   const {
     data: integration,
@@ -506,12 +481,7 @@ function ConfigureIntegration() {
     'Integrations: Details Viewed'
   );
   useRouteAnalyticsParams(
-    provider
-      ? {
-          integration: provider.key,
-          integration_type: 'first_party',
-        }
-      : {}
+    provider ? {integration: provider.key, integration_type: 'first_party'} : {}
   );
 
   useEffect(() => {
@@ -551,10 +521,6 @@ function ConfigureIntegration() {
   if (!provider || !integration) {
     return null;
   }
-
-  const usesExplicitMappingRemovals =
-    provider.key === 'jira' &&
-    organization.features.includes('jira-explicit-mapping-removals');
 
   // Determines whether there is anything to show in the Settings tab.
   // When empty and no other tabs exist, the settings content renders directly.
@@ -631,7 +597,6 @@ function ConfigureIntegration() {
       organization={organization}
       provider={provider}
       queryClient={queryClient}
-      usesExplicitMappingRemovals={usesExplicitMappingRemovals}
     />
   );
 
@@ -651,11 +616,13 @@ function ConfigureIntegration() {
       {allTabs.length > 1 && (
         <TabsContainer>
           <Tabs value={tab} onChange={onTabChange}>
-            <TabList>
-              {allTabs.map(tabTuple => (
-                <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {allTabs.map(tabTuple => (
+                  <TabList.Item key={tabTuple[0]}>{tabTuple[1]}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
         </TabsContainer>
       )}

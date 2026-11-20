@@ -95,9 +95,7 @@ function isIterated(node: ESTree.Node): boolean {
 export const noManualTable = defineRule({
   meta: {
     type: 'suggestion',
-    docs: {
-      description: 'Disallow tables built by hand instead of with SimpleTable.',
-    },
+    docs: {description: 'Disallow tables built by hand instead of with SimpleTable.'},
     schema: [],
     messages: {
       tableElement:

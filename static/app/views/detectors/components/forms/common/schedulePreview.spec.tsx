@@ -7,9 +7,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 
 import {SchedulePreview} from './schedulePreview';
 
-jest.mock('sentry/utils/useDimensions', () => ({
-  useDimensions: () => ({width: 800}),
-}));
+jest.mock('sentry/utils/useDimensions', () => ({useDimensions: () => ({width: 800})}));
 
 describe('SchedulePreview', () => {
   const organization = OrganizationFixture();

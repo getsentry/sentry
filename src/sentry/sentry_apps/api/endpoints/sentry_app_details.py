@@ -23,6 +23,7 @@ from sentry.apidocs.examples.sentry_app_examples import SentryAppExamples
 from sentry.apidocs.parameters import SentryAppParams
 from sentry.apidocs.response_types import (
     DetailResponse,
+    NonFieldErrorsResponse,
     ValidationErrorResponse,
     as_validation_errors,
 )
@@ -125,6 +126,7 @@ class SentryAppDetailsEndpoint(SentryAppBaseEndpoint):
     ) -> (
         Response[SentryAppSerializerResponse]
         | Response[DetailResponse]
+        | Response[NonFieldErrorsResponse]
         | Response[ValidationErrorResponse]
     ):
         """

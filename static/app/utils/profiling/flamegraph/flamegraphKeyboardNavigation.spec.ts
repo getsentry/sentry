@@ -8,16 +8,9 @@ function createFlamegraphFrame(frame?: DeepPartial<FlamegraphFrame>) {
     depth = 0,
     parent = null,
     children = [],
-    frame: _frame = {
-      isRoot: false,
-    },
+    frame: _frame = {isRoot: false},
   } = frame ?? {};
-  return {
-    frame: _frame,
-    depth,
-    parent,
-    children,
-  } as FlamegraphFrame;
+  return {frame: _frame, depth, parent, children} as FlamegraphFrame;
 }
 
 function addChild(frame: FlamegraphFrame) {
@@ -112,11 +105,7 @@ describe('selectNearestFrame', () => {
   });
 
   it('does not allow selection of the "sentry root" virtual root node', () => {
-    const root = createFlamegraphFrame({
-      frame: {
-        isRoot: true,
-      },
-    });
+    const root = createFlamegraphFrame({frame: {isRoot: true}});
     const leftChild = addChildrenToDepth(root, 1);
     const next = selectNearestFrame(leftChild, 'up');
     expect(next).toBe(leftChild);

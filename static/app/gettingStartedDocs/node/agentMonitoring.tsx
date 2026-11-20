@@ -114,10 +114,7 @@ function getWorkersAiNote(): ContentBlock {
     type: 'text',
     text: tct(
       "Sentry automatically instruments the [link:Workers AI binding] ([code:env.AI]) once your Worker is wrapped - there's no extra setup.",
-      {
-        code: <code />,
-        link: <ExternalLink href={WORKERS_AI_DOCS} />,
-      }
+      {code: <code />, link: <ExternalLink href={WORKERS_AI_DOCS} />}
     ),
   };
 }
@@ -243,10 +240,7 @@ function getCloudflareWrapBlocks(integration: AgentIntegration): ContentBlock[] 
         }
       ),
     },
-    {
-      type: 'code',
-      tabs: [{label: 'JavaScript', language: 'javascript', code}],
-    },
+    {type: 'code', tabs: [{label: 'JavaScript', language: 'javascript', code}]},
   ];
 }
 
@@ -259,10 +253,7 @@ export const mastraOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install the Sentry Node SDK and [code:@mastra/observability]. If you previously used [legacy:@mastra/sentry], remove that exporter because it initializes Sentry itself and conflicts with the built-in integration.',
-            {
-              code: <code />,
-              legacy: <code />,
-            }
+            {code: <code />, legacy: <code />}
           ),
         },
         {
@@ -296,10 +287,7 @@ export const mastraOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Create [code:src/mastra/public/instrument.mjs]. Mastra copies files in [public:public/] next to the compiled server, allowing the Sentry SDK to load before Mastra and the AI SDK.',
-            {
-              code: <code />,
-              public: <code />,
-            }
+            {code: <code />, public: <code />}
           ),
         },
         {
@@ -403,21 +391,12 @@ export const flueOnboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Flue ships an official Sentry blueprint. Run it from your project root - it generates a [code:sentry.ts] module and installs the matching Sentry SDK along with [fluePackage].',
-            {
-              code: <code />,
-              fluePackage: <code>@flue/opentelemetry</code>,
-            }
+            {code: <code />, fluePackage: <code>@flue/opentelemetry</code>}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Blueprint',
-              language: 'bash',
-              code: 'flue add tooling sentry',
-            },
-          ],
+          tabs: [{label: 'Blueprint', language: 'bash', code: 'flue add tooling sentry'}],
         },
       ],
     },
@@ -545,10 +524,7 @@ export const eveOnboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Install the Sentry Node SDK in your Eve project:'),
-        },
+        {type: 'text', text: t('Install the Sentry Node SDK in your Eve project:')},
         {
           type: 'code',
           tabs: [
@@ -746,10 +722,7 @@ export function getInstallStep(
   {
     packageName = '@sentry/node',
     minVersion = MIN_REQUIRED_VERSION,
-  }: {
-    minVersion?: string;
-    packageName?: `@sentry/${string}`;
-  } = {}
+  }: {minVersion?: string; packageName?: `@sentry/${string}`} = {}
 ): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
@@ -780,14 +753,10 @@ export function getInstallStep(
           type: 'text',
           text: tct(
             'To enable agent monitoring, you need to install the Sentry SDK with a minimum version of [minVersion].',
-            {
-              minVersion: <code>{resolvedMinVersion}</code>,
-            }
+            {minVersion: <code>{resolvedMinVersion}</code>}
           ),
         },
-        getInstallCodeBlock(params, {
-          packageName: resolvedPackageName,
-        }),
+        getInstallCodeBlock(params, {packageName: resolvedPackageName}),
       ],
     },
   ];
@@ -904,9 +873,7 @@ Sentry.init({
       )
     : tct(
         'Import and initialize the Sentry SDK - the [integration] will be enabled automatically:',
-        {
-          integration: AGENT_INTEGRATION_LABELS[integration] ?? integration,
-        }
+        {integration: AGENT_INTEGRATION_LABELS[integration] ?? integration}
       );
 
   return [
@@ -916,10 +883,7 @@ Sentry.init({
         integration === AgentIntegration.MASTRA
           ? (mastraFrameworkOnboarding.configure(params)[0]?.content ?? [])
           : [
-              {
-                type: 'text',
-                text: introText,
-              },
+              {type: 'text', text: introText},
               {
                 type: 'code',
                 tabs: [
@@ -1030,12 +994,7 @@ function getVerifyStep(params: DocsParams): OnboardingStep[] {
   ];
 
   if (isCloudflareWrap) {
-    return [
-      {
-        type: StepType.VERIFY,
-        content,
-      },
-    ];
+    return [{type: StepType.VERIFY, content}];
   }
 
   if (selected === AgentIntegration.ANTHROPIC) {
@@ -1170,12 +1129,7 @@ const text = lastMessage.content;`,
     });
   }
 
-  return [
-    {
-      type: StepType.VERIFY,
-      content,
-    },
-  ];
+  return [{type: StepType.VERIFY, content}];
 }
 
 function getAgentConfigureSteps(
@@ -1183,17 +1137,12 @@ function getAgentConfigureSteps(
   {
     packageName = '@sentry/node',
     configFileName,
-  }: {
-    configFileName?: string;
-    packageName?: `@sentry/${string}`;
-  } = {}
+  }: {configFileName?: string; packageName?: `@sentry/${string}`} = {}
 ): OnboardingStep[] {
   const selected = getAgentIntegration(params);
 
   if (selected === AgentIntegration.MANUAL) {
-    return getManualConfigureStep(params, {
-      packageName,
-    });
+    return getManualConfigureStep(params, {packageName});
   }
 
   if (selected === AgentIntegration.FLUE) {
@@ -1208,12 +1157,7 @@ function getAgentConfigureSteps(
     return piFrameworkOnboarding.configure(params);
   }
 
-  return getConfigureStep({
-    params,
-    integration: selected,
-    packageName,
-    configFileName,
-  });
+  return getConfigureStep({params, integration: selected, packageName, configFileName});
 }
 
 /**
@@ -1246,10 +1190,7 @@ export const agentMonitoring = ({
     />
   ),
   install: params =>
-    getInstallStep(params, {
-      packageName,
-      minVersion: MIN_REQUIRED_VERSION,
-    }),
+    getInstallStep(params, {packageName, minVersion: MIN_REQUIRED_VERSION}),
   configure: params => getAgentConfigureSteps(params, {packageName, configFileName}),
   verify: getVerifyStep,
 });

@@ -19,9 +19,7 @@ describe('LinksCard', () => {
   });
 
   it('renders for user with billing perms and org without spend visibility notifications', () => {
-    const organization = OrganizationFixture({
-      access: ['org:billing'],
-    });
+    const organization = OrganizationFixture({access: ['org:billing']});
     render(<LinksCard organization={organization} />);
     expect(screen.getByText('Receipts & notifications')).toBeInTheDocument();
     expect(screen.queryByText('Activity log')).not.toBeInTheDocument();

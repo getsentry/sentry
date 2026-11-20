@@ -36,9 +36,7 @@ const RELEASES_MATCHES = [makeMatch('/organizations/:orgId/releases/:release/')]
 describe('useRouteActivatedHook', () => {
   const organization = OrganizationFixture();
   const project = ProjectFixture({organization});
-  const subscription = SubscriptionFixture({
-    organization,
-  });
+  const subscription = SubscriptionFixture({organization});
   function genProps(extraRouteParams = {}): any {
     const props = {
       organization,
@@ -65,9 +63,7 @@ describe('useRouteActivatedHook', () => {
 
   it('calls rawTrackAnalyticsEvent after one seconds if org is set', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     const loadTime = Date.now();
     act(() => jest.advanceTimersByTime(HALF_ADVANCE_PERIOD));
@@ -89,18 +85,14 @@ describe('useRouteActivatedHook', () => {
 
   it('does not call rawTrackAnalyticsEvent if org is not set', () => {
     jest.useFakeTimers();
-    renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
     expect(rawTrackAnalyticsEvent).toHaveBeenCalledTimes(0);
   });
 
   it('only calls rawTrackAnalyticsEvent once and ignores later param updates', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result} = renderHook(useRouteActivatedHook, {initialProps: props});
     const loadTime = Date.now();
     act(() => result.current.setOrganization(organization));
     act(() => result.current.setRouteAnalyticsParams({foo: 'bar'}));
@@ -123,9 +115,7 @@ describe('useRouteActivatedHook', () => {
 
   it('only calls rawTrackAnalyticsEvent once when URL query params are updated', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result, rerender} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     act(() =>
       rerender(
@@ -143,9 +133,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disable route analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     act(() => result.current.setDisableRouteAnalytics());
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
@@ -154,9 +142,7 @@ describe('useRouteActivatedHook', () => {
 
   it('disables and re-enables analytics', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     act(() => result.current.setDisableRouteAnalytics(true));
     act(() => jest.advanceTimersByTime(DEFAULT_ADVANCE_PERIOD));
@@ -168,9 +154,7 @@ describe('useRouteActivatedHook', () => {
 
   it('re-initializes after route changes', () => {
     jest.useFakeTimers();
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result, rerender} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     // set every field to make sure we reset them
     act(() => result.current.setDisableRouteAnalytics());
@@ -204,9 +188,7 @@ describe('useRouteActivatedHook', () => {
 
   it('overrwite event names', () => {
     jest.useFakeTimers();
-    const {result} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     act(() => result.current.setEventNames('test.event', 'Test Event'));
     const loadTime = Date.now();
@@ -229,9 +211,7 @@ describe('useRouteActivatedHook', () => {
     jest.useFakeTimers();
     let loadTime = Date.now();
 
-    const {result, rerender} = renderHook(useRouteActivatedHook, {
-      initialProps: props,
-    });
+    const {result, rerender} = renderHook(useRouteActivatedHook, {initialProps: props});
     act(() => result.current.setOrganization(organization));
     act(() => jest.advanceTimersByTime(HALF_ADVANCE_PERIOD));
 

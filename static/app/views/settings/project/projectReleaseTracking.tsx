@@ -26,17 +26,11 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 
 import {useProjectSettingsOutlet} from './projectSettingsLayout';
 
-type TokenResponse = {
-  token: string;
-  webhookUrl: string;
-};
+type TokenResponse = {token: string; webhookUrl: string};
 
 const TOKEN_PLACEHOLDER = 'YOUR_TOKEN';
 const WEBHOOK_PLACEHOLDER = 'YOUR_WEBHOOK_URL';
-const placeholderData = {
-  token: TOKEN_PLACEHOLDER,
-  webhookUrl: WEBHOOK_PLACEHOLDER,
-};
+const placeholderData = {token: TOKEN_PLACEHOLDER, webhookUrl: WEBHOOK_PLACEHOLDER};
 
 function releaseTokenOptions(organizationSlug: string, projectSlug: string) {
   return apiOptions.as<TokenResponse>()(

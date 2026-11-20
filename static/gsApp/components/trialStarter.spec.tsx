@@ -20,10 +20,7 @@ describe('TrialStarter', () => {
     const handleTrialStarted = jest.fn();
     // eslint-disable-next-line no-empty-pattern
     const renderer = jest.fn(({}: RendererProps) => <div>render text</div>);
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/`,
-      body: org,
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${org.slug}/`, body: org});
     MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/projects/`,
       body: [ProjectFixture()],

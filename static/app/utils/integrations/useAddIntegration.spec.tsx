@@ -42,10 +42,7 @@ describe('useAddIntegration', () => {
       onError: expect.any(Function),
       onClose: expect.any(Function),
     });
-    expect(result.current.state).toEqual({
-      status: 'installing',
-      providerKey: 'github',
-    });
+    expect(result.current.state).toEqual({status: 'installing', providerKey: 'github'});
   });
 
   it('passes urlParams as initialData to the pipeline modal', () => {
@@ -65,9 +62,7 @@ describe('useAddIntegration', () => {
     );
 
     expect(openPipelineModalSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        initialData: {installation_id: '12345'},
-      })
+      expect.objectContaining({initialData: {installation_id: '12345'}})
     );
   });
 
@@ -100,11 +95,7 @@ describe('useAddIntegration', () => {
     const {result} = renderHookWithProviders(() => useAddIntegration());
 
     act(() =>
-      result.current.startFlow({
-        provider,
-        organization: OrganizationFixture(),
-        onInstall,
-      })
+      result.current.startFlow({provider, organization: OrganizationFixture(), onInstall})
     );
 
     act(() => onComplete?.(integration));
@@ -167,10 +158,7 @@ describe('useAddIntegration', () => {
     });
 
     expect(onCancel).toHaveBeenCalledTimes(1);
-    expect(result.current.state).toEqual({
-      status: 'cancelled',
-      providerKey: 'github',
-    });
+    expect(result.current.state).toEqual({status: 'cancelled', providerKey: 'github'});
   });
 
   it('does not report cancellation when completion closes the modal', () => {

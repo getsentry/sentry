@@ -8,7 +8,9 @@ from .views import (
     JiraSentryIssueDetailsView,
 )
 from .webhooks import (
+    JiraForgeConfigureLinkWebhook,
     JiraForgeInstallationWebhook,
+    JiraForgeIssueUpdatedWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
     JiraSentryUninstalledWebhook,
@@ -16,9 +18,19 @@ from .webhooks import (
 
 urlpatterns = [
     re_path(
+        r"^forge/configure-link/$",
+        JiraForgeConfigureLinkWebhook.as_view(),
+        name="sentry-extensions-jira-forge-configure-link",
+    ),
+    re_path(
         r"^forge/installation/$",
         JiraForgeInstallationWebhook.as_view(),
         name="sentry-extensions-jira-forge-installation",
+    ),
+    re_path(
+        r"^forge/issue-updated/$",
+        JiraForgeIssueUpdatedWebhook.as_view(),
+        name="sentry-extensions-jira-forge-issue-updated",
     ),
     re_path(
         r"^ui-hook/$",

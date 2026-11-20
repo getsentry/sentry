@@ -1,10 +1,11 @@
-import {useCallback, useMemo} from 'react';
+import {useMemo} from 'react';
 
 import {getReferrerFromBlocks} from 'sentry/components/events/autofix/autofixReferrer';
 import {getAutofixRunId} from 'sentry/components/events/autofix/autofixRunId';
 import {
   getAutofixArtifactFromSection,
   getOrderedAutofixSections,
+  isSingleRunAutofix,
   useExplorerAutofix,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import {t} from 'sentry/locale';
@@ -14,7 +15,9 @@ import {defined} from 'sentry/utils/defined';
 import {useCopyToClipboard} from 'sentry/utils/useCopyToClipboard';
 import {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 import {useSeerExplorerDrawer} from 'sentry/views/seerExplorer/components/drawer/useSeerExplorerDrawer';
+import {useSeerExplorerChatDispatch} from 'sentry/views/seerExplorer/seerExplorerChatStateContext';
 
+import {useOpenSingleRunChat, useRerunSingleRun} from './useToggleSingleRunChat';
 import {artifactToMarkdown} from './utils';
 
 /**
@@ -79,12 +82,28 @@ function useHandleRestart({
   aiAutofix,
 }: {
   aiAutofix: ReturnType<typeof useExplorerAutofix>;
-}): () => void {
-  const {startStep} = aiAutofix;
+}): (() => void) | undefined {
+  const {rerun, disabled} = useRerunSingleRun(aiAutofix, {enabled: true});
+  const openSingleRunChat = useOpenSingleRunChat();
+  const chatDispatch = useSeerExplorerChatDispatch();
+  const runState = aiAutofix.runState;
+  const runId = getAutofixRunId(runState);
+  const asksInChat =
+    defined(runId) && isSingleRunAutofix(runState) && runState?.status === 'completed';
 
-  return useCallback(() => {
-    startStep('root_cause');
-  }, [startStep]);
+  return useMemo(() => {
+    if (disabled) {
+      return;
+    }
+    return () => {
+      if (!asksInChat) {
+        rerun();
+        return;
+      }
+      openSingleRunChat(runId);
+      chatDispatch({type: 'set pending restart', payload: {onSubmit: rerun}});
+    };
+  }, [asksInChat, chatDispatch, disabled, openSingleRunChat, rerun, runId]);
 }
 
 function useHandleOpenSeerAgent({

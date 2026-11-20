@@ -14,10 +14,7 @@ function TestComponent({
   feature: string;
   reportExposure: boolean;
 }) {
-  const {inExperiment, experimentAssignment} = useExperiment({
-    feature,
-    reportExposure,
-  });
+  const {inExperiment, experimentAssignment} = useExperiment({feature, reportExposure});
   return (
     <div>
       <span data-test-id="in-experiment">{String(inExperiment)}</span>
@@ -45,9 +42,7 @@ describe('useExperiment (gsApp)', () => {
   });
 
   it('returns inExperiment: false when feature is not enabled', () => {
-    const org = OrganizationFixture({
-      experiments: {'test-experiment': 'control'},
-    });
+    const org = OrganizationFixture({experiments: {'test-experiment': 'control'}});
     render(<TestComponent feature="test-experiment" reportExposure={false} />, {
       organization: org,
     });
@@ -56,9 +51,7 @@ describe('useExperiment (gsApp)', () => {
   });
 
   it('returns inExperiment: true with feature flag even without experiments entry', () => {
-    const org = OrganizationFixture({
-      features: ['test-experiment'],
-    });
+    const org = OrganizationFixture({features: ['test-experiment']});
     render(<TestComponent feature="test-experiment" reportExposure={false} />, {
       organization: org,
     });
@@ -176,10 +169,7 @@ describe('useExperiment (gsApp)', () => {
     // regular non-experiment flag) but has no entry in organization.experiments.
     // The BE only fires auto-exposure for flags with experiment_mode set, so we
     // match that behavior here and skip both the Amplitude write and the POST.
-    const org = OrganizationFixture({
-      features: ['not-an-experiment'],
-      experiments: {},
-    });
+    const org = OrganizationFixture({features: ['not-an-experiment'], experiments: {}});
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
       method: 'POST',
@@ -267,9 +257,7 @@ describe('useExperiment (gsApp)', () => {
   });
 
   it('re-reports exposure when assignment changes', async () => {
-    const org = OrganizationFixture({
-      experiments: {'test-experiment': 'control'},
-    });
+    const org = OrganizationFixture({experiments: {'test-experiment': 'control'}});
     const mockExposure = MockApiClient.addMockResponse({
       url: `/organizations/${org.slug}/experiment-exposure/`,
       method: 'POST',

@@ -22,15 +22,8 @@ figma.connect(
         transparent: 'transparent',
         link: 'link',
       }),
-      size: figma.enum('size', {
-        zero: 'zero',
-        xs: 'xs',
-        sm: 'sm',
-        md: 'md',
-      }),
-      disabled: figma.enum('state', {
-        disabled: true,
-      }),
+      size: figma.enum('size', {zero: 'zero', xs: 'xs', sm: 'sm', md: 'md'}),
+      disabled: figma.enum('state', {disabled: true}),
       children: figma.textContent('Children'),
     },
     example: (props: ButtonProps) => (

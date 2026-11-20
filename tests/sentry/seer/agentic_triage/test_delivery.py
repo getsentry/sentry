@@ -3,6 +3,9 @@ from unittest.mock import Mock, patch
 from uuid import UUID
 
 import pytest
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE,
+)
 
 from sentry.api.serializers import EventSerializer
 from sentry.issues.action_log.types import SYSTEM_ACTOR, ActionSource, TriggerAutofixAction
@@ -218,6 +221,10 @@ class TestDeliverAgenticTriageResult(TestCase):
         mock_trigger = self._deliver_autofix_verdict(single_run=True)
 
         assert mock_trigger.call_args.kwargs["single_run"] is True
+        assert (
+            mock_trigger.call_args.kwargs["billing_feature"]
+            == SEER_BILLING_FEATURE_AUTOFIX_AGENTIC_TRIAGE
+        )
 
     def test_dry_run_with_single_run_starts_nothing(self) -> None:
         mock_trigger = self._deliver_autofix_verdict(single_run=True, dry_run=True)
@@ -768,7 +775,7 @@ class TestDeliverAgenticTriageResult(TestCase):
                 return_value=True,
             ) as mock_rate_limited,
             patch(
-                "sentry.seer.agentic_triage.delivery.is_seer_seat_based_tier_enabled",
+                "sentry.seer.agentic_triage.delivery.is_seer_seat_or_token_billed_enabled",
                 return_value=True,
             ),
             patch(

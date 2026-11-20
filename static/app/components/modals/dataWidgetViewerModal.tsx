@@ -58,7 +58,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
+import {
+  SavedDashboardQueryPriorityProvider,
+  useDashboardQueryPriority,
+} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -98,6 +101,7 @@ import type {
 } from 'sentry/views/dashboards/widgetCard/genericWidgetQueries';
 import {IssueWidgetQueries} from 'sentry/views/dashboards/widgetCard/issueWidgetQueries';
 import {ReleaseWidgetQueries} from 'sentry/views/dashboards/widgetCard/releaseWidgetQueries';
+import {useWidgetChartLayers} from 'sentry/views/dashboards/widgetCard/useWidgetChartLayers';
 import {VisualizationWidget} from 'sentry/views/dashboards/widgetCard/visualizationWidget';
 import {WidgetCardChartContainer} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
 import {WidgetQueries} from 'sentry/views/dashboards/widgetCard/widgetQueries';
@@ -291,9 +295,7 @@ function DataWidgetViewerModal(props: Props) {
       Sentry.metrics.distribution(
         'dashboards.widget.onFullScreenView',
         measure.duration,
-        {
-          unit: 'millisecond',
-        }
+        {unit: 'millisecond'}
       );
       performance.clearMarks('dashboard.widget.fullScreenViewClick');
       performance.clearMeasures('dashboard.widget.onFullScreenView');
@@ -321,10 +323,7 @@ function DataWidgetViewerModal(props: Props) {
   const locationPageFilter = useMemo(
     () =>
       start && end
-        ? {
-            ...selection,
-            datetime: {start, end, period: null, utc: null},
-          }
+        ? {...selection, datetime: {start, end, period: null, utc: null}}
         : selection,
     [start, end, selection]
   );
@@ -374,6 +373,14 @@ function DataWidgetViewerModal(props: Props) {
   const primaryWidget = defined(resolvedWidget.limit)
     ? {...resolvedWidget, queries: sortedQueries}
     : resolvedWidget;
+
+  const canUseTimeseriesVisualization =
+    widgetCanUseTimeSeriesVisualization(primaryWidget);
+  const chartLayers = useWidgetChartLayers({
+    widget: primaryWidget,
+    interval: widgetInterval,
+    enabled: canUseTimeseriesVisualization,
+  });
 
   // Create Table widget
   const tableWidget = {
@@ -493,11 +500,7 @@ function DataWidgetViewerModal(props: Props) {
       ) : null;
     };
 
-    return {
-      label: truncate(name || conditions, 120),
-      value: index,
-      getHighlightedQuery,
-    };
+    return {label: truncate(name || conditions, 120), value: index, getHighlightedQuery};
   });
 
   function onLegendSelectChanged({selected}: {selected: Record<string, boolean>}) {
@@ -574,12 +577,7 @@ function DataWidgetViewerModal(props: Props) {
     const newEnd = getUtcDateString(moment.utc(endValue));
     setModalSelection({
       ...modalSelection,
-      datetime: {
-        ...modalSelection.datetime,
-        start: newStart,
-        end: newEnd,
-        period: null,
-      },
+      datetime: {...modalSelection.datetime, start: newStart, end: newEnd, period: null},
     });
     navigate({
       pathname: location.pathname,
@@ -628,7 +626,7 @@ function DataWidgetViewerModal(props: Props) {
               : HALF_CONTAINER_HEIGHT
           }
         >
-          {widgetCanUseTimeSeriesVisualization(primaryWidget) ? (
+          {canUseTimeseriesVisualization ? (
             <VisualizationWidget
               selection={modalSelection}
               dashboardFilters={dashboardFilters}
@@ -642,6 +640,10 @@ function DataWidgetViewerModal(props: Props) {
                 widget.widgetType === WidgetType.LOGS
               }
               widgetInterval={widgetInterval}
+              showReleases={chartLayers.showReleases}
+              droppedData={chartLayers.droppedData.band}
+              isDroppedDataLoading={chartLayers.droppedData.isLoading}
+              layerControl={chartLayers.layerControl}
             />
           ) : (
             <MemoizedWidgetCardChartContainer
@@ -829,6 +831,7 @@ function OpenButton({
   disabled,
   disabledTooltip,
 }: OpenButtonProps) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   let openLabel: string;
   let path: string;
   switch (widget.widgetType) {
@@ -855,12 +858,26 @@ function OpenButton({
           </Tooltip>
         );
       }
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
+      path = getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        undefined,
+        undefined,
+        queryPriority
+      )!;
       break;
     }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
-      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
+      path = getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      );
       break;
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
@@ -952,6 +969,7 @@ function ViewerTableV2({
   modalSelection,
   selectedQueryIndex,
 }: ViewerTableV2Props) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
 
@@ -966,9 +984,7 @@ function ViewerTableV2({
   }
 
   const columnOrder = decodeColumnOrder(
-    fields.map(field => ({
-      field,
-    })),
+    fields.map(field => ({field})),
     tableResults?.[0]?.meta
   );
 
@@ -1047,7 +1063,8 @@ function ViewerTableV2({
             meta as MetaType,
             widget,
             organization,
-            dashboardFilters
+            dashboardFilters,
+            queryPriority
           )!;
 
           // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
@@ -1096,7 +1113,8 @@ function ViewerTableV2({
               widget,
               organization,
               dashboardFilters,
-              selectedQueryIndex
+              selectedQueryIndex,
+              queryPriority
             );
             const exploreUrl = getExploreUrl(dataRow);
             if (exploreUrl) {

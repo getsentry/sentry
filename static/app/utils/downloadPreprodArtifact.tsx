@@ -2,12 +2,10 @@ import {toast} from '@sentry/scraps/toast';
 
 import {t} from 'sentry/locale';
 
+import {resolveHostname} from './api/resolveHostname';
 import {downloadFromHref} from './downloadFromHref';
 
-type ErrorDetail = {
-  code?: string;
-  message?: string;
-} | null;
+type ErrorDetail = {code?: string; message?: string} | null;
 
 interface DownloadPreprodArtifactOptions {
   artifactId: string | number;
@@ -24,14 +22,13 @@ export async function downloadPreprodArtifact({
   regionUrl,
   onStaffPermissionError,
 }: DownloadPreprodArtifactOptions): Promise<void> {
-  const baseUrl = regionUrl || '';
-  const downloadUrl = `${baseUrl}/api/0/internal/${organizationSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`;
+  const downloadUrl = resolveHostname(
+    `/api/0/internal/${organizationSlug}/${projectSlug}/files/preprodartifacts/${artifactId}/`,
+    regionUrl
+  );
 
   try {
-    const response = await fetch(downloadUrl, {
-      method: 'HEAD',
-      credentials: 'include',
-    });
+    const response = await fetch(downloadUrl, {method: 'HEAD', credentials: 'include'});
 
     if (!response.ok) {
       if (response.status === 403) {

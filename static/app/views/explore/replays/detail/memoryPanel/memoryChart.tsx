@@ -10,6 +10,8 @@ import {
 } from 'react';
 import {useTheme} from '@emotion/react';
 
+import {formatDateTime} from '@sentry/scraps/dateTime';
+
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {createGridOptions} from 'sentry/components/charts/components/grid';
@@ -21,7 +23,6 @@ import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {toArray} from 'sentry/utils/array/toArray';
 import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
-import {getFormat, getFormattedDate} from 'sentry/utils/dates';
 import {formatDuration} from 'sentry/utils/duration/formatDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
@@ -93,14 +94,7 @@ export function MemoryChart({
 
     const echarts = chartRef.current.getEchartsInstance();
     echarts.setOption({
-      series: [
-        {
-          id: 'currentTime',
-          markLine: {
-            data: [{xAxis: currentTime}],
-          },
-        },
-      ],
+      series: [{id: 'currentTime', markLine: {data: [{xAxis: currentTime}]}}],
     });
   }, [currentTime]);
 
@@ -114,9 +108,7 @@ export function MemoryChart({
       series: [
         {
           id: 'hoverTime',
-          markLine: {
-            data: currentHoverTime ? [{xAxis: currentHoverTime}] : [],
-          },
+          markLine: {data: currentHoverTime ? [{xAxis: currentHoverTime}] : []},
         },
       ],
     });
@@ -144,10 +136,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
     () => ({
       autoHeightResize: true,
       height: 'auto',
-      grid: createGridOptions({
-        left: theme.space.md,
-        right: theme.space.md,
-      }),
+      grid: createGridOptions({left: theme.space.md, right: theme.space.md}),
       tooltip: computeChartTooltip(
         {
           appendToBody: true,
@@ -167,7 +156,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
             return `
           <div class="tooltip-series">${seriesTooltips.join('')}</div>
             <div class="tooltip-footer">
-              ${t('Date: %s', getFormattedDate(startTimestampMs + (firstValue as any).axisValue, getFormat({year: true, seconds: true, timeZone: true}), {local: false}))}
+              ${t('Date: %s', formatDateTime(startTimestampMs + (firstValue as any).axisValue, {year: 'always', precision: 'second', showTimezone: true, timezone: 'UTC'}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
               ${t(
@@ -189,11 +178,7 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
         type: 'time',
         axisLabel: {
           formatter: (time: number) =>
-            formatDuration({
-              duration: [time, 'ms'],
-              precision: 'sec',
-              style: 'hh:mm:ss',
-            }),
+            formatDuration({duration: [time, 'ms'], precision: 'sec', style: 'hh:mm:ss'}),
         },
         theme,
       }),
@@ -216,11 +201,10 @@ const MemoryChartSeries = memo(function MemoryChartSeriesComponent({
       {
         id: 'usedMemory',
         seriesName: t('Used Heap Memory'),
-        data: memoryFrames.flatMap(frame =>
-          frame.data
-            ? [{value: frame.data.memory.usedJSHeapSize, name: frame.offsetMs}]
-            : []
-        ),
+        data: memoryFrames.map(frame => ({
+          value: frame.data.memory.usedJSHeapSize,
+          name: frame.offsetMs,
+        })),
         emphasis: {disabled: true},
         stack: 'heap-memory',
         triggerLineEvent: true,

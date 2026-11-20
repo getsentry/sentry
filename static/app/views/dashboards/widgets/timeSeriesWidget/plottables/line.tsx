@@ -28,9 +28,7 @@ export class Line extends ContinuousTimeSeries implements Plottable {
       yAxisIndex: plottingOptions.yAxisPosition === 'left' ? 0 : 1,
     };
 
-    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {
-      segmentBy,
-    });
+    const segments = segmentTimeSeriesByDisplayStyle(this.timeSeries, {segmentBy});
 
     return segments.map(([timeSeries, style]) =>
       createLineSeries({

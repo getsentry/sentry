@@ -66,9 +66,7 @@ export function TraceLoadingRow(props: {
             className="Placeholder"
             height="12px"
             width={randomBetween(20, 80) + '%'}
-            style={{
-              transition: 'all 30s ease-out',
-            }}
+            style={{transition: 'all 30s ease-out'}}
           />
         </div>
       </div>
@@ -78,9 +76,7 @@ export function TraceLoadingRow(props: {
             ? TRACE_RIGHT_COLUMN_ODD_CLASSNAME
             : TRACE_RIGHT_COLUMN_EVEN_CLASSNAME
         }
-        style={{
-          width: props.manager.columns.span_list.width * 100 + '%',
-        }}
+        style={{width: props.manager.columns.span_list.width * 100 + '%'}}
       >
         <Placeholder
           className="Placeholder"

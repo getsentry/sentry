@@ -44,6 +44,15 @@ export function filterDroppedEventsByScope(
   return scope === 'all' ? droppedEvents : droppedEvents.filter(isUnintentional);
 }
 
+export function unexpectedDroppedShare(
+  droppedEvents: OutcomeRow[],
+  acceptedEvents: OutcomeRow[]
+): number {
+  const dropped = sumCounts(filterDroppedEventsByScope(droppedEvents, 'unexpected'));
+  const totalEvents = dropped + sumCounts(acceptedEvents);
+  return totalEvents === 0 ? 0 : dropped / totalEvents;
+}
+
 export function droppedEventsToOutcomeSections(
   droppedEvents: OutcomeRow[],
   acceptedEvents: OutcomeRow[]

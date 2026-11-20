@@ -35,9 +35,7 @@ const DEFAULT_BEYOND_THE_BASICS_TASKS = [
   {task: OnboardingTaskKey.FIRST_TRANSACTION, title: 'Set up Tracing'},
 ];
 
-const organization = OrganizationFixture({
-  features: ['onboarding'],
-});
+const organization = OrganizationFixture({features: ['onboarding']});
 
 describe('OnboardingSidebarContent', () => {
   beforeEach(() => {
@@ -45,14 +43,9 @@ describe('OnboardingSidebarContent', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/onboarding-tasks/',
       method: 'GET',
-      body: {
-        onboardingTasks: [],
-      },
+      body: {onboardingTasks: []},
     });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   it('should render the sidebar with the correct groups and tasks', async () => {
@@ -106,10 +99,7 @@ describe('OnboardingSidebarContent', () => {
         onboardingTasks: [{task: OnboardingTaskKey.FIRST_PROJECT, status: 'complete'}],
       },
     });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
 
     render(
       <PrimaryNavigationContextProvider>

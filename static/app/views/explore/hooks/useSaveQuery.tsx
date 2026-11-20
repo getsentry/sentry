@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -16,6 +17,7 @@ import type {CrossEvent} from 'sentry/views/explore/queryParams/crossEvent';
 import {isGroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import type {ReadableQueryParams} from 'sentry/views/explore/queryParams/readableQueryParams';
 
+import {useExploreQuerySpeed} from './useExploreQuerySpeed';
 import {
   isExploreSavedQuery,
   useInvalidateSavedQueries,
@@ -25,14 +27,8 @@ import {
 
 export type ExploreQueryChangedReason = {
   columns: string[];
-  equations: Array<{
-    equation: string;
-    reason: string | string[];
-  }> | null;
-  orderby: Array<{
-    orderby: string;
-    reason: string | string[];
-  }> | null;
+  equations: Array<{equation: string; reason: string | string[]}> | null;
+  orderby: Array<{orderby: string; reason: string | string[]}> | null;
 };
 
 type ExploreSavedQueryRequest = {
@@ -59,11 +55,9 @@ type ExploreSavedQueryRequest = {
     groupby?: string[];
     orderby?: string;
     query?: string;
-    visualize?: Array<{
-      yAxes: string[];
-      chartType?: number;
-    }>;
+    visualize?: Array<{yAxes: string[]; chartType?: number}>;
   }>;
+  queryPriority?: QuerySpeed;
   start?: DateString;
   statsPeriod?: string;
 };
@@ -75,21 +69,53 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
   const {id, title} = queryParams;
 
   const [caseInsensitive] = useCaseInsensitivity();
+  const {
+    enabled: canSaveQueryPriority,
+    isReady: canSaveQuerySpeed,
+    loadFailed,
+    lockedToBalanced,
+    speed,
+  } = useExploreQuerySpeed();
   const {saveQueryFromSavedQuery, updateQueryFromSavedQuery} = useFromSavedQuery();
   const organization = useOrganization();
   const invalidateSavedQueries = useInvalidateSavedQueries();
   const invalidateSavedQuery = useInvalidateSavedQuery(id);
 
   const requestData = useMemo((): ExploreSavedQueryRequest => {
-    return convertQueryParamsToRequest({
-      dataset,
-      queryParams,
-      pageFilters,
-      interval,
-      title: title ?? '',
-      caseInsensitive: caseInsensitive ? '1' : undefined,
-    });
-  }, [dataset, queryParams, pageFilters, interval, title, caseInsensitive]);
+    return {
+      ...convertQueryParamsToRequest({
+        dataset,
+        queryParams,
+        pageFilters,
+        interval,
+        title: title ?? '',
+        caseInsensitive: caseInsensitive ? '1' : undefined,
+      }),
+      // Replays have no Query Speed control. Spans and logs omit the field while
+      // the flag is off, while a saved priority is loading, when that load
+      // failed, or while extrapolation locks the control to Balanced. An update
+      // then keeps the stored priority.
+      ...(dataset !== 'replays' &&
+      canSaveQueryPriority &&
+      canSaveQuerySpeed &&
+      !loadFailed &&
+      !lockedToBalanced
+        ? {queryPriority: speed}
+        : {}),
+    };
+  }, [
+    canSaveQueryPriority,
+    canSaveQuerySpeed,
+    caseInsensitive,
+    loadFailed,
+    lockedToBalanced,
+    dataset,
+    interval,
+    pageFilters,
+    queryParams,
+    speed,
+    title,
+  ]);
 
   const {mutateAsync: saveQuery} = useMutation({
     mutationFn: ({name, starred = true}: {name: string; starred?: boolean}) =>
@@ -98,11 +124,7 @@ function useSavedQueryForDataset(dataset: 'spans' | 'logs' | 'replays') {
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          ...requestData,
-          name,
-          starred,
-        },
+        data: {...requestData, name, starred},
       }),
     onSuccess: () => {
       invalidateSavedQueries();
@@ -247,10 +269,7 @@ function convertQueryParamsToRequest({
     if (isGroupBy(aggregateField)) {
       return {groupBy: aggregateField.groupBy};
     }
-    return {
-      ...aggregateField,
-      yAxes: [...aggregateField.yAxes],
-    };
+    return {...aggregateField, yAxes: [...aggregateField.yAxes]};
   });
 
   return {

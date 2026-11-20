@@ -26,10 +26,6 @@ export function monitorListErrorsApiOptions(
 ) {
   return apiOptions.as<CheckinProcessingError[]>()(
     '/organizations/$organizationIdOrSlug/processing-errors/',
-    {
-      staleTime: 0,
-      query: {project},
-      path: {organizationIdOrSlug: organization.slug},
-    }
+    {staleTime: 0, query: {project}, path: {organizationIdOrSlug: organization.slug}}
   );
 }

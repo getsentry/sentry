@@ -56,18 +56,12 @@ export function transformTableToCategoricalSeries(
       // CategoricalItemValue must be number | null, so coerce non-numeric values to null
       const value = typeof rawValue === 'number' ? rawValue : null;
 
-      return {
-        category,
-        value,
-      };
+      return {category, value};
     });
 
     return {
       valueAxis: aggregate,
-      meta: {
-        valueType: valueType ?? FALLBACK_TYPE,
-        valueUnit: valueUnit ?? null,
-      },
+      meta: {valueType: valueType ?? FALLBACK_TYPE, valueUnit: valueUnit ?? null},
       values,
     };
   });

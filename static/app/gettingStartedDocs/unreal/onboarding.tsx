@@ -92,9 +92,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: t(
             'After the successful build, in the editor navigate to the [strong:Project Settings > Plugins > Code Plugins] menu and check whether the Sentry plugin is enabled.',
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -122,11 +120,7 @@ export const onboarding: OnboardingConfig = {
             {strong: <strong />}
           ),
         },
-        {
-          type: 'code',
-          language: 'url',
-          code: params.dsn.public,
-        },
+        {type: 'code', language: 'url', code: params.dsn.public},
         {
           type: 'conditional',
           condition: params.isLogsSelected,
@@ -147,11 +141,7 @@ export const onboarding: OnboardingConfig = {
             {strong: <strong />}
           ),
         },
-        {
-          type: 'code',
-          language: 'cpp',
-          code: getSettingsConfigureSnippet(params),
-        },
+        {type: 'code', language: 'cpp', code: getSettingsConfigureSnippet(params)},
       ],
     },
   ],
@@ -165,20 +155,11 @@ export const onboarding: OnboardingConfig = {
             'Once everything is configured you can call the plugin API from both C++ and blueprints:'
           ),
         },
-        {
-          type: 'code',
-          language: 'cpp',
-          code: getVerifySnippet(params),
-        },
+        {type: 'code', language: 'cpp', code: getVerifySnippet(params)},
       ],
     },
     ...(params.isLogsSelected
-      ? ([
-          {
-            title: t('Logs'),
-            content: [logsVerify(params)],
-          },
-        ] satisfies OnboardingStep[])
+      ? ([{title: t('Logs'), content: [logsVerify(params)]}] satisfies OnboardingStep[])
       : []),
     {
       title: t('Crash Reporter Client'),
@@ -194,10 +175,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Include the UE Crash Reporter'),
-        },
+        {type: 'subheader', text: t('Include the UE Crash Reporter')},
         {
           type: 'text',
           text: tct(
@@ -212,18 +190,12 @@ export const onboarding: OnboardingConfig = {
             {strong: <strong />}
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Configure the Crash Reporter Endpoint'),
-        },
+        {type: 'subheader', text: t('Configure the Crash Reporter Endpoint')},
         {
           type: 'text',
           text: tct(
             "Now that the crash reporter is included, UE needs to know where to send the crash. For that, add the Sentry 'Unreal Engine Endpoint' from the 'Client Keys' settings page to the game's configuration file. This will include which project in Sentry you want to see crashes displayed in. That's accomplished by configuring the [code:CrashReportClient] in the [italic:DefaultEngine.ini] file. Changing the engine is necessary for this to work. Edit the file:",
-            {
-              code: <code />,
-              italic: <i />,
-            }
+            {code: <code />, italic: <i />}
           ),
         },
         {
@@ -232,15 +204,8 @@ export const onboarding: OnboardingConfig = {
           showIcon: false,
           text: 'engine-dir\\Engine\\Programs\\CrashReportClient\\Config\\DefaultEngine.ini',
         },
-        {
-          type: 'text',
-          text: t('Add the configuration section:'),
-        },
-        {
-          type: 'code',
-          language: 'ini',
-          code: getCrashReporterConfigSnippet(params),
-        },
+        {type: 'text', text: t('Add the configuration section:')},
+        {type: 'code', language: 'ini', code: getCrashReporterConfigSnippet(params)},
         {
           type: 'text',
           text: tct(
@@ -269,9 +234,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             "For all libraries where you'd like to receive symbolication, [strong:you need to provide debug information]. This includes dependencies and operating system libraries.",
-            {
-              strong: <strong />,
-            }
+            {strong: <strong />}
           ),
         },
         {
@@ -281,10 +244,7 @@ export const onboarding: OnboardingConfig = {
             {italic: <i />}
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Automated Upload'),
-        },
+        {type: 'subheader', text: t('Automated Upload')},
         {
           type: 'text',
           text: tct(
@@ -309,10 +269,7 @@ export const onboarding: OnboardingConfig = {
             'This can be especially helpful in CI/CD environments where manual configuration is impractical.'
           ),
         },
-        {
-          type: 'subheader',
-          text: t('Manual Upload'),
-        },
+        {type: 'subheader', text: t('Manual Upload')},
         {
           type: 'text',
           text: tct(
@@ -344,10 +301,7 @@ export const onboarding: OnboardingConfig = {
 export SENTRY_PROJECT=${params.project.slug}
 export SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___`,
         },
-        {
-          type: 'text',
-          text: t('To upload debug symbols, run the following command:'),
-        },
+        {type: 'text', text: t('To upload debug symbols, run the following command:')},
         {
           type: 'code',
           language: 'bash',

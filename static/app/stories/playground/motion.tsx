@@ -45,10 +45,7 @@ export function MotionPlayground() {
           <Control label="Easing">
             <CompactSelect
               options={(['smooth', 'snap', 'spring', 'enter', 'exit'] as const).map(
-                value => ({
-                  value,
-                  label: value,
-                })
+                value => ({value, label: value})
               )}
               value={easing}
               onChange={opt => setEasing(opt.value)}
@@ -124,14 +121,8 @@ function createAnimation({
   const transition = tokens.framer[easing][duration];
 
   return {
-    initial: {
-      ...defaultState,
-      ...makeTargetState({property, state: 'start', easing}),
-    },
-    animate: {
-      ...defaultState,
-      ...makeTargetState({property, state: 'end', easing}),
-    },
+    initial: {...defaultState, ...makeTargetState({property, state: 'start', easing})},
+    animate: {...defaultState, ...makeTargetState({property, state: 'end', easing})},
     transition: {
       ...transition,
       delay,
@@ -191,8 +182,5 @@ const TARGET_CONFIGS: Record<string, TargetConfig> = {
 
 function makeTargetState({property, state, easing}: TargetStateOptions) {
   const config = TARGET_CONFIGS[property as keyof typeof TARGET_CONFIGS] ?? TARGET_AXIS;
-  return {
-    [property]: config[easing][state],
-    opacity: TARGET_OPACITY[easing][state],
-  };
+  return {[property]: config[easing][state], opacity: TARGET_OPACITY[easing][state]};
 }

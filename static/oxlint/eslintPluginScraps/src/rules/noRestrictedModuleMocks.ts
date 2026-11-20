@@ -36,9 +36,7 @@ export const noRestrictedModuleMocks = defineRule({
         'Disallow module mocking of hooks with supported test providers or stores.',
     },
     schema: [],
-    messages: {
-      forbidden: 'Do not mock {{hook}}. {{replacement}}',
-    },
+    messages: {forbidden: 'Do not mock {{hook}}. {{replacement}}'},
   },
   create(context) {
     if (!context.sourceCode.text.includes('jest')) {

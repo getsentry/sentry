@@ -4,9 +4,7 @@ import {SeerMarkdown} from 'sentry/components/seer/markdown';
 
 import {getEmbedLinkHref} from './resourceEmbedTestUtils';
 
-jest.mock('sentry/components/charts/baseChart', () => ({
-  BaseChart: jest.fn(() => null),
-}));
+jest.mock('sentry/components/charts/baseChart', () => ({BaseChart: jest.fn(() => null)}));
 
 const TIME_SERIES = [
   {
@@ -141,10 +139,7 @@ describe('logs query embed', () => {
       expect(timeseries).toHaveBeenCalledWith(
         '/organizations/org-slug/events-timeseries/',
         expect.objectContaining({
-          query: expect.objectContaining({
-            groupBy: ['severity'],
-            topEvents: 5,
-          }),
+          query: expect.objectContaining({groupBy: ['severity'], topEvents: 5}),
         })
       );
     });
@@ -276,12 +271,7 @@ describe('logs query embed', () => {
 
     render(
       <ExampleLogsQueryEmbed
-        data={{
-          query: '',
-          mode: 'samples',
-          sort: '-span.duration',
-          statsPeriod: '24h',
-        }}
+        data={{query: '', mode: 'samples', sort: '-span.duration', statsPeriod: '24h'}}
       />
     );
 

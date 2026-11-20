@@ -396,12 +396,7 @@ export function initializeUrlState({
 
   let newDatetime: PageFiltersUpdate;
   if (shouldUseMaxDateRange) {
-    newDatetime = {
-      period: `${maxDateRange}d`,
-      start: null,
-      end: null,
-      utc: datetime.utc,
-    };
+    newDatetime = {period: `${maxDateRange}d`, start: null, end: null, utc: datetime.utc};
   } else if (shouldUseMaxPickableDays) {
     newDatetime = {
       period: `${maxPickableDays}d`,
@@ -589,10 +584,7 @@ function getNewQueryParams(
   const extraParams = omit(cleanCurrentQuery, omittedParameters);
 
   // Override parameters
-  const {project, environment, start, end, utc} = {
-    ...currentQueryState,
-    ...obj,
-  };
+  const {project, environment, start, end, utc} = {...currentQueryState, ...obj};
 
   // Only set a stats period if we don't have an absolute date
   const statsPeriod = !start && !end ? obj.period || currentQueryState.period : null;

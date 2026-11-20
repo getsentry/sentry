@@ -171,12 +171,13 @@ EMPTY_DETECTOR_CONFIG_SCHEMA = {
 
 
 def condition_comparison_sources() -> list[tuple[str, Mapping[str, Any]]]:
-    """Every registered condition handler's comparison JSON Schema, by condition type."""
+    """Public condition handlers' comparison JSON Schemas, including legacy types."""
     from sentry.workflow_engine.registry import condition_handler_registry
 
     return [
         (str(name), handler.comparison_json_schema)
         for name, handler in sorted(condition_handler_registry.registrations.items())
+        if not handler.is_internal
     ]
 
 

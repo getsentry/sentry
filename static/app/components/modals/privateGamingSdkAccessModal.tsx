@@ -102,9 +102,7 @@ export function PrivateGamingSdkAccessModal({
         toast.error(
           tct(
             'Invitation to console repositories for these platforms have failed: [errors]',
-            {
-              errors: platformsWithErrors.join(','),
-            }
+            {errors: platformsWithErrors.join(',')}
           )
         );
       }

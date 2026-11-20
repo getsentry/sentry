@@ -22,6 +22,7 @@ import {
   useTraceItemDatasetAttributes,
   useTraceMetricItemAttributes,
 } from 'sentry/views/explore/hooks/useTraceItemAttributes';
+import {MAX_METRICS_ALLOWED} from 'sentry/views/explore/metrics/multiMetricsQueryParams';
 
 jest.mock('sentry/utils/analytics');
 jest.mock('sentry/utils/useCustomMeasurements');
@@ -40,9 +41,7 @@ function TraceMetricsVisualize() {
 describe('Visualize', () => {
   let organization!: ReturnType<typeof OrganizationFixture>;
   beforeEach(() => {
-    organization = OrganizationFixture({
-      features: ['performance-view'],
-    });
+    organization = OrganizationFixture();
 
     jest.mocked(useCustomMeasurements).mockReturnValue({customMeasurements: {}});
 
@@ -77,11 +76,7 @@ describe('Visualize', () => {
       }
 
       const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
+        'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
         'span.description': {
           key: 'span.description',
           name: 'span.description',
@@ -89,11 +84,7 @@ describe('Visualize', () => {
         },
       };
 
-      return {
-        attributes: tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
+      return {attributes: tags, secondaryAliases: {}, isLoading: false};
     };
 
     jest
@@ -105,11 +96,9 @@ describe('Visualize', () => {
       .mocked(useSpanItemAttributes)
       .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
-    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
-      attributes: {},
-      isLoading: false,
-      secondaryAliases: {},
-    });
+    jest
+      .mocked(useTraceMetricItemAttributes)
+      .mockReturnValue({attributes: {}, isLoading: false, secondaryAliases: {}});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -132,10 +121,7 @@ describe('Visualize', () => {
 
   it.each([
     {dataset: WidgetType.SPANS, aggregate: 'avg(span.duration)'},
-    {
-      dataset: WidgetType.TRACEMETRICS,
-      aggregate: 'sum(value,alpha_metric,counter,none)',
-    },
+    {dataset: WidgetType.TRACEMETRICS, aggregate: 'sum(value,alpha_metric,counter,none)'},
   ])(
     'edits and persists transformations for $dataset series',
     async ({dataset, aggregate}) => {
@@ -258,9 +244,7 @@ describe('Visualize', () => {
       }
     );
 
-    const addButtons = await screen.findAllByRole('button', {
-      name: 'Add Transformation',
-    });
+    const addButtons = await screen.findAllByRole('button', {name: 'Add Transformation'});
     expect(addButtons).toHaveLength(2);
     await userEvent.click(addButtons[1]!);
     await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
@@ -1143,11 +1127,7 @@ describe('Visualize', () => {
     // on it.
     render(
       <WidgetBuilderProvider>
-        <Visualize
-          error={{
-            queries: 'some validation error' as any,
-          }}
-        />
+        <Visualize error={{queries: 'some validation error' as any}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -1475,9 +1455,7 @@ describe('Visualize', () => {
       }
     );
 
-    const [firstHandle] = await screen.findAllByRole('button', {
-      name: 'Drag to reorder',
-    });
+    const [firstHandle] = await screen.findAllByRole('button', {name: 'Drag to reorder'});
     act(() => firstHandle!.focus());
     await userEvent.keyboard(' ');
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -1871,9 +1849,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1974,9 +1950,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['performance-view', 'visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2077,18 +2051,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2127,18 +2097,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2695,9 +2661,7 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
     expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
     expect(metricSelectors[1]).toHaveTextContent('alpha_metric');
@@ -2745,6 +2709,51 @@ describe('Visualize', () => {
     expect(screen.getByRole('button', {name: 'Column Selection'})).toHaveTextContent(
       'span.op'
     );
+  });
+
+  it('explains why adding a column is disabled at the metric cap', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events/',
+      body: {
+        data: [
+          {
+            'metric.name': 'alpha_metric',
+            'metric.type': 'counter',
+            'count(metric.name)': 1,
+          },
+        ],
+      },
+    });
+
+    render(<Visualize />, {
+      organization,
+      additionalWrapper: WidgetBuilderProvider,
+      initialRouterConfig: {
+        location: {
+          pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
+          query: {
+            field: Array.from(
+              {length: MAX_METRICS_ALLOWED},
+              () => 'sum(value,alpha_metric,counter,none)'
+            ),
+            dataset: WidgetType.TRACEMETRICS,
+            displayType: DisplayType.TABLE,
+          },
+        },
+        route: DASHBOARD_WIDGET_BUILDER_ROUTE,
+      },
+    });
+
+    const addColumn = await screen.findByRole('button', {name: 'Add Column'});
+    // The tooltip keeps the button hoverable, so it is aria-disabled instead
+    expect(addColumn).toHaveAttribute('aria-disabled', 'true');
+
+    await userEvent.hover(addColumn);
+    expect(
+      await screen.findByText(
+        `A widget can have up to ${MAX_METRICS_ALLOWED} metrics and equations.`
+      )
+    ).toBeInTheDocument();
   });
 
   it('lets users switch trace metrics table columns between aggregates and fields', async () => {

@@ -48,11 +48,7 @@ interface SnapshotDetails {
 function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotDetails {
   const parts = testName.split(' snapshot: ');
   if (parts.length < 2) {
-    return {
-      displayName: fallbackName,
-      fileSlug: fallbackName.toLowerCase(),
-      group: null,
-    };
+    return {displayName: fallbackName, fileSlug: fallbackName.toLowerCase(), group: null};
   }
 
   const ancestry = parts[0]!.trim();
@@ -60,11 +56,7 @@ function parseSnapshotDetails(testName: string, fallbackName: string): SnapshotD
   const displayName = parts[1]!.trim();
   const fileSlug = `${group}/${displayName}`.replace(/\s+/g, '').toLowerCase();
 
-  return {
-    displayName,
-    fileSlug,
-    group,
-  };
+  return {displayName, fileSlug, group};
 }
 
 function resolveViewport(input: SnapshotViewport): {

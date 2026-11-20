@@ -62,19 +62,10 @@
       "email": "username@example.com",
       "ip_address": "127.0.0.1"
     },
-    "sdk": {
-      "name": "sentry.javascript.react",
-      "version": "6.18.1"
-    },
-    "tags": {
-      "customtag": "is_set",
-      "transaction": "Title"
-    },
+    "sdk": {"name": "sentry.javascript.react", "version": "6.18.1"},
+    "tags": {"customtag": "is_set", "transaction": "Title"},
     "contexts": {
-      "replay": {
-        "error_sample_rate": 0.2,
-        "session_sample_rate": 0.5
-      },
+      "replay": {"error_sample_rate": 0.2, "session_sample_rate": 0.5},
       "trace": {
         "op": "pageload",
         "span_id": "affa5649681a1eeb",

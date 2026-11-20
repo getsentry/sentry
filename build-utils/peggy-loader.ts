@@ -1,9 +1,7 @@
 import type {LoaderDefinitionFunction} from '@rspack/core';
 import peggy from 'peggy';
 
-type PeggyLoaderOptions = {
-  allowedStartRules?: string[];
-};
+type PeggyLoaderOptions = {allowedStartRules?: string[]};
 
 const ALLOWED_START_RULES_DIRECTIVE = /@peggy-loader\s+allowedStartRules:\s*([^\n]+)/;
 

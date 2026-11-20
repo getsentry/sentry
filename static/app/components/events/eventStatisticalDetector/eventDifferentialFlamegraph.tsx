@@ -17,6 +17,7 @@ import {DifferentialFlamegraphToolbar} from 'sentry/components/profiling/flamegr
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils/defined';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
@@ -40,8 +41,11 @@ import {relativeChange} from 'sentry/utils/profiling/units/units';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {LOADING_PROFILE_GROUP} from 'sentry/views/explore/profiling/profileGroupProvider';
 
+import {getResolvedAt} from './getResolvedAt';
+
 interface EventDifferentialFlamegraphProps {
   event: Event;
+  group: Group;
 }
 
 export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphProps) {
@@ -61,10 +65,7 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     }
 
     Sentry.withScope(scope => {
-      scope.setContext('evidence data fields', {
-        fingerprint,
-        breakpoint,
-      });
+      scope.setContext('evidence data fields', {fingerprint, breakpoint});
 
       Sentry.captureException(
         new Error('Missing required evidence data on function regression issue.')
@@ -77,18 +78,14 @@ export function EventDifferentialFlamegraph(props: EventDifferentialFlamegraphPr
     breakpoint,
     environments: selection.selection.environments,
     fingerprint: props.event.occurrence?.evidenceData?.fingerprint,
+    resolvedAt: getResolvedAt(props.group),
   });
 
   return (
     <Fragment>
       <FlamegraphThemeProvider>
         <FlamegraphStateProvider
-          initialState={{
-            preferences: {
-              sorting: 'alphabetical',
-              view: 'top down',
-            },
-          }}
+          initialState={{preferences: {sorting: 'alphabetical', view: 'top down'}}}
         >
           <EventDifferentialFlamegraphView
             project={project}
@@ -259,7 +256,7 @@ interface PaginationReducerState {
 type PaginationReducerAction =
   | {type: 'next'}
   | {type: 'previous'}
-  | {list: any[]; pageSize: number; type: 'initialize'};
+  | {list: readonly unknown[]; pageSize: number; type: 'initialize'};
 
 function paginationReducer(
   state: PaginationReducerState,
@@ -274,15 +271,9 @@ function paginationReducer(
       };
     }
     case 'next':
-      return {
-        ...state,
-        page: Math.min(state.page + 1, state.pageCount - 1),
-      };
+      return {...state, page: Math.min(state.page + 1, state.pageCount - 1)};
     case 'previous':
-      return {
-        ...state,
-        page: Math.max(state.page - 1, 0),
-      };
+      return {...state, page: Math.max(state.page - 1, 0)};
     default:
       return state;
   }
@@ -320,11 +311,7 @@ function DifferentialFlamegraphChangedFunctions(
     return () => dispatch({type: 'next'});
   }, [state.page, state.pageCount]);
   useEffect(() => {
-    dispatch({
-      list: props.functions,
-      pageSize: 5,
-      type: 'initialize',
-    });
+    dispatch({list: props.functions, pageSize: 5, type: 'initialize'});
   }, [props.functions]);
 
   return (
@@ -442,9 +429,7 @@ const RIGHT_ALIGN_PLACEHOLDER_STYLES: React.CSSProperties = {
   justifySelf: 'flex-end',
 };
 
-const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {
-  marginBottom: '4px',
-};
+const MARGIN_BOTTOM_PLACEHOLDER_STYLES: React.CSSProperties = {marginBottom: '4px'};
 
 const DifferentialFlamegraphChangedFunctionStats = styled('div')`
   text-align: right;

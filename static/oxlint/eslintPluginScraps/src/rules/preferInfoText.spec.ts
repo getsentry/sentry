@@ -2,23 +2,12 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {preferInfoText} from './preferInfoText';
 
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      lang: 'tsx',
-    },
-  },
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
 function errorWithSuggestion(output: string) {
   return {
     messageId: 'preferInfoText',
-    suggestions: [
-      {
-        messageId: 'replaceWithInfoText',
-        output,
-      },
-    ],
+    suggestions: [{messageId: 'replaceWithInfoText', output}],
   };
 }
 

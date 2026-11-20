@@ -144,11 +144,7 @@ export const doEventsRequest = <IncludeAllArgsType extends boolean>(
 
   const queryObject = {
     includeAllArgs,
-    query: {
-      ...urlQuery,
-      ...periodObj,
-      ...queryExtras,
-    },
+    query: {...urlQuery, ...periodObj, ...queryExtras},
   };
 
   return api.requestPromise<IncludeAllArgsType>(pathname, queryObject);
@@ -180,10 +176,7 @@ export type TagSegment = {
   key?: string;
 };
 
-export type Tag = {
-  key: string;
-  topValues: TagSegment[];
-};
+export type Tag = {key: string; topValues: TagSegment[]};
 
 /**
  * Fetches total count of events for a given query
@@ -197,18 +190,14 @@ export function fetchTotalCount(
 
   const queryOption = {...urlParams, query: query.query};
 
-  type Response = {
-    count: number;
-  };
+  type Response = {count: number};
 
   return api
     .requestPromise(
       getApiUrl('/organizations/$organizationIdOrSlug/events-meta/', {
         path: {organizationIdOrSlug: orgSlug},
       }),
-      {
-        query: queryOption,
-      }
+      {query: queryOption}
     )
     .then((res: Response) => res.count);
 }
@@ -229,11 +218,7 @@ const fetchEventAttachmentsOptions = ({
   apiOptions.as<FetchEventAttachmentResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/attachments/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug!,
-        eventId,
-      },
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!, eventId},
       staleTime: Infinity,
     }
   );

@@ -104,9 +104,7 @@ describe('InnerIntentForm', () => {
     );
     render(<InnerIntentForm {...defaultProps} handleSubmit={handleSubmit} />);
 
-    const submitButton = screen.getByRole('button', {
-      name: 'Save Payment Method',
-    });
+    const submitButton = screen.getByRole('button', {name: 'Save Payment Method'});
     await userEvent.click(submitButton);
     expect(submitButton).toBeDisabled();
 

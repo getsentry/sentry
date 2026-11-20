@@ -96,11 +96,7 @@ interface ReleaseData {
   versionInfo: VersionInfo | null;
   adoptionStages?: Record<
     string,
-    {
-      adopted: string | null;
-      stage: string | null;
-      unadopted: string | null;
-    }
+    {adopted: string | null; stage: string | null; unadopted: string | null}
   >;
   lastCommit?: Commit;
   lastDeploy?: Deploy;
@@ -122,10 +118,7 @@ export type ReleaseProject = {
 /**
  * From the `/releases/stats/` endpoint
  */
-export type ReleaseMetaBasic = {
-  date: string;
-  version: string;
-};
+export type ReleaseMetaBasic = {date: string; version: string};
 
 export type ReleaseMeta = {
   commitCount: number;

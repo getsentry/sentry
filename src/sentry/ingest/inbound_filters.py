@@ -723,6 +723,12 @@ _CONDITION_MATCHERS: Mapping[
         DataType.METRIC: _release_matcher("trace_metric.attributes.sentry.release.value"),
         DataType.SPAN: _release_matcher("span.attributes.sentry.release.value"),
     },
+    ConditionType.ENVIRONMENT: {
+        DataType.ERROR: _field_matcher("event.environment"),
+        DataType.LOG: _field_matcher("log.attributes.sentry.environment.value"),
+        DataType.METRIC: _field_matcher("trace_metric.attributes.sentry.environment.value"),
+        DataType.SPAN: _field_matcher("span.attributes.sentry.environment.value"),
+    },
     ConditionType.IP_ADDRESS: _client_ip_matcher,
     # Relay fills the geo from the client IP before filtering, unless the SDK sent one.
     ConditionType.GEO_COUNTRY_CODE: {

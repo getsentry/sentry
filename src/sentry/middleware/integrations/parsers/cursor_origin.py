@@ -81,9 +81,7 @@ class CursorOriginRequestParser(BaseRequestParser):
         installation_id = self.request.headers.get(INSTALLATION_ID_HEADER)
         if not installation_id:
             return None
-        return Integration.objects.filter(
-            provider=self.provider, external_id=installation_id
-        ).first()
+        return Integration.objects.get_or_none(provider=self.provider, external_id=installation_id)
 
     def get_response(self) -> HttpResponseBase:
         shed_response = self.get_shed_response()

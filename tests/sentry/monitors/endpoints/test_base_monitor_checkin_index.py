@@ -1,11 +1,15 @@
 import uuid
 from datetime import datetime, timedelta
 from typing import Any
+from unittest.mock import patch
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
 from django.utils import timezone
 
 from sentry.models.environment import Environment
 from sentry.models.group import Group
+from sentry.monitors.logic.checkin_config import get_checkin_config_id
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
@@ -48,7 +52,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
@@ -68,18 +72,18 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
         )
 
-        checkin3 = MonitorCheckIn.objects.create(
+        checkin3 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -136,7 +140,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         for i in range(7):
             # Missed check-ins in different environments share a timestamp.
             for seconds, monitor_environment in ((0, jungle), (0, desert), (20, volcano)):
-                MonitorCheckIn.objects.create(
+                self.create_monitor_checkin(
                     monitor_environment=monitor_environment,
                     date_added=base + timedelta(minutes=i, seconds=seconds),
                     status=CheckInStatus.OK,
@@ -158,12 +162,61 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
                 assert all(len(page) == per_page for page in pages[:-1])
                 assert back == pages
 
+    def test_unions_environments(self) -> None:
+        monitor = self._create_monitor()
+        for name in ("jungle", "volcano", "desert"):
+            self._create_monitor_environment(monitor, name=name)
+
+        connection = connections[router.db_for_read(MonitorCheckIn)]
+        with CaptureQueriesContext(connection) as queries:
+            self.get_success_response(self.organization.slug, monitor.slug, statsPeriod="1d")
+        checkin_queries = [
+            q["sql"] for q in queries.captured_queries if 'FROM "sentry_monitorcheckin"' in q["sql"]
+        ]
+        assert len(checkin_queries) == 1
+        assert checkin_queries[0].count("UNION ALL") == 2
+
+    def _assert_excludes_other_monitors(self) -> str:
+        monitor = self._create_monitor()
+        other_monitor = self._create_monitor(slug="other-monitor")
+        expected = []
+        for i, name in enumerate(("jungle", "volcano", "desert")):
+            checkin = self.create_monitor_checkin(
+                monitor_environment=self._create_monitor_environment(monitor, name=name),
+                date_added=monitor.date_added - timedelta(minutes=i),
+                status=CheckInStatus.OK,
+            )
+            expected.append(str(checkin.guid))
+            self.create_monitor_checkin(
+                monitor_environment=self._create_monitor_environment(other_monitor, name=name),
+                date_added=monitor.date_added - timedelta(minutes=i),
+                status=CheckInStatus.OK,
+            )
+
+        connection = connections[router.db_for_read(MonitorCheckIn)]
+        with CaptureQueriesContext(connection) as queries:
+            resp = self.get_success_response(self.organization.slug, monitor.slug, statsPeriod="1d")
+        assert [c["id"] for c in resp.data] == expected
+        [checkin_sql] = [
+            q["sql"] for q in queries.captured_queries if 'FROM "sentry_monitorcheckin"' in q["sql"]
+        ]
+        return checkin_sql
+
+    def test_excludes_other_monitors_with_union(self) -> None:
+        assert "UNION ALL" in self._assert_excludes_other_monitors()
+
+    def test_excludes_other_monitors_without_union(self) -> None:
+        with patch(
+            "sentry.monitors.endpoints.base_monitor_checkin_index.MAX_UNION_ENVIRONMENTS", 1
+        ):
+            assert "UNION" not in self._assert_excludes_other_monitors()
+
     def test_statsperiod_constraints(self) -> None:
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor)
 
-        checkin = MonitorCheckIn.objects.create(
-            monitor_environment_id=monitor_environment.id,
+        checkin = self.create_monitor_checkin(
+            monitor_environment=monitor_environment,
             status=MonitorStatus.OK,
             date_added=timezone.now() - timedelta(hours=12),
         )
@@ -197,12 +250,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         monitor_environment_2 = self._create_monitor_environment(monitor, name="volcano")
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment_2,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -221,12 +274,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         other_monitor = self._create_monitor(slug="other-monitor")
         other_monitor_environment = self._create_monitor_environment(other_monitor)
 
-        checkin = MonitorCheckIn.objects.create(
+        checkin = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=other_monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -243,12 +296,12 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor, name="jungle")
         Environment.objects.create(name="volcano", organization_id=self.organization.id)
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
         )
-        MonitorCheckIn.objects.create(
+        self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -274,13 +327,13 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
         assert error.group_id is not None
         group = Group.objects.get(id=error.group_id)
 
-        checkin1 = MonitorCheckIn.objects.create(
+        checkin1 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
             trace_id=trace_id,
         )
-        checkin2 = MonitorCheckIn.objects.create(
+        checkin2 = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=1),
             status=CheckInStatus.OK,
@@ -313,7 +366,7 @@ class BaseListMonitorCheckInsTest(MonitorTestCase):
             monitor_environment=monitor_environment,
             date_added=monitor.date_added - timedelta(minutes=2),
             status=CheckInStatus.OK,
-            monitor_config=config,
+            checkin_config_id=get_checkin_config_id(config),
         )
         # Mutating the monitor config to test that the check-in config is used
         monitor.config = {

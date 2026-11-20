@@ -38,19 +38,8 @@ export interface OverlayProps
 const overlayAnimation: MotionProps = {
   transition: {duration: 0.2},
   initial: {opacity: 0},
-  animate: {
-    opacity: 1,
-    scale: 1,
-    transition: {
-      type: 'spring',
-      duration: 0.2,
-    },
-  },
-  exit: {
-    opacity: 0,
-    scale: 0.95,
-    transition: {type: 'spring', delay: 0.1},
-  },
+  animate: {opacity: 1, scale: 1, transition: {type: 'spring', duration: 0.2}},
+  exit: {opacity: 0, scale: 0.95, transition: {type: 'spring', delay: 0.1}},
 };
 
 /**
@@ -103,10 +92,7 @@ export function Overlay({
     !isTestEnv && animated
       ? {
           ...overlayAnimation,
-          style: {
-            ...style,
-            ...computeOriginFromArrow(placement, originPoint),
-          },
+          style: {...style, ...computeOriginFromArrow(placement, originPoint)},
         }
       : {style};
 
@@ -124,9 +110,7 @@ export function Overlay({
   );
 }
 
-const OverlayInner = styled(motion.div)<{
-  placement?: OverlayProps['placement'];
-}>`
+const OverlayInner = styled(motion.div)<{placement?: OverlayProps['placement']}>`
   position: relative;
   background: ${p => p.theme.tokens.background.overlay};
   border-radius: ${p => p.theme.radius.md};

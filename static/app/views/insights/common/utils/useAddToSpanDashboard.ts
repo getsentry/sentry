@@ -83,7 +83,5 @@ export const useAddToSpanDashboard = () => {
     [organization, selection, location]
   );
 
-  return {
-    addToSpanDashboard,
-  };
+  return {addToSpanDashboard};
 };

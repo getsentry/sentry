@@ -66,5 +66,7 @@ class TestIssueOccurrencesCondition(ConditionTestCase):
     def test_buffer_values(self) -> None:
         with mock_redis_buffer() as buffer:
             self.assert_does_not_pass(self.dc, self.event_data)
-            buffer.incr(Group, {"times_seen": 15}, filters={"id": self.event_data.group.id})
+            buffer.incr(
+                Group, {"times_seen": 15}, filters={"id": self.event_data.require_group().id}
+            )
             self.assert_passes(self.dc, self.event_data)

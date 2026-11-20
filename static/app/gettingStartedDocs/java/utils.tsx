@@ -32,31 +32,16 @@ export const platformOptions = {
   packageManager: {
     label: t('Package Manager'),
     items: [
-      {
-        label: packageManagerName[PackageManager.GRADLE],
-        value: PackageManager.GRADLE,
-      },
-      {
-        label: packageManagerName[PackageManager.MAVEN],
-        value: PackageManager.MAVEN,
-      },
-      {
-        label: packageManagerName[PackageManager.SBT],
-        value: PackageManager.SBT,
-      },
+      {label: packageManagerName[PackageManager.GRADLE], value: PackageManager.GRADLE},
+      {label: packageManagerName[PackageManager.MAVEN], value: PackageManager.MAVEN},
+      {label: packageManagerName[PackageManager.SBT], value: PackageManager.SBT},
     ],
   },
   opentelemetry: {
     label: t('OpenTelemetry'),
     items: [
-      {
-        label: t('With OpenTelemetry'),
-        value: YesNo.YES,
-      },
-      {
-        label: t('Without OpenTelemetry'),
-        value: YesNo.NO,
-      },
+      {label: t('With OpenTelemetry'), value: YesNo.YES},
+      {label: t('Without OpenTelemetry'), value: YesNo.NO},
     ],
   },
 } satisfies BasePlatformOptions;

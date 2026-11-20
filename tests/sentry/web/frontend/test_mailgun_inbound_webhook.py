@@ -21,7 +21,7 @@ class TestMailgunInboundWebhookView(TestCase):
         self.mailto = group_id_to_email(self.group.pk)
 
     def test_invalid_signature(self) -> None:
-        with self.options({"mail.mailgun-api-key": "a" * 32}):
+        with self.settings(SENTRY_MAILGUN_API_KEY="a" * 32):
             resp = self.client.post(
                 reverse("sentry-mailgun-inbound-hook"),
                 {
@@ -58,7 +58,7 @@ class TestMailgunInboundWebhookView(TestCase):
         token = "a" * 50
         timestamp = "1422513193"
         signature = "e018afea61a8eeb2f309972385b123e376079462895ebd1ede5391fb7680b6db"
-        with self.options({"mail.mailgun-api-key": token}):
+        with self.settings(SENTRY_MAILGUN_API_KEY=token):
             resp = self.client.post(
                 reverse("sentry-mailgun-inbound-hook"),
                 {
@@ -78,7 +78,7 @@ class TestMailgunInboundWebhookView(TestCase):
         timestamp = "1422513193"
         signature = "414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83"
 
-        with self.options({"mail.mailgun-api-key": "a" * 32}):
+        with self.settings(SENTRY_MAILGUN_API_KEY="a" * 32):
             resp = self.client.post(
                 reverse("sentry-mailgun-inbound-hook"),
                 {
@@ -105,7 +105,7 @@ class TestMailgunInboundWebhookView(TestCase):
         timestamp = "1422513193"
         signature = "414a4705e6c12a39905748549f9135fbe8b739a5b12b2349ee40f31d3ee12f83"
 
-        with self.options({"mail.mailgun-api-key": "a" * 32}):
+        with self.settings(SENTRY_MAILGUN_API_KEY="a" * 32):
             for _ in range(2):
                 resp = self.client.post(
                     reverse("sentry-mailgun-inbound-hook"),

@@ -1,7 +1,4 @@
-export type StatsPeriodRange = {
-  statsPeriodEnd: string;
-  statsPeriodStart: string;
-};
+export type StatsPeriodRange = {statsPeriodEnd: string; statsPeriodStart: string};
 
 /**
  * This is a flat normalized variant of the PageFilters type.

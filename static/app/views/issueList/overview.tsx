@@ -8,7 +8,6 @@ import Cookies from 'js-cookie';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import * as qs from 'query-string';
 import {useStore} from 'zustand';
 
 import type {FeatureBadgeProps} from '@sentry/scraps/badge';
@@ -47,6 +46,7 @@ import {useDisableRouteAnalytics} from 'sentry/utils/routeAnalytics/useDisableRo
 import {useRouteAnalyticsEventNames} from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import {useRouteAnalyticsParams} from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
@@ -270,11 +270,7 @@ function IssueListOverviewInner({
   }, [selection, query, sort, getGroupStatsPeriod]);
 
   const requestParams = useMemo(() => {
-    const params: any = {
-      ...getEndpointParams(),
-      limit: MAX_ITEMS,
-      shortIdLookup: 1,
-    };
+    const params: any = {...getEndpointParams(), limit: MAX_ITEMS, shortIdLookup: 1};
 
     const cursor = decodeScalar(location.query.cursor);
     if (cursor) {
@@ -348,10 +344,7 @@ function IssueListOverviewInner({
           getApiUrl('/organizations/$organizationIdOrSlug/issues-stats/', {
             path: {organizationIdOrSlug: organization.slug},
           }),
-          {
-            method: 'GET',
-            data: qs.stringify(statsRequestParams),
-          }
+          {method: 'GET', data: qs.stringify(statsRequestParams)}
         );
 
         if (data) {
@@ -381,17 +374,8 @@ function IssueListOverviewInner({
   const resetNewViewQueryParam = useCallback(() => {
     if (location.query.new) {
       navigate(
-        {
-          pathname: location.pathname,
-          query: {
-            ...location.query,
-            new: undefined,
-          },
-        },
-        {
-          replace: true,
-          preventScrollReset: true,
-        }
+        {pathname: location.pathname, query: {...location.query, new: undefined}},
+        {replace: true, preventScrollReset: true}
       );
     }
   }, [location.pathname, navigate, location.query]);
@@ -420,11 +404,7 @@ function IssueListOverviewInner({
         getApiUrl('/organizations/$organizationIdOrSlug/issues/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        {
-          method: 'GET',
-          data: qs.stringify(requestParams),
-          includeAllArgs: true,
-        }
+        {method: 'GET', data: qs.stringify(requestParams), includeAllArgs: true}
       );
 
       if (!resp) {
@@ -649,20 +629,14 @@ function IssueListOverviewInner({
       numPreviousIssues = 0;
     }
 
-    return {
-      numPreviousIssues,
-      numIssuesOnPage: groupIds.length,
-    };
+    return {numPreviousIssues, numIssuesOnPage: groupIds.length};
   }, [pageLinks, location, queryCount, allResultsVisible, groupIds.length]);
 
   const onRealtimeChange = useCallback(
     (realtime: boolean) => {
       Cookies.set('realtimeActive', realtime.toString());
       setRealtimeActive(realtime);
-      trackAnalytics('issues_stream.realtime_clicked', {
-        organization,
-        enabled: realtime,
-      });
+      trackAnalytics('issues_stream.realtime_clicked', {organization, enabled: realtime});
     },
     [organization]
   );
@@ -681,10 +655,7 @@ function IssueListOverviewInner({
       delete queryData.sort;
     }
 
-    navigate({
-      pathname: location.pathname,
-      query: queryData,
-    });
+    navigate({pathname: location.pathname, query: queryData});
   };
 
   const onSearch = (newQuery: string) => {
@@ -697,10 +668,7 @@ function IssueListOverviewInner({
   };
 
   const onSortChange = (newSort: string) => {
-    trackAnalytics('issues_stream.sort_changed', {
-      organization,
-      sort: newSort,
-    });
+    trackAnalytics('issues_stream.sort_changed', {organization, sort: newSort});
     if (!urlParams.viewId) {
       setStoredIssueSort(organization.slug, newSort as IssueSortOptions);
     }
@@ -759,10 +727,7 @@ function IssueListOverviewInner({
       const response = await api.requestPromise(endpoint, {
         method: 'PUT',
         data,
-        query: {
-          project: projectIds,
-          id: groupItems.map(group => group.id),
-        },
+        query: {project: projectIds, id: groupItems.map(group => group.id)},
       });
 
       invalidateIssueCounts();
@@ -914,10 +879,7 @@ function IssueListOverviewInner({
   };
 
   const paginationAnalyticsEvent = (direction: string) => {
-    trackAnalytics('issues_stream.paginate', {
-      organization,
-      direction,
-    });
+    trackAnalytics('issues_stream.paginate', {organization, direction});
   };
 
   const modifiedQueryCount = Math.max(queryCount, 0);

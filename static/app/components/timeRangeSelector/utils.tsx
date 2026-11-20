@@ -1,15 +1,11 @@
 import {Fragment} from 'react';
 import moment from 'moment-timezone';
 
-import {DateTime} from 'sentry/components/dateTime';
+import {DateTime, useTimezone} from '@sentry/scraps/dateTime';
+
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import type {DateString} from 'sentry/types/core';
-import {
-  DEFAULT_DAY_END_TIME,
-  DEFAULT_DAY_START_TIME,
-  getFormattedDate,
-} from 'sentry/utils/dates';
 
 import {TimeRangeItemLabel} from './timeRangeItemLabel';
 import type {TimeRangeItem} from './types';
@@ -19,11 +15,7 @@ type RelativePeriodUnit = Exclude<PeriodUnit, 's'>;
 
 type RelativeUnitsMapping = Record<
   string,
-  {
-    convertToDaysMultiplier: number;
-    label: (num: number) => string;
-    searchKey: string;
-  }
+  {convertToDaysMultiplier: number; label: (num: number) => string; searchKey: string}
 >;
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
@@ -34,13 +26,7 @@ const RELATIVE_PERIOD_REGEX = /^(\d+)([mhdw])$/;
 const PERIOD_UNIT_TO_MOMENT_UNIT: Record<
   PeriodUnit,
   moment.unitOfTime.DurationConstructor
-> = {
-  s: 'seconds',
-  m: 'minutes',
-  h: 'hours',
-  d: 'days',
-  w: 'weeks',
-};
+> = {s: 'seconds', m: 'minutes', h: 'hours', d: 'days', w: 'weeks'};
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {
@@ -92,10 +78,7 @@ const parseRelativePeriodString = (relativePeriodString: string) => {
   const value = parseInt(result[1]!, 10);
   const unit = result[2] as RelativePeriodUnit;
 
-  return {
-    value,
-    unit,
-  };
+  return {value, unit};
 };
 
 /**
@@ -164,20 +147,48 @@ export function getAbsoluteSummary(
   end: DateString,
   utc?: boolean | null
 ) {
-  // XXX: These are NOT used for display purpose but only to determine if the
-  // dates are at the start or end of the day
-  const startTimeFormatted = getFormattedDate(start, 'HH:mm:ss', {local: true});
-  const endTimeFormatted = getFormattedDate(end, 'HH:mm:ss', {local: true});
+  if (!start || !end) {
+    return null;
+  }
+  return <AbsoluteRangeSummary start={start} end={end} utc={Boolean(utc)} />;
+}
 
+function AbsoluteRangeSummary({
+  start,
+  end,
+  utc,
+}: {
+  end: Date | string;
+  start: Date | string;
+  utc: boolean;
+}) {
+  // Use the timezone that renders the labels, so a DateTimeProvider timezone
+  // override also decides whether the range covers full days.
+  const viewerTimezone = useTimezone();
+  const timezone = utc ? 'UTC' : viewerTimezone;
+  // Page filters serialize UTC without an offset. Convert at this boundary so
+  // the formatter receives instants, including when displaying the viewer's timezone.
+  const startDate = moment.utc(start).tz(timezone);
+  const endDate = moment.utc(end).tz(timezone);
   const showDateOnly =
-    startTimeFormatted === DEFAULT_DAY_START_TIME &&
-    endTimeFormatted === DEFAULT_DAY_END_TIME;
+    startDate.isSame(startDate.clone().startOf('day'), 'second') &&
+    endDate.isSame(endDate.clone().endOf('day'), 'second');
 
   return (
     <Fragment>
-      <DateTime date={start} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={startDate.toDate()}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={timezone}
+        showTimezone={!showDateOnly && utc}
+      />
       {'–'}
-      <DateTime date={end} dateOnly={showDateOnly} utc={!!utc} />
+      <DateTime
+        date={endDate.toDate()}
+        mode={showDateOnly ? 'date' : 'dateTime'}
+        timezone={timezone}
+        showTimezone={!showDateOnly && utc}
+      />
     </Fragment>
   );
 }
@@ -311,10 +322,7 @@ export const _timeRangeAutoCompleteFilter = function <T extends RelativeUnitsMap
 export const timeRangeAutoCompleteFilter = function (
   items: TimeRangeItem[] | null,
   filterValue: string,
-  options: {
-    maxDateRange?: number;
-    maxDays?: number;
-  }
+  options: {maxDateRange?: number; maxDays?: number}
 ): TimeRangeItem[] {
   return _timeRangeAutoCompleteFilter(items, filterValue, {
     supportedPeriods: SUPPORTED_RELATIVE_PERIOD_UNITS,

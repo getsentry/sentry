@@ -19,10 +19,7 @@ describe('TeamAvatar', () => {
   });
 
   it('renders letter avatar with initials from multi-word slug', () => {
-    const team = TeamFixture({
-      slug: 'frontend-team',
-      name: 'Old Name',
-    });
+    const team = TeamFixture({slug: 'frontend-team', name: 'Old Name'});
 
     render(<TeamAvatar team={team} />);
 
@@ -31,10 +28,7 @@ describe('TeamAvatar', () => {
   });
 
   it('uses slug for tooltip', () => {
-    const team = TeamFixture({
-      slug: 'my-team',
-      name: 'Old Name',
-    });
+    const team = TeamFixture({slug: 'my-team', name: 'Old Name'});
 
     render(<TeamAvatar team={team} hasTooltip />);
 
@@ -44,10 +38,7 @@ describe('TeamAvatar', () => {
   });
 
   it('handles custom tooltip prop', () => {
-    const team = TeamFixture({
-      slug: 'my-team',
-      name: 'Old Name',
-    });
+    const team = TeamFixture({slug: 'my-team', name: 'Old Name'});
 
     render(<TeamAvatar team={team} tooltip="Custom Tooltip" hasTooltip />);
 
@@ -58,10 +49,7 @@ describe('TeamAvatar', () => {
   });
 
   it('uses consistent identifier for color selection', () => {
-    const team = TeamFixture({
-      slug: 'consistent-slug',
-      name: 'Name Can Change',
-    });
+    const team = TeamFixture({slug: 'consistent-slug', name: 'Name Can Change'});
 
     render(<TeamAvatar team={team} />);
 

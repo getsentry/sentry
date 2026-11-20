@@ -40,6 +40,7 @@ def _address_validate(
 
 
 def _tick_taskworker_scheduler(runner: ScheduleRunner) -> float:
+    # The scheduler initiates this work on Sentry's behalf.
     with viewer_context_scope(ViewerContext(actor=Actor(type=ActorType.SYSTEM))):
         return runner.tick()
 
@@ -157,6 +158,12 @@ def taskworker_scheduler(redis_cluster: str, **options: Any) -> None:
     "--worker-rpc-port",
     help="Port for the taskworker gRPC server to listen on when it is running in push mode.",
     default=50052,
+    type=int,
+)
+@click.option(
+    "--health-port",
+    help="Port for gRPC health checks in push mode, served apart from the push server. When set, pushes beyond --concurrency are rejected instead of queueing.",
+    default=None,
     type=int,
 )
 @click.option(
@@ -316,6 +323,7 @@ def run_taskworker(
     push_mode: bool,
     batch_push_mode: bool,
     worker_rpc_port: int,
+    health_port: int | None,
     rpc_host: str,
     num_brokers: int | None,
     rpc_host_list: str | None,
@@ -359,6 +367,7 @@ def run_taskworker(
                 health_check_file_path=health_check_file_path,
                 health_check_sec_per_touch=health_check_sec_per_touch,
                 grpc_port=worker_rpc_port,
+                health_port=health_port,
                 push_task_timeout=push_timeout_sec,
                 skip_awaiting_futures=skip_awaiting_futures,
                 future_checking_frequency=future_checking_frequency,

@@ -38,6 +38,8 @@ interface ActivitySectionProps {
    * Whether to filter the activity to only show comments.
    */
   filterComments?: boolean;
+  /** Activity to highlight and scroll into view in the standalone feed. */
+  highlightedActivityId?: string;
   /** Prepared feed rows. Defaults to building rows from the issue activity. */
   items?: DisplayedActivityFeedItem[];
   minHeight?: number;
@@ -55,6 +57,7 @@ export function ActivitySection({
   group,
   activities: providedActivities,
   filterComments,
+  highlightedActivityId,
   onActivityChange,
   items,
   variant = 'sidebar',
@@ -122,25 +125,15 @@ export function ActivitySection({
   const isStandalone = variant === 'standalone';
   const activityLink = {
     pathname: `${baseUrl}${TabPaths[Tab.ACTIVITY]}`,
-    query: {
-      ...location.query,
-      cursor: undefined,
-    },
+    query: {...location.query, cursor: undefined},
   };
   const commentsLink = {
     pathname: activityLink.pathname,
-    query: {
-      ...activityLink.query,
-      filter: 'comments',
-    },
+    query: {...activityLink.query, filter: 'comments'},
   };
 
   const displayedActivities =
-    items ??
-    buildActivityFeedItems({
-      activities,
-      filterComments,
-    });
+    items ?? buildActivityFeedItems({activities, filterComments});
   const inputVariant = isStandalone ? 'full' : 'compact';
   const timestampUnitStyle = isStandalone ? undefined : 'short';
 
@@ -159,6 +152,7 @@ export function ActivitySection({
     <ActivityFeed
       group={group}
       items={displayedActivities}
+      highlightedActivityId={highlightedActivityId}
       inputVariant={inputVariant}
       timestampUnitStyle={timestampUnitStyle}
       onCommentDelete={handleDelete}
@@ -203,9 +197,7 @@ export function ActivitySection({
             preventScrollReset
             analyticsEventKey="issue_details.activity_expanded"
             analyticsEventName="Issue Details: Activity Expanded"
-            analyticsParams={{
-              num_activities_hidden: hiddenActivityCount,
-            }}
+            analyticsParams={{num_activities_hidden: hiddenActivityCount}}
           >
             {hiddenActivityCount > 0
               ? t('View %s more', hiddenActivityCount)

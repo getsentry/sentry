@@ -5,6 +5,7 @@ overlap the rest of the CI setup.
   devservices-bg.py start  Start `devservices up --mode $DEVSERVICES_MODE` in the
                            background via `uv run`, with the devservices version
                            pinned in $DEVSERVICES_LOCKFILE. No sentry venv needed.
+                           Does nothing if an earlier step already started it.
   devservices-bg.py wait   Wait for it, print its output and exit with its status.
 
 The exit status goes to $RUNNER_TEMP/devservices-ci/up.exit, which
@@ -43,6 +44,9 @@ def devservices_up_cmd() -> list[str]:
 
 
 def start() -> None:
+    if LOG_FILE.exists():
+        print(f"Already started (log: {LOG_FILE})")
+        return
     cmd = devservices_up_cmd()
     STATE_DIR.mkdir(parents=True, exist_ok=True)
     print(f"Running in the background (log: {LOG_FILE}): {' '.join(cmd)}")

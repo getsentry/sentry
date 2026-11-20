@@ -27,6 +27,7 @@ interface WidgetFrameProps extends StateProps, WidgetDescriptionProps {
   badgeProps?: string | string[];
   borderless?: boolean;
   children?: React.ReactNode;
+  headerActions?: React.ReactNode;
   noVisualizationPadding?: boolean;
   onCopyUrlClick?: () => void;
   onFullScreenViewClick?: () => void | Promise<void>;
@@ -42,13 +43,7 @@ export function WidgetFrame(props: WidgetFrameProps) {
   const actions =
     (error
       ? props.onRetry
-        ? [
-            {
-              key: 'retry',
-              label: t('Retry'),
-              onAction: props.onRetry,
-            },
-          ]
+        ? [{key: 'retry', label: t('Retry'), onAction: props.onRetry}]
         : props.actions
       : props.actions) ?? [];
 
@@ -155,6 +150,8 @@ export function WidgetFrame(props: WidgetFrameProps) {
               ) : null}
             </TitleActionsWrapper>
           )}
+
+          {!error && props.headerActions}
 
           {shouldShowCopyUrlButton && (
             <Tooltip title={t('Copy Widget URL')}>

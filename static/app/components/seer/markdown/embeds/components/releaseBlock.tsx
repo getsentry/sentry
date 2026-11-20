@@ -5,11 +5,11 @@ import {useQuery} from '@tanstack/react-query';
 import {AvatarList, UserAvatar} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {CommitLink} from 'sentry/components/commitLink';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import type {EmbedOutput} from 'sentry/components/seer/markdown/embeds/utils';
 import {TimeSince} from 'sentry/components/timeSince';
@@ -37,10 +37,7 @@ function releaseEmbedApiOptions({
 }) {
   return apiOptions.as<ReleaseWithHealth>()(
     '/organizations/$organizationIdOrSlug/releases/$version/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, version},
-      staleTime: 30_000,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, version}, staleTime: 30_000}
   );
 }
 
@@ -59,10 +56,7 @@ function getCommitSummary(commitCount: number, authorCount: number) {
 
   return authorCount === 1
     ? tct('[commitCount] commits by 1 author', {commitCount})
-    : tct('[commitCount] commits by [authorCount] authors', {
-        authorCount,
-        commitCount,
-      });
+    : tct('[commitCount] commits by [authorCount] authors', {authorCount, commitCount});
 }
 
 /**

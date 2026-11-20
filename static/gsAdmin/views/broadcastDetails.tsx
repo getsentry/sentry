@@ -44,16 +44,10 @@ export function BroadcastDetails() {
 
   const updateMutation = useMutation({
     mutationFn: (params: {isActive: boolean} | {syncLocked: boolean}) =>
-      fetchMutation({
-        url: broadcastUrl,
-        method: 'PUT',
-        data: params,
-      }),
+      fetchMutation({url: broadcastUrl, method: 'PUT', data: params}),
     onSuccess: () => {
       toast.success('Broadcast updated.');
-      queryClient.invalidateQueries({
-        queryKey: [broadcastUrl],
-      });
+      queryClient.invalidateQueries({queryKey: [broadcastUrl]});
     },
     onError: () => {
       toast.error('There was an internal error updating this broadcast.');

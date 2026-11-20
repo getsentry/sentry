@@ -44,6 +44,19 @@ const pendingStages: AgenticProgressStageState[] = [
   {stage: 'check_stack_trace_quality', status: null, eventNote: null, extra: null},
 ];
 
+const waitingStages: AgenticProgressStageState[] = pendingStages.map(stage => {
+  switch (stage.stage) {
+    case 'analyze_project':
+    case 'create_project':
+    case 'instrument_app':
+      return {...stage, status: 'completed'};
+    case 'plan_test_error':
+      return {...stage, status: 'waiting'};
+    default:
+      return stage;
+  }
+});
+
 const createdProjectSlugs = ['react-frontend', 'python-backend'];
 const verificationIssueIds = ['4815162342'];
 
@@ -110,6 +123,30 @@ export default Storybook.story('Agentic Onboarding Progress', story => {
     </StoryFrame>
   ));
 
+  story('Waiting on the agent', () => (
+    <StoryFrame>
+      <Storybook.SideBySide>
+        <Container width="340px">
+          <AgenticProgress
+            run={makeAgenticProgressRun({sequence: 5, stages: waitingStages})}
+          />
+        </Container>
+        <Container width="340px">
+          <AgenticProgress
+            run={makeAgenticProgressRun({
+              sequence: 5,
+              stages: waitingStages.map(stage =>
+                stage.stage === 'plan_test_error'
+                  ? {...stage, eventNote: 'Asked where to add a test error in your app.'}
+                  : stage
+              ),
+            })}
+          />
+        </Container>
+      </Storybook.SideBySide>
+    </StoryFrame>
+  ));
+
   story('Interactive progress', () => <InteractiveProgressStory />);
 
   story('Connecting an agent', () => <AgentConnectionStory />);
@@ -128,9 +165,9 @@ function AgentConnectionStory() {
           <WelcomeAgentSetup
             hasInitFailed={false}
             hasProgressFailed={false}
+            hasRunFailed={false}
             onRefresh={() => {}}
             isAgentConnected={isAgentConnected}
-            onboardingCode="Lg1iSt2qeQ"
             onCopyCommand={() => {}}
             onRetry={() => setIsAgentConnected(false)}
             onSelectSnippet={() => {}}
@@ -282,7 +319,7 @@ function InteractiveProgressStory() {
 function noteForStatus(status: AgenticProgressStageState['status']) {
   switch (status) {
     case 'waiting':
-      return 'Waiting for input before continuing.';
+      return 'Waiting on your reply in your editor or terminal.';
     case 'completed':
       return 'Finished this step successfully.';
     case 'skipped':

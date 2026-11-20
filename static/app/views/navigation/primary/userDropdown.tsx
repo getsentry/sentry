@@ -65,12 +65,7 @@ export function UserDropdown() {
 
   const avatarProps =
     user.avatar?.avatarType === 'upload' && user.avatar.avatarUrl
-      ? {
-          type: 'upload' as const,
-          uploadUrl: user.avatar.avatarUrl,
-          identifier,
-          name,
-        }
+      ? {type: 'upload' as const, uploadUrl: user.avatar.avatarUrl, identifier, name}
       : user.avatar?.avatarType === 'gravatar' && user.email
         ? {
             type: 'gravatar' as const,
@@ -102,7 +97,7 @@ export function UserDropdown() {
             analyticsParams={{item: 'account'}}
           />
         )}
-        menuTitle={<NavigationMenuHeader user={user} />}
+        menuTitle={<NavigationMenuHeader user={user} organization={organization} />}
         items={[
           {
             key: 'account-actions',

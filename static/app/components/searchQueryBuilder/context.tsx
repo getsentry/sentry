@@ -395,9 +395,7 @@ export function SearchQueryBuilderProvider({
     setReopenDropdownOnQueryClear(false);
   }, []);
 
-  const {width: searchBarWidth} = useDimensions({
-    elementRef: wrapperRef,
-  });
+  const {width: searchBarWidth} = useDimensions({elementRef: wrapperRef});
   const size =
     searchBarWidth && searchBarWidth < 600 ? ('small' as const) : ('normal' as const);
 
@@ -541,10 +539,7 @@ export function SearchQueryBuilderProvider({
   ]);
 
   const interactionValue = useMemo((): SearchQueryBuilderInteractionContextData => {
-    return {
-      consumeReopenDropdownOnQueryClear,
-      reopenDropdownOnQueryClear,
-    };
+    return {consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear};
   }, [consumeReopenDropdownOnQueryClear, reopenDropdownOnQueryClear]);
 
   return (

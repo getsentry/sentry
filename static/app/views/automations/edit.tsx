@@ -192,10 +192,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
 
       if (Object.keys(errors).length > 0) {
         const analyticsPayload = getAutomationAnalyticsPayload(
-          getNewAutomationData({
-            data: automationFormData,
-            state,
-          })
+          getNewAutomationData({data: automationFormData, state})
         );
         Sentry.logger.warn('Edit alert form validation failed', {
           errors,
@@ -221,10 +218,7 @@ function AutomationEditForm({automation}: {automation: Automation}) {
       if (!formData) {
         return;
       }
-      const newAutomationData = getNewAutomationData({
-        data: formData,
-        state,
-      });
+      const newAutomationData = getNewAutomationData({data: formData, state});
       const analyticsPayload = getAutomationAnalyticsPayload(newAutomationData);
 
       try {
@@ -329,10 +323,7 @@ function getInitialTriggers(triggers: DataConditionGroup | null): DataConditionG
   }
 
   if (triggers.conditions.length === 0) {
-    return {
-      ...triggers,
-      conditions: [createCondition(DataConditionType.EVERY_EVENT)],
-    };
+    return {...triggers, conditions: [createCondition(DataConditionType.EVERY_EVENT)]};
   }
 
   return triggers;

@@ -9,9 +9,7 @@ const bulletStyle = (theme: Theme) => css`
   }
 `;
 
-type Options = {
-  isSolid?: boolean;
-};
+type Options = {isSolid?: boolean};
 
 const numericStyle = (theme: Theme, {isSolid = false}: Options) => css`
   & > li {

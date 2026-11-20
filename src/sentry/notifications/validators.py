@@ -11,7 +11,12 @@ from sentry.notifications.api.parsers.notifications import (
     validate_type,
     validate_value,
 )
-from sentry.notifications.types import NOTIFICATION_SETTING_CHOICES, NotificationScopeEnum
+from sentry.notifications.types import (
+    INBOX_NOTIFICATION_SETTINGS,
+    NOTIFICATION_SETTING_CHOICES,
+    NotificationScopeEnum,
+    NotificationSettingEnum,
+)
 
 
 class UserNotificationSettingData(TypedDict, total=False):
@@ -43,6 +48,15 @@ class UserNotificationSettingsOptionsDetailsSerializer(
         except ParameterValidationError:
             raise serializers.ValidationError("Invalid scope type")
 
+    def validate(self, data: UserNotificationSettingData) -> UserNotificationSettingData:
+        # Inbox settings apply across all of a user's organizations, so they only accept user scope.
+        if (
+            NotificationSettingEnum(data["type"]) in INBOX_NOTIFICATION_SETTINGS
+            and data["scope_type"] != NotificationScopeEnum.USER.value
+        ):
+            raise serializers.ValidationError("Inbox settings only allow user scope")
+        return data
+
 
 class UserNotificationSettingOptionWithValueSerializer(
     UserNotificationSettingsOptionsDetailsSerializer
@@ -55,6 +69,7 @@ class UserNotificationSettingOptionWithValueSerializer(
         return value
 
     def validate(self, data: UserNotificationSettingData) -> UserNotificationSettingData:
+        data = super().validate(data)
         try:
             enum_type = validate_type(data["type"])
             validate_value(enum_type, data["value"])
