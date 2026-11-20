@@ -296,6 +296,11 @@ function buildRoutes(): RouteObject[] {
       component: make(() => import('sentry/views/settings/account/accountDetails')),
     },
     {
+      path: 'appearance/',
+      name: t('Appearance'),
+      component: make(() => import('sentry/views/settings/account/accountAppearance')),
+    },
+    {
       path: 'notifications/',
       name: t('Notifications'),
       children: [
