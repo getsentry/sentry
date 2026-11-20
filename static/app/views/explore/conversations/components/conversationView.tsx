@@ -188,6 +188,7 @@ export function ConversationViewContent({
           <Fragment>
             {isTranscript && onSelectSpan && (
               <TranscriptSearch
+                key={conversation.conversationId}
                 rootRef={contentRef}
                 canLoadMore={canAutoFetchNextPage}
                 isLoadingMore={isLoading || isFetchingNextPage}

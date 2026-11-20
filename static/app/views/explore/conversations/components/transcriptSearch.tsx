@@ -87,7 +87,12 @@ export function TranscriptSearch({
           placeholder={t('Search in transcript')}
           aria-label={t('Search in transcript')}
           value={query}
-          onChange={e => setQuery(e.target.value)}
+          onChange={e => {
+            setQuery(e.target.value);
+            if (!e.target.value) {
+              search.clear();
+            }
+          }}
           onKeyDown={e => {
             if (e.key === 'Enter' && query.trim()) {
               search.submit(query.trim(), e.shiftKey);

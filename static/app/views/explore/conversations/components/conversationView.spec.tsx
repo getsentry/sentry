@@ -276,6 +276,9 @@ describe('ConversationViewContent', () => {
 
     expect(await screen.findByText('1/1')).toBeInTheDocument();
     expect(onSelectSpan).toHaveBeenCalledWith('span-b');
+
+    await userEvent.clear(screen.getByRole('textbox', {name: 'Search in transcript'}));
+    expect(screen.queryByText('1/1')).not.toBeInTheDocument();
   });
 
   it('loads later pages until the search finds a match', async () => {
