@@ -41,10 +41,7 @@ export function useMergedIssuesDrawer({
         navigate(
           {
             pathname: getReturnPath(),
-            query: {
-              ...location.query,
-              [MERGED_CURSOR_QUERY_KEY]: undefined,
-            },
+            query: {...location.query, [MERGED_CURSOR_QUERY_KEY]: undefined},
           },
           {replace: true, preventScrollReset: true}
         );

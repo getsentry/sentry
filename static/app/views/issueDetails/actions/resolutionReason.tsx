@@ -73,10 +73,7 @@ export function ActivityResolutionReason({statusDetails, project, activities}: P
         : tct('Resolved in [release]', {release});
     }
 
-    const values = {
-      pullRequest: <PullRequestChip pullRequest={pullRequest} />,
-      release,
-    };
+    const values = {pullRequest: <PullRequestChip pullRequest={pullRequest} />, release};
 
     return activityActor
       ? tct('[actor] resolved via [pullRequest] released in [release]', {
@@ -88,9 +85,7 @@ export function ActivityResolutionReason({statusDetails, project, activities}: P
 
   if (statusDetails.inNextRelease) {
     return activityActor
-      ? tct('[actor] set this to resolve in the upcoming release', {
-          actor: activityActor,
-        })
+      ? tct('[actor] set this to resolve in the upcoming release', {actor: activityActor})
       : t('Set to resolve in the upcoming release');
   }
 

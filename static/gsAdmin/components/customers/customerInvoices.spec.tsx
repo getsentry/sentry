@@ -210,10 +210,7 @@ describe('CustomerInvoices', () => {
 
   describe('Edge Cases', () => {
     it('handles empty invoice list', async () => {
-      MockApiClient.addMockResponse({
-        url: `/customers/${orgId}/invoices/`,
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: `/customers/${orgId}/invoices/`, body: []});
 
       render(<CustomerInvoices orgId={orgId} region={region} />);
 
@@ -248,10 +245,7 @@ describe('CustomerInvoices', () => {
 
   describe('ResultGrid Integration', () => {
     it('passes correct props to ResultGrid', async () => {
-      MockApiClient.addMockResponse({
-        url: `/customers/${orgId}/invoices/`,
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: `/customers/${orgId}/invoices/`, body: []});
 
       render(<CustomerInvoices orgId={orgId} region={region} />);
 

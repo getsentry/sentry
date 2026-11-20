@@ -223,10 +223,7 @@ describe('reactNodeToText', () => {
 
 describe('contentBlockToMarkdown', () => {
   it('converts TextBlock', () => {
-    const block: ContentBlock = {
-      type: 'text',
-      text: 'Install the Sentry SDK.',
-    };
+    const block: ContentBlock = {type: 'text', text: 'Install the Sentry SDK.'};
     expect(contentBlockToMarkdown(block)).toBe('Install the Sentry SDK.');
   });
 
@@ -355,10 +352,7 @@ describe('contentBlockToMarkdown', () => {
   });
 
   it('converts SubHeaderBlock', () => {
-    const block: ContentBlock = {
-      type: 'subheader',
-      text: 'Configuration Options',
-    };
+    const block: ContentBlock = {type: 'subheader', text: 'Configuration Options'};
     expect(contentBlockToMarkdown(block)).toBe('### Configuration Options');
   });
 
@@ -395,18 +389,12 @@ describe('contentBlockToMarkdown', () => {
   });
 
   it('returns empty string for tabbed CodeBlock with empty tabs array', () => {
-    const block: ContentBlock = {
-      type: 'code',
-      tabs: [],
-    };
+    const block: ContentBlock = {type: 'code', tabs: []};
     expect(contentBlockToMarkdown(block)).toBe('');
   });
 
   it('converts CustomBlock with string content', () => {
-    const block: ContentBlock = {
-      type: 'custom',
-      content: 'Custom content here',
-    };
+    const block: ContentBlock = {type: 'custom', content: 'Custom content here'};
     expect(contentBlockToMarkdown(block)).toBe('Custom content here');
   });
 
@@ -471,10 +459,7 @@ describe('stepsToMarkdown', () => {
 
   it('converts steps with custom titles', () => {
     const steps: OnboardingStep[] = [
-      {
-        title: 'Getting Started',
-        content: [{type: 'text', text: 'Welcome to Sentry.'}],
-      },
+      {title: 'Getting Started', content: [{type: 'text', text: 'Welcome to Sentry.'}]},
     ];
 
     const result = stepsToMarkdown(steps);

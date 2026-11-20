@@ -4,10 +4,7 @@ export const sampleStackedCategoricalData: [CategoricalSeries, CategoricalSeries
   {
     valueAxis: 'count()',
     groupBy: [{key: 'status', value: 'success'}],
-    meta: {
-      valueType: 'integer',
-      valueUnit: null,
-    },
+    meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Monday', value: 450},
       {category: 'Tuesday', value: 520},
@@ -19,10 +16,7 @@ export const sampleStackedCategoricalData: [CategoricalSeries, CategoricalSeries
   {
     valueAxis: 'count()',
     groupBy: [{key: 'status', value: 'error'}],
-    meta: {
-      valueType: 'integer',
-      valueUnit: null,
-    },
+    meta: {valueType: 'integer', valueUnit: null},
     values: [
       {category: 'Monday', value: 45},
       {category: 'Tuesday', value: 32},

@@ -17,14 +17,8 @@ type UpsellProvider = {
 } & HasSub;
 type Checkout = {plan: string; checkoutType?: CheckoutType} & HasSub;
 type BusinessLanding = HasSub & {source?: string};
-type AddEventCTA = HasSub & {
-  action: string;
-  source: string;
-  event_types?: string;
-};
-type BillingInfoUpdateEvent = {
-  referrer?: string;
-};
+type AddEventCTA = HasSub & {action: string; source: string; event_types?: string};
+type BillingInfoUpdateEvent = {referrer?: string};
 type ManualPaymentEvent = BillingInfoUpdateEvent;
 
 type OnDemandBudgetStrategy = 'per_category' | 'shared';
@@ -53,10 +47,7 @@ type GetsentryEventParameters = {
     has_permissions?: boolean;
     referrer?: string;
   };
-  'billing_failure.displayed_banner': {
-    has_permissions?: boolean;
-    referrer?: string;
-  };
+  'billing_failure.displayed_banner': {has_permissions?: boolean; referrer?: string};
   'billing_failure.paid_now': ManualPaymentEvent;
   'billing_failure.updated_cc': BillingInfoUpdateEvent;
   'business_landing.clicked': BusinessLanding & {type: string};
@@ -74,13 +65,7 @@ type GetsentryEventParameters = {
   'checkout.ondemand_budget.update': OnDemandBudgetUpdate;
   'checkout.payg_changed': {cents: number; method?: 'button' | 'textbox'} & Checkout;
   'checkout.product_select': Partial<
-    Record<
-      AddOnCategory,
-      {
-        enabled: boolean;
-        previously_enabled: boolean;
-      }
-    >
+    Record<AddOnCategory, {enabled: boolean; previously_enabled: boolean}>
   > &
     HasSub;
   'checkout.transactions_upgrade': {
@@ -95,10 +80,7 @@ type GetsentryEventParameters = {
     categories?: Partial<
       Record<
         DataCategory,
-        {
-          previous_reserved: number | undefined;
-          reserved: number | undefined;
-        }
+        {previous_reserved: number | undefined; reserved: number | undefined}
       >
     >;
   } & Partial<Record<DataCategory | `previous_${DataCategory}`, number | undefined>> &
@@ -113,19 +95,10 @@ type GetsentryEventParameters = {
   'disabled_member_view.loaded': HasSub;
   'gen_ai_consent.in_drawer_clicked': Record<PropertyKey, unknown>;
   'github.multi_org.upsell': {source?: string};
-  'growth.clicked_enter_sandbox': {
-    scenario: string;
-  };
-  'growth.onboarding_clicked_need_help': {
-    source?: string;
-  };
-  'growth.onboarding_clicked_upgrade': {
-    source?: string;
-  };
-  'growth.upgrade_or_trial.clicked': {
-    action: string;
-    source: string;
-  } & HasSub;
+  'growth.clicked_enter_sandbox': {scenario: string};
+  'growth.onboarding_clicked_need_help': {source?: string};
+  'growth.onboarding_clicked_upgrade': {source?: string};
+  'growth.upgrade_or_trial.clicked': {action: string; source: string} & HasSub;
   'growth.upsell_feature.cancelled': UpsellProvider;
   'growth.upsell_feature.clicked': UpsellProvider;
   'growth.upsell_feature.confirmed': UpsellProvider;
@@ -146,9 +119,7 @@ type GetsentryEventParameters = {
     referrer: string;
     traceItemDataset: string;
   };
-  'power_icon.clicked': {
-    source?: string;
-  } & HasSub;
+  'power_icon.clicked': {source?: string} & HasSub;
   'product_trial.clicked_snooze': QuotaAlert;
   'product_unavailable_upsell_alert.viewed': ProductUnavailableUpsellAlert;
   'product_unavailable_upsell_alert_button.clicked': ProductUnavailableUpsellAlert;
@@ -159,24 +130,16 @@ type GetsentryEventParameters = {
     reportType: 'summary' | 'project_breakdown';
   };
   'subscription_page.usage_overview.row_clicked': (
-    | {
-        dataCategory: DataCategory;
-      }
+    | {dataCategory: DataCategory}
     | {addOnCategory: AddOnCategory}
   ) &
     HasSub;
-  'subscription_page.usage_overview.transform_changed': {
-    transform: string;
-  } & HasSub;
+  'subscription_page.usage_overview.transform_changed': {transform: string} & HasSub;
   'subscription_page.usagelog_filter.clicked': {selection: string};
   'trial_ended_notice.dismissed_understood': HasSub;
   'upgrade_now.modal.manage_sub': UpdateProps;
-  'upgrade_now.modal.update_now': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
-  'upgrade_now.modal.viewed': UpdateProps & {
-    has_price_change: undefined | boolean;
-  };
+  'upgrade_now.modal.update_now': UpdateProps & {has_price_change: undefined | boolean};
+  'upgrade_now.modal.viewed': UpdateProps & {has_price_change: undefined | boolean};
 };
 
 export type AM2UpdateSurfaces =

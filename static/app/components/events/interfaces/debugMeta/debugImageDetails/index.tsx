@@ -223,10 +223,7 @@ export function DebugImageDetails({
     ...apiOptions.as<DebugFile[]>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: projSlug,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         query: {
           debug_id: image?.debug_id,
           code_id: image?.code_id,
@@ -273,10 +270,7 @@ export function DebugImageDetails({
     try {
       await api.requestPromise(
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projSlug},
         }),
         {method: 'DELETE', query: {id: debugId}}
       );

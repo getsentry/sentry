@@ -47,10 +47,7 @@ export function DiscoverBreadcrumb({
 
     // This ensures that we are updating SavedQuery.name only.
     // Changes on QueryBuilder table will not be saved.
-    const nextEventView = EventView.fromSavedQuery({
-      ...savedQuery,
-      name: nextQueryName,
-    });
+    const nextEventView = EventView.fromSavedQuery({...savedQuery, name: nextQueryName});
 
     handleUpdateQueryName(api, organization, nextEventView).then(
       (_updatedQuery: SavedQuery) => {

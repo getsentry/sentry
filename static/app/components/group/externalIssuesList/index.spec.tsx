@@ -41,9 +41,7 @@ describe('ExternalIssueList', () => {
       url: `/organizations/${organization.slug}/issues/1/external-issues/`,
       body: [],
     });
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(await screen.findByRole('link', {name: setupCTA})).toBeInTheDocument();
   });
 
@@ -61,9 +59,7 @@ describe('ExternalIssueList', () => {
       url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [component],
     });
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(await screen.findByRole('button', {name: 'Foo'})).toBeInTheDocument();
     expect(screen.queryByRole('link', {name: setupCTA})).not.toBeInTheDocument();
   });
@@ -97,9 +93,7 @@ describe('ExternalIssueList', () => {
       url: `/organizations/${organization.slug}/sentry-app-components/`,
       body: [component],
     });
-    render(<ExternalIssueList group={group} event={event} />, {
-      organization,
-    });
+    render(<ExternalIssueList group={group} event={event} />, {organization});
     expect(
       await screen.findByRole('link', {name: 'Test-Sentry/github-test#13'})
     ).toBeInTheDocument();

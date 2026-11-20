@@ -128,10 +128,7 @@ export interface DropdownMenuListProps
  * reads the root menu state from context.
  */
 type DropdownMenuLevel =
-  | {
-      state: RootMenuTriggerState;
-      type: 'root';
-    }
+  | {state: RootMenuTriggerState; type: 'root'}
   | {
       /** Closes this submenu and returns focus to its trigger. */
       close: () => void;
@@ -561,10 +558,7 @@ function DropdownMenuList({
 export type DropdownMenuContentProps = Omit<
   DropdownMenuListProps,
   'searchState' | 'isVirtualized'
-> & {
-  items: MenuItemProps[];
-  search?: DropdownMenuSearchOptions;
-};
+> & {items: MenuItemProps[]; search?: DropdownMenuSearchOptions};
 
 export function DropdownMenuContent({
   items,
@@ -702,10 +696,7 @@ function DropdownSubmenu({
       !portalContainer?.parentElement?.contains(target),
     position: options.position ?? 'right-start',
     offset: -4,
-    preventOverflowOptions: {
-      boundary: document.body,
-      crossAxis: true,
-    },
+    preventOverflowOptions: {boundary: document.body, crossAxis: true},
   });
   const {submenuTriggerProps, submenuProps} = useSubmenuTrigger<MenuItemProps>(
     {parentMenuRef, submenuRef, isDisabled, type: 'menu'},
@@ -762,9 +753,7 @@ function DropdownSubmenu({
   );
 }
 
-const DropdownMenuListWrap = styled(Stack)<{
-  disableTextSelection?: boolean;
-}>`
+const DropdownMenuListWrap = styled(Stack)<{disableTextSelection?: boolean}>`
   /* Keep both insets visible while the menu items scroll. */
   margin: ${p => p.theme.space.xs} 0;
   padding: 0;

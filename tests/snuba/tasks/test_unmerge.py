@@ -33,7 +33,6 @@ from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.tasks.unmerge import (
     get_caches,
-    get_event_user_from_interface,
     get_fingerprint,
     get_group_backfill_attributes,
     get_group_creation_attributes,
@@ -511,9 +510,7 @@ class UnmergeTestCase(TestCase, SnubaTestCase):
 
         def collect_by_user_tag(aggregate: Any, event: GroupEvent) -> Any:
             aggregate = aggregate if aggregate is not None else set()
-            aggregate.add(
-                get_event_user_from_interface(event.data["user"], event.group.project).tag_value
-            )
+            aggregate.add(event.get_tag("sentry:user"))
             return aggregate
 
         for series in [time_series, environment_time_series]:

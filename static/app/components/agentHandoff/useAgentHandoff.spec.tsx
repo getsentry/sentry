@@ -57,16 +57,10 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledWith(
       url,
       expect.objectContaining({
-        data: {
-          context,
-          disableIpPinning: false,
-          flow: 'onboarding',
-        },
+        data: {context, disableIpPinning: false, flow: 'onboarding'},
       })
     );
-    const item = write.mock.calls.at(-1)![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls.at(-1)![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']!.then(blob => blob.text())).resolves.toBe(
       prompt
     );
@@ -95,9 +89,7 @@ describe('useAgentHandoff', () => {
       );
     });
     expect(write).toHaveBeenCalledTimes(1);
-    const item = write.mock.calls[0]![0][0] as {
-      data: Record<string, Promise<Blob>>;
-    };
+    const item = write.mock.calls[0]![0][0] as {data: Record<string, Promise<Blob>>};
     await expect(item.data['text/plain']).rejects.toThrow(
       'Unable to create your agent prompt. Try again.'
     );

@@ -3,10 +3,7 @@ import type {CommonGroupAnalyticsData} from 'sentry/utils/events';
 
 import type {ProjectCreationVariant} from './projectCreationAnalyticsEvents';
 
-type RuleViewed = {
-  alert_type: 'issue' | 'metric';
-  project_id: string;
-};
+type RuleViewed = {alert_type: 'issue' | 'metric'; project_id: string};
 
 interface IssueDetailsWithAlert extends CommonGroupAnalyticsData {
   project_id: number;
@@ -59,10 +56,7 @@ export type BaseEventAnalyticsParams = {
   sdk_version?: string | null;
 };
 
-type BaseTour = {
-  duration: number;
-  step: number;
-};
+type BaseTour = {duration: number; step: number};
 
 type ReleasesTour = BaseTour & {project_id: string};
 
@@ -153,23 +147,14 @@ export type TeamInsightsEventParameters = {
   'project_detail.releases_tour.advance': ReleasesTour;
   'project_detail.releases_tour.close': ReleasesTour;
   'release_detail.pagination': {direction: string};
-  'releases_list.click_add_release_health': {
-    project_id: number;
-  };
+  'releases_list.click_add_release_health': {project_id: number};
   'suspect_commit.feedback_submitted': {
     choice_selected: boolean;
     group_owner_id: number;
     user_id: string;
   };
-  trace_timeline_clicked: {
-    area: string;
-    event_id: string;
-    group_id: string;
-  };
-  trace_timeline_more_events_clicked: {
-    area: string;
-    num_hidden: number;
-  };
+  trace_timeline_clicked: {area: string; event_id: string; group_id: string};
+  trace_timeline_more_events_clicked: {area: string; num_hidden: number};
 };
 
 type TeamInsightsEventKey = keyof TeamInsightsEventParameters;

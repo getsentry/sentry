@@ -39,10 +39,7 @@ const TAB_DEFINITIONS: Record<TraceLayoutTabKeys, Tab> = {
     slug: TraceLayoutTabKeys.PROFILES,
     label: t('Profiles'),
   },
-  [TraceLayoutTabKeys.LOGS]: {
-    slug: TraceLayoutTabKeys.LOGS,
-    label: t('Logs'),
-  },
+  [TraceLayoutTabKeys.LOGS]: {slug: TraceLayoutTabKeys.LOGS, label: t('Logs')},
   [TraceLayoutTabKeys.METRICS]: {
     slug: TraceLayoutTabKeys.METRICS,
     label: t('Application Metrics'),

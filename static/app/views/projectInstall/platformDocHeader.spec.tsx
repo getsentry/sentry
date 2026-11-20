@@ -23,10 +23,9 @@ const GETTING_STARTED_PATH = '/organizations/org-slug/projects/python/getting-st
 function renderGettingStartedAfter(previousPath: string) {
   const organization = OrganizationFixture();
   const project = ProjectFixture({slug: 'python', platform: 'python', firstEvent: null});
-  jest.spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject').mockReturnValue({
-    project,
-    isProjectActive: false,
-  });
+  jest
+    .spyOn(useRecentCreatedProjectHook, 'useRecentCreatedProject')
+    .mockReturnValue({project, isProjectActive: false});
   const deleteRequest = MockApiClient.addMockResponse({
     url: `/projects/${organization.slug}/${project.slug}/`,
     method: 'DELETE',

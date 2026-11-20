@@ -8,10 +8,7 @@ describe('OrganizationsStore', () => {
   });
 
   it('starts with loading state', () => {
-    expect(OrganizationsStore.getState()).toEqual({
-      organizations: [],
-      loaded: false,
-    });
+    expect(OrganizationsStore.getState()).toEqual({organizations: [], loaded: false});
   });
 
   it('updates slug correctly', () => {

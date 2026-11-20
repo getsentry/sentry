@@ -81,10 +81,7 @@ describe('Subscription > Overview', () => {
   });
 
   describe('Recurring Credits', () => {
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_100k',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'mm2_b_100k'});
 
     it('renders empty', async () => {
       SubscriptionStore.set(organization.slug, subscription);
@@ -117,13 +114,8 @@ describe('Subscription > Overview', () => {
   });
 
   it('displays limited context for members', async () => {
-    const billingOrg = OrganizationFixture({
-      access: [],
-    });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization: billingOrg,
-    });
+    const billingOrg = OrganizationFixture({access: []});
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization: billingOrg});
     SubscriptionStore.set(billingOrg.slug, subscription);
     MockApiClient.addMockResponse({
       url: `/customers/${billingOrg.slug}/recurring-credits/`,
@@ -142,9 +134,7 @@ describe('Subscription > Overview', () => {
   });
 
   it('renders ContactBillingMembers for members on managed accounts', async () => {
-    const billingOrg = OrganizationFixture({
-      access: [],
-    });
+    const billingOrg = OrganizationFixture({access: []});
     const subscription = SubscriptionFixture({
       plan: 'am1_business',
       organization: billingOrg,

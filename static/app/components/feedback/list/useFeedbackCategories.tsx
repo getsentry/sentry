@@ -33,13 +33,8 @@ export function useFeedbackCategories(): {
     ...apiOptions.as<FeedbackCategoriesResponse>()(
       '/organizations/$organizationIdOrSlug/feedback-categories/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-        query: {
-          ...normalizedDateRange,
-          project: selection.projects,
-        },
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...normalizedDateRange, project: selection.projects},
         staleTime: 5000,
       }
     ),
@@ -47,21 +42,11 @@ export function useFeedbackCategories(): {
   });
 
   if (isPending) {
-    return {
-      categories: null,
-      isPending: true,
-      isError: false,
-      tooFewFeedbacks: false,
-    };
+    return {categories: null, isPending: true, isError: false, tooFewFeedbacks: false};
   }
 
   if (isError) {
-    return {
-      categories: null,
-      isPending: false,
-      isError: true,
-      tooFewFeedbacks: false,
-    };
+    return {categories: null, isPending: false, isError: true, tooFewFeedbacks: false};
   }
 
   return {
