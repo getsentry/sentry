@@ -385,6 +385,11 @@ export const platformProductAvailability = {
     ProductSolution.LOGS,
     ProductSolution.METRICS,
   ],
+  'php-bref': [
+    ProductSolution.PERFORMANCE_MONITORING,
+    ProductSolution.LOGS,
+    ProductSolution.METRICS,
+  ],
   'php-laravel': [
     ProductSolution.PERFORMANCE_MONITORING,
     ProductSolution.PROFILING,
