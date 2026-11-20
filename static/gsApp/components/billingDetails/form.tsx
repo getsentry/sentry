@@ -123,10 +123,7 @@ function BillingDetailsFormFields({
             options={{
               mode: 'billing',
               autocomplete: GOOGLE_MAPS_API_KEY
-                ? {
-                    mode: 'google_maps_api',
-                    apiKey: GOOGLE_MAPS_API_KEY,
-                  }
+                ? {mode: 'google_maps_api', apiKey: GOOGLE_MAPS_API_KEY}
                 : {
                     mode: 'automatic', // if our key isn't available, see if we can use Stripe's
                   },
@@ -239,11 +236,7 @@ export function BillingDetailsForm({
   );
 
   const updateCountryCodeState = (countryCode: string) =>
-    setState({
-      ...state,
-      countryCode,
-      showTaxNumber: countryHasSalesTax(countryCode),
-    });
+    setState({...state, countryCode, showTaxNumber: countryHasSalesTax(countryCode)});
 
   const handleStripeFormChange = (data: any) => {
     form.setValue('companyName', data.value.name);
@@ -259,9 +252,7 @@ export function BillingDetailsForm({
   useEffect(() => {
     const requiredFields = ['addressLine1', 'countryCode'];
     requiredFields.forEach(field => {
-      form.setFieldDescriptor(field, {
-        required: true,
-      });
+      form.setFieldDescriptor(field, {required: true});
     });
 
     return () => {

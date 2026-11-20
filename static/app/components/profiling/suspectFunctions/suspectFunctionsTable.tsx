@@ -32,40 +32,16 @@ function sortFunctions(a: Profiling.FunctionMetric, b: Profiling.FunctionMetric)
   return b.sumSelfTime - a.sumSelfTime;
 }
 
-type Column = {
-  label: React.ReactNode;
-  value: keyof Profiling.FunctionMetric;
-};
+type Column = {label: React.ReactNode; value: keyof Profiling.FunctionMetric};
 
 const COLUMNS: Column[] = [
-  {
-    label: t('Function'),
-    value: 'name',
-  },
-  {
-    label: t('Package'),
-    value: 'package',
-  },
-  {
-    label: t('avg()'),
-    value: 'avg',
-  },
-  {
-    label: t('p75()'),
-    value: 'p75',
-  },
-  {
-    label: t('p95()'),
-    value: 'p95',
-  },
-  {
-    label: t('p99()'),
-    value: 'p99',
-  },
-  {
-    label: t('Examples'),
-    value: 'examples',
-  },
+  {label: t('Function'), value: 'name'},
+  {label: t('Package'), value: 'package'},
+  {label: t('avg()'), value: 'avg'},
+  {label: t('p75()'), value: 'p75'},
+  {label: t('p95()'), value: 'p95'},
+  {label: t('p99()'), value: 'p99'},
+  {label: t('Examples'), value: 'examples'},
 ];
 
 function shouldSkipFrame(
@@ -335,10 +311,7 @@ function TableEntry({
 }
 
 function useMemoryPagination(items: any[], size: number) {
-  const [pagination, setPagination] = useState({
-    start: 0,
-    end: size,
-  });
+  const [pagination, setPagination] = useState({start: 0, end: size});
 
   const page = Math.floor(pagination.start / size);
   const toPage = useCallback(

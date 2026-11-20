@@ -7,21 +7,9 @@ describe('getPythonInstallCodeBlock', () => {
     expect(result).toEqual({
       type: 'code',
       tabs: [
-        {
-          label: 'pip',
-          language: 'bash',
-          code: 'pip install "sentry-sdk"',
-        },
-        {
-          label: 'uv',
-          language: 'bash',
-          code: 'uv add "sentry-sdk"',
-        },
-        {
-          label: 'poetry',
-          language: 'bash',
-          code: 'poetry add "sentry-sdk"',
-        },
+        {label: 'pip', language: 'bash', code: 'pip install "sentry-sdk"'},
+        {label: 'uv', language: 'bash', code: 'uv add "sentry-sdk"'},
+        {label: 'poetry', language: 'bash', code: 'poetry add "sentry-sdk"'},
       ],
     });
   });
@@ -54,27 +42,13 @@ describe('getPythonInstallCodeBlock', () => {
   });
 
   it('generates install commands with additional package', () => {
-    const result = getPythonInstallCodeBlock({
-      additionalPackage: 'falcon',
-    });
+    const result = getPythonInstallCodeBlock({additionalPackage: 'falcon'});
     expect(result).toEqual({
       type: 'code',
       tabs: [
-        {
-          label: 'pip',
-          language: 'bash',
-          code: 'pip install "sentry-sdk" "falcon"',
-        },
-        {
-          label: 'uv',
-          language: 'bash',
-          code: 'uv add "sentry-sdk" "falcon"',
-        },
-        {
-          label: 'poetry',
-          language: 'bash',
-          code: 'poetry add "sentry-sdk" "falcon"',
-        },
+        {label: 'pip', language: 'bash', code: 'pip install "sentry-sdk" "falcon"'},
+        {label: 'uv', language: 'bash', code: 'uv add "sentry-sdk" "falcon"'},
+        {label: 'poetry', language: 'bash', code: 'poetry add "sentry-sdk" "falcon"'},
       ],
     });
   });

@@ -24,9 +24,7 @@ export function Add(props: Props) {
       {...props}
       title={t('Register Key')}
       btnSaveLabel={t('Register')}
-      getData={(values, savedRelays) => ({
-        trustedRelays: [...savedRelays, values],
-      })}
+      getData={(values, savedRelays) => ({trustedRelays: [...savedRelays, values]})}
       renderContent={form => (
         <StyledList symbol="colored-numeric">
           <Item

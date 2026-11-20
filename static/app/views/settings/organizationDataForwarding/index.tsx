@@ -32,9 +32,7 @@ export default function OrganizationDataForwarding() {
     data: dataForwarders = [],
     isLoading,
     isError,
-  } = useDataForwarders({
-    params: {orgSlug: organization.slug},
-  });
+  } = useDataForwarders({params: {orgSlug: organization.slug}});
   const hasAvailability =
     dataForwarders.length < Object.values(DataForwarderProviderSlug).length;
 

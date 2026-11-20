@@ -188,10 +188,7 @@ export class SelectField<
                   multiple={multiple}
                   components={{Indicators: SelectFieldIndicators, ...props.components}}
                   styles={{
-                    control: (provided: any) => ({
-                      ...provided,
-                      height: 'auto',
-                    }),
+                    control: (provided: any) => ({...provided, height: 'auto'}),
                     ...props.styles,
                   }}
                   onChange={(val: any) => {

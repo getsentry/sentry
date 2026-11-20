@@ -14,10 +14,7 @@ const NAVIGATION_DATE = new Date('2022-06-15T00:46:00.333Z');
 const NEW_DOMAIN_DATE = new Date('2022-06-15T00:47:00.444Z');
 const END_DATE = new Date('2022-06-15T00:50:00.555Z');
 
-const replayRecord = ReplayRecordFixture({
-  started_at: START_DATE,
-  finished_at: END_DATE,
-});
+const replayRecord = ReplayRecordFixture({started_at: START_DATE, finished_at: END_DATE});
 
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 
@@ -60,5 +57,13 @@ describe('getCurrentUrl', () => {
     const url = getCurrentUrl(ReplayRecordFixture(), frames, offsetMS);
 
     expect(url).toBe('http://localhost:3000/report/jquery.min.js');
+  });
+
+  it('should return only the origin when the navigation frame has no description', () => {
+    const {description: _description, ...frame} = NAV_FRAME;
+    const offsetMS = Number(NAVIGATION_DATE) - Number(START_DATE) + 10;
+    const url = getCurrentUrl(ReplayRecordFixture(), [PAGELOAD_FRAME, frame], offsetMS);
+
+    expect(url).toBe('http://localhost:3000');
   });
 });

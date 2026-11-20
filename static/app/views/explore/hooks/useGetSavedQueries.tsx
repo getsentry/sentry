@@ -1,6 +1,7 @@
 import {useCallback, useMemo} from 'react';
 import {skipToken, useQuery, useQueryClient} from '@tanstack/react-query';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import type {
@@ -24,23 +25,15 @@ export enum SavedQueryType {
   EXPLORE = 'explore',
 }
 
-export type SavedQueryRef = {
-  queryId: number;
-  queryType: SavedQueryType;
-};
+export type SavedQueryRef = {queryId: number; queryType: SavedQueryType};
 
-export type RawGroupBy = {
-  groupBy: string;
-};
+export type RawGroupBy = {groupBy: string};
 
 function isRawGroupBy(value: any): value is RawGroupBy {
   return typeof value === 'object' && typeof value.groupBy === 'string';
 }
 
-export type RawVisualize = {
-  yAxes: string[];
-  chartType?: number;
-};
+export type RawVisualize = {yAxes: string[]; chartType?: number};
 
 export function isRawVisualize(value: any): value is RawVisualize {
   return (
@@ -146,7 +139,7 @@ export type ReadableSavedQuery = {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   start?: string;
   statsPeriod?: string;
 };
@@ -172,7 +165,7 @@ export class SavedQuery {
   environment?: string[];
   errorsOnly?: boolean;
   isPrebuilt?: boolean;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   start?: string | DateString;
   statsPeriod?: string;
 
@@ -262,11 +255,7 @@ function combinedSavedQueriesApiOptions(
 ) {
   return apiOptions.as<CombinedSavedQueryResponse[]>()(
     '/organizations/$organizationIdOrSlug/explore/all-queries/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, query, staleTime: 0}
   );
 }
 

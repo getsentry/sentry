@@ -34,10 +34,7 @@ export function createIngestionSeries(
   }
 
   const series: Series[] = [
-    {
-      ...orignalSeries,
-      data: orignalSeries.data.slice(0, -ingestionBuckets),
-    },
+    {...orignalSeries, data: orignalSeries.data.slice(0, -ingestionBuckets)},
   ];
 
   if (displayType === ChartType.BAR) {
@@ -85,9 +82,7 @@ function createIngestionLineSeries(series: Series, fogBucketCnt = 0) {
     silent: true,
     // We include the last non-fog of war bucket so that the line is connected
     data: series.data.slice(-fogBucketCnt - 1),
-    lineStyle: {
-      type: 'dotted' as const,
-    },
+    lineStyle: {type: 'dotted' as const},
   };
 }
 

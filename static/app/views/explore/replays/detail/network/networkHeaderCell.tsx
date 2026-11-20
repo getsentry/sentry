@@ -43,11 +43,7 @@ const COLUMNS: Array<{
     ),
   },
   {field: 'description', label: t('Path'), width: 'minmax(160px, 1fr)'},
-  {
-    field: 'op',
-    label: t('Type'),
-    width: '72px',
-  },
+  {field: 'op', label: t('Type'), width: '72px'},
   {
     field: 'size',
     label: t('Size'),

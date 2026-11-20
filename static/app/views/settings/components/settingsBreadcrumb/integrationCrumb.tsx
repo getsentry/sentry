@@ -20,9 +20,7 @@ import {IntegrationIcon} from 'sentry/views/settings/organizationIntegrations/in
 import {SettingsBreadcrumbSelector} from './settingsBreadcrumbSelector';
 import type {SettingsBreadcrumbSelectorProps} from './types';
 
-type IntegrationProviderResponse = {
-  providers: IntegrationProvider[];
-};
+type IntegrationProviderResponse = {providers: IntegrationProvider[]};
 
 export function IntegrationCrumb({
   to,
@@ -36,19 +34,14 @@ export function IntegrationCrumb({
   const params = useParams();
   const activeProviderKey = params.integrationSlug ?? params.providerKey;
   const {data: sentryApp, isPending: isSentryAppPending} = useQuery(
-    sentryAppApiOptions({
-      appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null,
-    })
+    sentryAppApiOptions({appSlug: isSentryAppRoute ? (activeProviderKey ?? null) : null})
   );
   const {data: integration, isPending: isIntegrationPending} = useQuery(
     apiOptions.as<Integration>()(
       '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
       {
         path: params.integrationId
-          ? {
-              organizationIdOrSlug: organization.slug,
-              integrationId: params.integrationId,
-            }
+          ? {organizationIdOrSlug: organization.slug, integrationId: params.integrationId}
           : skipToken,
         staleTime: 0,
       }
@@ -57,10 +50,7 @@ export function IntegrationCrumb({
   const {data, isPending} = useQuery(
     apiOptions.as<IntegrationProviderResponse>()(
       '/organizations/$organizationIdOrSlug/config/integrations/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        staleTime: Infinity,
-      }
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: Infinity}
     )
   );
 

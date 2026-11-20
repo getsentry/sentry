@@ -17,10 +17,7 @@ describe('AdminOrganizations', () => {
 
     render(<AdminOrganizations />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/manage/organizations/',
-          query: {sortBy: 'members'},
-        },
+        location: {pathname: '/manage/organizations/', query: {sortBy: 'members'}},
       },
     });
 

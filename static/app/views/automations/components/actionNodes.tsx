@@ -136,11 +136,7 @@ export const actionNodesMap = new Map<ActionType, ActionNode>([
   ],
   [
     ActionType.SENTRY_APP,
-    {
-      action: SentryAppNode,
-      details: SentryAppDetails,
-      validate: undefined,
-    },
+    {action: SentryAppNode, details: SentryAppDetails, validate: undefined},
   ],
   [
     ActionType.SLACK,

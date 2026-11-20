@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Sequence
 from datetime import datetime
 from typing import Any
@@ -914,6 +915,20 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
 
         truncated_text = "a" * 1497 + "..."
         assert blocks["blocks"][1]["text"]["text"] == f"```{truncated_text}```"
+
+    def test_truncates_long_title(self) -> None:
+        group = self.create_group(
+            project=self.project,
+            data={"type": "error", "metadata": {"type": "Fatal error: " + "a&b " * 1000}},
+        )
+
+        blocks = SlackIssuesMessageBuilder(group, None).build()
+
+        title_text = blocks["blocks"][0]["text"]["text"]
+        assert len(title_text) <= 3000
+        assert title_text.endswith("...*>")
+        assert "|*Fatal error: a&amp;b a&amp;b " in title_text
+        assert re.search(r"&[a-z]*\.\.\.\*>$", title_text) is None
 
     def test_escape_slack_message(self) -> None:
         group = self.create_group(

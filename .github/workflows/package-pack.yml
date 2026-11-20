@@ -7,6 +7,9 @@ on:
       # (`releaseBranchPrefix: '{{workspaceName}}/release'` in .craft.yml).
       - '*/release/**'
 
+permissions:
+  contents: read
+
 jobs:
   workspace:
     name: Resolve package workspace
@@ -17,6 +20,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           sparse-checkout: static/packages
+          persist-credentials: false
       - name: Resolve workspace from the release branch
         id: resolve
         env:
@@ -42,12 +46,14 @@ jobs:
       BUILDS_FROM_API_SPEC: ${{ needs.workspace.outputs.name == 'api' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
       - name: Setup sentry python env
         if: env.BUILDS_FROM_API_SPEC == 'true'
-        uses: ./.github/actions/setup-sentry
+        uses: $/.github/actions/setup-sentry
         with:
           skip-devservices: 'true'
-      - uses: ./.github/actions/setup-node-pnpm
+      - uses: $/.github/actions/setup-node-pnpm
       - run: pnpm install --frozen-lockfile --ignore-scripts
       - name: Configure sentry
         if: env.BUILDS_FROM_API_SPEC == 'true'

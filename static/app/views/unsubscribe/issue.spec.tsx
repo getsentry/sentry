@@ -58,10 +58,7 @@ describe('UnsubscribeIssue', () => {
 
     expect(mockUpdate).toHaveBeenCalledWith(
       '/organizations/acme/unsubscribe/issue/9876/',
-      expect.objectContaining({
-        data: {cancel: 1},
-        query: {_: 'signature-value'},
-      })
+      expect.objectContaining({data: {cancel: 1}, query: {_: 'signature-value'}})
     );
   });
 });

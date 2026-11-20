@@ -73,9 +73,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         value: <ResponseCode code={request.responseCode} />,
       },
     },
-    {
-      item: {key: 'eventType', subject: t('Event Type'), value: request.eventType},
-    },
+    {item: {key: 'eventType', subject: t('Event Type'), value: request.eventType}},
     request.organization
       ? {
           item: {
@@ -110,9 +108,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
         ),
       },
     },
-    {
-      item: {key: 'webhookUrl', subject: t('Webhook URL'), value: request.webhookUrl},
-    },
+    {item: {key: 'webhookUrl', subject: t('Webhook URL'), value: request.webhookUrl}},
     {
       item: {
         key: 'requestId',
@@ -133,13 +129,7 @@ function RequestLogDetails({request, isInternal, organization}: RequestLogDetail
       },
     },
     defined(request.error_id)
-      ? {
-          item: {
-            key: 'errorId',
-            subject: t('Error ID'),
-            value: request.error_id,
-          },
-        }
+      ? {item: {key: 'errorId', subject: t('Error ID'), value: request.error_id}}
       : undefined,
   ].filter(defined);
 

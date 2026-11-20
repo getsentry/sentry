@@ -136,10 +136,7 @@ function VisualizationWidgetComponent({
   });
 
   const releases =
-    releasesWithDate?.map(({date, version}) => ({
-      timestamp: date,
-      version,
-    })) ?? [];
+    releasesWithDate?.map(({date, version}) => ({timestamp: date, version})) ?? [];
 
   return (
     <WidgetCardDataLoader
@@ -340,10 +337,7 @@ function VisualizationWidgetContent({
         )?.value;
 
         const value = tableDataRows
-          ? matchTimeSeriesToTableRowValue({
-              tableDataRows,
-              timeSeries,
-            })
+          ? matchTimeSeriesToTableRowValue({tableDataRows, timeSeries})
           : null;
         const dataType = timeSeries.meta.valueType;
         const dataUnit = timeSeries.meta.valueUnit ?? undefined;
@@ -413,11 +407,7 @@ function VisualizationWidgetContent({
         return (
           <Fragment key={plottable.name}>
             <Container>
-              <SeriesColorIndicator
-                style={{
-                  backgroundColor: colorPalette[index],
-                }}
-              />
+              <SeriesColorIndicator style={{backgroundColor: colorPalette[index]}} />
             </Container>
             <Tooltip title={label} showOnlyOnOverflow>
               {labelContent}

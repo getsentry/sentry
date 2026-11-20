@@ -23,10 +23,7 @@ describe('EventDetailsHeader', () => {
     // first seen 19 days ago
     firstSeen: new Date(Date.now() - 19 * 24 * 60 * 60 * 1000).toISOString(),
   });
-  const event = EventFixture({
-    id: 'event-id',
-    occurrence: {evidenceData: {}},
-  });
+  const event = EventFixture({id: 'event-id', occurrence: {evidenceData: {}}});
 
   const defaultProps = {group, event, project};
 
@@ -72,9 +69,7 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={group} project={group.project}>
         <EventDetailsHeader {...defaultProps} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     await waitFor(() =>
       expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
@@ -87,9 +82,7 @@ describe('EventDetailsHeader', () => {
     ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Filter events\u2026')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', {
-        name: 'Toggle graph series - Events',
-      })
+      screen.getByRole('button', {name: 'Toggle graph series - Events'})
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', {name: 'Toggle graph series - Users'})
@@ -106,9 +99,7 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={oldGroup} project={oldGroup.project}>
         <EventDetailsHeader {...defaultProps} group={oldGroup} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     expect(await screen.findByRole('button', {name: '90D'})).toBeInTheDocument();
   });
@@ -117,13 +108,7 @@ describe('EventDetailsHeader', () => {
     const [tagKey, tagValue] = ['user.email', 's@s.io'];
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/tags/${tagKey}/values/`,
-      body: [
-        {
-          key: tagKey,
-          name: tagValue,
-          value: tagValue,
-        },
-      ],
+      body: [{key: tagKey, name: tagValue, value: tagValue}],
       method: 'GET',
     });
 
@@ -229,9 +214,7 @@ describe('EventDetailsHeader', () => {
       <GroupDataContextProvider group={group} project={group.project}>
         <EventDetailsHeader {...defaultProps} />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     await waitFor(() =>
       expect(screen.queryByTestId('event-graph-loading')).not.toBeInTheDocument()
@@ -264,9 +247,7 @@ describe('EventDetailsHeader', () => {
           })}
         />
       </GroupDataContextProvider>,
-      {
-        organization,
-      }
+      {organization}
     );
     expect(await screen.findByText('Status Code')).toBeInTheDocument();
     expect(screen.getByText('500')).toBeInTheDocument();

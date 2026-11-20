@@ -41,9 +41,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {AssociatedReleases} from './associatedReleases';
 import {useDeleteDebugIdBundle} from './useDeleteDebugIdBundle';
 
-type Props = {
-  project: Project;
-};
+type Props = {project: Project};
 
 type SourceMapUpload = {
   associations: DebugIdBundleAssociation[];
@@ -136,10 +134,7 @@ function useSourceMapUploads({
   const {data: releasesData, isPending: releasesLoading} = useQuery({
     ...apiOptions.as<Release[]>()('/organizations/$organizationIdOrSlug/releases/', {
       path: {organizationIdOrSlug: organization.slug},
-      query: {
-        project: [project.id],
-        query: `release:[${releaseVersions.join(',')}]`,
-      },
+      query: {project: [project.id], query: `release:[${releaseVersions.join(',')}]`},
       staleTime: Infinity,
     }),
     retry: false,
@@ -183,16 +178,9 @@ export function SourceMapsList({project}: Props) {
     pageLinks,
     isPending,
     refetch,
-  } = useSourceMapUploads({
-    organization,
-    project,
-    query,
-    cursor,
-  });
+  } = useSourceMapUploads({organization, project, query, cursor});
 
-  const {mutate: deleteSourceMaps} = useDeleteDebugIdBundle({
-    onSuccess: () => refetch(),
-  });
+  const {mutate: deleteSourceMaps} = useDeleteDebugIdBundle({onSuccess: () => refetch()});
 
   const handleSearch = useCallback(
     (newQuery: string) => {
@@ -213,9 +201,7 @@ export function SourceMapsList({project}: Props) {
         title={t('Source Map Uploads')}
         subtitle={tct(
           'These source map archives help Sentry identify where to look when code is minified. By providing this information, you can get better context for your stack traces when debugging. To learn more about source maps, [link: read the docs].',
-          {
-            link: <ExternalLink href={sourceMapsLinks.sourcemaps} />,
-          }
+          {link: <ExternalLink href={sourceMapsLinks.sourcemaps} />}
         )}
       />
       <SearchBarWithMarginBottom
@@ -315,9 +301,7 @@ function SourceMapsEmptyState({
             )
           : tct(
               'Source maps allow Sentry to map your production code to your source code. See our [docs:docs] to learn more about configuring your application to upload source maps to Sentry.',
-              {
-                docs: <ExternalLink href={docsLink} />,
-              }
+              {docs: <ExternalLink href={docsLink} />}
             )}
       </EmptyMessage>
     </Panel>
@@ -417,11 +401,7 @@ function SourceMapUploadDetails({
 
     const visibleAssociations = showAll ? rows : rows.slice(0, 3);
     return [
-      {
-        key: 'id',
-        subject: t('Upload ID'),
-        value: sourceMapUpload.id,
-      },
+      {key: 'id', subject: t('Upload ID'), value: sourceMapUpload.id},
       {
         key: 'releases',
         subject: t('Found in Releases'),

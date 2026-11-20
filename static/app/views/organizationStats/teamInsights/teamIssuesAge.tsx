@@ -61,9 +61,7 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   } = useQuery(
     apiOptions.as<Group[]>()('/teams/$organizationIdOrSlug/$teamIdOrSlug/issues/old/', {
       path: {organizationIdOrSlug: organization.slug, teamIdOrSlug: teamSlug},
-      query: {
-        limit: 7,
-      },
+      query: {limit: 7},
       staleTime: 5000,
     })
   );
@@ -97,10 +95,7 @@ export function TeamIssuesAge({organization, teamSlug}: TeamIssuesAgeProps) {
   }
 
   const seriesData = Object.entries(unresolvedIssueAge ?? {})
-    .map(([bucket, value]) => ({
-      name: bucket,
-      value,
-    }))
+    .map(([bucket, value]) => ({name: bucket, value}))
     .sort((a, b) => parseBucket(b.name) - parseBucket(a.name));
 
   return (

@@ -20,35 +20,21 @@ const rootDir = path.resolve(import.meta.dirname, '../..');
 
 const swcConfig: SwcOptions = {
   isModule: true,
-  module: {
-    type: 'commonjs',
-  },
+  module: {type: 'commonjs'},
   sourceMaps: 'inline',
   jsc: {
     target: 'esnext',
-    parser: {
-      syntax: 'typescript',
-      tsx: true,
-      dynamicImport: true,
-    },
+    parser: {syntax: 'typescript', tsx: true, dynamicImport: true},
     transform: {
-      react: {
-        runtime: 'automatic',
-        importSource: '@emotion/react',
-      },
-      optimizer: {
-        globals: {vars: {'import.meta.hot': 'undefined'}},
-      },
+      react: {runtime: 'automatic', importSource: '@emotion/react'},
+      optimizer: {globals: {vars: {'import.meta.hot': 'undefined'}}},
     },
     experimental: {
       plugins: [
         [fileURLToPath(import.meta.resolve('@swc-contrib/mut-cjs-exports')), {}],
         [
           fileURLToPath(import.meta.resolve('@swc/plugin-emotion')),
-          {
-            sourceMap: false,
-            autoLabel: 'never',
-          },
+          {sourceMap: false, autoLabel: 'never'},
         ],
       ],
     },

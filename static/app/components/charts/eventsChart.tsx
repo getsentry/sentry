@@ -201,13 +201,7 @@ function Chart({
     : seriesSelection;
 
   const legend = showLegend
-    ? {
-        right: 16,
-        top: 12,
-        data,
-        selected,
-        ...legendOptions,
-      }
+    ? {right: 16, top: 12, data, selected, ...legendOptions}
     : undefined;
 
   let series = Array.isArray(releaseSeries)
@@ -261,9 +255,7 @@ function Chart({
   const chartOptions = {
     colors: chartColors,
     grid: band.grid,
-    seriesOptions: {
-      showSymbol: false,
-    },
+    seriesOptions: {showSymbol: false},
     tooltip: {
       trigger: 'axis' as const,
       truncate: 80,

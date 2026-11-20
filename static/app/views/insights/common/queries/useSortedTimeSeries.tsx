@@ -121,10 +121,7 @@ export const useSortedTimeSeries = <
       interval,
       sampling: samplingMode,
       extrapolate: !disableAggregateExtrapolation,
-      queryOptions: {
-        enabled: enabled && pageFilters.isReady,
-        staleTime,
-      },
+      queryOptions: {enabled: enabled && pageFilters.isReady, staleTime},
     },
     referrer
   );
@@ -145,11 +142,7 @@ export const useSortedTimeSeries = <
     return Object.groupBy(series, ts => ts.yAxis) as SeriesMap;
   }, [result.data, transformations, yAxis]);
 
-  return {
-    ...result,
-    data,
-    meta: result.data?.meta,
-  };
+  return {...result, data, meta: result.data?.meta};
 };
 
 export type SortedTimeSeries = ReturnType<typeof useSortedTimeSeries>;

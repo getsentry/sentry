@@ -24,12 +24,7 @@ describe('ReleasesRequest', () => {
   const selection = {
     projects: [projectId],
     environments: [],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: false,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: false},
   };
 
   let requestForAutoHealthStatsPeriodSessionHistogram: jest.Mock;
@@ -188,12 +183,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
       >
@@ -418,12 +408,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.USERS]}
         selection={selection}
       >
@@ -646,12 +631,7 @@ describe('ReleasesRequest', () => {
           'e102abb2c46e7fe8686441091005c12aed90da99',
         ]}
         organization={organization}
-        location={{
-          ...location,
-          query: {
-            project: [`${projectId}`],
-          },
-        }}
+        location={{...location, query: {project: [`${projectId}`]}}}
         display={[ReleasesDisplayOption.SESSIONS]}
         selection={selection}
         healthStatsPeriod={HealthStatsPeriodOption.AUTO}

@@ -25,11 +25,7 @@ export type SaveQueryEventParameters = {
 };
 
 export type DiscoverEventParameters = SaveQueryEventParameters & {
-  'discover_search.failed': {
-    error: string;
-    search_source: string;
-    search_type: string;
-  };
+  'discover_search.failed': {error: string; search_source: string; search_type: string};
   'discover_search.success': {
     has_results: boolean;
     search_source: string;
@@ -53,16 +49,12 @@ export type DiscoverEventParameters = SaveQueryEventParameters & {
   'discover_v2.results.download_csv': Record<string, unknown>;
   'discover_v2.results.drilldown': Record<string, unknown>;
   'discover_v2.results.toggle_tag_facets': Record<string, unknown>;
-  'discover_v2.save_existing_query_failed': SaveQueryParams & {error: string};
   'discover_v2.saved_query_click': Record<string, unknown>;
   'discover_v2.set_as_default': {
     source: 'homepage' | 'prebuilt-query' | 'saved-query' | 'context-menu';
     // For breaking down context-menu events
     type?: 'prebuilt-query' | 'saved-query';
   };
-  'discover_v2.tour.advance': {duration: number; step: number};
-  'discover_v2.tour.close': {duration: number; step: number};
-  'discover_v2.tour.start': Record<string, unknown>;
   'discover_v2.update_columns': Record<string, unknown>;
   'discover_v2.view_saved_queries': Record<string, unknown>;
   'discover_v2.y_axis_change': {y_axis_value: string[]};
@@ -80,9 +72,6 @@ export const discoverEventMap: Record<DiscoverEventKey, string | null> = {
   'discover_v2.build_new_query': 'Discoverv2: Build a new Discover Query',
   'discover_v2.change_sort': 'Discoverv2: Sort By Changed',
   'discover_v2.prebuilt_query_click': 'Discoverv2: Click a pre-built query',
-  'discover_v2.tour.advance': 'Discoverv2: Tour Advance',
-  'discover_v2.tour.close': 'Discoverv2: Tour Close',
-  'discover_v2.tour.start': 'Discoverv2: Tour Start',
   'discover_v2.saved_query_click': 'Discoverv2: Click a saved query',
   'discover_v2.view_saved_queries': 'Discoverv2: Click Saved Queries button',
   'discover_v2.set_as_default': 'Discoverv2: Click set as default',

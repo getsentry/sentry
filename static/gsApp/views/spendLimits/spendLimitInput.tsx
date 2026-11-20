@@ -33,11 +33,7 @@ export function SpendLimitInput({
     reserved !== null;
   const inputName = isPerCategory ? category : 'sharedMaxBudget';
   const displayName = isPerCategory
-    ? getPlanCategoryName({
-        plan: activePlan,
-        category,
-        capitalize: false,
-      })
+    ? getPlanCategoryName({plan: activePlan, category, capitalize: false})
     : 'shared';
 
   return (

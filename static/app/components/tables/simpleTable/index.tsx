@@ -241,9 +241,9 @@ const StyledHeaderRow = styled(Table.Row, {
   align-items: center;
 `;
 
-const StyledRow = styled(Table.Row, {
-  shouldForwardProp: prop => prop !== 'variant',
-})<{variant?: 'default' | 'faded'}>`
+const StyledRow = styled(Table.Row, {shouldForwardProp: prop => prop !== 'variant'})<{
+  variant?: 'default' | 'faded';
+}>`
   align-items: center;
 
   ${p =>

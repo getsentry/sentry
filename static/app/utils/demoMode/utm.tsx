@@ -64,9 +64,5 @@ export function getUTMState(): UTMState {
         return a;
       }, {}),
   };
-  return {
-    data: extraData,
-    trackableQuery,
-    touches,
-  };
+  return {data: extraData, trackableQuery, touches};
 }

@@ -158,9 +158,7 @@ export function AskSeerPollingComboBox<T extends QueryTokensProps>({
       emptyTitle={t("Describe what you're looking for")}
       additionalFeedbackTags={
         runId
-          ? {
-              conversation_url: getConversationsUrlForExternalUse('sentry', runId),
-            }
+          ? {conversation_url: getConversationsUrlForExternalUse('sentry', runId)}
           : undefined
       }
       onReset={reset}

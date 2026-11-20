@@ -11,10 +11,7 @@ describe('hydrateRRWebRecordingFrames', () => {
       expect(frame).toStrictEqual({
         type: 5,
         timestamp: replayRecord.finished_at.getTime(),
-        data: {
-          tag: 'replay.end',
-          payload: {},
-        },
+        data: {tag: 'replay.end', payload: {}},
       });
     });
   });

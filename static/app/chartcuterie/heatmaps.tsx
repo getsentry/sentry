@@ -16,9 +16,7 @@ import {CHART_SIZE, FONT_SIZE} from './timeseries';
 import type {RenderDescriptor} from './types';
 import {ChartType} from './types';
 
-type HeatMapChartData = {
-  heatmap: HeatMapSeries;
-};
+type HeatMapChartData = {heatmap: HeatMapSeries};
 
 export function buildHeatmapChartOption({
   theme,
@@ -68,10 +66,7 @@ export const makeHeatmapCharts = (theme: Theme): Array<RenderDescriptor<ChartTyp
   {
     key: ChartType.SLACK_HEATMAP,
     getOption: (data: HeatMapChartData) =>
-      buildHeatmapChartOption({
-        theme,
-        heatMapSeries: data.heatmap,
-      }),
+      buildHeatmapChartOption({theme, heatMapSeries: data.heatmap}),
     ...CHART_SIZE,
   },
 ];

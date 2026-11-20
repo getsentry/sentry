@@ -271,9 +271,7 @@ export class Samples implements Plottable {
           })
         : undefined,
       animation: false,
-      emphasis: {
-        scale: 1.2,
-      },
+      emphasis: {scale: 1.2},
       symbolSize: 14,
       itemStyle: {
         color: callbackValue => {

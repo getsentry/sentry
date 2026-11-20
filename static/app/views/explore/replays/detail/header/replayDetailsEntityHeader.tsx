@@ -63,10 +63,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
     },
   };
 
-  const errorsTab = {
-    ...location,
-    query: {...location.query, t_main: TabKey.ERRORS},
-  };
+  const errorsTab = {...location, query: {...location.query, t_main: TabKey.ERRORS}};
 
   const userSearchQuery = replayRecord ? getUserSearchQuery(replayRecord.user) : null;
   const replaysIndexUrl =
@@ -124,11 +121,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       title: replaysIndexUrl
         ? {...title, type: 'link' as const, to: replaysIndexUrl}
         : {...title, type: 'text' as const},
-      people: {
-        users: viewers.users,
-        label: t('Viewed by'),
-        isLoading: viewers.isPending,
-      },
+      people: {users: viewers.users, label: t('Viewed by'), isLoading: viewers.isPending},
       stats: {
         label: t('Replay stats'),
         items: [
@@ -223,11 +216,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
       readerResult={readerResult}
       renderArchived={() => (
         <EntityHeader
-          title={{
-            type: 'text',
-            label: t('Session replay'),
-            value: t('Deleted Replay'),
-          }}
+          title={{type: 'text', label: t('Session replay'), value: t('Deleted Replay')}}
         />
       )}
       renderError={() => null}

@@ -9,10 +9,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 
 interface UseSourceCodeLinkProps {
   commitId: string | undefined;
-  frame: {
-    file: string | undefined;
-    path: string | undefined;
-  };
+  frame: {file: string | undefined; path: string | undefined};
   organization: Organization;
   platform: string | undefined;
   project: Project | undefined;

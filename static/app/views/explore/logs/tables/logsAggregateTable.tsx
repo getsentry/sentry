@@ -68,11 +68,7 @@ export function LogsAggregateTable({
 }) {
   const {data, pageLinks, isLoading, error, refetch, eventView} = aggregatesTableResult;
   const meta = useMemo(
-    () =>
-      addValidatedFieldTypesToLogsMeta({
-        meta: data?.meta,
-        validatedFieldTypes,
-      }),
+    () => addValidatedFieldTypesToLogsMeta({meta: data?.meta, validatedFieldTypes}),
     [data?.meta, validatedFieldTypes]
   );
 
@@ -194,10 +190,7 @@ export function LogsAggregateTable({
                 key={column.key}
                 extra={extra}
                 meta={meta}
-                item={{
-                  fieldKey: column.key,
-                  value,
-                }}
+                item={{fieldKey: column.key, value}}
               />
             );
 

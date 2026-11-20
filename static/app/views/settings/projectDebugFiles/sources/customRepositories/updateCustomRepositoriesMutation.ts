@@ -10,9 +10,7 @@ import {expandKeys, getRequestMessages} from './utils';
 
 export type RepositoryConfig = CustomRepo | CustomRepoFormData;
 
-type UpdateCustomRepositoriesVariables = {
-  repositories: RepositoryConfig[];
-};
+type UpdateCustomRepositoriesVariables = {repositories: RepositoryConfig[]};
 
 export function useUpdateCustomRepositoriesMutation(
   project: Project,

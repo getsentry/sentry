@@ -165,6 +165,7 @@ function AgentConnectionStory() {
           <WelcomeAgentSetup
             hasInitFailed={false}
             hasProgressFailed={false}
+            hasRunFailed={false}
             onRefresh={() => {}}
             isAgentConnected={isAgentConnected}
             onCopyCommand={() => {}}

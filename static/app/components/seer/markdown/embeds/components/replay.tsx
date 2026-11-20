@@ -19,10 +19,7 @@ import {makeReplaysPathname} from 'sentry/views/explore/replays/pathnames';
 import {ResourceLink, type ResourceLinkFormatProps} from './resourceLink';
 import {SeerEmbedBlock} from './seerEmbedBlock';
 
-const CLIP_OFFSETS = {
-  durationAfterMs: 5_000,
-  durationBeforeMs: 5_000,
-};
+const CLIP_OFFSETS = {durationAfterMs: 5_000, durationBeforeMs: 5_000};
 
 const ReplayClipPreview = lazy(
   () => import('sentry/components/events/eventReplay/replayClipPreview')

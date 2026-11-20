@@ -72,12 +72,7 @@ export function PartialTraceDataWarning({
     selection: {
       ...selection,
       projects,
-      datetime: {
-        start: null,
-        end: null,
-        utc: null,
-        period: '24h',
-      },
+      datetime: {start: null, end: null, utc: null, period: '24h'},
     },
   });
 
@@ -91,9 +86,7 @@ export function PartialTraceDataWarning({
       <Text as="p">
         {tct(
           '[dataCategory] Trace may be missing spans since the age of the trace is older than 30 days',
-          {
-            dataCategory: <Text bold>{t('Partial Trace Data:')}</Text>,
-          }
+          {dataCategory: <Text bold>{t('Partial Trace Data:')}</Text>}
         )}
       </Text>
     </Alert>

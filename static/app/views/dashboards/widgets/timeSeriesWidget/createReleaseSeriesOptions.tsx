@@ -29,9 +29,7 @@ export function createReleaseSeriesOptions(
         opacity: 0.3,
         type: 'solid',
       },
-      label: {
-        show: false,
-      },
+      label: {show: false},
       data: releases.map(release => ({
         xAxis: new Date(release.timestamp).getTime(),
         name: formatVersion(release.version, true),
@@ -39,9 +37,7 @@ export function createReleaseSeriesOptions(
         onClick: () => {
           onClick(release);
         },
-        label: {
-          formatter: () => formatVersion(release.version, true),
-        },
+        label: {formatter: () => formatVersion(release.version, true)},
       })),
       tooltip: {
         trigger: 'item',

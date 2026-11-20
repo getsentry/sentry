@@ -6,28 +6,16 @@ interface ReferrerConfig {
   tooltip: string | undefined;
 }
 
-const FALLBACK_CONFIG = {
-  pattern: /^.*/,
-  tooltip: undefined,
-};
+const FALLBACK_CONFIG = {pattern: /^.*/, tooltip: undefined};
 
 const REFERRER_CONFIG: ReferrerConfig[] = [
-  {
-    pattern: /^api\.group_ai_autofix$/,
-    tooltip: t('Manually triggered'),
-  },
-  {
-    pattern: /^issue_summary\.alert_fixability$/,
-    tooltip: t('Auto-triggered from alert'),
-  },
+  {pattern: /^api\.group_ai_autofix$/, tooltip: t('Manually triggered')},
+  {pattern: /^issue_summary\.alert_fixability$/, tooltip: t('Auto-triggered from alert')},
   {
     pattern: /^issue_summary\.post_process_fixability$/,
     tooltip: t('Auto-triggered on event ingestion'),
   },
-  {
-    pattern: /^issue_summary\./,
-    tooltip: t('Auto-triggered from issue summary'),
-  },
+  {pattern: /^issue_summary\./, tooltip: t('Auto-triggered from issue summary')},
   {pattern: /^slack$/, tooltip: t('Triggered from Slack')},
   {
     pattern: /^autofix\.on_completion_hook$/,

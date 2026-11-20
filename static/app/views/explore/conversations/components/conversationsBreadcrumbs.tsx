@@ -52,9 +52,7 @@ export function ConversationsBreadcrumbs({
           label: COPY_ID_LABEL,
           tooltip: COPY_ID_LABEL,
           onCopy: () =>
-            trackAnalytics('conversations.detail.copy-conversation-id', {
-              organization,
-            }),
+            trackAnalytics('conversations.detail.copy-conversation-id', {organization}),
         },
       }}
       items={[

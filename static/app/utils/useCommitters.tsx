@@ -25,11 +25,7 @@ const makeCommittersApiOptions = (
   apiOptions.as<CommittersResponse>()(
     '/projects/$organizationIdOrSlug/$projectIdOrSlug/events/$eventId/committers/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        projectIdOrSlug: projectSlug,
-        eventId,
-      },
+      path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug, eventId},
       staleTime: Infinity,
     }
   );

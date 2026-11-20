@@ -109,7 +109,9 @@ class OrganizationNotebookCommentIndexEndpoint(OrganizationNotebookEndpoint):
         Requires the organizations:investigations feature and open organization membership.
         """
         author_id = require_authenticated_user(request)
-        validator = CommentCreateValidator(data=request.data, context={"notebook": notebook})
+        validator = CommentCreateValidator(
+            data=request.data, context={"notebook": notebook, "organization": organization}
+        )
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
         comment = validator.save(author_id=author_id)

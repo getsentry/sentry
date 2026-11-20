@@ -13,10 +13,7 @@ import {DiscoverBackground} from './illustrations/discoverBackground';
 import PageUpsellOverlay from './pageUpsellOverlay';
 import PlanFeature from './planFeature';
 
-type Props = React.PropsWithChildren<{
-  features: string[];
-  organization: Organization;
-}>;
+type Props = React.PropsWithChildren<{features: string[]; organization: Organization}>;
 
 const TextWrapper = styled('div')`
   width: 550px;

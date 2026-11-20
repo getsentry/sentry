@@ -78,10 +78,7 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
   switch (type) {
     case EventOrGroupType.ERROR: {
       if (customTitle && customTitle !== '<unlabeled event>') {
-        return {
-          title: customTitle,
-          subtitle: culprit,
-        };
+        return {title: customTitle, subtitle: culprit};
       }
 
       return {
@@ -100,23 +97,14 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
         subtitle: metadata.uri ?? '',
       };
     case EventOrGroupType.DEFAULT:
-      return {
-        title: customTitle ?? title,
-        subtitle: '',
-      };
+      return {title: customTitle ?? title, subtitle: ''};
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC: {
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
-      return {
-        title: customTitle ?? title,
-        subtitle: isIssue ? culprit : '',
-      };
+      return {title: customTitle ?? title, subtitle: isIssue ? culprit : ''};
     }
     default:
-      return {
-        title: customTitle ?? title,
-        subtitle: '',
-      };
+      return {title: customTitle ?? title, subtitle: ''};
   }
 }
 

@@ -17,11 +17,7 @@ describe('arithmeticInput/parser', () => {
 
   it('handles some addition', () => {
     expect(parseArithmetic('1 + 2').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: '1',
-        rhs: '2',
-      })
+      new Operation({operator: 'plus', lhs: '1', rhs: '2'})
     );
   });
 
@@ -29,11 +25,7 @@ describe('arithmeticInput/parser', () => {
     expect(parseArithmetic('1 + 2 + 3').result).toStrictEqual(
       new Operation({
         operator: 'plus',
-        lhs: new Operation({
-          operator: 'plus',
-          lhs: '1',
-          rhs: '2',
-        }),
+        lhs: new Operation({operator: 'plus', lhs: '1', rhs: '2'}),
         rhs: '3',
       })
     );
@@ -41,11 +33,7 @@ describe('arithmeticInput/parser', () => {
 
   it('handles some multiplication', () => {
     expect(parseArithmetic('1 * 2').result).toStrictEqual(
-      new Operation({
-        operator: 'multiply',
-        lhs: '1',
-        rhs: '2',
-      })
+      new Operation({operator: 'multiply', lhs: '1', rhs: '2'})
     );
   });
 
@@ -53,11 +41,7 @@ describe('arithmeticInput/parser', () => {
     expect(parseArithmetic('1 * 2 * 3').result).toStrictEqual(
       new Operation({
         operator: 'multiply',
-        lhs: new Operation({
-          operator: 'multiply',
-          lhs: '1',
-          rhs: '2',
-        }),
+        lhs: new Operation({operator: 'multiply', lhs: '1', rhs: '2'}),
         rhs: '3',
       })
     );
@@ -68,22 +52,14 @@ describe('arithmeticInput/parser', () => {
       new Operation({
         operator: 'multiply',
         lhs: '1',
-        rhs: new Operation({
-          operator: 'plus',
-          lhs: '2',
-          rhs: '3',
-        }),
+        rhs: new Operation({operator: 'plus', lhs: '2', rhs: '3'}),
       })
     );
 
     expect(parseArithmetic('(1 + 2) / 3').result).toStrictEqual(
       new Operation({
         operator: 'divide',
-        lhs: new Operation({
-          operator: 'plus',
-          lhs: '1',
-          rhs: '2',
-        }),
+        lhs: new Operation({operator: 'plus', lhs: '1', rhs: '2'}),
         rhs: '3',
       })
     );
@@ -94,22 +70,14 @@ describe('arithmeticInput/parser', () => {
       new Operation({
         operator: 'plus',
         lhs: '1',
-        rhs: new Operation({
-          operator: 'multiply',
-          lhs: '2',
-          rhs: '3',
-        }),
+        rhs: new Operation({operator: 'multiply', lhs: '2', rhs: '3'}),
       })
     );
 
     expect(parseArithmetic('1 / 2 - 3').result).toStrictEqual(
       new Operation({
         operator: 'minus',
-        lhs: new Operation({
-          operator: 'divide',
-          lhs: '1',
-          rhs: '2',
-        }),
+        lhs: new Operation({operator: 'divide', lhs: '1', rhs: '2'}),
         rhs: '3',
       })
     );
@@ -117,19 +85,11 @@ describe('arithmeticInput/parser', () => {
 
   it('handles fields and functions', () => {
     expect(parseArithmetic('spans.db + measurements.lcp').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: 'spans.db',
-        rhs: 'measurements.lcp',
-      })
+      new Operation({operator: 'plus', lhs: 'spans.db', rhs: 'measurements.lcp'})
     );
 
     expect(parseArithmetic('failure_count() + count_unique(user)').result).toStrictEqual(
-      new Operation({
-        operator: 'plus',
-        lhs: 'failure_count()',
-        rhs: 'count_unique(user)',
-      })
+      new Operation({operator: 'plus', lhs: 'failure_count()', rhs: 'count_unique(user)'})
     );
   });
 });

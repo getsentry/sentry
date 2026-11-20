@@ -120,9 +120,7 @@ describe('useBandTooltips', () => {
     const anchorX = window.innerWidth - chartLeft - 10;
 
     const {result} = renderHookWithProviders(() =>
-      useBandTooltips([band('dropped', [bucket(0)])], {
-        chartRef: chartRefOf({chartLeft}),
-      })
+      useBandTooltips([band('dropped', [bucket(0)])], {chartRef: chartRefOf({chartLeft})})
     );
 
     const {position} = tooltipOf(result.current[0]);

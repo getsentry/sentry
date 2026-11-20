@@ -129,11 +129,7 @@ type TooltipFormatters =
   | 'nameFormatter'
   | 'markerFormatter';
 
-export type TooltipSubLabel = {
-  data: DataPoint[];
-  label: string;
-  parentLabel: string;
-};
+export type TooltipSubLabel = {data: DataPoint[]; label: string; parentLabel: string};
 
 export type FormatterOptions = Pick<
   NonNullable<ChartProps['tooltip']>,
@@ -328,10 +324,7 @@ export function getFormatter({
 
         return acc;
       },
-      {
-        series: [],
-        total: 0,
-      }
+      {series: [], total: 0}
     );
 
     if (hiddenSeriesCount > 0) {
@@ -518,10 +511,7 @@ export function computeChartTooltip(
         arrow.classList.toggle('arrow-top', arrowOnTop);
       }
 
-      return {
-        left: leftPos,
-        top: topPos,
-      };
+      return {left: leftPos, top: topPos};
     },
     formatter,
     ...props,

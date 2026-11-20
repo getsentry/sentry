@@ -117,14 +117,8 @@ export function useRawCounts({
   const totalCount = totalCountResult.data?.data?.[0]?.[count] ?? null;
 
   return {
-    normal: {
-      isLoading: normalScanResult.isFetching,
-      count: normalScanCount,
-    },
-    total: {
-      isLoading: totalCountResult.isFetching,
-      count: totalCount,
-    },
+    normal: {isLoading: normalScanResult.isFetching, count: normalScanCount},
+    total: {isLoading: totalCountResult.isFetching, count: totalCount},
   };
 }
 

@@ -13,9 +13,7 @@ describe('useTimeout', () => {
   });
 
   it('should timeout after a specified delay', () => {
-    const {result} = renderHook(useTimeout, {
-      initialProps: {timeMs, onTimeout},
-    });
+    const {result} = renderHook(useTimeout, {initialProps: {timeMs, onTimeout}});
 
     result.current.start();
     expect(onTimeout).not.toHaveBeenCalled();
@@ -26,9 +24,7 @@ describe('useTimeout', () => {
   });
 
   it('should call the callback if a timeout is ended early', () => {
-    const {result} = renderHook(useTimeout, {
-      initialProps: {timeMs, onTimeout},
-    });
+    const {result} = renderHook(useTimeout, {initialProps: {timeMs, onTimeout}});
 
     result.current.start();
     expect(onTimeout).not.toHaveBeenCalled();
@@ -38,9 +34,7 @@ describe('useTimeout', () => {
   });
 
   it('should not exec the callback if a timeout is cancelled', () => {
-    const {result} = renderHook(useTimeout, {
-      initialProps: {timeMs, onTimeout},
-    });
+    const {result} = renderHook(useTimeout, {initialProps: {timeMs, onTimeout}});
 
     result.current.start();
     expect(onTimeout).not.toHaveBeenCalled();
@@ -93,9 +87,7 @@ describe('useTimeout', () => {
   });
 
   it('should not exec the callback after unmount', () => {
-    const {result, unmount} = renderHook(useTimeout, {
-      initialProps: {timeMs, onTimeout},
-    });
+    const {result, unmount} = renderHook(useTimeout, {initialProps: {timeMs, onTimeout}});
 
     result.current.start();
 

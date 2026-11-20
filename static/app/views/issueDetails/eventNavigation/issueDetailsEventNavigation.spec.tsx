@@ -63,9 +63,7 @@ describe('IssueDetailsEventNavigation', () => {
     it('can navigate to the oldest event', async () => {
       const {router} = render(
         <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
-        {
-          initialRouterConfig: latestRouterConfig,
-        }
+        {initialRouterConfig: latestRouterConfig}
       );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'First'}));
@@ -81,9 +79,7 @@ describe('IssueDetailsEventNavigation', () => {
     it('can navigate to the latest event', async () => {
       const {router} = render(
         <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
-        {
-          initialRouterConfig: recommendedRouterConfig,
-        }
+        {initialRouterConfig: recommendedRouterConfig}
       );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Latest'}));
@@ -99,9 +95,7 @@ describe('IssueDetailsEventNavigation', () => {
     it('can navigate to the recommended event', async () => {
       const {router} = render(
         <IssueDetailsEventNavigation {...defaultProps} isSmallNav />,
-        {
-          initialRouterConfig: latestRouterConfig,
-        }
+        {initialRouterConfig: latestRouterConfig}
       );
 
       await userEvent.click(await screen.findByRole('tab', {name: 'Rec.'}));

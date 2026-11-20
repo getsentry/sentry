@@ -6,11 +6,7 @@ import {Link} from '@sentry/scraps/link';
 
 import {t} from 'sentry/locale';
 
-type Item = {
-  target: LocationDescriptor;
-  value: string;
-  onClick?: () => void;
-};
+type Item = {target: LocationDescriptor; value: string; onClick?: () => void};
 
 interface ArrayLinksProps {
   items: Item[];

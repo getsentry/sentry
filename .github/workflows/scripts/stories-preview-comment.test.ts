@@ -252,10 +252,7 @@ describe('syncStoriesPreviewComment', () => {
       files,
       dirContents: {
         'static/packages/scraps/src/button': [
-          {
-            name: 'button.mdx',
-            path: 'static/packages/scraps/src/button/button.mdx',
-          },
+          {name: 'button.mdx', path: 'static/packages/scraps/src/button/button.mdx'},
         ],
       },
     });
@@ -265,10 +262,7 @@ describe('syncStoriesPreviewComment', () => {
   it('links a directory-named story when index.tsx changed', async () => {
     const calls = await run({
       files: [
-        {
-          filename: 'static/packages/scraps/src/disclosure/index.tsx',
-          status: 'modified',
-        },
+        {filename: 'static/packages/scraps/src/disclosure/index.tsx', status: 'modified'},
       ],
       dirContents: {
         'static/packages/scraps/src/disclosure': [

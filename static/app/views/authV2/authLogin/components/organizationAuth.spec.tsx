@@ -11,15 +11,8 @@ const authOrganization: AuthOrganization = {
   joinRequestUrl: '/join-request/acme/',
   loginMethod: 'sso',
   ssoRequired: true,
-  organization: {
-    avatarUrl: 'https://example.com/avatar.png',
-    name: 'Acme',
-    slug: 'acme',
-  },
-  provider: {
-    key: 'saml2',
-    name: 'SAML',
-  },
+  organization: {avatarUrl: 'https://example.com/avatar.png', name: 'Acme', slug: 'acme'},
+  provider: {key: 'saml2', name: 'SAML'},
   warnings: [],
 };
 

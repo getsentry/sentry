@@ -188,11 +188,7 @@ const ITEM_PADDING_BY_SIZE = {
 } as const;
 
 // Item size follows the form scale, where `sm` controls still use `md` text.
-const LABEL_TEXT_SIZE_BY_SIZE = {
-  xs: 'sm',
-  sm: 'md',
-  md: 'md',
-} as const;
+const LABEL_TEXT_SIZE_BY_SIZE = {xs: 'sm', sm: 'md', md: 'md'} as const;
 
 /** Resolves an item's text color from its priority and disabled state. */
 function getTextColor({
@@ -224,12 +220,7 @@ const StyledInnerWrap = styled(Flex, {
     (isPropValid(prop) ||
       ['padding', 'paddingLeft', 'paddingRight', 'align', 'alignSelf'].includes(prop)) &&
     !['disabled', 'hasTrailingAction', 'priority'].includes(prop),
-})<{
-  disabled: boolean;
-  hasTrailingAction: boolean;
-  priority: Priority;
-  size?: FormSize;
-}>`
+})<{disabled: boolean; hasTrailingAction: boolean; priority: Priority; size?: FormSize}>`
   gap: ${p => p.theme.space.xs};
   position: relative;
   border-radius: ${p => p.theme.radius.md};
@@ -802,9 +793,7 @@ const StyledPositionWrapper = styled(PositionWrapper)`
   }
 `;
 
-const StyledOverlay = styled(Overlay)<{
-  size: MenuListItemProps['size'];
-}>`
+const StyledOverlay = styled(Overlay)<{size: MenuListItemProps['size']}>`
   padding: 4px;
   font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
   cursor: auto;

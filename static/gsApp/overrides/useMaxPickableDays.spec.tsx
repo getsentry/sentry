@@ -17,36 +17,24 @@ describe('useMaxPickableDays', () => {
 
     it('returns 90/90 for transactions', () => {
       const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.TRANSACTIONS],
-        })
+        useMaxPickableDays({dataCategories: [DataCategory.TRANSACTIONS]})
       );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 90,
-        maxUpgradableDays: 90,
-      });
+      expect(result.current).toEqual({maxPickableDays: 90, maxUpgradableDays: 90});
     });
 
     it('returns 90/90 for replays', () => {
       const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.REPLAYS],
-        })
+        useMaxPickableDays({dataCategories: [DataCategory.REPLAYS]})
       );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 90,
-        maxUpgradableDays: 90,
-      });
+      expect(result.current).toEqual({maxPickableDays: 90, maxUpgradableDays: 90});
     });
 
     it('returns 30/90 for spans', () => {
       jest.useFakeTimers().setSystemTime(new Date(2026, 0, 1));
       const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.SPANS],
-        })
+        useMaxPickableDays({dataCategories: [DataCategory.SPANS]})
       );
 
       expect(result.current).toEqual({
@@ -58,9 +46,7 @@ describe('useMaxPickableDays', () => {
 
     it('returns 30/30 days for tracemetrics', () => {
       const {result} = renderHookWithProviders(() =>
-        useMaxPickableDays({
-          dataCategories: [DataCategory.TRACE_METRICS],
-        })
+        useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]})
       );
 
       expect(result.current).toEqual({
@@ -130,12 +116,7 @@ describe('useMaxPickableDays', () => {
 
     const subscription = SubscriptionFixture({
       organization,
-      effectiveRetentions: {
-        span: {
-          standard: 90,
-          downsampled: 396,
-        },
-      },
+      effectiveRetentions: {span: {standard: 90, downsampled: 396}},
     });
 
     beforeEach(() => {
@@ -148,41 +129,26 @@ describe('useMaxPickableDays', () => {
 
     it('returns 30/90 for transactions', () => {
       const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.TRANSACTIONS],
-          }),
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRANSACTIONS]}),
         {organization}
       );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 30,
-        maxUpgradableDays: 90,
-      });
+      expect(result.current).toEqual({maxPickableDays: 30, maxUpgradableDays: 90});
     });
 
     it('returns 30/90 for replays', () => {
       const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.REPLAYS],
-          }),
+        () => useMaxPickableDays({dataCategories: [DataCategory.REPLAYS]}),
         {organization}
       );
 
-      expect(result.current).toEqual({
-        maxPickableDays: 30,
-        maxUpgradableDays: 90,
-      });
+      expect(result.current).toEqual({maxPickableDays: 30, maxUpgradableDays: 90});
     });
 
     it('returns 121/121 for spans on 2025/12/31', () => {
       jest.useFakeTimers().setSystemTime(new Date(2025, 11, 31));
       const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.SPANS],
-          }),
+        () => useMaxPickableDays({dataCategories: [DataCategory.SPANS]}),
         {organization}
       );
 
@@ -196,10 +162,7 @@ describe('useMaxPickableDays', () => {
     it('returns 396/396 for spans on 2027/01/01', () => {
       jest.useFakeTimers().setSystemTime(new Date(2027, 0, 1));
       const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.SPANS],
-          }),
+        () => useMaxPickableDays({dataCategories: [DataCategory.SPANS]}),
         {organization}
       );
 
@@ -212,10 +175,7 @@ describe('useMaxPickableDays', () => {
 
     it('returns 30/30 days for tracemetrics', () => {
       const {result} = renderHookWithProviders(
-        () =>
-          useMaxPickableDays({
-            dataCategories: [DataCategory.TRACE_METRICS],
-          }),
+        () => useMaxPickableDays({dataCategories: [DataCategory.TRACE_METRICS]}),
         {organization}
       );
 

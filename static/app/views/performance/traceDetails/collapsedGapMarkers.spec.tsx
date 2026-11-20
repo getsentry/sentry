@@ -250,17 +250,19 @@ describe('CollapsedGapMarkers', () => {
     const user = userEvent.setup();
     const {manager} = setup();
     const divider = screen.getByTestId('divider');
-    jest.spyOn(manager.container!, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      right: 2000,
-      bottom: 1,
-      width: 2000,
-      height: 1,
-      toJSON: () => ({}),
-    });
+    jest
+      .spyOn(manager.container!, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        right: 2000,
+        bottom: 1,
+        width: 2000,
+        height: 1,
+        toJSON: () => ({}),
+      });
     await user.pointer({target: divider, keys: '[MouseLeft>]', coords: {x: 1000, y: 0}});
     await user.pointer({target: divider, coords: {x: 1358, y: 0}});
     expect(manager.view.trace_physical_space.width).toBeCloseTo(642);

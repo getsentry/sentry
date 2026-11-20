@@ -5,6 +5,7 @@ import type {OnboardingRecentCreatedProject} from 'sentry/types/onboarding';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {isRetryableRequestError} from 'sentry/utils/queryClientConfig';
 import {useProjects} from 'sentry/utils/useProjects';
 
 // Refetch the data every second
@@ -49,18 +50,17 @@ export function useRecentCreatedProject({
   const {isPending: isProjectLoading, data: freshProject} = useQuery({
     ...apiOptions.as<Project>()(
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/overview/',
-      {
-        path: {
-          organizationIdOrSlug: orgSlug,
-          projectIdOrSlug: projectSlug!,
-        },
-        staleTime: 0,
-      }
+      {path: {organizationIdOrSlug: orgSlug, projectIdOrSlug: projectSlug!}, staleTime: 0}
     ),
     enabled: !!projectSlug,
     refetchInterval: query => {
       if (!query.state.data) {
-        return false;
+        // A failed first fetch leaves no data. Keep polling through transient
+        // errors so the page still sees the first event; client errors fail
+        // the same way on every attempt, so stop on those.
+        return query.state.error && !isRetryableRequestError(query.state.error)
+          ? false
+          : DEFAULT_POLL_INTERVAL_MS;
       }
       const projectData = query.state.data.json;
 
@@ -72,14 +72,8 @@ export function useRecentCreatedProject({
   });
 
   if (isProjectLoading || !freshProject) {
-    return {
-      isProjectActive: project ? isProjectActive(project) : false,
-      project,
-    };
+    return {isProjectActive: project ? isProjectActive(project) : false, project};
   }
 
-  return {
-    isProjectActive: isProjectActive(freshProject),
-    project: freshProject,
-  };
+  return {isProjectActive: isProjectActive(freshProject), project: freshProject};
 }

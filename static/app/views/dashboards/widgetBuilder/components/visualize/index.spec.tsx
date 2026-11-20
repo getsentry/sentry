@@ -76,11 +76,7 @@ describe('Visualize', () => {
       }
 
       const tags: TagCollection = {
-        'span.op': {
-          key: 'span.op',
-          name: 'span.op',
-          kind: FieldKind.TAG,
-        },
+        'span.op': {key: 'span.op', name: 'span.op', kind: FieldKind.TAG},
         'span.description': {
           key: 'span.description',
           name: 'span.description',
@@ -88,11 +84,7 @@ describe('Visualize', () => {
         },
       };
 
-      return {
-        attributes: tags,
-        secondaryAliases: {},
-        isLoading: false,
-      };
+      return {attributes: tags, secondaryAliases: {}, isLoading: false};
     };
 
     jest
@@ -104,11 +96,9 @@ describe('Visualize', () => {
       .mocked(useSpanItemAttributes)
       .mockImplementation((_options, type?) => mockAttributes(_options, type));
 
-    jest.mocked(useTraceMetricItemAttributes).mockReturnValue({
-      attributes: {},
-      isLoading: false,
-      secondaryAliases: {},
-    });
+    jest
+      .mocked(useTraceMetricItemAttributes)
+      .mockReturnValue({attributes: {}, isLoading: false, secondaryAliases: {}});
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
@@ -131,10 +121,7 @@ describe('Visualize', () => {
 
   it.each([
     {dataset: WidgetType.SPANS, aggregate: 'avg(span.duration)'},
-    {
-      dataset: WidgetType.TRACEMETRICS,
-      aggregate: 'sum(value,alpha_metric,counter,none)',
-    },
+    {dataset: WidgetType.TRACEMETRICS, aggregate: 'sum(value,alpha_metric,counter,none)'},
   ])(
     'edits and persists transformations for $dataset series',
     async ({dataset, aggregate}) => {
@@ -257,9 +244,7 @@ describe('Visualize', () => {
       }
     );
 
-    const addButtons = await screen.findAllByRole('button', {
-      name: 'Add Transformation',
-    });
+    const addButtons = await screen.findAllByRole('button', {name: 'Add Transformation'});
     expect(addButtons).toHaveLength(2);
     await userEvent.click(addButtons[1]!);
     await userEvent.click(screen.getByRole('option', {name: 'Smooth'}));
@@ -1142,11 +1127,7 @@ describe('Visualize', () => {
     // on it.
     render(
       <WidgetBuilderProvider>
-        <Visualize
-          error={{
-            queries: 'some validation error' as any,
-          }}
-        />
+        <Visualize error={{queries: 'some validation error' as any}} />
       </WidgetBuilderProvider>,
       {
         organization,
@@ -1474,9 +1455,7 @@ describe('Visualize', () => {
       }
     );
 
-    const [firstHandle] = await screen.findAllByRole('button', {
-      name: 'Drag to reorder',
-    });
+    const [firstHandle] = await screen.findAllByRole('button', {name: 'Drag to reorder'});
     act(() => firstHandle!.focus());
     await userEvent.keyboard(' ');
     await userEvent.keyboard('{ArrowDown}{ArrowDown}');
@@ -1870,9 +1849,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -1973,9 +1950,7 @@ describe('Visualize', () => {
           <Visualize />
         </WidgetBuilderProvider>,
         {
-          organization: OrganizationFixture({
-            features: ['visibility-explore-view'],
-          }),
+          organization: OrganizationFixture({features: ['visibility-explore-view']}),
           initialRouterConfig: {
             location: {
               pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME,
@@ -2076,18 +2051,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2126,18 +2097,14 @@ describe('Visualize', () => {
 
       expect(screen.getByLabelText('Enter an equation')).toBeInTheDocument();
 
-      const input = screen.getByRole('combobox', {
-        name: 'Add a term',
-      });
+      const input = screen.getByRole('combobox', {name: 'Add a term'});
       expect(input).toBeInTheDocument();
 
       await userEvent.click(input);
       await userEvent.type(input, 'avg(');
 
       expect(
-        await screen.findByRole('row', {
-          name: 'avg(span.duration)',
-        })
+        await screen.findByRole('row', {name: 'avg(span.duration)'})
       ).toBeInTheDocument();
 
       await waitFor(() => {
@@ -2694,9 +2661,7 @@ describe('Visualize', () => {
     // Click "Add Series"
     await userEvent.click(screen.getByRole('button', {name: 'Add Series'}));
 
-    const metricSelectors = await screen.findAllByRole('button', {
-      name: 'alpha_metric',
-    });
+    const metricSelectors = await screen.findAllByRole('button', {name: 'alpha_metric'});
     expect(metricSelectors).toHaveLength(2);
     expect(metricSelectors[0]).toHaveTextContent('alpha_metric');
     expect(metricSelectors[1]).toHaveTextContent('alpha_metric');

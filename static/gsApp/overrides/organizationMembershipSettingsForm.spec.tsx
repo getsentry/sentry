@@ -72,10 +72,7 @@ describe('OrganizationMembershipSettings', () => {
   });
 
   it('disables default role selection if user does not have invite-members', () => {
-    const organization = OrganizationFixture({
-      features: [],
-      access: ['org:admin'],
-    });
+    const organization = OrganizationFixture({features: [], access: ['org:admin']});
     renderComponent(organization);
     expect(screen.getByRole('textbox', {name: 'Default Role'})).toBeDisabled();
   });
@@ -110,10 +107,7 @@ describe('OrganizationMembershipSettings', () => {
   });
 
   it('disables member project creation if user does not have org:write access', () => {
-    const organization = OrganizationFixture({
-      features: ['invite-members'],
-      access: [],
-    });
+    const organization = OrganizationFixture({features: ['invite-members'], access: []});
     renderComponent(organization);
     expect(
       screen.getByRole('checkbox', {name: 'Let Members Create Projects'})

@@ -28,29 +28,20 @@ export function BeaconDetails() {
     return <LoadingError />;
   }
 
-  const sectionProps = {
-    ...params,
-    data,
-  };
+  const sectionProps = {...params, data};
 
   return (
     <DetailsPage
       rootName="Beacons"
       name={data.installID}
       sections={[
-        {
-          content: <BeaconOverview {...sectionProps} />,
-        },
+        {content: <BeaconOverview {...sectionProps} />},
         {
           name: 'Similar Installs',
           content: <RelatedBeacons {...sectionProps} />,
           noPanel: true,
         },
-        {
-          name: 'Checkins',
-          noPanel: true,
-          content: <BeaconCheckins {...sectionProps} />,
-        },
+        {name: 'Checkins', noPanel: true, content: <BeaconCheckins {...sectionProps} />},
       ]}
     />
   );

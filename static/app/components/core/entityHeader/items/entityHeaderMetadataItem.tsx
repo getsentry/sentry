@@ -53,10 +53,7 @@ interface EntityHeaderMetadataItemBase {
    * child and composes with the parent's: "version" under "Browser" is read
    * "Browser version". A property needing a third value is two properties.
    */
-  secondary?: {
-    label: string;
-    value: React.ReactNode;
-  };
+  secondary?: {label: string; value: React.ReactNode};
   /**
    * Explains the value on hover or focus, underlined to signal it.
    */

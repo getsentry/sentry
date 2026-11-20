@@ -101,9 +101,7 @@ function HttpSpanVisualization(props: {
 
   const {data: httpSpan, isLoading} = useSpans(
     {
-      search: MutableSearch.fromQueryObject({
-        id: spanId,
-      }),
+      search: MutableSearch.fromQueryObject({id: spanId}),
       fields: [SpanFields.SPAN_DOMAIN],
     },
     'api.dashboards.details-widget.domain-status'

@@ -141,12 +141,7 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
           type: 'UPDATE_FILTER_OP',
           token,
           op: option.value,
-          focusOverride: focusValue
-            ? {
-                itemKey: `${item.key}`,
-                part: 'value',
-              }
-            : undefined,
+          focusOverride: focusValue ? {itemKey: `${item.key}`, part: 'value'} : undefined,
           shouldCommitQuery: !focusValue,
         });
         initialOpSettingRef.current = false;
@@ -160,9 +155,9 @@ export function FilterOperator({state, item, token, onOpenChange}: FilterOperato
   );
 }
 
-const OpButton = styled(UnstyledButton, {
-  shouldForwardProp: isPropValid,
-})<{onlyOperator?: boolean}>`
+const OpButton = styled(UnstyledButton, {shouldForwardProp: isPropValid})<{
+  onlyOperator?: boolean;
+}>`
   padding: 0 ${p => p.theme.space['2xs']} 0 ${p => p.theme.space.xs};
   height: 100%;
   border-left: 1px solid transparent;

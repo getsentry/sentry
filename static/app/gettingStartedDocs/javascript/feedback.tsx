@@ -15,9 +15,7 @@ export const feedback: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'For the User Feedback integration to work, you must have the Sentry browser SDK package, or an equivalent framework SDK (e.g. [code:@sentry/react]) installed, minimum version 7.85.0.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         installSnippetBlock,
@@ -37,11 +35,7 @@ export const feedback: OnboardingConfig<PlatformOptions> = {
               'https://docs.sentry.io/platforms/javascript/user-feedback/configuration/#bring-your-own-button',
           }),
         },
-        {
-          type: 'code',
-          language: 'javascript',
-          code: getSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'javascript', code: getSdkSetupSnippet(params)},
         {
           type: 'text',
           text: crashReportCallout({

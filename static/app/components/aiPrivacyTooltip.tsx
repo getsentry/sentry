@@ -14,9 +14,7 @@ const AI_PRIVACY_NOTICE_LINK =
 export function AiPrivacyNotice() {
   return tct(
     'Powered by generative AI. Learn more about our [link:AI privacy principles].',
-    {
-      link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} />,
-    }
+    {link: <ExternalLink href={AI_PRIVACY_NOTICE_LINK} />}
   );
 }
 

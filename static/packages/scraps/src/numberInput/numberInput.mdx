@@ -131,10 +131,7 @@ export function DecimalDemo() {
         step={0.1}
         minValue={0}
         maxValue={1}
-        formatOptions={{
-          minimumFractionDigits: 1,
-          maximumFractionDigits: 1,
-        }}
+        formatOptions={{minimumFractionDigits: 1, maximumFractionDigits: 1}}
       />
     </Stack>
   );
@@ -153,10 +150,7 @@ const [value, setValue] = useState(0.5);
   step={0.1}
   minValue={0}
   maxValue={1}
-  formatOptions={{
-    minimumFractionDigits: 1,
-    maximumFractionDigits: 1,
-  }}
+  formatOptions={{minimumFractionDigits: 1, maximumFractionDigits: 1}}
 />;
 ```
 
@@ -274,10 +268,7 @@ Use for percentage values with decimal precision:
   min={0}
   max={100}
   step={0.1}
-  formatOptions={{
-    style: 'percent',
-    minimumFractionDigits: 1,
-  }}
+  formatOptions={{style: 'percent', minimumFractionDigits: 1}}
 />
 ```
 

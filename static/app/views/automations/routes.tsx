@@ -12,23 +12,14 @@ export const automationRoutes: SentryRouteObject = {
     {
       path: 'new',
       children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/automations/new')),
-        },
+        {index: true, component: make(() => import('sentry/views/automations/new'))},
       ],
     },
     {
       path: ':automationId/',
       children: [
-        {
-          index: true,
-          component: make(() => import('sentry/views/automations/detail')),
-        },
-        {
-          path: 'edit/',
-          component: make(() => import('sentry/views/automations/edit')),
-        },
+        {index: true, component: make(() => import('sentry/views/automations/detail'))},
+        {path: 'edit/', component: make(() => import('sentry/views/automations/edit'))},
       ],
     },
   ],

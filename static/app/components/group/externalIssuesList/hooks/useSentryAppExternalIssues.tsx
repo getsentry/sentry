@@ -29,13 +29,8 @@ export function useSentryAppExternalIssues({
     data: externalIssues,
     isLoading,
     onDeleteExternalIssue,
-  } = useExternalIssues({
-    group,
-    organization,
-  });
-  const sentryAppComponents = useSentryAppComponents({
-    componentType: 'issue-link',
-  });
+  } = useExternalIssues({group, organization});
+  const sentryAppComponents = useSentryAppComponents({componentType: 'issue-link'});
   // Tickets from installed apps without an issue-link component still show,
   // components alone can't tell us those apps are installed
   const {data: sentryAppInstallations = []} = useQuery(

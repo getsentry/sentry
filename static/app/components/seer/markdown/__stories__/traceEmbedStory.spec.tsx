@@ -33,9 +33,7 @@ describe('TraceEmbedStory', () => {
       numSpans: 0,
       trace: '00000000000000000000000000000000',
     });
-    const trace = createTraceResult({
-      trace: '1234567890abcdef1234567890abcdef',
-    });
+    const trace = createTraceResult({trace: '1234567890abcdef1234567890abcdef'});
     const traceRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/traces/',
       body: {data: [emptyTrace, trace], meta: {}},

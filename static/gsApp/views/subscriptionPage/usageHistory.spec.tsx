@@ -64,10 +64,7 @@ describe('Subscription > UsageHistory', () => {
     });
 
     const org = OrganizationFixture();
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization: org,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization: org});
     SubscriptionStore.set(org.slug, subscription);
 
     render(<UsageHistory />, {organization: org});
@@ -81,10 +78,7 @@ describe('Subscription > UsageHistory', () => {
       body: [BillingHistoryFixture()],
     });
 
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -99,10 +93,7 @@ describe('Subscription > UsageHistory', () => {
       body: [BillingHistoryFixture()],
     });
 
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -130,10 +121,7 @@ describe('Subscription > UsageHistory', () => {
       body: [BillingHistoryFixture()],
     });
 
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -149,11 +137,7 @@ describe('Subscription > UsageHistory', () => {
       body: [
         BillingHistoryFixture({
           categories: {
-            errors: MetricHistoryFixture({
-              usage: 1001,
-              reserved: 1000,
-              prepaid: 1000,
-            }),
+            errors: MetricHistoryFixture({usage: 1001, reserved: 1000, prepaid: 1000}),
             transactions: MetricHistoryFixture({
               category: DataCategory.TRANSACTIONS,
               reserved: 1000,
@@ -171,10 +155,7 @@ describe('Subscription > UsageHistory', () => {
       ],
     });
 
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -213,10 +194,7 @@ describe('Subscription > UsageHistory', () => {
       ],
     });
 
-    const subscription = SubscriptionFixture({
-      plan: 'am1_f',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_f', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -236,10 +214,7 @@ describe('Subscription > UsageHistory', () => {
           onDemandSpend: 500,
           onDemandBudgetMode: OnDemandBudgetMode.SHARED,
           categories: {
-            errors: MetricHistoryFixture({
-              onDemandBudget: 1000,
-              onDemandSpendUsed: 300,
-            }),
+            errors: MetricHistoryFixture({onDemandBudget: 1000, onDemandSpendUsed: 300}),
             transactions: MetricHistoryFixture({
               category: DataCategory.TRANSACTIONS,
               onDemandBudget: 1000,
@@ -254,10 +229,7 @@ describe('Subscription > UsageHistory', () => {
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -289,26 +261,18 @@ describe('Subscription > UsageHistory', () => {
           onDemandSpend: 500,
           onDemandBudgetMode: OnDemandBudgetMode.PER_CATEGORY,
           categories: {
-            errors: MetricHistoryFixture({
-              onDemandBudget: 500,
-              onDemandSpendUsed: 300,
-            }),
+            errors: MetricHistoryFixture({onDemandBudget: 500, onDemandSpendUsed: 300}),
             transactions: MetricHistoryFixture({
               category: DataCategory.TRANSACTIONS,
               onDemandBudget: 500,
               onDemandSpendUsed: 200,
             }),
-            attachments: MetricHistoryFixture({
-              category: DataCategory.ATTACHMENTS,
-            }),
+            attachments: MetricHistoryFixture({category: DataCategory.ATTACHMENTS}),
           },
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -338,10 +302,7 @@ describe('Subscription > UsageHistory', () => {
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -380,10 +341,7 @@ describe('Subscription > UsageHistory', () => {
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -422,10 +380,7 @@ describe('Subscription > UsageHistory', () => {
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -465,10 +420,7 @@ describe('Subscription > UsageHistory', () => {
         }),
       ],
     });
-    const subscription = SubscriptionFixture({
-      plan: 'am1_team',
-      organization,
-    });
+    const subscription = SubscriptionFixture({plan: 'am1_team', organization});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
@@ -487,10 +439,7 @@ describe('Subscription > UsageHistory', () => {
       body: [
         BillingHistoryFixture({
           categories: {
-            errors: MetricHistoryFixture({
-              prepaid: 100_000,
-              reserved: 50_000,
-            }),
+            errors: MetricHistoryFixture({prepaid: 100_000, reserved: 50_000}),
             transactions: MetricHistoryFixture({
               category: DataCategory.TRANSACTIONS,
               prepaid: 100_000,
@@ -507,19 +456,12 @@ describe('Subscription > UsageHistory', () => {
       ],
     });
 
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'am1_team',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'am1_team'});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
 
-    expect(
-      await screen.findByRole('row', {
-        name: /attachments/i,
-      })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: /attachments/i})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '1 GB'})).toBeInTheDocument();
     expect(screen.queryByRole('cell', {name: '∞'})).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
@@ -551,19 +493,12 @@ describe('Subscription > UsageHistory', () => {
       ],
     });
 
-    const subscription = SubscriptionFixture({
-      organization,
-      plan: 'mm2_b_100k',
-    });
+    const subscription = SubscriptionFixture({organization, plan: 'mm2_b_100k'});
     SubscriptionStore.set(organization.slug, subscription);
 
     render(<UsageHistory />, {organization});
 
-    expect(
-      await screen.findByRole('row', {
-        name: /attachments/i,
-      })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: /attachments/i})).toBeInTheDocument();
 
     expect(screen.getAllByRole('cell', {name: '0 GB'})).toHaveLength(2);
     expect(screen.getByRole('cell', {name: '500 MB'})).toBeInTheDocument();
@@ -584,9 +519,7 @@ describe('Subscription > UsageHistory', () => {
     render(<UsageHistory />, {organization});
 
     expect(
-      await screen.findByRole('row', {
-        name: /performance units/i,
-      })
+      await screen.findByRole('row', {name: /performance units/i})
     ).toBeInTheDocument();
     expect(screen.queryByText(/transactions/i)).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
@@ -604,11 +537,7 @@ describe('Subscription > UsageHistory', () => {
 
     render(<UsageHistory />, {organization});
 
-    expect(
-      await screen.findByRole('row', {
-        name: /transactions/i,
-      })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole('row', {name: /transactions/i})).toBeInTheDocument();
     expect(screen.queryByText(/performance units/i)).not.toBeInTheDocument();
     expect(mockCall).toHaveBeenCalled();
   });

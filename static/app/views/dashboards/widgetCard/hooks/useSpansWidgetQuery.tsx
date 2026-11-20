@@ -277,11 +277,7 @@ export function useSpansSeriesQuery(
 
     if (!allHaveData || isFetching) {
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const timeseriesResults: WidgetTimeSeries[] = [];
@@ -427,10 +423,7 @@ export function useSpansTableQuery(
 
       if (hasStarredField && !alreadySortedByStarred) {
         requestParams.sort = [
-          encodeSort({
-            field: SpanFields.IS_STARRED_TRANSACTION,
-            kind: 'desc',
-          }),
+          encodeSort({field: SpanFields.IS_STARRED_TRANSACTION, kind: 'desc'}),
           ...existingSort,
         ];
       }
@@ -508,11 +501,7 @@ export function useSpansTableQuery(
     if (!allHaveData || isFetching) {
       // If there's an error and we're not fetching, we're done loading
       const loading = isFetching || !errorMessage;
-      return {
-        loading,
-        errorMessage,
-        rawData: EMPTY_ARRAY,
-      };
+      return {loading, errorMessage, rawData: EMPTY_ARRAY};
     }
 
     const tableResults: TableDataWithTitle[] = [];

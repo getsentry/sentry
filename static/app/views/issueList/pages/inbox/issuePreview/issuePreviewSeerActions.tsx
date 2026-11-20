@@ -403,9 +403,7 @@ function SeerActionButton({
         {...getSeerActionButtonProps({
           analyticsEventKey: 'issue_inbox.open_in_coding_agent_clicked',
           analyticsEventName: 'Issue Inbox: Open in Coding Agent Clicked',
-          analyticsParams: {
-            provider: codingAgent.provider,
-          },
+          analyticsParams: {provider: codingAgent.provider},
           group,
         })}
         external

@@ -35,10 +35,7 @@ export function getTraceDateTimeRange(input: {end: number; start: number}): {
     .utc()
     .format('YYYY-MM-DDTHH:mm:ss.SSS');
 
-  return {
-    start,
-    end,
-  };
+  return {start, end};
 }
 
 function isGapSpan(span: ProcessedSpanType): span is GapSpanType {

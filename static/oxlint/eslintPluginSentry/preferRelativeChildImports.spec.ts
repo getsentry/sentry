@@ -54,14 +54,8 @@ ruleTester.run('prefer-relative-child-imports', preferRelativeChildImports, {
       filename: `${process.cwd()}/custom/components/widget.ts`,
       options: [{prefix: '@app', rootDir: 'custom'}],
     },
-    {
-      code: "export {value} from 'sentry/components/value';",
-      filename,
-    },
-    {
-      code: "const value = import('sentry/components/value');",
-      filename,
-    },
+    {code: "export {value} from 'sentry/components/value';", filename},
+    {code: "const value = import('sentry/components/value');", filename},
   ],
   invalid: [
     {

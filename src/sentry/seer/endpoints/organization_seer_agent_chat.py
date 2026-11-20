@@ -298,6 +298,8 @@ def _maybe_reply_to_single_run(
         )
     except SeerOutOfCreditsException as e:
         return seer_out_of_credits_response(SEER_AGENT_CHAT_OUT_OF_CREDITS_DETAIL, e.denial_reason)
+    except SeerPermissionError as e:
+        raise PermissionDenied(e.message) from e
     except SeerApiError as e:
         if e.status == 404:
             return Response({"session": None}, status=404)

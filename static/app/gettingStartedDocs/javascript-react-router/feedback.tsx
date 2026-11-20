@@ -23,11 +23,7 @@ export const feedback: OnboardingConfig = {
               'https://docs.sentry.io/platforms/javascript/guides/react-router/user-feedback/configuration/#bring-your-own-button',
           }),
         },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
+        {type: 'code', language: 'tsx', code: getClientSetupSnippet(params)},
       ],
     },
   ],

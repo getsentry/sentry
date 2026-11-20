@@ -93,14 +93,8 @@ export function Chart({
   const xAxes = disableMultiAxis
     ? undefined
     : [
-        {
-          gridIndex: 0,
-          type: 'time' as const,
-        },
-        {
-          gridIndex: 1,
-          type: 'time' as const,
-        },
+        {gridIndex: 0, type: 'time' as const},
+        {gridIndex: 1, type: 'time' as const},
       ];
 
   const durationUnit = getDurationUnit(data);
@@ -168,24 +162,12 @@ export function Chart({
       };
 
   const areaChartProps = {
-    seriesOptions: {
-      showSymbol: false,
-    },
+    seriesOptions: {showSymbol: false},
     grid: disableMultiAxis
       ? grid
       : [
-          {
-            top: '8px',
-            left: '24px',
-            right: '52%',
-            bottom: '16px',
-          },
-          {
-            top: '8px',
-            left: '52%',
-            right: '24px',
-            bottom: '16px',
-          },
+          {top: '8px', left: '24px', right: '52%', bottom: '16px'},
+          {top: '8px', left: '52%', right: '24px', bottom: '16px'},
         ],
     axisPointer,
     xAxes,
@@ -220,11 +202,7 @@ export function Chart({
   }));
 
   const xAxis = disableXAxis
-    ? {
-        show: false,
-        axisLabel: {show: true, margin: 0},
-        axisLine: {show: false},
-      }
+    ? {show: false, axisLabel: {show: true, margin: 0}, axisLine: {show: false}}
     : undefined;
 
   return (

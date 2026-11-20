@@ -195,7 +195,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-duration")
                 self.assert_denied_request("GET")
 
             with (
@@ -206,7 +205,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-cron")
                 self.assert_allowed_request("GET")
 
             with (
@@ -217,7 +215,6 @@ class TestDeprecationDecorator(APITestCase):
                     },
                 ),
             ):
-                options.delete("api.deprecation.brownout-cron")
                 self.assert_denied_request("GET")
 
     def test_with_url_names(self) -> None:

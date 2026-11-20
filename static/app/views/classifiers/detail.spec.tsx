@@ -285,9 +285,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(countRequest).toHaveBeenCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({environment: []}),
-        })
+        expect.objectContaining({query: expect.objectContaining({environment: []})})
       )
     );
   });
@@ -362,9 +360,7 @@ describe('ClassifierDetail', () => {
 
     expect(resultsRequest).toHaveBeenLastCalledWith(
       eventsUrl,
-      expect.objectContaining({
-        query: expect.objectContaining({cursor: '0:20:0'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({cursor: '0:20:0'})})
     );
   });
 
@@ -409,9 +405,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(resultsRequest).toHaveBeenLastCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({sort: RESULT_FIELD}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort: RESULT_FIELD})})
       )
     );
 
@@ -426,9 +420,7 @@ describe('ClassifierDetail', () => {
     await waitFor(() =>
       expect(resultsRequest).toHaveBeenLastCalledWith(
         eventsUrl,
-        expect.objectContaining({
-          query: expect.objectContaining({sort: 'timestamp'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({sort: 'timestamp'})})
       )
     );
   });
@@ -472,9 +464,7 @@ describe('ClassifierDetail', () => {
 
     expect(timeSeriesRequest).toHaveBeenLastCalledWith(
       timeSeriesUrl,
-      expect.objectContaining({
-        query: expect.objectContaining({interval: '10m'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({interval: '10m'})})
     );
   });
 

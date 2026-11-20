@@ -45,15 +45,8 @@ interface PriceTier {
 }
 
 export function BillingPlans() {
-  const {
-    data: billingPlansResponse = {
-      not_live: [],
-      data: {},
-    },
-  } = useQuery(
-    apiOptions.as<BillingPlansResponse>()('/billing-plans/', {
-      staleTime: 0,
-    })
+  const {data: billingPlansResponse = {not_live: [], data: {}}} = useQuery(
+    apiOptions.as<BillingPlansResponse>()('/billing-plans/', {staleTime: 0})
   );
 
   const plans = billingPlansResponse.data;

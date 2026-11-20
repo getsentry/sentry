@@ -79,11 +79,7 @@ const result = spawnSync(
     'json',
     ...files,
   ],
-  {
-    cwd: repoPath,
-    maxBuffer: 100 * 1024 * 1024,
-    encoding: 'utf-8',
-  }
+  {cwd: repoPath, maxBuffer: 100 * 1024 * 1024, encoding: 'utf-8'}
 );
 
 const stderr = String(result.stderr ?? '').trim();

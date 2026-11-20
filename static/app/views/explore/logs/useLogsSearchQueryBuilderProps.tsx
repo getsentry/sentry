@@ -198,8 +198,5 @@ export function useLogsSearchQueryBuilderProps({
     tracesItemSearchQueryBuilderProps
   );
 
-  return {
-    tracesItemSearchQueryBuilderProps,
-    searchQueryBuilderProviderProps,
-  };
+  return {tracesItemSearchQueryBuilderProps, searchQueryBuilderProviderProps};
 }

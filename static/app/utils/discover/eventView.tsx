@@ -137,10 +137,7 @@ const fieldToSort = (
     return void 0;
   }
 
-  return {
-    kind: kind || 'desc',
-    field: sortKey,
-  };
+  return {kind: kind || 'desc', field: sortKey};
 };
 
 function getSortKeyFromField(field: Field, tableMeta?: MetaType): string | null {
@@ -179,10 +176,7 @@ const eventViewQueryParsers = {
   yAxis: parseAsScalar,
 };
 
-const dateSelectionQueryParsers = {
-  period: parseAsScalar,
-  utc: parseAsScalar,
-};
+const dateSelectionQueryParsers = {period: parseAsScalar, utc: parseAsScalar};
 
 const decodeFields = ({
   field: fields,
@@ -501,12 +495,7 @@ export class EventView {
           params.statsPeriod.length ||
           params.utc.length
           ? location.query
-          : {
-              start: saved.start,
-              end: saved.end,
-              statsPeriod: saved.range,
-              utc: saved.utc,
-            }
+          : {start: saved.start, end: saved.end, statsPeriod: saved.range, utc: saved.utc}
       );
       return new EventView({
         id: params.id || saved.id,
@@ -873,10 +862,7 @@ export class EventView {
 
   withNewColumn(newColumn: Column): EventView {
     const fieldAsString = generateFieldAsString(newColumn);
-    const newField: Field = {
-      field: fieldAsString,
-      width: COL_WIDTH_UNDEFINED,
-    };
+    const newField: Field = {field: fieldAsString, width: COL_WIDTH_UNDEFINED};
     const newEventView = this.clone();
     newEventView.fields = [...newEventView.fields, newField];
 
@@ -893,10 +879,7 @@ export class EventView {
     const updateWidth = field.width !== newWidth;
     if (updateWidth) {
       const fields = [...newEventView.fields];
-      fields[columnIndex] = {
-        ...field,
-        width: newWidth,
-      };
+      fields[columnIndex] = {...field, width: newWidth};
       newEventView.fields = fields;
     }
 
@@ -921,10 +904,7 @@ export class EventView {
 
     const newEventView = this.clone();
 
-    const updatedField: Field = {
-      field: fieldAsString,
-      width: COL_WIDTH_UNDEFINED,
-    };
+    const updatedField: Field = {field: fieldAsString, width: COL_WIDTH_UNDEFINED};
 
     const fields = [...newEventView.fields];
     fields[columnIndex] = updatedField;
@@ -1071,10 +1051,7 @@ export class EventView {
   }
 
   getSorts(): Array<TableColumnSort<string | number>> {
-    return this.sorts.map(sort => ({
-      key: sort.field,
-      order: sort.kind,
-    }));
+    return this.sorts.map(sort => ({key: sort.field, order: sort.kind}));
   }
 
   normalizeDateSelection(location: Location) {
@@ -1090,11 +1067,7 @@ export class EventView {
 
     // an eventview's date selection has higher precedence than the date selection in the query string
     const dateSelection = hasDateSelection
-      ? {
-          start: this.start,
-          end: this.end,
-          statsPeriod: this.statsPeriod,
-        }
+      ? {start: this.start, end: this.end, statsPeriod: this.statsPeriod}
       : {
           start: picked.start,
           end: picked.end,
@@ -1103,10 +1076,7 @@ export class EventView {
         };
 
     // normalize datetime selection
-    return normalizeDateTimeParams({
-      ...dateSelection,
-      utc: utc ?? undefined,
-    });
+    return normalizeDateTimeParams({...dateSelection, utc: utc ?? undefined});
   }
 
   // Takes an EventView instance and converts it into the format required for the events API
@@ -1169,10 +1139,7 @@ export class EventView {
       query.queryDataset = queryDataset;
     }
     return {
-      pathname: makeDiscoverPathname({
-        path: target ? `/${target}/` : '/',
-        organization,
-      }),
+      pathname: makeDiscoverPathname({path: target ? `/${target}/` : '/', organization}),
       query,
     };
   }
@@ -1193,10 +1160,7 @@ export class EventView {
     stringifyQueryParams(output);
 
     return {
-      pathname: makeDiscoverPathname({
-        path: '/results/',
-        organization,
-      }),
+      pathname: makeDiscoverPathname({path: '/results/', organization}),
       query: structuredClone(output),
     };
   }
