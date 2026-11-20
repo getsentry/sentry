@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Generator
+from collections.abc import Generator, Mapping
 from datetime import timedelta
 from typing import TYPE_CHECKING, Any
 
@@ -27,6 +27,7 @@ class BulkDeleteQuery:
         order_by: str | None = None,
         partition: tuple[int, int, str] | None = None,
         defer_dt_filter: bool = False,
+        extra_filter: Mapping[str, Any] | None = None,
     ):
         self.model = model
         self.project_id = int(project_id) if project_id else None
@@ -36,6 +37,8 @@ class BulkDeleteQuery:
         self.order_by = order_by
         self.partition = partition
         self.defer_dt_filter = defer_dt_filter
+        # Lookups that further narrow the rows returned by `iterator`.
+        self.extra_filter = dict(extra_filter or {})
         self.using = router.db_for_write(model)
 
         self.deferred_filter: dict[str, Any] = {}
@@ -46,6 +49,9 @@ class BulkDeleteQuery:
             self.deferred_filter = {f"{self.dtfield}__lt": cutoff}
 
     def execute(self, chunk_size: int = 10000) -> None:
+        if self.extra_filter:
+            raise NotImplementedError("extra_filter is only supported by iterator()")
+
         quote_name = connections[self.using].ops.quote_name
 
         where = []
@@ -113,6 +119,8 @@ class BulkDeleteQuery:
                 return
             queryset = queryset.filter(pk__lte=max_pk)
 
+        if self.extra_filter:
+            queryset = queryset.filter(**self.extra_filter)
         if self.project_id:
             queryset = queryset.filter(project_id=self.project_id)  # type: ignore[misc]
         if self.organization_id:
