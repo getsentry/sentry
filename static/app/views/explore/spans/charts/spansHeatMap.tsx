@@ -3,8 +3,9 @@ import {useDebouncedValue} from '@tanstack/react-pacer';
 import {keepPreviousData, useQuery} from '@tanstack/react-query';
 import {parseAsString, useQueryStates} from 'nuqs';
 
-import {Container} from '@sentry/scraps/layout';
+import {Container, Flex} from '@sentry/scraps/layout';
 
+import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {CaseInsensitive} from 'sentry/components/searchQueryBuilder/hooks';
 import type {Organization} from 'sentry/types/organization';
@@ -160,7 +161,7 @@ export function SpansHeatMap({
     intervalOptions.map(option => option.value)
   );
 
-  const {data, error, isPending} = useQuery({
+  const {data, error, isPending, isPlaceholderData} = useQuery({
     ...heatMapApiOptions({
       dataset: DiscoverDatasets.SPANS,
       organization,
@@ -297,13 +298,17 @@ export function SpansHeatMap({
   } else if (isPending || plottables === null) {
     visualization = <HeatMapWidgetVisualization.LoadingPlaceholder />;
   } else if (plottablesCanBeVisualized(plottables)) {
+    // Keep the previous cells on screen under a spinner until the new ones arrive.
     visualization = (
-      <HeatMapWidgetVisualization
-        plottables={plottables}
-        overlayLines={overlayLines}
-        renderSelectionMenu={renderSelectionMenu}
-        showCursor
-      />
+      <Container position="relative" height="100%">
+        <HeatMapWidgetVisualization
+          plottables={plottables}
+          overlayLines={overlayLines}
+          renderSelectionMenu={renderSelectionMenu}
+          showCursor
+        />
+        {isPlaceholderData ? <LoadingOverlay /> : null}
+      </Container>
     );
   } else {
     visualization = <HeatMapWidgetVisualization.NoData />;
@@ -327,4 +332,20 @@ const PERCENTILES = ['p99', 'p75', 'p50'] as const;
 // We don't return a unit right now, the only selectable columns are currently in millis.
 function selectWithMillisecondUnit(response: ApiResponse<HeatMapSeries>) {
   return mergeMetricUnit(response.json, DurationUnit.MILLISECOND);
+}
+
+// Copied from the metrics heat map. Importing it from there would create an
+// import cycle through the Explore toolbar.
+function LoadingOverlay() {
+  return (
+    <Flex position="absolute" inset="0" align="center" justify="center">
+      <Container
+        position="absolute"
+        inset="0"
+        background="primary"
+        style={{opacity: 0.5}}
+      />
+      <LoadingIndicator mini />
+    </Flex>
+  );
 }
