@@ -21,14 +21,15 @@ describe('SeerOutOfCreditsCta', () => {
     MockApiClient.clearMockResponses();
   });
 
-  function mockAutoTopUp(
-    organization: Organization,
-    enabled: boolean,
-    dailySpendCapCents: number | null = 7500
-  ) {
+  function mockAutoTopUp(organization: Organization, enabled: boolean) {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
-      body: {enabled, thresholdCredits: 500, topUpCredits: 1000, dailySpendCapCents},
+      body: {
+        enabled,
+        thresholdCredits: 500,
+        topUpCredits: 1000,
+        dailySpendCapCents: 7500,
+      },
     });
   }
 
@@ -67,41 +68,22 @@ describe('SeerOutOfCreditsCta', () => {
     expect(screen.queryByRole('button', {name: 'Contact Admin'})).not.toBeInTheDocument();
   });
 
-  it('tells billing members with auto-reload on and a daily usage limit that the org hit it', async () => {
+  it('does not blame the daily usage limit when billing members run out with auto-reload on', async () => {
     const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
     act(() =>
       SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
     );
+    // A daily usage limit is set, but auto-reload doesn't stop at it, so only
+    // `daily_cap_exceeded` says the org hit it.
     mockAutoTopUp(organization, true);
 
-    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
-      organization,
-    });
+    render(
+      <SeerOutOfCreditsCta reason="agent-chat" denialReason="not_enough_credits" />,
+      {organization}
+    );
 
     // Nothing shows until the setting loads, so the "off" copy never flashes.
     expect(screen.queryByTestId('seer-out-of-credits')).not.toBeInTheDocument();
-    // Auto-reload tops the org up until the daily usage limit stops it.
-    expect(
-      await screen.findByText(
-        'Your organization hit its daily usage limit, so you cannot continue messaging Seer.'
-      )
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', {name: 'Configure auto-reload'})
-    ).toBeInTheDocument();
-  });
-
-  it('does not blame a daily usage limit when auto-reload is on without one', async () => {
-    const organization = OrganizationFixture({access: ['org:read', 'org:billing']});
-    act(() =>
-      SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}))
-    );
-    mockAutoTopUp(organization, true, null);
-
-    render(<SeerOutOfCreditsCta reason="agent-chat" denialReason={null} />, {
-      organization,
-    });
-
     // Auto-reload is already on, so the copy doesn't ask to turn it on either.
     expect(
       await screen.findByText(

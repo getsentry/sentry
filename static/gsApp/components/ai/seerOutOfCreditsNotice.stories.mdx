@@ -50,9 +50,7 @@ auto-reload modal. The chat uses full-size buttons; Autofix uses small ones.
 ## Daily usage limit
 
 The org has credits but hit its daily usage limit: the credit check's
-`denialReason` is `daily_cap_exceeded`, or a billing member has auto-reload on
-with a daily usage limit set, and auto-reload reloads credits until the limit
-stops it. The notice says when the limit
+`denialReason` is `daily_cap_exceeded`. The notice says when the limit
 resets, at the next midnight UTC in the viewer's timezone. Billing members
 configure auto-reload, where the limit is set. Members can't raise the limit,
 so they are told to ask their admin, and "Contact Admin" emails the admins a
@@ -104,10 +102,10 @@ request to raise it. Autofix uses the same copy for its own steps.
 
 ## Auto-reload already on
 
-A billing member with auto-reload on and no daily usage limit can still run out,
-for example before the next reload lands. Without a limit, nothing says the org
-hit one, so the notice drops the ask to turn auto-reload on and offers to
-configure it.
+A billing member with auto-reload on can still run out, for example before the
+next reload lands or when it fails to charge. Auto-reload doesn't stop at the
+daily usage limit, so running out says nothing about the limit. The notice drops
+the ask to turn auto-reload on and offers to configure it.
 
 <Storybook.Demo>
   <SeerOutOfCreditsNotice
