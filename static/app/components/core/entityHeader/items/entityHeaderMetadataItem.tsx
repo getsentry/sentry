@@ -1,35 +1,34 @@
-import {Fragment} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
+import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
-import {METADATA_TEXT_HEIGHT} from '@sentry/scraps/entityHeader/constants';
+import {Button} from '@sentry/scraps/button';
+import {
+  METADATA_ROW_HEIGHT,
+  METADATA_TEXT_HEIGHT,
+  METADATA_TEXT_STYLES,
+} from '@sentry/scraps/entityHeader/constants';
 import {InfoText} from '@sentry/scraps/info';
-import {Flex} from '@sentry/scraps/layout';
+import type {Responsive} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, useResponsivePropValue} from '@sentry/scraps/layout';
 import type {LinkDestination} from '@sentry/scraps/link';
 import {Text} from '@sentry/scraps/text';
+import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
 
-import type {
-  EntityHeaderTextBehavior,
-  EntityHeaderTextStyles,
-  EntityHeaderTextVariant,
-} from './entityHeaderText';
+import type {EntityHeaderTextBehavior, EntityHeaderTextVariant} from './entityHeaderText';
 import {EntityHeaderText, toLinkDestination} from './entityHeaderText';
 
-const TEXT_STYLES = {
-  size: 'md',
-  density: 'comfortable',
-  wrap: 'nowrap',
-} as const satisfies EntityHeaderTextStyles;
-
-interface EntityHeaderMetadataItemBase {
+interface EntityHeaderMetadataItemShared {
   /**
    * What the property is — "Started at", "Browser". Always exposed to
-   * assistive technology, as text or in a link's name, so the value is never
-   * announced unexplained; `mode` decides whether it is drawn.
+   * assistive technology, as text, in a link's name or as a list's name, so
+   * the value is never announced unexplained; `mode` decides whether it is
+   * drawn.
    */
   label: string;
   /**
@@ -48,6 +47,9 @@ interface EntityHeaderMetadataItemBase {
    * @default 'compact'
    */
   mode?: 'compact' | 'full';
+}
+
+interface EntityHeaderMetadataValueQualifiers {
   /**
    * A qualifier on the value, such as a browser's version. `label` names the
    * child and composes with the parent's: "version" under "Browser" is read
@@ -60,7 +62,8 @@ interface EntityHeaderMetadataItemBase {
   tooltip?: React.ReactNode;
 }
 
-export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
+type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
+  EntityHeaderMetadataValueQualifiers &
   (
     | {
         type: 'text';
@@ -80,90 +83,411 @@ export type EntityHeaderMetadataItemProps = EntityHeaderMetadataItemBase &
       } & LinkDestination)
   );
 
-export function EntityHeaderMetadataItemSkeleton() {
+/**
+ * A text or link value whose `label` may be left out, as a list's entries
+ * may be.
+ */
+type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'> & {
+  /**
+   * Optional here: an entry the list's own label already explains, such as a
+   * tool under "Tools", need not repeat it. Without one, a link is named by
+   * its value alone.
+   */
+  label?: string;
+};
+
+/**
+ * One entry of a list: a text or link value, keyed. A list cannot hold a
+ * list.
+ */
+export type EntityHeaderMetadataListEntry = MetadataValueData & {key: string};
+
+interface EntityHeaderMetadataListOptions {
+  /**
+   * Shown in this order, so filter and sort them before passing them: the
+   * cut to `maxVisible` keeps the first ones.
+   */
+  items: EntityHeaderMetadataListEntry[];
+  type: 'list';
+  /**
+   * Entries past this collapse behind "+N more", which reveals them in place.
+   * Omitted, every entry is shown. Responsive: plain keys resolve
+   * against the header's width, `screen:` keys against the viewport.
+   */
+  maxVisible?: Responsive<number>;
+}
+
+type EntityHeaderMetadataListProps = EntityHeaderMetadataItemShared &
+  EntityHeaderMetadataListOptions;
+
+/**
+ * A list takes no `tooltip`, `secondary` or `variant` of its own: each entry
+ * carries its own.
+ */
+export type EntityHeaderMetadataItemProps =
+  | EntityHeaderMetadataValueProps
+  | EntityHeaderMetadataListProps;
+
+/**
+ * Whether the value draws nothing, so it is left out like a `null` item. A
+ * component value is never empty.
+ */
+function isEmptyValue({value}: MetadataValueData) {
   return (
-    <Flex role="listitem" align="center" minWidth={0} minHeight={METADATA_TEXT_HEIGHT}>
-      <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
-    </Flex>
+    value === null ||
+    value === undefined ||
+    value === false ||
+    (typeof value === 'string' && value.trim() === '')
   );
 }
 
-function getValueBehavior(
-  props: EntityHeaderMetadataItemProps
-): EntityHeaderTextBehavior {
-  return props.type === 'link'
-    ? {
-        type: 'link',
-        ...toLinkDestination(props),
-        'aria-label': `${props.label} ${props.value}`,
-        tooltip: props.tooltip,
-      }
-    : {type: 'text', variant: props.variant, tooltip: props.tooltip};
+/**
+ * Whether the item draws anything. A list with no non-empty entries draws
+ * nothing.
+ */
+export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
+  return item.type === 'list'
+    ? item.items.some(entry => !isEmptyValue(entry))
+    : !isEmptyValue(item);
 }
 
-export function EntityHeaderMetadataItem(
-  props: EntityHeaderMetadataItemProps & {isLoading?: boolean}
-) {
-  const {isLoading, label, leadingGraphic, mode = 'compact', secondary} = props;
-  const needsOwnLabel = props.type === 'text' || mode === 'full';
+const warnedEmptyValueNames = new Set<string>();
 
-  // One named list item rather than a `dt`/`dd` pair: as a description list,
-  // VoiceOver narrated the pairing — "term", "selectable list item", "end of
-  // term" — before it ever reached the value.
+/**
+ * An empty value usually comes from mapping over data with a missing name. It
+ * is left out, but the caller should not rely on that.
+ */
+export function warnOnEmptyMetadataValues(item: EntityHeaderMetadataItemProps): void {
+  if (process.env.NODE_ENV === 'production') {
+    return;
+  }
+  const names =
+    item.type === 'list'
+      ? item.items
+          .filter(isEmptyValue)
+          .map(entry =>
+            entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
+          )
+      : isEmptyValue(item)
+        ? [`item "${item.label}"`]
+        : [];
+  for (const name of names) {
+    if (warnedEmptyValueNames.has(name)) {
+      continue;
+    }
+    warnedEmptyValueNames.add(name);
+    // eslint-disable-next-line no-console
+    console.warn(`EntityHeader metadata ${name} has an empty value and was left out.`);
+  }
+}
+
+/**
+ * The pipe that ends a property in the metadata row, drawn inside its item so
+ * it wraps with it.
+ */
+export function MetadataDivider() {
+  return (
+    <Container
+      width="1px"
+      height="14px"
+      flexShrink={0}
+      borderLeft="primary"
+      aria-hidden
+      data-test-id="metadata-divider"
+    />
+  );
+}
+
+/**
+ * A 16px box for a leading graphic. Left empty while loading, so the box keeps
+ * its width.
+ */
+function MetadataGraphic({children}: {children?: React.ReactNode}) {
   return (
     <Flex
-      role="listitem"
+      width="16px"
+      height={METADATA_TEXT_HEIGHT}
       align="center"
-      gap="xs"
-      minWidth={0}
-      minHeight={METADATA_TEXT_HEIGHT}
+      justify="center"
+      flexShrink={0}
+      aria-hidden
     >
-      {leadingGraphic && (
-        <Flex
-          width="16px"
-          height="16px"
-          align="center"
-          justify="center"
-          flexShrink={0}
-          aria-hidden
-        >
-          {isLoading ? null : leadingGraphic}
-        </Flex>
-      )}
-      {isLoading ? (
-        <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
-      ) : (
-        <Fragment>
-          {needsOwnLabel &&
-            (mode === 'full' ? (
-              <Text {...TEXT_STYLES} variant="muted">
-                {label}
-              </Text>
-            ) : (
-              <VisuallyHidden>{label}</VisuallyHidden>
-            ))}
-          <EntityHeaderText behavior={getValueBehavior(props)} styles={TEXT_STYLES}>
-            {props.value}
-          </EntityHeaderText>
-          {secondary && (
-            <Fragment>
-              {/*
-                The composed key is real text and not only the tooltip's,
-                because a tooltip reaches assistive technology through
-                `aria-describedby`, which is not announced on focus.
-              */}
-              <VisuallyHidden>{`${label} ${secondary.label}`}</VisuallyHidden>
-              <InfoText
-                title={`${label} ${secondary.label}`}
-                variant="muted"
-                {...TEXT_STYLES}
-              >
-                {secondary.value}
-              </InfoText>
-            </Fragment>
-          )}
-        </Fragment>
-      )}
+      {children}
     </Flex>
   );
+}
+
+interface MetadataItemFrameProps {
+  children: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
+  tabIndex?: number;
+  /**
+   * Drawn after the content: the pipe that ends a property in the row.
+   */
+  trailing?: React.ReactNode;
+}
+
+// One named list item rather than a `dt`/`dd` pair: as a description list,
+// VoiceOver narrated the pairing — "term", "selectable list item", "end of
+// term" — before it ever reached the value.
+function MetadataItemFrame({children, ref, tabIndex, trailing}: MetadataItemFrameProps) {
+  return (
+    <Flex
+      ref={ref}
+      role="listitem"
+      tabIndex={tabIndex}
+      align="center"
+      gap="md"
+      minWidth={0}
+      minHeight={METADATA_ROW_HEIGHT}
+    >
+      <Flex align="center" gap="xs" minWidth={0}>
+        {children}
+      </Flex>
+      {trailing}
+    </Flex>
+  );
+}
+
+export function EntityHeaderMetadataItemSkeleton({
+  hasGraphic = false,
+  trailing,
+}: {
+  trailing: React.ReactNode;
+  /**
+   * Keeps an empty box where the graphic will be, so the item keeps its width.
+   */
+  hasGraphic?: boolean;
+}) {
+  return (
+    <MetadataItemFrame trailing={trailing}>
+      {hasGraphic && <MetadataGraphic />}
+      <Placeholder width="120px" height={METADATA_TEXT_HEIGHT} />
+    </MetadataItemFrame>
+  );
+}
+
+function MetadataValue({value: props}: {value: MetadataValueData}) {
+  const {label, mode = 'compact', secondary} = props;
+  const isLink = props.type === 'link';
+  // A link names itself from `label`; text needs the label beside it.
+  const needsOwnLabel = Boolean(label) && (!isLink || mode === 'full');
+  const behavior: EntityHeaderTextBehavior =
+    props.type === 'link'
+      ? {
+          type: 'link',
+          ...toLinkDestination(props),
+          'aria-label': label ? `${label} ${props.value}` : undefined,
+          tooltip: props.tooltip,
+        }
+      : {type: 'text', variant: props.variant, tooltip: props.tooltip};
+  const secondaryLabel = secondary
+    ? label
+      ? `${label} ${secondary.label}`
+      : secondary.label
+    : undefined;
+
+  return (
+    <Fragment>
+      {needsOwnLabel &&
+        (mode === 'full' ? (
+          <InfoText
+            mode="overflowOnly"
+            title={label}
+            variant="muted"
+            size="md"
+            density="comfortable"
+          >
+            {label}
+          </InfoText>
+        ) : (
+          <VisuallyHidden>{label}</VisuallyHidden>
+        ))}
+      <EntityHeaderText
+        behavior={behavior}
+        styles={{size: 'md', density: 'comfortable', ellipsis: true}}
+      >
+        {props.value}
+      </EntityHeaderText>
+      {secondary && (
+        <Fragment>
+          {/*
+            The composed key is real text and not only the tooltip's,
+            because a tooltip reaches assistive technology through
+            `aria-describedby`, which is not announced on focus.
+          */}
+          <VisuallyHidden>{secondaryLabel}</VisuallyHidden>
+          <InfoText
+            title={secondaryLabel}
+            variant="muted"
+            size="md"
+            density="comfortable"
+            ellipsis
+          >
+            {secondary.value}
+          </InfoText>
+        </Fragment>
+      )}
+    </Fragment>
+  );
+}
+
+interface MetadataEntryProps {
+  entry: MetadataValueData;
+  /**
+   * Set on a list's first visible entry, which starts the property: it
+   * carries the list's graphic and label. The graphic keeps its fixed box,
+   * while the label shares the space with the entry's text.
+   */
+  leadGraphic?: React.ReactNode;
+  leadLabel?: React.ReactNode;
+  ref?: React.Ref<HTMLDivElement>;
+  tabIndex?: number;
+  trailing?: React.ReactNode;
+}
+
+function MetadataEntry({
+  entry,
+  leadGraphic,
+  leadLabel,
+  ref,
+  tabIndex,
+  trailing,
+}: MetadataEntryProps) {
+  return (
+    <MetadataItemFrame ref={ref} tabIndex={tabIndex} trailing={trailing}>
+      {leadGraphic}
+      {entry.leadingGraphic && <MetadataGraphic>{entry.leadingGraphic}</MetadataGraphic>}
+      {/*
+        Each text part takes its natural width while there is room. In a
+        narrow header the long parts share what is left equally and truncate,
+        so short ones stay whole and the pipe follows the text that shows.
+      */}
+      <Grid
+        flow="column"
+        autoColumns="minmax(0, max-content)"
+        gap="xs"
+        align="center"
+        minWidth={0}
+      >
+        {leadLabel}
+        <MetadataValue value={entry} />
+      </Grid>
+    </MetadataItemFrame>
+  );
+}
+
+function MetadataList({
+  items: allItems,
+  maxVisible,
+  label,
+  leadingGraphic,
+  trailing,
+  mode = 'compact',
+}: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
+  const {t} = useTranslation();
+  // Before the cut, so "+N more" counts only entries that draw something.
+  const items = allItems.filter(entry => !isEmptyValue(entry));
+  const cut = useResponsivePropValue(maxVisible) ?? items.length;
+  // Where the list was cut when "+N more" was pressed; null while collapsed.
+  // Kept rather than re-read from `cut`, so a later resize neither collapses
+  // the list again nor moves focus.
+  const [revealedFrom, setRevealedFrom] = useState<number | null>(null);
+  // Set by the click that reveals the rest and cleared by the first focus, so
+  // a later change to `items` that moves another entry to `revealedFrom`
+  // cannot pull focus back into the header.
+  const pendingFocusRef = useRef(false);
+  const focusIfPending = useCallback((element: HTMLElement | null) => {
+    if (element && pendingFocusRef.current) {
+      pendingFocusRef.current = false;
+      element.focus();
+    }
+  }, []);
+  const isCollapsed = revealedFrom === null && cut < items.length;
+  const shown = isCollapsed ? items.slice(0, cut) : items;
+
+  // The list's graphic and label travel with its first drawn item, so they
+  // wrap with it: the first entry, or "+N more" when every entry collapses.
+  const leadGraphic = leadingGraphic ? (
+    <MetadataGraphic>{leadingGraphic}</MetadataGraphic>
+  ) : undefined;
+  // The nested list's name already speaks the label.
+  const leadLabel =
+    mode === 'full' ? (
+      <Text size="md" density="comfortable" ellipsis variant="muted" aria-hidden>
+        {label}
+      </Text>
+    ) : undefined;
+  const lead = (
+    <Fragment>
+      {leadGraphic}
+      {leadLabel}
+    </Fragment>
+  );
+
+  return (
+    // Both wrappers drop out of layout, so each entry is an item of the
+    // metadata row and wraps with it, while the list stays in the
+    // accessibility tree.
+    <Container role="listitem" display="contents">
+      <Container role="list" aria-label={label} display="contents">
+        {shown.map((entry, index) => (
+          <MetadataEntry
+            key={entry.key}
+            entry={entry}
+            leadGraphic={index === 0 ? leadGraphic : undefined}
+            leadLabel={index === 0 ? leadLabel : undefined}
+            trailing={!isCollapsed && index === shown.length - 1 ? trailing : undefined}
+            // "+N more" unmounts as it reveals the rest, so focus moves to
+            // the first revealed entry rather than falling to the page.
+            ref={index === revealedFrom ? focusIfPending : undefined}
+            tabIndex={index === revealedFrom ? -1 : undefined}
+          />
+        ))}
+        {/*
+          A button rather than a `Disclosure`, which lays out its own row and
+          so cannot sit inline in the wrapping metadata row.
+        */}
+        {isCollapsed && (
+          <MetadataItemFrame trailing={trailing}>
+            {shown.length === 0 && lead}
+            <Button
+              variant="transparent"
+              size="zero"
+              aria-expanded={false}
+              onClick={() => {
+                pendingFocusRef.current = true;
+                setRevealedFrom(cut);
+              }}
+            >
+              <Text {...METADATA_TEXT_STYLES} variant="inherit">
+                {t('+%s more', items.length - cut)}
+              </Text>
+            </Button>
+          </MetadataItemFrame>
+        )}
+      </Container>
+    </Container>
+  );
+}
+
+export function EntityHeaderMetadataItem({
+  trailing,
+  isLoading = false,
+  ...props
+}: EntityHeaderMetadataItemProps & {trailing: React.ReactNode; isLoading?: boolean}) {
+  if (isLoading) {
+    return (
+      <EntityHeaderMetadataItemSkeleton
+        hasGraphic={Boolean(props.leadingGraphic)}
+        trailing={trailing}
+      />
+    );
+  }
+
+  if (props.type === 'list') {
+    return <MetadataList {...props} trailing={trailing} />;
+  }
+
+  return <MetadataEntry entry={props} trailing={trailing} />;
 }
