@@ -472,6 +472,15 @@ class TestInboxActionFrequency(BaseWorkflowTest):
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
 
     def test_group_less_event_excludes_alerts_and_unsupported_actions(self) -> None:
+        self._assert_group_less_event_excludes_non_inbox_workflow(Workflow.Type.ALERT)
+
+    def test_group_less_event_excludes_seer_and_unsupported_actions(self) -> None:
+        self._assert_group_less_event_excludes_non_inbox_workflow(Workflow.Type.SEER_INVESTIGATION)
+
+    def _assert_group_less_event_excludes_non_inbox_workflow(
+        self, workflow_type: Workflow.Type
+    ) -> None:
+        self.alert.update(type=workflow_type)
         event_data = WorkflowEventData(
             event=OrganizationEvent(organization_id=self.organization.id, event_id=uuid4()),
             organization=self.organization,
@@ -488,6 +497,15 @@ class TestInboxActionFrequency(BaseWorkflowTest):
         assert not WorkflowActionGroupStatus.objects.exists()
 
     def test_shared_action_records_only_eligible_workflows(self) -> None:
+        self._assert_shared_action_records_only_eligible_workflows(Workflow.Type.ALERT)
+
+    def test_shared_action_records_only_eligible_seer_workflows(self) -> None:
+        self._assert_shared_action_records_only_eligible_workflows(Workflow.Type.SEER_INVESTIGATION)
+
+    def _assert_shared_action_records_only_eligible_workflows(
+        self, workflow_type: Workflow.Type
+    ) -> None:
+        self.alert.update(type=workflow_type)
         shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
         groups = {self.inbox_group, shared_group}
         actions, _, workflows = filter_recently_fired_workflow_actions(groups, self.event_data)
