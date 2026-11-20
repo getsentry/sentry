@@ -293,11 +293,12 @@ class ArtifactBundleArchive:
 
     def __init__(self, fileobj: IO[bytes], build_memory_map: bool = True) -> None:
         with ExitStack() as stack:
-            contents = stack.enter_context(fileobj)
-            if not fileobj.seekable():
+            if fileobj.seekable():
+                contents = stack.enter_context(fileobj)
+            else:
                 # ZIP reads seek to the central directory and back to individual entries.
                 # Close the source as soon as the copy finishes. The archive keeps the tempfile.
-                with stack.pop_all():
+                with fileobj:
                     contents = stack.enter_context(tempfile.TemporaryFile())
                     shutil.copyfileobj(fileobj, contents)
                 contents.seek(0)
