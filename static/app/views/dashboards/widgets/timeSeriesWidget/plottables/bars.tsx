@@ -3,7 +3,10 @@ import color from 'color';
 import type {BarSeriesOption, LineSeriesOption} from 'echarts';
 
 import {createBarSeries} from 'sentry/components/charts/series/barSeries';
-import {LOW_CONFIDENCE_OPACITY} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
+import {
+  INCOMPLETE_BAR_OPACITY,
+  LOW_CONFIDENCE_OPACITY,
+} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import {
   ContinuousTimeSeries,
@@ -51,7 +54,7 @@ export class Bars extends ContinuousTimeSeries<BarsConfig> implements Plottable 
             const datum = scaledTimeSeries.values[params.dataIndex]!;
 
             if (segmentBy.includes('completeness') && datum.incomplete) {
-              return colorObject.alpha(0.5).string();
+              return colorObject.alpha(INCOMPLETE_BAR_OPACITY).string();
             }
 
             if (segmentBy.includes('confidence') && datum.confidence === 'low') {
