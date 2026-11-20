@@ -4,7 +4,7 @@ from datetime import datetime, timedelta
 from hashlib import sha1
 from io import BytesIO
 from typing import Literal, TypedDict
-from unittest.mock import patch
+from unittest.mock import MagicMock, patch
 
 from django.core.files.base import ContentFile
 from django.db import connections, router
@@ -33,7 +33,7 @@ from sentry.models.artifactbundle import (
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.project import Project
 from sentry.tasks.assemble import assemble_artifacts
-from sentry.testutils.cases import TestCase
+from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.utils import json
 
@@ -446,6 +446,30 @@ class IndexUrlsInBundleTest(TestCase):
             f"~/{self.debug_id}-2.js",
             "~/static/js/app.js",
         ]
+
+
+class IndexUrlsInDeletedBundleTest(TransactionTestCase):
+    # `TestCase` never commits, so it would never check the deferred foreign key.
+    @patch("sentry.debug_files.artifact_bundles.metrics.incr")
+    def test_bundle_deleted_before_commit(self, mock_incr: MagicMock) -> None:
+        artifact_bundle = self.create_artifact_bundle(artifact_count=1)
+        files: dict[str, _ArtifactFile] = {
+            "files/_/_/app.js": {
+                "url": "~/static/js/app.js",
+                "type": "minified_source",
+                "content": b"app",
+            },
+        }
+        with ArtifactBundleArchive(BytesIO(make_compressed_zip_file(files))) as archive:
+            # Simulate an upload of the same bundle deleting this one as a duplicate.
+            ArtifactBundle.objects.filter(id=artifact_bundle.id).delete()
+
+            index_urls_in_bundle(self.organization.id, artifact_bundle, archive)
+
+        mock_incr.assert_any_call("artifact_bundle_indexing.bundle_deleted_during_indexing")
+        assert not ArtifactBundleIndex.objects.filter(
+            artifact_bundle_id=artifact_bundle.id
+        ).exists()
 
 
 class GetArtifactBundlesContainingUrlTest(TestCase):
