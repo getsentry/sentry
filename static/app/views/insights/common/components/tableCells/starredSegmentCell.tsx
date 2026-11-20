@@ -7,6 +7,7 @@ import {Button} from '@sentry/scraps/button';
 import {t} from 'sentry/locale';
 import type {ApiResponse} from 'sentry/utils/api/apiFetch';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {FlexContainer} from 'sentry/utils/discover/styles';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
@@ -35,15 +36,10 @@ export function StarredSegmentCell({
   const queryClient = useQueryClient();
   const organization = useOrganization();
   const {projects} = useProjects();
-  const project = projects.find(p => p.slug === projectSlug);
-
-  const {setStarredSegment, isPending} = useStarredSegment({
-    projectId: project?.id || projectId,
-    segmentName,
-    onError: () => updateTableData(!isStarred),
-  });
-
-  const disabled = (!project && !projectId) || !segmentName || isPending;
+  const project =
+    projects.find(p => p.slug === projectSlug) ?? projects.find(p => p.id === projectId);
+  const selectedProjectId = project?.id ?? projectId;
+  const selectedProjectSlug = project?.slug ?? projectSlug;
 
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
@@ -57,20 +53,33 @@ export function StarredSegmentCell({
         if (!oldResponse) {
           return;
         }
-        return {
-          ...oldResponse,
-          json: {
-            ...oldResponse.json,
-            data: oldResponse.json.data.map(row =>
-              row.transaction === segmentName && 'is_starred_transaction' in row
-                ? {...row, is_starred_transaction: newIsStarred}
-                : row
-            ),
-          },
-        };
+        const previousRows = oldResponse.json.data;
+        const data = previousRows.map(row => {
+          const rowProjectId = row['project.id'];
+          const matchesProject = defined(rowProjectId)
+            ? String(rowProjectId) === selectedProjectId
+            : selectedProjectSlug !== undefined && row.project === selectedProjectSlug;
+          return row.transaction === segmentName &&
+            matchesProject &&
+            defined(row.is_starred_transaction) &&
+            row.is_starred_transaction !== newIsStarred
+            ? {...row, is_starred_transaction: newIsStarred}
+            : row;
+        });
+        return data.some((row, index) => row !== previousRows[index])
+          ? {...oldResponse, json: {...oldResponse.json, data}}
+          : undefined;
       }
     );
   };
+
+  const {setStarredSegment, isPending} = useStarredSegment({
+    projectId: selectedProjectId,
+    segmentName,
+    onError: updateTableData,
+  });
+
+  const disabled = !selectedProjectId || !segmentName || isPending;
 
   const toggleStarredTransaction = () => {
     setStarredSegment(!isStarred);
