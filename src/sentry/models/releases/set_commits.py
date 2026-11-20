@@ -9,8 +9,9 @@ from datetime import datetime
 from typing import Any, TypedDict
 
 from django.db import IntegrityError, router
+from django.db.models import Q
 
-from sentry import options
+from sentry import features, options
 from sentry.constants import ObjectStatus
 from sentry.integrations.source_code_management.metrics import (
     SCMIntegrationInteractionEvent,
@@ -163,19 +164,104 @@ def set_commits_on_release(
     else:
         last_commit_id = latest_commit.id
 
+    author_ids = list(
+        ReleaseCommit.objects.filter(release=release, commit__author_id__isnull=False)
+        .values_list("commit__author_id", flat=True)
+        .distinct()
+    )
+    if features.has("organizations:release-commit-coauthors", release.organization):
+        author_ids = list(
+            dict.fromkeys([*author_ids, *_get_coauthor_ids(release.organization_id, commits)])
+        )
+
     release.update(
         commit_count=len(commit_list),
-        authors=[
-            str(a_id)
-            for a_id in ReleaseCommit.objects.filter(
-                release=release, commit__author_id__isnull=False
-            )
-            .values_list("commit__author_id", flat=True)
-            .distinct()
-        ],
+        authors=[str(a_id) for a_id in author_ids],
         last_commit_id=last_commit_id,
     )
     return head_commit_by_repo, commit_author_by_commit
+
+
+_TRAILER_LINE_RE = re.compile(r"^[A-Za-z0-9-]+[ \t]*:.+|^\(cherry picked from commit [0-9a-f]+\)$")
+_COAUTHOR_TRAILER_RE = re.compile(
+    r"^co-authored-by:[ \t]*[^<]*<([^<>\s]+@[^<>\s]+)>[ \t]*$", re.IGNORECASE
+)
+_GITHUB_NOREPLY_RE = re.compile(r"^(?:\d+\+)?([^@+]+)@users\.noreply\.github\.com$", re.IGNORECASE)
+
+
+def _coauthor_emails(message: str) -> list[str]:
+    """
+    Read `Co-authored-by` from the trailer block only, as Git and GitHub do.
+
+    The trailer block is the last paragraph, and every line in it is a trailer.
+    A trailer quoted higher up, such as in a revert message, credits nobody. The
+    subject paragraph is never a trailer block.
+    """
+    trailers = []
+    lines = message.rstrip().splitlines()
+    for line in reversed(lines):
+        if not _TRAILER_LINE_RE.match(line):
+            break
+        trailers.append(line)
+    if len(trailers) == len(lines):
+        return []
+    return [
+        match.group(1) for line in trailers if (match := _COAUTHOR_TRAILER_RE.match(line.rstrip()))
+    ]
+
+
+def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[int]:
+    """
+    Return the existing commit authors named in the commits' `Co-authored-by` trailers.
+
+    Bots open pull requests for people and credit them only in trailers, so the
+    commit author alone misses the people who made the change. Trailers match
+    existing authors only: a commit message can list any number of addresses and
+    must not be able to create authors.
+
+    A GitHub noreply address also matches by login. GitHub gives one account
+    both `login@` and `<id>+login@` noreply addresses, so a trailer in either
+    form matches the stored `login@` form too. The push webhook files authors
+    whose GitHub identity it resolves under their real email with a
+    `github:<login>` external id. Only that email resolves to a Sentry user, so it
+    replaces any noreply author the same login left from before. GitHub logins
+    ignore case, and a trailer can spell one differently from the stored id.
+    """
+    emails: set[str] = set()
+    logins: set[str] = set()
+    for commit in commits:
+        for email in _coauthor_emails(commit.message or ""):
+            if len(email) > COMMIT_AUTHOR_EMAIL_LENGTH:
+                continue
+            emails.add(email.lower())
+            if noreply := _GITHUB_NOREPLY_RE.match(email):
+                logins.add(noreply.group(1).lower())
+                emails.add(f"{noreply.group(1)}@users.noreply.github.com".lower())
+
+    if not emails:
+        return []
+
+    matches = Q(email__in=emails)
+    for login in logins:
+        matches |= Q(external_id__iexact=f"github:{login}")
+    authors = list(
+        CommitAuthor.objects.filter(matches, organization_id=organization_id)
+        .order_by("id")
+        .values_list("id", "email", "external_id")
+    )
+    resolved_logins = {
+        external_id.removeprefix("github:").lower()
+        for _, email, external_id in authors
+        if external_id and external_id.startswith("github:") and not _GITHUB_NOREPLY_RE.match(email)
+    }
+    return [
+        author_id
+        for author_id, email, _ in authors
+        if not (
+            (noreply := _GITHUB_NOREPLY_RE.match(email))
+            and noreply.group(1).lower() in resolved_logins
+        )
+    ]
 
 
 def upsert_commit(data: _CommitData, release: Release) -> Commit:
