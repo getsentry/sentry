@@ -112,11 +112,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
                 {linkProps => (
                   <ItemLink
                     {...linkProps}
-                    to={{
-                      pathname,
-                      query: {...filters, ...qs.parse(search)},
-                      hash,
-                    }}
+                    to={{pathname, query: {...filters, ...qs.parse(search)}, hash}}
                     aria-current={isSelected ? 'true' : undefined}
                   >
                     <SubjectIcon size="sm" />

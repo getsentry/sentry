@@ -138,9 +138,7 @@ export function useLiveBadge({startedAt, finishedAt}: UseLiveBadgeParams) {
     [startedAt, finishedAt]
   );
 
-  return {
-    isLive: useSyncExternalStore(subscribe, getSnapshot, getSnapshot),
-  };
+  return {isLive: useSyncExternalStore(subscribe, getSnapshot, getSnapshot)};
 }
 
 /**
@@ -209,8 +207,5 @@ export function useLiveRefresh({replay}: {replay: ReplayRecord | undefined}) {
   const prevSegments = replay?.count_segments ?? 0;
   const shouldShowRefreshButton = polledCountSegments > prevSegments;
 
-  return {
-    shouldShowRefreshButton,
-    doRefresh,
-  };
+  return {shouldShowRefreshButton, doRefresh};
 }

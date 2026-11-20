@@ -67,15 +67,8 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'text',
-          text: tct('Install [code:sentry-sdk]:', {code: <code />}),
-        },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getInstallSnippet(),
-        },
+        {type: 'text', text: tct('Install [code:sentry-sdk]:', {code: <code />})},
+        {type: 'code', language: 'elixir', code: getInstallSnippet()},
       ],
     },
   ],
@@ -87,16 +80,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Setup the application production environment in your [code:config/prod.exs]',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'elixir', code: getConfigureSnippet(params)},
       ],
     },
     {
@@ -121,18 +108,12 @@ export const onboarding: OnboardingConfig = {
             {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'diff',
-          code: getPlugSnippet(),
-        },
+        {type: 'code', language: 'diff', code: getPlugSnippet()},
         {
           type: 'text',
           text: tct(
             '[code:Sentry.PlugContext] gathers the contextual information for errors, and [code:Sentry.PlugCapture] captures and sends any errors that occur in the Plug stack.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
       ],
@@ -146,11 +127,7 @@ export const onboarding: OnboardingConfig = {
             'This library comes with an extension to capture all error messages that the Plug handler might not. This is based on adding an erlang logger handler when your application starts:'
           ),
         },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getLoggerHandlerSnippet(),
-        },
+        {type: 'code', language: 'elixir', code: getLoggerHandlerSnippet()},
       ],
     },
   ],
@@ -158,15 +135,8 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       content: [
-        {
-          type: 'text',
-          text: t('You can then report errors or messages to Sentry:'),
-        },
-        {
-          type: 'code',
-          language: 'elixir',
-          code: getVerifySnippet(),
-        },
+        {type: 'text', text: t('You can then report errors or messages to Sentry:')},
+        {type: 'code', language: 'elixir', code: getVerifySnippet()},
       ],
     },
   ],

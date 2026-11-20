@@ -126,9 +126,7 @@ export function DataScrubFormModal({
       dataset: initialDataset,
       eventId: sourceGroupData.eventId,
     },
-    validators: {
-      onDynamic: dataScrubSchema,
-    },
+    validators: {onDynamic: dataScrubSchema},
     onSubmit: async ({value}) => {
       // Strip dataset and eventId from values before creating rules
       const {dataset: _dataset, eventId: _eventId, ...ruleValues} = value;
@@ -143,14 +141,10 @@ export function DataScrubFormModal({
         switch (parsedError.type) {
           case ErrorType.INVALID_SELECTOR:
           case ErrorType.ATTRIBUTE_INVALID:
-            setFieldErrors(form, {
-              source: {message: parsedError.message},
-            });
+            setFieldErrors(form, {source: {message: parsedError.message}});
             break;
           case ErrorType.REGEX_PARSE:
-            setFieldErrors(form, {
-              pattern: {message: parsedError.message},
-            });
+            setFieldErrors(form, {pattern: {message: parsedError.message}});
             break;
           default:
             toast.error(parsedError.message);
@@ -170,9 +164,7 @@ export function DataScrubFormModal({
 
     const validation = validateTraceItemFieldSelector(traceItemField);
     if (!validation.isValid && validation.error) {
-      setFieldErrors(form, {
-        source: {message: validation.error},
-      });
+      setFieldErrors(form, {source: {message: validation.error}});
     }
   };
 

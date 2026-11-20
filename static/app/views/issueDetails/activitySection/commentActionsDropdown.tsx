@@ -9,11 +9,7 @@ import {t} from 'sentry/locale';
 import type {User} from 'sentry/types/user';
 import {useUser} from 'sentry/utils/useUser';
 
-type Props = {
-  onDelete: () => Promise<void>;
-  onEdit: () => void;
-  user?: User | null;
-};
+type Props = {onDelete: () => Promise<void>; onEdit: () => void; user?: User | null};
 
 export function CommentActionsDropdown({user, onDelete, onEdit}: Props) {
   const activeUser = useUser();

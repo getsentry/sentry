@@ -129,14 +129,16 @@ describe('SeerExplorerContent re-renders', () => {
   });
 
   it('does not re-render the transcript while typing', async () => {
-    jest.spyOn(useSeerExplorerModule, 'useSeerExplorer').mockReturnValue({
-      ...defaultHookReturn,
-      sessionData: {
-        blocks: completedBlocks,
-        status: 'completed',
-        updated_at: '2024-01-01T01:00:00Z',
-      },
-    });
+    jest
+      .spyOn(useSeerExplorerModule, 'useSeerExplorer')
+      .mockReturnValue({
+        ...defaultHookReturn,
+        sessionData: {
+          blocks: completedBlocks,
+          status: 'completed',
+          updated_at: '2024-01-01T01:00:00Z',
+        },
+      });
 
     renderContent();
     const editor = await screen.findByRole('combobox');

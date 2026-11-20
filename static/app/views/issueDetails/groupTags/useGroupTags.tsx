@@ -54,11 +54,7 @@ export function useGroupTags(
 ) {
   const organization = useOrganization();
   return useQuery({
-    ...groupTagsOptions({
-      orgSlug: organization.slug,
-      limit: 3,
-      ...parameters,
-    }),
+    ...groupTagsOptions({orgSlug: organization.slug, limit: 3, ...parameters}),
     enabled: defined(parameters.groupId) && (options.enabled ?? true),
   });
 }

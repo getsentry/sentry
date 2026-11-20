@@ -142,12 +142,7 @@ export function ChartContextDrawer({
       badge: releases?.length,
       panel: <TableComingSoon />,
     },
-    {
-      key: 'flags',
-      label: t('Flags'),
-      badge: flagLog?.length,
-      panel: <TableComingSoon />,
-    },
+    {key: 'flags', label: t('Flags'), badge: flagLog?.length, panel: <TableComingSoon />},
   ];
 
   return (

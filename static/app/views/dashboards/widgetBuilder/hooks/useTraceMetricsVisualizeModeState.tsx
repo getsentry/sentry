@@ -152,14 +152,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         : derivedFields;
     seriesSnapshot.current = {fields, legendAlias: [], query: []};
     dispatch({type: actionType, payload: fields});
-    dispatch({
-      type: BuilderStateAction.SET_QUERY,
-      payload: [],
-    });
-    dispatch({
-      type: BuilderStateAction.SET_LEGEND_ALIAS,
-      payload: [],
-    });
+    dispatch({type: BuilderStateAction.SET_QUERY, payload: []});
+    dispatch({type: BuilderStateAction.SET_LEGEND_ALIAS, payload: []});
   }, [state.dataset, state.displayType, state.fields, dispatch]);
 
   const restoreEquationState = useCallback(() => {
@@ -222,14 +216,8 @@ export function useTraceMetricsVisualizeModeState(): TraceMetricsVisualizeModeSt
         dispatch
       );
     }
-    dispatch({
-      type: BuilderStateAction.SET_QUERY,
-      payload: [selected.queryParams.query],
-    });
-    dispatch({
-      type: BuilderStateAction.SET_LEGEND_ALIAS,
-      payload: [],
-    });
+    dispatch({type: BuilderStateAction.SET_QUERY, payload: [selected.queryParams.query]});
+    dispatch({type: BuilderStateAction.SET_LEGEND_ALIAS, payload: []});
     dispatch({
       type: BuilderStateAction.SET_TRANSFORMATIONS,
       payload: supportsWidgetTransformations(state.dataset, state.displayType)

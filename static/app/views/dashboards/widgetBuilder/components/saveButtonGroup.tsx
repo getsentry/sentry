@@ -6,9 +6,7 @@ import {t} from 'sentry/locale';
 import type {SaveButtonProps} from './saveButton';
 import {SaveButton} from './saveButton';
 
-type SaveButtonGroupProps = SaveButtonProps & {
-  onClose: () => void;
-};
+type SaveButtonGroupProps = SaveButtonProps & {onClose: () => void};
 
 export function SaveButtonGroup({
   isEditing,

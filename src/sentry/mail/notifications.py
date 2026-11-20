@@ -5,10 +5,10 @@ from collections.abc import Iterable, Mapping, MutableMapping
 from typing import TYPE_CHECKING, Any, TypeVar, cast
 
 import orjson
+from django.conf import settings
 from django.utils.encoding import force_str
 from sentry_sdk import traces
 
-from sentry import options
 from sentry.integrations.types import ExternalProviders
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
@@ -52,7 +52,7 @@ def build_subject_prefix(project: Project) -> str:
         "str",
         force_str(
             ProjectOption.objects.get_value(project, "mail:subject_prefix")
-            or options.get("mail.subject-prefix")
+            or settings.EMAIL_SUBJECT_PREFIX
         ),
     )
 

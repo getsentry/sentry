@@ -33,9 +33,7 @@ describe('CronDetectorDetails - check-ins', () => {
       ...CronMonitorDataSourceFixture().queryObj,
       // Ensure we have a lastCheckIn so the check-ins section is shown
       environments: [
-        CronMonitorEnvironmentFixture({
-          lastCheckIn: '2025-01-01T00:00:00Z',
-        }),
+        CronMonitorEnvironmentFixture({lastCheckIn: '2025-01-01T00:00:00Z'}),
       ],
     },
   });
@@ -51,10 +49,7 @@ describe('CronDetectorDetails - check-ins', () => {
     MockApiClient.clearMockResponses();
     PageFiltersStore.reset();
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/open-periods/',
       body: [],
@@ -71,10 +66,7 @@ describe('CronDetectorDetails - check-ins', () => {
       url: '/organizations/org-slug/issues/?limit=5&query=is%3Aunresolved%20detector%3A1&statsPeriod=14d',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/users/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/users/1/',
       body: UserFixture(),
@@ -91,14 +83,8 @@ describe('CronDetectorDetails - check-ins', () => {
       url: `/projects/org-slug/${project.id}/monitors/${cronDataSource.queryObj.slug}/processing-errors/`,
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/workflows/', body: []});
   });
 
   it('should show onboarding when the monitor has never checked in', async () => {
@@ -111,10 +97,7 @@ describe('CronDetectorDetails - check-ins', () => {
       queryObj: {
         ...CronMonitorDataSourceFixture().queryObj,
         environments: [
-          CronMonitorEnvironmentFixture({
-            lastCheckIn: null,
-            nextCheckIn: null,
-          }),
+          CronMonitorEnvironmentFixture({lastCheckIn: null, nextCheckIn: null}),
         ],
       },
     });
@@ -459,10 +442,7 @@ describe('CronDetectorDetails - check-ins', () => {
         queryObj: {
           ...CronMonitorDataSourceFixture().queryObj,
           environments: [
-            CronMonitorEnvironmentFixture({
-              lastCheckIn: null,
-              nextCheckIn: null,
-            }),
+            CronMonitorEnvironmentFixture({lastCheckIn: null, nextCheckIn: null}),
           ],
         },
       });
@@ -598,10 +578,7 @@ describe('CronDetectorDetails - check-ins', () => {
       expect(muteRequest).toHaveBeenCalledTimes(1);
       expect(muteRequest).toHaveBeenCalledWith(
         expect.stringContaining('/environments/production'),
-        expect.objectContaining({
-          method: 'PUT',
-          data: {isMuted: true},
-        })
+        expect.objectContaining({method: 'PUT', data: {isMuted: true}})
       );
 
       expect(detectorRefetchRequest).toHaveBeenCalledTimes(2);

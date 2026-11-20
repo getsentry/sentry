@@ -93,3 +93,32 @@ def test_entry_defaults_are_left_out_of_the_snapshot() -> None:
         "sub_page": True,
     }
     assert LOGS.to_dict() == {"crumbs": "Explore → Logs", "path": "/explore/logs/"}
+
+
+def test_hook_regenerates_a_stale_snapshot_and_fails(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    path = tmp_path / "snapshot.json"
+    refresh_snapshot([LOGS], SUMMARY, path)
+
+    with (
+        mock.patch.object(generate_snapshot, "SNAPSHOT_PATH", path),
+        mock.patch.object(generate_snapshot, "parse_checkout", return_value=([TRACES], SUMMARY)),
+    ):
+        assert generate_snapshot.main(["--hook"]) == 1
+        assert "git add src/sentry/seer/nav_snapshot.generated.json" in capsys.readouterr().out
+        assert json.loads(path.read_text())["entries"] == [TRACES.to_dict()]
+
+        assert generate_snapshot.main(["--hook"]) == 0
+
+
+def test_hook_only_warns_when_the_parser_fails(
+    tmp_path: Path, capsys: pytest.CaptureFixture[str]
+) -> None:
+    with mock.patch.object(
+        generate_snapshot, "parse_checkout", side_effect=SystemExit("layout changed")
+    ):
+        assert generate_snapshot.main(["--hook"]) == 0
+    out = capsys.readouterr().out
+    assert "layout changed" in out
+    assert "python -m tools.seer_nav.generate_snapshot" in out

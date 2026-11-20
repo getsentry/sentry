@@ -49,18 +49,9 @@ export type SeerAnalyticsEventsParameters = {
     suggested_query: string;
     type: 'positive' | 'negative';
   };
-  'ai_query.interface': {
-    action: 'opened' | 'closed';
-    area: string;
-  };
-  'ai_query.regenerated': {
-    area: string;
-    natural_language_query: string;
-  };
-  'ai_query.submitted': {
-    area: string;
-    natural_language_query: string;
-  };
+  'ai_query.interface': {action: 'opened' | 'closed'; area: string};
+  'ai_query.regenerated': {area: string; natural_language_query: string};
+  'ai_query.submitted': {area: string; natural_language_query: string};
   'autofix.code_changes.re_run': {
     group_id: string;
     organization: Organization;
@@ -188,13 +179,6 @@ export type SeerAnalyticsEventsParameters = {
     source: 'cta' | 'settings_dropdown' | 'settings_toggle';
     user_id: string;
   };
-  'seer.autofix.feedback_submitted': {
-    autofix_run_id: string;
-    group_id: string;
-    positive: boolean;
-    step_type: 'root_cause' | 'solution' | 'changes';
-    user_id: string;
-  };
   'seer.config_reminder.rendered': {
     can_write_settings: boolean;
     has_code_review_beta: boolean;
@@ -211,23 +195,14 @@ export type SeerAnalyticsEventsParameters = {
     run_id: SeerExplorerRunId | undefined;
     type: 'positive' | 'negative';
   };
-  'seer.explorer.global_panel.opened': {
-    referrer: string;
-    isDrawer?: boolean;
-  };
+  'seer.explorer.global_panel.opened': {referrer: string; isDrawer?: boolean};
   'seer.explorer.global_panel.tool_link_navigation': {
     referrer: string;
     tool_kind: string;
   };
-  'seer.explorer.message_sent': {
-    referrer: string;
-    surface: 'global_panel';
-  };
+  'seer.explorer.message_sent': {referrer: string; surface: 'global_panel'};
   'seer.explorer.session_copied_to_clipboard': Record<string, unknown>;
-  'seer.explorer.session_created': {
-    referrer: string;
-    surface: 'global_panel';
-  };
+  'seer.explorer.session_created': {referrer: string; surface: 'global_panel'};
   'seer.explorer.session_link_copied': Record<string, unknown>;
   'seer.explorer.sidebar.position_changed': {
     /** Browser viewport height in CSS pixels, rounded to 50px analytics buckets. */
@@ -266,12 +241,8 @@ export type SeerAnalyticsEventsParameters = {
     source: 'generated' | 'fallback' | 'legacy';
     fallback_reason?: 'timeout' | 'error' | 'empty' | 'incomplete_context';
   };
-  'seer.explorer.timed_out': {
-    run_id: SeerExplorerRunId | null;
-  };
-  'seer.explorer.update_slack_clicked': {
-    num_configurations: number;
-  };
+  'seer.explorer.timed_out': {run_id: SeerExplorerRunId | null};
+  'seer.explorer.update_slack_clicked': {num_configurations: number};
   'seer.investigation.action_request.applied': InvestigationActionRequestEvent;
   'seer.investigation.action_request.link_clicked': InvestigationActionRequestEvent & {
     link: string;
@@ -307,7 +278,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'coding_integration.install_clicked': 'Coding Integration: Install Clicked',
   'coding_integration.send_to_agent_clicked': 'Coding Integration: Send to Agent Clicked',
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
-  'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
   'seer.explorer.block_copied': 'Seer Explorer: Block Content Copied',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',
