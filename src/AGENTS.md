@@ -144,8 +144,11 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 
 ### Database Guidelines
 
-- Migrations must be backwards compatible, and data migrations run on historical models without custom `save()` or signals → use the **`generate-migration`** skill.
-- Some production tables live on separate Postgres databases, and tests do not catch a statement or transaction that spans two. Before you write a query, subquery, join, raw SQL, or `transaction.atomic` block that touches more than one model, add a foreign key, or add an index → use the **`django-queries`** skill.
+1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
+2. Data migrations using `apps.get_model()` operate on historical model classes: custom `save()` methods are absent, and signals scoped to the live model class do not run. Identify and explicitly perform required side effects such as cache invalidation; see the **`generate-migration`** skill.
+3. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
+4. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
+5. Some production tables live on separate Postgres databases, and tests do not catch a statement or transaction that spans two. Before you write a query, subquery, join, raw SQL, or `transaction.atomic` block that touches more than one model, or add a foreign key → use the **`django-queries`** skill.
 
 ### Redis TTLs
 

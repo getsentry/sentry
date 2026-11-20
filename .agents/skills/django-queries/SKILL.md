@@ -1,6 +1,6 @@
 ---
 name: django-queries
-description: Write Django ORM queries, raw SQL, transactions, and indexes that work on Sentry's production databases. Use when writing or reviewing database access code in Sentry. Not for migration files (use generate-migration) or model design (use django-models).
+description: Write Django ORM queries, raw SQL, and transactions that work on Sentry's production databases. Use when writing or reviewing database access code in Sentry. Not for migration files (use generate-migration) or model design (use django-models).
 ---
 
 # Django Queries on Sentry's Databases
@@ -17,8 +17,3 @@ Look up every table involved before you:
 - **Write to more than one model in a `transaction.atomic` block**: it only covers the database named in `using`, usually `router.db_for_write(Model)`.
 - **Add a foreign key or a model**: reference a table on another database with a plain `BoundedBigIntegerField` ID column, as `ReleaseFile.release_id` does. A new table is on `default` unless it is added to the map.
 - **Write a migration**: `RunPython` and `SafeRunSQL` also need routing hints. Use the **`generate-migration`** skill.
-
-## Indexes
-
-- Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
-- A query that filters on several columns (e.g. `foreign_key_id__in=... AND id__gt=...`, a foreign key plus a timestamp range, or cursor pagination combined with filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single foreign key auto-index does not cover multi-column filters. Use the **`django-perf-review`** skill to validate.
