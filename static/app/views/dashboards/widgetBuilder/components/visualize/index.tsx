@@ -889,94 +889,6 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       />
                     );
 
-                    const transformationButton = fieldTransformationDataset && (
-                      <Flex align="center" height={theme.form.md.height}>
-                        <AddTransformationButton
-                          iconOnly
-                          analyticsSource="dashboards"
-                          traceItemDataset={fieldTransformationDataset}
-                          transformations={fieldTransformations}
-                          onChange={setFieldTransformations}
-                        />
-                      </Flex>
-                    );
-
-                    const deleteButton = (!isBigNumberWidget ||
-                      enableEquations ||
-                      (isBigNumberWidget && fields.length > 1)) && (
-                      <DeleteFieldButton
-                        disabled={
-                          fields.length <= 1 ||
-                          !canDelete ||
-                          isOnlyFieldOrAggregate ||
-                          isReferencedByEquation
-                        }
-                        disabledReason={
-                          isReferencedByEquation
-                            ? t(
-                                'This series is used in an equation. Hide it instead of deleting it.'
-                              )
-                            : undefined
-                        }
-                        onClick={() => {
-                          dispatch({
-                            type: BuilderStateAction.DELETE_AGGREGATE,
-                            payload: index,
-                          });
-
-                          trackAnalytics('dashboards_views.widget_builder.change', {
-                            builder_version: WidgetBuilderVersion.SLIDEOUT,
-                            field:
-                              field.kind === FieldValueKind.EQUATION
-                                ? 'visualize.deleteEquation'
-                                : 'visualize.deleteField',
-                            from: source,
-                            new_widget: !isEditing,
-                            value: '',
-                            widget_type: state.dataset ?? '',
-                            organization,
-                          });
-                        }}
-                      />
-                    );
-
-                    // The unified list renders one shared row for aggregates,
-                    // equations and hidden rows so they all line up.
-                    const unifiedRow = isUnifiedTraceMetrics ? (
-                      <TraceMetricRow
-                        label={unifiedRowLabel}
-                        alias={aliasInput}
-                        field={field}
-                        disabled={disableTransactionWidget}
-                        onFieldChange={nextField => updateUnifiedField(index, nextField)}
-                        extras={
-                          <Fragment>
-                            {transformationButton}
-                            {deleteButton}
-                          </Fragment>
-                        }
-                      >
-                        {field.kind === FieldValueKind.EQUATION ? (
-                          <TraceMetricEquationRow
-                            equation={field.field}
-                            referenceMap={unifiedRows?.referenceMap ?? {}}
-                            disabled={disableTransactionWidget}
-                            onUpdate={value => {
-                              dispatch({
-                                type: updateAction,
-                                payload: fields.map((_field, i) =>
-                                  i === index ? {..._field, field: value} : _field
-                                ),
-                              });
-                              setError?.({...error, queries: []});
-                            }}
-                          />
-                        ) : (
-                          metricSelectRow
-                        )}
-                      </TraceMetricRow>
-                    ) : null;
-
                     return [
                       ...renderHiddenRows(index, !!canDrag),
                       <SortableVisualizeFieldWrapper
@@ -986,82 +898,83 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       >
                         {activeId !== null && index === Number(activeId) ? null : (
                           <Stack gap="md" flex="1" minWidth="0">
-                            {isUnifiedTraceMetrics ? (
-                              unifiedRow
-                            ) : (
-                              <FieldRow>
-                                {fields.length > 1 &&
-                                  (state.displayType === DisplayType.BIG_NUMBER ||
-                                    state.displayType === DisplayType.CATEGORICAL_BAR ||
-                                    state.displayType === DisplayType.HEATMAP) && (
-                                    <RadioLineItem
-                                      index={index}
-                                      role="radio"
-                                      aria-label="aggregate-selector"
+                            <FieldRow>
+                              {fields.length > 1 &&
+                                (state.displayType === DisplayType.BIG_NUMBER ||
+                                  state.displayType === DisplayType.CATEGORICAL_BAR ||
+                                  state.displayType === DisplayType.HEATMAP) && (
+                                  <RadioLineItem
+                                    index={index}
+                                    role="radio"
+                                    aria-label="aggregate-selector"
+                                  >
+                                    <Radio
+                                      checked={index === state.selectedAggregate}
+                                      onChange={() => {
+                                        dispatch({
+                                          type: BuilderStateAction.SET_SELECTED_AGGREGATE,
+                                          payload: index,
+                                        });
+                                      }}
+                                      onClick={() => {
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.selectAggregate',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                      aria-label={'field' + index}
+                                    />
+                                  </RadioLineItem>
+                                )}
+                              <FieldBar data-testid="field-bar">
+                                {field.kind === FieldValueKind.EQUATION ? (
+                                  state.dataset === WidgetType.SPANS ? (
+                                    <ExploreArithmeticBuilder
+                                      equation={field.field}
+                                      onUpdate={value => {
+                                        dispatch({
+                                          type: updateAction,
+                                          payload: fields.map((_field, i) =>
+                                            i === index
+                                              ? {..._field, field: value}
+                                              : _field
+                                          ),
+                                        });
+                                        setError?.({...error, queries: []});
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.updateEquation',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                    />
+                                  ) : isUnifiedTraceMetrics ? (
+                                    <TraceMetricRow
+                                      label={unifiedRowLabel}
+                                      alias={aliasInput}
+                                      field={field}
+                                      disabled={disableTransactionWidget}
                                     >
-                                      <Radio
-                                        checked={index === state.selectedAggregate}
-                                        onChange={() => {
-                                          dispatch({
-                                            type: BuilderStateAction.SET_SELECTED_AGGREGATE,
-                                            payload: index,
-                                          });
-                                        }}
-                                        onClick={() => {
-                                          trackAnalytics(
-                                            'dashboards_views.widget_builder.change',
-                                            {
-                                              builder_version:
-                                                WidgetBuilderVersion.SLIDEOUT,
-                                              field: 'visualize.selectAggregate',
-                                              from: source,
-                                              new_widget: !isEditing,
-                                              value: '',
-                                              widget_type: state.dataset ?? '',
-                                              organization,
-                                            }
-                                          );
-                                        }}
-                                        aria-label={'field' + index}
-                                      />
-                                    </RadioLineItem>
-                                  )}
-                                <FieldBar data-testid="field-bar">
-                                  {field.kind === FieldValueKind.EQUATION ? (
-                                    state.dataset === WidgetType.SPANS ? (
-                                      <ExploreArithmeticBuilder
+                                      <TraceMetricEquationRow
                                         equation={field.field}
-                                        onUpdate={value => {
-                                          dispatch({
-                                            type: updateAction,
-                                            payload: fields.map((_field, i) =>
-                                              i === index
-                                                ? {..._field, field: value}
-                                                : _field
-                                            ),
-                                          });
-                                          setError?.({...error, queries: []});
-                                          trackAnalytics(
-                                            'dashboards_views.widget_builder.change',
-                                            {
-                                              builder_version:
-                                                WidgetBuilderVersion.SLIDEOUT,
-                                              field: 'visualize.updateEquation',
-                                              from: source,
-                                              new_widget: !isEditing,
-                                              value: '',
-                                              widget_type: state.dataset ?? '',
-                                              organization,
-                                            }
-                                          );
-                                        }}
-                                      />
-                                    ) : (
-                                      <StyledArithmeticInput
-                                        name="arithmetic"
-                                        key="parameter:text"
-                                        type="text"
-                                        value={field.field}
+                                        referenceMap={unifiedRows?.referenceMap ?? {}}
                                         disabled={disableTransactionWidget}
                                         onUpdate={value => {
                                           dispatch({
@@ -1073,137 +986,221 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                                             ),
                                           });
                                           setError?.({...error, queries: []});
-                                          trackAnalytics(
-                                            'dashboards_views.widget_builder.change',
-                                            {
-                                              builder_version:
-                                                WidgetBuilderVersion.SLIDEOUT,
-                                              field: 'visualize.updateEquation',
-                                              from: source,
-                                              new_widget: !isEditing,
-                                              value: '',
-                                              widget_type: state.dataset ?? '',
-                                              organization,
-                                            }
-                                          );
                                         }}
-                                        options={fields}
-                                        placeholder={t('Equation')}
-                                        aria-label={t('Equation')}
                                       />
-                                    )
+                                    </TraceMetricRow>
                                   ) : (
-                                    <Fragment>
-                                      {state.dataset === WidgetType.TRACEMETRICS ? (
-                                        metricSelectRow
-                                      ) : (
-                                        <SelectRow
+                                    <StyledArithmeticInput
+                                      name="arithmetic"
+                                      key="parameter:text"
+                                      type="text"
+                                      value={field.field}
+                                      disabled={disableTransactionWidget}
+                                      onUpdate={value => {
+                                        dispatch({
+                                          type: updateAction,
+                                          payload: fields.map((_field, i) =>
+                                            i === index
+                                              ? {..._field, field: value}
+                                              : _field
+                                          ),
+                                        });
+                                        setError?.({...error, queries: []});
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field: 'visualize.updateEquation',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                      options={fields}
+                                      placeholder={t('Equation')}
+                                      aria-label={t('Equation')}
+                                    />
+                                  )
+                                ) : (
+                                  <Fragment>
+                                    {state.dataset === WidgetType.TRACEMETRICS ? (
+                                      isUnifiedTraceMetrics ? (
+                                        <TraceMetricRow
+                                          label={unifiedRowLabel}
+                                          alias={aliasInput}
                                           field={field}
-                                          index={index}
-                                          hasColumnParameter={hasColumnParameter}
-                                          columnOptions={columnOptions}
-                                          aggregateOptions={aggregateOptions}
-                                          stringFields={stringFields}
-                                          error={error}
-                                          setError={setError}
-                                          fields={fields}
-                                          source={source}
-                                          isEditing={isEditing}
-                                          fieldOptions={fieldOptions}
-                                          columnFilterMethod={columnFilterMethod}
-                                          aggregates={aggregates}
                                           disabled={disableTransactionWidget}
+                                          onFieldChange={nextField =>
+                                            updateUnifiedField(index, nextField)
+                                          }
+                                        >
+                                          {metricSelectRow}
+                                        </TraceMetricRow>
+                                      ) : (
+                                        metricSelectRow
+                                      )
+                                    ) : (
+                                      <SelectRow
+                                        field={field}
+                                        index={index}
+                                        hasColumnParameter={hasColumnParameter}
+                                        columnOptions={columnOptions}
+                                        aggregateOptions={aggregateOptions}
+                                        stringFields={stringFields}
+                                        error={error}
+                                        setError={setError}
+                                        fields={fields}
+                                        source={source}
+                                        isEditing={isEditing}
+                                        fieldOptions={fieldOptions}
+                                        columnFilterMethod={columnFilterMethod}
+                                        aggregates={aggregates}
+                                        disabled={disableTransactionWidget}
+                                      />
+                                    )}
+                                    {field.kind === FieldValueKind.FUNCTION &&
+                                      parameterRefinements.length > 0 && (
+                                        <ParameterRefinements>
+                                          {parameterRefinements.map(
+                                            (parameter: any, parameterIndex: any) => {
+                                              // The current value is displaced by 2 because the first two parameters
+                                              // are the aggregate name and the column selection
+                                              const currentValue =
+                                                field.function[parameterIndex + 2] || '';
+                                              const key = `${field.function.join('_')}-${parameterIndex}`;
+                                              return (
+                                                <AggregateParameterField
+                                                  key={key}
+                                                  parameter={parameter}
+                                                  fieldValue={field}
+                                                  currentValue={currentValue}
+                                                  onChange={value => {
+                                                    const newFields = cloneDeep(fields);
+                                                    if (
+                                                      newFields[index]!.kind !==
+                                                      FieldValueKind.FUNCTION
+                                                    ) {
+                                                      return;
+                                                    }
+                                                    newFields[index]!.function[
+                                                      parameterIndex + 2
+                                                    ] = value;
+                                                    dispatch({
+                                                      type: updateAction,
+                                                      payload: newFields,
+                                                    });
+                                                    setError?.({...error, queries: []});
+                                                  }}
+                                                />
+                                              );
+                                            }
+                                          )}
+                                        </ParameterRefinements>
+                                      )}
+                                    {isApdexOrUserMisery &&
+                                      field.kind === FieldValueKind.FUNCTION && (
+                                        <AggregateParameterField
+                                          parameter={
+                                            matchingAggregate?.value.meta.parameters[0]
+                                          }
+                                          fieldValue={field}
+                                          currentValue={field.function[1]}
+                                          onChange={value => {
+                                            const newFields = cloneDeep(fields);
+                                            if (
+                                              newFields[index]!.kind !==
+                                              FieldValueKind.FUNCTION
+                                            ) {
+                                              return;
+                                            }
+                                            newFields[index]!.function[1] = value;
+                                            dispatch({
+                                              type: updateAction,
+                                              payload: newFields,
+                                            });
+                                            setError?.({...error, queries: []});
+                                          }}
                                         />
                                       )}
-                                      {field.kind === FieldValueKind.FUNCTION &&
-                                        parameterRefinements.length > 0 && (
-                                          <ParameterRefinements>
-                                            {parameterRefinements.map(
-                                              (parameter: any, parameterIndex: any) => {
-                                                // The current value is displaced by 2 because the first two parameters
-                                                // are the aggregate name and the column selection
-                                                const currentValue =
-                                                  field.function[parameterIndex + 2] ||
-                                                  '';
-                                                const key = `${field.function.join('_')}-${parameterIndex}`;
-                                                return (
-                                                  <AggregateParameterField
-                                                    key={key}
-                                                    parameter={parameter}
-                                                    fieldValue={field}
-                                                    currentValue={currentValue}
-                                                    onChange={value => {
-                                                      const newFields = cloneDeep(fields);
-                                                      if (
-                                                        newFields[index]!.kind !==
-                                                        FieldValueKind.FUNCTION
-                                                      ) {
-                                                        return;
-                                                      }
-                                                      newFields[index]!.function[
-                                                        parameterIndex + 2
-                                                      ] = value;
-                                                      dispatch({
-                                                        type: updateAction,
-                                                        payload: newFields,
-                                                      });
-                                                      setError?.({...error, queries: []});
-                                                    }}
-                                                  />
-                                                );
-                                              }
-                                            )}
-                                          </ParameterRefinements>
-                                        )}
-                                      {isApdexOrUserMisery &&
-                                        field.kind === FieldValueKind.FUNCTION && (
-                                          <AggregateParameterField
-                                            parameter={
-                                              matchingAggregate?.value.meta.parameters[0]
-                                            }
-                                            fieldValue={field}
-                                            currentValue={field.function[1]}
-                                            onChange={value => {
-                                              const newFields = cloneDeep(fields);
-                                              if (
-                                                newFields[index]!.kind !==
-                                                FieldValueKind.FUNCTION
-                                              ) {
-                                                return;
-                                              }
-                                              newFields[index]!.function[1] = value;
-                                              dispatch({
-                                                type: updateAction,
-                                                payload: newFields,
-                                              });
-                                              setError?.({...error, queries: []});
-                                            }}
-                                          />
-                                        )}
-                                    </Fragment>
-                                  )}
-                                </FieldBar>
-                                <FieldExtras
-                                  compact={
-                                    isTimeSeriesWidget ||
-                                    isBigNumberWidget ||
-                                    isCategoricalBarWidget ||
-                                    isHeatmapWidget
-                                  }
+                                  </Fragment>
+                                )}
+                              </FieldBar>
+                              <FieldExtras
+                                // The unified list keeps the alias on the field bar.
+                                compact={
+                                  isTimeSeriesWidget ||
+                                  isBigNumberWidget ||
+                                  isCategoricalBarWidget ||
+                                  isHeatmapWidget ||
+                                  isUnifiedTraceMetrics
+                                }
+                              >
+                                {!isUnifiedTraceMetrics && aliasInput}
+                                <Flex
+                                  direction={hasSeriesFilter ? 'column' : 'row'}
+                                  gap="md"
+                                  alignSelf="start"
                                 >
-                                  {aliasInput}
-                                  <Stack gap="md" alignSelf="start">
-                                    <Flex
-                                      direction={hasSeriesFilter ? 'column' : 'row'}
-                                      gap="md"
-                                    >
-                                      {transformationButton}
-                                      {deleteButton}
+                                  {fieldTransformationDataset && (
+                                    <Flex align="center" height={theme.form.md.height}>
+                                      <AddTransformationButton
+                                        iconOnly
+                                        analyticsSource="dashboards"
+                                        traceItemDataset={fieldTransformationDataset}
+                                        transformations={fieldTransformations}
+                                        onChange={setFieldTransformations}
+                                      />
                                     </Flex>
-                                  </Stack>
-                                </FieldExtras>
-                              </FieldRow>
-                            )}
+                                  )}
+                                  {(!isBigNumberWidget ||
+                                    enableEquations ||
+                                    (isBigNumberWidget && fields.length > 1)) && (
+                                    <DeleteFieldButton
+                                      disabled={
+                                        fields.length <= 1 ||
+                                        !canDelete ||
+                                        isOnlyFieldOrAggregate ||
+                                        isReferencedByEquation
+                                      }
+                                      disabledReason={
+                                        isReferencedByEquation
+                                          ? t(
+                                              'This series is used in an equation. Hide it instead of deleting it.'
+                                            )
+                                          : undefined
+                                      }
+                                      onClick={() => {
+                                        dispatch({
+                                          type: BuilderStateAction.DELETE_AGGREGATE,
+                                          payload: index,
+                                        });
+
+                                        trackAnalytics(
+                                          'dashboards_views.widget_builder.change',
+                                          {
+                                            builder_version:
+                                              WidgetBuilderVersion.SLIDEOUT,
+                                            field:
+                                              field.kind === FieldValueKind.EQUATION
+                                                ? 'visualize.deleteEquation'
+                                                : 'visualize.deleteField',
+                                            from: source,
+                                            new_widget: !isEditing,
+                                            value: '',
+                                            widget_type: state.dataset ?? '',
+                                            organization,
+                                          }
+                                        );
+                                      }}
+                                    />
+                                  )}
+                                </Flex>
+                              </FieldExtras>
+                            </FieldRow>
                             {fieldTransformationDataset &&
                               fieldTransformations.length > 0 && (
                                 <VisualizeTransformationRows

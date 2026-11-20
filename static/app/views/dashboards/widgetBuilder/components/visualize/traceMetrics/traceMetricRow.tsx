@@ -1,4 +1,4 @@
-import type {ReactNode} from 'react';
+import {Fragment, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 
 import {Container, Flex} from '@sentry/scraps/layout';
@@ -40,10 +40,6 @@ interface TraceMetricRowProps {
   alias?: ReactNode;
   disabled?: boolean;
   /**
-   * Buttons shown to the right of the row, on the control line.
-   */
-  extras?: ReactNode;
-  /**
    * Row letter (A, B, ƒ1, ...).
    */
   label?: ReactNode;
@@ -67,7 +63,7 @@ export const RATE_AGGREGATES_IN_EQUATION_DISABLED: Record<string, string> =
   );
 
 /**
- * One row of the trace metrics visualize list: the row letter, the control,
+ * The field bar of a trace metrics visualize row: the row letter, the control,
  * the alias, and the filter bar beneath. Visible and hidden rows share it so
  * they line up.
  */
@@ -78,47 +74,37 @@ export function TraceMetricRow({
   field,
   disabled,
   onFieldChange,
-  extras,
 }: TraceMetricRowProps) {
   const showFilter = field.kind === FieldValueKind.FUNCTION && onFieldChange;
   return (
-    <FieldRow>
-      <FieldBar data-testid="field-bar">
-        <Flex gap="md" align="center" width="100%" minWidth="0">
-          <Flex flex="3" gap="md" align="center" minWidth="0">
-            {label}
-            <Container flex="1" minWidth="0">
-              {children}
-            </Container>
-          </Flex>
-          {alias && (
-            <Container flex="1" minWidth="0">
-              {alias}
-            </Container>
-          )}
+    <Fragment>
+      <Flex gap="md" align="center" width="100%" minWidth="0">
+        <Flex flex="3" gap="md" align="center" minWidth="0">
+          {label}
+          <Container flex="1" minWidth="0">
+            {children}
+          </Container>
         </Flex>
-        {showFilter && (
-          <Container width="100%" minWidth="0">
-            <MetricFilterBar
-              traceMetric={extractTraceMetricFromColumn(field) ?? {name: '', type: ''}}
-              query={getTraceMetricFunctionParts(field)?.filter ?? ''}
-              disabled={disabled}
-              portalTarget={document.body}
-              onSearch={filter =>
-                onFieldChange(applyTraceMetricAggregateFilter(field, filter))
-              }
-            />
+        {alias && (
+          <Container flex="1" minWidth="0">
+            {alias}
           </Container>
         )}
-      </FieldBar>
-      {extras && (
-        <FieldExtras compact>
-          <Flex gap="md" align="center" alignSelf="start">
-            {extras}
-          </Flex>
-        </FieldExtras>
+      </Flex>
+      {showFilter && (
+        <Container width="100%" minWidth="0">
+          <MetricFilterBar
+            traceMetric={extractTraceMetricFromColumn(field) ?? {name: '', type: ''}}
+            query={getTraceMetricFunctionParts(field)?.filter ?? ''}
+            disabled={disabled}
+            portalTarget={document.body}
+            onSearch={filter =>
+              onFieldChange(applyTraceMetricAggregateFilter(field, filter))
+            }
+          />
+        </Container>
       )}
-    </FieldRow>
+    </Fragment>
   );
 }
 
@@ -149,28 +135,36 @@ export function HiddenTraceMetricRow({
   return (
     <HiddenRow gap="xs" width="100%" data-test-id="hidden-metric-row">
       {indent && <DragHandleSpacer />}
-      <TraceMetricRow
-        label={<RowLabel label={label} hidden disabled={disabled} onToggle={onShow} />}
-        field={row.field}
-        disabled={disabled}
-        onFieldChange={onFieldChange}
-        extras={
-          <DeleteFieldButton
-            disabled
-            disabledReason={t(
-              'This series is only used in an equation. Remove it from the equation to delete it.'
-            )}
-          />
-        }
-      >
-        <MetricSelectRow
-          disabled={!!disabled}
-          field={row.field}
-          index={-1}
-          onFieldChange={onFieldChange}
-          disabledAggregates={RATE_AGGREGATES_IN_EQUATION_DISABLED}
-        />
-      </TraceMetricRow>
+      <FieldRow>
+        <FieldBar>
+          <TraceMetricRow
+            label={
+              <RowLabel label={label} hidden disabled={disabled} onToggle={onShow} />
+            }
+            field={row.field}
+            disabled={disabled}
+            onFieldChange={onFieldChange}
+          >
+            <MetricSelectRow
+              disabled={!!disabled}
+              field={row.field}
+              index={-1}
+              onFieldChange={onFieldChange}
+              disabledAggregates={RATE_AGGREGATES_IN_EQUATION_DISABLED}
+            />
+          </TraceMetricRow>
+        </FieldBar>
+        <FieldExtras compact>
+          <Flex alignSelf="start">
+            <DeleteFieldButton
+              disabled
+              disabledReason={t(
+                'This series is only used in an equation. Remove it from the equation to delete it.'
+              )}
+            />
+          </Flex>
+        </FieldExtras>
+      </FieldRow>
     </HiddenRow>
   );
 }
