@@ -455,6 +455,11 @@ class SlackActionEndpoint(Endpoint):
                     return self.api_error(
                         slack_request, group, identity_user, error, "status_dialog"
                     )
+                except serializers.ValidationError as error:
+                    # e.g. "Resolve in next release" on a project with no releases.
+                    # This is a user-facing input problem, so halt instead of failing.
+                    lifecycle.record_halt(error)
+                    return self.validation_error(slack_request, group, error, "status_dialog")
 
                 view = View(**slack_request.data["view"])
                 assert view.private_metadata is not None
