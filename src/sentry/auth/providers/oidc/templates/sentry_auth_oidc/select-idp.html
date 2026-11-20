@@ -1,0 +1,29 @@
+{% extends "sentry/bases/modal.html" %}
+{% load i18n %}
+
+{% block wrapperclass %}narrow auth{% endblock %}
+{% block modal_header_signout %}{% endblock %}
+
+{% block title %}{% blocktrans %}Register {{ provider_name }}{% endblocktrans %} | {{ block.super }}{% endblock %}
+
+{% block main %}
+  <h3>{% blocktrans %}Register {{ provider_name }}{% endblocktrans %}</h3>
+
+  <p>
+    {% trans "Create an OpenID Connect application in your identity provider and register this redirect URI:" %}
+  </p>
+  <pre>{{ redirect_uri }}</pre>
+  <p>
+    {% trans "Then enter the application's issuer URL, client ID and client secret. Sentry reads the rest from the issuer's discovery document." %}
+  </p>
+
+  <form method="post" class="form-stacked" autocomplete="off">
+    {% csrf_token %}
+    {% include "sentry/partial/form_base.html" %}
+    <input type="hidden" name="provider" value="{{ provider_key }}" />
+
+    <fieldset class="form-actions">
+      <button type="submit" class="btn btn-primary" name="action_save">{% trans "Continue" %}</button>
+    </fieldset>
+  </form>
+{% endblock %}

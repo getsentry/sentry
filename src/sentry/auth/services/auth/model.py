@@ -203,7 +203,10 @@ class RpcAuthProvider(RpcModel):
         # that the latter can be disabled by customers
         if "fly" in self.provider:
             provider = "fly"
-        return {"provider": provider, "config": self.config}
+
+        from sentry.models.authprovider import config_for_audit_log
+
+        return {"provider": provider, "config": config_for_audit_log(self.config)}
 
     def get_provider(self) -> "Provider":
         from sentry.auth import manager

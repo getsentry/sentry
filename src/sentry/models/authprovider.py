@@ -203,7 +203,7 @@ class AuthProvider(ReplicatedControlModel):
         # that the latter can be disabled by customers
         if "fly" in self.provider:
             provider = "fly"
-        return {"provider": provider, "config": self.config}
+        return {"provider": provider, "config": config_for_audit_log(self.config)}
 
     def outboxes_for_mark_invalid_sso(self, user_id: int) -> list[ControlOutbox]:
         return [
@@ -247,6 +247,15 @@ class ScimTokenDisplay:
         self.token = token
         self.token_last_characters = token_last_characters
         self.is_visible = is_visible
+
+
+# Config keys that hold credentials. Audit log entries are visible to org admins, so
+# these are never copied into them, even when encrypted.
+SECRET_CONFIG_KEYS = frozenset({"client_secret"})
+
+
+def config_for_audit_log(config: Mapping[str, Any]) -> dict[str, Any]:
+    return {k: v for k, v in config.items() if k not in SECRET_CONFIG_KEYS}
 
 
 def get_scim_token_for_display(
