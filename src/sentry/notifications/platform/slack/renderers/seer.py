@@ -229,7 +229,7 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             ActionsBlock(
                 elements=[
                     ButtonElement(
-                        text="Configure billing",
+                        text="Configure auto-reload",
                         style="primary",
                         url=link_decorator.decorate_url(
                             organization.absolute_url(
