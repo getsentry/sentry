@@ -380,19 +380,19 @@ describe('ArtifactCard', () => {
               makeToolUseBlock(
                 'block-1',
                 'Reading the cache module.',
-                '2026-01-01T00:00:05Z',
+                '2026-01-01T00:00:00Z',
                 {step: 'root_cause'}
               ),
               makeUserBlock(
                 'user-1',
                 'Also check the retry path.',
-                '2026-01-01T00:00:25Z'
+                '2026-01-01T00:00:05Z'
               ),
               {
                 ...makeToolUseBlock(
                   'block-2',
                   'Reading the retry module.',
-                  '2026-01-01T00:00:30Z'
+                  '2026-01-01T00:00:10Z'
                 ),
                 loading: true,
               },
@@ -401,7 +401,7 @@ describe('ArtifactCard', () => {
         />
       );
 
-      expect(screen.getByText('20.0s')).toBeInTheDocument();
+      expect(screen.getByText('5.0s')).toBeInTheDocument();
       // Only the replied-to response collapses to its summary.
       expect(
         screen.getAllByRole('button', {name: /See thinking and tool calls/})
@@ -2899,7 +2899,7 @@ describe('out of credits', () => {
     });
   });
 
-  it("ends the timer at Seer's error block when root cause stopped mid-tool-call", () => {
+  it('ends each response at what follows it when root cause stopped', () => {
     mockCreditCheck('autofix_root_cause', false);
     render(
       <RootCauseCard
@@ -2912,46 +2912,31 @@ describe('out of credits', () => {
             '2026-01-01T00:00:00Z',
             {step: 'root_cause'}
           ),
-          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
-        ])}
-      />,
-      {organization}
-    );
-
-    expect(
-      screen.getByRole('button', {name: /See thinking and tool calls/})
-    ).toHaveAttribute('aria-expanded', 'false');
-    expect(screen.getByText('2m 30s')).toBeInTheDocument();
-  });
-
-  it('ends each response at what follows it when root cause stopped', () => {
-    mockCreditCheck('autofix_root_cause', false);
-    render(
-      <RootCauseCard
-        autofix={{...mockAutofix, runState: stoppedRunState}}
-        groupId="1"
-        section={makeOutOfCreditsSection('root_cause', [
-          makeToolUseBlock(
-            'block-1',
-            'Reading the cache module.',
-            '2026-01-01T00:00:05Z',
-            {step: 'root_cause'}
-          ),
-          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:25Z'),
+          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:05Z'),
           makeToolUseBlock(
             'block-2',
             'Searching for the cache key.',
-            '2026-01-01T00:00:30Z'
+            '2026-01-01T00:00:10Z'
           ),
-          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
+          makeToolUseBlock(
+            'block-3',
+            'Reading the retry module.',
+            '2026-01-01T00:00:15Z'
+          ),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:00:20Z'},
         ])}
       />,
       {organization}
     );
 
     // The earlier response ends at the user's message, the last one at Seer's error block.
-    expect(screen.getByText('20.0s')).toBeInTheDocument();
-    expect(screen.getByText('2m 0s')).toBeInTheDocument();
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+    expect(screen.getByText('10.0s')).toBeInTheDocument();
+    for (const button of screen.getAllByRole('button', {
+      name: /See thinking and tool calls/,
+    })) {
+      expect(button).toHaveAttribute('aria-expanded', 'false');
+    }
   });
 
   it("ends the timer at the user's message when root cause stopped right after it", () => {
@@ -2964,17 +2949,182 @@ describe('out of credits', () => {
           makeToolUseBlock(
             'block-1',
             'Reading the cache module.',
-            '2026-01-01T00:00:05Z',
+            '2026-01-01T00:00:00Z',
             {step: 'root_cause'}
           ),
-          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:25Z'),
-          {...seerErrorBlock, timestamp: '2026-01-01T00:02:30Z'},
+          makeUserBlock('user-1', 'Also check the retry path.', '2026-01-01T00:00:05Z'),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:00:10Z'},
         ])}
       />,
       {organization}
     );
 
-    expect(screen.getByText('20.0s')).toBeInTheDocument();
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
+
+  it("keeps an earlier error block as its response's answer when root cause stopped", () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
+            '2026-01-01T00:00:00Z',
+            {step: 'root_cause'}
+          ),
+          {
+            ...makeBlock('error-0', 'Sorry, I encountered an unexpected error.'),
+            timestamp: '2026-01-01T00:00:05Z',
+          },
+          makeUserBlock('user-1', 'Try again.', '2026-01-01T00:00:10Z'),
+          makeToolUseBlock(
+            'block-2',
+            'Searching for the cache key.',
+            '2026-01-01T00:00:15Z'
+          ),
+          makeToolUseBlock(
+            'block-3',
+            'Reading the retry module.',
+            '2026-01-01T00:00:20Z'
+          ),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:00:25Z'},
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText('Sorry, I encountered an unexpected error.')
+    ).toBeInTheDocument();
+    // The earlier response ends at its error, not at the user's message after it.
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
+
+  it("keeps an earlier credit stop as its response's answer when root cause stopped again", () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
+            '2026-01-01T00:00:00Z',
+            {step: 'root_cause'}
+          ),
+          {
+            ...seerErrorBlock,
+            id: 'error-out-of-credits-0',
+            timestamp: '2026-01-01T00:00:05Z',
+          },
+          makeUserBlock('user-1', 'Added credits, go on.', '2026-01-01T00:00:10Z'),
+          makeToolUseBlock(
+            'block-2',
+            'Searching for the cache key.',
+            '2026-01-01T00:00:15Z'
+          ),
+          {
+            ...seerErrorBlock,
+            id: 'error-out-of-credits-1',
+            timestamp: '2026-01-01T00:00:20Z',
+          },
+        ])}
+      />,
+      {organization}
+    );
+
+    // The earlier stop's message stays, the one the card's stop line explains doesn't.
+    expect(screen.getAllByText(/so I stopped here/)).toHaveLength(1);
+  });
+
+  it("hides no block when the step's last block isn't Seer's error block", () => {
+    mockCreditCheck('autofix_root_cause', false);
+    render(
+      <RootCauseCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        groupId="1"
+        section={makeOutOfCreditsSection('root_cause', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
+            '2026-01-01T00:00:00Z',
+            {step: 'root_cause'}
+          ),
+          {
+            ...makeBlock('error-0', 'Sorry, I encountered an unexpected error.'),
+            timestamp: '2026-01-01T00:00:05Z',
+          },
+          makeUserBlock('user-1', 'Try again.', '2026-01-01T00:00:10Z'),
+          {
+            ...makeBlock('block-2', 'The cache key omits the org slug.'),
+            timestamp: '2026-01-01T00:00:15Z',
+          },
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(
+      screen.getByText('Sorry, I encountered an unexpected error.')
+    ).toBeInTheDocument();
+    expect(screen.getByText('The cache key omits the org slug.')).toBeInTheDocument();
+  });
+
+  it("ends the timer at Seer's error block when the plan stopped", () => {
+    mockCreditCheck('autofix_solution', false);
+    render(
+      <SolutionCard
+        autofix={{...mockAutofix, runState: stoppedRunState}}
+        section={makeOutOfCreditsSection('solution', [
+          makeToolUseBlock(
+            'block-1',
+            'Reading the cache module.',
+            '2026-01-01T00:00:00Z',
+            {step: 'solution'}
+          ),
+          {...seerErrorBlock, timestamp: '2026-01-01T00:00:05Z'},
+        ])}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
+
+  it("ends the timer at Seer's error block when a PR iteration stopped", () => {
+    mockCreditCheck('autofix_pr_iteration', false);
+    render(
+      <CodeChangesCard
+        autofix={{
+          ...mockAutofix,
+          runState: {...stoppedRunState, repo_pr_states: {'org/repo': makePR()}},
+        }}
+        groupId="1"
+        section={makeOutOfCreditsSection(
+          'code_changes',
+          [
+            makeBlock('block-1', 'Applied the fix.', {step: 'code_changes'}),
+            {
+              ...makePrIterationBlock(0, {text: 'Please add a test'}),
+              timestamp: '2026-01-01T00:00:05Z',
+            },
+            makeToolUseBlock('block-2', 'Adding the test.', '2026-01-01T00:00:10Z'),
+            {...seerErrorBlock, timestamp: '2026-01-01T00:00:15Z'},
+          ],
+          [[makePatch('org/repo', 'src/cart.py')]]
+        )}
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: /See thinking and tool calls/})
+    ).toHaveAttribute('aria-expanded', 'false');
   });
 
   it('keeps what the plan step wrote and disables Re-run while out of credits', async () => {

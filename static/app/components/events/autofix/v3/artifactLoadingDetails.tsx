@@ -28,7 +28,7 @@ export function ArtifactLoadingDetails({
   return (
     <ArtifactDetails>
       {transcript.responses.length ? (
-        <StepResponses {...transcript} />
+        <StepResponses {...transcript} blocks={blocks} />
       ) : (
         <MessageRow from="assistant" density="compact">
           <ThinkingBlock title={loadingMessage} startTime={appearedAt} />
@@ -44,23 +44,21 @@ export function ArtifactLoadingDetails({
  * stopped.
  */
 export function ArtifactPartialDetails({blocks}: {blocks: AutofixSection['blocks']}) {
-  const partialBlocks = useMemo(
-    () => blocks.filter(block => !isSeerErrorBlock(block)),
-    [blocks]
-  );
+  const partialBlocks = useMemo(() => {
+    const lastBlock = blocks.at(-1);
+    return defined(lastBlock) && isSeerErrorBlock(lastBlock)
+      ? blocks.slice(0, -1)
+      : blocks;
+  }, [blocks]);
   const transcript = useStepTranscript(partialBlocks);
 
   if (!transcript.responses.length) {
     return null;
   }
 
-  // Seer adds its error block, filtered out above, as the last block when a run
-  // fails. Keep its timestamp so the timer ends when the run did.
-  const stoppedAt = blocks[blocks.length - 1]?.timestamp;
-
   return (
     <ArtifactDetails>
-      <StepResponses {...transcript} stoppedAt={stoppedAt} />
+      <StepResponses {...transcript} blocks={blocks} />
     </ArtifactDetails>
   );
 }
@@ -74,21 +72,23 @@ function useStepTranscript(blocks: AutofixSection['blocks']) {
     [blocks]
   );
   const latestTodos = useMemo(() => findLatestTodos(blocks), [blocks]);
-  return {blocks, responses, latestTodos};
+  return {responses, latestTodos};
 }
 
 /**
- * A step's responses, the way the Seer Agent chat draws them.
+ * A step's responses, the way the Seer Agent chat draws them. `blocks` is the
+ * step's full list, including the error block left out of `responses`.
  */
 function StepResponses({
   blocks,
   responses,
   latestTodos,
-  stoppedAt,
-}: ReturnType<typeof useStepTranscript> & {stoppedAt?: string}) {
+}: ReturnType<typeof useStepTranscript> & {blocks: AutofixSection['blocks']}) {
   return responses.map(segment => {
-    const lastIndex = segment.indices.at(-1);
-    const nextBlock = defined(lastIndex) ? blocks[lastIndex + 1] : undefined;
+    const lastBlock = segment.blocks.at(-1);
+    const nextBlock = defined(lastBlock)
+      ? blocks[blocks.indexOf(lastBlock) + 1]
+      : undefined;
     return (
       <ResponseGroup
         key={segment.indices[0]}
@@ -97,9 +97,9 @@ function StepResponses({
         latestTodos={latestTodos}
         readOnly
         showThinking
-        // The timestamp of the user message that ended the segment or, when nothing
-        // follows it, of Seer's error block.
-        endedAt={nextBlock?.timestamp ?? stoppedAt}
+        // The timestamp of the user message or Seer's error block that ended the
+        // segment. None while the segment is still running.
+        endedAt={nextBlock?.timestamp}
       />
     );
   });
