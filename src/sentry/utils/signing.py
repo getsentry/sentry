@@ -3,9 +3,10 @@ Generic way to sign and unsign data for use in urls.
 """
 
 import base64
+import binascii
 from typing import Any
 
-from django.core.signing import TimestampSigner
+from django.core.signing import BadSignature, TimestampSigner
 
 from sentry.utils.json import dumps, loads
 
@@ -31,9 +32,11 @@ def unsign(data: str | bytes, salt: str = SALT, max_age: int | None = 60 * 60 * 
     Returns the decoded payload. Typed as ``Any`` (like ``json.loads``) so
     callers can annotate the concrete shape they expect without casting.
     """
-    return loads(
-        TimestampSigner(salt=salt).unsign(urlsafe_b64decode(data).decode(), max_age=max_age)
-    )
+    try:
+        decoded = urlsafe_b64decode(data).decode()
+    except (binascii.Error, UnicodeDecodeError) as e:
+        raise BadSignature("Malformed signed value") from e
+    return loads(TimestampSigner(salt=salt).unsign(decoded, max_age=max_age))
 
 
 def urlsafe_b64decode(b64string: str | bytes) -> bytes:
