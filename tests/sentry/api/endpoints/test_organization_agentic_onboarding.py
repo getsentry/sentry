@@ -104,6 +104,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
         assert response.status_code == 201, response.content
         assert response.data["onboardingCode"] == "a1B2c3D4e5"
         assert response.data["sequence"] == 0
+        assert response.data["stages"][0]["stage"] == "connect_agent"
 
         status_path = reverse(
             "sentry-api-0-organization-agentic-onboarding-status",
@@ -522,6 +523,7 @@ class OrganizationAgenticOnboardingEndpointTest(APITestCase):
             )
 
         assert response.status_code == 200, response.content
+        assert response.data["stages"][0]["stage"] == "connect_agent"
         assert response.data["stages"][0]["status"] == "completed"
         assert response.data["stages"][0]["extra"] == {"method": expected_method}
         mock_metrics.incr.assert_called_once_with(
