@@ -778,6 +778,31 @@ def release_version_rule_condition(comparator: str, release: str) -> dict[str, o
             id="geo_country_code_reads_the_event_user_geo",
         ),
         pytest.param(
+            "error",
+            [{"type": "request_url", "operator": "glob", "value": ["https://*.example.com/*"]}],
+            {"op": "glob", "name": "event.request.url", "value": ["https://*.example.com/*"]},
+            id="request_url_reads_the_event_request_url",
+        ),
+        pytest.param(
+            "error",
+            [{"type": "request_url", "operator": "does_not_contain", "value": ["example.com"]}],
+            {
+                "op": "and",
+                "inner": [
+                    {"op": "glob", "name": "event.request.url", "value": ["*"]},
+                    {
+                        "op": "not",
+                        "inner": {
+                            "op": "glob",
+                            "name": "event.request.url",
+                            "value": ["*example.com*"],
+                        },
+                    },
+                ],
+            },
+            id="request_url_negated_keeps_errors_without_a_url",
+        ),
+        pytest.param(
             "all",
             [{"type": "ip_address", "value": ["10.0.0.0/8"]}],
             {"op": "cidr", "name": "envelope.client_ip", "value": ["10.0.0.0/8"]},
