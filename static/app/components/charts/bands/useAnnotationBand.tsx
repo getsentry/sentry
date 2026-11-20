@@ -9,6 +9,7 @@ import {
   ANNOTATION_KINDS,
 } from 'sentry/components/charts/annotations/kinds';
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
+import {defined} from 'sentry/utils/defined';
 
 import {
   BAND_HEIGHT,
@@ -76,6 +77,25 @@ function annotationBandRenderItem(
   };
 }
 
+function withEarlierRanges(
+  annotationBuckets: AnnotationBucket[],
+  items: readonly AnnotationItem[]
+): AnnotationBucket[] {
+  const [firstBucket, ...otherBuckets] = annotationBuckets;
+  if (!firstBucket) {
+    return annotationBuckets;
+  }
+
+  const earlierRanges = items.filter(
+    ({start, end}) =>
+      start < firstBucket.start &&
+      (end === 'ongoing' || (defined(end) && end >= firstBucket.start))
+  );
+  return earlierRanges.length > 0
+    ? [{...firstBucket, items: [...earlierRanges, ...firstBucket.items]}, ...otherBuckets]
+    : annotationBuckets;
+}
+
 interface UseAnnotationBandParams {
   buckets: BandBucket[];
   items?: readonly AnnotationItem[];
@@ -94,7 +114,10 @@ export function useAnnotationBand({
   const theme = useTheme();
 
   return useMemo(() => {
-    const annotationBuckets = bucketAnnotations(items ?? [], buckets);
+    const annotationBuckets = withEarlierRanges(
+      bucketAnnotations(items ?? [], buckets),
+      items ?? []
+    );
     const bucketsWithItems = annotationBuckets.filter(bucket => bucket.items.length > 0);
     if (bucketsWithItems.length === 0) {
       return null;

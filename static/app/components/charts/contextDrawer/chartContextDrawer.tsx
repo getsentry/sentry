@@ -79,7 +79,11 @@ export function ChartContextDrawer({
   const tab = showAnnotationTabs ? (shownContextTab ?? defaultTab) : 'dropped-data';
 
   const {droppedEvents, acceptedEvents} = useDroppedData({dataset, interval, projects});
-  const itemsByKind = useAnnotationItems({enabled: showAnnotationTabs});
+  const itemsByKind = useAnnotationItems({
+    dataset,
+    interval,
+    enabled: showAnnotationTabs,
+  });
   const annotationItems = annotationKinds.flatMap(kind => itemsByKind[kind] ?? []);
 
   const scopeControl =
