@@ -16,6 +16,7 @@ from sentry.seer.credits import (
     SEER_OPERATION_ESTIMATES,
     SeerOperation,
     check_seer_operation,
+    get_current_denial_reason,
     get_denial_reason,
 )
 from sentry.testutils.cases import TestCase
@@ -70,6 +71,34 @@ class SeerCreditsTest(TestCase):
         assert check_seer_operation(
             self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         ).has_enough_credits
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    @patch(
+        "sentry.seer_credit.backend.check_seer_credits",
+        return_value=CheckSeerCreditsResponse(
+            has_enough_credits=False,
+            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
+        ),
+    )
+    def test_get_current_denial_reason(self, _mock_check_seer_credits: MagicMock) -> None:
+        assert (
+            get_current_denial_reason(
+                self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
+            )
+            == "daily_cap_exceeded"
+        )
+
+    @with_feature("organizations:token-billed-seer-enabled")
+    @patch("sentry.seer_credit.backend.check_seer_credits", side_effect=RuntimeError("down"))
+    def test_get_current_denial_reason_is_none_when_the_check_fails(
+        self, _mock_check_seer_credits: MagicMock
+    ) -> None:
+        assert (
+            get_current_denial_reason(
+                self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
+            )
+            is None
+        )
 
 
 @pytest.mark.parametrize(

@@ -1,6 +1,9 @@
 from typing import Any, Literal, TypedDict
 from unittest.mock import MagicMock, patch
 
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_UNSPECIFIED,
+)
 from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_seer_credits_pb2 import (
     CheckSeerCreditsResponse,
 )
@@ -82,6 +85,7 @@ from sentry.seer.autofix.single_run import (
 )
 from sentry.seer.autofix.steps import AutofixStep
 from sentry.seer.autofix.utils import AutofixStoppingPoint
+from sentry.seer.credits import SeerOperation
 from sentry.seer.milestones import reconcile_milestones
 from sentry.seer.models import AutofixHandoffPoint, SeerAutomationHandoffConfiguration
 from sentry.seer.models.run import SeerRun, SeerRunMilestone, SeerRunMilestoneType
@@ -2240,10 +2244,14 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
         )
 
+    @patch(
+        "sentry.seer.autofix.on_completion_hook.get_current_denial_reason",
+        return_value="daily_cap_exceeded",
+    )
     @patch("sentry.seer.autofix.on_completion_hook.process_autofix_updates.apply_async")
     @patch("sentry.seer.autofix.on_completion_hook.broadcast_webhooks_for_organization.delay")
     def test_pr_creation_out_of_credits_notifies_entrypoints_and_sentry_apps(
-        self, mock_broadcast: MagicMock, mock_process: MagicMock
+        self, mock_broadcast: MagicMock, mock_process: MagicMock, mock_denial_reason: MagicMock
     ) -> None:
         state = run_state(blocks=[code_changes_memory_block()])
         state.repo_pr_states = {
@@ -2269,6 +2277,7 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
                     "sentry_run_id": str(seer_run.uuid),
                     "group_id": self.group.id,
                     "failure_reason": "out_of_credits",
+                    "denial_reason": "daily_cap_exceeded",
                 },
                 "organization_id": self.organization.id,
             }
@@ -2277,7 +2286,15 @@ class TestAutofixOnCompletionHookWebhooks(TestCase):
             resource_name="seer",
             event_name="errored",
             organization_id=self.organization.id,
-            payload=mock_process.call_args.kwargs["kwargs"]["event_payload"],
+            payload={
+                "run_id": 123,
+                "sentry_run_id": str(seer_run.uuid),
+                "group_id": self.group.id,
+                "failure_reason": "out_of_credits",
+            },
+        )
+        mock_denial_reason.assert_called_once_with(
+            self.organization, SEER_BILLING_FEATURE_UNSPECIFIED, SeerOperation.AUTOFIX_OPEN_PR
         )
 
     @patch("sentry.seer.autofix.on_completion_hook.emit_pr_ready_for_review")
