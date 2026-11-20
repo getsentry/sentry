@@ -152,7 +152,7 @@ export function SpansHeatMap({
   let heatMapQuery = query;
   if (yBounds) {
     const clip = `${yAxis}:<${formatSearchNumber(yBounds.yMax)}`;
-    heatMapQuery = query ? `(${query}) ${clip}` : clip;
+    heatMapQuery = query.trim() ? `(${query}) ${clip}` : clip;
   }
 
   const bucketDimensions = calculateHeatMapBucketDimensions(
