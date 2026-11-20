@@ -23,14 +23,8 @@ function getFontFaceCSS(): string {
     @font-face {
       font-family: 'Rubik';
       font-style: normal;
-      font-weight: 400;
-      src: url('file://${FONTS_DIR}/rubik-regular.woff2') format('woff2');
-    }
-    @font-face {
-      font-family: 'Rubik';
-      font-style: normal;
-      font-weight: 500 600;
-      src: url('file://${FONTS_DIR}/rubik-medium.woff2') format('woff2');
+      font-weight: 400 600;
+      src: url('file://${FONTS_DIR}/rubik-variable.woff2') format('woff2');
     }
     @font-face {
       font-family: 'Roboto Mono';
@@ -84,9 +78,7 @@ let _browserPromise: Promise<Browser> | null = null;
 function getBrowser(): Promise<Browser> {
   if (!_browserPromise) {
     _browserPromise = chromium
-      .launch({
-        args: ['--font-render-hinting=none', '--disable-skia-runtime-opts'],
-      })
+      .launch({args: ['--font-render-hinting=none', '--disable-skia-runtime-opts']})
       .catch(err => {
         _browserPromise = null;
         throw err;
@@ -145,9 +137,7 @@ export async function takeSnapshot({
   const browser = await getBrowser();
   const context = await browser.newContext({
     deviceScaleFactor: 2,
-    ...(viewport && {
-      viewport: {width: viewport.width, height: viewport.height ?? 720},
-    }),
+    ...(viewport && {viewport: {width: viewport.width, height: viewport.height ?? 720}}),
   });
 
   try {

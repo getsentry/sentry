@@ -15,6 +15,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
   return {
     id: '1',
     name: 'Automation 1',
+    type: 'alert',
     createdBy: UserFixture().id,
     dateCreated: '2025-01-01T00:00:00.000Z',
     dateUpdated: '2025-01-01T00:00:00.000Z',
@@ -24,11 +25,7 @@ export function AutomationFixture(params: Partial<Automation> = {}): Automation 
     actionFilters: [ActionFilterFixture()],
     detectorIds: ['1'],
     environment: 'production',
-    triggers: {
-      conditions: [],
-      id: '1',
-      logicType: DataConditionGroupLogicType.ANY,
-    },
+    triggers: {conditions: [], id: '1', logicType: DataConditionGroupLogicType.ANY},
     ...params,
   };
 }
@@ -49,11 +46,7 @@ export function DataConditionFixture(params: Partial<DataCondition> = {}): DataC
   return {
     id: '1',
     type: DataConditionType.TAGGED_EVENT,
-    comparison: {
-      key: 'name',
-      match: MatchType.CONTAINS,
-      value: 'moo deng',
-    },
+    comparison: {key: 'name', match: MatchType.CONTAINS, value: 'moo deng'},
     ...params,
   };
 }

@@ -87,6 +87,7 @@ class AuditLogEntrySerializerTest(TestCase):
             data={
                 "unrequired_field1": "value1",
                 "unrequired_field2": "value2",
+                "sentry:token": "source-token",
             },
         )
 
@@ -94,6 +95,10 @@ class AuditLogEntrySerializerTest(TestCase):
         result = serialize(log, serializer=serializer)
 
         assert result["data"] == {}
+        assert result["note"] == (
+            "edited project settings in unrequired_field1 to value1 "
+            "in unrequired_field2 to value2 in sentry:token to [Filtered]"
+        )
 
     def test_scim_logname(self) -> None:
         uuid_prefix = "681d6e"
@@ -126,3 +131,15 @@ class AuditLogEntrySerializerTest(TestCase):
         serializer = AuditLogEntrySerializer()
         result = serialize(log, serializer=serializer)
         assert result["note"] == ""
+
+    def test_internal_integration_token_note_legacy_slug(self) -> None:
+        log = AuditLogEntry.objects.create(
+            organization_id=self.organization.id,
+            event=audit_log.get_event_id("INTERNAL_INTEGRATION_REMOVE_TOKEN"),
+            actor=self.user,
+            datetime=timezone.now(),
+            data={"sentry_app_slug": "my-integration", "sentry_app_installation_uuid": "abc"},
+        )
+
+        result = serialize(log, serializer=AuditLogEntrySerializer())
+        assert result["note"] == "revoked a token for internal integration my-integration"

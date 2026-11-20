@@ -16,6 +16,7 @@ import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 
 import {PageHeader} from 'admin/components/pageHeader';
+import {SyntheticMetricBreachForm} from 'admin/views/syntheticMetricBreachForm';
 
 const formSchema = z.object({
   locality: z.string().min(1, 'Select a region'),
@@ -79,15 +80,10 @@ type AutofixRetryResult =
   | {retried: true; run_id: number; step: string}
   | {reason: string; retried: false; run_id: number};
 
-type AutofixRetryResponse = {
-  results: AutofixRetryResult[];
-};
+type AutofixRetryResponse = {results: AutofixRetryResult[]};
 
 function regionOptions(localities: Region[]) {
-  return localities.map(locality => ({
-    label: locality.name,
-    value: locality.url,
-  }));
+  return localities.map(locality => ({label: locality.name, value: locality.url}));
 }
 
 function NightShiftForm() {
@@ -431,6 +427,7 @@ export function SeerAdminPage() {
             <NightShiftForm />
             <AutofixRetryForm />
             <SingleRunForm />
+            <SyntheticMetricBreachForm />
           </Stack>
         </Container>
       </Stack>

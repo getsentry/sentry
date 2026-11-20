@@ -129,4 +129,30 @@ describe('PRLinksBar', () => {
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
+
+  it('explains a PR that failed for credits in its tooltip', async () => {
+    render(
+      <PRLinksBar
+        repoPRStates={{
+          [REPO]: makeState({
+            pr_creation_status: 'error',
+            pr_creation_error: "Your organization doesn't have enough Seer credits.",
+            pr_creation_error_code: 'out_of_credits',
+            pr_number: null,
+            pr_url: null,
+          }),
+        }}
+      />
+    );
+
+    await userEvent.hover(screen.getByRole('button', {name: REPO}));
+    expect(
+      await screen.findByText(
+        "Seer couldn't open a pull request in acme/web because your organization is out of credits."
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Your organization doesn't have enough Seer credits.")
+    ).not.toBeInTheDocument();
+  });
 });

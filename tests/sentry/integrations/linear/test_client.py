@@ -36,7 +36,7 @@ TOKEN_RESPONSE = {
     "refresh_token": "app-refresh-token",
     "expires_in": 86400,
     "token_type": "Bearer",
-    "scope": "read",
+    "scope": "read write",
 }
 AUTHENTICATION_ERROR_RESPONSE = {
     "errors": [
@@ -61,7 +61,9 @@ class TestLinearOAuthTokens:
 
     @freeze_time("2025-01-01T00:00:00Z")
     @responses.activate
-    @pytest.mark.parametrize("scope", ["read", ["read"]])
+    @pytest.mark.parametrize(
+        "scope", ["read write", "write read", "read,write", ["read", "write"], ["write", "read"]]
+    )
     def test_exchanges_code_using_sentry_app_credentials(self, scope: str | list[str]) -> None:
         responses.add(
             responses.POST,
@@ -95,7 +97,7 @@ class TestLinearOAuthTokens:
             "access_token": "app-access-token",
             "refresh_token": "app-refresh-token",
             "expires_at": "2025-01-02T00:00:00+00:00",
-            "scopes": ["read"],
+            "scopes": ["read", "write"],
         }
         assert responses.calls[0].request.headers["Content-Type"] == (
             "application/x-www-form-urlencoded"
@@ -165,7 +167,11 @@ class TestLinearOAuthTokens:
             {**TOKEN_RESPONSE, "expires_in": "3600"},
             {**TOKEN_RESPONSE, "expires_in": 10**20},
             {**TOKEN_RESPONSE, "token_type": "unexpected"},
-            {**TOKEN_RESPONSE, "scope": "read write"},
+            {**TOKEN_RESPONSE, "scope": "read"},
+            {**TOKEN_RESPONSE, "scope": ["read"]},
+            {**TOKEN_RESPONSE, "scope": "read write admin"},
+            {**TOKEN_RESPONSE, "scope": "read read"},
+            {**TOKEN_RESPONSE, "scope": None},
         ],
     )
     def test_rejects_malformed_or_overprivileged_token(self, body: Any) -> None:

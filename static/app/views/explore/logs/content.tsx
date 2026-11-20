@@ -5,7 +5,6 @@ import {Stack} from '@sentry/scraps/layout';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {DocumentationHint} from 'sentry/components/documentationHint';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
 import {AiQueryProvider} from 'sentry/components/searchQueryBuilder/askSeerCombobox/aiQueryContext';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
@@ -34,9 +33,7 @@ import {LogsTabContent} from './logsTab';
 
 export default function LogsContent() {
   const organization = useOrganization();
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.LOG_BYTE],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.LOG_BYTE]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const onboardingProject = useOnboardingProject({property: 'hasLogs'});
@@ -96,10 +93,7 @@ const LogsPageStack = styled(Stack)`
 
 const logsFeedbackOptions = {
   messagePlaceholder: t('How can we make logs work better for you?'),
-  tags: {
-    'feedback.source': 'logs-listing',
-    'feedback.owner': 'performance',
-  },
+  tags: {'feedback.source': 'logs-listing', 'feedback.owner': 'performance'},
 };
 
 function LogsHeader() {
@@ -145,15 +139,7 @@ function LogsHeader() {
           }}
         />
       )}
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          feedbackOptions={logsFeedbackOptions}
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
+      <TopBar.Slot name="feedback" feedbackOptions={logsFeedbackOptions} />
     </Fragment>
   );
 }

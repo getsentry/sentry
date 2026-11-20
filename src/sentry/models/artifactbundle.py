@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import zipfile
-from collections.abc import Callable, Iterable, Mapping
+from collections.abc import Callable, Mapping
 from enum import Enum
 from types import TracebackType
 from typing import IO, Any, Self, cast
@@ -39,10 +39,6 @@ class SourceFileType(Enum):
     INDEXED_RAM_BUNDLE = 4
 
     @classmethod
-    def choices(cls) -> list[tuple[int, str]]:
-        return [(key.value, key.name) for key in cls]
-
-    @classmethod
     def from_lowercase_key(cls, lowercase_key: str | None) -> SourceFileType | None:
         if lowercase_key is None:
             return None
@@ -71,7 +67,10 @@ class ArtifactBundle(Model):
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
-    file = FlexibleForeignKey("sentry.File")
+    file = FlexibleForeignKey("sentry.File", null=True)
+    storage_path = models.TextField(null=True)
+    checksum = models.CharField(max_length=40, null=True)
+    file_size = BoundedBigIntegerField(null=True)
     artifact_count = BoundedPositiveIntegerField()
     indexing_state = models.IntegerField(
         default=None, null=True, choices=ArtifactBundleIndexingState.choices()
@@ -118,22 +117,24 @@ def delete_file_for_artifact_bundle(instance: ArtifactBundle, **kwargs: object) 
     from sentry.models.files import File
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
-    checksum = None
     try:
-        checksum = instance.file.checksum
+        file = instance.file
     except File.DoesNotExist:
-        pass
-    else:
+        return
+    if file is None:
+        return
+
+    try:
+        checksum = file.checksum
         if instance.organization_id is not None and checksum is not None:
             delete_assemble_status(
                 AssembleTask.ARTIFACT_BUNDLE,
                 instance.organization_id,
                 checksum,
             )
-
     finally:
         try:
-            instance.file.delete()
+            file.delete()
         except File.DoesNotExist:
             pass
 
@@ -145,7 +146,8 @@ post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    organization_id = BoundedBigIntegerField(db_index=True)
+    # No index of its own: the composite index in Meta leads with organization_id.
+    organization_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
     url = models.TextField()
     date_added = models.DateTimeField(default=timezone.now)
@@ -153,6 +155,10 @@ class ArtifactBundleIndex(Model):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_artifactbundleindex"
+
+        # URL lookups check each candidate bundle's rows within its organization. US and DE built
+        # this index by hand first, so there it's renamed instead of built (see migration 1256).
+        indexes = (models.Index(fields=("organization_id", "artifact_bundle")),)
 
 
 @cell_silo_model
@@ -187,7 +193,6 @@ class DebugIdArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     debug_id = models.UUIDField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
-    source_file_type = models.IntegerField(choices=SourceFileType.choices())
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
@@ -204,13 +209,22 @@ class ProjectArtifactBundle(Model):
     organization_id = BoundedBigIntegerField(db_index=True)
     project_id = BoundedBigIntegerField()
     artifact_bundle = FlexibleForeignKey("sentry.ArtifactBundle")
+    has_debug_ids = models.BooleanField(db_default=False)
     date_added = models.DateTimeField(default=timezone.now)
 
     class Meta:
         app_label = "sentry"
         db_table = "sentry_projectartifactbundle"
 
-        indexes = (models.Index(fields=("project_id", "artifact_bundle")),)
+        indexes = (
+            models.Index(fields=("project_id", "artifact_bundle")),
+            # Holds only the flagged links, so a project without any is one lookup that finds nothing.
+            models.Index(
+                fields=("project_id",),
+                condition=models.Q(has_debug_ids=True),
+                name="sentry_pab_project_debug_idx",
+            ),
+        )
 
 
 class ArtifactBundleArchive:
@@ -302,8 +316,8 @@ class ArtifactBundleArchive:
     def get_all_urls(self) -> list[str]:
         return [url for url in self._entries_by_url.keys()]
 
-    def get_all_debug_ids(self) -> Iterable[tuple[str, SourceFileType]]:
-        return self._entries_by_debug_id.keys()
+    def get_all_debug_ids(self) -> set[str]:
+        return {debug_id for debug_id, _ in self._entries_by_debug_id}
 
     def has_debug_ids(self) -> bool:
         return len(self._entries_by_debug_id) > 0
@@ -340,12 +354,6 @@ class ArtifactBundleArchive:
 
     def get_file_by_url(self, url: str) -> tuple[IO[bytes], dict[str, Any]]:
         file_path, info = self._entries_by_url[url]
-        return self._zip_file.open(file_path), info.get("headers", {})
-
-    def get_file_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> tuple[IO[bytes], dict[str, Any]]:
-        file_path, _, info = self._entries_by_debug_id[debug_id, source_file_type]
         return self._zip_file.open(file_path), info.get("headers", {})
 
     def get_file(self, file_path: str) -> tuple[IO[bytes], dict[str, Any]]:
@@ -400,15 +408,6 @@ class ArtifactBundleArchive:
             return self._zip_file.getinfo(file_path)
         except KeyError:
             return None
-
-    def get_file_url_by_debug_id(
-        self, debug_id: str, source_file_type: SourceFileType
-    ) -> str | None:
-        entry = self._entries_by_debug_id.get((debug_id, source_file_type))
-        if entry is not None:
-            return entry[1]
-
-        return None
 
     def get_file_url_by_file_path(self, file_path: str) -> str | None:
         files = self.manifest.get("files", {})

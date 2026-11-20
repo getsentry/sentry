@@ -37,6 +37,7 @@ from sentry.sentry_apps.utils.errors import (
     SentryAppPublicErrorBody,
     SentryAppSentryError,
 )
+from sentry.service_accounts.auth import is_service_account_auth
 from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
@@ -290,8 +291,12 @@ class SentryAppPermission(SentryPermission):
         organizations = (
             user_service.get_organizations(user_id=user_id) if user_id is not None else ()
         )
+        is_owner_service_account = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == sentry_app.owner_id
+        )
         # if app is unpublished, user must be in the Org who owns the app.
-        if not sentry_app.is_published:
+        if not sentry_app.is_published and not is_owner_service_account:
             if not any(sentry_app.owner_id == org.id for org in organizations):
                 raise SentryAppError(
                     message="User must be in the app owner's organization for unpublished apps",
@@ -464,7 +469,15 @@ class SentryAppInstallationPermission(SentryPermission):
         if request.user.is_sentry_app:
             return is_acting_user(request.user, installation.sentry_app.proxy_user_id)
 
-        if not org_context.member or org_context.organization.status != OrganizationStatus.ACTIVE:
+        # A service account has no membership; it belongs to its own organization.
+        is_org_service_account = (
+            is_service_account_auth(request.auth)
+            and request.auth.organization_id == installation.organization_id
+        )
+        if (
+            not (org_context.member or is_org_service_account)
+            or org_context.organization.status != OrganizationStatus.ACTIVE
+        ):
             raise SentryAppError(message="Given organization is not valid", status_code=404)
 
         assert request.method, "method must be present in request to get permissions"

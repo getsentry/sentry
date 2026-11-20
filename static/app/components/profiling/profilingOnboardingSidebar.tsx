@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
+import {useShallow} from 'zustand/react/shallow';
 
 import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {useDrawer} from '@sentry/scraps/drawer';
@@ -32,7 +34,6 @@ import {
   OnboardingDrawerStore,
   useIsOnboardingDrawerOpen,
 } from 'sentry/stores/onboardingDrawerStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -191,14 +192,8 @@ function SidebarContent() {
       }
     );
     return [
-      {
-        label: t('Supported'),
-        options: supportedProjectItems,
-      },
-      {
-        label: t('Unsupported'),
-        options: unsupportedProjectItems,
-      },
+      {label: t('Supported'), options: supportedProjectItems},
+      {label: t('Unsupported'), options: unsupportedProjectItems},
     ];
   }, [supportedProjects, unsupportedProjects]);
 
@@ -273,7 +268,10 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
   const {isPending: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
 
-  const {isSelfHosted, urlPrefix} = useLegacyStore(ConfigStore);
+  const {isSelfHosted, urlPrefix} = useStore(
+    ConfigStore,
+    useShallow(state => ({isSelfHosted: state.isSelfHosted, urlPrefix: state.urlPrefix}))
+  );
 
   if (isLoading) {
     return <LoadingIndicator />;
@@ -338,10 +336,7 @@ function ProfilingOnboardingContent(props: ProfilingOnboardingContentProps) {
     isPerformanceSelected: true,
     isProfilingSelected: true,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: PROFILING_ONBOARDING_STEPS,
     feedbackOptions: {},
     /**

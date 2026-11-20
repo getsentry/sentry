@@ -1,3 +1,4 @@
+import logging
 from collections.abc import Collection, Mapping, Sequence
 from functools import reduce
 from operator import or_
@@ -29,6 +30,8 @@ from sentry.sentry_metrics.use_case_id_registry import METRIC_PATH_MAPPING, UseC
 from sentry.utils import metrics
 
 __all__ = ["PostgresIndexer"]
+
+logger = logging.getLogger(__name__)
 
 
 _INDEXER_DB_METRIC = "sentry_metrics.indexer.postgres"
@@ -193,7 +196,14 @@ class PGStringIndexerV2(StringIndexer):
         Returns None if the entry cannot be found.
 
         """
-        table = TABLE_MAPPING[METRIC_PATH_MAPPING[use_case_id]]
+        metric_path_key = METRIC_PATH_MAPPING.get(use_case_id)
+        if metric_path_key is None:
+            logger.warning(
+                "sentry_metrics.indexer.resolve.unsupported_use_case",
+                extra={"use_case_id": use_case_id.value, "org_id": org_id},
+            )
+            return None
+        table = TABLE_MAPPING[metric_path_key]
         try:
             return int(table.objects.using_replica().get(organization_id=org_id, string=string).id)
         except table.DoesNotExist:

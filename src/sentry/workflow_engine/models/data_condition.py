@@ -72,6 +72,7 @@ class Condition(StrEnum):
     PERCENT_SESSIONS_PERCENT = "percent_sessions_percent"
 
     # Activity trigger conditions
+    ACTIVITY_TYPE_IN = "activity_type_in"
     SEER_ACTIVITY_TRIGGER = "seer_activity_trigger"
 
 
@@ -271,6 +272,14 @@ def get_condition_handler(
             pass
 
     return None
+
+
+def get_internal_condition_types() -> set[str]:
+    return {
+        condition_type
+        for condition_type, handler in condition_handler_registry.registrations.items()
+        if handler.is_internal
+    }
 
 
 def is_slow_condition(condition: DataCondition) -> bool:

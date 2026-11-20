@@ -63,10 +63,7 @@ describe('useEmailAuth', () => {
       url: '/auth/login/',
       method: 'POST',
       statusCode: 202,
-      body: {
-        mfaRequired: true,
-        mfaMethods: [{id: 'totp'}, {id: 'recovery'}],
-      },
+      body: {mfaRequired: true, mfaMethods: [{id: 'totp'}, {id: 'recovery'}]},
     });
     const {result} = renderHookWithProviders(useEmailAuth);
 

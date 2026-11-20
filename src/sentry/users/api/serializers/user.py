@@ -5,7 +5,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
 from enum import Enum
-from typing import Annotated, Any, Literal, TypedDict, cast
+from typing import Annotated, Any, Literal, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -419,7 +419,24 @@ class DetailedUserSerializer(UserSerializer):
 
 
 class DetailedSelfUserSerializerResponse(UserSerializerResponse):
-    permissions: Sequence[str]
+    permissions: Annotated[
+        Sequence[str],
+        ApiDescription(
+            "Sentry staff permissions granted to the user, such as users.admin. Empty for most users"
+        ),
+    ]
+    options: NotRequired[
+        Annotated[
+            _UserOptions,
+            ApiDescription("The user's preferences. Only included for the requesting user"),
+        ]
+    ]
+    flags: NotRequired[
+        Annotated[
+            _UserFlags,
+            ApiDescription("Account flags. Only included for the requesting user"),
+        ]
+    ]
 
 
 class UserSerializerWithOrgMembershipsResponse(UserSerializerResponse):

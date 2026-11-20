@@ -1,11 +1,11 @@
 import {useQueryClient, useQuery} from '@tanstack/react-query';
 
 import {Tag, type TagProps} from '@sentry/scraps/badge';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Link} from '@sentry/scraps/link';
 import {toast} from '@sentry/scraps/toast';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {ResultTable, ResultTableRowHeader} from 'sentry/components/resultTable';
@@ -25,10 +25,7 @@ import {InvoiceStatus} from 'getsentry/types';
 const ERR_MESSAGE = 'There was an internal error updating this invoice';
 
 export function InvoiceDetails() {
-  const {invoiceId, region} = useParams<{
-    invoiceId: string;
-    region: string;
-  }>();
+  const {invoiceId, region} = useParams<{invoiceId: string; region: string}>();
   const cellInfo = getCells().find(c => c.name.toLowerCase() === region.toLowerCase());
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
@@ -63,10 +60,7 @@ export function InvoiceDetails() {
     try {
       const updatedInvoice = await api.requestPromise(
         `/_admin/cells/${region}/invoices/${invoiceId}/close/`,
-        {
-          method: 'PUT',
-          host: cellInfo ? cellInfo.locality_url : '',
-        }
+        {method: 'PUT', host: cellInfo ? cellInfo.locality_url : ''}
       );
       updateCache(updatedInvoice);
       toast.success('Invoice has been closed');
@@ -89,9 +83,7 @@ export function InvoiceDetails() {
     try {
       const updatedInvoice = await api.requestPromise(
         `/customers/${customer.slug}/invoices/${invoiceId}/retry-payment/`,
-        {
-          method: 'PUT',
-        }
+        {method: 'PUT'}
       );
       updateCache(updatedInvoice);
       toast.success('Payment will be retried');
@@ -286,18 +278,9 @@ export function InvoiceDetails() {
         },
       ]}
       sections={[
-        {
-          content: overviewPanel,
-        },
-        {
-          noPadding: true,
-          content: invoiceTable,
-        },
-        {
-          noPadding: true,
-          name: 'Charges',
-          content: chargesTable,
-        },
+        {content: overviewPanel},
+        {noPadding: true, content: invoiceTable},
+        {noPadding: true, name: 'Charges', content: chargesTable},
       ]}
     />
   );

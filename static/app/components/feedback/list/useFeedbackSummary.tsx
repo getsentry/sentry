@@ -1,7 +1,8 @@
+import {useQuery} from '@tanstack/react-query';
+
 import {normalizeDateTimeParams} from 'sentry/components/pageFilters/parse';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
-import {getApiUrl} from 'sentry/utils/api/getApiUrl';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FeedbackSummaryResponse = {
@@ -23,26 +24,18 @@ export function useFeedbackSummary(): {
 
   const normalizedDateRange = normalizeDateTimeParams(selection.datetime);
 
-  const {data, isPending, isError} = useApiQuery<FeedbackSummaryResponse>(
-    [
-      getApiUrl('/organizations/$organizationIdOrSlug/feedback-summary/', {
-        path: {
-          organizationIdOrSlug: organization.slug,
-        },
-      }),
+  const {data, isPending, isError} = useQuery({
+    ...apiOptions.as<FeedbackSummaryResponse>()(
+      '/organizations/$organizationIdOrSlug/feedback-summary/',
       {
-        query: {
-          ...normalizedDateRange,
-          project: selection.projects,
-        },
-      },
-    ],
-    {
-      staleTime: 5000,
-      enabled: Boolean(normalizedDateRange),
-      retry: 1,
-    }
-  );
+        path: {organizationIdOrSlug: organization.slug},
+        query: {...normalizedDateRange, project: selection.projects},
+        staleTime: 5000,
+      }
+    ),
+    enabled: Boolean(normalizedDateRange),
+    retry: 1,
+  });
 
   if (isPending) {
     return {

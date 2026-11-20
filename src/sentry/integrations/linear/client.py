@@ -41,6 +41,8 @@ LINEAR_ERROR_MESSAGE = (
 
 _WORKSPACE_QUERY = "query SentrySeerConnectionCheck { organization { id name } viewer { id } }"
 
+LINEAR_SCOPES = ["read", "write"]
+
 # How long a just-written token satisfies a forced refresh. Concurrent callers whose shared
 # token was rejected serialize on the lock below; the first one's refresh (or a concurrent
 # reauthorization) already replaced the rejected token, so the rest reuse it instead of
@@ -124,7 +126,7 @@ def _request_token(params: dict[str, str]) -> LinearToken:
     expires_in = body.get("expires_in")
     scope = body.get("scope")
     # Older Linear apps return scopes as an array rather than a space-separated string.
-    scopes = scope.split() if isinstance(scope, str) else scope
+    scopes = scope.replace(",", " ").split() if isinstance(scope, str) else scope
     if (
         not isinstance(access_token, str)
         or not access_token
@@ -133,14 +135,15 @@ def _request_token(params: dict[str, str]) -> LinearToken:
         or type(expires_in) is not int
         or not 0 < expires_in <= 30 * 24 * 60 * 60
         or str(body.get("token_type", "")).lower() != "bearer"
-        or scopes != ["read"]
+        or not isinstance(scopes, list)
+        or sorted(scopes) != LINEAR_SCOPES
     ):
         raise IntegrationConfigurationError(LINEAR_ERROR_MESSAGE)
     return LinearToken(
         access_token=SecretStr(access_token),
         refresh_token=SecretStr(refresh_token),
         expires_at=requested_at + timedelta(seconds=expires_in),
-        scopes=["read"],
+        scopes=list(LINEAR_SCOPES),
     )
 
 
@@ -270,9 +273,9 @@ class LinearClient:
         except UnableToAcquireLock:
             # The holder's token request can outlast this wait. If it already stored a
             # usable replacement, hand that out instead of failing.
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             if integration is None:
                 return None
             token = _reusable_stored_token(integration, minimum_validity, force_refresh)
@@ -280,9 +283,9 @@ class LinearClient:
                 raise
             return token
         with acquired:
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             if integration is None:
                 return None
             metadata = integration.metadata
@@ -300,7 +303,7 @@ class LinearClient:
                 # The date_updated filter catches stamped writes atomically; re-reading the
                 # stored refresh token also covers writers that persist new credentials
                 # without bumping date_updated.
-                current = Integration.objects.filter(id=integration.id).first()
+                current = Integration.objects.get_or_none(id=integration.id)
                 if current is not None and current.metadata.get("refresh_token") == refresh_token:
                     Integration.objects.filter(
                         id=integration.id,
@@ -333,7 +336,7 @@ class LinearClient:
                 .exists()
             ):
                 return
-            integration = Integration.objects.filter(id=self.integration.id).first()
+            integration = Integration.objects.get_or_none(id=self.integration.id)
             if integration is None:
                 return
             refresh_token = integration.metadata.get("refresh_token")

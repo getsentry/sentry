@@ -1,9 +1,8 @@
 import {useEffect, useRef, useState} from 'react';
-import uniqBy from 'lodash/uniqBy';
+import {useStore} from 'zustand';
 
 import type {Client} from 'sentry/api';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {AvatarProject, Project} from 'sentry/types/project';
 
 import {getApiUrl} from './api/getApiUrl';
@@ -133,10 +132,7 @@ async function fetchProjects(
     getApiUrl('/organizations/$organizationIdOrSlug/projects/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      includeAllArgs: true,
-      query,
-    }
+    {includeAllArgs: true, query}
   );
 
   const pageLinks = resp?.getResponseHeader('Link');
@@ -163,7 +159,7 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
   const api = useApi();
 
   const organization = useOrganization({allowNull: true});
-  const store = useLegacyStore(ProjectsStore);
+  const store = useStore(ProjectsStore);
 
   const orgId = propOrgId ?? organization?.slug;
 
@@ -211,9 +207,8 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         limit,
       });
 
-      // Note the order of uniqBy: we prioritize project data recently fetched over previously cached data
-      const fetchedProjects = uniqBy([...results, ...store.projects], ({slug}) => slug);
-      ProjectsStore.loadInitialData(fetchedProjects);
+      // Freshly fetched projects replace any cached copies
+      ProjectsStore.mergeProjects(results);
 
       setState(prev => ({
         ...prev,
@@ -259,11 +254,11 @@ export function useProjects({limit, slugs, orgId: propOrgId}: Options = {}) {
         cursor,
       });
 
-      const fetchedProjects = uniqBy([...store.projects, ...results], ({slug}) => slug);
-
-      // Only update the store if we have more items
-      if (fetchedProjects.length > store.projects.length) {
-        ProjectsStore.loadInitialData(fetchedProjects);
+      // Only add projects the store doesn't have yet
+      const knownIds = new Set(ProjectsStore.getState().projects.map(({id}) => id));
+      const newProjects = results.filter((project: Project) => !knownIds.has(project.id));
+      if (newProjects.length > 0) {
+        ProjectsStore.mergeProjects(newProjects);
       }
 
       setState(prev => ({

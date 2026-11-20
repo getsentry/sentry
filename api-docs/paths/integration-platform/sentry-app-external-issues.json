@@ -2,7 +2,8 @@
   "post": {
     "tags": ["Integration"],
     "description": "Create or update an external issue from an integration platform integration.",
-    "operationId": "Create or update an External Issue",
+    "operationId": "createSentryAppInstallationExternalIssue",
+    "summary": "Create or update an External Issue",
     "parameters": [
       {
         "name": "uuid",

@@ -6,9 +6,7 @@ import {Profile} from './profile';
 import type {createContinuousProfileFrameIndex} from './utils';
 import {sortProfileSamples} from './utils';
 
-type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {
-  weight: number;
-};
+type WeightedSample = Profiling.ContinuousProfile['samples'][number] & {weight: number};
 
 export class ContinuousProfile extends Profile {
   static FromProfile(

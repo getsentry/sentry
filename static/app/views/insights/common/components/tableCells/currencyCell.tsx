@@ -5,9 +5,7 @@ import {formatDollars} from 'sentry/utils/formatters';
 import {NegativeCostInfo} from 'sentry/views/insights/pages/agents/components/negativeCostWarning';
 import {formatLLMCostsExact} from 'sentry/views/insights/pages/agents/utils/formatLLMCosts';
 
-type Props = {
-  value: number | null;
-};
+type Props = {value: number | null};
 
 export function CurrencyCell({value}: Props) {
   if (value === null || value === undefined) {

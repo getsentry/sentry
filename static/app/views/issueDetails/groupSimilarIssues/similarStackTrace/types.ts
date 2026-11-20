@@ -1,14 +1,12 @@
 import type {Group} from 'sentry/types/group';
+import type {RelatedIssue} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 
 type ScoreMap = Record<string, number | null | string>;
 
 export type SimilarItem = {
   isBelowThreshold: boolean;
   issue: Group;
-  aggregate?: {
-    exception: number;
-    message: number;
-  };
+  aggregate?: {exception: number; message: number};
   scoresByInterface?: {
     exception: Array<[string, number | null]>;
     message: Array<[string, number | null]>;
@@ -16,6 +14,20 @@ export type SimilarItem = {
 };
 
 export type SimilarApiResponse = Array<[Group, ScoreMap]>;
+
+/**
+ * A similar issue from the related issues endpoint, as an [issue, scores] pair like the
+ * similar issues endpoint returns, so processSimilarItem reads both.
+ */
+export function toSimilarTuple({issue, relations}: RelatedIssue): [Group, ScoreMap] {
+  const scores: ScoreMap = {};
+  for (const relation of relations) {
+    if (relation.type === 'similar_stacktrace') {
+      scores.exception = relation.score;
+    }
+  }
+  return [issue, scores];
+}
 
 const MIN_SCORE = 0.6;
 

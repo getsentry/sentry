@@ -2,7 +2,6 @@ import {useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import * as qs from 'query-string';
 
 import type {SelectOption} from '@sentry/scraps/compactSelect';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
@@ -15,6 +14,7 @@ import type {EventView} from 'sentry/utils/discover/eventView';
 import {DisplayModes, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {usePerformanceDisplayType} from 'sentry/utils/performance/contexts/performanceDisplayContext';
 import {encodeSort} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {hasDatasetSelector} from 'sentry/views/dashboards/utils';
@@ -189,10 +189,7 @@ function WidgetInteractiveTitle({
     if (useEap) {
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
-      menuOptions.push({
-        label: t('Open in Explore'),
-        value: 'open_in_discover',
-      });
+      menuOptions.push({label: t('Open in Explore'), value: 'open_in_discover'});
     }
   }
 
@@ -204,10 +201,7 @@ function WidgetInteractiveTitle({
         getExploreUrl({
           selection: eventView.getPageFilters(),
           organization,
-          visualize: yAxis?.map(y => ({
-            chartType: ChartType.LINE,
-            yAxes: [y],
-          })),
+          visualize: yAxis?.map(y => ({chartType: ChartType.LINE, yAxes: [y]})),
           mode: Mode.AGGREGATE,
           title: eventView.name,
           query: eventView.getQueryWithAdditionalConditions(),

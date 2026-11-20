@@ -1,11 +1,11 @@
 import type {LocationDescriptor} from 'history';
-import queryString, {type ParsedQuery} from 'query-string';
 
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {isAggregateField, type Sort} from 'sentry/utils/discover/fields';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {
   makeAutomationBasePathname,
   makeAutomationDetailsPathname,
@@ -109,7 +109,7 @@ export type LinkSubject = {
   /** Which external provider served the call, if any. */
   provider?: string;
   /** The requested query string, parsed — params the route template does not name. */
-  query?: ParsedQuery;
+  query?: qs.ParsedQuery;
   status?: number;
   /** The title seer shipped for this call. Absent on a seer-emitted link. */
   title?: string;
@@ -281,9 +281,7 @@ export const LINK_RULES: LinkRule[] = [
 
       return {
         label: title ?? t('View replay'),
-        url: {
-          pathname: makeReplaysPathname({path: `/${replayId}/`, organization}),
-        },
+        url: {pathname: makeReplaysPathname({path: `/${replayId}/`, organization})},
       };
     },
   },
@@ -716,10 +714,7 @@ export const LINK_RULES: LinkRule[] = [
         return null;
       }
       // Short ids resolve on the issue route the same way numeric ids do.
-      return {
-        label: title ?? t('View issue'),
-        url: {pathname: `/issues/${issueId}/`},
-      };
+      return {label: title ?? t('View issue'), url: {pathname: `/issues/${issueId}/`}};
     },
   },
 ];
@@ -788,7 +783,7 @@ export function resolveLink(
 /** A call Code Mode reported, as something the rules can match on. */
 export function subjectFromCallRecord(record: CallRecord): LinkSubject {
   const [pathname, queryStringPart] = (record.resolved_path ?? '').split('?');
-  const query = queryStringPart ? queryString.parse(queryStringPart) : undefined;
+  const query = queryStringPart ? qs.parse(queryStringPart) : undefined;
   const params = record.kind === 'lib' ? record.params : record.path_params;
 
   return {
@@ -951,7 +946,7 @@ function telemetryDatasetLabel(dataset: unknown): string | undefined {
 }
 
 /** Django QueryDict.get uses the last value for repeated scalar parameters. */
-function getApiScalar(value: ParsedQuery[string] | undefined): string | undefined {
+function getApiScalar(value: qs.ParsedQuery[string] | undefined): string | undefined {
   const scalar = Array.isArray(value) ? value.at(-1) : value;
   return typeof scalar === 'string' ? scalar : undefined;
 }
@@ -1227,10 +1222,7 @@ function getTraceMetricFromParams(params: Record<string, any>): TraceMetric | nu
     return null;
   }
 
-  const traceMetric: TraceMetric = {
-    name: rawTraceMetric.name,
-    type: rawTraceMetric.type,
-  };
+  const traceMetric: TraceMetric = {name: rawTraceMetric.name, type: rawTraceMetric.type};
   if (typeof rawTraceMetric.unit === 'string') {
     traceMetric.unit = rawTraceMetric.unit;
   }

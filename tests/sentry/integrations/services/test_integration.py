@@ -9,6 +9,7 @@ from django.test import override_settings
 from responses import matchers
 
 from sentry.constants import ObjectStatus
+from sentry.db.models.fields.encryption import EncryptedJSONField
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.linear.client import LINEAR_TOKEN_URL
 from sentry.integrations.models.integration import Integration
@@ -254,6 +255,22 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
         self.verify_org_integration_result(
             result=rpc_org_integration1, expected=self.org_integration1
         )
+
+    def test_get_organization_integrations_does_not_decrypt_integration_metadata(self) -> None:
+        # The result carries no integration fields, so decrypting the integration's metadata for
+        # every listed row is wasted work on integrations installed in many organizations.
+        with patch.object(
+            EncryptedJSONField,
+            "from_db_value",
+            autospec=True,
+            side_effect=EncryptedJSONField.from_db_value,
+        ) as decrypt:
+            result = integration_service.get_organization_integrations(
+                integration_id=self.integration1.id
+            )
+
+        self.verify_result(result=result, expected=[self.org_integration1])
+        assert decrypt.call_count == 0
 
     def test_get_organization_integrations(self) -> None:
         # by ids
@@ -713,7 +730,7 @@ class GetAccessTokenTest(TestCase):
                 "refresh_token": "linear-refresh-token-2",
                 "expires_in": 3600,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
@@ -914,7 +931,7 @@ class GetAccessTokenTest(TestCase):
                 "refresh_token": "linear-refresh-token-3",
                 "expires_in": 86400,
                 "token_type": "Bearer",
-                "scope": "read",
+                "scope": "read write",
             },
         )
 
@@ -958,7 +975,7 @@ class GetAccessTokenTest(TestCase):
             return (
                 200,
                 {"Content-Type": "application/json"},
-                '{"access_token":"stale-token","refresh_token":"stale-refresh-token","expires_in":3600,"token_type":"Bearer","scope":"read"}',
+                '{"access_token":"stale-token","refresh_token":"stale-refresh-token","expires_in":3600,"token_type":"Bearer","scope":"read write"}',
             )
 
         responses.add_callback(responses.POST, LINEAR_TOKEN_URL, callback=replace_credentials)

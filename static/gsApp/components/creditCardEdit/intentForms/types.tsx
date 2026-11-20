@@ -1,10 +1,20 @@
 import type {Stripe, StripeElements} from '@stripe/stripe-js';
 
-import type {CreditCardFormProps} from 'getsentry/components/creditCardEdit/form';
+import type {CreditCardSetupProps} from 'getsentry/components/creditCardEdit/setup';
 
-export interface IntentFormProps extends Omit<CreditCardFormProps, 'amount'> {}
+export interface SetupIntentFormProps extends CreditCardSetupProps {
+  cardMode: 'setup';
+  invoiceGuid?: never;
+}
 
-export interface InnerIntentFormProps extends IntentFormProps {
+export interface PaymentIntentFormProps extends CreditCardSetupProps {
+  cardMode: 'payment';
+  invoiceGuid: string;
+}
+
+export type IntentFormProps = SetupIntentFormProps | PaymentIntentFormProps;
+
+export type InnerIntentFormProps = IntentFormProps & {
   handleSubmit: ({
     stripe,
     elements,
@@ -15,4 +25,4 @@ export interface InnerIntentFormProps extends IntentFormProps {
   isSubmitting: boolean;
   errorMessage?: string;
   onError?: (error: string) => void;
-}
+};

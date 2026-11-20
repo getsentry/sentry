@@ -131,7 +131,7 @@ def handle_seer_agent_write_approval(
     if slack_user_id is None:
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
 
-    organization = Organization.objects.filter(id=organization_id).first()
+    organization = Organization.objects.get_or_none(id=organization_id)
     if not organization or not SeerAgentOperator.has_access(
         organization=organization,
         entrypoint_key=SeerEntrypointKey.SLACK,
@@ -249,6 +249,7 @@ def handle_seer_agent_write_approval(
             integration_id=slack_request.integration.id,
             thread={"channel_id": channel_id, "thread_ts": cached_message["thread_ts"]},
             slack_user_id=slack_user_id,
+            user_id=identity_user.id,
         ),
     )
     # Replace the card only after Seer accepts the input so a failed resume remains retryable.

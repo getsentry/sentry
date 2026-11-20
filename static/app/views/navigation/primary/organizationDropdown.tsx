@@ -7,6 +7,7 @@ import {IconSettings} from '@sentry/icons/settings';
 import omit from 'lodash/omit';
 import orderBy from 'lodash/orderBy';
 import partition from 'lodash/partition';
+import {useStore} from 'zustand';
 
 import {
   getOrganizationAvatarProps,
@@ -25,14 +26,12 @@ import type {MenuItemTrailingAction} from '@sentry/scraps/menu';
 import {useSizeContext} from '@sentry/scraps/sizeContext';
 import {Text} from '@sentry/scraps/text';
 
-import {OrganizationBadge} from 'sentry/components/idBadge/organizationBadge';
 import {BookmarkStarIcon} from 'sentry/components/projects/bookmarkStar';
 import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProjectBookmark';
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {OrganizationsStore} from 'sentry/stores/organizationsStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -56,6 +55,8 @@ import {NavigationMenuHeader} from './navigationMenuHeader';
 
 const QUICK_ACCESS_PROJECT_LIMIT = 5;
 
+export const ORGANIZATION_MENU_MAX_WIDTH = 258;
+
 type OrgMenuProjectSource = 'quick_access' | 'all_projects';
 
 interface OrganizationDropdownProps {
@@ -69,7 +70,7 @@ interface OrganizationDropdownProps {
 
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
-  const config = useLegacyStore(ConfigStore);
+  const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 
@@ -82,8 +83,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const {organizations} = useLegacyStore(OrganizationsStore);
+  const organizations = useStore(OrganizationsStore, state => state.organizations);
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -155,7 +155,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       id="entry"
       position="bottom-start"
       title={t('Access Settings here')}
-      description={t('Yep. We "moved the cheese", but it\'s for the better...')}
+      description={t(
+        'Consider this a breaking change to your muscle memory. Worth the upgrade, we swear.'
+      )}
     >
       {tourProps => (
         <AvatarButton
@@ -163,7 +165,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
           size={size}
           aria-label={t('Toggle organization menu')}
           {...mergeProps(triggerProps, {className: tourProps.className})}
-          ref={mergeRefs(triggerProps.ref, tourProps.ref, triggerRef)}
+          ref={mergeRefs(triggerProps.ref, tourProps.ref)}
         />
       )}
     </SettingsNavigationTourElement>
@@ -190,8 +192,6 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
       <SettingsNavigationTourElement
         id="projects"
         position="right"
-        // The menu closes with the tour, so focus returns to its trigger.
-        returnFocusRef={triggerRef}
         title={
           hasNoProjects
             ? getSettingsScopeTitle('project')
@@ -236,7 +236,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
             portalContainerRef={portalContainerRef}
             zIndex={theme.zIndex.modal}
             trigger={trigger}
-            maxWidth={258}
+            maxWidth={ORGANIZATION_MENU_MAX_WIDTH}
             menuTitle={
               <NavigationMenuHeader
                 organization={organization}
@@ -268,7 +268,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                     leadingItems: <IconBuilding />,
                     submenu: true,
                     hidden:
-                      config.singleOrganization ||
+                      singleOrganization ||
                       isDemoModeActive() ||
                       (activeOrgs.length === 0 && inactiveOrgs.length === 0),
                     children: [
@@ -308,7 +308,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
                       title: t('All Projects'),
                       emptyMessage: t('No projects found'),
                       search: {placeholder: t('Search')},
-                      maxWidth: 258,
+                      maxWidth: ORGANIZATION_MENU_MAX_WIDTH,
                     },
                     hidden: projects.length === 0,
                     children: [
@@ -419,7 +419,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               submenu: true,
-              hidden: config.singleOrganization || isDemoModeActive(),
+              hidden: singleOrganization || isDemoModeActive(),
               children: [
                 {
                   key: 'active-orgs',
@@ -469,8 +469,10 @@ function makeProjectMenuItem(
 function makeOrganizationMenuItem(org: OrganizationSummary): MenuItemProps {
   return {
     key: org.id,
-    label: <OrganizationBadge organization={org} />,
-    textValue: org.name,
+    label: org.name,
+    // The avatar goes in the leading slot, not the label, so these rows line up
+    // with items that have icons instead of getting an empty slot before the badge.
+    leadingItems: <OrganizationAvatar organization={org} size={16} />,
     to: resolveRoute(`/organizations/${org.slug}/issues/`, null, org),
   };
 }

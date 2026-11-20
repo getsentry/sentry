@@ -14,16 +14,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export function FeatureFlagCTAContent({
   handleSetupButtonClick,
 }: {
-  handleSetupButtonClick: (e: any) => void;
+  handleSetupButtonClick: (e: React.MouseEvent) => void;
 }) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
-    trackAnalytics('flags.cta_rendered', {
-      organization,
-      surface: analyticsArea,
-    });
+    trackAnalytics('flags.cta_rendered', {organization, surface: analyticsArea});
   }, [organization, analyticsArea]);
 
   return (

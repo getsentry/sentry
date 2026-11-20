@@ -7,34 +7,23 @@ import {CategorizedStoryTree} from './storyTree';
 jest.mock('sentry/stories/storyManifest.generated', () => ({
   storyFiles: [
     'app/components/core/avatar/avatar.mdx',
-    'app/components/core/tabs/tabs.mdx',
+    'packages/scraps/src/tabs/tabs.mdx',
     'packages/scraps/src/drawer/drawer.mdx',
     'packages/scraps/src/link/link.mdx',
     'gsApp/components/upsellModal/upsellModal.stories.tsx',
   ],
   storyFrontmatterIndex: {
-    'app/components/core/avatar/avatar.mdx': {
-      category: 'display',
-      title: 'Avatar',
-    },
-    'app/components/core/tabs/tabs.mdx': {
-      category: 'navigation',
-      title: 'Tabs',
-    },
+    'app/components/core/avatar/avatar.mdx': {category: 'display', title: 'Avatar'},
+    'packages/scraps/src/tabs/tabs.mdx': {category: 'navigation', title: 'Tabs'},
     'packages/scraps/src/drawer/drawer.mdx': {
       category: 'overlays',
       title: 'GlobalDrawer',
     },
-    'packages/scraps/src/link/link.mdx': {
-      category: 'navigation',
-      title: 'Link',
-    },
+    'packages/scraps/src/link/link.mdx': {category: 'navigation', title: 'Link'},
   },
 }));
 
-jest.mock('sentry/stories/view/useStoryParams', () => ({
-  useStoryParams: () => ({}),
-}));
+jest.mock('sentry/stories/view/useStoryParams', () => ({useStoryParams: () => ({})}));
 
 function getSection(name: string) {
   return screen.getByRole('heading', {name}).parentElement!;

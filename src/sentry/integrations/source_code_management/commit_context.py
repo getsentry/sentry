@@ -347,7 +347,7 @@ class CommitContextIntegration(ABC):
 
         pr_comment = PullRequestComment.objects.filter(
             pull_request__id=pr.id, comment_type=comment_type
-        ).first()
+        ).first()  # noqa: S035
 
         interaction_type = (
             SCMIntegrationInteractionType.CREATE_COMMENT

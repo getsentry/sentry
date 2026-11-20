@@ -118,11 +118,7 @@ type ExclusiveTextEllipsisProps =
       ellipsis?: true;
       wrap?: never;
     }
-  | {
-      display?: Responsive<DisplayValue>;
-      ellipsis?: never;
-      wrap?: BaseTextProps['wrap'];
-    };
+  | {display?: Responsive<DisplayValue>; ellipsis?: never; wrap?: BaseTextProps['wrap']};
 
 interface TextAttributes<T extends TextPrimitive = 'span'>
   extends
@@ -313,9 +309,7 @@ export const Text = styled(
     const Component = props.as || 'span';
     return <Component {...(rest as any)}>{children}</Component>;
   },
-  {
-    shouldForwardProp: p => isPropValid(p),
-  }
+  {shouldForwardProp: p => isPropValid(p)}
 )`
   ${getTextStyles}
 

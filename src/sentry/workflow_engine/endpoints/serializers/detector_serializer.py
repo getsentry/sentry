@@ -216,16 +216,6 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
 
         return attrs
 
-    @staticmethod
-    def _normalize_config(config: dict[str, Any]) -> dict[str, Any]:
-        # XXX: There are some migrated metric alerts which have `detection_type: "static"`,
-        # a defined `comparison_delta`. These are treated as `detection_type: "percent"` in the backend,
-        # so this is a temporary fix to ensure that the frontend displays the correct detection type.
-        # Remove this once ISWF-2272 backfills the correct `detection_type`.
-        if config.get("detection_type") == "static" and config.get("comparison_delta"):
-            return {**config, "detection_type": "percent"}
-        return config
-
     def serialize(
         self, obj: Detector, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> DetectorSerializerResponse:
@@ -245,9 +235,7 @@ class DetectorSerializer(Serializer[DetectorSerializerResponse]):
             "conditionGroup": attrs.get("condition_group"),
             "config": cast(
                 DetectorConfigResponse,
-                convert_dict_key_case(
-                    self._normalize_config(attrs.get("config", {})), snake_to_camel_case
-                ),
+                convert_dict_key_case(attrs.get("config", {}), snake_to_camel_case),
             ),
             "enabled": obj.enabled,
             "alertRuleId": alert_rule_mapping.get("alert_rule_id"),

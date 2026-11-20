@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
@@ -14,9 +14,9 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
 import {t, tct} from 'sentry/locale';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {setApiQueryData, useApiQuery} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -36,20 +36,15 @@ export type Secret = {
 
 type FetchSecretResponse = {data: Secret[]};
 
-type FetchSecretParameters = {
-  orgSlug: string;
-};
+type FetchSecretParameters = {orgSlug: string};
 
-type RemoveSecretQueryVariables = {
-  id: number;
-};
+type RemoveSecretQueryVariables = {id: number};
 
-export const makeFetchSecretQueryKey = ({orgSlug}: FetchSecretParameters) =>
-  [
-    getApiUrl('/organizations/$organizationIdOrSlug/flags/signing-secrets/', {
-      path: {organizationIdOrSlug: orgSlug},
-    }),
-  ] as const;
+export const makeFetchSecretOptions = ({orgSlug}: FetchSecretParameters) =>
+  apiOptions.as<FetchSecretResponse>()(
+    '/organizations/$organizationIdOrSlug/flags/signing-secrets/',
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
+  );
 
 function SecretList({
   secretList,
@@ -111,12 +106,7 @@ function OrganizationFeatureFlagsChangeTracking() {
     isError,
     data: secretList,
     refetch: refetchSecretList,
-  } = useApiQuery<FetchSecretResponse>(
-    makeFetchSecretQueryKey({orgSlug: organization.slug}),
-    {
-      staleTime: Infinity,
-    }
-  );
+  } = useQuery(makeFetchSecretOptions({orgSlug: organization.slug}));
 
   const {mutate: handleRemoveSecret, isPending: isRemoving} = useMutation<
     unknown,
@@ -129,19 +119,22 @@ function OrganizationFeatureFlagsChangeTracking() {
           '/organizations/$organizationIdOrSlug/flags/signing-secrets/$signingSecretId/',
           {path: {organizationIdOrSlug: organization.slug, signingSecretId: id}}
         ),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
 
     onSuccess: (_data, {id}) => {
       toast.success(t('Removed the provider and signing secret for the organization.'));
 
-      setApiQueryData<FetchSecretResponse>(
-        queryClient,
-        makeFetchSecretQueryKey({orgSlug: organization.slug}),
+      queryClient.setQueryData(
+        makeFetchSecretOptions({orgSlug: organization.slug}).queryKey,
         oldData => {
-          return {data: oldData?.data.filter(oldSecret => oldSecret.id !== id) ?? []};
+          return {
+            ...oldData,
+            headers: oldData?.headers ?? {},
+            json: {
+              data: oldData?.json.data.filter(oldSecret => oldSecret.id !== id) ?? [],
+            },
+          };
         }
       );
     },

@@ -33,6 +33,7 @@ import type {PlatformKey} from 'sentry/types/platform';
 import * as analytics from 'sentry/utils/analytics';
 import {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
 
+import {FROM_PROJECT_CREATION_STATE} from './gettingStartedLocationState';
 import {DEFAULT_ISSUE_ALERT_OPTIONS_VALUES} from './issueAlertOptions';
 import {PlatformDocHeader} from './platformDocHeader';
 import {ScmCreateProject} from './scmCreateProject';
@@ -66,6 +67,21 @@ jest.mock('sentry/data/platforms', () => {
 
 const WIZARD_KEY = 'project-creation-wizard';
 const CREATED_PROJECT_ID = 'created-1';
+let restoreClipboard: (() => void) | undefined;
+
+function mockClipboard() {
+  const write = jest.fn().mockResolvedValue(undefined);
+  class TestClipboardItem {
+    constructor(public data: Record<string, Promise<Blob>>) {}
+  }
+  Object.assign(globalThis, {ClipboardItem: TestClipboardItem});
+  Object.assign(navigator, {clipboard: {write}});
+
+  restoreClipboard = () => {
+    Reflect.deleteProperty(navigator, 'clipboard');
+    Reflect.deleteProperty(globalThis, 'ClipboardItem');
+  };
+}
 
 const pythonPlatform: OnboardingSelectedSDK = {
   key: 'python',
@@ -77,7 +93,7 @@ const pythonPlatform: OnboardingSelectedSDK = {
 };
 
 describe('ScmCreateProject', () => {
-  const organization = OrganizationFixture({features: ['performance-view']});
+  const organization = OrganizationFixture();
   const adminTeam = TeamFixture({slug: 'admin-team', access: ['team:admin']});
   const selectedTeam = TeamFixture({
     id: '2',
@@ -192,9 +208,7 @@ describe('ScmCreateProject', () => {
     for (const repository of repositories) {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/repos/${repository.id}/platforms/`,
-        body: {
-          platforms: [DetectedPlatformFixture({platform: 'python'})],
-        },
+        body: {platforms: [DetectedPlatformFixture({platform: 'python'})]},
       });
     }
     return MockApiClient.addMockResponse({
@@ -212,16 +226,7 @@ describe('ScmCreateProject', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/${slackIntegration.id}/channels/`,
-      body: {
-        results: [
-          {
-            id: 'C123',
-            name: 'alerts',
-            display: '#alerts',
-            type: 'text',
-          },
-        ],
-      },
+      body: {results: [{id: 'C123', name: 'alerts', display: '#alerts', type: 'text'}]},
     });
   }
 
@@ -245,6 +250,8 @@ describe('ScmCreateProject', () => {
   });
 
   afterEach(() => {
+    restoreClipboard?.();
+    restoreClipboard = undefined;
     MockApiClient.clearMockResponses();
     window.sessionStorage.clear();
     jest.clearAllMocks();
@@ -266,10 +273,7 @@ describe('ScmCreateProject', () => {
       {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: '/organizations/org-slug/projects/new/',
-            query,
-          },
+          location: {pathname: '/organizations/org-slug/projects/new/', query},
         },
       }
     );
@@ -348,7 +352,6 @@ describe('ScmCreateProject', () => {
       body: [],
     });
     const memberOrganization = OrganizationFixture({
-      features: ['performance-view'],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });
@@ -364,7 +367,6 @@ describe('ScmCreateProject', () => {
   it('keeps the repository section for members when an integration is connected', async () => {
     mockExistingGithubRepository();
     const memberOrganization = OrganizationFixture({
-      features: ['performance-view'],
       access: ['org:read', 'project:read', 'team:read'],
       allowMemberProjectCreation: true,
     });
@@ -923,10 +925,7 @@ describe('ScmCreateProject', () => {
     await waitFor(() => {
       expect(projectDeletionRequest).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/`,
-        expect.objectContaining({
-          method: 'DELETE',
-          data: {origin: 'getting_started'},
-        })
+        expect.objectContaining({method: 'DELETE', data: {origin: 'getting_started'}})
       );
     });
   });
@@ -1043,10 +1042,7 @@ describe('ScmCreateProject', () => {
             environment: null,
             config: {frequency: 1440},
             detectorIds: [detector.id],
-            triggers: {
-              logicType: 'any-short',
-              conditions: [],
-            },
+            triggers: {logicType: 'any-short', conditions: []},
             actionFilters: [
               {
                 logicType: 'all',
@@ -1260,7 +1256,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });
@@ -1276,19 +1272,15 @@ describe('ScmCreateProject', () => {
       render(<ScmCreateProject />, {organization: agentOrganization});
 
       expect(
-        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
       await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
       const session = request.mock.calls[0]?.[1]?.data;
+      expect(session.origin).toBe('project_creation');
       expect(session.clientRunId).not.toBe(onboardingSession.agenticProgressClientRunId);
-      expect(session.onboardingCode).not.toBe(
-        onboardingSession.agenticProgressOnboardingCode
-      );
+      expect(session.onboardingCode).toBeUndefined();
       expect(
-        screen.getByText(
-          'Help me create and set up Sentry projects for this application.',
-          {exact: false}
-        )
+        screen.getByText('Detects your stack and installs the Sentry CLI')
       ).toBeInTheDocument();
       expect(JSON.parse(sessionStorage.getItem('onboarding') ?? '{}')).toEqual(
         onboardingSession
@@ -1309,7 +1301,7 @@ describe('ScmCreateProject', () => {
       );
 
       expect(
-        await screen.findByRole('heading', {name: 'Set up with your coding agent'})
+        await screen.findByRole('heading', {name: 'Let your agent set up Sentry'})
       ).toBeInTheDocument();
       expect(request).toHaveBeenCalledTimes(1);
       await userEvent.click(screen.getByRole('button', {name: /Set up manually/}));
@@ -1320,6 +1312,7 @@ describe('ScmCreateProject', () => {
     });
 
     it('associates setup interactions with the server run ID', async () => {
+      mockClipboard();
       const user = userEvent.setup();
       const trackAnalyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
       const clickTrackingSpy = jest.fn();
@@ -1333,6 +1326,15 @@ describe('ScmCreateProject', () => {
         url: endpoint + run.runId + '/',
         body: run,
       });
+      const handoffRequest = MockApiClient.addMockResponse({
+        url: `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
+        method: 'POST',
+        body: {
+          code: 'sntryh_example',
+          handoffId: 'b'.repeat(32),
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        },
+      });
       render(
         <TrackingContextProvider value={clickTrackingSpy}>
           <ScmCreateProject />
@@ -1340,26 +1342,37 @@ describe('ScmCreateProject', () => {
         {organization: agentOrganization}
       );
       await waitFor(() => expect(progressRequest).toHaveBeenCalled());
-      expect(request.mock.calls[0]?.[1]?.data.clientRunId).not.toBe(run.runId);
+      expect(request.mock.calls[0]?.[1]?.data).toEqual({
+        clientRunId: expect.any(String),
+        origin: 'project_creation',
+      });
 
-      await user.click(screen.getAllByRole('button', {name: 'Copy snippet'})[0]!);
-      expect(trackAnalyticsSpy).toHaveBeenCalledWith(
-        'project_creation.agent_setup_command_copied',
-        expect.objectContaining({
-          source: 'install_command',
-          variant: 'scm',
-          run_id: run.runId,
-        })
-      );
-
-      await user.click(
-        screen.getByText(
-          'Help me create and set up Sentry projects for this application.',
-          {
-            exact: false,
-          }
+      await user.click(screen.getByRole('button', {name: 'Copy agent prompt'}));
+      await waitFor(() =>
+        expect(handoffRequest).toHaveBeenCalledWith(
+          `/organizations/${agentOrganization.slug}/agent-handoff/prompts/`,
+          expect.objectContaining({
+            data: {
+              context: {runId: run.runId},
+              disableIpPinning: false,
+              flow: 'create_project',
+            },
+          })
         )
       );
+      await waitFor(() =>
+        expect(trackAnalyticsSpy).toHaveBeenCalledWith(
+          'project_creation.agent_setup_command_copied',
+          expect.objectContaining({
+            source: 'prompt',
+            variant: 'scm',
+            handoff_id: 'b'.repeat(32),
+            run_id: run.runId,
+          })
+        )
+      );
+
+      await user.click(screen.getByText('sntryh_****'));
       expect(trackAnalyticsSpy).toHaveBeenCalledWith(
         'project_creation.agent_setup_snippet_selected',
         expect.objectContaining({source: 'prompt', run_id: run.runId})
@@ -1395,7 +1408,7 @@ describe('ScmCreateProject', () => {
       render(<ScmCreateProject />, {organization: agentOrganization});
       expect(
         await screen.findByText(
-          'Could not start setup, so the prompt below will not report progress.'
+          'Could not prepare agent setup. Try again or set up manually.'
         )
       ).toBeInTheDocument();
       const originalSession = failedRequest.mock.calls[0]?.[1]?.data;
@@ -1405,11 +1418,11 @@ describe('ScmCreateProject', () => {
       await waitFor(() => expect(retryRequest).toHaveBeenCalledTimes(1));
       const replacementSession = retryRequest.mock.calls[0]?.[1]?.data;
       expect(replacementSession.clientRunId).not.toBe(originalSession.clientRunId);
-      expect(replacementSession.onboardingCode).not.toBe(originalSession.onboardingCode);
+      expect(replacementSession.onboardingCode).toBeUndefined();
       await waitFor(() =>
         expect(
           screen.queryByText(
-            'Could not start setup, so the prompt below will not report progress.'
+            'Could not prepare agent setup. Try again or set up manually.'
           )
         ).not.toBeInTheDocument()
       );
@@ -1526,7 +1539,7 @@ describe('ScmCreateProject', () => {
         await screen.findByRole('textbox', {name: 'Project name'})
       ).toBeInTheDocument();
       expect(
-        screen.queryByRole('heading', {name: 'Set up with your coding agent'})
+        screen.queryByRole('heading', {name: 'Let your agent set up Sentry'})
       ).not.toBeInTheDocument();
       expect(request).not.toHaveBeenCalled();
     });
@@ -1583,7 +1596,9 @@ describe('ScmCreateProject', () => {
         persistWizardSession({
           projectDetailsForm: {projectName: 'restored-name', teamSlug: adminTeam.slug},
         });
-        router.navigate('/organizations/org-slug/projects/python/getting-started/');
+        router.navigate('/organizations/org-slug/projects/python/getting-started/', {
+          state: FROM_PROJECT_CREATION_STATE,
+        });
         await waitFor(() => expect(overviewRequest).toHaveBeenCalled());
 
         router.navigate(-1);

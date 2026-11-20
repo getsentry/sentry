@@ -62,9 +62,7 @@ function DummyStepTwo({
   );
 }
 
-type DummyCompletionData = {
-  result: string;
-};
+type DummyCompletionData = {result: string};
 
 function DummyCompletionView({
   data,
@@ -87,15 +85,7 @@ export const dummyIntegrationPipeline = {
   getCompletionData: pipelineComplete<DummyCompletionData>,
   completionView: DummyCompletionView,
   steps: [
-    {
-      stepId: 'step_one',
-      shortDescription: t('Enter Name'),
-      component: DummyStepOne,
-    },
-    {
-      stepId: 'step_two',
-      shortDescription: t('Confirmation'),
-      component: DummyStepTwo,
-    },
+    {stepId: 'step_one', shortDescription: t('Enter Name'), component: DummyStepOne},
+    {stepId: 'step_two', shortDescription: t('Confirmation'), component: DummyStepTwo},
   ],
 } as const satisfies PipelineDefinition;

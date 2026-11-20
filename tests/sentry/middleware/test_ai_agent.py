@@ -2,10 +2,14 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 
 from django.contrib.auth.models import AnonymousUser
+from django.http import HttpRequest, HttpResponse
 from django.test import RequestFactory
+from django.urls import resolve
+from django.views import View
 
 from sentry.middleware.ai_agent import AIAgentMiddleware, _accepts_markdown
 from sentry.testutils.cases import TestCase
+from sentry.web.decorators import ai_machine_readable
 
 
 class AcceptsMarkdownTest(TestCase):
@@ -38,7 +42,10 @@ class AIAgentMiddlewareTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.factory = RequestFactory()
-        self.middleware = AIAgentMiddleware(get_response=lambda r: MagicMock(status_code=401))
+        self.middleware = AIAgentMiddleware(get_response=self.view)
+
+    def view(self, request: HttpRequest) -> HttpResponse:
+        return HttpResponse(status=401)
 
     def make_anonymous_request(self, path: str, **kwargs: Any) -> Any:
         request = self.factory.get(path, **kwargs)
@@ -51,8 +58,9 @@ class AIAgentMiddlewareTest(TestCase):
             "/organizations/test-org/issues/", HTTP_ACCEPT="text/markdown"
         )
 
-        response = self.middleware(request)
+        response = self.middleware.process_view(request, self.view, (), {})
 
+        assert response is not None
         assert response.status_code == 200
         assert response["Content-Type"] == "text/markdown"
         content = response.content.decode()
@@ -64,16 +72,18 @@ class AIAgentMiddlewareTest(TestCase):
             "/organizations/my-org/projects/my-project/", HTTP_ACCEPT="text/markdown"
         )
 
-        response = self.middleware(request)
+        response = self.middleware.process_view(request, self.view, (), {})
 
+        assert response is not None
         assert response.status_code == 200
         assert "https://mcp.sentry.dev/mcp/my-org/my-project" in response.content.decode()
 
     def test_base_mcp_url_without_org_context(self) -> None:
         request = self.make_anonymous_request("/settings/", HTTP_ACCEPT="text/markdown")
 
-        response = self.middleware(request)
+        response = self.middleware.process_view(request, self.view, (), {})
 
+        assert response is not None
         assert response.status_code == 200
         assert "https://mcp.sentry.dev/mcp" in response.content.decode()
 
@@ -82,29 +92,61 @@ class AIAgentMiddlewareTest(TestCase):
         request.user = self.create_user()
         request.auth = None
 
-        assert self.middleware(request).status_code == 401
+        assert self.middleware.process_view(request, self.view, (), {}) is None
 
     def test_auth_token_passes_through(self) -> None:
         request = self.factory.get("/organizations/test-org/", HTTP_ACCEPT="text/markdown")
         request.user = AnonymousUser()
         request.auth = MagicMock()
 
-        assert self.middleware(request).status_code == 401
+        assert self.middleware.process_view(request, self.view, (), {}) is None
 
     def test_non_markdown_accept_passes_through(self) -> None:
         request = self.make_anonymous_request("/organizations/test-org/", HTTP_ACCEPT="text/html")
 
-        assert self.middleware(request).status_code == 401
+        assert self.middleware.process_view(request, self.view, (), {}) is None
 
     def test_api_path_passes_through(self) -> None:
         request = self.make_anonymous_request("/api/0/projects/", HTTP_ACCEPT="text/markdown")
 
-        assert self.middleware(request).status_code == 401
+        assert self.middleware.process_view(request, self.view, (), {}) is None
 
-    def test_oauth_path_passes_through(self) -> None:
+    def test_oauth_token_view_passes_through(self) -> None:
         request = self.make_anonymous_request("/oauth/token/", HTTP_ACCEPT="text/markdown")
+        view = resolve(request.path).func
 
-        assert self.middleware(request).status_code == 401
+        assert self.middleware.process_view(request, view, (), {}) is None
+
+    def test_oauth_device_code_view_passes_through(self) -> None:
+        request = self.make_anonymous_request("/oauth/device/code/", HTTP_ACCEPT="text/markdown")
+        view = resolve(request.path).func
+
+        assert self.middleware.process_view(request, view, (), {}) is None
+
+    def test_oauth_userinfo_view_passes_through(self) -> None:
+        request = self.make_anonymous_request("/oauth/userinfo/", HTTP_ACCEPT="text/markdown")
+        view = resolve(request.path).func
+
+        assert self.middleware.process_view(request, view, (), {}) is None
+
+    def test_machine_readable_view_passes_through(self) -> None:
+        @ai_machine_readable
+        def view(request: HttpRequest) -> HttpResponse:
+            return HttpResponse("Machine instructions")
+
+        request = self.make_anonymous_request("/instructions/", HTTP_ACCEPT="text/markdown")
+
+        assert self.middleware.process_view(request, view, (), {}) is None
+
+    def test_machine_readable_class_based_view_passes_through(self) -> None:
+        @ai_machine_readable
+        class InstructionsView(View):
+            def get(self, request: HttpRequest) -> HttpResponse:
+                return HttpResponse("Machine instructions")
+
+        request = self.make_anonymous_request("/instructions/", HTTP_ACCEPT="text/x-markdown")
+
+        assert self.middleware.process_view(request, InstructionsView.as_view(), (), {}) is None
 
     @patch("sentry.middleware.ai_agent.logger.info")
     def test_logs_request(self, mock_logger: MagicMock) -> None:
@@ -114,7 +156,7 @@ class AIAgentMiddlewareTest(TestCase):
             HTTP_USER_AGENT="Claude-Code/1.0",
         )
 
-        self.middleware(request)
+        self.middleware.process_view(request, self.view, (), {})
 
         mock_logger.assert_called_once_with(
             "ai_agent.guidance_served",

@@ -34,7 +34,6 @@ import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphR
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {getRequestErrorUserMessage} from 'sentry/utils/requestError/getRequestErrorUserMessage';
-import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useFlamegraph} from 'sentry/views/explore/profiling/flamegraphProvider';
 import {useProfileGroup} from 'sentry/views/explore/profiling/profileGroupProvider';
 
@@ -49,7 +48,7 @@ interface AggregateFlamegraphProps {
   profileType: ProfileSource | AggregateProfileSource;
   scheduler: CanvasScheduler;
   status: QueryStatus;
-  queryError?: RequestError | null;
+  queryError?: Error | null;
 }
 
 export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactElement {
@@ -178,15 +177,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
 
     const renderer = initializeFlamegraphRenderer(
       [FlamegraphRendererWebGL, FlamegraphRenderer2D],
-      [
-        flamegraphCanvasRef,
-        flamegraph,
-        flamegraphTheme,
-        {
-          colorCoding,
-          draw_border: true,
-        },
-      ]
+      [flamegraphCanvasRef, flamegraph, flamegraphTheme, {colorCoding, draw_border: true}]
     );
 
     if (renderer === null) {
@@ -209,10 +200,7 @@ export function AggregateFlamegraph(props: AggregateFlamegraphProps): ReactEleme
     // fall back case, when we finally load the active profile index from the profile,
     // make sure we update the thread id so that it is show first
     if (defined(threadID)) {
-      dispatch({
-        type: 'set thread id',
-        payload: threadID,
-      });
+      dispatch({type: 'set thread id', payload: threadID});
     }
   }, [profileGroup, profiles.threadId, dispatch]);
 

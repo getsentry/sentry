@@ -197,7 +197,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
@@ -270,7 +269,6 @@ class MonitorConsumerTest(TestCase):
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
         assert checkin.status == CheckInStatus.OK
-        assert checkin.monitor_config is None
         assert (
             MonitorCheckInConfig.objects.get(id=checkin.checkin_config_id).config == monitor.config
         )
@@ -590,6 +588,22 @@ class MonitorConsumerTest(TestCase):
         assert checkin.monitor_environment.next_checkin.minute == 13
         assert MonitorEnvironment.objects.filter(monitor=monitor).count() == 1
 
+    def test_check_in_upsert_reuses_loaded_monitor(self) -> None:
+        monitor = self._create_monitor(slug="my-monitor")
+        self.send_checkin(monitor.slug)
+
+        with CaptureQueriesContext(connections[router.db_for_write(Monitor)]) as ctx:
+            self.send_checkin(
+                monitor.slug,
+                monitor_config={"schedule": {"type": "crontab", "value": "13 * * * *"}},
+            )
+
+        selects = [q["sql"] for q in ctx.captured_queries if q["sql"].startswith("SELECT")]
+        assert not [q for q in selects if q.startswith('SELECT "sentry_monitor"."id"')]
+
+        monitor.refresh_from_db()
+        assert monitor.config["schedule"] == "13 * * * *"
+
     def test_missing_monitor_creates_no_environment(self) -> None:
         self.send_checkin(
             "my-missing-monitor",
@@ -809,6 +823,7 @@ class MonitorConsumerTest(TestCase):
                     }
                 ],
             ),
+            expected_monitor_slug="my-new-monitor",
         )
 
         checkin = MonitorCheckIn.objects.get(guid=self.guid)
@@ -1077,7 +1092,7 @@ class MonitorConsumerTest(TestCase):
         assert checkins[0].status == CheckInStatus.IN_PROGRESS
 
         # Test invalid implicit duration
-        old_checkin = MonitorCheckIn.objects.create(
+        old_checkin = self.create_monitor_checkin(
             monitor_environment=MonitorEnvironment.objects.get(monitor=monitor),
             status=CheckInStatus.IN_PROGRESS,
             date_added=monitor.date_added - timedelta(weeks=52),

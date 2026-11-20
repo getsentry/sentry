@@ -15,22 +15,10 @@ export const platformOptions = {
   runtime: {
     label: t('Runtime'),
     items: [
-      {
-        label: t('Cloudflare Workers'),
-        value: Runtime.CLOUDFLARE,
-      },
-      {
-        label: t('Node'),
-        value: Runtime.NODE,
-      },
-      {
-        label: t('Bun'),
-        value: Runtime.BUN,
-      },
-      {
-        label: t('Deno'),
-        value: Runtime.DENO,
-      },
+      {label: t('Cloudflare Workers'), value: Runtime.CLOUDFLARE},
+      {label: t('Node'), value: Runtime.NODE},
+      {label: t('Bun'), value: Runtime.BUN},
+      {label: t('Deno'), value: Runtime.DENO},
     ],
     defaultValue: Runtime.CLOUDFLARE,
   },

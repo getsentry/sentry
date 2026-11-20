@@ -42,9 +42,7 @@ describe('SeerProjectTable', () => {
   function mockBaseEndpoints() {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/coding-agents/`,
-      body: {
-        integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}],
-      },
+      body: {integrations: [{id: '123', provider: 'cursor', name: 'Cursor Cloud Agent'}]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/projects/`,
@@ -95,7 +93,6 @@ describe('SeerProjectTable', () => {
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
     jest.restoreAllMocks();
   });
 
@@ -560,5 +557,40 @@ describe('SeerProjectTable', () => {
     });
 
     expect(await screen.findByRole('button', {name: 'Add Project'})).toBeDisabled();
+  });
+
+  describe('empty state', () => {
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/seer/projects/`,
+        body: [],
+      });
+    });
+
+    it('asks token-billed orgs to link a repository', async () => {
+      render(<SeerProjectTable />, {
+        organization: OrganizationFixture({
+          slug: organization.slug,
+          access: ['org:write'],
+          features: ['token-billed-seer-enabled'],
+        }),
+      });
+
+      expect(
+        await screen.findByText(
+          'Link a repository to a project so Seer can read your code.'
+        )
+      ).toBeInTheDocument();
+    });
+
+    it('asks other orgs to add projects for Autofix', async () => {
+      render(<SeerProjectTable />, {organization});
+
+      expect(
+        await screen.findByText(
+          'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+        )
+      ).toBeInTheDocument();
+    });
   });
 });

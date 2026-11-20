@@ -6,6 +6,7 @@ from enum import StrEnum
 class ProcessMentionHaltReason(StrEnum):
     IDENTITY_NOT_LINKED = "identity_not_linked"
     USER_NOT_ORG_MEMBER = "user_not_org_member"
+    OUT_OF_SEER_CREDITS = "out_of_seer_credits"
 
 
 class ProcessMentionFailureReason(StrEnum):

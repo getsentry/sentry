@@ -489,7 +489,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         }
         checkin_configs = dict(
             MonitorCheckInConfig.objects.filter(
-                id__in={c.checkin_config_id for c in item_list if c.checkin_config_id}
+                id__in={c.checkin_config_id for c in item_list}
             ).values_list("id", "config")
         )
 
@@ -500,9 +500,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
                 env_name = env.name if env else "[removed]"
 
             attrs[checkin]["environment_name"] = env_name
-            attrs[checkin]["monitor_config"] = checkin_configs.get(
-                checkin.checkin_config_id, checkin.monitor_config
-            )
+            attrs[checkin]["monitor_config"] = checkin_configs.get(checkin.checkin_config_id, {})
 
         if self._expand("groups") and self.start and self.end:
             # aggregate all the trace_ids in the given set of check-ins
@@ -536,8 +534,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
         user: Any,
         **kwargs: Any,
     ) -> MonitorCheckInSerializerResponse:
-        monitor_config = attrs["monitor_config"]
-        config = monitor_config.copy() if monitor_config else {}
+        config = attrs["monitor_config"].copy()
         if "schedule_type" in config:
             # XXX: We don't use monitor.get_schedule_type_display() in case it differs from the
             # config saved on the check-in

@@ -1,19 +1,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BoundedBigIntegerField,
-    BoundedPositiveIntegerField,
-    Model,
-    cell_silo_model,
-    sane_repr,
-)
+from sentry.db.models import BoundedBigIntegerField, Model, cell_silo_model, sane_repr
 from sentry.metrics.base import MutableTags
 from sentry.models.metric_tags import DATA_ACCESS_TAG, DataAccessTagValues
 from sentry.tasks.process_buffer import buffer_incr
@@ -33,7 +27,6 @@ class GroupRelease(Model):
     project_id = BoundedBigIntegerField(db_index=True)
     group_id = BoundedBigIntegerField()
     release_id = BoundedBigIntegerField(db_index=True)
-    new_release_id = BoundedPositiveIntegerField(db_index=True, null=True)
     environment = models.CharField(max_length=64, default="")
     first_seen = models.DateTimeField(default=timezone.now)
     last_seen = models.DateTimeField(default=timezone.now)
@@ -45,11 +38,6 @@ class GroupRelease(Model):
         indexes = (models.Index(fields=("group_id", "first_seen")),)
 
     __repr__ = sane_repr("group_id", "release_id")
-
-    def save(self, *args: Any, **kwargs: Any) -> None:
-        # Dual-write: new_release_id mirrors release_id until the narrow column is dropped.
-        self.new_release_id = self.release_id
-        super().save(*args, **kwargs)
 
     @classmethod
     def get_cache_key(cls, group_id: int, release_id: int, environment: str) -> str:

@@ -1,14 +1,15 @@
+import {useStore} from 'zustand';
+
 import {Alert} from '@sentry/scraps/alert';
 import {Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 
 import {RelocationOnboarding} from './relocation';
 
 export default function RelocationOnboardingContainer() {
-  const {features} = useLegacyStore(ConfigStore);
+  const features = useStore(ConfigStore, state => state.features);
 
   if (!features.has('relocation:enabled')) {
     return (

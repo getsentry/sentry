@@ -111,6 +111,23 @@ export const DISTRIBUTION_SENTRY_APP_PERMISSION: PermissionObj = {
   },
 };
 
+// Only offered on personal tokens, for organizations with
+// `organizations:service-accounts`. The backend doesn't make
+// `service_account:write` imply read, so Read & Write requests both.
+export const SERVICE_ACCOUNT_SENTRY_APP_PERMISSION: PermissionObj = {
+  resource: 'ServiceAccount',
+  label: 'Service Accounts',
+  help: 'Service accounts and their tokens',
+  choices: {
+    'no-access': {label: 'No Access', scopes: []},
+    read: {label: 'Read', scopes: ['service_account:read']},
+    write: {
+      label: 'Read & Write',
+      scopes: ['service_account:read', 'service_account:write'],
+    },
+  },
+};
+
 export const CONTINUOUS_INTEGRATION_SENTRY_APP_PERMISSION: SpecialPermissionObj = {
   fieldName: 'ContinuousIntegration--permission',
   label: 'Continuous Integration (CI)',
@@ -500,10 +517,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 1,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/sentry-basics/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION]: {
@@ -516,10 +530,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 2,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/performance/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.ATTACHMENT]: {
@@ -549,10 +560,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 6,
     isBilledCategory: false,
     docsUrl: 'https://docs.sentry.io/product/profiling/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.PROFILE_INDEXED]: {
@@ -577,10 +585,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 7,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/session-replay/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.USER_REPORT_V2]: {
@@ -593,10 +598,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 14,
     isBilledCategory: false,
     docsUrl: 'https://docs.sentry.io/product/user-feedback/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION_PROCESSED]: {
@@ -608,10 +610,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Performance Monitoring'),
     uid: 8,
     isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showInternalStats: false,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showInternalStats: false},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRANSACTION_INDEXED]: {
@@ -635,10 +634,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Cron Monitoring'),
     uid: 10,
     isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SPAN]: {
@@ -651,10 +647,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 12,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/performance/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.MONITOR_SEAT]: {
@@ -667,10 +660,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 13,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/crons/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showInternalStats: false,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showInternalStats: false},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SPAN_INDEXED]: {
@@ -697,10 +687,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     docsUrl:
       'https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DURATION_HOURS_FORMATTING,
   },
   [DataCategoryExact.PROFILE_CHUNK]: {
@@ -726,10 +713,7 @@ export const DATA_CATEGORY_INFO = {
     isBilledCategory: true,
     docsUrl:
       'https://docs.sentry.io/product/explore/profiling/getting-started/#ui-profiling',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DURATION_HOURS_FORMATTING,
   },
   [DataCategoryExact.PROFILE_CHUNK_UI]: {
@@ -755,10 +739,7 @@ export const DATA_CATEGORY_INFO = {
     uid: 21,
     isBilledCategory: true,
     docsUrl: 'https://docs.sentry.io/product/alerts/uptime-monitoring/',
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showInternalStats: false,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showInternalStats: false},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.LOG_ITEM]: {
@@ -770,10 +751,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Logging'),
     uid: 23,
     isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.LOG_BYTE]: {
@@ -802,10 +780,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Seer'),
     uid: 27,
     isBilledCategory: true,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.SEER_SCANNER]: {
@@ -817,10 +792,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Seer'),
     uid: 28,
     isBilledCategory: true,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRACE_METRIC]: {
@@ -832,10 +804,7 @@ export const DATA_CATEGORY_INFO = {
     productName: t('Application Metrics'),
     uid: 33,
     isBilledCategory: false,
-    statsInfo: {
-      ...DEFAULT_STATS_INFO,
-      showExternalStats: true,
-    },
+    statsInfo: {...DEFAULT_STATS_INFO, showExternalStats: true},
     formatting: DEFAULT_COUNT_FORMATTING,
   },
   [DataCategoryExact.TRACE_METRIC_BYTE]: {
@@ -905,12 +874,7 @@ export const DEFAULT_PER_PAGE = 50;
 export const DEPLOY_PREVIEW_CONFIG = process.env.DEPLOY_PREVIEW_CONFIG as unknown as
   | undefined
   | false
-  | {
-      branch: string;
-      commitSha: string;
-      githubOrg: string;
-      githubRepo: string;
-    };
+  | {branch: string; commitSha: string; githubOrg: string; githubRepo: string};
 
 // Webpack configures EXPERIMENTAL_SPA.
 export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA as unknown as
@@ -921,13 +885,6 @@ export const EXPERIMENTAL_SPA = process.env.EXPERIMENTAL_SPA as unknown as
 // TODO(kmclb): once relay is doing the scrubbing, the masking value will be dynamic,
 // so this will have to change
 export const FILTER_MASK = '[Filtered]';
-
-// Errors that may occur during the fetching of organization details
-export const ORGANIZATION_FETCH_ERROR_TYPES = {
-  ORG_NOT_FOUND: 'ORG_NOT_FOUND',
-  ORG_NO_ACCESS: 'ORG_NO_ACCESS',
-  NO_ORGS: 'NO_ORGS',
-};
 
 // Keep in sync with RESERVED_PROJECT_SLUGS in src/sentry/constants.py
 export const RESERVED_PROJECT_SLUGS: ReadonlySet<string> = new Set([

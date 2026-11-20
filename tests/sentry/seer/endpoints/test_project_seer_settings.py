@@ -13,11 +13,13 @@ from sentry.testutils.helpers.features import with_feature
 
 
 @patch(
-    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
+    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_or_token_billed_enabled",
     return_value=True,
 )
 class ProjectSeerSettingsEndpointBaseTest(APITestCase):
     __test__ = False
+    # PR iteration is opt-in under token-based billing, so it defaults off there.
+    pr_iteration_default = True
 
     endpoint = "sentry-api-0-project-seer-settings"
 
@@ -60,8 +62,9 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
-            "prIteration": True,
+            "prIteration": self.pr_iteration_default,
             "reposCount": 0,
+            "repoProviders": [],
         }
 
     def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
@@ -166,6 +169,44 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.status_code == 200
         assert response.data["reposCount"] == 1
 
+    def create_seer_eligible_gitlab_repo(self, project: Project, name: str) -> Repository:
+        return self.create_repo(
+            project=project,
+            name=name,
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+            external_id=name,
+        )
+
+    def test_get_repo_providers(self, mock_is_seat_based: MagicMock) -> None:
+        """repoProviders lists each provider of the repos Seer can use once, sorted."""
+        for repo in (
+            self.create_seer_eligible_gitlab_repo(self.project, "owner/gitlab-repo"),
+            self.create_seer_eligible_repo(self.project, "owner/repo-1"),
+            self.create_seer_eligible_repo(self.project, "owner/repo-2"),
+        ):
+            self.create_seer_project_repository(project=self.project, repository=repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["repoProviders"] == ["integrations:github", "integrations:gitlab"]
+
+    def test_get_repo_providers_excludes_inactive_repos(
+        self, mock_is_seat_based: MagicMock
+    ) -> None:
+        active_repo = self.create_seer_eligible_repo(self.project, "owner/active")
+        disabled_repo = self.create_seer_eligible_gitlab_repo(self.project, "owner/deleted")
+        disabled_repo.status = ObjectStatus.DISABLED
+        disabled_repo.save()
+        self.create_seer_project_repository(project=self.project, repository=active_repo)
+        self.create_seer_project_repository(project=self.project, repository=disabled_repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        assert response.data["repoProviders"] == ["integrations:github"]
+
     def test_put_returns_updated_settings(self, mock_is_seat_based: MagicMock) -> None:
         """PUT response should contain the full updated settings object."""
         response = self.client.put(
@@ -211,14 +252,13 @@ class ProjectSeerSettingsEndpointBaseTest(APITestCase):
         assert response.data["prIteration"] is False
         assert self.project.get_option("sentry:seer_pr_iteration") is False
 
-        # Back to the default clears the row rather than storing it.
+        # Stored even when it matches the default, which depends on the org.
         response = self.client.put(self.url, data={"prIteration": True}, format="json")
 
         assert response.status_code == 200
         assert response.data["prIteration"] is True
-        assert not ProjectOption.objects.filter(
-            project=self.project, key="sentry:seer_pr_iteration"
-        ).exists()
+        stored = ProjectOption.objects.get(project=self.project, key="sentry:seer_pr_iteration")
+        assert stored.value is True
 
     def test_put_stopping_point(self, mock_is_seat_based: MagicMock) -> None:
         response = self.client.put(self.url, data={"stoppingPoint": "open_pr"}, format="json")
@@ -416,20 +456,19 @@ class ProjectSeerSettingsEndpointSeatBasedBillingTest(ProjectSeerSettingsEndpoin
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 0
+        assert response.data["repoProviders"] == []
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpointBaseTest):
     __test__ = True
+    pr_iteration_default = False
 
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
+        # The GitLab repo has no Seer config, so it's listed only if token
+        # billing really reads ProjectRepository rather than Seer's config.
         self.create_project_repository(
-            repository=self.create_seer_eligible_repo(self.project, "owner/repo-1")
+            repository=self.create_seer_eligible_gitlab_repo(self.project, "owner/repo-1")
         )
         self.create_seer_project_repository(
             repository=self.create_seer_eligible_repo(self.project, "owner/repo-2")
@@ -439,6 +478,7 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 2
+        assert response.data["repoProviders"] == ["integrations:github", "integrations:gitlab"]
 
     def test_get_repos_count_excludes_repos_seer_cannot_use(self) -> None:
         self.create_project_repository(
@@ -470,14 +510,18 @@ class ProjectSeerSettingsEndpointTokenBasedBillingTest(ProjectSeerSettingsEndpoi
 
         assert response.status_code == 200
         assert response.data["reposCount"] == 1
+        # The unsupported provider's repo is not one Seer can use, so it's not listed.
+        assert response.data["repoProviders"] == ["integrations:github"]
 
 
 @patch(
-    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_based_tier_enabled",
+    "sentry.seer.endpoints.project_seer_settings.is_seer_seat_or_token_billed_enabled",
     return_value=True,
 )
 class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
     __test__ = False
+    # PR iteration is opt-in under token-based billing, so it defaults off there.
+    pr_iteration_default = True
 
     endpoint = "sentry-api-0-organization-seer-project-settings"
 
@@ -518,8 +562,9 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
             "autoCreatePr": None,
             "automationTuning": "off",
             "scannerAutomation": True,
-            "prIteration": True,
+            "prIteration": self.pr_iteration_default,
             "reposCount": 0,
+            "repoProviders": [],
         }
 
     def test_get_returns_configured_project_options(self, mock_is_seat_based: MagicMock) -> None:
@@ -624,6 +669,29 @@ class OrganizationSeerProjectSettingsEndpointBaseTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data[0]["reposCount"] == 1
+
+    def test_get_repo_providers_per_project(self, mock_is_seat_based: MagicMock) -> None:
+        """Each project lists the providers of its own repos."""
+        gitlab_project = self.create_project(organization=self.organization, slug="gitlab-only")
+        github_repo = self.create_seer_eligible_repo(self.project, "owner/github-repo")
+        gitlab_repo = self.create_repo(
+            project=gitlab_project,
+            name="owner/gitlab-repo",
+            provider="integrations:gitlab",
+            integration_id=self.integration.id,
+            external_id="owner/gitlab-repo",
+        )
+        self.create_seer_project_repository(project=self.project, repository=github_repo)
+        self.create_seer_project_repository(project=gitlab_project, repository=gitlab_repo)
+
+        response = self.client.get(self.url)
+
+        assert response.status_code == 200
+        providers_by_slug = {row["projectSlug"]: row["repoProviders"] for row in response.data}
+        assert providers_by_slug == {
+            self.project.slug: ["integrations:github"],
+            "gitlab-only": ["integrations:gitlab"],
+        }
 
     def test_get_only_returns_accessible_projects(self, mock_is_seat_based: MagicMock) -> None:
         """Response should only include projects the user has access to."""
@@ -1045,16 +1113,12 @@ class OrganizationSeerProjectSettingsEndpointSeatBasedBillingTest(
         assert response.data == []
 
 
-@with_feature(
-    {
-        "organizations:seer-token-based-billing-onboarding": True,
-        "organizations:token-billed-seer-enabled": True,
-    }
-)
+@with_feature("organizations:token-billed-seer-enabled")
 class OrganizationSeerProjectSettingsEndpointTokenBasedBillingTest(
     OrganizationSeerProjectSettingsEndpointBaseTest
 ):
     __test__ = True
+    pr_iteration_default = False
 
     def test_get_repos_count_includes_repos_without_seer_config(self) -> None:
         self.create_project_repository(

@@ -46,10 +46,7 @@ describe('NewCronDetectorForm', () => {
       <DetectorFormProvider detectorType="monitor_check_in_failure">
         <NewCronDetectorForm />
       </DetectorFormProvider>,
-      {
-        organization,
-        initialRouterConfig: routerConfig,
-      }
+      {organization, initialRouterConfig: routerConfig}
     );
   };
 
@@ -67,10 +64,7 @@ describe('NewCronDetectorForm', () => {
 
   it('hides form sections and disables create button when a platform guide is shown', async () => {
     renderForm({
-      location: {
-        pathname: '/test/',
-        query: {platform: 'php', guide: 'upsert'},
-      },
+      location: {pathname: '/test/', query: {platform: 'php', guide: 'upsert'}},
     });
 
     // Wait for render to complete
@@ -108,10 +102,7 @@ describe('NewCronDetectorForm', () => {
 
   it('shows form sections and enabled button when guide is set to "manual"', async () => {
     renderForm({
-      location: {
-        pathname: '/test/',
-        query: {platform: 'php', guide: 'manual'},
-      },
+      location: {pathname: '/test/', query: {platform: 'php', guide: 'manual'}},
     });
 
     // Form sections should be visible even with platform set, because guide is "manual"

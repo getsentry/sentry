@@ -61,7 +61,7 @@ class IssueCategoryConditionHandler(ActionFilterDataConditionHandler[WorkflowEve
 
     @staticmethod
     def evaluate_value(event_data: WorkflowEventData, comparison: Any) -> bool:
-        group = event_data.group
+        group = event_data.require_group()
 
         try:
             value: GroupCategory = GroupCategory(int(comparison["value"]))

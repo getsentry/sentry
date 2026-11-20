@@ -34,10 +34,11 @@ import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import {t, tct} from 'sentry/locale';
 import {useFetchAllPages} from 'sentry/utils/api/apiFetch';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {ListItemSelectCheckbox} from 'sentry/utils/list/listItemSelectCheckbox';
 import {ListItemCheckboxProvider} from 'sentry/utils/list/useListItemCheckboxState';
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   seerAgentIntegrationsSelectQueryOptions,
   knownAgentIntegrationsQueryOptions,
@@ -45,6 +46,7 @@ import {
   NON_GITHUB_HANDOFF_WARNING,
   seerAgentProviderNameSelectQueryOptions,
 } from 'sentry/utils/seer/preferredAgent';
+import {PR_ITERATION_OPTIONS} from 'sentry/utils/seer/prIteration';
 import {
   fetchProjectHasNonGithubRepo,
   prefetchAllSeerProjectRepos,
@@ -76,11 +78,6 @@ const TABLE_COLUMNS: TableColumnConfig[] = [
   {key: 'fixes', width: '1fr'},
   {key: 'automation_steps', width: '1fr'},
   {key: 'pr_iteration', width: '1fr'},
-];
-
-const PR_ITERATION_OPTIONS = [
-  {value: true, label: t('On')},
-  {value: false, label: t('Off')},
 ];
 
 export function SeerProjectTable() {
@@ -151,11 +148,7 @@ export function SeerProjectTable() {
   const queryOptions = infiniteQueryOptions({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 25,
-        query: mutableSearch,
-        sortBy,
-      },
+      query: {per_page: 25, query: mutableSearch, sortBy},
     }),
     select: ({pages}) => pages.flatMap(page => page.json),
   });
@@ -183,9 +176,11 @@ export function SeerProjectTable() {
                 {t('Enable Autofix on a Project')}
               </Heading>
               <Text variant="muted" size="md">
-                {t(
-                  'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
-                )}
+                {isTokenBilledSeerEnabled(organization)
+                  ? t('Link a repository to a project so Seer can read your code.')
+                  : t(
+                      'Add projects here in order to enable Autofix. Each project must be associated with a repository in order for Autofix to work.'
+                    )}
               </Text>
               <Flex>
                 <AddProjectButton disabled={!canWrite} />
@@ -232,7 +227,7 @@ export function SeerProjectTable() {
       <ListItemCheckboxProvider
         hits={data?.length ?? 0}
         knownIds={data?.map(item => String(item.projectId)) ?? []}
-        endpointOptions={safeParseQueryKey(queryOptions.queryKey)?.options}
+        endpointOptions={parseQueryKey(queryOptions.queryKey).options}
       >
         <InfiniteTable.Table columns={TABLE_COLUMNS}>
           <ProjectTableHeader
@@ -480,6 +475,7 @@ function AddProjectButton({disabled}: {disabled: boolean}) {
         // oxlint-disable-next-line react/todo
         try {
           const {ProjectAddRepoModal} =
+            // oxlint-disable-next-line react/todo
             await import('sentry/components/seer/projectAddRepoModal/projectAddRepoModal');
 
           openModal(

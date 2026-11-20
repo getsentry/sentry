@@ -75,12 +75,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
   const selection = {
     projects: [1],
     environments: ['prod'],
-    datetime: {
-      period: '14d',
-      start: null,
-      end: null,
-      utc: null,
-    },
+    datetime: {period: '14d', start: null, end: null, utc: null},
   };
 
   beforeEach(() => {
@@ -143,11 +138,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
   it('fetches release data when sorting on release for metrics api', async () => {
     const mockRelease = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: [
-        {
-          version: 'be1ddfb18126dd2cbde26bfe75488503280e716e',
-        },
-      ],
+      body: [{version: 'be1ddfb18126dd2cbde26bfe75488503280e716e'}],
     });
     const mock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
@@ -175,12 +166,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     expect(mockRelease).toHaveBeenCalledWith(
       '/organizations/org-slug/releases/',
       expect.objectContaining({
-        query: {
-          environment: ['prod'],
-          per_page: 50,
-          project: [1],
-          sort: 'date',
-        },
+        query: {environment: ['prod'], per_page: 50, project: [1], sort: 'date'},
       })
     );
     await waitFor(() => expect(mock).toHaveBeenCalledTimes(1));
@@ -268,9 +254,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     expect(mock).toHaveBeenCalledWith(
       '/organizations/org-slug/metrics/data/',
       expect.objectContaining({
-        query: expect.objectContaining({
-          query: ' release:"abc@1.3.0" ',
-        }),
+        query: expect.objectContaining({query: ' release:"abc@1.3.0" '}),
       })
     );
   });
@@ -619,11 +603,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
     const metricsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/metrics/data/',
       body: SessionsFieldFixture('session.all'),
-      match: [
-        MockApiClient.matchQuery({
-          field: ['session.all'],
-        }),
-      ],
+      match: [MockApiClient.matchQuery({field: ['session.all']})],
     });
     render(
       <ReleaseWidgetQueries widget={multipleQueryWidget}>
@@ -675,11 +655,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
       url: '/organizations/org-slug/metrics/data/',
       statusCode: 400,
       body: {detail: badMessage},
-      match: [
-        MockApiClient.matchQuery({
-          field: ['session.all'],
-        }),
-      ],
+      match: [MockApiClient.matchQuery({field: ['session.all']})],
     });
     const children = jest.fn(() => <div data-test-id="child" />);
 
@@ -849,12 +825,7 @@ describe('Dashboards > ReleaseWidgetQueries', () => {
       <ReleaseWidgetQueries
         widget={{
           ...releasesWidget,
-          queries: [
-            {
-              ...releasesWidget.queries[0]!,
-              orderby: '-release',
-            },
-          ],
+          queries: [{...releasesWidget.queries[0]!, orderby: '-release'}],
         }}
       >
         {children}

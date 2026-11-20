@@ -22,6 +22,7 @@ type ParamKeys =
   | 'baseArtifactId'
   | 'beaconId'
   | 'broadcastId'
+  | 'classifierId'
   | 'clientID'
   | 'codeId'
   | 'conversationId'
@@ -62,6 +63,7 @@ type ParamKeys =
   | 'scrubbingId'
   | 'searchId'
   | 'sentryAppSlug'
+  | 'serviceAccountId'
   | 'shareId'
   | 'snapshotId'
   | 'spanSlug'
@@ -73,7 +75,8 @@ type ParamKeys =
   | 'traceSlug'
   | 'userId'
   | 'viewId'
-  | 'widgetIndex';
+  | 'widgetIndex'
+  | 'wizardHash';
 
 /**
  * Get params from the current route. Param availability depends on the current route.

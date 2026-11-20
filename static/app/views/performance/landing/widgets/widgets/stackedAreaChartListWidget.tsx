@@ -68,7 +68,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
   const {organization, InteractiveTitle, fields} = props;
   const {setPageDanger} = usePageAlert();
 
-  const colors = [...theme.chart.getColorPalette(5)].reverse();
+  const colors = theme.chart.getColorPalette(5).toReversed();
 
   const listQuery = useMemo<QueryDefinition<DataType, WidgetDataResult>>(
     () => ({
@@ -184,10 +184,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, selectedListIndex, mepSetting.memoizationKey]
   );
 
-  const Queries = {
-    list: listQuery,
-    chart: chartQuery,
-  };
+  const Queries = {list: listQuery, chart: chartQuery};
 
   const assembleAccordionItems = (provided: ComponentData) => {
     const durationUnit = getDurationUnit(provided.widgetData.chart.data ?? []);
@@ -220,9 +217,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
             axisLabel: {show: true, margin: 8},
             axisLine: {show: false},
           }}
-          tooltip={{
-            valueFormatter: value => tooltipFormatter(value, 'duration'),
-          }}
+          tooltip={{valueFormatter: value => tooltipFormatter(value, 'duration')}}
         />
       ),
     }));
@@ -234,10 +229,7 @@ export function StackedAreaChartListWidget(props: PerformanceWidgetProps) {
 
       const isUnparameterizedRow = transaction === UNPARAMETERIZED_TRANSACTION;
       const transactionTarget = isUnparameterizedRow
-        ? createUnnamedTransactionsDiscoverTarget({
-            organization,
-            location,
-          })
+        ? createUnnamedTransactionsDiscoverTarget({organization, location})
         : transactionSummaryRouteWithQuery({
             organization: props.organization,
             projectID: listItem['project.id'] as string,

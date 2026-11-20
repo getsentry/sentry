@@ -12,6 +12,7 @@ import type {
 } from 'sentry/views/dashboards/widgets/common/types';
 import {formatTimeSeriesLabel} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesLabel';
 import {formatTimeSeriesName} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesName';
+import {formatTimeSeriesTransformations} from 'sentry/views/dashboards/widgets/timeSeriesWidget/formatters/formatTimeSeriesTransformations';
 import {FALLBACK_TYPE} from 'sentry/views/dashboards/widgets/timeSeriesWidget/settings';
 
 import type {PlottableConfidence, PlottableTimeSeriesValueType} from './plottable';
@@ -87,16 +88,23 @@ export abstract class ContinuousTimeSeries<
     return this.config?.alias ?? formatTimeSeriesLabel(this.timeSeries);
   }
 
+  get labelSuffix(): string {
+    return formatTimeSeriesTransformations(this.timeSeries.requestedTransformations);
+  }
+
   get isEmpty(): boolean {
     return this.timeSeries.values.every(datum => datum.value === null);
   }
 
   get confidence(): PlottableConfidence {
     const values = this.timeSeries.values.filter(datum => datum.value !== null);
-    const lowCount = values.filter(isLowConfidenceDataPoint).length;
+    // Incomplete buckets are partial, so they often have few samples. Charts draw
+    // them in the incomplete style, which hides low confidence, so they don't count
+    const completeValues = values.filter(datum => !datum.incomplete);
+    const lowCount = completeValues.filter(isLowConfidenceDataPoint).length;
 
     if (lowCount > 0) {
-      return lowCount === values.length ? 'low' : 'mixed';
+      return lowCount === completeValues.length ? 'low' : 'mixed';
     }
 
     return values.some(isExtrapolated) ? 'high' : 'full';

@@ -2,7 +2,9 @@ from unittest.mock import MagicMock, PropertyMock, patch
 
 import pytest
 
+from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.sentry_apps.models.sentry_app import SentryApp
+from sentry.sentry_apps.models.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.token_exchange.validator import Validator
 from sentry.sentry_apps.utils.errors import SentryAppIntegratorError, SentryAppSentryError
 from sentry.testutils.cases import TestCase
@@ -28,6 +30,44 @@ class TestValidator(TestCase):
 
     def test_happy_path(self) -> None:
         assert self.validator.run()
+
+    def test_allows_pending_installation(self) -> None:
+        self.install.update(status=SentryAppInstallationStatus.PENDING)
+
+        assert self.validator.run()
+
+    def test_rejects_deleting_app(self) -> None:
+        SentryApp.objects.get(id=self.install.sentry_app_id).update(
+            status=SentryAppStatus.DELETION_IN_PROGRESS
+        )
+        assert self.install.sentry_app.status != SentryAppStatus.DELETION_IN_PROGRESS
+
+        with pytest.raises(SentryAppIntegratorError) as exc:
+            self.validator.run()
+
+        assert exc.value.message == "Integration is being deleted"
+        assert exc.value.status_code == 401
+
+    def test_rejects_deleting_installation_with_stale_instance(self) -> None:
+        SentryAppInstallation.objects.get(id=self.install.id).update(
+            status=SentryAppInstallationStatus.PENDING_DELETION
+        )
+        assert self.install.status != SentryAppInstallationStatus.PENDING_DELETION
+
+        with pytest.raises(SentryAppIntegratorError) as exc:
+            self.validator.run()
+
+        assert exc.value.message == "Installation is being deleted"
+        assert exc.value.status_code == 401
+
+    def test_rejects_deleted_installation(self) -> None:
+        self.install.delete()
+
+        with pytest.raises(SentryAppIntegratorError) as exc:
+            self.validator.run()
+
+        assert exc.value.message == "Installation not found"
+        assert exc.value.status_code == 401
 
     def test_request_must_be_made_by_sentry_app(self) -> None:
         self.validator.user = self.create_user()

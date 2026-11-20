@@ -1,7 +1,7 @@
 import {useMemo} from 'react';
+import {useStore} from 'zustand';
 
 import {t} from 'sentry/locale';
-import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Scope} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -9,20 +9,22 @@ import type {NavigationProps, NavigationSection} from 'sentry/views/settings/typ
 
 import {SubscriptionStore} from 'getsentry/stores/subscriptionStore';
 
-type NavProps = NavigationProps & {
-  access?: Set<Scope>;
-};
+type NavProps = NavigationProps & {access?: Set<Scope>};
 
 export function useBillingNavigationConfig(): NavigationSection | null {
   const organization = useOrganization();
-  const subscription = useLegacyStore(SubscriptionStore)[organization.slug] ?? null;
+  // null until the subscription has loaded
+  const canSelfServe = useStore(SubscriptionStore, state => {
+    const subscription = state[organization.slug];
+    return subscription ? subscription.canSelfServe : null;
+  });
 
   return useMemo(() => {
-    if (!subscription) {
+    if (canSelfServe === null) {
       return null;
     }
-    return buildBillingNavigationConfig(organization, subscription.canSelfServe);
-  }, [organization, subscription]);
+    return buildBillingNavigationConfig(organization, canSelfServe);
+  }, [organization, canSelfServe]);
 }
 
 function buildBillingNavigationConfig(
@@ -46,26 +48,14 @@ function buildBillingNavigationConfig(
       id: 'spend-allocations',
       description: t('Guarantee monthly event volume to your priority projects.'),
     },
-    {
-      path: `${prefix}/spike-protection/`,
-      title: t('Spike Protection'),
-      id: 'spike',
-    },
+    {path: `${prefix}/spike-protection/`, title: t('Spike Protection'), id: 'spike'},
     {
       path: `${prefix}/subscription/redeem-code/`,
       title: t('Redeem Promo Code'),
       id: 'promo',
     },
-    {
-      path: `${prefix}/legal/`,
-      title: t('Legal & Compliance'),
-      id: 'legal',
-    },
+    {path: `${prefix}/legal/`, title: t('Legal & Compliance'), id: 'legal'},
   ];
 
-  return {
-    id: 'settings-usage-billing',
-    name: t('Usage & Billing'),
-    items,
-  };
+  return {id: 'settings-usage-billing', name: t('Usage & Billing'), items};
 }

@@ -4,7 +4,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
   DashboardFilterKeys,
-  WidgetType,
   type DashboardFilters,
   type GlobalFilter,
 } from 'sentry/views/dashboards/types';
@@ -21,18 +20,9 @@ import {
   type NavigationTypeBucket,
 } from './settings';
 
-export function spanFilterQueryFromGlobalFilters(filters: GlobalFilter[]): string {
-  return filters
-    .filter(filter => filter.dataset === WidgetType.SPANS && filter.value)
-    .map(filter => filter.value)
-    .join(' ');
-}
-
 type NavigationTypeExperiment = {
   buckets: NavigationTypeBucket[];
   isEnabled: boolean;
-  /** The other active spans filters, for keeping side queries in sync. */
-  otherSpanFilterQuery: string;
   supportsThresholds: boolean;
 };
 
@@ -52,14 +42,7 @@ export function useNavigationTypeExperiment(
     getDashboardFiltersFromURL(location)?.[DashboardFilterKeys.GLOBAL_FILTER] ?? [];
   const buckets = getBucketsFromGlobalFilters(globalFilters);
 
-  return {
-    isEnabled,
-    buckets,
-    supportsThresholds: bucketsKeepThresholds(buckets),
-    otherSpanFilterQuery: spanFilterQueryFromGlobalFilters(
-      globalFilters.filter(filter => !isNavigationTypeGlobalFilter(filter))
-    ),
-  };
+  return {isEnabled, buckets, supportsThresholds: bucketsKeepThresholds(buckets)};
 }
 
 // Only the switcher's own filter counts, so a hand-added chip filters data

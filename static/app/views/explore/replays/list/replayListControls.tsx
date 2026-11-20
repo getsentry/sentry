@@ -31,11 +31,7 @@ export function ReplayListControls({
         `,
         '4xl': '"filters search actions"',
       }}
-      columns={{
-        zero: '100%',
-        xl: '1fr auto',
-        '4xl': 'auto 1fr auto',
-      }}
+      columns={{zero: '100%', xl: '1fr auto', '4xl': 'auto 1fr auto'}}
       gap="md"
       width="100%"
     >

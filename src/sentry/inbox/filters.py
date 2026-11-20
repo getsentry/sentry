@@ -14,6 +14,7 @@ class InboxFilters(TypedDict, total=False):
     subject_type: list[str]
     subject_id: str
     event_type: list[str]
+    recipient: list[Literal["team", "user"]]
     id: list[int]
     is_read: Literal["true", "false"]
 
@@ -40,6 +41,11 @@ class InboxFilterSerializer(serializers.Serializer[InboxFilters]):
         required=False,
         help_text="Select personal inbox item IDs.",
     )
+    recipient = serializers.ListField(
+        child=serializers.ChoiceField(choices=("team", "user")),
+        required=False,
+        help_text="Match items containing events addressed to a team or directly to you.",
+    )
     is_read = serializers.ChoiceField(
         choices=("true", "false"),
         required=False,
@@ -59,15 +65,25 @@ class InboxFilterSerializer(serializers.Serializer[InboxFilters]):
 def filter_inbox_items(items: QuerySet[InboxItem], filters: InboxFilters) -> QuerySet[InboxItem]:
     subject_types = filters.get("subject_type")
     event_types = filters.get("event_type")
+    recipients = filters.get("recipient")
 
     if subject_types:
         items = items.filter(subject_type__in=subject_types)
     if "subject_id" in filters:
         items = items.filter(subject_id=filters["subject_id"])
-    if event_types:
+    if event_types or recipients:
+        matching_event_types = event_types or inbox_item_event_type_registry.registrations.keys()
+        if recipients:
+            matching_event_types = [
+                event_type
+                for event_type in matching_event_types
+                if inbox_item_event_type_registry.get(event_type).recipient in recipients
+            ]
         items = items.filter(
             Exists(
-                InboxItemEvent.objects.filter(inbox_item_id=OuterRef("pk"), type__in=event_types)
+                InboxItemEvent.objects.filter(
+                    inbox_item_id=OuterRef("pk"), type__in=matching_event_types
+                )
             )
         )
     if "id" in filters:

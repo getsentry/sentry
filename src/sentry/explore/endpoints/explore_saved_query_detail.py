@@ -152,6 +152,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             query=data["query"],
             dataset=data["dataset"],
             changed_reason=None,
+            query_priority=(
+                data["query_priority"] if "query_priority" in data else query.query_priority
+            ),
         )
 
         query.set_projects(data["project_ids"])

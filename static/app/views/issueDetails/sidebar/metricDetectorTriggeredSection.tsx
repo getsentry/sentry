@@ -23,7 +23,6 @@ import {toast} from '@sentry/scraps/toast';
 import {Feature} from 'sentry/components/acl/feature';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {GroupList} from 'sentry/components/issues/groupList';
 import {Placeholder} from 'sentry/components/placeholder';
 import {ProvidedFormattedQuery} from 'sentry/components/searchQueryBuilder/formattedQuery';
@@ -318,10 +317,7 @@ function ContributingIssues({
   };
 
   const discoverUrl: LocationDescriptor = {
-    pathname: makeDiscoverPathname({
-      organization,
-      path: '/results/',
-    }),
+    pathname: makeDiscoverPathname({organization, path: '/results/'}),
     query: {
       query,
       dataset: SavedQueryDatasets.ERRORS,
@@ -459,38 +455,20 @@ function TriggeredConditionDetails({
         title="Triggered Condition"
         sectionKey="triggered_condition"
         actions={
-          <Flex gap="xs">
-            <FeedbackButton
-              variant="secondary"
-              aria-label={t('Give feedback on metric issues')}
-              size="xs"
-              feedbackOptions={{
-                messagePlaceholder: t('Tell us what you think about this metric issue.'),
-                tags: {
-                  'feedback.source': 'metric_issue_details',
-                  'feedback.owner': 'aci',
-                },
-              }}
+          isOpenPeriodLoading ? null : (
+            <OpenInDestinationButton
+              snubaQuery={snubaQuery}
+              projectId={projectId}
+              start={startDate}
+              end={endDate}
             />
-            {!isOpenPeriodLoading && (
-              <OpenInDestinationButton
-                snubaQuery={snubaQuery}
-                projectId={projectId}
-                start={startDate}
-                end={endDate}
-              />
-            )}
-          </Flex>
+          )
         }
       >
         <KeyValueTableCard
           variant="label"
           contentItems={[
-            {
-              key: 'dataset',
-              value: datasetConfig.name,
-              subject: t('Dataset'),
-            },
+            {key: 'dataset', value: datasetConfig.name, subject: t('Dataset')},
             {
               key: 'aggregate',
               value: datasetConfig.fromApiAggregate(snubaQuery.aggregate),
@@ -528,9 +506,7 @@ function TriggeredConditionDetails({
               value: getConditionDescription({
                 aggregate: snubaQuery.aggregate,
                 condition: triggeredCondition,
-                config: evidenceData.config ?? {
-                  detectionType: 'static',
-                },
+                config: evidenceData.config ?? {detectionType: 'static'},
               }),
               subject: t('Condition'),
             },
@@ -604,10 +580,7 @@ function SeerInvestigationSection({
   const source = useMemo<MetricOpenPeriodInvestigationSource | null>(
     () =>
       openPeriod
-        ? {
-            type: 'metric_open_period',
-            ref: {groupId, openPeriodId: openPeriod.id},
-          }
+        ? {type: 'metric_open_period', ref: {groupId, openPeriodId: openPeriod.id}}
         : null,
     [groupId, openPeriod]
   );

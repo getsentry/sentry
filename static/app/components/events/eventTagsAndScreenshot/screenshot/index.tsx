@@ -25,6 +25,7 @@ import type {EventAttachment} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
 type Props = {
   eventId: Event['id'];
@@ -62,16 +63,16 @@ export function Screenshot({
   }
 
   function handleDelete(screenshotAttachmentId: string) {
-    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {
-      organization,
-    });
+    trackAnalytics('issue_details.issue_tab.screenshot_dropdown_deleted', {organization});
     onDelete(screenshotAttachmentId);
   }
 
   const AttachmentComponent = webmMimeTypes.includes(screenshot.mimetype)
     ? VideoViewer
     : ImageViewer;
-  const downloadUrl = `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`;
+  const downloadUrl = resolveHostname(
+    `/api/0/projects/${organization.slug}/${projectSlug}/events/${eventId}/attachments/${screenshot.id}/`
+  );
 
   return (
     <Container width="100%" maxWidth={{zero: '100%', xl: '175px'}} height="100%">
@@ -185,9 +186,7 @@ export function Screenshot({
                         window.location.assign(`${downloadUrl}?download=1`);
                         trackAnalytics(
                           'issue_details.issue_tab.screenshot_dropdown_download',
-                          {
-                            organization,
-                          }
+                          {organization}
                         );
                       },
                     },

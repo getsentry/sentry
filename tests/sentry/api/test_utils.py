@@ -10,6 +10,7 @@ from rest_framework.exceptions import APIException, ParseError, Throttled, Valid
 from sentry_sdk import Scope
 from snuba_sdk.column import InvalidColumnError
 
+from sentry.api.event_search import parse_search_query
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.utils import (
     MAX_STATS_PERIOD,
@@ -372,6 +373,21 @@ class HandleQueryErrorsTest(APITestCase):
         mock_set_tag.assert_called_once_with("query.error_reason", "InvalidRegex")
         mock_set_attribute.assert_called_once_with("query.error_reason", "InvalidRegex")
         mock_capture_exception.assert_not_called()
+
+    @patch("sentry.api.utils.sentry_sdk.set_attribute")
+    @patch("sentry.api.utils.sentry_sdk.set_tag")
+    def test_invalid_quote_error_reason_omits_query(
+        self, mock_set_tag: MagicMock, mock_set_attribute: MagicMock
+    ) -> None:
+        with pytest.raises(ParseError) as raised:
+            with handle_query_errors():
+                parse_search_query('message:*"rate limit"*')
+
+        detail = raised.value.detail
+        assert isinstance(detail, dict)
+        assert str(detail["detail"]).startswith("Invalid quote at '*\"rate'")
+        mock_set_tag.assert_any_call("query.error_reason", "Invalid quoting in filter")
+        mock_set_attribute.assert_any_call("query.error_reason", "Invalid quoting in filter")
 
     @patch("sentry.api.utils.sentry_sdk.capture_exception")
     def test_handle_snuba_rpc_bad_request(self, mock_capture_exception: MagicMock) -> None:

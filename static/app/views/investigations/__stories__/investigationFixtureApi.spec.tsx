@@ -149,10 +149,7 @@ describe('InvestigationFixtureApi', () => {
     });
     const addedBlock = await QUERY_API_CLIENT.requestPromise(`${baseUrl}blocks/`, {
       method: 'POST',
-      data: {
-        kind: 'query',
-        title: 'New query',
-      },
+      data: {kind: 'query', title: 'New query'},
     });
     const firstDuplicate = await QUERY_API_CLIENT.requestPromise(`${baseUrl}duplicate/`, {
       method: 'POST',
@@ -162,10 +159,7 @@ describe('InvestigationFixtureApi', () => {
       {method: 'POST'}
     );
 
-    expect(addedBlock).toMatchObject({
-      id: 'storybook-query-2-2',
-      position: 2,
-    });
+    expect(addedBlock).toMatchObject({id: 'storybook-query-2-2', position: 2});
     expect(firstDuplicate.id).toBe('fixture-id-collisions-copy');
     expect(secondDuplicate.id).toBe('fixture-id-collisions-copy-2');
   });
@@ -227,10 +221,7 @@ describe('InvestigationFixtureApi', () => {
 
   describe('comments', () => {
     it('serves no comments by default, so detail stories render the Activity section', async () => {
-      const investigation = InvestigationDetailFixture({
-        id: 'no-comments',
-        blocks: [],
-      });
+      const investigation = InvestigationDetailFixture({id: 'no-comments', blocks: []});
 
       render(
         <InvestigationFixtureApi
@@ -390,11 +381,7 @@ describe('InvestigationFixtureApi', () => {
         await QUERY_API_CLIENT.requestPromise(
           `/organizations/storybook-comment-counts-test/notebooks/${commentedInvestigation.id}/comment-counts/`
         )
-      ).toEqual({
-        'commented-query': 3,
-        'commented-notes': 1,
-        'deleted-cdn-check': 1,
-      });
+      ).toEqual({'commented-query': 3, 'commented-notes': 1, 'deleted-cdn-check': 1});
     });
   });
 });

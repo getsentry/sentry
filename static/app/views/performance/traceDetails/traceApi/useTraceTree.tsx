@@ -1,6 +1,6 @@
 import {useEffect, useState} from 'react';
+import type {UseQueryResult} from '@tanstack/react-query';
 
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
 import {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
@@ -10,7 +10,7 @@ import {isEmptyTrace} from './utils';
 
 type UseTraceTreeParams = {
   replay: HydratedReplayRecord | null;
-  trace: UseApiQueryResult<TraceTree.EAPTrace | undefined, any>;
+  trace: Pick<UseQueryResult<TraceTree.EAPTrace | undefined>, 'status' | 'data'>;
 };
 
 export function useTraceTree({trace, replay}: UseTraceTreeParams): TraceTree {
