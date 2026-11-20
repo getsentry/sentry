@@ -310,6 +310,8 @@ export function SpansHeatMap({
         {isPlaceholderData ? <LoadingOverlay /> : null}
       </Container>
     );
+  } else if (isPlaceholderData) {
+    visualization = <HeatMapWidgetVisualization.LoadingPlaceholder />;
   } else {
     visualization = <HeatMapWidgetVisualization.NoData />;
   }
