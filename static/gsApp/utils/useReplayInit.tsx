@@ -17,7 +17,39 @@ export function replayMaskFn(text: unknown): string {
   if (typeof text !== 'string') {
     return '';
   }
-  return isStaticString(text) ? text : text.replace(/\S/g, '*');
+  return isStaticString(text) ? text : maskNonWhitespace(text);
+}
+
+/**
+ * Equivalent to `text.replace(/\S/g, '*')`, without going through the regex
+ * engine. This runs for every text mutation rrweb records, and Firefox's regex
+ * engine can throw `InternalError: too much recursion` when its own stack check
+ * or memory allocation fails, which breaks replay mutation processing.
+ */
+function maskNonWhitespace(text: string): string {
+  let masked = '';
+  for (let i = 0; i < text.length; i++) {
+    const code = text.charCodeAt(i);
+    masked += isWhitespaceCharCode(code) ? text[i] : '*';
+  }
+  return masked;
+}
+
+/** Matches the code units covered by the regex `\s` class. */
+function isWhitespaceCharCode(code: number): boolean {
+  return (
+    (code >= 0x09 && code <= 0x0d) ||
+    code === 0x20 ||
+    code === 0xa0 ||
+    code === 0x1680 ||
+    (code >= 0x2000 && code <= 0x200a) ||
+    code === 0x2028 ||
+    code === 0x2029 ||
+    code === 0x202f ||
+    code === 0x205f ||
+    code === 0x3000 ||
+    code === 0xfeff
+  );
 }
 
 // Single replayRef across the whole app, even if this hook is called multiple times
