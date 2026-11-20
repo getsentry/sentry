@@ -92,11 +92,5 @@ def check_seer_operation(
     return _check_seer_credits(organization, feature, operation)
 
 
-def can_run_seer_operation(
-    organization: Organization, feature: int, operation: SeerOperation
-) -> bool:
-    return check_seer_operation(organization, feature, operation).has_enough_credits
-
-
 def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialReason | None:
     return _DENIAL_REASONS.get(response.denial_reason)
