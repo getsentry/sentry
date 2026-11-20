@@ -750,7 +750,11 @@ class AuthDemoLoginEndpointTest(APITestCase):
                 status_code=202,
             )
 
-        assert response.data == {"mfaRequired": True, "mfaMethods": [{"id": "totp"}]}
+        assert response.data == {
+            "mfaRequired": True,
+            "mfaMethods": [{"id": "totp"}],
+            "email": demo_user.email,
+        }
         assert "_auth_user_id" not in self.client.session
         assert self.client.session["_pending_2fa"][0] == demo_user.id
         assert self.client.session["_next"] == "/settings/account/"
@@ -973,6 +977,7 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.data == {
             "mfaRequired": True,
             "mfaMethods": [{"id": "totp"}],
+            "email": self.user.email,
         }
         assert "_auth_user_id" not in self.client.session
         assert self.client.session["_pending_2fa"][0] == self.user.id
@@ -987,6 +992,7 @@ class AuthLoginEndpointTest(APITestCase):
         assert response.data == {
             "mfaRequired": True,
             "mfaMethods": [{"id": "totp"}],
+            "email": self.user.email,
         }
 
     def test_get_mfa_methods_requires_pending_login(self) -> None:
