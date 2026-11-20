@@ -2,9 +2,11 @@ from functools import cached_property
 
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 
 
+@requires_snuba
 class GroupEventJsonTest(TestCase):
     @cached_property
     def path(self) -> str:

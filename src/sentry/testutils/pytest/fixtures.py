@@ -20,6 +20,7 @@ from typing import TYPE_CHECKING, Any, ContextManager, Protocol, overload
 import pytest
 import requests
 import yaml
+from django.apps import apps
 from django.conf import LazySettings
 from django.core.cache import cache
 from django.core.cache.backends.base import BaseCache
@@ -383,15 +384,40 @@ def reset_snuba(call_snuba: Callable[[str], requests.Response]) -> None:
     )
 
 
-@pytest.fixture
-def skip_group_attributes_snapshots() -> Generator[None]:
+# A test that reads from Snuba declares it with one of these: `requires_snuba` (which
+# `SnubaTestCase` and the other Snuba test case classes carry), `@pytest.mark.snuba`, or
+# the `reset_snuba` fixture.
+_SNUBA_FIXTURES = frozenset(("_requires_snuba", "reset_snuba"))
+
+
+@pytest.fixture(autouse=True)
+def skip_snuba_writes_unless_test_requires_snuba(
+    request: pytest.FixtureRequest,
+) -> Generator[None]:
     """
-    Skip sending group attribute snapshots to Snuba, for tests that create groups but run
-    without Snuba.
+    Skip the Snuba writes that saving models and events causes as a side effect (group
+    attribute snapshots on every `Group` save, eventstream inserts from `store_event`) in
+    tests that don't declare Snuba, so those tests don't need Snuba running.
+
+    If a test reads that data back from Snuba, mark it `@requires_snuba` or base it on
+    `SnubaTestCase`.
     """
+    declares_snuba = bool(_SNUBA_FIXTURES.intersection(request.fixturenames)) or bool(
+        request.node.get_closest_marker("snuba")
+    )
+    # Without Django apps (this plugin loaded on its own) no model can be saved, and
+    # patching would import sentry models.
+    if declares_snuba or not apps.ready:
+        yield
+        return
+
     from unittest import mock
 
-    with mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka"):
+    with (
+        mock.patch("sentry.issues.attributes.produce_snapshot_to_kafka"),
+        mock.patch("sentry.eventstream.snuba.SnubaEventStream._insert_into_snuba"),
+        mock.patch("sentry.eventstream.snuba.SnubaEventStream._send_item"),
+    ):
         yield
 
 

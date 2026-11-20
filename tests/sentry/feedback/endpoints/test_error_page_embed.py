@@ -30,6 +30,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.response import close_streaming_response
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
+from sentry.testutils.skips import requires_snuba
 from sentry.types.cell import Cell, get_cell_by_name, get_local_locality
 from sentry.utils import json
 
@@ -229,6 +230,7 @@ class ErrorPageEmbedTest(TestCase):
         assert not UserReport.objects.exists()
 
 
+@requires_snuba
 class ErrorPageEmbedEnvironmentTest(TestCase):
     def setUp(self) -> None:
         self.project = self.create_project()

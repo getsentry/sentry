@@ -7,6 +7,7 @@ from sentry.seer.fetch_issues.utils import get_repo_and_projects
 from sentry.services.eventstore.models import Event
 from sentry.testutils.cases import IntegrationTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.skips import requires_snuba
 
 
 class CreateEventTestCase(TestCase):
@@ -61,6 +62,7 @@ class CreateEventTestCase(TestCase):
         return event
 
 
+@requires_snuba
 class TestFetchIssuesByTextQuery(IntegrationTestCase, CreateEventTestCase):
     provider = GitHubIntegrationProvider
 

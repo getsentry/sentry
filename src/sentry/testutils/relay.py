@@ -16,6 +16,7 @@ from sentry.models.eventattachment import PendingEventAttachment
 from sentry.services import eventstore
 from sentry.testutils.helpers import get_auth_header
 from sentry.testutils.pytest import xdist
+from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
 from sentry.utils.batching_kafka_consumer import create_topics
 from sentry.utils.outcomes import Outcome
@@ -87,6 +88,7 @@ def _capture_outcomes() -> Generator[Callable[[], dict[str, Any] | None]]:
         consumer.close()
 
 
+@requires_snuba
 class RelayStoreHelper(RequiredBaseclass):
     """
     Tests that post to the store entry point should use this helper class

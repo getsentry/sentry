@@ -28,6 +28,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.utils import json
 from tests.sentry.sentry_apps.tasks.test_sentry_apps import MockResponseInstance
@@ -653,6 +654,7 @@ class IssueSyncIntegrationWebhookTest(TestCase):
 
 
 @override_settings(SENTRY_SELF_HOSTED=False)
+@requires_snuba
 class IssueDefaultTest(TestCase):
     def setUp(self) -> None:
         event = self.store_event(

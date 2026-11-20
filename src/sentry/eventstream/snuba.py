@@ -492,6 +492,11 @@ class SnubaEventStream(SnubaProtocolEventStream):
         codec = get_topic_codec(topic_mapping[entity])
         codec.decode(serialized_data.encode("utf-8"), validate=True)
 
+        self._insert_into_snuba(entity, serialized_data, headers)
+
+    def _insert_into_snuba(
+        self, entity: str, serialized_data: str, headers: Mapping[str, str]
+    ) -> None:
         try:
             resp = snuba._snuba_pool.urlopen(
                 "POST",
