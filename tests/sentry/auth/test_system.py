@@ -1,5 +1,9 @@
 from unittest.mock import patch
 
+from django.http import HttpRequest
+from django.test import RequestFactory, override_settings
+from django.utils.crypto import salted_hmac
+
 from sentry import options
 from sentry.auth.system import SystemToken, get_system_token, is_system_auth
 from sentry.testutils.cases import TestCase
@@ -49,3 +53,44 @@ def test_system_token_preserves_existing_value() -> None:
         assert row.value == "existing-system-token"
     finally:
         options.delete("sentry:system-token")
+
+
+def _system_request(remote_addr: str = "127.0.0.1") -> HttpRequest:
+    return RequestFactory().get("/", REMOTE_ADDR=remote_addr)
+
+
+def _derived_token() -> str:
+    return salted_hmac("sentry.auth.system", "system-token", algorithm="sha256").hexdigest()
+
+
+@django_db_all
+@control_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
+def test_saas_accepts_derived_and_stored_system_tokens() -> None:
+    try:
+        with patch("sentry.auth.system.is_internal_ip", return_value=True):
+            assert SystemToken.from_request(_system_request(), _derived_token()) is not None
+            assert SystemToken.from_request(_system_request(), get_system_token()) is not None
+            assert SystemToken.from_request(_system_request(), "not-the-token") is None
+    finally:
+        options.delete("sentry:system-token")
+
+
+@django_db_all
+@control_silo_test
+@override_settings(SENTRY_SELF_HOSTED=True)
+def test_self_hosted_accepts_only_the_stored_system_token() -> None:
+    try:
+        with patch("sentry.auth.system.is_internal_ip", return_value=True):
+            assert SystemToken.from_request(_system_request(), _derived_token()) is None
+            assert SystemToken.from_request(_system_request(), get_system_token()) is not None
+    finally:
+        options.delete("sentry:system-token")
+
+
+@django_db_all
+@control_silo_test
+@override_settings(SENTRY_SELF_HOSTED=False)
+def test_saas_derived_system_token_requires_an_internal_ip() -> None:
+    with patch("sentry.auth.system.is_internal_ip", return_value=False):
+        assert SystemToken.from_request(_system_request("203.0.113.7"), _derived_token()) is None
