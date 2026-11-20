@@ -81,11 +81,7 @@ When authoring or reviewing a data migration, inspect the live model's save hook
 
 ### Tables on Separate Databases
 
-Production keeps some tables on separate databases. Before writing a migration, look up every table it touches in the map described under "Physical Databases" in `src/AGENTS.md`.
-
-- `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes.
-- A data migration cannot join tables on different databases. Query one, then filter the other by the IDs you collected.
-- A foreign key constraint needs both tables on the same database. A new table is on `default` unless it is added to the map in getsentry.
+The rules under "Physical Databases" in `src/AGENTS.md` apply to every table a migration touches. One more applies only to migrations: `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes.
 
 ### Adding Columns
 
