@@ -1,6 +1,7 @@
 from datetime import timedelta
 from typing import Any
 from unittest.mock import MagicMock, call, patch
+from uuid import uuid4
 
 import pytest
 from django.core.exceptions import ValidationError
@@ -1102,62 +1103,96 @@ class SetCommitsTestCase(TestCase):
         commit_d = Commit.objects.get(repository_id=repo.id, key="d" * 40)
         assert commit_d.author is None
 
-    def _set_commits_with_coauthors(self) -> tuple[Release, dict[str, CommitAuthor]]:
-        org = self.create_organization(owner=Factories.create_user())
-        project = self.create_project(organization=org)
-        repo = Repository.objects.create(organization_id=org.id, name="test/repo")
-        authors = {
-            "by_email": CommitAuthor.objects.create(
-                organization_id=org.id, email="coauthor@example.com", name="Co Author"
-            ),
-            "by_login": CommitAuthor.objects.create(
-                organization_id=org.id,
-                email="octocat@example.com",
-                name="Octo Cat",
-                external_id="github:OctoCat",
-            ),
-        }
-
-        release = Release.objects.create(version="abcdabc", organization=org)
-        release.add_project(project)
+    def _set_coauthor_commit(self, message: str) -> tuple[list[str] | None, CommitAuthor]:
+        repo, _ = Repository.objects.get_or_create(
+            organization_id=self.organization.id, name="test/repo"
+        )
+        release = Release.objects.create(version=uuid4().hex, organization=self.organization)
+        release.add_project(self.project)
         release.set_commits(
             [
                 {
-                    "id": "a" * 40,
+                    "id": uuid4().hex,
                     "repository": repo.name,
                     "author_email": "123+some-bot[bot]@users.noreply.github.com",
                     "author_name": "some-bot[bot]",
-                    "message": (
-                        "feat: Do a thing\n\n"
-                        "Co-authored-by: Co Author <CoAuthor@example.com>\n"
-                        "Co-Authored-By: Octo Cat <456+OctoCat@users.noreply.github.com>\n"
-                        "co-authored-by: Stranger <stranger@example.com>"
-                    ),
+                    "message": message,
                 },
             ]
         )
-        authors["bot"] = CommitAuthor.objects.get(
-            organization_id=org.id, email="123+some-bot[bot]@users.noreply.github.com"
+        bot = CommitAuthor.objects.get(
+            organization_id=self.organization.id,
+            email="123+some-bot[bot]@users.noreply.github.com",
         )
         release.refresh_from_db()
-        return release, authors
+        return release.authors, bot
+
+    def _create_commit_author(self, email: str, external_id: str | None = None) -> CommitAuthor:
+        return CommitAuthor.objects.create(
+            organization_id=self.organization.id, email=email, external_id=external_id
+        )
+
+    _COAUTHORS_MESSAGE = (
+        "feat: Do a thing\n\n"
+        "Co-authored-by: Co Author <CoAuthor@example.com>\n"
+        "Co-Authored-By: Octo Cat <456+OctoCat@users.noreply.github.com>\n"
+        "co-authored-by: Stranger <stranger@example.com>"
+    )
 
     def test_coauthors_are_release_authors(self) -> None:
-        with self.feature("organizations:release-commit-coauthors"):
-            release, authors = self._set_commits_with_coauthors()
+        by_email = self._create_commit_author("coauthor@example.com")
+        by_login = self._create_commit_author("octocat@example.com", "github:OctoCat")
 
-        assert release.authors == [
-            str(authors["bot"].id),
-            str(authors["by_email"].id),
-            str(authors["by_login"].id),
-        ]
+        with self.feature("organizations:release-commit-coauthors"):
+            authors, bot = self._set_coauthor_commit(self._COAUTHORS_MESSAGE)
+
+        assert authors == [str(bot.id), str(by_email.id), str(by_login.id)]
         # A trailer never creates an author.
         assert not CommitAuthor.objects.filter(email="stranger@example.com").exists()
 
     def test_coauthors_ignored_without_feature(self) -> None:
-        release, authors = self._set_commits_with_coauthors()
+        self._create_commit_author("coauthor@example.com")
 
-        assert release.authors == [str(authors["bot"].id)]
+        authors, bot = self._set_coauthor_commit(self._COAUTHORS_MESSAGE)
+
+        assert authors == [str(bot.id)]
+
+    def test_coauthor_noreply_author_replaced_by_resolved_login(self) -> None:
+        self._create_commit_author("456+octocat@users.noreply.github.com")
+        resolved = self._create_commit_author("octocat@example.com", "github:OctoCat")
+
+        with self.feature("organizations:release-commit-coauthors"):
+            authors, bot = self._set_coauthor_commit(
+                "feat: Do a thing\n\nCo-authored-by: Octo Cat <456+OctoCat@users.noreply.github.com>"
+            )
+
+        assert authors == [str(bot.id), str(resolved.id)]
+
+    def test_coauthor_matches_login_only_noreply_address(self) -> None:
+        unresolved = self._create_commit_author("octocat@users.noreply.github.com")
+
+        with self.feature("organizations:release-commit-coauthors"):
+            authors, bot = self._set_coauthor_commit(
+                "feat: Do a thing\n\nCo-authored-by: Octo Cat <456+OctoCat@users.noreply.github.com>"
+            )
+
+        assert authors == [str(bot.id), str(unresolved.id)]
+
+    def test_coauthors_only_from_trailer_block(self) -> None:
+        self._create_commit_author("alice@example.com")
+        self._create_commit_author("bob@example.com")
+
+        with self.feature("organizations:release-commit-coauthors"):
+            authors, bot = self._set_coauthor_commit(
+                'Revert "feat: Do a thing"\n\n'
+                "The reverted commit said:\n\n"
+                "Co-authored-by: Alice <alice@example.com>\n\n"
+                "This restores the old behavior."
+            )
+            subject_only, _ = self._set_coauthor_commit("Co-authored-by: Bob <bob@example.com>")
+
+        assert authors == [str(bot.id)]
+        assert subject_only == [str(bot.id)]
 
     @override_options({"releases.set-commits.max-commits": 2})
     def test_keeps_only_newest_commits_over_limit(self) -> None:

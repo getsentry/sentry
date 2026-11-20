@@ -182,10 +182,32 @@ def set_commits_on_release(
     return head_commit_by_repo, commit_author_by_commit
 
 
+_TRAILER_LINE_RE = re.compile(r"^[A-Za-z0-9-]+[ \t]*:.+|^\(cherry picked from commit [0-9a-f]+\)$")
 _COAUTHOR_TRAILER_RE = re.compile(
-    r"^co-authored-by:[ \t]*[^<\n]*<([^<>\s]+@[^<>\s]+)>[ \t]*$", re.IGNORECASE | re.MULTILINE
+    r"^co-authored-by:[ \t]*[^<]*<([^<>\s]+@[^<>\s]+)>[ \t]*$", re.IGNORECASE
 )
 _GITHUB_NOREPLY_RE = re.compile(r"^(?:\d+\+)?([^@+]+)@users\.noreply\.github\.com$", re.IGNORECASE)
+
+
+def _coauthor_emails(message: str) -> list[str]:
+    """
+    Read `Co-authored-by` from the trailer block only, as Git and GitHub do.
+
+    The trailer block is the last paragraph, and every line in it is a trailer.
+    A trailer quoted higher up, such as in a revert message, credits nobody. The
+    subject paragraph is never a trailer block.
+    """
+    trailers = []
+    lines = message.rstrip().splitlines()
+    for line in reversed(lines):
+        if not _TRAILER_LINE_RE.match(line):
+            break
+        trailers.append(line)
+    if len(trailers) == len(lines):
+        return []
+    return [
+        match.group(1) for line in trailers if (match := _COAUTHOR_TRAILER_RE.match(line.rstrip()))
+    ]
 
 
 def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[int]:
@@ -195,31 +217,50 @@ def _get_coauthor_ids(organization_id: int, commits: Sequence[Commit]) -> list[i
     Bots open pull requests for people and credit them only in trailers, so the
     commit author alone misses the people who made the change. Trailers match
     existing authors only: a commit message can list any number of addresses and
-    must not be able to create authors. A GitHub noreply address also matches by
-    login, because the push webhook files authors under their real email with a
-    `github:<login>` external id, and only that email resolves to a Sentry user.
+    must not be able to create authors.
+
+    A GitHub noreply address also matches by login. GitHub gives one account
+    both `login@` and `<id>+login@` noreply addresses, so a trailer in either
+    form matches the stored `login@` form too. The push webhook files authors
+    whose GitHub identity it resolves under their real email with a
+    `github:<login>` external id. Only that email resolves to a Sentry user, so it
+    replaces any noreply author the same login left from before.
     """
     emails: set[str] = set()
-    external_ids: set[str] = set()
+    logins: set[str] = set()
     for commit in commits:
-        for email in _COAUTHOR_TRAILER_RE.findall(commit.message or ""):
+        for email in _coauthor_emails(commit.message or ""):
             if len(email) > COMMIT_AUTHOR_EMAIL_LENGTH:
                 continue
             emails.add(email.lower())
             if noreply := _GITHUB_NOREPLY_RE.match(email):
-                external_ids.add(f"github:{noreply.group(1)}")
+                logins.add(noreply.group(1))
+                emails.add(f"{noreply.group(1)}@users.noreply.github.com".lower())
 
     if not emails:
         return []
 
-    return list(
+    authors = list(
         CommitAuthor.objects.filter(
-            Q(email__in=emails) | Q(external_id__in=external_ids),
+            Q(email__in=emails) | Q(external_id__in={f"github:{login}" for login in logins}),
             organization_id=organization_id,
         )
         .order_by("id")
-        .values_list("id", flat=True)
+        .values_list("id", "email", "external_id")
     )
+    resolved_logins = {
+        external_id.removeprefix("github:").lower()
+        for _, email, external_id in authors
+        if external_id and external_id.startswith("github:") and not _GITHUB_NOREPLY_RE.match(email)
+    }
+    return [
+        author_id
+        for author_id, email, _ in authors
+        if not (
+            (noreply := _GITHUB_NOREPLY_RE.match(email))
+            and noreply.group(1).lower() in resolved_logins
+        )
+    ]
 
 
 def upsert_commit(data: _CommitData, release: Release) -> Commit:
