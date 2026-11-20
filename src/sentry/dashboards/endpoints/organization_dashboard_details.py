@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, cast
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import F
@@ -279,7 +279,7 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         Record that the requesting user visited a custom dashboard. Increments the dashboard's
         visit count and updates its last visited time.
         """
-        dashboard.visits = cast(int, F("visits") + 1)
+        dashboard.visits = F("visits") + 1
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
