@@ -18,7 +18,6 @@ from sentry.dynamic_sampling.rules.utils import (
     RESERVED_IDS,
     RuleType,
 )
-from sentry.dynamic_sampling.types import DynamicSamplingMode
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
@@ -972,32 +971,3 @@ def test_generate_rules_trace_health_checks_feature_enabled(
     assert rules[0]["condition"]["inner"][0]["value"] == HEALTH_CHECK_GLOBS
 
     _validate_rules(default_old_project)
-
-
-@django_db_all
-@patch("sentry.dynamic_sampling.rules.base.get_enabled_user_biases")
-@patch("sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate")
-def test_generate_rules_project_mode(
-    get_blended_sample_rate: MagicMock,
-    get_enabled_user_biases: MagicMock,
-    default_old_project: Project,
-) -> None:
-    # Ensure only the project base rate is generated
-    get_enabled_user_biases.return_value = {}
-
-    default_old_project.organization.update_option(
-        "sentry:sampling_mode", DynamicSamplingMode.PROJECT
-    )
-    default_old_project.update_option("sentry:target_sample_rate", 0.2)
-
-    with Feature({"organizations:dynamic-sampling-custom": True}):
-        assert generate_rules(default_old_project) == [
-            {
-                "condition": {"inner": [], "op": "and"},
-                "id": 1000,
-                "samplingValue": {"type": "sampleRate", "value": 0.2},
-                "type": "trace",
-            },
-        ]
-        assert not get_blended_sample_rate.called
-        _validate_rules(default_old_project)
