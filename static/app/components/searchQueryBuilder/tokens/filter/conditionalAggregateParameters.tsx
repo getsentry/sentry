@@ -33,7 +33,6 @@ import {t} from 'sentry/locale';
 import type {AggregateParameter, FieldDefinition} from 'sentry/utils/fields';
 import {FieldKind} from 'sentry/utils/fields';
 
-import {FunctionDescription} from './functionDescription';
 import {useParameterSuggestions} from './parametersCombobox';
 import {getAggregateArgTexts, getConditionalAggregateArgumentLabel} from './utils';
 
@@ -64,7 +63,6 @@ export function SearchQueryBuilderConditionalAggregateParameters({
   const groupRef = useRef<HTMLSpanElement>(null);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([]);
   const committedRef = useRef(false);
-  const [focusedIndex, setFocusedIndex] = useState(0);
 
   const [args, setArgs] = useState(() => {
     const argTexts = getAggregateArgTexts(token);
@@ -178,16 +176,12 @@ export function SearchQueryBuilderConditionalAggregateParameters({
       {parameters.map((parameter, i) => {
         const argumentProps: ArgumentInputProps = {
           autoFocus: i === 0,
-          description: (
-            <FunctionDescription token={token} parameterIndex={focusedIndex} />
-          ),
           inputRef: el => {
             inputRefs.current[i] = el;
           },
           onBlurOutside: () => commit({focusValue: false}),
           onChange: value => setArgumentAtIndex(i, value),
           onExit: () => commit({focusValue: false}),
-          onFocus: () => setFocusedIndex(i),
           onKeyDown: e => onArgumentKeyDown(i, e),
           onNext: () => goToNextArgumentOrCommit(i),
           parameter,
@@ -212,12 +206,10 @@ export function SearchQueryBuilderConditionalAggregateParameters({
 
 type ArgumentInputProps = {
   autoFocus: boolean;
-  description: React.ReactNode;
   inputRef: (el: HTMLInputElement | null) => void;
   onBlurOutside: () => void;
   onChange: (value: string) => void;
   onExit: () => void;
-  onFocus: () => void;
   onKeyDown: (e: KeyboardEvent) => void;
   /** Move to the next argument, or commit after the last one. */
   onNext: () => void;
@@ -233,12 +225,10 @@ type ArgumentInputProps = {
  */
 function FilterArgumentInput({
   autoFocus,
-  description,
   inputRef,
   onBlurOutside,
   onChange,
   onExit,
-  onFocus,
   onKeyDown,
   onNext,
   shouldCloseOnInteractOutside,
@@ -320,9 +310,7 @@ function FilterArgumentInput({
         inputLabel={t('Add a filter')}
         token={token}
         maxOptions={20}
-        description={description}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-        onFocus={onFocus}
         onInputChange={e => {
           onChange(e.target.value);
           setSelectionIndex(e.target.selectionStart ?? 0);
@@ -361,12 +349,10 @@ function FilterArgumentInput({
  */
 function ValueArgumentInput({
   autoFocus,
-  description,
   inputRef,
   onBlurOutside,
   onChange,
   onExit,
-  onFocus,
   onKeyDown,
   onNext,
   parameter,
@@ -416,9 +402,7 @@ function ValueArgumentInput({
         }
         token={token}
         maxOptions={20}
-        description={description}
         shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
-        onFocus={onFocus}
         onInputChange={e => setInputValue(e.target.value)}
         onKeyDown={onKeyDown}
         onOptionSelected={option => {

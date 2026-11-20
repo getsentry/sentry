@@ -6609,6 +6609,8 @@ describe('SearchQueryBuilder', () => {
           expect(screen.getByPlaceholderText('transactions')).toHaveAccessibleName(
             'Select an attribute'
           );
+          // The suggestions menu is the only overlay, as in the equation builder
+          expect(screen.queryByText('count_if() description')).not.toBeInTheDocument();
         });
 
         it('shows the filter without backticks and the column default label', async () => {
