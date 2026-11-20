@@ -31,10 +31,7 @@ import {
   markScrubbedAttributes,
   splitScrubbedJson,
 } from 'sentry/views/insights/pages/agents/components/scrubbedText';
-import {
-  getToolError,
-  getTraceNodeAttribute,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getTraceNodeAttribute} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {
   getCodeModeInput,
   isCodeModeNode,
@@ -220,12 +217,6 @@ export function ConversationSpanDetail({
   const combinedTab = getCombinedTab(evaluation, extraction);
 
   const title = memory?.operation || node.op || node.description || t('Span');
-  // Tool errors aren't always application errors, so they rarely have an
-  // issue. Show them in the issue slot when there isn't one.
-  const toolError =
-    isAttributesLoading || node.uniqueIssues.length > 0
-      ? null
-      : getToolError(node, attributes);
   const duration = getNodeTimeBounds(node).duration;
   const comparison = getDurationComparison(
     avgDuration,
@@ -286,7 +277,11 @@ export function ConversationSpanDetail({
         organization={organization}
         traceSlug={traceId}
       />
-      {toolError ? <StyledToolErrorCard error={toolError} /> : null}
+      {/* Tool errors aren't always application errors, so they rarely have an
+       * issue. Show them in the issue slot when there isn't one. */}
+      {node.uniqueIssues.length === 0 ? (
+        <StyledToolErrorCard node={node} attributes={attributes} />
+      ) : null}
 
       {/*
        * The per-span fetch backs both the metadata and the tab content, and it

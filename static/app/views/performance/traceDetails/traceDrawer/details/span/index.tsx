@@ -49,10 +49,7 @@ import {
 import {useSpansDataset} from 'sentry/views/explore/spans/spansQueryParams';
 import {TraceItemDataset} from 'sentry/views/explore/types';
 import {useSpansQueryWithoutPageFilters} from 'sentry/views/insights/common/queries/useSpansQuery';
-import {
-  getIsAiGenerationNode,
-  getToolError,
-} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
+import {getIsAiGenerationNode} from 'sentry/views/insights/pages/agents/utils/aiTraceNodes';
 import {traceAnalytics} from 'sentry/views/performance/traceDetails/traceAnalytics';
 import {useTransaction} from 'sentry/views/performance/traceDetails/traceApi/useTransaction';
 import {IssueList} from 'sentry/views/performance/traceDetails/traceDrawer/details/issues/issues';
@@ -354,8 +351,6 @@ function EAPSpanNodeDetailsContent({
     }
   }, [genAiOperationType, organization, hideNodeActions]);
 
-  const toolError = getToolError(node, attributes);
-
   const isSdkSentStreamedSpan =
     // Sent by span-streaming-configured SDKs to explicitly indicate a streamed span:
     attributesMap.trace_lifecycle === 'stream' ||
@@ -407,7 +402,9 @@ function EAPSpanNodeDetailsContent({
           <IssueList organization={organization} issues={issues} node={node} />
         ) : null}
         {node.hasHttpError && issues.length === 0 ? <HttpErrorCard node={node} /> : null}
-        {toolError && issues.length === 0 ? <ToolErrorCard error={toolError} /> : null}
+        {issues.length === 0 ? (
+          <ToolErrorCard node={node} attributes={attributes} />
+        ) : null}
         <EAPSpanDescription
           node={node}
           project={project}
