@@ -9,8 +9,8 @@ import {toast} from '@sentry/scraps/toast';
 
 import {InfiniteTable} from 'sentry/components/infiniteTable/infiniteTable';
 import type {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
+import {OnOffDropdownMenu} from 'sentry/components/seer/onOffDropdownMenu';
 import {PreferredAgentDropdownMenu} from 'sentry/components/seer/preferredAgentDropdownMenu';
-import {PrIterationDropdownMenu} from 'sentry/components/seer/prIterationDropdownMenu';
 import {StoppingPointDropdownMenu} from 'sentry/components/seer/stoppingPointDropdownMenu';
 import {getNextSort} from 'sentry/components/tables/getNextSort';
 import {t, tct, tn} from 'sentry/locale';
@@ -20,10 +20,18 @@ import {ListItemSelectedState} from 'sentry/utils/list/listItemSelectedState';
 import {ListSelectAllCheckbox} from 'sentry/utils/list/listSelectAllCheckbox';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import {
+  OPEN_PRS_TOOLTIP,
+  openPrsStoppingPoint,
+  useShowOpenPrs,
+} from 'sentry/utils/seer/openPrs';
+import {
   getSeerProjectSettingsMutationKey,
   type SeerBulkEditVariables,
 } from 'sentry/utils/seer/seerProjectSettings';
-import type {SeerProjectSettingResponse} from 'sentry/utils/seer/types';
+import type {
+  SeerAutofixStoppingPoint,
+  SeerProjectSettingResponse,
+} from 'sentry/utils/seer/types';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -97,6 +105,17 @@ const COLUMNS = [
   },
 ];
 
+const OPEN_PRS_COLUMN = {
+  title: (
+    <Flex gap="sm" align="center">
+      {t('Open PRs')}
+      <InfoTip title={OPEN_PRS_TOOLTIP} />
+    </Flex>
+  ),
+  key: 'automation_steps',
+  sortKey: undefined,
+};
+
 export function ProjectTableHeader({
   bulkEdit,
   mutableSearch,
@@ -106,6 +125,12 @@ export function ProjectTableHeader({
 }: Props) {
   const organization = useOrganization();
   const canWrite = useCanWriteSettings();
+  const showOpenPrs = useShowOpenPrs();
+  const columns = showOpenPrs
+    ? COLUMNS.map(column =>
+        column.key === 'automation_steps' ? OPEN_PRS_COLUMN : column
+      )
+    : COLUMNS;
 
   const listItemCheckboxState = useListItemCheckboxContext();
   const {countSelected, selectAll, selectedIds} = listItemCheckboxState;
@@ -134,6 +159,34 @@ export function ProjectTableHeader({
   // the server saves.
   const isDisabled = !canWrite || isRowSaving || isBulkSaving;
 
+  const setStoppingPoint = (value: SeerAutofixStoppingPoint) => {
+    mutate(
+      {
+        query: mutableSearch.formatString(),
+        selectedIds,
+        stoppingPoint: value,
+      },
+      {
+        onError: () =>
+          toast.error(
+            tn(
+              'Failed to update stopping point for %s project',
+              'Failed to update stopping point for %s projects',
+              projectIds.length
+            )
+          ),
+        onSuccess: () => {
+          toast.success(
+            tn(
+              'Stopping point updated for %s project',
+              'Stopping point updated for %s projects',
+              projectIds.length
+            )
+          );
+        },
+      }
+    );
+  };
   return (
     <InfiniteTable.Head sticky>
       <ListItemSelectedState selected="none">
@@ -144,7 +197,7 @@ export function ProjectTableHeader({
               listItemCheckboxState={listItemCheckboxState}
             />
           </InfiniteTable.HeaderCell>
-          {COLUMNS.map(({title, key, sortKey}) => (
+          {columns.map(({title, key, sortKey}) => (
             <InfiniteTable.HeaderCell
               key={key}
               handleSortClick={
@@ -198,38 +251,20 @@ export function ProjectTableHeader({
                 );
               }}
             />
-            <StoppingPointDropdownMenu
-              isDisabled={isDisabled}
-              onChange={value => {
-                mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    stoppingPoint: value,
-                  },
-                  {
-                    onError: () =>
-                      toast.error(
-                        tn(
-                          'Failed to update stopping point for %s project',
-                          'Failed to update stopping point for %s projects',
-                          projectIds.length
-                        )
-                      ),
-                    onSuccess: () => {
-                      toast.success(
-                        tn(
-                          'Stopping point updated for %s project',
-                          'Stopping point updated for %s projects',
-                          projectIds.length
-                        )
-                      );
-                    },
-                  }
-                );
-              }}
-            />
-            <PrIterationDropdownMenu
+            {showOpenPrs ? (
+              <OnOffDropdownMenu
+                triggerLabel={t('Open PRs')}
+                isDisabled={isDisabled}
+                onChange={on => setStoppingPoint(openPrsStoppingPoint(on))}
+              />
+            ) : (
+              <StoppingPointDropdownMenu
+                isDisabled={isDisabled}
+                onChange={setStoppingPoint}
+              />
+            )}
+            <OnOffDropdownMenu
+              triggerLabel={t('Auto-Iterate on PRs')}
               isDisabled={isDisabled}
               onChange={prIteration => {
                 mutate(
