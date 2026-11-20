@@ -288,13 +288,14 @@ const TimelineRow = memo(function TimelineRowImpl({
     <RowContainer data-selected={isSelected} depth={depth}>
       {hasToggleColumn ? (
         // Rows without children keep the space, so siblings line up whether or not
-        // they can be expanded.
+        // they can be expanded. The gutter keeps the button's focus ring inside the
+        // row's background.
         <Flex
-          justify="center"
           alignSelf="start"
           flexShrink={0}
-          width="20px"
-          paddingTop="xs"
+          width="28px"
+          paddingLeft="xs"
+          paddingTop="2xs"
         >
           {canToggle ? (
             <Button
