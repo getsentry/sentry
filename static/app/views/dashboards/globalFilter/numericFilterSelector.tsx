@@ -20,12 +20,14 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
-import {prettifyTagKey} from 'sentry/utils/fields';
 import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {getDatasetLabel} from './datasetLabels';
 import {MenuTitleWrapper} from './filterSelector';
-import {FilterSelectorTriggerButton} from './filterSelectorTrigger';
+import {
+  FilterSelectorTriggerButton,
+  type FilterSelectorDescription,
+} from './filterSelectorTrigger';
 import type {GenericFilterSelectorProps} from './genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -51,9 +53,9 @@ interface NumericFilterState {
   renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
   /**
-   * Untruncated plain-text version of the selector trigger.
+   * Untruncated version of the selector trigger, for its tooltip.
    */
-  selectorDescription: string;
+  selectorDescription: FilterSelectorDescription;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
   stagedOperator: Operator;
@@ -142,9 +144,10 @@ function useNativeOperatorFilter(
     hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
-    selectorDescription: `${prettifyTagKey(globalFilter.tag.key)} ${getOperatorLabel(
-      stagedFilterOperator
-    )} ${stagedFilterValue}`,
+    selectorDescription: {
+      operator: getOperatorLabel(stagedFilterOperator),
+      values: [stagedFilterValue],
+    },
     isValidValue,
     buildFilterQuery,
   };
@@ -178,7 +181,6 @@ function useBetweenOperatorFilter(
   };
 
   const isValidValue = lowerBound.isValidValue && upperBound.isValidValue;
-  const betweenOperatorLabel = getOperatorLabel(TermOperator.LESS_THAN_EQUAL);
 
   const resetValues = () => {
     lowerBound.resetValues();
@@ -195,9 +197,10 @@ function useBetweenOperatorFilter(
     hasStagedChanges: lowerBound.hasStagedChanges || upperBound.hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
-    selectorDescription: `${lowerBound.stagedValue} ${betweenOperatorLabel} ${prettifyTagKey(
-      globalFilter.tag.key
-    )} ${betweenOperatorLabel} ${upperBound.stagedValue}`,
+    selectorDescription: {
+      operator: getOperatorLabel(CustomOperator.BETWEEN),
+      values: [t('%s and %s', lowerBound.stagedValue, upperBound.stagedValue)],
+    },
     isValidValue,
     buildFilterQuery: () =>
       lowerBound.buildFilterQuery() +

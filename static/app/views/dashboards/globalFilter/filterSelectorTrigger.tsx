@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 
 import {Badge} from '@sentry/scraps/badge';
 import type {SelectOption} from '@sentry/scraps/compactSelect';
-import {Container, Flex} from '@sentry/scraps/layout';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
@@ -19,14 +19,16 @@ import {
   FILTER_SELECTOR_TRIGGER_MAX_WIDTH,
 } from './settings';
 
+export type FilterSelectorDescription = {values: string[]; operator?: string};
+
 type FilterSelectorTriggerButtonProps = React.ComponentProps<
   typeof OverlayTrigger.Button
 > & {
   /**
-   * The full, untruncated filter (e.g. `span.op is db, http`), shown in the
-   * tooltip because the trigger ellipsizes long keys and values.
+   * The full, untruncated filter, shown in the tooltip because the trigger
+   * ellipsizes long keys and values.
    */
-  description: string;
+  description: FilterSelectorDescription;
   globalFilter: GlobalFilter;
   showDatasetLabel?: boolean;
 };
@@ -52,7 +54,17 @@ export function FilterSelectorTriggerButton({
         <Fragment>
           <Tooltip.Header>{t('%s Filter', datasetLabel)}</Tooltip.Header>
           <Tooltip.Grid>
-            <Text>{description}</Text>
+            <Stack gap="xs">
+              <Text bold>{prettifyTagKey(globalFilter.tag.key)}</Text>
+              {description.operator && (
+                <Text variant="muted">{description.operator}</Text>
+              )}
+              {description.values.map((value, index) => (
+                <Text key={index} variant="accent">
+                  {value}
+                </Text>
+              ))}
+            </Stack>
           </Tooltip.Grid>
         </Fragment>
       }
@@ -83,18 +95,15 @@ type FilterSelectorTriggerProps = {
 };
 
 /**
- * Plain-text version of `FilterSelectorTrigger` with nothing truncated.
+ * Untruncated version of `FilterSelectorTrigger` for its tooltip.
  */
 export function getFilterSelectorDescription({
-  globalFilter,
   activeFilterValues,
   operator,
   options,
-}: FilterSelectorTriggerProps): string {
-  const tagKey = prettifyTagKey(globalFilter.tag.key);
-
+}: Omit<FilterSelectorTriggerProps, 'globalFilter'>): FilterSelectorDescription {
   if (activeFilterValues.length === 0) {
-    return `${tagKey}: ${t('All')}`;
+    return {values: [t('All')]};
   }
 
   // Prefer `textValue`: long values get a middle-ellipsized `label`
@@ -106,7 +115,7 @@ export function getFilterSelectorDescription({
     return typeof option?.label === 'string' && option.label ? option.label : value;
   });
 
-  return `${tagKey} ${OP_LABELS[operator]} ${values.join(', ')}`;
+  return {operator: OP_LABELS[operator], values};
 }
 
 export function FilterSelectorTrigger({

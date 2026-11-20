@@ -1,4 +1,11 @@
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+  within,
+} from 'sentry-test/reactTestingLibrary';
 
 import {WildcardOperators} from 'sentry/components/searchSyntax/parser';
 import {FieldKind} from 'sentry/utils/fields';
@@ -107,7 +114,9 @@ describe('FilterSelector', () => {
     await userEvent.hover(screen.getByRole('button', {name: /^browser :/}));
 
     expect(await screen.findByText('Errors Filter')).toBeInTheDocument();
-    expect(screen.getByText('browser is firefox, chrome')).toBeInTheDocument();
+    // The trigger shows `:` and only the first value; the rest is tooltip-only
+    expect(screen.getByText('is')).toBeInTheDocument();
+    expect(screen.getByText('chrome')).toBeInTheDocument();
   });
 
   it('shows long values in full in the trigger tooltip', async () => {
@@ -123,7 +132,7 @@ describe('FilterSelector', () => {
 
     await userEvent.hover(screen.getByRole('button', {name: /^browser :/}));
 
-    expect(await screen.findByText(`browser is ${longValue}`)).toBeInTheDocument();
+    expect(await screen.findByText(longValue)).toBeInTheDocument();
   });
 
   it('calls onRemoveFilter when remove button is clicked', async () => {
@@ -187,7 +196,7 @@ describe('FilterSelector', () => {
 
     // The trigger should still show the selected values, not "All"
     expect(screen.queryByText('All')).not.toBeInTheDocument();
-    expect(screen.getByText('firefox')).toBeInTheDocument();
+    expect(within(button).getByText('firefox')).toBeInTheDocument();
   });
 
   it('shows selected value in trigger when tag values fail to load', async () => {
