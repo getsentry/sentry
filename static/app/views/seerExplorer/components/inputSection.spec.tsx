@@ -2,7 +2,7 @@ import {createRef} from 'react';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ThemeFixture} from 'sentry-fixture/theme';
 
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import type {RepoPRState} from 'sentry/views/seerExplorer/types';
 
@@ -138,6 +138,51 @@ describe('InputSection', () => {
     );
 
     expect(screen.queryByText('Toolbar item')).not.toBeInTheDocument();
+  });
+
+  it('shows the slash command button before the send button', async () => {
+    const onToggleSlashCommandMenu = jest.fn();
+    render(<InputSection {...makeProps({onToggleSlashCommandMenu})} />);
+
+    const button = screen.getByRole('button', {name: 'Slash commands'});
+    expect(
+      button.compareDocumentPosition(screen.getByRole('button', {name: 'Send message'})) &
+        Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
+    await userEvent.click(button);
+    expect(onToggleSlashCommandMenu).toHaveBeenCalled();
+  });
+
+  it('disables the slash command button while there is a draft', () => {
+    render(
+      <InputSection
+        {...makeProps({
+          inputValue: {text: 'Draft', mentions: []},
+          onToggleSlashCommandMenu: jest.fn(),
+        })}
+      />
+    );
+
+    expect(screen.getByRole('button', {name: 'Slash commands'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
+  });
+
+  it('keeps the slash command button enabled while its menu is open', () => {
+    render(
+      <InputSection
+        {...makeProps({
+          inputValue: {text: '/ne', mentions: []},
+          isSlashCommandMenuOpen: true,
+          onToggleSlashCommandMenu: jest.fn(),
+        })}
+      />
+    );
+
+    const button = screen.getByRole('button', {name: 'Slash commands'});
+    expect(button).not.toHaveAttribute('aria-disabled', 'true');
+    expect(button).toHaveAttribute('aria-expanded', 'true');
   });
 
   describe('with ask-seer-create-pr', () => {
