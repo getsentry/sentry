@@ -14,12 +14,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {AiSpanTimeline} from 'sentry/views/insights/pages/agents/components/aiSpanTimeline';
 import {
-  type AiSpanTreeNode,
   buildAiSpanTree,
-  getTreeAncestors,
   getTreeDescendants,
   getVisibleTreeNodes,
-  isExpandedByDefault,
+  getDefaultExpanded,
 } from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {getTraceLinkForIssue} from 'sentry/views/performance/traceDetails/issuesTraceWaterfallOverlay';
@@ -70,11 +68,7 @@ const MAX_DEFAULT_DEPTH = 2;
 function getVisibleSteps(nodes: AITraceSpanNode[], failingNode: AITraceSpanNode) {
   const tree = buildAiSpanTree(nodes);
   const failingTreeNode = tree.byId.get(failingNode.id);
-  const failingAncestors = new Set(
-    failingTreeNode ? getTreeAncestors(failingTreeNode) : []
-  );
-  const isExpanded = (treeNode: AiSpanTreeNode) =>
-    failingAncestors.has(treeNode) || isExpandedByDefault(treeNode, MAX_DEFAULT_DEPTH);
+  const isExpanded = getDefaultExpanded(MAX_DEFAULT_DEPTH, failingTreeNode);
   const rows = getVisibleTreeNodes(tree, isExpanded);
 
   const index = failingTreeNode ? rows.indexOf(failingTreeNode) : -1;

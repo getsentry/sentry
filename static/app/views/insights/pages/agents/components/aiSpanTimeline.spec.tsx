@@ -275,7 +275,7 @@ describe('AiSpanTimeline', () => {
       ).not.toBeInTheDocument();
     });
 
-    it('keeps the depth of spans whose ancestors are outside visibleNodeIds', () => {
+    it('only shows visibleNodeIds, without toggles for children outside them', () => {
       render(
         <AiSpanTimeline
           nodes={nodes}

@@ -19,9 +19,9 @@ import {
   type AiSpanTree,
   type AiSpanTreeNode,
   buildAiSpanTree,
+  getDefaultExpanded,
   getTreeAncestors,
   getVisibleTreeNodes,
-  isExpandedByDefault,
 } from 'sentry/views/insights/pages/agents/utils/aiSpanTree';
 import {
   type ColorByOpType,
@@ -187,11 +187,14 @@ function useExpandedState(
     }
   }
 
+  const isExpandedByDefault = useMemo(
+    () => getDefaultExpanded(maxDefaultDepth),
+    [maxDefaultDepth]
+  );
   const isExpanded = useCallback(
     (treeNode: AiSpanTreeNode) =>
-      expandedById.get(treeNode.node.id) ??
-      isExpandedByDefault(treeNode, maxDefaultDepth),
-    [expandedById, maxDefaultDepth]
+      expandedById.get(treeNode.node.id) ?? isExpandedByDefault(treeNode),
+    [expandedById, isExpandedByDefault]
   );
 
   const toggleExpanded = useCallback(
@@ -532,9 +535,7 @@ const RowContainer = styled('div')<{depth: number}>`
   display: flex;
   align-items: center;
   width: 100%;
-  padding-left: ${p => (p.depth ? p.depth * INDENT_PX : 0)}px;
-  border-radius: 0;
-  background-color: transparent;
+  padding-left: ${p => p.depth * INDENT_PX}px;
 
   /* Hover/active feedback only applies while the row is not selected, so the
    * selected background is never masked. */

@@ -5,7 +5,7 @@ import {
   getTreeAncestors,
   getTreeDescendants,
   getVisibleTreeNodes,
-  isExpandedByDefault,
+  getDefaultExpanded,
 } from './aiSpanTree';
 
 function ids(treeNodes: Array<{node: {id: string}}>) {
@@ -105,9 +105,11 @@ describe('getVisibleTreeNodes', () => {
   });
 
   it('expands by depth like maxDefaultDepth', () => {
-    expect(
-      ids(getVisibleTreeNodes(tree, treeNode => isExpandedByDefault(treeNode, 2)))
-    ).toEqual(['lead', 'tool', 'child']);
+    expect(ids(getVisibleTreeNodes(tree, getDefaultExpanded(2)))).toEqual([
+      'lead',
+      'tool',
+      'child',
+    ]);
   });
 
   it('finds ancestors and descendants', () => {

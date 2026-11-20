@@ -91,14 +91,16 @@ export function getVisibleTreeNodes(
 }
 
 /**
- * Like `StructuredEventData`'s `maxDefaultDepth`: nodes shallower than
- * `maxDefaultDepth` start expanded.
+ * Which nodes the timeline starts with expanded. Like `StructuredEventData`'s
+ * `maxDefaultDepth`, nodes shallower than `maxDefaultDepth` start expanded. So do
+ * the ancestors of `revealed`, the timeline's selected span, so it's visible.
  */
-export function isExpandedByDefault(
-  treeNode: AiSpanTreeNode,
-  maxDefaultDepth: number
-): boolean {
-  return treeNode.depth < maxDefaultDepth;
+export function getDefaultExpanded(
+  maxDefaultDepth: number,
+  revealed?: AiSpanTreeNode
+): (treeNode: AiSpanTreeNode) => boolean {
+  const revealedAncestors = new Set(revealed ? getTreeAncestors(revealed) : []);
+  return treeNode => revealedAncestors.has(treeNode) || treeNode.depth < maxDefaultDepth;
 }
 
 /**
@@ -139,25 +141,14 @@ function walkDepthFirst(
   return visited;
 }
 
+// Both node kinds' `findParent` stop at looping parent links: trace tree nodes
+// and the conversation view's nodes built from flat spans.
 function findClosestTreeAncestor(
   node: AITraceSpanNode,
   byId: Map<string, AiSpanTreeNode>
 ): AiSpanTreeNode | null {
-  let isCycle = false;
-  const visited = new Set<unknown>([node]);
-  const ancestor = node.findParent(parent => {
-    // Parent links can loop; stop the walk there.
-    if (visited.has(parent)) {
-      isCycle = true;
-      return true;
-    }
-    visited.add(parent);
-    return byId.has(parent.id);
-  });
-  if (isCycle || !ancestor || ancestor.id === node.id) {
-    return null;
-  }
-  return byId.get(ancestor.id) ?? null;
+  const ancestor = node.findParent(parent => byId.has(parent.id));
+  return ancestor ? (byId.get(ancestor.id) ?? null) : null;
 }
 
 /**
