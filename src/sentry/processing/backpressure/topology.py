@@ -3,13 +3,11 @@ from enum import Enum
 """
 This defines the "topology" of our services.
 
-In other words, which service (consumer) depends on which other services (queues, processing store).
+In other words, which service (consumer) depends on which other services (queues, stores, locks).
 """
 
 
 class ProcessingServices(Enum):
-    ProcessingStore = "processing-store"
-    ProcessingStoreTransactions = "processing-store-transactions"
     ProcessingLocks = "processing-locks"
     PostProcessLocks = "post-process-locks"
 
@@ -25,12 +23,10 @@ CONSUMERS = {
     # Transactions have been split into their own consumer here,
     # We should consider this for our other consumer types.
     "ingest": [
-        ProcessingServices.ProcessingStore.value,
         ProcessingServices.ProcessingLocks.value,
         ProcessingServices.PostProcessLocks.value,
     ],
     "ingest-transactions": [
-        ProcessingServices.ProcessingStoreTransactions.value,
         ProcessingServices.ProcessingLocks.value,
         ProcessingServices.PostProcessLocks.value,
     ],

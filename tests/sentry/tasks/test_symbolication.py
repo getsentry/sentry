@@ -10,7 +10,6 @@ from sentry.lang.native.symbolicator import Symbolicator, SymbolicatorFunction
 from sentry.models.project import Project
 from sentry.tasks.store import preprocess_event
 from sentry.tasks.symbolication import symbolicate_event
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -42,64 +41,21 @@ def mock_symbolication_function() -> Iterator[MagicMock]:
         yield m
 
 
-@pytest.fixture
-def mock_event_processing_store() -> Iterator[MagicMock]:
-    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
-        yield m
-
-
 @django_db_all
-@pytest.mark.parametrize(
-    "transport_options,cache_key,redis_backups,unprocessed_pending",
-    [
-        (
-            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False},
-            "e:1",
-            1,
-            False,
-        ),
-        (
-            {"store.enable-inline-payloads": 1.0, "store.disable-processing-store": False},
-            "e:1",
-            1,
-            True,
-        ),
-        ({}, None, 0, True),
-        # Store re-enabled after ingest chose no cache key.
-        (
-            {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False},
-            None,
-            0,
-            True,
-        ),
-    ],
-)
 def test_move_to_symbolicate_event(
     default_project: Project,
     mock_process_event: MagicMock,
     mock_save_event: MagicMock,
     mock_symbolicate_event: MagicMock,
-    mock_event_processing_store: MagicMock,
-    transport_options: dict[str, object],
-    cache_key: str | None,
-    redis_backups: int,
-    unprocessed_pending: bool,
 ) -> None:
     data = {"platform": "native", "project": default_project.id, "event_id": EVENT_ID}
-    mock_event_processing_store.store.return_value = "e:1"
-    with (
-        override_options(transport_options),
-        mock.patch("sentry.tasks.store.reprocessing2.backup_unprocessed_event") as backup,
-    ):
-        preprocess_event(cache_key=cache_key, data=data)
+    preprocess_event(data=data)
 
-    assert backup.call_args_list == [mock.call(data=data)] * redis_backups
     assert mock_symbolicate_event.delay.call_count == 1
     kwargs = mock_symbolicate_event.delay.call_args.kwargs
-    assert kwargs["unprocessed_pending"] is unprocessed_pending
+    assert kwargs["unprocessed_pending"] is True
     assert kwargs["unprocessed"] is None
-    assert kwargs["data"] == (data if unprocessed_pending else None)
-    assert kwargs["cache_key"] == cache_key
+    assert kwargs["data"] == data
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 0
 
@@ -144,7 +100,6 @@ def test_symbolication_passes_unprocessed_event_inline(
 )
 def test_symbolication_continues_after_error_or_load_shedding(
     default_project: Project,
-    mock_event_processing_store: MagicMock,
     mock_process_event: MagicMock,
     mock_symbolication_function: MagicMock,
     error: RuntimeError,
@@ -165,17 +120,13 @@ def test_symbolication_continues_after_error_or_load_shedding(
     mock_process_event.delay.assert_called_once()
     kwargs = mock_process_event.delay.call_args.kwargs
     assert kwargs["data"] == data
-    assert kwargs["cache_key"] is None
     assert data.get("_metrics", {}) == expected_metrics
     assert kwargs["data_has_changed"] is (error is not None)
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
 
 
 @django_db_all
 def test_symbolicate_minidump_and_native_stacktrace(
     default_project: Project,
-    mock_event_processing_store: MagicMock,
     mock_process_event: MagicMock,
     mock_save_event: MagicMock,
 ) -> None:
@@ -283,9 +234,6 @@ def test_symbolicate_minidump_and_native_stacktrace(
     # processing.
     assert mock_process_event.delay.call_count == 1
     final_data = mock_process_event.delay.call_args.kwargs["data"]
-    assert mock_process_event.delay.call_args.kwargs["cache_key"] is None
-    mock_event_processing_store.store.assert_not_called()
-    mock_event_processing_store.get.assert_not_called()
     mock_save_event.delay.assert_not_called()
     mock_do_process_event.assert_not_called()
     assert not final_data.get("_metrics", {}).get("flag.processing.error")

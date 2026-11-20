@@ -6,9 +6,6 @@ from sentry.ingest.types import ConsumerType
 
 
 class TransactionStageStatus(StrEnum):
-    # the transaction is stored to rc-transactions
-    REDIS_PUT = "redis_put"
-
     # a save_transactions task is kicked off
     SAVE_TXN_STARTED = "save_txn_started"
 
@@ -17,9 +14,6 @@ class TransactionStageStatus(StrEnum):
 
     # the transaction is published to the `events` topic for snuba/sbc consumers to consume
     SNUBA_TOPIC_PUT = "snuba_topic_put"
-
-    # the transaction is deleted from rc-transactions
-    REDIS_DELETED = "redis_deleted"
 
     # a post_process task is finished
     POST_PROCESS_FINISHED = "post_process_finished"

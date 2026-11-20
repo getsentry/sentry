@@ -27,9 +27,7 @@ def test_loading_definitions() -> None:
         assert_all_services_defined(
             {
                 "sellerie": None,  # oops
-                "processing-store": None,
                 "processing-locks": None,
-                "post-process-locks": None,
             }
         )
 
@@ -67,15 +65,13 @@ def test_check_redis_health() -> None:
 )
 def test_record_consumer_health() -> None:
     unhealthy_services: MutableMapping[str, UnhealthyReasons] = {
-        "processing-store": [],
-        "processing-store-transactions": [],
         "processing-locks": [],
         "post-process-locks": [],
     }
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is True
 
-    unhealthy_services["processing-store"] = Exception("Couldn't check processing-store")
+    unhealthy_services["processing-locks"] = Exception("Couldn't check processing-locks")
     record_consumer_health(unhealthy_services)
     assert is_consumer_healthy() is False
 
@@ -83,8 +79,6 @@ def test_record_consumer_health() -> None:
         record_consumer_health(
             {
                 "sellerie": [],  # oops
-                "processing-store": [],
                 "processing-locks": [],
-                "post-process-locks": [],
             }
         )

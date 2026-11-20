@@ -210,7 +210,7 @@ def test_task_always_continues_to_save() -> None:
         mock.patch("sentry.tasks.gpu_crash._try_symbolicate", return_value=False),
         mock.patch(SUBMIT_PROCESS) as submit_process,
     ):
-        symbolicate_gpu_crash_event(cache_key="k", data=data, has_attachments=True)
+        symbolicate_gpu_crash_event(data=data, has_attachments=True)
 
     assert submit_process.call_count == 1
     assert submit_process.call_args.kwargs["from_symbolicate"] is True
@@ -222,25 +222,18 @@ def test_gpu_task_payload_transport(has_changed: bool) -> None:
     data = {"event_id": "e" * 32, "project": 1, "message": "gpu crash"}
     with (
         mock.patch("sentry.tasks.gpu_crash._try_symbolicate", return_value=has_changed),
-        mock.patch(
-            "sentry.services.eventstore.processing.event_processing_store"
-        ) as processing_store,
         mock.patch("sentry.tasks.store.process_event.delay") as process,
     ):
         symbolicate_gpu_crash_event(data=data, has_attachments=True)
 
     assert process.call_args.kwargs["data"] == data
-    assert process.call_args.kwargs["cache_key"] is None
     assert process.call_args.kwargs["data_has_changed"] is has_changed
     assert process.call_args.kwargs["has_attachments"] is True
-    processing_store.get.assert_not_called()
-    processing_store.store.assert_not_called()
 
 
 IS_GPU_EVENT = "sentry.lang.native.utils.is_gpu_crash_event"
 SUBMIT_GPU = "sentry.tasks.gpu_crash.symbolicate_gpu_crash_event.delay"
 KILLSWITCH = "sentry.tasks.store.killswitch_matches_context"
-BACKUP = "sentry.tasks.store.reprocessing2.backup_unprocessed_event"
 
 
 @django_db_all
@@ -252,10 +245,8 @@ def test_preprocess_routes_gpu_event_to_dedicated_task(default_project: Project)
         Feature("organizations:gpu-crash-symbolication"),
         mock.patch(IS_GPU_EVENT, return_value=True),
         mock.patch(SUBMIT_GPU) as submit_gpu,
-        mock.patch(BACKUP) as backup,
     ):
         _do_preprocess_event(
-            cache_key="k",
             data=data,
             start_time=None,
             event_id="e" * 32,
@@ -265,9 +256,6 @@ def test_preprocess_routes_gpu_event_to_dedicated_task(default_project: Project)
         )
 
     assert submit_gpu.call_count == 1
-    # GPU events are enriched once, on ingest — deliberately NOT backed up, so a
-    # later reprocess keeps the enriched event instead of dropping the enrichment.
-    assert backup.call_count == 0
 
 
 @django_db_all
@@ -286,7 +274,6 @@ def test_preprocess_not_routed_on_reprocessing(default_project: Project) -> None
         mock.patch("sentry.tasks.store.submit_process"),
     ):
         _do_preprocess_event(
-            cache_key="k",
             data=data,
             start_time=None,
             event_id="e" * 32,
@@ -310,7 +297,6 @@ def test_preprocess_ignores_non_gpu_event(default_project: Project) -> None:
         mock.patch("sentry.tasks.store.submit_process"),
     ):
         _do_preprocess_event(
-            cache_key="k",
             data=data,
             start_time=None,
             event_id="e" * 32,
@@ -335,7 +321,6 @@ def test_preprocess_not_routed_without_feature_flag(default_project: Project) ->
         mock.patch("sentry.tasks.store.submit_process"),
     ):
         _do_preprocess_event(
-            cache_key="k",
             data=data,
             start_time=None,
             event_id="e" * 32,
@@ -363,7 +348,6 @@ def test_preprocess_sheds_gpu_event_when_killswitch_matches(default_project: Pro
         mock.patch("sentry.tasks.store.submit_process"),
     ):
         _do_preprocess_event(
-            cache_key="k",
             data=data,
             start_time=None,
             event_id="e" * 32,

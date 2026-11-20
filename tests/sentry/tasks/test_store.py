@@ -12,10 +12,8 @@ from urllib3.response import HTTPResponse
 from sentry import nodestore, options, quotas
 from sentry.event_manager import EventManager
 from sentry.exceptions import HashDiscarded
-from sentry.ingest.types import ConsumerType
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.eventstore.processing import event_processing_store
 from sentry.tasks.store import (
     is_process_disabled,
     preprocess_event,
@@ -27,10 +25,7 @@ from sentry.tasks.store import (
 )
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils.cache import cache_key_for_event
-from sentry.utils.event_tracker import TransactionStageStatus
 from sentry.viewer_context import (
     ActorType,
     ViewerContext,
@@ -62,12 +57,6 @@ def mock_save_event() -> Iterator[MagicMock]:
 
 
 @pytest.fixture
-def mock_save_event_transaction() -> Iterator[MagicMock]:
-    with mock.patch("sentry.tasks.store.save_event_transaction") as m:
-        yield m
-
-
-@pytest.fixture
 def mock_process_event() -> Iterator[MagicMock]:
     with mock.patch("sentry.tasks.store.process_event") as m:
         yield m
@@ -76,19 +65,6 @@ def mock_process_event() -> Iterator[MagicMock]:
 @pytest.fixture
 def mock_symbolicate_event() -> Iterator[MagicMock]:
     with mock.patch("sentry.tasks.symbolication.symbolicate_event") as m:
-        yield m
-
-
-@pytest.fixture
-def mock_event_processing_store() -> Iterator[MagicMock]:
-    with mock.patch("sentry.services.eventstore.processing.event_processing_store") as m:
-        m.store.return_value = "e:1"
-        yield m
-
-
-@pytest.fixture
-def mock_transaction_processing_store() -> Iterator[MagicMock]:
-    with mock.patch("sentry.services.eventstore.processing.transaction_processing_store") as m:
         yield m
 
 
@@ -121,7 +97,7 @@ def test_move_to_process_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(cache_key="", data=data)
+    preprocess_event(data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 1
@@ -149,7 +125,6 @@ def test_move_to_process_event_inline_save_event_still_submits_process_event(
 
     assert mock_symbolicate_event.delay.call_count == 0
     mock_process_event.delay.assert_called_once_with(
-        cache_key=None,
         start_time=None,
         event_id=EVENT_ID,
         data_has_changed=False,
@@ -177,7 +152,7 @@ def test_move_to_save_event(
         "extra": {"foo": "bar"},
     }
 
-    preprocess_event(cache_key="", data=data)
+    preprocess_event(data=data)
 
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
@@ -204,7 +179,6 @@ def test_move_to_save_event_inline(
     assert mock_symbolicate_event.delay.call_count == 0
     assert mock_process_event.delay.call_count == 0
     mock_save_event.assert_called_once_with(
-        cache_key=None,
         data=data,
         start_time=None,
         event_id=EVENT_ID,
@@ -217,7 +191,6 @@ def test_move_to_save_event_inline(
 @django_db_all
 def test_process_event_mutate_and_save(
     default_project: Project,
-    mock_event_processing_store: MagicMock,
     mock_save_event: MagicMock,
     mock_get_preprocessors: MagicMock,
 ) -> None:
@@ -237,11 +210,8 @@ def test_process_event_mutate_and_save(
 
     assert "extra" not in data
     assert data["_attachments"] == attachments
-    mock_event_processing_store.store.assert_not_called()
-    mock_event_processing_store.get.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key=None,
         data=data,
         start_time=1,
         event_id=EVENT_ID,
@@ -252,10 +222,7 @@ def test_process_event_mutate_and_save(
 
 @django_db_all
 def test_process_event_no_mutate_and_save(
-    default_project: Project,
-    mock_event_processing_store: MagicMock,
-    mock_save_event: MagicMock,
-    mock_get_preprocessors: MagicMock,
+    default_project: Project, mock_save_event: MagicMock, mock_get_preprocessors: MagicMock
 ) -> None:
     mock_get_preprocessors.return_value = [_noop]
 
@@ -267,21 +234,10 @@ def test_process_event_no_mutate_and_save(
         "extra": {"foo": "bar"},
     }
 
-    mock_event_processing_store.get.return_value = data
-
-    with override_options(
-        {"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False}
-    ):
-        process_event(cache_key="e:1", start_time=1)
-
-    mock_event_processing_store.get.assert_called_once_with("e:1")
-
-    # A working key always causes a write, including unchanged payloads.
-    mock_event_processing_store.store.assert_called_once_with(data)
+    process_event(data=data, start_time=1)
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key="e:1",
-        data=None,
+        data=data,
         start_time=1,
         event_id=EVENT_ID,
         project_id=default_project.id,
@@ -293,7 +249,6 @@ def test_process_event_no_mutate_and_save(
 @pytest.mark.parametrize("load_shed", (False, True))
 def test_process_event_payload_transport(
     default_project: Project,
-    mock_event_processing_store: MagicMock,
     mock_save_event: MagicMock,
     mock_get_preprocessors: MagicMock,
     load_shed: bool,
@@ -303,18 +258,12 @@ def test_process_event_payload_transport(
     with mock.patch("sentry.tasks.store.is_process_disabled", return_value=load_shed):
         process_event(data=data)
 
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
     assert mock_save_event.delay.call_args.kwargs["data"] == data
-    assert mock_save_event.delay.call_args.kwargs["cache_key"] is None
 
 
 @django_db_all
 def test_process_event_unprocessed(
-    default_project: Project,
-    mock_event_processing_store: MagicMock,
-    mock_save_event: MagicMock,
-    mock_get_preprocessors: MagicMock,
+    default_project: Project, mock_save_event: MagicMock, mock_get_preprocessors: MagicMock
 ) -> None:
     mock_get_preprocessors.return_value = [_put_on_hold]
 
@@ -329,11 +278,8 @@ def test_process_event_unprocessed(
     process_event(data=data, start_time=1)
 
     assert data["unprocessed"] is True
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key=None,
         data=data,
         start_time=1,
         event_id=EVENT_ID,
@@ -361,10 +307,7 @@ def test_hash_discarded_raised(default_project: Project, mock_refund: MagicMock)
 
 
 @django_db_all
-@pytest.mark.parametrize("inline", [False, True])
-def test_save_event_start_is_persisted_before_grouping(
-    default_project: Project, inline: bool
-) -> None:
+def test_save_event_start_is_persisted_before_grouping(default_project: Project) -> None:
     manager = EventManager(
         {
             "project": default_project.id,
@@ -377,7 +320,6 @@ def test_save_event_start_is_persisted_before_grouping(
     data = manager.get_data()
     data["project"] = default_project.id
     data["save_event_start"] = 1
-    cache_key = event_processing_store.store(data)
     saved_events = []
     original_save = EventManager.save
 
@@ -392,11 +334,7 @@ def test_save_event_start_is_persisted_before_grouping(
             return event
 
         with mock.patch.object(EventManager, "save", autospec=True, side_effect=slow_save):
-            save_event(
-                data=data if inline else None,
-                cache_key=cache_key,
-                project_id=default_project.id,
-            )
+            save_event(data=data, project_id=default_project.id)
 
     assert len(saved_events) == 1
     persisted = nodestore.backend.get(saved_events[0].data.id)
@@ -481,101 +419,7 @@ def test_save_event_passes_system_viewer_context_to_seer(
 
 
 @django_db_all
-def test_save_event_deletes_processing_store_at_end(
-    default_project: Project, mock_event_processing_store: MagicMock
-) -> None:
-    data = {
-        "project": default_project.id,
-        "platform": "python",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-    }
-    cache_key = "e:test"
-    mock_event_processing_store.get.return_value = data
-    calls = []
-
-    with (
-        mock.patch.object(EventManager, "save", side_effect=lambda **kwargs: calls.append("save")),
-        mock.patch(
-            "sentry.tasks.store.reprocessing2.mark_event_reprocessed",
-            side_effect=lambda data: calls.append("reprocessing_cleanup"),
-        ),
-        mock.patch(
-            "sentry.tasks.store.track_event_since_received",
-            side_effect=lambda **kwargs: calls.append(kwargs["step"]),
-        ),
-    ):
-        mock_event_processing_store.delete_by_key.side_effect = lambda key: calls.append("delete")
-        save_event(cache_key=cache_key, event_id=EVENT_ID, project_id=default_project.id)
-
-    assert calls == [
-        "start_save_event",
-        "save",
-        "delete",
-        "reprocessing_cleanup",
-        "end_save_event",
-    ]
-    mock_event_processing_store.store.assert_not_called()
-    mock_event_processing_store.delete_by_key.assert_called_once_with(cache_key)
-
-
-@django_db_all
-def test_inline_save_persists_then_cleans_up_backup_without_working_key(
-    default_project: Project,
-) -> None:
-    data = {"project": default_project.id, "event_id": EVENT_ID, "platform": "python"}
-    key = event_processing_store.store(dict(data), unprocessed=True)
-    working_key = cache_key_for_event(data)
-    assert key == working_key + ":u"
-    assert event_processing_store.get(working_key) is None
-
-    def check_backup(**kwargs: Any) -> None:
-        assert kwargs["cache_key"] is None
-        backup = event_processing_store.get(working_key, unprocessed=True)
-        assert backup is not None
-        assert backup["event_id"] == EVENT_ID
-
-    with mock.patch.object(EventManager, "save", side_effect=check_backup):
-        save_event(data=data, project_id=default_project.id)
-
-    assert event_processing_store.get(working_key, unprocessed=True) is None
-
-
-@django_db_all
-@pytest.mark.parametrize("cache_key", (None, "e:test"))
-def test_save_event_deletes_processing_store_on_failure(
-    default_project: Project, mock_event_processing_store: MagicMock, cache_key: str
-) -> None:
-    data = {
-        "project": default_project.id,
-        "platform": "python",
-        "logentry": {"formatted": "test"},
-        "event_id": EVENT_ID,
-    }
-
-    mock_event_processing_store.get.return_value = data
-
-    with (
-        mock.patch.object(EventManager, "save", side_effect=RuntimeError("save failed")),
-        pytest.raises(RuntimeError, match="save failed"),
-    ):
-        save_event(
-            cache_key=cache_key,
-            data=data if cache_key is None else None,
-            event_id=EVENT_ID,
-            project_id=default_project.id,
-        )
-
-    mock_event_processing_store.delete_by_key.assert_called_once_with(
-        cache_key or cache_key_for_event(data)
-    )
-
-
-@django_db_all
-@pytest.mark.parametrize("cache_key", (None, "", "e:working-event"))
-def test_discard_event_cleans_up_attachments_with_optional_cache_key(
-    default_project: Project, cache_key: str
-) -> None:
+def test_discard_event_cleans_up_attachments(default_project: Project) -> None:
     data = {
         "project": default_project.id,
         "platform": "python",
@@ -593,17 +437,14 @@ def test_discard_event_cleans_up_attachments_with_optional_cache_key(
     with (
         mock.patch.object(EventManager, "save", side_effect=HashDiscarded("discarded")),
         mock.patch("sentry.attachments.get_session") as get_session,
-        mock.patch.object(event_processing_store, "delete_by_key") as delete,
     ):
         save_event_attachments(
-            cache_key=cache_key,
             data=data,
             project_id=default_project.id,
             start_time=time(),
         )
 
     get_session.return_value.delete.assert_called_once_with("stored-attachment")
-    delete.assert_called_once_with(cache_key or cache_key_for_event(data))
     assert "_attachments" not in data
 
 
@@ -626,7 +467,6 @@ def test_scrubbing_after_processing(
     default_organization: Organization,
     mock_save_event: MagicMock,
     mock_get_preprocessors: MagicMock,
-    mock_event_processing_store: MagicMock,
     setting_method: str,
     options_model: Any,
 ) -> None:
@@ -660,11 +500,8 @@ def test_scrubbing_after_processing(
 
     saved_data = mock_save_event.delay.call_args.kwargs["data"]
     assert saved_data["extra"] == {"ooo": "[Filtered]", "ooo2": "event preprocessor"}
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
 
     mock_save_event.delay.assert_called_once_with(
-        cache_key=None,
         data=saved_data,
         start_time=1,
         event_id=EVENT_ID,
@@ -684,87 +521,9 @@ def test_killswitch() -> None:
 
 
 @django_db_all
-@override_options({"store.enable-inline-payloads": 0.0, "store.disable-processing-store": False})
-def test_transactions_store(
-    default_project: Project, mock_transaction_processing_store: MagicMock
-) -> None:
-    data = {
-        "project": default_project.id,
-        "platform": "transaction",
-        "event_id": EVENT_ID,
-        "type": "transaction",
-        "transaction": "minimal_transaction",
-        "timestamp": time(),
-        "start_timestamp": time() - 1,
-    }
-
-    mock_transaction_processing_store.store.return_value = "e:1"
-    mock_transaction_processing_store.get.return_value = data
-    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
-        save_event_transaction(
-            cache_key="e:1",
-            data=None,
-            start_time=1,
-            event_id=EVENT_ID,
-            project_id=default_project.id,
-        )
-
-    mock_transaction_processing_store.get.assert_called_once_with("e:1")
-
-
-@django_db_all
-@pytest.mark.parametrize(
-    ("cache_key", "expected_stages"),
-    (
-        (
-            None,
-            [TransactionStageStatus.SAVE_TXN_STARTED, TransactionStageStatus.SAVE_TXN_FINISHED],
-        ),
-        (
-            "e:1",
-            [
-                TransactionStageStatus.SAVE_TXN_STARTED,
-                TransactionStageStatus.REDIS_DELETED,
-                TransactionStageStatus.SAVE_TXN_FINISHED,
-            ],
-        ),
-    ),
-)
-def test_inline_transaction_tracks_redis_deletion_only_with_cache_key(
-    default_project: Project,
-    mock_transaction_processing_store: MagicMock,
-    cache_key: str,
-    expected_stages: list[str],
-) -> None:
-    data = {"project": default_project.id, "event_id": EVENT_ID, "type": "transaction"}
-
-    with (
-        mock.patch.object(EventManager, "save"),
-        mock.patch("sentry.tasks.store.track_sampled_event") as track,
-    ):
-        save_event_transaction(
-            cache_key=cache_key,
-            data=data,
-            event_id=EVENT_ID,
-            project_id=default_project.id,
-        )
-
-    assert track.call_args_list == [
-        mock.call(EVENT_ID, ConsumerType.Transactions, stage) for stage in expected_stages
-    ]
-    mock_transaction_processing_store.get.assert_not_called()
-    mock_transaction_processing_store.delete_by_key.assert_called_once_with(
-        cache_key or cache_key_for_event(data)
-    )
-
-
-@django_db_all
 def test_store_consumer_type(
     default_project: Project,
     mock_save_event: MagicMock,
-    mock_save_event_transaction: MagicMock,
-    mock_event_processing_store: MagicMock,
-    mock_transaction_processing_store: MagicMock,
 ) -> None:
     data = {
         "project": default_project.id,
@@ -777,11 +536,7 @@ def test_store_consumer_type(
 
     process_event(data=data, start_time=1)
 
-    mock_event_processing_store.get.assert_not_called()
-    mock_event_processing_store.store.assert_not_called()
-
     mock_save_event.delay.assert_called_once_with(
-        cache_key=None,
         data=data,
         start_time=1,
         event_id=EVENT_ID,
@@ -798,7 +553,7 @@ def test_store_consumer_type(
         "start_timestamp": time() - 1,
     }
 
-    with mock.patch("sentry.event_manager.EventManager.save", return_value=None):
+    with mock.patch("sentry.event_manager.EventManager.save", return_value=None) as save:
         save_event_transaction(
             data=transaction_data,
             start_time=1,
@@ -806,11 +561,7 @@ def test_store_consumer_type(
             project_id=default_project.id,
         )
 
-    mock_transaction_processing_store.get.assert_not_called()
-    mock_transaction_processing_store.delete_by_key.assert_called_once_with(
-        cache_key_for_event(transaction_data)
-    )
-    mock_transaction_processing_store.store.assert_not_called()
+    save.assert_called_once()
 
 
 @django_db_all
@@ -845,9 +596,7 @@ def test_should_process_new_path_no_preprocessor(default_project: Project) -> No
 
 
 @django_db_all
-def test_process_event_new_path_js(
-    default_project: Project, mock_event_processing_store: MagicMock, mock_save_event: MagicMock
-) -> None:
+def test_process_event_new_path_js(default_project: Project, mock_save_event: MagicMock) -> None:
     data = {
         "project": default_project.id,
         "platform": "javascript",
@@ -874,7 +623,7 @@ def test_preprocess_routes_to_save_new_path_python(
         "event_id": EVENT_ID,
     }
 
-    preprocess_event(cache_key="", data=data)
+    preprocess_event(data=data)
 
     assert mock_process_event.delay.call_count == 0
     assert mock_save_event.delay.call_count == 1

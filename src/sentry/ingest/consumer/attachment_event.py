@@ -9,10 +9,6 @@ from arroyo.types import BrokerValue, Message
 
 from sentry.ingest.types import ConsumerType
 from sentry.models.project import Project
-from sentry.services.eventstore.processing import (
-    event_processing_store,
-    transaction_processing_store,
-)
 from sentry.utils import metrics
 
 from .processors import (
@@ -27,19 +23,8 @@ from .processors import (
 logger = logging.getLogger(__name__)
 
 
-def _event_is_stuck(message: IngestMessage) -> bool:
-    """
-    Checks if the metadata key associated with this chunk is in a processing store.
-    Processing store (which contains attachment metadata) has a TTL of 24h, but attachment chunks
-    are only stored for 1h, so if we're running the attachment consumer in recovery mode we'll typically
-    need to store the attachment chunk again.
-    """
-    key_data = {"event_id": message["event_id"], "project": message["project_id"]}
-    return event_processing_store.exists(key_data) or transaction_processing_store.exists(key_data)
-
-
 def decode_and_process_chunks(
-    raw_message: Message[KafkaPayload], consumer_type: str, reprocess_only_stuck_events: bool
+    raw_message: Message[KafkaPayload], consumer_type: str
 ) -> IngestMessage | None:
     """
     The first pass for the `attachments` topic:
@@ -60,10 +45,7 @@ def decode_and_process_chunks(
         message: IngestMessage = msgpack.unpackb(raw_payload, use_list=False)
 
         if message["type"] == "attachment_chunk":
-            # We typically still need to re-store the attachment chunk if we're reprocessing stuck events,
-            # since the attachment store only has a 1h TTL while processing stores have 24h TTL
-            if not reprocess_only_stuck_events or _event_is_stuck(message):
-                process_attachment_chunk(message)
+            process_attachment_chunk(message)
             return None
 
         return message
@@ -79,7 +61,6 @@ def decode_and_process_chunks(
 
 def process_attachments_and_events(
     raw_message: Message[IngestMessage],
-    reprocess_only_stuck_events: bool,
     reprocess_only_events_not_in_nodestore: bool,
 ) -> None:
     """
@@ -90,9 +71,8 @@ def process_attachments_and_events(
     This will:
     - Decode the actual event payload which is in JSON format and perform some
       initial loadshedding on it.
-    - Store the JSON payload in the event processing store, and pass it on to
-      `preprocess_event`, which will schedule a followup task such as
-      `symbolicate_event` or `process_event`.
+    - Pass the JSON payload to `preprocess_event`, which will schedule a followup
+      task such as `symbolicate_event` or `process_event`.
     """
     message = raw_message.payload
     message_type = message["type"]
@@ -107,16 +87,15 @@ def process_attachments_and_events(
 
     try:
         if message_type == "attachment":
-            # Individual attachments are not idempotent, so we skip them in either reprocessing
+            # Individual attachments are not idempotent, so we skip them in reprocessing
             # mode to avoid duplicating attachments for events that were already handled.
-            if not reprocess_only_stuck_events and not reprocess_only_events_not_in_nodestore:
+            if not reprocess_only_events_not_in_nodestore:
                 process_individual_attachment(message, project)
         elif message_type == "event":
             process_event(
                 ConsumerType.Events,
                 message,
                 project,
-                reprocess_only_stuck_events,
                 reprocess_only_events_not_in_nodestore,
             )
         elif message_type == "user_report":
