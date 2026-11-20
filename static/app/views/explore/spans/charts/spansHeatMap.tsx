@@ -15,7 +15,6 @@ import {defined} from 'sentry/utils/defined';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useFetchSpanTimeSeries} from 'sentry/utils/timeSeries/useFetchEventsTimeSeries';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -147,12 +146,12 @@ export function SpansHeatMap({
 
   // Filtering out spans above the clip lets the endpoint derive the Y axis from
   // the remaining spans. The clip is added to the attribute's filters rather
-  // than replacing them, so a range the user zoomed into still applies.
+  // than replacing them, so a range the user zoomed into still applies. The user
+  // query is wrapped so the clip applies to every branch of an OR.
   let heatMapQuery = query;
   if (yBounds) {
-    const search = new MutableSearch(query);
-    search.addFilterValue(yAxis, `<${formatSearchNumber(yBounds.yMax)}`, false);
-    heatMapQuery = search.formatString();
+    const clip = `${yAxis}:<${formatSearchNumber(yBounds.yMax)}`;
+    heatMapQuery = query ? `(${query}) ${clip}` : clip;
   }
 
   const bucketDimensions = calculateHeatMapBucketDimensions(
