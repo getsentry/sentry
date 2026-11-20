@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from enum import StrEnum
 from typing import Annotated, NotRequired, TypedDict
@@ -7,6 +8,7 @@ from django.contrib.auth.models import AnonymousUser
 from sentry.api.serializers.models.group import BaseGroupSerializerResponse
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.models.group import Group
+from sentry.models.project import Project
 from sentry.service_accounts.principal import ServiceAccountPrincipal
 from sentry.services.eventstore.models import GroupEvent
 from sentry.users.models.user import User
@@ -32,6 +34,8 @@ class RelatedIssuesContext:
     event: GroupEvent | None
     limit: int
     user: User | AnonymousUser | ServiceAccountPrincipal
+    # The organization's active projects the caller can read, for types that cross projects
+    readable_projects: Sequence[Project]
 
 
 class RelatedIssueRelation(TypedDict):

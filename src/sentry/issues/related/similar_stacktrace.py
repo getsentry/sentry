@@ -10,7 +10,6 @@ from collections.abc import Sequence
 
 from sentry.auth.principal import acting_user_id
 from sentry.grouping.grouping_info import get_grouping_info_from_variants_legacy
-from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.types import (
     RelatedIssueRelation,
     RelatedIssuesContext,
@@ -96,10 +95,7 @@ def similar_stacktrace_issues(ctx: RelatedIssuesContext) -> RelationTypeResult:
     """Issues in the same project whose stack traces Seer finds similar, most similar first."""
     group, event = ctx.group, ctx.event
 
-    # 1. Check that this type applies to the issue
-    # Seer only indexes error issues, so a metric or performance issue has nothing to compare.
-    if group.issue_category != GroupCategory.ERROR:
-        return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NOT_AN_ERROR_DETAIL)
+    # 1. Check that Seer can compare the issue (registry.py has checked that it's an error issue)
     if not project_uses_seer_similarity(group.project):
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=SIMILARITY_DISABLED_DETAIL)
     if killswitch_enabled(group.project.id, ReferrerOptions.SIMILAR_ISSUES_TAB):
