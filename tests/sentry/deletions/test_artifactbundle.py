@@ -48,7 +48,7 @@ class DeleteArtifactBundleTest(TransactionTestCase, HybridCloudTestMixin):
         assert not ReleaseArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not DebugIdArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
         assert not ProjectArtifactBundle.objects.filter(artifact_bundle=artifact_bundle).exists()
-        assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+        assert not File.objects.filter(id=artifact_bundle.file_id).exists()
 
     def test_delete_when_file_already_deleted(self) -> None:
         """Signal handler must not raise when the associated File is already gone."""

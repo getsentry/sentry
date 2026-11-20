@@ -67,7 +67,10 @@ class ArtifactBundle(Model):
     # We use 00000000-00000000-00000000-00000000 in place of NULL because the uniqueness constraint doesn't play well
     # with nullable fields, since NULL != NULL.
     bundle_id = models.UUIDField(default=NULL_UUID, db_index=True)
-    file = FlexibleForeignKey("sentry.File")
+    file = FlexibleForeignKey("sentry.File", null=True)
+    storage_path = models.TextField(null=True)
+    checksum = models.CharField(max_length=40, null=True)
+    file_size = BoundedBigIntegerField(null=True)
     artifact_count = BoundedPositiveIntegerField()
     indexing_state = models.IntegerField(
         default=None, null=True, choices=ArtifactBundleIndexingState.choices()
@@ -114,22 +117,24 @@ def delete_file_for_artifact_bundle(instance: ArtifactBundle, **kwargs: object) 
     from sentry.models.files import File
     from sentry.tasks.assemble import AssembleTask, delete_assemble_status
 
-    checksum = None
     try:
-        checksum = instance.file.checksum
+        file = instance.file
     except File.DoesNotExist:
-        pass
-    else:
+        return
+    if file is None:
+        return
+
+    try:
+        checksum = file.checksum
         if instance.organization_id is not None and checksum is not None:
             delete_assemble_status(
                 AssembleTask.ARTIFACT_BUNDLE,
                 instance.organization_id,
                 checksum,
             )
-
     finally:
         try:
-            instance.file.delete()
+            file.delete()
         except File.DoesNotExist:
             pass
 
