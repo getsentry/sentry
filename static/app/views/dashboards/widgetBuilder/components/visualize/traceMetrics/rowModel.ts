@@ -304,7 +304,15 @@ export function rowsFromFields(
   const rows: TraceMetricRow[] = [];
   const pendingEquations: Array<{reused: boolean; row: EquationRow; text: string}> = [];
 
+  // An aggregate any visible field provides needs no hidden row, even when
+  // that field comes after the equation.
+  const visibleKeys = new Set(
+    fields
+      .filter(field => field.kind === FieldValueKind.FUNCTION)
+      .map(field => columnKey(field))
+  );
   const hasMetric = (key: string) =>
+    visibleKeys.has(key) ||
     rows.some(row => isMetricRow(row) && columnKey(row.field) === key) ||
     reusedHidden.some(({row}) => columnKey(row.field) === key);
 
