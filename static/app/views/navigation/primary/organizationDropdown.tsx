@@ -414,7 +414,9 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
               key: 'switch-organization',
               label: t('Switch Organization'),
               submenu: true,
-              hidden: !canSwitch,
+              // Also holds Create Organization, so a user with one organization
+              // still needs it.
+              hidden: !canSwitch && createOrganizationLink === null,
               children: [
                 {
                   key: 'active-orgs',

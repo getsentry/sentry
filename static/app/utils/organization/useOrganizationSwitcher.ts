@@ -15,7 +15,8 @@ interface OrganizationSwitcher {
    */
   canSwitch: boolean;
   /**
-   * Where to create a new organization, or `null` when the user can't. With
+   * Where to create a new organization, or `null` when the user can't, which
+   * includes single organization installs and demo mode. With
    * multi-region, organizations are created on the main Sentry domain, outside
    * of any organization's customer domain, so the link is an absolute `href`.
    */
@@ -29,18 +30,19 @@ export function useOrganizationSwitcher(): OrganizationSwitcher {
   const features = useStore(ConfigStore, state => state.features);
   const links = useStore(ConfigStore, state => state.links);
 
+  const offersOtherOrganizations = !singleOrganization && !isDemoModeActive();
   const canSwitch =
-    !singleOrganization &&
-    !isDemoModeActive() &&
+    offersOtherOrganizations &&
     organizations.some(org => org.slug !== organization?.slug);
 
   // organizations:create is a system feature checked against the user, so it
   // is not on organization.features.
-  const createOrganizationLink = features.has('organizations:create')
-    ? features.has('system:multi-region')
-      ? {href: `${localizeDomain(links.sentryUrl)}/organizations/new/`}
-      : {to: '/organizations/new/'}
-    : null;
+  const createOrganizationLink =
+    offersOtherOrganizations && features.has('organizations:create')
+      ? features.has('system:multi-region')
+        ? {href: `${localizeDomain(links.sentryUrl)}/organizations/new/`}
+        : {to: '/organizations/new/'}
+      : null;
 
   return {canSwitch, createOrganizationLink};
 }
