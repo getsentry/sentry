@@ -120,10 +120,7 @@ function useSavedQueryActions({
 
     handleCreateQuery(api, organization, copy, yAxis).then(() => {
       refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
+      navigate({pathname: location.pathname, query: {}});
     });
   };
 
@@ -392,10 +389,7 @@ export function QueryList({
             delete newQuery.cursor;
           }
 
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
+          navigate({pathname: path, query: newQuery});
         }}
       />
     </Fragment>

@@ -21,7 +21,7 @@ import type {Organization} from 'sentry/types/organization';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {RequestError} from 'sentry/utils/requestError/requestError';
-import {seerCreditChecksQueryKey} from 'sentry/utils/seer/useSeerCreditCheck';
+import {seerCreditChecksFilter} from 'sentry/utils/seer/useSeerCreditCheck';
 
 import {AuthenticatePayment} from 'getsentry/components/authenticatePayment';
 import {CreditCardForm} from 'getsentry/components/creditCardEdit/form';
@@ -191,7 +191,7 @@ function AutoTopUpForm({
       queryKey: seerWalletBalanceOptions(organization).queryKey,
     });
     // Turning on auto-reload can unblock Seer, so let gated buttons recheck.
-    queryClient.invalidateQueries({queryKey: seerCreditChecksQueryKey(organization)});
+    queryClient.invalidateQueries(seerCreditChecksFilter(organization));
   };
 
   // The credit amount is hidden while auto-reload is off, so saving then keeps
@@ -682,7 +682,5 @@ const modalCss = css`
 `;
 
 export function openSeerAutoTopUpModal(options: AutoTopUpModalOptions) {
-  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <AutoTopUpModal {...deps} {...options} />, {modalCss});
 }

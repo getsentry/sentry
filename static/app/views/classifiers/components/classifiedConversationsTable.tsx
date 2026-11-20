@@ -79,11 +79,7 @@ export function ClassifiedConversationsTable({
             },
           ]
         : []),
-      {
-        key: 'age',
-        name: t('Age'),
-        width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age,
-      },
+      {key: 'age', name: t('Age'), width: columnWidths.age ?? DEFAULT_COLUMN_WIDTHS.age},
     ],
     [classifier.resultAttribute, columnWidths, showResultColumn]
   );

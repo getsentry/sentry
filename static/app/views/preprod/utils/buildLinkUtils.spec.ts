@@ -12,18 +12,11 @@ import {
 } from './buildLinkUtils';
 
 describe('buildLinkUtils', () => {
-  const params = {
-    organizationSlug: 'test-org',
-    baseArtifactId: 'artifact-123',
-  };
+  const params = {organizationSlug: 'test-org', baseArtifactId: 'artifact-123'};
 
   describe('getSizeBuildPath', () => {
     it('returns undefined when baseArtifactId is not provided', () => {
-      expect(
-        getSizeBuildPath({
-          organizationSlug: 'test-org',
-        })
-      ).toBeUndefined();
+      expect(getSizeBuildPath({organizationSlug: 'test-org'})).toBeUndefined();
     });
 
     it('generates correct size build path with new URL format', () => {
@@ -35,11 +28,7 @@ describe('buildLinkUtils', () => {
 
   describe('getInstallBuildPath', () => {
     it('returns undefined when baseArtifactId is not provided', () => {
-      expect(
-        getInstallBuildPath({
-          organizationSlug: 'test-org',
-        })
-      ).toBeUndefined();
+      expect(getInstallBuildPath({organizationSlug: 'test-org'})).toBeUndefined();
     });
 
     it('generates correct install build path with new URL format', () => {
@@ -52,10 +41,7 @@ describe('buildLinkUtils', () => {
   describe('getCompareBuildPath', () => {
     it('generates comparison path without base artifact', () => {
       expect(
-        getCompareBuildPath({
-          organizationSlug: 'test-org',
-          headArtifactId: 'head-123',
-        })
+        getCompareBuildPath({organizationSlug: 'test-org', headArtifactId: 'head-123'})
       ).toBe('/organizations/test-org/preprod/size/compare/head-123/');
     });
 
@@ -73,21 +59,14 @@ describe('buildLinkUtils', () => {
   describe('getSnapshotPath', () => {
     it('generates snapshot path with organization slug prefix', () => {
       expect(
-        getSnapshotPath({
-          organizationSlug: 'test-org',
-          snapshotId: 'snapshot-789',
-        })
+        getSnapshotPath({organizationSlug: 'test-org', snapshotId: 'snapshot-789'})
       ).toBe('/organizations/test-org/preprod/snapshots/snapshot-789/');
     });
   });
 
   describe('getBaseBuildPath', () => {
     it('returns undefined when baseArtifactId is not provided', () => {
-      expect(
-        getBaseBuildPath({
-          organizationSlug: 'test-org',
-        })
-      ).toBeUndefined();
+      expect(getBaseBuildPath({organizationSlug: 'test-org'})).toBeUndefined();
     });
 
     it('generates size path when viewType is size', () => {

@@ -17,6 +17,8 @@ defaults:
 
 jobs:
   bump-sentry:
+    permissions:
+      contents: read
     runs-on: ubuntu-24.04
     steps:
       - name: getsentry token
@@ -47,22 +49,4 @@ jobs:
           persist-credentials: true
 
       - name: bump-sentry ${{ github.sha }}
-        run: |
-          cd getsentry
-
-          python -S -m bin.bump_sentry ${{ github.sha }}
-
-          # If getsentry is pushed to by any other means while we were here,
-          # we won't be able to push.
-          for i in 1 2 3 4 5; do
-              git push origin master && exit 0
-              # There's a little bit of network delay here that suffices
-              # as a small sleep.
-              git \
-                -c user.name=getsentry-bot \
-                -c user.email=bot@sentry.io \
-                pull --rebase origin master
-          done
-
-          # 5th and final attempt.
-          git push origin master
+        run: sentry/.github/workflows/scripts/bump-sentry-in-getsentry.sh

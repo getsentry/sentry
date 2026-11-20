@@ -75,9 +75,7 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
         <Flex align="center" gap="sm">
           <FeedbackButton
             size="xs"
-            feedbackOptions={{
-              tags: {'feedback.source': feedbackSource},
-            }}
+            feedbackOptions={{tags: {'feedback.source': feedbackSource}}}
           />
 
           <HandoffAdvancedMenu

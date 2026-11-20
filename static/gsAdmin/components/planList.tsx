@@ -118,10 +118,7 @@ export function PlanList({
             {activePlan.categories
               .filter(category => isCheckoutCategory(category, activePlan))
               .map(category => {
-                const titleCategory = getPlanCategoryName({
-                  plan: activePlan,
-                  category,
-                });
+                const titleCategory = getPlanCategoryName({plan: activePlan, category});
                 const reservedKey = `reserved${toTitleCase(category, {
                   allowInnerUpperCase: true,
                 })}`;

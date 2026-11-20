@@ -7,7 +7,6 @@ from sentry.models.artifactbundle import (
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
@@ -70,7 +69,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id=debug_id_3,
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle_3,
         )
 
@@ -466,7 +464,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
 
@@ -493,7 +490,7 @@ class ArtifactBundlesEndpointTest(APITestCase):
         assert not DebugIdArtifactBundle.objects.filter(
             artifact_bundle_id=artifact_bundle.id
         ).exists()
-        assert not File.objects.filter(id=artifact_bundle.file.id).exists()
+        assert not File.objects.filter(id=artifact_bundle.file_id).exists()
 
     def test_delete_artifact_bundle_with_multiple_projects_connected(self) -> None:
         project_a = self.create_project(name="foo")
@@ -513,7 +510,6 @@ class ArtifactBundlesEndpointTest(APITestCase):
         DebugIdArtifactBundle.objects.create(
             organization_id=self.organization.id,
             debug_id="eb6e60f1-65ff-4f6f-adff-f1bbeded627b",
-            source_file_type=SourceFileType.MINIFIED_SOURCE.value,
             artifact_bundle=artifact_bundle,
         )
 

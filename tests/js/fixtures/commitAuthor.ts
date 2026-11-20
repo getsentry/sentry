@@ -16,17 +16,8 @@ export function CommitAuthorFixture(params: Partial<User> = {}): User {
     ip_address: '',
     avatarUrl: 'https://example.com/avatar.png',
     dateJoined: '2018-02-26T23:57:43.766Z',
-    emails: [
-      {
-        is_verified: true,
-        id: '231605',
-        email: 'example@sentry.io',
-      },
-    ],
-    avatar: {
-      avatarUuid: null,
-      avatarType: 'letter_avatar',
-    },
+    emails: [{is_verified: true, id: '231605', email: 'example@sentry.io'}],
+    avatar: {avatarUuid: null, avatarType: 'letter_avatar'},
     hasPasswordAuth: true,
     isSuspended: false,
     email: 'example@sentry.io',

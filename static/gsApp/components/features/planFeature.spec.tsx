@@ -34,9 +34,7 @@ describe('PlanFeature', () => {
     );
 
     await waitFor(() => {
-      expect(mockFn).toHaveBeenCalledWith({
-        plan: PlanDetailsLookupFixture('am2_team'),
-      });
+      expect(mockFn).toHaveBeenCalledWith({plan: PlanDetailsLookupFixture('am2_team')});
     });
   });
 
@@ -79,10 +77,7 @@ describe('PlanFeature', () => {
   it('provides the annual plan when the billing interval is annual', async () => {
     const mockFn = jest.fn(() => null);
 
-    const sub = SubscriptionFixture({
-      organization,
-      billingInterval: 'annual',
-    });
+    const sub = SubscriptionFixture({organization, billingInterval: 'annual'});
     SubscriptionStore.set(organization.slug, sub);
 
     render(

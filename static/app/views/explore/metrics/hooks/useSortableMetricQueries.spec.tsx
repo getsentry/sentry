@@ -192,9 +192,7 @@ describe('useSortableMetricQueries', () => {
       initialRouterConfig: {
         location: {
           pathname: '/organizations/org-slug/explore/metrics/',
-          query: {
-            metric: [duplicateQuery, duplicateQuery],
-          },
+          query: {metric: [duplicateQuery, duplicateQuery]},
         },
       },
     });
@@ -204,10 +202,7 @@ describe('useSortableMetricQueries', () => {
     ).toEqual(['A', 'B']);
 
     act(() => {
-      result.current.onDragEnd({
-        active: {id: 'A'},
-        over: {id: 'B'},
-      } as DragEndEvent);
+      result.current.onDragEnd({active: {id: 'A'}, over: {id: 'B'}} as DragEndEvent);
     });
 
     expect(

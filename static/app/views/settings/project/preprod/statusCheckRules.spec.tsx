@@ -9,9 +9,7 @@ import {StatusCheckRules} from './statusCheckRules';
 describe('StatusCheckRules', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/preprod/`,
-    },
+    location: {pathname: `/settings/projects/test-project/preprod/`},
     route: '/settings/projects/:projectId/preprod/',
   };
 
@@ -152,10 +150,7 @@ describe('StatusCheckRules', () => {
     );
 
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        other: 'kept',
-        expanded: expect.any(String),
-      })
+      expect(router.location.query).toEqual({other: 'kept', expanded: expect.any(String)})
     );
     expect(router.historyAction).toBe('REPLACE');
   });

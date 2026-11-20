@@ -51,6 +51,7 @@ from sentry.tasks.on_demand_metrics import (
     set_or_create_on_demand_state,
 )
 from sentry.utils.dates import parse_stats_period
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import UnqualifiedQueryError
 from sentry.utils.strings import oxfordize_list
 
@@ -1367,25 +1368,17 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
                     # Create a new widget.
                     self.create_widget(instance, data)
                 else:
-                    sentry_sdk.set_context(
-                        "dashboard",
-                        {
-                            "org_slug": instance.organization.slug,
-                            "dashboard_id": instance.id,
-                            "widget_id": widget_id,
-                            "existing_widget_ids": list(existing_map.keys()),
-                            "requested_widget_ids": widget_ids,
+                    # Usually a client saving a stale copy of the dashboard after one of its
+                    # widgets was deleted elsewhere, so log it instead of creating an error.
+                    sdk_logger.info(
+                        "dashboard.update_widgets.widget_not_in_dashboard",
+                        attributes={
+                            "dashboard.org_slug": instance.organization.slug,
+                            "dashboard.dashboard_id": instance.id,
+                            "dashboard.widget_id": widget_id,
+                            "dashboard.existing_widget_ids": str(list(existing_map.keys())),
+                            "dashboard.requested_widget_ids": str(widget_ids),
                         },
-                    )
-                    sentry_sdk.set_attribute("dashboard.org_slug", instance.organization.slug)
-                    sentry_sdk.set_attribute("dashboard.dashboard_id", instance.id)
-                    sentry_sdk.set_attribute("dashboard.widget_id", widget_id)
-                    sentry_sdk.set_attribute(
-                        "dashboard.existing_widget_ids", str(list(existing_map.keys()))
-                    )
-                    sentry_sdk.set_attribute("dashboard.requested_widget_ids", str(widget_ids))
-                    sentry_sdk.capture_message(
-                        "Attempted to update widget not belonging to dashboard."
                     )
                     raise serializers.ValidationError(
                         "You cannot update widgets that are not part of this dashboard."

@@ -17,10 +17,7 @@ import {pageFilterParsers} from 'sentry/utils/url/pageFilterParsers';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 
-type Props = {
-  issueTab?: boolean;
-  projectIds?: string[];
-};
+type Props = {issueTab?: boolean; projectIds?: string[]};
 
 export function FeedbackEmptyState({projectIds, issueTab = false}: Props) {
   const {projects, initiallyLoaded} = useProjects();

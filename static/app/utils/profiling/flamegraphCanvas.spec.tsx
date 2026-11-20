@@ -41,9 +41,7 @@ describe('flamegraphCanvas', () => {
     window.devicePixelRatio = 2;
     // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
-    const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
-    });
+    const canvas = makeCanvasMock({getContext: jest.fn().mockReturnValue(context)});
 
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(10, 10));
 
@@ -56,9 +54,7 @@ describe('flamegraphCanvas', () => {
     window.devicePixelRatio = 2;
     // @ts-expect-error partial mock
     const context = makeContextMock({canvas: {width: 100, height: 100}});
-    const canvas = makeCanvasMock({
-      getContext: jest.fn().mockReturnValue(context),
-    });
+    const canvas = makeCanvasMock({getContext: jest.fn().mockReturnValue(context)});
 
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(10, 10));
 
@@ -68,10 +64,7 @@ describe('flamegraphCanvas', () => {
   });
 
   it('handles resize events by updating space', () => {
-    const canvas = makeCanvasMock({
-      width: 100,
-      height: 100,
-    });
+    const canvas = makeCanvasMock({width: 100, height: 100});
 
     const flamegraphCanvas = new FlamegraphCanvas(canvas, vec2.fromValues(0, 0));
 

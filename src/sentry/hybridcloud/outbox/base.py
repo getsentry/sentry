@@ -40,14 +40,14 @@ class CellOutboxProducingModel(Model):
         abstract = True
 
     default_flush: bool | None = None
+    """The flush flag for outbox writes when no caller passed one to outbox_context (None flushes)."""
     replication_version: int = 1
 
     @contextlib.contextmanager
-    def prepare_outboxes(
-        self, *, outbox_before_super: bool, flush: bool | None = None
-    ) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+    def prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
+        from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
 
+        flush = get_outbox_flush_override()
         if flush is None:
             flush = self.default_flush
 
@@ -70,8 +70,11 @@ class CellOutboxProducingModel(Model):
             return super().update(*args, **kwds)
 
     def delete(self, *args: Any, **kwds: Any) -> tuple[int, dict[str, Any]]:
-        with self.prepare_outboxes(outbox_before_super=True, flush=False):
-            return super().delete(*args, **kwds)
+        from sentry.hybridcloud.models.outbox import outbox_context
+
+        with outbox_context(flush=False):
+            with self.prepare_outboxes(outbox_before_super=True):
+                return super().delete(*args, **kwds)
 
     def outbox_for_update(self, shard_identifier: int | None = None) -> CellOutboxBase:
         raise NotImplementedError
@@ -225,6 +228,7 @@ class ControlOutboxProducingModel(Model):
     """
 
     default_flush: bool | None = None
+    """The flush flag for outbox writes when no caller passed one to outbox_context (None flushes)."""
     replication_version: int = 1
 
     class Meta:
@@ -232,11 +236,15 @@ class ControlOutboxProducingModel(Model):
 
     @contextlib.contextmanager
     def _maybe_prepare_outboxes(self, *, outbox_before_super: bool) -> Generator[None]:
-        from sentry.hybridcloud.models.outbox import outbox_context
+        from sentry.hybridcloud.models.outbox import get_outbox_flush_override, outbox_context
+
+        flush = get_outbox_flush_override()
+        if flush is None:
+            flush = self.default_flush
 
         with outbox_context(
             transaction.atomic(router.db_for_write(type(self))),
-            flush=self.default_flush,
+            flush=flush,
         ):
             if not outbox_before_super:
                 yield

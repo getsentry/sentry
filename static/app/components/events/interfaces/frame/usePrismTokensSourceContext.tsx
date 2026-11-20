@@ -10,15 +10,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {breakTokensByLine} from 'sentry/utils/usePrismTokens';
 
-type ComplexSyntax = {
-  example: string;
-  search: RegExp;
-};
+type ComplexSyntax = {example: string; search: RegExp};
 
-type BlockCommentSyntax = {
-  end: string | ComplexSyntax;
-  start: string | ComplexSyntax;
-};
+type BlockCommentSyntax = {end: string | ComplexSyntax; start: string | ComplexSyntax};
 
 // Most languages use C-style block comments, so we default to that unless otherwise specified.
 const DEFAULT_BLOCK_COMMENT_SYNTAX = [{start: '/*', end: '*/'}];

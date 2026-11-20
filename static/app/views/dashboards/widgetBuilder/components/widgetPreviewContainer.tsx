@@ -246,9 +246,7 @@ function DroppablePreviewContainer() {
 }
 
 function Droppable({id}: {id: string}) {
-  const {setNodeRef} = useDroppable({
-    id,
-  });
+  const {setNodeRef} = useDroppable({id});
 
   return <div ref={setNodeRef} id={id} />;
 }

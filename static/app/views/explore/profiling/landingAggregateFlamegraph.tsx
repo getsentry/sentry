@@ -177,9 +177,7 @@ export function LandingAggregateFlamegraph({
     isPending: isLoading,
     isError,
     status,
-  } = useAggregateFlamegraphQuery({
-    dataSource: 'profiles',
-  });
+  } = useAggregateFlamegraphQuery({dataSource: 'profiles'});
 
   const hasData = (data?.profiles?.length || 0) > 0;
 

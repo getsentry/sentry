@@ -14,10 +14,7 @@ describe('SampleDataAlert', () => {
   it('renders if not dismissed', async () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
-      return {
-        dismiss,
-        isDismissed: false,
-      };
+      return {dismiss, isDismissed: false};
     });
     render(<SampleDataAlert />);
     expect(screen.getByText(/Based on your search criteria/)).toBeInTheDocument();
@@ -27,10 +24,7 @@ describe('SampleDataAlert', () => {
 
   it("doesn't render when dismissed", () => {
     mockUseDismissAlert.mockImplementation(() => {
-      return {
-        dismiss: jest.fn(),
-        isDismissed: true,
-      };
+      return {dismiss: jest.fn(), isDismissed: true};
     });
 
     const {container} = render(<SampleDataAlert />);
@@ -40,10 +34,7 @@ describe('SampleDataAlert', () => {
   it("doesn't render when there's no dynamic sampling", () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
-      return {
-        dismiss,
-        isDismissed: false,
-      };
+      return {dismiss, isDismissed: false};
     });
     const {container} = render(<SampleDataAlert />, {
       organization: {...OrganizationFixture(), isDynamicallySampled: false},
@@ -55,10 +46,7 @@ describe('SampleDataAlert', () => {
   it("doesn't render when event.type:error", () => {
     const dismiss = jest.fn();
     mockUseDismissAlert.mockImplementation(() => {
-      return {
-        dismiss,
-        isDismissed: false,
-      };
+      return {dismiss, isDismissed: false};
     });
     const {container} = render(<SampleDataAlert query="event.type:error" />);
 

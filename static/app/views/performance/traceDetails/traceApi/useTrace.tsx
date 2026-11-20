@@ -30,11 +30,7 @@ const loadTraceQueryParams = createLoader({
   timestamp: parseAsString,
 });
 
-type TraceQueryParamOptions = {
-  limit?: number;
-  targetId?: string;
-  timestamp?: number;
-};
+type TraceQueryParamOptions = {limit?: number; targetId?: string; timestamp?: number};
 
 function getTargetIdParams(
   options: TraceQueryParamOptions,
@@ -201,10 +197,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     ...apiOptions.as<TraceTree.EAPTrace>()(
       '/organizations/$organizationIdOrSlug/trace/$traceId/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          traceId: options.traceSlug ?? '',
-        },
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
         query: {
           ...queryParams,
           project: -1,
@@ -227,10 +220,7 @@ export function useTrace(options: UseTraceOptions): TraceQueryResult {
     ...apiOptions.as<TraceTree.EAPTrace>()(
       '/organizations/$organizationIdOrSlug/trace/$traceId/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          traceId: options.traceSlug ?? '',
-        },
+        path: {organizationIdOrSlug: organization.slug, traceId: options.traceSlug ?? ''},
         query: {
           ...fallbackQueryParams,
           project: -1,
