@@ -448,6 +448,27 @@ describe('token', () => {
   });
 
   describe('ArithmeticTokenFunction', () => {
+    it('shows the full argument in a tooltip when it is truncated', async () => {
+      // JSDOM has no layout, so fake the input overflowing its max width
+      const scrollWidth = jest
+        .spyOn(HTMLElement.prototype, 'scrollWidth', 'get')
+        .mockReturnValue(200);
+      const clientWidth = jest
+        .spyOn(HTMLElement.prototype, 'clientWidth', 'get')
+        .mockReturnValue(130);
+
+      render(<Tokens expression="avg(span.duration)" />);
+
+      await userEvent.hover(
+        await screen.findByRole('combobox', {name: 'Select an attribute'})
+      );
+
+      expect(await screen.findByText('span.duration')).toBeInTheDocument();
+
+      scrollWidth.mockRestore();
+      clientWidth.mockRestore();
+    });
+
     it('allow changing attribute on click', async () => {
       render(<Tokens expression="avg(span.duration)" />);
 

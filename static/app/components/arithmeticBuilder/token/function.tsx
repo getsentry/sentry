@@ -594,7 +594,10 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
   ) {
     return (
       <ArgumentGridRow {...rowProps} tabIndex={-1} ref={gridCellRef}>
-        <ArgumentGridCell {...gridCellProps}>
+        <ArgumentGridCell
+          {...gridCellProps}
+          fullText={isCurrentlyEditing ? undefined : displayValue}
+        >
           <InputBox
             tabIndex={-1}
             ref={inputRef}
@@ -615,7 +618,10 @@ function FunctionArgumentInput(props: FunctionArgumentInputProps) {
 
   return (
     <ArgumentGridRow {...rowProps} tabIndex={isFocused ? 0 : -1} ref={gridCellRef}>
-      <ArgumentGridCell {...gridCellProps}>
+      <ArgumentGridCell
+        {...gridCellProps}
+        fullText={isCurrentlyEditing ? undefined : displayValue}
+      >
         <ComboBox
           items={items}
           ref={inputRef}

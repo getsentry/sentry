@@ -1,6 +1,6 @@
 from datetime import timedelta
 from hashlib import sha1
-from typing import Any, cast
+from typing import Any
 from unittest.mock import MagicMock, patch
 
 import pytest
@@ -650,7 +650,7 @@ class AssemblePreprodArtifactInstallableAppTest(BaseAssembleTest):
 
         # Verify PreprodArtifact was not updated for error cases
         self.preprod_artifact.refresh_from_db()
-        assert cast("object", self.preprod_artifact.installable_app_file_id) is None
+        assert self.preprod_artifact.installable_app_file_id is None
 
         # Verify webhook was NOT sent for any error case
         mock_send_webhook.assert_not_called()
