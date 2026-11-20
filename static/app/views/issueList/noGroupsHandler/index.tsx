@@ -144,7 +144,7 @@ interface AwaitingEventsProps {
 
 function AwaitingEvents({groupIds, organization, projects}: AwaitingEventsProps) {
   const project = projects?.[0];
-  const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+  const sampleIssueId = groupIds[0];
 
   const hasUpdatedEmptyState =
     project?.platform && UPDATED_EMPTY_STATE_PLATFORMS.has(project.platform);

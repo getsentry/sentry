@@ -16,11 +16,7 @@ export function useAttributeTreeSearchActions() {
 
     const key = content.original.original_attribute_key;
     const value = content.value;
-    const isNumeric = isNumericAttribute({
-      value,
-      type: content.original.type,
-      key,
-    });
+    const isNumeric = isNumericAttribute({value, type: content.original.type, key});
 
     const items: MenuItemProps[] = [
       {

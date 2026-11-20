@@ -21,11 +21,7 @@ import type {Monitor} from 'sentry/views/insights/crons/types';
 
 import {StatusToggleButton} from './statusToggleButton';
 
-type Props = {
-  monitor: Monitor;
-  onUpdate: (data: Monitor) => void;
-  orgSlug: string;
-};
+type Props = {monitor: Monitor; onUpdate: (data: Monitor) => void; orgSlug: string};
 
 export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
@@ -34,10 +30,7 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const {selection} = usePageFilters();
 
   const endpointOptions = {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-    },
+    query: {project: selection.projects, environment: selection.environments},
   };
 
   const handleDelete = async () => {
@@ -125,10 +118,7 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend
           // for a monitor environment with check-in data
-          query: {
-            environment: selection.environments,
-            project: selection.projects,
-          },
+          query: {environment: selection.environments, project: selection.projects},
         }}
         {...disableProps}
       >

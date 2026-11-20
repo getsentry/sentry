@@ -37,11 +37,7 @@ type Props = {
   dataDatetime: DateTimeObject;
   getNextLocations: (project: Project) => Record<string, LocationDescriptorObject>;
   handleChangeState: (
-    nextState: {
-      cursor?: string;
-      query?: string;
-      sort?: string;
-    },
+    nextState: {cursor?: string; query?: string; sort?: string},
     options?: {willUpdateRouter?: boolean}
   ) => LocationDescriptorObject;
   isSingleProject: boolean;
@@ -80,14 +76,8 @@ export function UsageStatsProjects({
   const endpointQuery = useMemo(() => {
     const queryDatetime =
       dataDatetime.start && dataDatetime.end
-        ? {
-            start: dataDatetime.start,
-            end: dataDatetime.end,
-            utc: dataDatetime.utc,
-          }
-        : {
-            statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
-          };
+        ? {start: dataDatetime.start, end: dataDatetime.end, utc: dataDatetime.utc}
+        : {statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD};
 
     const groupBy = ['outcome', 'project'];
     const category: string[] = [dataCategory.name];
@@ -126,15 +116,9 @@ export function UsageStatsProjects({
     })
   );
 
-  const tableSort: {
-    direction: number;
-    key: SortBy;
-  } = useMemo(() => {
+  const tableSort: {direction: number; key: SortBy} = useMemo(() => {
     if (!parentTableSort) {
-      return {
-        key: SortBy.TOTAL,
-        direction: 1,
-      };
+      return {key: SortBy.TOTAL, direction: 1};
     }
 
     let key = parentTableSort;
@@ -223,16 +207,10 @@ export function UsageStatsProjects({
       const {performance, projectDetail, settings} = getNextLocations(project);
 
       if (dataCategory === DATA_CATEGORY_INFO.transaction) {
-        return {
-          projectLink: performance,
-          projectSettingsLink: settings,
-        };
+        return {projectLink: performance, projectSettingsLink: settings};
       }
 
-      return {
-        projectLink: projectDetail,
-        projectSettingsLink: settings,
-      };
+      return {projectLink: projectDetail, projectSettingsLink: settings};
     },
     [dataCategory, getNextLocations]
   );
@@ -312,13 +290,10 @@ export function UsageStatsProjects({
           stat[SortBy.ACCEPTED_STORED] > 0 &&
           stat[SortBy.ACCEPTED_STORED] !== stat[SortBy.ACCEPTED]
         ) {
+          // oxlint-disable-next-line react/immutability
           hasStoredOutcome = true;
         }
-        return {
-          project: {...proj},
-          ...getProjectLink(proj),
-          ...stat,
-        };
+        return {project: {...proj}, ...getProjectLink(proj), ...stat};
       });
 
       const {key, direction} = tableSort;
@@ -345,11 +320,7 @@ export function UsageStatsProjects({
         Sentry.captureException(err);
       });
 
-      return {
-        tableStats: [],
-        hasStoredOutcome: false,
-        error: err,
-      };
+      return {tableStats: [], hasStoredOutcome: false, error: err};
     }
   }, [
     endpointQuery,
@@ -457,11 +428,7 @@ export function UsageStatsProjects({
   const pageLink = useMemo(() => {
     const offset = tableOffset;
     const numRows = filteredProjects.length;
-    return getPaginationPageLink({
-      numRows,
-      pageSize: MAX_ROWS_USAGE_TABLE,
-      offset,
-    });
+    return getPaginationPageLink({numRows, pageSize: MAX_ROWS_USAGE_TABLE, offset});
   }, [tableOffset, filteredProjects]);
 
   const {headers, tableStats, showStoredOutcome} = tableData;

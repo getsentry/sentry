@@ -14,9 +14,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {getEventExtraDataKnownDataDetails} from './getEventExtraDataKnownDataDetails';
 import {EventExtraDataType} from './types';
 
-type Props = {
-  event: Event;
-};
+type Props = {event: Event};
 
 export function EventExtraData({event}: Props) {
   const [raw, setRaw] = useState(false);

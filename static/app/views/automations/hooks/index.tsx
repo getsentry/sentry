@@ -145,15 +145,10 @@ export function useCreateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       if (suppressErrorMessage) {
@@ -178,14 +173,10 @@ export function useDeleteAutomationMutation() {
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: automationId},
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       ),
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(t('Alert deleted'));
     },
     onError: error => {
@@ -222,9 +213,7 @@ export function useDeleteAutomationsMutation() {
       );
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(t('Alerts deleted'));
     },
     onError: error => {
@@ -250,10 +239,7 @@ export function useUpdateAutomation({
         getApiUrl('/organizations/$organizationIdOrSlug/workflows/$workflowId/', {
           path: {organizationIdOrSlug: org.slug, workflowId: data.id},
         }),
-        {
-          method: 'PUT',
-          data,
-        }
+        {method: 'PUT', data}
       ),
     onSuccess: data => {
       // Update cache with new automation data
@@ -262,9 +248,7 @@ export function useUpdateAutomation({
         previous => ({...previous, json: data, headers: previous?.headers ?? {}})
       );
       // Invalidate list query
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
     },
     onError: error => {
       if (suppressErrorMessage) {
@@ -307,9 +291,7 @@ export function useUpdateAutomationsMutation() {
       );
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(variables.enabled ? t('Alerts enabled') : t('Alerts disabled'));
     },
     onError: (error, variables) => {
@@ -342,16 +324,11 @@ export function useSendTestNotification(
         getApiUrl('/organizations/$organizationIdOrSlug/test-fire-actions/', {
           path: {organizationIdOrSlug: org.slug},
         }),
-        {
-          method: 'POST',
-          data: {actions, projectSlug},
-        }
+        {method: 'POST', data: {actions, projectSlug}}
       ),
     ...options,
     onSuccess: (data, variables, onMutateResult, context) => {
-      queryClient.invalidateQueries({
-        queryKey: automationsApiOptions(org).queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: automationsApiOptions(org).queryKey});
       toast.success(
         tn('Notification fired!', 'Notifications sent!', variables.actions.length)
       );

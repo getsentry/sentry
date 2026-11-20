@@ -42,14 +42,9 @@ type BaseProps = {
   onSubmitSuccess?: (data: ExternalActorMapping) => void | Promise<void>;
 };
 
-type InlineProps = BaseProps & {
-  isInline: true;
-};
+type InlineProps = BaseProps & {isInline: true};
 
-type ModalProps = BaseProps &
-  ModalRenderProps & {
-    isInline?: false;
-  };
+type ModalProps = BaseProps & ModalRenderProps & {isInline?: false};
 
 type Props = InlineProps | ModalProps;
 
@@ -66,11 +61,7 @@ function mapMembers(members: Member[]) {
     .filter(member => member.user)
     .map(({user, email, name}) => {
       const label = email === name ? email : `${name} - ${email}`;
-      return {
-        value: {id: user?.id!, name: label},
-        label,
-        textValue: label,
-      };
+      return {value: {id: user?.id!, name: label}, label, textValue: label};
     });
 }
 

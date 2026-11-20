@@ -41,11 +41,7 @@ export function Actions({onEdit, onDelete, hasFeature, hasAccess}: Props) {
       )}
       position="bottom-end"
       items={[
-        {
-          key: 'configure',
-          label: t('Configure'),
-          onAction: onEdit,
-        },
+        {key: 'configure', label: t('Configure'), onAction: onEdit},
         {
           key: 'delete',
           label: t('Delete'),

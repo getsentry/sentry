@@ -34,13 +34,8 @@ export function useRedirectToFeedbackFromEvent() {
     if (projectSlug && event?.groupID) {
       navigate(
         {
-          pathname: makeFeedbackPathname({
-            path: '/',
-            organization,
-          }),
-          query: {
-            feedbackSlug: `${projectSlug}:${event.groupID}`,
-          },
+          pathname: makeFeedbackPathname({path: '/', organization}),
+          query: {feedbackSlug: `${projectSlug}:${event.groupID}`},
         },
         {replace: true}
       );

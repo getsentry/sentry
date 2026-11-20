@@ -50,11 +50,7 @@ export function useSortErrors({items}: Opts) {
     [sortConfig, setSortAsc, setSortBy]
   );
 
-  return {
-    handleSort,
-    items: sortedItems,
-    sortConfig,
-  };
+  return {handleSort, items: sortedItems, sortConfig};
 }
 
 function sortErrors(

@@ -27,10 +27,9 @@ function isSelectField(
   return field.type === 'select' || field.type === 'choice';
 }
 
-function isAsyncSelectField(field: JsonFormAdapterFieldConfig): field is Extract<
-  JsonFormAdapterFieldConfig,
-  {type: 'select' | 'choice'}
-> & {
+function isAsyncSelectField(
+  field: JsonFormAdapterFieldConfig
+): field is Extract<JsonFormAdapterFieldConfig, {type: 'select' | 'choice'}> & {
   url: string;
 } {
   return isSelectField(field) && Boolean(field.url);

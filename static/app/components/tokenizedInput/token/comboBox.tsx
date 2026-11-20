@@ -107,10 +107,7 @@ function useHiddenItems({
     [hiddenOptions, items]
   );
 
-  return {
-    hiddenOptions,
-    disabledKeys,
-  };
+  return {hiddenOptions, disabledKeys};
 }
 
 export function ComboBox({

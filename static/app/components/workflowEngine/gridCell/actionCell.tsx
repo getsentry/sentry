@@ -3,10 +3,7 @@ import {AutomationActionSummary} from 'sentry/views/automations/components/autom
 
 import {EmptyCell} from './emptyCell';
 
-type ActionCellProps = {
-  actions: ActionType[];
-  disabled?: boolean;
-};
+type ActionCellProps = {actions: ActionType[]; disabled?: boolean};
 
 export function ActionCell({actions}: ActionCellProps) {
   if (!actions || actions.length === 0) {

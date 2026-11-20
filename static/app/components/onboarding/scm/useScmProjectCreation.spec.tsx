@@ -112,10 +112,7 @@ describe('useScmProjectCreation', () => {
     ProjectsStore.loadInitialData([createdProject]);
     const onSuccess = jest.fn();
     const {result} = renderCreation({
-      createdProject: {
-        slug: createdProject.slug,
-        messagingSelection: undefined,
-      },
+      createdProject: {slug: createdProject.slug, messagingSelection: undefined},
     });
 
     await act(() =>
@@ -134,10 +131,7 @@ describe('useScmProjectCreation', () => {
       ProjectFixture({slug: 'old-project', platform: 'javascript'}),
     ]);
     const {result} = renderCreation({
-      createdProject: {
-        slug: 'old-project',
-        messagingSelection: undefined,
-      },
+      createdProject: {slug: 'old-project', messagingSelection: undefined},
     });
 
     await act(() =>

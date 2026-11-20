@@ -35,11 +35,7 @@ const KIND_OPTIONS: Array<SelectOption<Transformation['kind']>> = [
   {value: 'smooth', label: t('Smooth')},
 ];
 const FILL_OPTIONS: Array<SelectOption<FillMethod>> = [
-  {
-    value: 'zero',
-    label: t('Zero'),
-    details: t('Fills missing values with zero.'),
-  },
+  {value: 'zero', label: t('Zero'), details: t('Fills missing values with zero.')},
   {
     value: 'locf',
     label: t('LOCF'),

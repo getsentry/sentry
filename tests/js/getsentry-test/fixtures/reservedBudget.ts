@@ -41,20 +41,11 @@ function ReservedBudgetFixture(props: BudgetProps) {
 }
 
 export function PendingReservedBudgetFixture(props: PendingBudgetProps) {
-  return {
-    id: '',
-    categories: {},
-    reservedBudget: 0,
-    ...props,
-  };
+  return {id: '', categories: {}, reservedBudget: 0, ...props};
 }
 
 function ReservedBudgetMetricHistoryFixture(props: MetricHistoryProps) {
-  return {
-    reservedCpe: 0,
-    reservedSpend: 0,
-    ...props,
-  };
+  return {reservedCpe: 0, reservedSpend: 0, ...props};
 }
 
 export function SeerReservedBudgetCategoryFixture(props: ReservedBudgetCategoryProps) {

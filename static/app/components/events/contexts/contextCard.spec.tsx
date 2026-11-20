@@ -11,11 +11,7 @@ describe('ContextCard', () => {
   it('renders the card with formatted context data', () => {
     const event = EventFixture();
     const alias = 'Things in my Vicinity';
-    const simpleContext = {
-      snack: 'peanut',
-      dinner: 'rice',
-      friend: 'noelle',
-    };
+    const simpleContext = {snack: 'peanut', dinner: 'rice', friend: 'noelle'};
     const structuredContext = {
       'my dogs': ['cocoa', 'butter'],
       book: {
@@ -24,11 +20,7 @@ describe('ContextCard', () => {
         published: '2018-07-21T00:00:00.000Z',
       },
     };
-    const customContext = {
-      ...simpleContext,
-      ...structuredContext,
-      type: 'default',
-    };
+    const customContext = {...simpleContext, ...structuredContext, type: 'default'};
     render(
       <ContextCard
         type="default"
@@ -58,11 +50,7 @@ describe('ContextCard', () => {
       .spyOn(iconTools, 'getLogoImage')
       .mockReturnValue('data:image/firefox');
 
-    const browserContext = {
-      type: 'browser',
-      name: 'firefox',
-      version: 'Infinity',
-    };
+    const browserContext = {type: 'browser', name: 'firefox', version: 'Infinity'};
     const browserCard = render(
       <ContextCard
         type="browser"
@@ -78,11 +66,7 @@ describe('ContextCard', () => {
     iconSpy.mockReset();
     browserCard.unmount();
 
-    const unknownContext = {
-      type: 'default',
-      organization: 'acme',
-      tier: 'gold',
-    };
+    const unknownContext = {type: 'default', organization: 'acme', tier: 'gold'};
     render(
       <ContextCard
         type="default"
@@ -104,26 +88,14 @@ describe('ContextCard', () => {
           [alias]: {
             error: {
               '': {
-                err: [
-                  [
-                    'invalid_data',
-                    {
-                      reason: 'expected something better',
-                    },
-                  ],
-                ],
+                err: [['invalid_data', {reason: 'expected something better'}]],
                 val: 'worse',
               },
             },
             redacted: {
               '': {
                 chunks: [
-                  {
-                    remark: 'x',
-                    rule_id: 'project:0',
-                    text: '',
-                    type: 'redaction',
-                  },
+                  {remark: 'x', rule_id: 'project:0', text: '', type: 'redaction'},
                 ],
                 len: 9,
                 rem: [['project:0', 'x', 0, 0]],
@@ -133,11 +105,7 @@ describe('ContextCard', () => {
         },
       },
     });
-    const errorContext = {
-      error: '',
-      redacted: '',
-      type: 'default',
-    };
+    const errorContext = {error: '', redacted: '', type: 'default'};
 
     render(
       <ContextCard

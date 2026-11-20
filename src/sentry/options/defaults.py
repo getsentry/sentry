@@ -15,7 +15,7 @@ from sentry.options.manager import (
     FLAG_SCALAR,
 )
 from sentry.quotas.base import build_metric_abuse_quotas
-from sentry.utils.types import Any, Bool, Dict, Float, Int, Sequence, String
+from sentry.utils.types import Any, Bool, Dict, Float, Int, NonNegativeInt, Sequence, String
 
 # Cache
 # register('cache.backend', flags=FLAG_NOSTORE)
@@ -93,38 +93,6 @@ register(
     type=Dict,
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
-)
-
-# Share of lock keys (0.0 to 1.0) that MigrationLockBackend sends to its new backend.
-# Only used when a lock manager is configured with the matching selector in
-# sentry.utils.locking.backends.migration.
-register(
-    "locks.default.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-rollout-rate",
-    type=Float,
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# When on, MigrationLockBackend also checks the new backend for keys that go to the old
-# backend. Turn it on before the matching rollout rate goes above 0, and turn it off only
-# after the rate is back at 0 and all locks on the new backend have expired. See the
-# MigrationLockBackend docstring for the full sequence.
-register(
-    "locks.default.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "locks.post-process.migration-check-new",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Processing worker caches
@@ -676,6 +644,15 @@ register(
     "replay.consumer.msgspec_recording_parser",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Maximum number of bytes a single recording segment may decompress to at ingest. Segments
+# which inflate past this limit are dropped instead of stored. Negative values are rejected
+# because zlib treats a `max_length` of 0 as unlimited.
+register(
+    "replay.consumer.max-segment-decompressed-size",
+    type=NonNegativeInt,
+    default=100 * 1024 * 1024,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Enable new database query caching.
@@ -1686,6 +1663,14 @@ register(
     type=Int,
     default=100,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Organizations whose telemetry classifiers aren't processed.
+register(
+    "telemetry-classifiers.killswitch-organization-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # Kill switch for sentry.cadence: when False, no triggers are claimed or fired.

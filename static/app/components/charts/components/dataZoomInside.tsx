@@ -16,10 +16,7 @@ export function dataZoomInside(
 ): InsideDataZoomComponentOption[] {
   // `props` can be boolean, if so return default
   if (!props || !Array.isArray(props)) {
-    const dataZoom = {
-      ...DEFAULT,
-      ...props,
-    };
+    const dataZoom = {...DEFAULT, ...props};
     return [dataZoom];
   }
 

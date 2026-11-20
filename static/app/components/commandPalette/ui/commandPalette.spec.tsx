@@ -1030,11 +1030,7 @@ describe('CommandPalette', () => {
                 display={{label: 'Lazy Resource'}}
                 prompt="Enter a value..."
                 resource={(_query, {state}) =>
-                  cmdkQueryOptions({
-                    queryKey,
-                    queryFn,
-                    enabled: state === 'selected',
-                  })
+                  cmdkQueryOptions({queryKey, queryFn, enabled: state === 'selected'})
                 }
               />
             </CMDKAction>

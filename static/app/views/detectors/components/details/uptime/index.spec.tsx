@@ -13,10 +13,7 @@ describe('UptimeDetectorDetails', () => {
   const project = ProjectFixture();
 
   beforeEach(() => {
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/members/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/members/', body: []});
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/uptime/3/checks/`,
       body: [],
@@ -33,18 +30,9 @@ describe('UptimeDetectorDetails', () => {
       url: '/organizations/org-slug/uptime-summary/',
       body: {},
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/detectors/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/workflows/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/detectors/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/workflows/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
   });
 
   it('renders the detector details sections', async () => {
@@ -95,9 +83,7 @@ describe('UptimeDetectorDetails', () => {
     const detector = UptimeDetectorFixture({id: '3'});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/uptime-summary/',
-      body: {
-        '3': UptimeSummaryFixture({avgDurationUs: 150_000}),
-      },
+      body: {'3': UptimeSummaryFixture({avgDurationUs: 150_000})},
     });
 
     render(<UptimeDetectorDetails detector={detector} project={project} />, {

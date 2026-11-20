@@ -26,11 +26,7 @@ const mockEventView = EventView.fromSavedQuery({
   projects: [1],
 });
 
-const mockedLocation = LocationFixture({
-  query: {
-    field: 'title',
-  },
-});
+const mockedLocation = LocationFixture({query: {field: 'title'}});
 
 const renderActionDropdown = (
   location: Location,
@@ -53,10 +49,7 @@ const renderActionDropdown = (
     {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: '/mock-pathname/',
-          query: {field: 'title'},
-        },
+        location: {pathname: '/mock-pathname/', query: {field: 'title'}},
       },
     }
   );

@@ -9,7 +9,7 @@ import {Heading, Text} from '@sentry/scraps/text';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getSeerOnboardingCheckQueryOptions} from 'sentry/utils/getSeerOnboardingCheckQueryOptions';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {useCanWriteSettings} from 'sentry/utils/seer/useCanWriteSettings';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {
@@ -22,7 +22,7 @@ function useReminderData() {
   const canWrite = useCanWriteSettings();
 
   const hasSeatBasedSeer = organization.features.includes('seat-based-seer-enabled');
-  const hasTokenBasedSeer = isSeerTokenBasedBillingOnboardingEnabled(organization);
+  const hasTokenBasedSeer = isTokenBilledSeerEnabled(organization);
   const hasLegacySeer = organization.features.includes('seer-added');
   const hasCodeReviewBeta = organization.features.includes('code-review-beta');
 
@@ -90,10 +90,7 @@ export function PrimaryNavSeerConfigReminder() {
 
   useEffect(() => {
     if (canSeeReminder) {
-      trackAnalytics('seer.config_reminder.rendered', {
-        organization,
-        ...analyticsParams,
-      });
+      trackAnalytics('seer.config_reminder.rendered', {organization, ...analyticsParams});
     }
   }, [canSeeReminder, analyticsParams, organization]);
 
@@ -108,10 +105,7 @@ export function PrimaryNavSeerConfigReminder() {
         analyticsParams={analyticsParams}
         label={t('Configure Seer')}
         indicator="accent"
-        buttonProps={{
-          ...overlayTriggerProps,
-          icon: <IconSeer />,
-        }}
+        buttonProps={{...overlayTriggerProps, icon: <IconSeer />}}
       />
       {isOpen && (
         <PrimaryNavigation.ButtonOverlay overlayProps={overlayProps}>

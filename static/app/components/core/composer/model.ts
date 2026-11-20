@@ -57,11 +57,7 @@ export function reconcileMentions(
     }
 
     if (mention.start >= previousChangeEnd) {
-      return {
-        ...mention,
-        start: mention.start + offset,
-        end: mention.end + offset,
-      };
+      return {...mention, start: mention.start + offset, end: mention.end + offset};
     }
 
     return [];

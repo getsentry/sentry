@@ -100,9 +100,7 @@ describe('ContinuousProfile', () => {
   describe('android continuous profile chunk', () => {
     it('imports the base properties', () => {
       const trace = makeSentryAndroidContinuousProfileChunk({
-        metadata: {
-          timestamp: '2021-01-01T00:00:00.000Z',
-        },
+        metadata: {timestamp: '2021-01-01T00:00:00.000Z'},
         shared: {
           frames: [
             {name: 'foo', line: 0},
@@ -140,9 +138,7 @@ describe('ContinuousProfile', () => {
 
     it('assigns stacks', () => {
       const trace = makeSentryAndroidContinuousProfileChunk({
-        metadata: {
-          timestamp: '2021-01-01T00:00:00.000Z',
-        },
+        metadata: {timestamp: '2021-01-01T00:00:00.000Z'},
         shared: {
           frames: [
             {name: 'foo', line: 0},

@@ -14,10 +14,7 @@ from sentry.testutils.silo import no_silo_test
 @no_silo_test
 class TraceViewFromExploreTest(AcceptanceTestCase, TraceTestCase, SnubaTestCase):
     viewname = "sentry-api-0-organization-events"
-    FEATURES = [
-        "organizations:visibility-explore-view",
-        "organizations:performance-view",
-    ]
+    FEATURES = ["organizations:visibility-explore-view"]
 
     def setUp(self) -> None:
         super().setUp()

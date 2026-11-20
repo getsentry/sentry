@@ -8,23 +8,14 @@ import type {Organization} from 'sentry/types/organization';
 
 import {openUpsellModal} from 'getsentry/actionCreators/modal';
 
-type Props = React.PropsWithChildren<{
-  organization: Organization;
-}>;
+type Props = React.PropsWithChildren<{organization: Organization}>;
 
 export function DisabledAlertWizard({organization}: Props) {
   return (
     <Flex justify="between" align="center" wrap="wrap">
       <Description>{t('Upgrade your plan to create this type of alert')}</Description>
       <Grid flow="column" align="center" gap="md">
-        <Button
-          onClick={() =>
-            openUpsellModal({
-              organization,
-              source: 'alert-wizard',
-            })
-          }
-        >
+        <Button onClick={() => openUpsellModal({organization, source: 'alert-wizard'})}>
           {t('Learn More')}
         </Button>
         <Button variant="primary" disabled>

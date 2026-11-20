@@ -32,9 +32,7 @@ describe('TabList', () => {
             </Tabs>
           </Wrapper>
         ),
-        {
-          tags: {variant: String(variant), size: String(size), area: 'core'},
-        }
+        {tags: {variant: String(variant), size: String(size), area: 'core'}}
       );
     });
   });
@@ -55,9 +53,7 @@ describe('TabList', () => {
           </Tabs>
         </Wrapper>
       ),
-      {
-        tags: {variant: String(variant), orientation: 'vertical', area: 'core'},
-      }
+      {tags: {variant: String(variant), orientation: 'vertical', area: 'core'}}
     );
   });
 
@@ -76,9 +72,7 @@ describe('TabList', () => {
         </Tabs>
       </Wrapper>
     ),
-    {
-      tags: {state: 'disabled', area: 'core'},
-    }
+    {tags: {state: 'disabled', area: 'core'}}
   );
 
   it.snapshot(
@@ -98,8 +92,6 @@ describe('TabList', () => {
         </Tabs>
       </Wrapper>
     ),
-    {
-      tags: {state: 'single-disabled', area: 'core'},
-    }
+    {tags: {state: 'single-disabled', area: 'core'}}
   );
 });

@@ -52,11 +52,7 @@ export function ActionButtons({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'PUT',
-        data: {
-          ...reservations,
-          plan: plan?.id,
-          referrer: 'replay-am2-update-modal',
-        },
+        data: {...reservations, plan: plan?.id, referrer: 'replay-am2-update-modal'},
       }),
   });
 

@@ -43,9 +43,7 @@ describe('getTraceViewParentCrumbs', () => {
       'Widget',
     ]);
     expect(crumbs[2]?.to).toEqual(
-      expect.objectContaining({
-        pathname: '/organizations/org-slug/dashboard/1/widget/2/',
-      })
+      expect.objectContaining({pathname: '/organizations/org-slug/dashboard/1/widget/2/'})
     );
   });
 

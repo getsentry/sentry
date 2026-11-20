@@ -30,13 +30,7 @@ export default Storybook.story('StructuredEventData', story => {
         data: [
           {
             foo: 'bar',
-            'the_real_world?': {
-              the_city: {
-                the_hotel: {
-                  the_fortress: 'a pinwheel',
-                },
-              },
-            },
+            'the_real_world?': {the_city: {the_hotel: {the_fortress: 'a pinwheel'}}},
             arr5: [1, 2, 3, 4, 5],
             arr6: [1, 2, 3, 4, 5, 6],
           },
@@ -52,13 +46,7 @@ export default Storybook.story('StructuredEventData', story => {
   story('Manually expanded items', () => {
     const data = {
       foo: 'bar',
-      'the_real_world?': {
-        the_city: {
-          the_hotel: {
-            the_fortress: 'a pinwheel',
-          },
-        },
-      },
+      'the_real_world?': {the_city: {the_hotel: {the_fortress: 'a pinwheel'}}},
       arr5: [1, 2, 3, 4, 5],
       arr6: [1, 2, 3, 4, 5, 6],
     };

@@ -47,22 +47,15 @@ describe('OrganizationGeneralSettings', () => {
   });
 
   it('can enable "early adopter"', async () => {
-    render(<OrganizationGeneralSettings />, {
-      organization,
-    });
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'PUT',
-    });
+    render(<OrganizationGeneralSettings />, {organization});
+    const mock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'PUT'});
 
     await userEvent.click(screen.getByRole('checkbox', {name: /early adopter/i}));
 
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         ENDPOINT,
-        expect.objectContaining({
-          data: {isEarlyAdopter: true},
-        })
+        expect.objectContaining({data: {isEarlyAdopter: true}})
       );
     });
   });
@@ -71,9 +64,7 @@ describe('OrganizationGeneralSettings', () => {
     const {router} = render(<OrganizationGeneralSettings />, {
       organization,
       initialRouterConfig: {
-        location: {
-          pathname: `/settings/${organization.slug}/`,
-        },
+        location: {pathname: `/settings/${organization.slug}/`},
         route: '/settings/:orgId/',
       },
     });
@@ -91,9 +82,7 @@ describe('OrganizationGeneralSettings', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         ENDPOINT,
-        expect.objectContaining({
-          data: {slug: 'new-slug'},
-        })
+        expect.objectContaining({data: {slug: 'new-slug'}})
       );
     });
     await waitFor(() => {
@@ -112,9 +101,7 @@ describe('OrganizationGeneralSettings', () => {
       body: {...org, slug: 'acme', links: {organizationUrl: 'https://acme.sentry.io'}},
     });
 
-    render(<OrganizationGeneralSettings />, {
-      organization: org,
-    });
+    render(<OrganizationGeneralSettings />, {organization: org});
 
     const input = screen.getByRole('textbox', {name: /slug/i});
 
@@ -126,11 +113,7 @@ describe('OrganizationGeneralSettings', () => {
     await waitFor(() => {
       expect(updateMock).toHaveBeenCalledWith(
         '/organizations/org-slug/',
-        expect.objectContaining({
-          data: {
-            slug: 'acme',
-          },
-        })
+        expect.objectContaining({data: {slug: 'acme'}})
       );
     });
     expect(testableWindowLocation.replace).toHaveBeenCalledWith(
@@ -142,9 +125,7 @@ describe('OrganizationGeneralSettings', () => {
     const readOnlyOrg = OrganizationFixture({access: ['org:read']});
     OrganizationStore.onUpdate(readOnlyOrg, {replace: true});
 
-    render(<OrganizationGeneralSettings />, {
-      organization: readOnlyOrg,
-    });
+    render(<OrganizationGeneralSettings />, {organization: readOnlyOrg});
 
     const formElements = [
       ...screen.getAllByRole('textbox'),
@@ -172,9 +153,7 @@ describe('OrganizationGeneralSettings', () => {
     const orgWithWriteAccess = OrganizationFixture({access: ['org:write']});
     OrganizationStore.onUpdate(orgWithWriteAccess, {replace: true});
 
-    render(<OrganizationGeneralSettings />, {
-      organization: orgWithWriteAccess,
-    });
+    render(<OrganizationGeneralSettings />, {organization: orgWithWriteAccess});
 
     expect(
       screen.queryByRole('button', {name: /remove organization/i})
@@ -186,15 +165,10 @@ describe('OrganizationGeneralSettings', () => {
     OrganizationStore.onUpdate(orgWithAdminAccess, {replace: true});
     act(() => ProjectsStore.loadInitialData([ProjectFixture({slug: 'project'})]));
 
-    render(<OrganizationGeneralSettings />, {
-      organization: orgWithAdminAccess,
-    });
+    render(<OrganizationGeneralSettings />, {organization: orgWithAdminAccess});
     renderGlobalModal();
 
-    const mock = MockApiClient.addMockResponse({
-      url: ENDPOINT,
-      method: 'DELETE',
-    });
+    const mock = MockApiClient.addMockResponse({url: ENDPOINT, method: 'DELETE'});
 
     await userEvent.click(screen.getByRole('button', {name: /remove organization/i}));
 
@@ -212,9 +186,7 @@ describe('OrganizationGeneralSettings', () => {
     await waitFor(() => {
       expect(mock).toHaveBeenCalledWith(
         ENDPOINT,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       );
     });
   });

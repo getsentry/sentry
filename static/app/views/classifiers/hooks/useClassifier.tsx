@@ -9,10 +9,7 @@ import type {TelemetryClassifier} from 'sentry/views/classifiers/types';
 function classifierApiOptions(organizationSlug: string, classifierId: string) {
   return apiOptions.as<TelemetryClassifier>()(
     '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-    {
-      path: {organizationIdOrSlug: organizationSlug, classifierId},
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organizationSlug, classifierId}, staleTime: 0}
   );
 }
 
@@ -33,9 +30,7 @@ export function useUpdateClassifier(classifierId: string) {
       fetchMutation<TelemetryClassifier>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
-          {
-            path: {organizationIdOrSlug: organization.slug, classifierId},
-          }
+          {path: {organizationIdOrSlug: organization.slug, classifierId}}
         ),
         method: 'PUT',
         data,
@@ -44,6 +39,31 @@ export function useUpdateClassifier(classifierId: string) {
       queryClient.setQueryData(options.queryKey, prev =>
         prev ? {...prev, json: classifier} : prev
       );
+    },
+  });
+}
+
+export function useDeleteClassifier(classifierId: string) {
+  const organization = useOrganization();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () =>
+      fetchMutation<void>({
+        url: getApiUrl(
+          '/organizations/$organizationIdOrSlug/classifiers/$classifierId/',
+          {path: {organizationIdOrSlug: organization.slug, classifierId}}
+        ),
+        method: 'DELETE',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({
+        queryKey: [
+          getApiUrl('/organizations/$organizationIdOrSlug/classifiers/', {
+            path: {organizationIdOrSlug: organization.slug},
+          }),
+        ],
+      });
     },
   });
 }

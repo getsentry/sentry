@@ -141,9 +141,7 @@ function OrgSelectionStep({
 }: PipelineStepProps<OrgSelectionStepData, OrgSelectionAdvanceData>) {
   const handleInstallCallback = useCallback(
     (data: Record<string, unknown>) => {
-      advance({
-        installationId: data.installation_id as string,
-      });
+      advance({installationId: data.installation_id as string});
     },
     [advance]
   );

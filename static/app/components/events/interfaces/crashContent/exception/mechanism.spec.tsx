@@ -7,10 +7,7 @@ import {Mechanism} from './mechanism';
 describe('ExceptionMechanism', () => {
   describe('basic attributes', () => {
     it('should render the exception mechanism', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: true,
-      };
+      const mechanism: StackTraceMechanism = {type: 'generic', handled: true};
       render(<Mechanism data={mechanism} />);
 
       expect(screen.getByText('mechanism')).toBeInTheDocument();
@@ -81,10 +78,7 @@ describe('ExceptionMechanism', () => {
     });
 
     it('should render the handled pill', () => {
-      const mechanism: StackTraceMechanism = {
-        type: 'generic',
-        handled: false,
-      };
+      const mechanism: StackTraceMechanism = {type: 'generic', handled: false};
       render(<Mechanism data={mechanism} />);
 
       expect(screen.getByText('handled')).toBeInTheDocument();
@@ -162,12 +156,7 @@ describe('ExceptionMechanism', () => {
       const mechanism: StackTraceMechanism = {
         type: 'generic',
         handled: false,
-        data: {
-          a: {x: 11},
-          b: [4, 2],
-          c: new Date(),
-          d: 'kept',
-        },
+        data: {a: {x: 11}, b: [4, 2], c: new Date(), d: 'kept'},
       };
       render(<Mechanism data={mechanism} />);
 

@@ -17,23 +17,13 @@ import {
  *       └── KeyError (id=4)
  */
 function makeValues(): ExceptionValue[] {
-  const stub = {
-    stacktrace: null,
-    module: null,
-    threadId: null,
-    rawStacktrace: null,
-  };
+  const stub = {stacktrace: null, module: null, threadId: null, rawStacktrace: null};
   return [
     {
       ...stub,
       type: 'ExceptionGroup',
       value: 'root',
-      mechanism: {
-        handled: true,
-        type: '',
-        exception_id: 0,
-        is_exception_group: true,
-      },
+      mechanism: {handled: true, type: '', exception_id: 0, is_exception_group: true},
     },
     {
       ...stub,

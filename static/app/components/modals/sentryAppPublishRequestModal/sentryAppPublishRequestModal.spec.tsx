@@ -58,9 +58,7 @@ describe('SentryAppDetailsModal', () => {
     expect(screen.getByText('Deployment')).toBeInTheDocument();
 
     expect(
-      screen.getByRole('textbox', {
-        name: 'Link to your documentation page.',
-      })
+      screen.getByRole('textbox', {name: 'Link to your documentation page.'})
     ).toBeInTheDocument();
 
     expect(
@@ -70,9 +68,7 @@ describe('SentryAppDetailsModal', () => {
     ).toBeInTheDocument();
 
     expect(
-      screen.getByRole('textbox', {
-        name: 'Email address for user support.',
-      })
+      screen.getByRole('textbox', {name: 'Email address for user support.'})
     ).toBeInTheDocument();
 
     expect(
@@ -128,9 +124,7 @@ describe('SentryAppDetailsModal', () => {
     await userEvent.click(screen.getByText('Deployment'));
 
     await userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Link to your documentation page.',
-      }),
+      screen.getByRole('textbox', {name: 'Link to your documentation page.'}),
       'http://example.com'
     );
 
@@ -142,9 +136,7 @@ describe('SentryAppDetailsModal', () => {
     );
 
     await userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Email address for user support.',
-      }),
+      screen.getByRole('textbox', {name: 'Email address for user support.'}),
       'example@sentry.io'
     );
 
@@ -176,14 +168,8 @@ describe('SentryAppDetailsModal', () => {
           question: 'Select what category best describes your integration.',
           answer: 'deployment',
         },
-        {
-          question: 'Link to your documentation page.',
-          answer: 'http://example.com',
-        },
-        {
-          question: 'Email address for user support.',
-          answer: 'example@sentry.io',
-        },
+        {question: 'Link to your documentation page.', answer: 'http://example.com'},
+        {question: 'Email address for user support.', answer: 'example@sentry.io'},
         {
           question:
             'Link to a video showing installation, setup and user flow for your submission.',
@@ -270,9 +256,7 @@ describe('SentryAppDetailsModal', () => {
     await userEvent.click(screen.getByText('Deployment'));
 
     await userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Link to your documentation page.',
-      }),
+      screen.getByRole('textbox', {name: 'Link to your documentation page.'}),
       'http://example.com'
     );
 
@@ -284,9 +268,7 @@ describe('SentryAppDetailsModal', () => {
     );
 
     await userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Email address for user support.',
-      }),
+      screen.getByRole('textbox', {name: 'Email address for user support.'}),
       'example@sentry.io'
     );
 
@@ -375,9 +357,7 @@ describe('SentryAppDetailsModal', () => {
     await userEvent.click(screen.getByText('Deployment'));
 
     await userEvent.type(
-      screen.getByRole('textbox', {
-        name: 'Link to your documentation page.',
-      }),
+      screen.getByRole('textbox', {name: 'Link to your documentation page.'}),
       'omo'
     );
 

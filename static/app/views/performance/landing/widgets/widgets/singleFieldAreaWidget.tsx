@@ -45,10 +45,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
   const useEap = useInsightsEap();
 
   const queryExtras = useEap
-    ? {
-        ...getMEPQueryParams(mepSetting),
-        ...EAP_QUERY_PARAMS,
-      }
+    ? {...getMEPQueryParams(mepSetting), ...EAP_QUERY_PARAMS}
     : getMEPQueryParams(mepSetting);
 
   if (props.fields.length !== 1) {
@@ -112,10 +109,7 @@ export function SingleFieldAreaWidget(props: PerformanceWidgetProps) {
     [props.chartSetting, mepSetting.memoizationKey]
   );
 
-  const Queries = {
-    chart: chartQuery,
-    overall: overallQuery,
-  };
+  const Queries = {chart: chartQuery, overall: overallQuery};
 
   return (
     <GenericPerformanceWidget<DataType>

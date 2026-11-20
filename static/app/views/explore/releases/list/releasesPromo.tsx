@@ -94,10 +94,7 @@ export const RELEASES_TOUR_STEPS: TourStep[] = [
   },
 ];
 
-type Props = {
-  organization: Organization;
-  project: Project;
-};
+type Props = {organization: Organization; project: Project};
 
 export function ReleasesPromo({organization, project}: Props) {
   const {data, isPending} = useQuery(
@@ -131,10 +128,7 @@ export function ReleasesPromo({organization, project}: Props) {
   }, [isPending, data]);
 
   useEffect(() => {
-    trackAnalytics('releases.quickstart_viewed', {
-      organization,
-      project_id: project.id,
-    });
+    trackAnalytics('releases.quickstart_viewed', {organization, project_id: project.id});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -150,10 +144,7 @@ export function ReleasesPromo({organization, project}: Props) {
   }, []);
 
   const trackQuickstartCopy = useCallback(() => {
-    trackAnalytics('releases.quickstart_copied', {
-      organization,
-      project_id: project.id,
-    });
+    trackAnalytics('releases.quickstart_copied', {organization, project_id: project.id});
   }, [organization, project]);
 
   const trackQuickstartCreatedIntegration = (integration: SentryApp) => {

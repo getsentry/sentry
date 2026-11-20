@@ -44,9 +44,7 @@ describe('ResultsSearchQueryBuilder', () => {
         // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // Focus the input and type "has:p" to simulate a search for p50
@@ -75,9 +73,7 @@ describe('ResultsSearchQueryBuilder', () => {
         // This fields definition is what caused p50 to appear as a function tag
         fields={[{field: 'p50(transaction.duration)'}]}
       />,
-      {
-        organization,
-      }
+      {organization}
     );
 
     // Focus the input and type "transact" to simulate a search for transaction

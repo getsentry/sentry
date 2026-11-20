@@ -22,10 +22,7 @@ jest.mock('sentry/constants', () => {
   };
 });
 
-type RouteMetadata = {
-  leadingPath: string;
-  route: RouteObject;
-};
+type RouteMetadata = {leadingPath: string; route: RouteObject};
 
 function extractRoutes(rootRoute: RouteObject[]): Set<string> {
   const routes = new Set<string>();
@@ -42,10 +39,7 @@ function extractRoutes(rootRoute: RouteObject[]): Set<string> {
     const currentPath = `${leading}${current.route.path ?? ''}`.replace('//', '/');
     if (current.route.children) {
       for (const childRoute of current.route.children ?? []) {
-        visitQueue.push({
-          leadingPath: currentPath,
-          route: childRoute,
-        });
+        visitQueue.push({leadingPath: currentPath, route: childRoute});
       }
     }
 
@@ -95,6 +89,20 @@ function getRedirectTarget(routes: RouteObject[], url: string): string | undefin
 
 describe('buildRoutes()', () => {
   it.each([false, true])(
+    'matches wizard sessions outside organization context (customer domain: %s)',
+    customerDomain => {
+      jest
+        .spyOn(constants, 'USING_CUSTOMER_DOMAIN', 'get')
+        .mockReturnValue(customerDomain);
+
+      expect(
+        getMatchedPaths(buildRoutes(), '/account/settings/wizard/session-hash/').filter(
+          path => path !== '(layout)'
+        )
+      ).toEqual(['/', '/account/settings/wizard/:wizardHash/']);
+    }
+  );
+  it.each([false, true])(
     'composes settings breadcrumbs from matched routes (customer domain: %s)',
     customerDomain => {
       jest
@@ -114,10 +122,7 @@ describe('buildRoutes()', () => {
           'projects/javascript/keys/key-1/',
           [
             {type: 'link', label: 'Settings', to: '/settings/'},
-            {
-              type: 'project',
-              to: '/settings/:orgId/projects/:projectId/',
-            },
+            {type: 'project', to: '/settings/:orgId/projects/:projectId/'},
             {
               type: 'link',
               label: 'Client Keys',
@@ -166,10 +171,7 @@ describe('buildRoutes()', () => {
         const parents = matches?.flatMap(
           match => match.route.handle?.settingsBreadcrumb ?? []
         );
-        expect({path, parents}).toEqual({
-          path,
-          parents: expected,
-        });
+        expect({path, parents}).toEqual({path, parents: expected});
       }
     }
   );

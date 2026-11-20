@@ -14,10 +14,7 @@ import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-type Props = ModalRenderProps & {
-  onAction: (data: any) => void;
-  userId: string;
-};
+type Props = ModalRenderProps & {onAction: (data: any) => void; userId: string};
 
 const mergeSchema = z.object({
   users: z.array(z.custom<User>()).min(1, 'Select at least one account'),
@@ -26,9 +23,7 @@ const defaultValues: z.infer<typeof mergeSchema> = {users: []};
 
 export function MergeAccountsModal(props: Props) {
   const {userId, onAction, closeModal, Header, Body, Footer} = props;
-  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {
-    path: {userId},
-  });
+  const endpoint = getApiUrl('/users/$userId/merge-accounts/', {path: {userId}});
   const accountsQueryOptions = apiOptions.as<{users: User[]}>()(
     '/users/$userId/merge-accounts/',
     {path: {userId}, staleTime: 0}
@@ -45,11 +40,7 @@ export function MergeAccountsModal(props: Props) {
   const doMergeMutation = useMutation({
     mutationFn: (userIds: string[]) => {
       toast.loading('Saving changes...');
-      return fetchMutation({
-        url: endpoint,
-        method: 'POST',
-        data: {users: userIds},
-      });
+      return fetchMutation({url: endpoint, method: 'POST', data: {users: userIds}});
     },
     onSuccess: () => {
       toast.dismiss();

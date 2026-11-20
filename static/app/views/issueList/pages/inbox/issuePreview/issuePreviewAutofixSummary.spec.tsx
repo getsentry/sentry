@@ -174,10 +174,7 @@ describe('IssuePreviewAutofixSummary', () => {
               ExplorerAutofixBlockFixture({
                 id: 'progress',
                 artifacts: undefined,
-                message: {
-                  content: 'Tracing the failing request...',
-                  role: 'assistant',
-                },
+                message: {content: 'Tracing the failing request...', role: 'assistant'},
               }),
               ExplorerAutofixBlockFixture({
                 id: 'placeholder',
@@ -262,10 +259,7 @@ describe('IssuePreviewAutofixSummary', () => {
               ExplorerAutofixBlockFixture({
                 id: 'first-iteration-progress',
                 artifacts: undefined,
-                message: {
-                  content: 'Applying the first review...',
-                  role: 'assistant',
-                },
+                message: {content: 'Applying the first review...', role: 'assistant'},
               }),
               ExplorerAutofixBlockFixture({
                 id: 'second-iteration-start',

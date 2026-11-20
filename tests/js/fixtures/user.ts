@@ -33,9 +33,7 @@ export function UserFixture(params: Partial<User> = {}): User {
     lastActive: '2020-01-01T00:00:00.000Z',
     lastLogin: '2020-01-01T00:00:00.000Z',
     permissions: new Set(),
-    flags: {
-      newsletter_consent_prompt: false,
-    },
+    flags: {newsletter_consent_prompt: false},
     ...params,
   };
 }

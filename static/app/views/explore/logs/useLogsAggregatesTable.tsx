@@ -10,6 +10,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {defaultAggregateSortBys} from 'sentry/views/explore/contexts/pageParamsContext/aggregateSortBys';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -83,6 +84,8 @@ export function useLogsAggregatesTable({
     [unvalidatedVisualizes]
   );
 
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
+
   const canTriggerHighAccuracy = useCallback(
     (results: ReturnType<typeof useLogsAggregatesTableImpl>['result']) => {
       const json = results.data?.json;
@@ -98,13 +101,11 @@ export function useLogsAggregatesTable({
   >({
     queryHookImplementation: useLogsAggregatesTableImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
     queryHookArgs: {
-      enabled: enabled && !skippedForInvalidConditionalFilter,
+      enabled: enabled && querySpeedReady && !skippedForInvalidConditionalFilter,
       limit,
       referrer,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 
   const {
@@ -175,11 +176,7 @@ function useLogsAggregatesTableImpl({
     retry: false,
   });
 
-  return {
-    result,
-    pageLinks: result.data?.headers.Link,
-    eventView,
-  };
+  return {result, pageLinks: result.data?.headers.Link, eventView};
 }
 
 function useLogsAggregatesApiOptions({
@@ -242,8 +239,5 @@ function useLogsAggregatesApiOptions({
     }
   );
 
-  return {
-    queryOptions: options,
-    eventView,
-  };
+  return {queryOptions: options, eventView};
 }

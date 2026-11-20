@@ -6,10 +6,7 @@ import {useProjects} from 'sentry/utils/useProjects';
 
 import {ContextDataSection} from './contextDataSection';
 
-type Props = {
-  event: Event;
-  disableCollapsePersistence?: boolean;
-};
+type Props = {event: Event; disableCollapsePersistence?: boolean};
 
 export function EventContexts({event, disableCollapsePersistence}: Props) {
   const {projects} = useProjects();

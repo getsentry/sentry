@@ -21,28 +21,16 @@ describe('InvoiceDetails', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: `/customers/${mockOrg.slug}/`,
-      body: mockOrg,
-    });
+    MockApiClient.addMockResponse({url: `/customers/${mockOrg.slug}/`, body: mockOrg});
 
     ConfigStore.set(
       'user',
-      UserFixture({
-        isSuperuser: true,
-        permissions: new Set(['billing.admin']),
-      })
+      UserFixture({isSuperuser: true, permissions: new Set(['billing.admin'])})
     );
 
     ConfigStore.set('cells', [
-      {
-        name: 'us',
-        locality_url: 'https://us.sentry.io',
-      },
-      {
-        name: 'de',
-        locality_url: 'https://de.sentry.io',
-      },
+      {name: 'us', locality_url: 'https://us.sentry.io'},
+      {name: 'de', locality_url: 'https://de.sentry.io'},
     ]);
   });
 
@@ -150,9 +138,7 @@ describe('InvoiceDetails', () => {
       const updateMock = MockApiClient.addMockResponse({
         url: `/customers/${mockOrg.slug}/invoices/${invoice.id}/retry-payment/`,
         method: 'PUT',
-        body: InvoiceFixture({
-          nextChargeAttempt: '2020-11-10T10:29:07.724283Z',
-        }),
+        body: InvoiceFixture({nextChargeAttempt: '2020-11-10T10:29:07.724283Z'}),
       });
 
       render(<InvoiceDetails />, {
@@ -233,9 +219,7 @@ describe('InvoiceDetails', () => {
     });
 
     it('stays available when the organization is deleted', async () => {
-      const invoice = InvoiceFixture({
-        customer: {id: '42', slug: null, isDeleted: true},
-      });
+      const invoice = InvoiceFixture({customer: {id: '42', slug: null, isDeleted: true}});
       MockApiClient.addMockResponse({
         url: `/_admin/cells/us/admin-invoices/${invoice.id}/`,
         body: invoice,

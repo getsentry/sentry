@@ -4,9 +4,7 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {FluidHeight} from 'sentry/views/explore/replays/detail/layout/fluidHeight';
 
-type Props = React.ComponentProps<typeof FluidHeight> & {
-  error: string;
-};
+type Props = React.ComponentProps<typeof FluidHeight> & {error: string};
 
 export const FeedbackErrorDetails = styled(({error, ...props}: Props) => (
   <FluidHeight {...props}>

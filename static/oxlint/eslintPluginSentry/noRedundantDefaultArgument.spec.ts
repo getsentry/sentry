@@ -2,13 +2,7 @@ import {RuleTester} from 'oxlint/plugins-dev';
 
 import {noRedundantDefaultArgument} from './noRedundantDefaultArgument';
 
-const ruleTester = new RuleTester({
-  languageOptions: {
-    parserOptions: {
-      lang: 'tsx',
-    },
-  },
-});
+const ruleTester = new RuleTester({languageOptions: {parserOptions: {lang: 'tsx'}}});
 
 it('refreshes cached imported defaults after the source file changes', () => {
   const consumer = `${__dirname}/fixtures/consumer.ts`;
@@ -58,18 +52,9 @@ it('refreshes cached imported defaults after the source file changes', () => {
 });
 ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
   valid: [
-    {
-      name: 'omitted argument',
-      code: 'function foo(value = 0) {} foo();',
-    },
-    {
-      name: 'argument differs from default',
-      code: 'function foo(value = 0) {} foo(1);',
-    },
-    {
-      name: 'argument is not hardcoded',
-      code: 'function foo(value = 0) {} foo(value);',
-    },
+    {name: 'omitted argument', code: 'function foo(value = 0) {} foo();'},
+    {name: 'argument differs from default', code: 'function foo(value = 0) {} foo(1);'},
+    {name: 'argument is not hardcoded', code: 'function foo(value = 0) {} foo(value);'},
     {
       name: 'default is not hardcoded',
       code: 'function foo(value = DEFAULT_VALUE) {} foo(5);',
@@ -90,10 +75,7 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       name: 'object argument after spread is not aligned',
       code: 'function foo(first, {value = 5}) {} foo(...values, {value: 5});',
     },
-    {
-      name: 'parameter has no default',
-      code: 'function foo(value) {} foo(0);',
-    },
+    {name: 'parameter has no default', code: 'function foo(value) {} foo(0);'},
     {
       name: 'member call is not resolved',
       code: 'const object = {foo(value = 0) {}}; object.foo(0);',
@@ -132,10 +114,7 @@ ruleTester.run('no-redundant-default-argument', noRedundantDefaultArgument, {
       name: 'earlier object spread can supply the property',
       code: 'function foo({value = 0}) {} foo({...other, value: 0});',
     },
-    {
-      name: 'unknown JSX component',
-      code: '<Foo value={5} />;',
-    },
+    {name: 'unknown JSX component', code: '<Foo value={5} />;'},
     {
       name: 'JSX prop differs from default',
       code: 'function Foo({value = 5}) { return null; } <Foo value={6} />;',

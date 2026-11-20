@@ -66,9 +66,7 @@ export function UsageCharts({
   const stats = usageData.stats[category] ?? [];
   const eventTotals = usageData.eventTotals?.[category] ?? {};
   const totals = usageData.totals[category] ?? EMPTY_STAT_TOTAL;
-  const usageStats = {
-    [category]: stats,
-  };
+  const usageStats = {[category]: stats};
 
   const adjustedTotals = isContinuousProfiling(category)
     ? {
@@ -100,11 +98,7 @@ export function UsageCharts({
           onChange={(val: string) => {
             trackGetsentryAnalytics(
               'subscription_page.usage_overview.transform_changed',
-              {
-                organization,
-                subscription,
-                transform: val,
-              }
+              {organization, subscription, transform: val}
             );
             setTransform(transformParser.parse(val), {history: 'push'});
           }}

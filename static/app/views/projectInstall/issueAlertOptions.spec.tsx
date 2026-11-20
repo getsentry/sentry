@@ -9,10 +9,7 @@ import type {IssueAlertNotificationProps} from './messagingIntegrationTypes';
 describe('IssueAlertOptions', () => {
   const notificationProps: IssueAlertNotificationProps = {
     actions: [],
-    channel: {
-      label: 'channel',
-      value: 'channel',
-    },
+    channel: {label: 'channel', value: 'channel'},
     integration: OrganizationIntegrationsFixture(),
     provider: 'slack',
     providersToIntegrations: {},

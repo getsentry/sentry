@@ -592,12 +592,7 @@ function processCharts(
         const dataMap = extractDataPoints(data);
 
         if (dataMap.size > 0) {
-          timeseriesData.push({
-            name: seriesName,
-            data: dataMap,
-            unit,
-            rateUnit,
-          });
+          timeseriesData.push({name: seriesName, data: dataMap, unit, rateUnit});
         }
       }
 
@@ -691,12 +686,7 @@ function processCharts(
             bucketedData.set(bucketTime, existing + y);
           }
 
-          return {
-            data: bucketedData,
-            name: s.name,
-            rateUnit: s.rateUnit,
-            unit: s.unit,
-          };
+          return {data: bucketedData, name: s.name, rateUnit: s.rateUnit, unit: s.unit};
         });
       }
 

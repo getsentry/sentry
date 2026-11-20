@@ -10,10 +10,7 @@ import {usePollReplayRecord} from './usePollReplayRecord';
 const organization = OrganizationFixture();
 
 function replayRecordFixture(replayRecord?: Partial<HydratedReplayRecord>) {
-  return ReplayRecordFixture({
-    ...replayRecord,
-    project_id: '1',
-  });
+  return ReplayRecordFixture({...replayRecord, project_id: '1'});
 }
 
 jest.useFakeTimers();
@@ -24,9 +21,7 @@ describe('usePollReplayRecord', () => {
   });
   it('should fetch count_segments', async () => {
     const countSegments = 10;
-    const replayRecord = replayRecordFixture({
-      count_segments: countSegments,
-    });
+    const replayRecord = replayRecordFixture({count_segments: countSegments});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/replays/${replayRecord.id}/`,

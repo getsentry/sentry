@@ -35,9 +35,7 @@ describe('WidgetPreview', () => {
   const renderOptions = {
     organization: OrganizationFixture(),
     additionalWrapper: WidgetBuilderProvider,
-    initialRouterConfig: {
-      location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
-    },
+    initialRouterConfig: {location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME}},
   };
 
   function ExampleWidgetPreview({

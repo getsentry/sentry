@@ -402,63 +402,6 @@ output {
   color: #89779a; /* lighten(text-color, 25%), lighten the text some for contrast */
 }
 
-/*
-// Horizontal forms
-//
-// Horizontal forms are built on grid classes and allow you to create forms with
-// labels on the left and inputs on the right.
-*/
-
-.form-horizontal {
-  /*
-  // Consistent vertical alignment of radios and checkboxes
-  //
-  // Labels also get some reset styles, but that is scoped to a media query below.
-  */
-  .radio,
-  .checkbox,
-  .radio-inline,
-  .checkbox-inline {
-    padding-top: calc(
-      var(--legacy-padding-base-vertical) + 1px
-    ); /* Default padding plus a border */
-    margin-top: 0;
-    margin-bottom: 0;
-  }
-  /*
-  // Account for padding we're adding to ensure the alignment and of help text
-  // and other content below items
-  */
-  .radio,
-  .checkbox {
-    min-height: calc(
-      var(--legacy-line-height-computed) + var(--legacy-padding-base-vertical) + 1px
-    );
-  }
-
-  /*
-  // Make form groups behave like rows
-  */
-  .form-group {
-    margin-right: -15px;
-    margin-left: -15px;
-  }
-
-  /*
-  // Reset spacing and right align labels, but scope to media queries so that
-  // labels on narrow viewports stack the same as a default form example.
-  */
-  @media (min-width: 768px) {
-    .control-label {
-      padding-top: calc(
-        var(--legacy-padding-base-vertical) + 1px
-      ); /* Default padding plus a border */
-      margin-bottom: 0;
-      text-align: right;
-    }
-  }
-}
-
 /**
 * Forms
 * ============================================================================

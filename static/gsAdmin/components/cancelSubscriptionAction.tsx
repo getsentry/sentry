@@ -7,9 +7,7 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
-type Props = AdminConfirmRenderProps & {
-  subscription: Subscription;
-};
+type Props = AdminConfirmRenderProps & {subscription: Subscription};
 
 /**
  * Rendered as part of a openAdminConfirmModal call
@@ -67,11 +65,7 @@ export function CancelSubscriptionAction({
           </label>
           {enabled ? null : (
             <label
-              style={{
-                marginBottom: 10,
-                marginLeft: 25,
-                position: 'relative',
-              }}
+              style={{marginBottom: 10, marginLeft: 25, position: 'relative'}}
               key="credit"
             >
               <input

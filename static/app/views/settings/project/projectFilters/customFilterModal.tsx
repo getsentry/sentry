@@ -129,11 +129,7 @@ type DataTypeOption = {label: string; value: FilterDataType};
 
 // The modal edits the conditions as one text. See `ConditionEditor` for how the
 // text translates.
-type FilterFormValues = {
-  conditions: string;
-  dataType: FilterDataType;
-  name: string;
-};
+type FilterFormValues = {conditions: string; dataType: FilterDataType; name: string};
 
 type DataTypeSpec = {
   label: string;
@@ -960,9 +956,7 @@ function CustomFilterModal({
     ...defaultFormOptions,
     defaultValues,
     validators: {onDynamic: filterSchema},
-    listeners: {
-      onBlur: ({formApi}) => suggestName(formApi.state.values),
-    },
+    listeners: {onBlur: ({formApi}) => suggestName(formApi.state.values)},
     onSubmit: ({value}) =>
       saveMutation
         .mutateAsync(value)

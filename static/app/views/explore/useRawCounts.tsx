@@ -63,6 +63,8 @@ export function useRawCounts({
 
   const baseReferrer = getBaseReferrer(dataset);
 
+  // Query Speed does not apply here. These scans stay on normal and high
+  // accuracy so the count comparison is independent of the toolbar.
   const normalScanOptions = apiOptions.as<QueryResult<typeof count>>()(
     '/organizations/$organizationIdOrSlug/events/',
     {
@@ -115,14 +117,8 @@ export function useRawCounts({
   const totalCount = totalCountResult.data?.data?.[0]?.[count] ?? null;
 
   return {
-    normal: {
-      isLoading: normalScanResult.isFetching,
-      count: normalScanCount,
-    },
-    total: {
-      isLoading: totalCountResult.isFetching,
-      count: totalCount,
-    },
+    normal: {isLoading: normalScanResult.isFetching, count: normalScanCount},
+    total: {isLoading: totalCountResult.isFetching, count: totalCount},
   };
 }
 

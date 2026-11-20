@@ -1,12 +1,11 @@
 import {useState} from 'react';
 import {Outlet, useOutletContext} from 'react-router';
 import styled from '@emotion/styled';
-import noop from 'lodash/noop';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
-import {Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {toast} from '@sentry/scraps/toast';
 
 import {joinTeamPromise} from 'sentry/actionCreators/teams';
@@ -21,9 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type TeamDetailsOutletContext = {
-  team: Team;
-};
+type TeamDetailsOutletContext = {team: Team};
 
 function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
   return <Outlet context={props} />;
@@ -46,21 +43,10 @@ export default function TeamDetails() {
     setRequesting(true);
 
     try {
-      await joinTeamPromise(api, {
-        orgId: orgSlug,
-        teamId: teamSlug,
-      });
-      toast.success(
-        tct('You have requested access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      await joinTeamPromise(api, {orgId: orgSlug, teamId: teamSlug});
+      toast.success(tct('You have requested access to [team]', {team: `#${teamSlug}`}));
     } catch {
-      toast.error(
-        tct('Unable to request access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      toast.error(tct('Unable to request access to [team]', {team: `#${teamSlug}`}));
       // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);
@@ -97,7 +83,7 @@ export default function TeamDetails() {
           </h3>
 
           <TabsContainer>
-            <Tabs onChange={noop} value={activeTab}>
+            <LinkTabs value={activeTab}>
               {({TabList}) => (
                 <TabList>
                   <TabList.Item key="members" to={`${routePrefix}members/`}>
@@ -114,7 +100,7 @@ export default function TeamDetails() {
                   </TabList.Item>
                 </TabList>
               )}
-            </Tabs>
+            </LinkTabs>
           </TabsContainer>
 
           <TeamDetailsOutlet team={team} />

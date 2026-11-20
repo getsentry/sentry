@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Literal, TypedDict
+
 from django.db import models
 from django.utils import timezone
 
@@ -7,6 +9,12 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import FlexibleForeignKey, cell_silo_model, sane_repr
 from sentry.db.models.base import DefaultFieldsModel
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+
+
+class Mention(TypedDict):
+    id: int
+    actor_type: Literal["User", "Team"]
+    slug: str | None
 
 
 @cell_silo_model
@@ -45,6 +53,9 @@ class NotebookComment(DefaultFieldsModel):
     )
     author_id = HybridCloudForeignKey("sentry.User", null=True, on_delete="SET_NULL")
     body = models.TextField()
+    mentions: models.Field[list[Mention], list[Mention]] = models.JSONField(
+        default=list, db_default=[]
+    )
 
     class Meta:
         app_label = "notebooks"

@@ -60,11 +60,7 @@ export function usePreviewData({
       '/customers/$organizationIdOrSlug/subscription/preview/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          ...reservations,
-          plan: plan?.id,
-          referrer: 'replay-am2-update-modal',
-        },
+        query: {...reservations, plan: plan?.id, referrer: 'replay-am2-update-modal'},
         staleTime: 0,
       }
     ),
@@ -91,11 +87,5 @@ export function usePreviewData({
     };
   }
 
-  return {
-    loading: false,
-    error: false,
-    plan,
-    previewData,
-    reservations,
-  };
+  return {loading: false, error: false, plan, previewData, reservations};
 }

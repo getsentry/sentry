@@ -23,10 +23,7 @@ export const docs: Docs = {
       'https://docs.sentry.io/platforms/javascript/guides/nuxt/profiling/browser-profiling/',
   }),
   featureFlagOnboarding: featureFlag,
-  logsOnboarding: logsFullStack({
-    docsPlatform: 'nuxt',
-    packageName: '@sentry/nuxt',
-  }),
+  logsOnboarding: logsFullStack({docsPlatform: 'nuxt', packageName: '@sentry/nuxt'}),
   metricsOnboarding: metricsFullStack({
     docsPlatform: 'nuxt',
     packageName: '@sentry/nuxt',

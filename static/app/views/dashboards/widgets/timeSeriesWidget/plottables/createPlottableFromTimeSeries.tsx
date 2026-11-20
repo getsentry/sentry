@@ -7,12 +7,7 @@ import {Bars} from './bars';
 import {Line} from './line';
 import type {Plottable} from './plottable';
 
-type PlottableConfig = {
-  alias?: string;
-  color?: string;
-  name?: string;
-  stack?: string;
-};
+type PlottableConfig = {alias?: string; color?: string; name?: string; stack?: string};
 
 export function createPlottableFromTimeSeries(
   displayType: DisplayType,

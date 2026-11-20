@@ -6,16 +6,12 @@ describe('MonitorsDropdown', () => {
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/monitors-count/',
-      body: {
-        counts: {active: 2, disabled: 1, total: 4},
-      },
+      body: {counts: {active: 2, disabled: 1, total: 4}},
     });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/uptime-count/',
-      body: {
-        counts: {active: 1, disabled: 2, total: 3},
-      },
+      body: {counts: {active: 1, disabled: 2, total: 3}},
     });
   });
 

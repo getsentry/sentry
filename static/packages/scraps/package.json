@@ -103,10 +103,6 @@
       "types": "./dist/boundaryContext.d.ts",
       "import": "./dist/boundaryContext.js"
     },
-    "./datetime": {
-      "types": "./dist/datetime.d.ts",
-      "import": "./dist/datetime.js"
-    },
     "./sizeContext": {
       "types": "./dist/sizeContext.d.ts",
       "import": "./dist/sizeContext.js"
@@ -322,6 +318,18 @@
     "./pagination": {
       "types": "./dist/pagination/index.d.ts",
       "import": "./dist/pagination/index.js"
+    },
+    "./duration": {
+      "types": "./dist/duration/index.d.ts",
+      "import": "./dist/duration/index.js"
+    },
+    "./relativeTime": {
+      "types": "./dist/relativeTime/index.d.ts",
+      "import": "./dist/relativeTime/index.js"
+    },
+    "./dateTime": {
+      "types": "./dist/dateTime/index.d.ts",
+      "import": "./dist/dateTime/index.js"
     }
   },
   "publishConfig": {
@@ -330,7 +338,7 @@
   "scripts": {
     "build": "rslib build",
     "test": "NODE_ENV=test jest --config jest.config.mjs",
-    "typecheck": "tsc --build tsconfig.test.json",
+    "typecheck": "tsrs --build tsconfig.test.json",
     "prepack": "pnpm run build",
     "lint": "pnpm run lint:js && pnpm run lint:css",
     "lint:js": "oxlint --type-aware --report-unused-disable-directives",
@@ -341,6 +349,7 @@
     "@emotion/is-prop-valid": "^1.4.0",
     "@emotion/styled": "^11.14.0",
     "@floating-ui/react-dom": "^2.1.9",
+    "@js-temporal/polyfill": "0.5.1",
     "@react-aria/button": "3.15.1",
     "@react-aria/disclosure": "3.2.1",
     "@react-aria/focus": "3.22.1",
@@ -360,6 +369,7 @@
     "@react-stately/collections": "3.13.1",
     "@react-stately/disclosure": "3.1.1",
     "@react-stately/list": "3.14.1",
+    "@react-stately/menu": "3.10.1",
     "@react-stately/numberfield": "3.12.1",
     "@react-stately/overlays": "3.7.1",
     "@react-stately/radio": "3.12.1",
@@ -368,7 +378,7 @@
     "@react-stately/tree": "3.10.1",
     "@react-types/shared": "3.36.0",
     "@sentry/icons": "workspace:*",
-    "@sentry/react": "11.14.0",
+    "@sentry/react": "11.15.0",
     "@tanstack/react-hotkeys": "0.18.0",
     "@tanstack/react-pacer": "^0.22.1",
     "@tanstack/react-virtual": "3.14.6",
@@ -406,8 +416,8 @@
     "expect-type": "1.4.0",
     "jest": "30.5.1",
     "jsdom": "30.1.1",
-    "oxlint": "1.90.0",
-    "oxlint-tsgolint": "7.0.2005",
+    "moment-timezone": "0.6.2",
+    "oxlint": "1.94.0",
     "stylelint": "16.26.1",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "zod": "4.6.7"

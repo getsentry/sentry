@@ -19,9 +19,7 @@ import {FTCConsentLocation, type Subscription} from 'getsentry/types';
 import {ContactBillingMembers} from 'getsentry/views/contactBillingMembers';
 import {SubscriptionPageContainer} from 'getsentry/views/subscriptionPage/components/subscriptionPageContainer';
 
-type Props = {
-  subscription: Subscription;
-};
+type Props = {subscription: Subscription};
 
 /**
  * Update Billing Information view.

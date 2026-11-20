@@ -1,9 +1,9 @@
 import {useTheme} from '@emotion/react';
 
+import {getDuration} from '@sentry/scraps/duration';
 import {Text} from '@sentry/scraps/text';
 
 import {t} from 'sentry/locale';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -47,26 +47,14 @@ export function UptimeTimingDetails(
     UPTIME_PHASE_DESCRIPTIONS[op as keyof typeof UPTIME_PHASE_DESCRIPTIONS];
 
   const attributes: TraceItemResponseAttribute[] = [
-    {
-      name: 'operation',
-      type: 'str',
-      value: op,
-    },
+    {name: 'operation', type: 'str', value: op},
     {
       name: 'duration',
       type: 'str',
-      value: getDuration(duration, 2, true),
+      value: getDuration(duration, {precision: 2, style: 'short'}),
     },
-    {
-      name: 'start_timestamp',
-      type: 'float',
-      value: start_timestamp,
-    },
-    {
-      name: 'end_timestamp',
-      type: 'float',
-      value: end_timestamp,
-    },
+    {name: 'start_timestamp', type: 'float', value: start_timestamp},
+    {name: 'end_timestamp', type: 'float', value: end_timestamp},
   ];
 
   return (
@@ -85,17 +73,9 @@ export function UptimeTimingDetails(
 
         <AttributesTree
           attributes={attributes}
-          rendererExtra={{
-            location,
-            navigate,
-            organization,
-            theme,
-          }}
+          rendererExtra={{location, navigate, organization, theme}}
           columnCount={1}
-          config={{
-            disableActions: true,
-            disableRichValue: true,
-          }}
+          config={{disableActions: true, disableRichValue: true}}
         />
       </TraceDrawerComponents.BodyContainer>
     </TraceDrawerComponents.DetailContainer>

@@ -131,21 +131,10 @@ export interface DocsParams<
    * The page where the docs are being displayed
    */
   docsLocation?: DocsPageLocation;
-  featureFlagOptions?: {
-    integration: string;
-  };
-  feedbackOptions?: {
-    email?: boolean;
-    name?: boolean;
-    screenshot?: boolean;
-  };
-  profilingOptions?: {
-    defaultProfilingMode?: 'transaction' | 'continuous';
-  };
-  replayOptions?: {
-    block?: boolean;
-    mask?: boolean;
-  };
+  featureFlagOptions?: {integration: string};
+  feedbackOptions?: {email?: boolean; name?: boolean; screenshot?: boolean};
+  profilingOptions?: {defaultProfilingMode?: 'transaction' | 'continuous'};
+  replayOptions?: {block?: boolean; mask?: boolean};
 }
 
 interface NextStep {

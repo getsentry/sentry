@@ -11,9 +11,7 @@ import {useParams} from 'sentry/utils/useParams';
 
 import {DetailsPage} from 'admin/components/detailsPage';
 
-type RelocationData = {
-  contents: string;
-};
+type RelocationData = {contents: string};
 
 export function RelocationArtifactDetails() {
   const {artifactKind, fileName, regionName, relocationUuid} = useParams<{

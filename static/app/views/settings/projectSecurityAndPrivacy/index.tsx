@@ -23,9 +23,7 @@ import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageH
 import {ProjectPermissionAlert} from 'sentry/views/settings/project/projectPermissionAlert';
 import {useProjectSettingsOutlet} from 'sentry/views/settings/project/projectSettingsLayout';
 
-const securitySchema = z.object({
-  storeCrashReports: z.number().nullable(),
-});
+const securitySchema = z.object({storeCrashReports: z.number().nullable()});
 
 const dataScrubBooleanSchema = z.object({
   dataScrubber: z.boolean(),

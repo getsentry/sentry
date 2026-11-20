@@ -55,10 +55,7 @@ describe('FilesChanged', () => {
       >
         <FilesChanged />
       </ReleaseContext>,
-      {
-        organization,
-        initialRouterConfig,
-      }
+      {organization, initialRouterConfig}
     );
   }
 

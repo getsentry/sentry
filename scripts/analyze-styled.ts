@@ -186,11 +186,7 @@ function getCommitsInDateRange(startDate: string, intervalDays: number): GitComm
       const line = output.trim();
       if (line.length > 0) {
         const [hash, timestamp] = line.split(',');
-        commits.push({
-          hash: hash!,
-          date,
-          timestamp: parseInt(timestamp!, 10),
-        });
+        commits.push({hash: hash!, date, timestamp: parseInt(timestamp!, 10)});
       }
     } catch (error) {
       // Skip dates with no commits
@@ -345,10 +341,7 @@ function findTsxFiles(dir: string): string[] {
   try {
     const output = child_process.execSync(
       `rg --files --type-add 'tsx:*.tsx' --type tsx "${dir}"`,
-      {
-        encoding: 'utf8',
-        stdio: ['pipe', 'pipe', 'pipe'],
-      }
+      {encoding: 'utf8', stdio: ['pipe', 'pipe', 'pipe']}
     );
 
     return output
@@ -494,10 +487,7 @@ class CoreComponentImportsDetector extends BaseDetector {
             usage.files.add(context.fileName);
             usage.count++;
           } else {
-            this.usage.set(tagName, {
-              files: new Set([context.fileName]),
-              count: 1,
-            });
+            this.usage.set(tagName, {files: new Set([context.fileName]), count: 1});
           }
         }
       }
@@ -641,10 +631,7 @@ interface StyledComponent {
   expressionCount: number;
   file: string;
   hasExpressions: boolean;
-  location: {
-    column: number;
-    line: number;
-  };
+  location: {column: number; line: number};
 }
 class StyledComponentsDetector extends BaseDetector {
   name = 'StyledComponents';
@@ -729,10 +716,7 @@ class StyledComponentsDetector extends BaseDetector {
             component: componentName,
             componentType,
             cssRules: cssRules.trim(),
-            location: {
-              line: line + 1,
-              column: character + 1,
-            },
+            location: {line: line + 1, column: character + 1},
             hasExpressions,
             expressionCount: expressions.length,
           };
@@ -877,11 +861,7 @@ class StyledComponentsDetector extends BaseDetector {
       }>
     > = {};
 
-    type RuleInfo = {
-      dynamic: number;
-      value: string;
-      children?: RuleInfo[];
-    };
+    type RuleInfo = {dynamic: number; value: string; children?: RuleInfo[]};
 
     const parseErrors: string[] = [];
     this.styledComponents.forEach(sc => {
@@ -903,20 +883,14 @@ class StyledComponentsDetector extends BaseDetector {
         if (line.match(/^\s*[>&]/)) {
           const subSelector = line.match(/^\s*([>&])/)?.[1] || 'unknown sub selector';
           ruleInfo[subSelector] = ruleInfo[subSelector] || [];
-          ruleInfo[subSelector].push({
-            value: line,
-            dynamic: 0,
-          });
+          ruleInfo[subSelector].push({value: line, dynamic: 0});
           continue;
         }
 
         if (line.match(/^\s*@media/) || line.match(/^\s*@container/)) {
           const mediaQuery = '@media';
           ruleInfo[mediaQuery] = ruleInfo[mediaQuery] || [];
-          ruleInfo[mediaQuery].push({
-            value: line,
-            dynamic: 0,
-          });
+          ruleInfo[mediaQuery].push({value: line, dynamic: 0});
           continue;
         }
 
@@ -942,10 +916,7 @@ class StyledComponentsDetector extends BaseDetector {
           });
         } else {
           ruleInfo[line] = ruleInfo[line] || [];
-          ruleInfo[line].push({
-            value: line,
-            dynamic: 0,
-          });
+          ruleInfo[line].push({value: line, dynamic: 0});
           logger.debug('❌ Error parsing line:\n', JSON.stringify(line, null, 2));
           parseErrors.push(`/////////////////\n${line}\n/////////////////\n`);
         }
@@ -966,9 +937,7 @@ class StyledComponentsDetector extends BaseDetector {
       if (existing) {
         existing.count++;
       } else {
-        errorCounts.set(error, {
-          count: 1,
-        });
+        errorCounts.set(error, {count: 1});
       }
     }
 
@@ -997,10 +966,7 @@ class StyledComponentsDetector extends BaseDetector {
       logger.log(`=== TOP ${config.topN} MOST COMMONLY USED CSS RULES ===`);
       const cssRulesData =
         topCssRules.length > 0
-          ? topCssRules.map(([rule, count]) => ({
-              CSSRule: rule,
-              Instances: count,
-            }))
+          ? topCssRules.map(([rule, count]) => ({CSSRule: rule, Instances: count}))
           : [{CSSRule: '', Instances: 0}];
       logger.log(arrayToCSV(cssRulesData));
       logger.log();
@@ -1093,10 +1059,7 @@ class StyledUsagePerFileDetector extends BaseDetector {
       logger.log(`=== TOP ${config.topN} FILES BY STYLED CALL COUNT ===`);
       const filesData =
         sortedFiles.length > 0
-          ? sortedFiles.map(([file, count]) => ({
-              File: file,
-              StyledCalls: count,
-            }))
+          ? sortedFiles.map(([file, count]) => ({File: file, StyledCalls: count}))
           : [{File: '', StyledCalls: 0}];
       logger.log(arrayToCSV(filesData));
       logger.log();
@@ -1208,10 +1171,7 @@ class FlexOnlyDivsDetector extends BaseDetector {
             component: componentName,
             componentType,
             cssRules: cssRules.trim(),
-            location: {
-              line: line + 1,
-              column: character + 1,
-            },
+            location: {line: line + 1, column: character + 1},
             hasExpressions: expressions.length > 0,
             expressionCount: expressions.length,
           };
@@ -1335,11 +1295,7 @@ function analyze(
   fileName: string,
   detectorConfig: DetectorConfiguration
 ): void {
-  const context: DetectorContext = {
-    sourceFile,
-    fileName,
-    config,
-  };
+  const context: DetectorContext = {sourceFile, fileName, config};
 
   function visit(node: ts.Node): void {
     // Run all detectors for every node
@@ -1373,14 +1329,10 @@ function processCommit(
 
   // Clean any uncommitted changes before checkout
   // Use -f to force removal and -x to include ignored files
-  child_process.execSync('git clean -d -f -x', {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  child_process.execSync('git clean -d -f -x', {stdio: ['pipe', 'pipe', 'pipe']});
 
   // Reset any staged changes
-  child_process.execSync('git reset --hard', {
-    stdio: ['pipe', 'pipe', 'pipe'],
-  });
+  child_process.execSync('git reset --hard', {stdio: ['pipe', 'pipe', 'pipe']});
 
   // Checkout the commit (force checkout to handle conflicts)
   child_process.execSync(`git checkout -f ${commit.hash}`, {
@@ -1439,11 +1391,7 @@ function processCommit(
 
   logger.log(`✅ Completed analysis for ${commit.hash.substring(0, 7)}`);
 
-  return {
-    commit,
-    output,
-    filename,
-  };
+  return {commit, output, filename};
 }
 
 function runHistoryAnalysis(c: Config) {
@@ -1558,13 +1506,9 @@ function runHistoryAnalysis(c: Config) {
     // Restore original state
     try {
       // Clean any uncommitted changes before final checkout (including ignored files)
-      child_process.execSync('git clean -d -f -x', {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
+      child_process.execSync('git clean -d -f -x', {stdio: ['pipe', 'pipe', 'pipe']});
       // Reset any staged changes
-      child_process.execSync('git reset --hard', {
-        stdio: ['pipe', 'pipe', 'pipe'],
-      });
+      child_process.execSync('git reset --hard', {stdio: ['pipe', 'pipe', 'pipe']});
       // Force checkout to restore original branch
       child_process.execSync(`git checkout -f ${originalBranch}`, {
         stdio: ['pipe', 'pipe', 'pipe'],

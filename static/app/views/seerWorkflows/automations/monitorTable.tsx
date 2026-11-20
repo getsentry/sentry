@@ -24,6 +24,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {automationsApiOptions} from 'sentry/views/automations/hooks';
 import {MetricDetectorDetailsDetect} from 'sentry/views/detectors/components/details/metric/detect';
 import {DetectorLink} from 'sentry/views/detectors/components/detectorLink';
+import {AUTO_REFRESH_INTERVAL} from 'sentry/views/seerWorkflows/utils';
 
 const MAX_VISIBLE_TARGETS = 2;
 
@@ -40,12 +41,10 @@ function useMonitorAlertTargets(monitorIds: string[]) {
   const organization = useOrganization();
 
   return useQuery({
-    ...automationsApiOptions(organization, {
-      detector: monitorIds.toSorted(),
-      limit: 100,
-    }),
+    ...automationsApiOptions(organization, {detector: monitorIds.toSorted(), limit: 100}),
     enabled: monitorIds.length > 0,
     select: ({json}) => getAlertTargetsByMonitor(json),
+    refetchInterval: AUTO_REFRESH_INTERVAL,
   });
 }
 

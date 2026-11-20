@@ -268,7 +268,4 @@ const Placement = styled('div')`
   place-items: center;
 `;
 
-export const ContentSliderDiff = {
-  Body,
-  Header,
-};
+export const ContentSliderDiff = {Body, Header};

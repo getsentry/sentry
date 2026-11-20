@@ -10,94 +10,28 @@ type ApiAccessScopeDetails = {
 };
 
 export const API_ACCESS_SCOPE_DETAILS = {
-  'alerts:read': {
-    resource: t('Alerts'),
-    access: 'read',
-  },
-  'alerts:write': {
-    resource: t('Alerts'),
-    access: 'readWrite',
-  },
-  'event:admin': {
-    resource: t('Issues & Events'),
-    access: 'admin',
-  },
-  'event:read': {
-    resource: t('Issues & Events'),
-    access: 'read',
-  },
-  'event:write': {
-    resource: t('Issues & Events'),
-    access: 'readWrite',
-  },
-  'member:admin': {
-    resource: t('Members'),
-    access: 'admin',
-  },
-  'member:invite': {
-    resource: t('Members'),
-    access: 'readWrite',
-  },
-  'member:read': {
-    resource: t('Members'),
-    access: 'read',
-  },
-  'member:write': {
-    resource: t('Members'),
-    access: 'readWrite',
-  },
-  'org:admin': {
-    resource: t('Organization'),
-    access: 'admin',
-  },
-  'org:ci': {
-    resource: t('CI Workflows'),
-    access: 'manage',
-  },
-  'org:integrations': {
-    resource: t('Integrations'),
-    access: 'admin',
-  },
-  'org:read': {
-    resource: t('Organization'),
-    access: 'read',
-  },
-  'org:write': {
-    resource: t('Organization'),
-    access: 'readWrite',
-  },
-  'project:admin': {
-    resource: t('Projects'),
-    access: 'admin',
-  },
-  'project:distribution': {
-    resource: t('App Distribution'),
-    access: 'manage',
-  },
-  'project:read': {
-    resource: t('Projects'),
-    access: 'read',
-  },
-  'project:releases': {
-    resource: t('Releases'),
-    access: 'admin',
-  },
-  'project:write': {
-    resource: t('Projects'),
-    access: 'readWrite',
-  },
-  'team:admin': {
-    resource: t('Teams'),
-    access: 'admin',
-  },
-  'team:read': {
-    resource: t('Teams'),
-    access: 'read',
-  },
-  'team:write': {
-    resource: t('Teams'),
-    access: 'readWrite',
-  },
+  'alerts:read': {resource: t('Alerts'), access: 'read'},
+  'alerts:write': {resource: t('Alerts'), access: 'readWrite'},
+  'event:admin': {resource: t('Issues & Events'), access: 'admin'},
+  'event:read': {resource: t('Issues & Events'), access: 'read'},
+  'event:write': {resource: t('Issues & Events'), access: 'readWrite'},
+  'member:admin': {resource: t('Members'), access: 'admin'},
+  'member:invite': {resource: t('Members'), access: 'readWrite'},
+  'member:read': {resource: t('Members'), access: 'read'},
+  'member:write': {resource: t('Members'), access: 'readWrite'},
+  'org:admin': {resource: t('Organization'), access: 'admin'},
+  'org:ci': {resource: t('CI Workflows'), access: 'manage'},
+  'org:integrations': {resource: t('Integrations'), access: 'admin'},
+  'org:read': {resource: t('Organization'), access: 'read'},
+  'org:write': {resource: t('Organization'), access: 'readWrite'},
+  'project:admin': {resource: t('Projects'), access: 'admin'},
+  'project:distribution': {resource: t('App Distribution'), access: 'manage'},
+  'project:read': {resource: t('Projects'), access: 'read'},
+  'project:releases': {resource: t('Releases'), access: 'admin'},
+  'project:write': {resource: t('Projects'), access: 'readWrite'},
+  'team:admin': {resource: t('Teams'), access: 'admin'},
+  'team:read': {resource: t('Teams'), access: 'read'},
+  'team:write': {resource: t('Teams'), access: 'readWrite'},
 } satisfies Record<ApiAccessScope, ApiAccessScopeDetails>;
 
 export const ALLOWED_SCOPES = [
@@ -122,6 +56,8 @@ export const ALLOWED_SCOPES = [
   'project:read',
   'project:releases',
   'project:write',
+  'service_account:read',
+  'service_account:write',
   'team:admin',
   'team:read',
   'team:write',

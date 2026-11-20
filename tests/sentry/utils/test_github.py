@@ -1,7 +1,9 @@
+import base64
 from unittest import TestCase
 
 import pytest
 import responses
+from django.test import override_settings
 
 from sentry.utils.github import verify_signature
 
@@ -66,3 +68,23 @@ class TestGitHub(TestCase):
         with pytest.raises(ValueError) as excinfo:
             self._verify()
         assert "Invalid signature encoding" in str(excinfo.value)
+
+    @responses.activate
+    def test_verify_signature_authenticates_with_login_client(self) -> None:
+        responses.add(
+            responses.GET,
+            "https://api.github.com/meta/public_keys/secret_scanning",
+            json=GITHUB_META_PUBLIC_KEYS_RESPONSE,
+            status=200,
+        )
+
+        with override_settings(
+            SENTRY_GITHUB_LOGIN_CLIENT_ID="login-client-id",
+            GITHUB_APP_ID="app-client-id",
+            GITHUB_API_SECRET="client-secret",
+        ):
+            verify_signature(self.payload, self.signature, self.key_id, self.subpath)
+
+        assert responses.calls[0].request.headers["Authorization"] == (
+            "Basic " + base64.b64encode(b"login-client-id:client-secret").decode()
+        )

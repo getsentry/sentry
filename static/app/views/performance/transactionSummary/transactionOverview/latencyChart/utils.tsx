@@ -18,8 +18,5 @@ const histogramZoomParsers = {
 export function decodeHistogramZoom(location: Location) {
   const zoom = loadQueryParamsFromLocation(histogramZoomParsers, location);
 
-  return {
-    min: zoom[ZOOM_START] ?? undefined,
-    max: zoom[ZOOM_END] ?? undefined,
-  };
+  return {min: zoom[ZOOM_START] ?? undefined, max: zoom[ZOOM_END] ?? undefined};
 }

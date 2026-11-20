@@ -26,9 +26,7 @@ describe('ScreenshotDataSection', () => {
     const attachment = EventAttachmentFixture({
       name: 'screenshot.png',
       mimetype: 'application/json',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: {'Content-Type': 'application/json'},
     });
 
     MockApiClient.addMockResponse({

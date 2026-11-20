@@ -3,10 +3,7 @@ import {useMemo} from 'react';
 import type {SerializedStyles, Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-type TextProps = {
-  theme: Theme;
-  textCss?: Props['textCss'];
-};
+type TextProps = {theme: Theme; textCss?: Props['textCss']};
 
 type Props = {
   backgroundColors: readonly string[];

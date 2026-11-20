@@ -21,9 +21,7 @@ export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoPr
         <Text>
           {tct(
             '[platform] has been deprecated, but you can still use this project with the following DSN:',
-            {
-              platform: <strong>{platform.name}</strong>,
-            }
+            {platform: <strong>{platform.name}</strong>}
           )}
         </Text>
 
@@ -47,9 +45,7 @@ export function DeprecatedPlatformInfo({platform, dsn}: DeprecatedPlatformInfoPr
         <Text>
           {tct(
             "We support many platforms! Take a peek at the [docsLink:full list] to see what's available.",
-            {
-              docsLink: <ExternalLink href="https://docs.sentry.io/platforms/" />,
-            }
+            {docsLink: <ExternalLink href="https://docs.sentry.io/platforms/" />}
           )}
         </Text>
       </Stack>

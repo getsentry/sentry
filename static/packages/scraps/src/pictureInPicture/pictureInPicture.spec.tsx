@@ -12,9 +12,7 @@ import {
 import {darkTheme, lightTheme} from '@sentry/scraps/theme';
 import {TooltipContext} from '@sentry/scraps/tooltip';
 
-type FakePipWindow = Window & {
-  __listeners: Record<string, Array<() => void>>;
-};
+type FakePipWindow = Window & {__listeners: Record<string, Array<() => void>>};
 
 function createFakePipWindow(): FakePipWindow {
   const doc = document.implementation.createHTMLDocument('pip');

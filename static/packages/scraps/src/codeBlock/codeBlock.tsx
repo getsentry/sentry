@@ -68,10 +68,7 @@ export interface CodeBlockProps {
   onTabClick?: (tab: string) => void;
   ref?: React.Ref<HTMLDivElement>;
   selectedTab?: string;
-  tabs?: Array<{
-    label: string;
-    value: string;
-  }>;
+  tabs?: Array<{label: string; value: string}>;
   /**
    * Controls whether long lines scroll horizontally or wrap within the snippet.
    *

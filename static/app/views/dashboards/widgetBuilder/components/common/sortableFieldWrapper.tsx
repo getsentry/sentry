@@ -16,11 +16,7 @@ export function SortableVisualizeFieldWrapper({
 }) {
   const theme = useTheme();
   const {listeners, setNodeRef, transform, transition, attributes, isDragging} =
-    useSortable({
-      id: dragId,
-      transition: null,
-      disabled: !canDrag,
-    });
+    useSortable({id: dragId, transition: null, disabled: !canDrag});
 
   let style = {
     transform: CSS.Transform.toString(transform),

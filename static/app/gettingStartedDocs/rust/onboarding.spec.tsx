@@ -7,11 +7,7 @@ import {docs} from '.';
 describe('rust onboarding docs', () => {
   it('renders onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.rust': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.rust': {version: '1.99.9'}},
     });
 
     // Renders main headings
