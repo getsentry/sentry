@@ -26,6 +26,7 @@ from sentry.integrations.jira.views.sentry_issue_details import JiraSentryIssueD
 from sentry.integrations.jira.webhooks import (
     JiraForgeConfigureLinkWebhook,
     JiraForgeInstallationWebhook,
+    JiraForgeIssuePanelWebhook,
     JiraForgeIssueUpdatedWebhook,
     JiraIssueUpdatedWebhook,
     JiraSentryInstalledWebhook,
@@ -56,6 +57,7 @@ class JiraRequestParser(BaseRequestParser):
         JiraDescriptorEndpoint,
         JiraForgeConfigureLinkWebhook,
         JiraForgeInstallationWebhook,
+        JiraForgeIssuePanelWebhook,
         JiraSentryInstallationView,
         JiraSentryInstalledWebhook,
         JiraSentryUninstalledWebhook,

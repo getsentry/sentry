@@ -84,6 +84,11 @@ class VerifyForgeInvocationTokenTest(TestCase):
         verify_forge_invocation_token(_token(_claims()))
         assert len(responses.calls) == 1
 
+    def test_reads_issue_key_from_signed_context(self) -> None:
+        context = {"cloudId": "cloud-123", "extension": {"issue": {"key": "APP-1", "id": "10001"}}}
+        invocation = verify_forge_invocation_token(_token(_claims(context=context)))
+        assert invocation.issue_key == "APP-1"
+
     def test_rejects_invalid_tokens(self) -> None:
         now = int(time.time())
         app = _claims()["app"]
