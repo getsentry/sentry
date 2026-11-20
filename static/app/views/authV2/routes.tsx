@@ -14,6 +14,10 @@ export const authV2Routes: SentryRouteObject = {
           path: 'oauth/device/',
           component: make(() => import('sentry/views/authV2/oauthDevice')),
         },
+        {
+          path: 'auth/logout/',
+          component: make(() => import('sentry/views/authV2/authLogout')),
+        },
       ],
     },
     {
@@ -26,10 +30,6 @@ export const authV2Routes: SentryRouteObject = {
         {
           path: 'auth/login/:orgSlug?/',
           component: make(() => import('sentry/views/authV2/authLogin')),
-        },
-        {
-          path: 'auth/logout/',
-          component: make(() => import('sentry/views/authV2/authLogout')),
         },
         {
           path: 'auth/register/',
