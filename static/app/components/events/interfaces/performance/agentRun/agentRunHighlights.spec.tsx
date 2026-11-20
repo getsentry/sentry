@@ -1,11 +1,12 @@
 import {EventFixture} from 'sentry-fixture/event';
+import {ExceptionValueFixture} from 'sentry-fixture/exceptionValue';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {ProjectsStore} from 'sentry/stores/projectsStore';
-import {EventOrGroupType} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
 import {
   makeEAPError,
   makeEAPSpan,
@@ -172,6 +173,46 @@ describe('AgentRunHighlights', () => {
     expect(screen.getByText('Tool input')).toBeInTheDocument();
     expect(screen.getByText('The run ended at this step')).toBeInTheDocument();
     expect(screen.queryByText('Across events')).not.toBeInTheDocument();
+  });
+
+  it('names the failure kind from the exception', async () => {
+    mockRecentEvents([]);
+    render(
+      <AgentRunHighlights
+        event={EventFixture({
+          ...event,
+          entries: [
+            {
+              type: EntryType.EXCEPTION,
+              data: {
+                values: [
+                  ExceptionValueFixture({
+                    type: 'HTTPError',
+                    value:
+                      '503 Server Error: Service Unavailable for url: https://example.com',
+                    mechanism: {handled: true, type: 'generic'},
+                  }),
+                ],
+                excOmitted: null,
+                hasSystemFrames: false,
+              },
+            },
+          ],
+        })}
+      />,
+      {organization}
+    );
+
+    expect(await screen.findByText('Failure kind')).toBeInTheDocument();
+    expect(screen.getByText('A dependency failed')).toBeInTheDocument();
+  });
+
+  it('leaves out the failure kind when no rule matches', async () => {
+    mockRecentEvents([]);
+    render(<AgentRunHighlights event={event} />, {organization});
+
+    expect(await screen.findByText('Agent run')).toBeInTheDocument();
+    expect(screen.queryByText('Failure kind')).not.toBeInTheDocument();
   });
 
   it('says when the agent continued after the error', async () => {

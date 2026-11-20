@@ -30,6 +30,7 @@ import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/typ
 import {SpanFields} from 'sentry/views/insights/types';
 
 import {useAgentActivityLink} from './eventAgentRun';
+import {getEventFailureKind} from './failureKind';
 import {
   getStepKey,
   STATS_PERIOD,
@@ -241,9 +242,18 @@ export function AgentRunHighlights({event}: {event: Event}) {
   const toolInput = getToolInput(failingNode);
   const stepIndex = nodes.findIndex(node => node.id === failingNode.id);
 
+  const failureKind = getEventFailureKind(event, failingNode);
+
   const thisEventItems: KeyValueListDataItem[] = [];
   if (agentName) {
     thisEventItems.push({key: 'agent', subject: t('Agent'), value: agentName});
+  }
+  if (failureKind) {
+    thisEventItems.push({
+      key: 'failure_kind',
+      subject: t('Failure kind'),
+      value: failureKind,
+    });
   }
   thisEventItems.push({
     key: 'failed_step',
