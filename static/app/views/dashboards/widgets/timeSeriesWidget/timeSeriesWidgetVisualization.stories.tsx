@@ -8,6 +8,7 @@ import {parseAsString, useQueryState} from 'nuqs';
 import {Button} from '@sentry/scraps/button';
 import {CodeBlock} from '@sentry/scraps/codeBlock';
 import {ExternalLink} from '@sentry/scraps/link';
+import {Heading} from '@sentry/scraps/text';
 
 import type {AnnotationItem} from 'sentry/components/charts/annotations/types';
 import {ConfigStore} from 'sentry/stores/configStore';
@@ -836,26 +837,33 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
   });
 
   story('Low Confidence Data', () => {
-    const createLowConfidenceTimeSeriesClone = function (
-      timeSeries: TimeSeries
-    ): TimeSeries {
-      return {
-        ...timeSeries,
-        values: timeSeries.values.map((value, index) => {
-          if ((index > 10 && index < 16) || (index > 30 && index < 33)) {
-            return {...value, confidence: 'low'};
-          }
-          return value;
-        }),
-      };
-    };
+    const lowConfidenceDuration = withLowConfidenceIntervals(sampleDurationTimeSeries, [
+      [20, 25],
+    ]);
 
-    const lowConfidenceDurationTimeSeries = createLowConfidenceTimeSeriesClone(
-      sampleDurationTimeSeries
+    const twoIntervals: LowConfidenceInterval[] = [
+      [10, 15],
+      [30, 33],
+    ];
+    const twoIntervalsDuration = withLowConfidenceIntervals(
+      sampleDurationTimeSeries,
+      twoIntervals
     );
-    const lowConfidenceDurationP50TimeSeries = createLowConfidenceTimeSeriesClone(
-      sampleDurationTimeSeriesP50
+    const twoIntervalsDurationP50 = withLowConfidenceIntervals(
+      sampleDurationTimeSeriesP50,
+      twoIntervals
     );
+
+    const fiveIntervals: LowConfidenceInterval[] = [
+      [3, 5],
+      [10, 12],
+      [18, 22],
+      [28, 30],
+      [38, 41],
+    ];
+
+    // 47 of 49 points, just over 95% of the chart
+    const mostlyLowConfidence: LowConfidenceInterval[] = [[2, 48]];
 
     return (
       <Fragment>
@@ -866,32 +874,86 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
         </p>
 
         <WithTimeSeriesConfidenceFeature>
+          <Heading as="h3" size="md">
+            Single series, one low-confidence interval
+          </Heading>
+          <Storybook.SideBySide>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[new Line(lowConfidenceDuration)]}
+              />
+            </MediumWidget>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[new Area(lowConfidenceDuration)]}
+              />
+            </MediumWidget>
+            <MediumWidget>
+              <TimeSeriesWidgetVisualization
+                plottables={[new Bars(lowConfidenceDuration)]}
+              />
+            </MediumWidget>
+          </Storybook.SideBySide>
+
+          <Heading as="h3" size="md">
+            Multiple series, two low-confidence intervals
+          </Heading>
           <Storybook.SideBySide>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
-                  new Line(lowConfidenceDurationTimeSeries),
-                  new Line(lowConfidenceDurationP50TimeSeries),
+                  new Line(twoIntervalsDuration),
+                  new Line(twoIntervalsDurationP50),
                 ]}
               />
             </MediumWidget>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
-                  new Area(lowConfidenceDurationTimeSeries),
-                  new Area(lowConfidenceDurationP50TimeSeries),
+                  new Area(twoIntervalsDuration),
+                  new Area(twoIntervalsDurationP50),
                 ]}
               />
             </MediumWidget>
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
-                  new Bars(lowConfidenceDurationTimeSeries, {stack: 'all'}),
-                  new Bars(lowConfidenceDurationP50TimeSeries, {stack: 'all'}),
+                  new Bars(twoIntervalsDuration, {stack: 'all'}),
+                  new Bars(twoIntervalsDurationP50, {stack: 'all'}),
                 ]}
               />
             </MediumWidget>
           </Storybook.SideBySide>
+
+          <Heading as="h3" size="md">
+            Multiple lines, five low-confidence intervals
+          </Heading>
+          <LargeWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[
+                sampleDurationTimeSeries,
+                sampleDurationTimeSeriesP75,
+                sampleDurationTimeSeriesP50,
+              ].map(
+                timeSeries =>
+                  new Line(withLowConfidenceIntervals(timeSeries, fiveIntervals))
+              )}
+            />
+          </LargeWidget>
+
+          <Heading as="h3" size="md">
+            Multiple bars, more than 95% low confidence
+          </Heading>
+          <LargeWidget>
+            <TimeSeriesWidgetVisualization
+              plottables={[sampleDurationTimeSeries, sampleDurationTimeSeriesP50].map(
+                timeSeries =>
+                  new Bars(withLowConfidenceIntervals(timeSeries, mostlyLowConfidence), {
+                    stack: 'all',
+                  })
+              )}
+            />
+          </LargeWidget>
         </WithTimeSeriesConfidenceFeature>
       </Fragment>
     );
@@ -1532,6 +1594,25 @@ const X_AXIS_TICK_TEST_CASES: Array<{endMs: number; label: string; startMs: numb
     endMs: Date.UTC(2025, 0, 10, 0, 0, 0),
   },
 ];
+
+/**
+ * Inclusive start and end indexes of a run of low-confidence data points.
+ */
+type LowConfidenceInterval = [start: number, end: number];
+
+function withLowConfidenceIntervals(
+  timeSeries: TimeSeries,
+  intervals: LowConfidenceInterval[]
+): TimeSeries {
+  return {
+    ...timeSeries,
+    values: timeSeries.values.map((value, index) =>
+      intervals.some(([start, end]) => index >= start && index <= end)
+        ? {...value, confidence: 'low'}
+        : value
+    ),
+  };
+}
 
 function WithTimeSeriesConfidenceFeature({children}: {children: ReactNode}) {
   const organization = useOrganization();
