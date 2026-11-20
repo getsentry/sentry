@@ -47,7 +47,7 @@ export function WizardFooter({
       justify="end"
       padding="lg xl"
       background="primary"
-      borderTopColor="primary"
+      borderTop="primary"
     >
       <Text variant="muted">{t('Step %s of %s', step, TOTAL_STEPS)}</Text>
       {children}

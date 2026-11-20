@@ -398,7 +398,7 @@ export function MetricAutomationForm(props: Props) {
                           </field.Layout.Stack>
                         )}
                       </form.AppField>
-                      <Container borderTopColor="primary" paddingTop="2xl">
+                      <Container borderTop="primary" paddingTop="2xl">
                         <form.AppField name="scopes">
                           {field => (
                             <field.Layout.Stack label={t('Permissions')}>

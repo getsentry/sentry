@@ -88,7 +88,7 @@ function Example({
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Container width="420px" borderColor="primary" radius="md" padding="lg 0">
+      <Container width="420px" border="primary" radius="md" padding="lg 0">
         <ConnectScmBlock pendingInput={pendingInput} respondToUserInput={() => {}} />
       </Container>
     </QueryClientProvider>

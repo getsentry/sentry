@@ -20,7 +20,7 @@ describe('Separator', () => {
         {COLORS.map(color => (
           <Stack key={color} gap="xs">
             <Text size="sm">{color}</Text>
-            <Separator orientation="horizontal" borderColor={color} />
+            <Separator orientation="horizontal" border={color} />
           </Stack>
         ))}
       </Stack>
@@ -35,7 +35,7 @@ describe('Separator', () => {
         {COLORS.map(color => (
           <Flex key={color} gap="sm" align="center">
             <Text size="sm">{color}</Text>
-            <Separator orientation="vertical" borderColor={color} />
+            <Separator orientation="vertical" border={color} />
           </Flex>
         ))}
       </Flex>

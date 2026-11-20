@@ -50,7 +50,7 @@ export function OrganizationCard({
       <OrganizationCardStack
         width="100%"
         gap="0"
-        borderColor="secondary"
+        border="secondary"
         radius="md"
         position="relative"
       >

@@ -83,11 +83,11 @@ interface ContainerLayoutProps {
   /**
    * Border color on all sides. Renders a 1px solid border.
    */
-  borderColor?: Responsive<BorderVariant>;
-  borderTopColor?: Responsive<BorderVariant>;
-  borderBottomColor?: Responsive<BorderVariant>;
-  borderLeftColor?: Responsive<BorderVariant>;
-  borderRightColor?: Responsive<BorderVariant>;
+  border?: Responsive<BorderVariant>;
+  borderTop?: Responsive<BorderVariant>;
+  borderBottom?: Responsive<BorderVariant>;
+  borderLeft?: Responsive<BorderVariant>;
+  borderRight?: Responsive<BorderVariant>;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -209,11 +209,11 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'area',
   'as',
   'background',
-  'borderColor',
-  'borderTopColor',
-  'borderBottomColor',
-  'borderLeftColor',
-  'borderRightColor',
+  'border',
+  'borderTop',
+  'borderBottom',
+  'borderLeft',
+  'borderRight',
   'bottom',
   'column',
   'contain',
@@ -371,11 +371,11 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => rc('border', p.borderColor, p.theme, getBorder)};
-  ${p => rc('border-top', p.borderTopColor, p.theme, getBorder)};
-  ${p => rc('border-bottom', p.borderBottomColor, p.theme, getBorder)};
-  ${p => rc('border-left', p.borderLeftColor, p.theme, getBorder)};
-  ${p => rc('border-right', p.borderRightColor, p.theme, getBorder)};
+  ${p => rc('border', p.border, p.theme, getBorder)};
+  ${p => rc('border-top', p.borderTop, p.theme, getBorder)};
+  ${p => rc('border-bottom', p.borderBottom, p.theme, getBorder)};
+  ${p => rc('border-left', p.borderLeft, p.theme, getBorder)};
+  ${p => rc('border-right', p.borderRight, p.theme, getBorder)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

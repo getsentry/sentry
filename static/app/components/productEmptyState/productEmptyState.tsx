@@ -104,14 +104,14 @@ export function ProductEmptyState({
       </Flex>
 
       <Stack gap="xl">
-        <Container borderColor="primary" radius="xl" overflow="hidden">
+        <Container border="primary" radius="xl" overflow="hidden">
           <Flex
             align="center"
             justify="between"
             gap="md"
             padding="lg 2xl"
             background="secondary"
-            borderBottomColor="primary"
+            borderBottom="primary"
             wrap="wrap"
           >
             <Flex align="center" gap="sm">

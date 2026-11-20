@@ -406,7 +406,7 @@ export function BaseAskSeerComboBox<T extends QueryTokensProps>({
               containerType="inline-size"
               justify="between"
               align="start"
-              borderTopColor="primary"
+              borderTop="primary"
               paddingTop="sm"
               paddingBottom="sm"
               paddingLeft="md"

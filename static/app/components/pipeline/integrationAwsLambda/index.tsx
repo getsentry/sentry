@@ -372,7 +372,7 @@ function InstrumentationStep({
         onClick={() => setEnabled(prev => ({...prev, [fn.name]: !prev[fn.name]}))}
       >
         <Container
-          borderColor={
+          border={
             failure ? 'danger.vibrant' : isSelected ? 'accent.vibrant' : 'secondary'
           }
           radius="md"

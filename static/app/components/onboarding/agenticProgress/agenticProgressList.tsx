@@ -179,7 +179,7 @@ function ProgressItem({
       align="center"
       gap="0 md"
       padding="lg"
-      borderBottomColor={isLast ? undefined : 'secondary'}
+      borderBottom={isLast ? undefined : 'secondary'}
     >
       <Grid row="1" column="1" align="center" justify="center" alignSelf="center">
         <AnimatePresence initial={false}>
@@ -288,7 +288,7 @@ export function AgenticProgressList({
     <MotionStack
       width="100%"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="xl"
       overflow="hidden"
       gap="0"
@@ -298,7 +298,7 @@ export function AgenticProgressList({
       transition={STAGE_LIST_STAGGER_TRANSITION}
     >
       {header ? (
-        <Container padding="xl" borderBottomColor="primary">
+        <Container padding="xl" borderBottom="primary">
           {header}
         </Container>
       ) : null}
@@ -355,7 +355,7 @@ function AgenticProgressSummary({projectSlugs}: {projectSlugs: string[]}) {
     <Flex
       width="100%"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="xl"
       padding="xl"
       gap="md"

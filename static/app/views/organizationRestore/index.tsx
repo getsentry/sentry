@@ -129,7 +129,7 @@ function RestoreForm({organization, orgSlug}: RestoreFormProps) {
           <Flex
             width="100%"
             justify="end"
-            borderTopColor="secondary"
+            borderTop="secondary"
             paddingTop="xl"
             paddingBottom="xl"
           >

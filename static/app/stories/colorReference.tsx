@@ -40,7 +40,7 @@ export function ColorReference({
       padding="xl"
       radius="md"
       background="primary"
-      borderColor="primary"
+      border="primary"
       wrap="wrap"
       overflowY="hidden"
       overflowX="auto"

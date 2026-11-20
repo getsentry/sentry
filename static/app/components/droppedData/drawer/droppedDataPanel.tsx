@@ -163,7 +163,7 @@ export function DroppedDataPanel({
         {selectedIntentional.length > 0 && (
           <Stack gap="xl">
             <Stack gap="2xl">
-              <Separator orientation="horizontal" borderColor="primary" />
+              <Separator orientation="horizontal" border="primary" />
               <Container padding="0 xl">
                 <Heading as="h3" size="xl">
                   {t('Expected Drops')}

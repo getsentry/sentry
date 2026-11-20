@@ -70,7 +70,7 @@ function Story(props: {name: string; render: StoryRenderFunction}) {
 
   return (
     <Section>
-      <Container borderBottomColor="primary">
+      <Container borderBottom="primary">
         <Suspense fallback={<Heading as="h2">{props.name}</Heading>}>
           <StoryHeading as="h2" size="2xl">
             {props.name}

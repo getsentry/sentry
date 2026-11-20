@@ -111,7 +111,7 @@ function SidebarStory({
         }}
       >
         <QueryClientProvider client={queryClient}>
-          <Container width="325px" padding="xl" borderColor="primary" radius="md">
+          <Container width="325px" padding="xl" border="primary" radius="md">
             <AutofixSection group={GROUP} project={PROJECT} />
           </Container>
         </QueryClientProvider>

@@ -282,7 +282,7 @@ function OrganizationCreate() {
 
               <Flex
                 justify="end"
-                borderTopColor="secondary"
+                borderTop="secondary"
                 paddingTop="xl"
                 paddingBottom="xl"
               >

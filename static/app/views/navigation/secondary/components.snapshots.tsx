@@ -52,7 +52,7 @@ function SidebarFrame({children, pathname, version}: SidebarFrameProps) {
           <Container
             width={`${SECONDARY_SIDEBAR_WIDTH}px`}
             background="secondary"
-            borderRightColor="primary"
+            borderRight="primary"
           >
             {children}
           </Container>

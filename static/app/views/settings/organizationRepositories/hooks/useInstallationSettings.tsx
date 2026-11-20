@@ -90,7 +90,7 @@ export function useInstallationSettings(
                 <Container
                   key={fieldConfig.name}
                   padding="xl 0"
-                  borderBottomColor={index < fields.length - 1 ? 'secondary' : undefined}
+                  borderBottom={index < fields.length - 1 ? 'secondary' : undefined}
                 >
                   <BackendJsonAutoSaveForm
                     field={fieldConfig}

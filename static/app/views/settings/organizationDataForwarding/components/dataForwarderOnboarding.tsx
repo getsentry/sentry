@@ -17,7 +17,7 @@ export function DataForwarderOnboarding({hasFeature}: {hasFeature: boolean}) {
   const organization = useOrganization();
 
   return (
-    <Container borderColor="primary" radius="md" padding="2xl">
+    <Container border="primary" radius="md" padding="2xl">
       <Flex direction="row" align="center">
         <Stack gap="xl" maxWidth="600px" flex={3} align="start">
           <Heading as="h2">{t('Keep your data pipeline flowing.')}</Heading>

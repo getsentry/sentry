@@ -85,8 +85,8 @@ function HiddenStepsRow({
   return (
     <Container
       padding="sm md"
-      borderBottomColor={position === 'top' ? 'secondary' : undefined}
-      borderTopColor={position === 'bottom' ? 'secondary' : undefined}
+      borderBottom={position === 'top' ? 'secondary' : undefined}
+      borderTop={position === 'bottom' ? 'secondary' : undefined}
     >
       <Text size="sm" variant="muted">
         <Link
@@ -149,7 +149,7 @@ export function EventAgentActivity({
   const fullActivityLink = getAgentActivityLink(failingNode.id);
 
   return (
-    <Container borderColor="primary" radius="md" overflow="hidden">
+    <Container border="primary" radius="md" overflow="hidden">
       <HiddenStepsRow count={hiddenBefore} position="top" to={fullActivityLink} />
       <Container padding="xs">
         <AiSpanTimeline
@@ -176,7 +176,7 @@ export function EventAgentActivity({
 export function TraceViewSkeleton() {
   return (
     <Stack gap="md" data-test-id="trace-view-skeleton">
-      <Container borderColor="primary" radius="md" overflow="hidden">
+      <Container border="primary" radius="md" overflow="hidden">
         <Container padding="xs">
           <AiSpanTimeline
             nodes={[]}

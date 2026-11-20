@@ -59,7 +59,7 @@ export function ActivityLineImpact({
       }
     >
       <Container paddingTop="sm">
-        <Container width="100%" padding="sm md" borderColor="secondary" radius="md">
+        <Container width="100%" padding="sm md" border="secondary" radius="md">
           <ImpactActivityDetails activity={activity} group={group} />
         </Container>
       </Container>
@@ -82,7 +82,7 @@ function ImpactActivityDetails({
       <Text as="p" density="comfortable">
         {description}
       </Text>
-      <Flex gap="xs" wrap="wrap" borderTopColor="secondary" paddingTop="md">
+      <Flex gap="xs" wrap="wrap" borderTop="secondary" paddingTop="md">
         <Container>
           <Text bold size="xs">
             {t('Citations:')}

@@ -39,7 +39,7 @@ export function TrialAlert({organization, subscription}: Props) {
     <Container
       data-test-id="trial-alert"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       <SubscriptionBody>

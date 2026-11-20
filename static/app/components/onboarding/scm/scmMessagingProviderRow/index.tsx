@@ -312,7 +312,7 @@ export function ScmMessagingProviderRow({
   return (
     <MotionContainer
       background="primary"
-      borderColor={visualState === 'removing' ? 'danger.vibrant' : 'primary'}
+      border={visualState === 'removing' ? 'danger.vibrant' : 'primary'}
       radius="xl"
       {...ONBOARDING_ENTER}
     >
@@ -393,7 +393,7 @@ export function ScmMessagingProviderRow({
 
         {visualState === 'configuring' &&
           resolvedProvider.eligibleIntegrations.length > 0 && (
-            <Container borderTopColor="primary">
+            <Container borderTop="primary">
               {renderChannelPicker ? (
                 renderChannelPicker({
                   integrations: resolvedProvider.eligibleIntegrations,

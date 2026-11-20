@@ -156,7 +156,7 @@ function AutomationCard({
           height="100%"
           minWidth="0"
           padding="xl"
-          borderColor="primary"
+          border="primary"
           radius="md"
           background="primary"
         >

@@ -45,7 +45,7 @@ export function PathMapping({
 
   return (
     <Stack
-      borderColor={hasWarning ? 'warning.vibrant' : 'secondary'}
+      border={hasWarning ? 'warning.vibrant' : 'secondary'}
       radius="md"
       overflow="hidden"
     >
@@ -60,7 +60,7 @@ export function PathMapping({
           onExpandToggle={onExpandToggle}
         />
       )}
-      {showSummary && editing && <Container borderTopColor="secondary" />}
+      {showSummary && editing && <Container borderTop="secondary" />}
       {editing && (
         <PathMappingEdit
           // TODO(scttcper): Remove once TanStack Form's useFieldGroup handles `fields`

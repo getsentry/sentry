@@ -153,7 +153,7 @@ export function ProductSelect({
                       </Flex>
                     </Flex>
                   </Flex>
-                  <Separator orientation="horizontal" borderColor="primary" />
+                  <Separator orientation="horizontal" border="primary" />
                   <Stack gap="xl" paddingTop="xl">
                     {Object.entries(SUBCATEGORY_TEXT).map(([category, info]) => {
                       const pricingInfo =
@@ -246,7 +246,7 @@ export function ProductSelect({
                       </Flex>
                     </Flex>
                   </Flex>
-                  <Separator orientation="horizontal" borderColor="primary" />
+                  <Separator orientation="horizontal" border="primary" />
                   <Stack gap="lg" data-test-id="product-option-description">
                     <Text variant="muted">
                       {t(

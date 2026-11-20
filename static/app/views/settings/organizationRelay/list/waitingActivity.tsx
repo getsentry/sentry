@@ -11,7 +11,7 @@ type Props = {disabled: boolean; onRefresh: () => void};
 
 export function WaitingActivity({onRefresh, disabled}: Props) {
   return (
-    <Container background="primary" borderColor="primary" radius="md" position="relative">
+    <Container background="primary" border="primary" radius="md" position="relative">
       <EmptyMessage
         title={t('Waiting on Activity!')}
         action={

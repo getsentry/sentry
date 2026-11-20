@@ -20,7 +20,7 @@ function ComposerToolbar({children}: {children: React.ReactNode}) {
       align="center"
       gap="md"
       padding="xs"
-      borderColor="primary"
+      border="primary"
       radius="lg"
       background="primary"
     >

@@ -68,7 +68,7 @@ export function EventNavigator({leadingItems, trailingItems}: EventNavigatorProp
       padding="0 2xl"
       height={`${PRIMARY_HEADER_HEIGHT}px`}
       background="primary"
-      borderBottomColor="primary"
+      borderBottom="primary"
       flexShrink={0}
     >
       {leadingItems ? (

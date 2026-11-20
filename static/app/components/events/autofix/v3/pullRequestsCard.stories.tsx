@@ -222,7 +222,7 @@ export default Storybook.story('PullRequestsCard', story => {
 function FakeSeerDrawer({children}: {children: ReactNode}) {
   return (
     <Stack
-      borderColor="primary"
+      border="primary"
       radius="md"
       background="secondary"
       overflow="hidden"

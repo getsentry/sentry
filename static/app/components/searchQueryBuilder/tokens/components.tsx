@@ -28,7 +28,7 @@ type FilterWrapperProps = (ContainerPropsWithRenderFunction | ContainerProps) & 
 export function FilterWrapper({children, ...props}: FilterWrapperProps) {
   return (
     <StyledFilterWrapper
-      borderColor="secondary"
+      border="secondary"
       position="relative"
       radius="sm"
       height="24px"

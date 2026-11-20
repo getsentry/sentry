@@ -86,7 +86,7 @@ export function SubAgentRow({
       }}
     >
       <Container padding="xs 0 xs sm">
-        <Container borderLeftColor="secondary" paddingLeft="md">
+        <Container borderLeft="secondary" paddingLeft="md">
           {renderMessages(call.messages, selectedNodeId)}
         </Container>
       </Container>
@@ -110,7 +110,7 @@ function ExpandPill({count, isOpen}: {count: number; isOpen: boolean}) {
       minWidth="36px"
       padding="0 sm"
       radius="full"
-      borderColor="primary"
+      border="primary"
       background="primary"
     >
       {count > 0 && (

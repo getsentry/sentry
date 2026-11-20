@@ -331,7 +331,7 @@ export function GroupList({
         <PanelBody>{emptyStateWarning}</PanelBody>
       </Panel>
     ) : (
-      <Container borderTopColor={border === 'top' ? 'primary' : undefined}>
+      <Container borderTop={border === 'top' ? 'primary' : undefined}>
         {emptyStateWarning}
       </Container>
     );

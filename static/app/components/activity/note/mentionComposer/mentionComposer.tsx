@@ -136,7 +136,7 @@ export function MentionComposer(props: MentionComposerProps) {
           ) : (
             <Container
               background="primary"
-              borderColor="primary"
+              border="primary"
               radius="md"
               padding="lg"
               maxHeight="1000px"

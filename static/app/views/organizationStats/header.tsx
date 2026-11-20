@@ -20,7 +20,7 @@ export function StatsHeader({organization, activeTab}: Props) {
           'A view of the usage data that Sentry has received across your entire organization.'
         )}
       />
-      <Container borderBottomColor="primary" marginBottom="xl">
+      <Container borderBottom="primary" marginBottom="xl">
         <LinkTabs value={activeTab}>
           {({TabList}) => (
             <TabList>

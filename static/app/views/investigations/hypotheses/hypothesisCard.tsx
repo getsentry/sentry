@@ -235,7 +235,7 @@ const HypothesisDescription = styled(Text)`
 
 /**
  * The card border carries the verdict, which is why it is CSS rather than the
- * `borderColor` props: `getBorder` only ever emits `1px solid`, and a hypothesis that
+ * `border` prop: `getBorder` only ever emits `1px solid`, and a hypothesis that
  * has not been established needs a broken edge. The colors still come from
  * border tokens.
  *

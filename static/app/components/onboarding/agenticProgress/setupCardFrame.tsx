@@ -18,7 +18,7 @@ export function SetupCardFrame({children, layered}: SetupCardFrameProps) {
   return (
     <Container
       background={theme.type === 'dark' ? 'secondary' : 'primary'}
-      borderColor={layered ? undefined : 'primary'}
+      border={layered ? undefined : 'primary'}
       radius="xl"
       padding="2xl"
       width="100%"

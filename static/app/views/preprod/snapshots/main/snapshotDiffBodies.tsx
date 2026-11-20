@@ -83,7 +83,7 @@ export const SplitPairBody = memo(function SplitPairBodyImpl({
             />
           </ZoomPane>
         </Stack>
-        <Stack minWidth="0" borderLeftColor="secondary">
+        <Stack minWidth="0" borderLeft="secondary">
           <Container padding="sm xl">
             <Text size="xs" variant="muted" ellipsis monospace>
               {headLabel}

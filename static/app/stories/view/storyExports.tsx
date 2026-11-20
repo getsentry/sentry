@@ -106,7 +106,7 @@ function MDXStoryTitle(props: {
       as="header"
       background="secondary"
       padding="3xl 0 0 0"
-      borderBottomColor="primary"
+      borderBottom="primary"
       area="story-head"
     >
       <StoryGrid>

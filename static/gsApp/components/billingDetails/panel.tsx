@@ -88,7 +88,7 @@ export function BillingDetailsPanel({
       gap="3xl"
       padding="xl"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       data-test-id="billing-details-panel"
       maxWidth={maxPanelWidth}

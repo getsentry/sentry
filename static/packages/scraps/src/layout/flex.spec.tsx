@@ -30,7 +30,7 @@ describe('Flex', () => {
     expect(screen.getByText('Hello')?.tagName).toBe('P');
     expect(screen.getByText('Hello').parentElement?.tagName).toBe('SECTION');
 
-    expect(screen.getByText('Hello')).not.toHaveAttribute('borderColor', 'primary');
+    expect(screen.getByText('Hello')).not.toHaveAttribute('border', 'primary');
   });
 
   it('render prop guards against invalid attributes', () => {

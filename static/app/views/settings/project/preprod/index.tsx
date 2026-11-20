@@ -57,7 +57,7 @@ export default function PreprodSettings() {
       />
       <Stack gap="lg">
         <PreprodQuotaAlert />
-        <Container borderBottomColor="primary">
+        <Container borderBottom="primary">
           <Tabs value={tab} onChange={handleTabChange}>
             {({TabList}) => (
               <TabList>

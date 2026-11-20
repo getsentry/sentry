@@ -250,7 +250,7 @@ export function TracingEmptyState({organization, project}: Props) {
   if (noPerformanceSupport) {
     const {platformName, platformId} = getPlatformLabels(project, currentPlatform);
     return (
-      <Container column="1 / -1" borderColor="primary" radius="xl" padding="2xl">
+      <Container column="1 / -1" border="primary" radius="xl" padding="2xl">
         <DocsFallback
           href={PLATFORM_DOCS_URL}
           onClick={() => traceAnalytics.trackPlatformDocsViewed(organization, platformId)}

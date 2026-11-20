@@ -56,7 +56,7 @@ function Cta({
       padding="xl"
       direction={isBanner ? 'row' : 'column'}
       gap={isBanner ? {zero: 'xl', '5xl': '3xl'} : 'xl'}
-      borderBottomColor={isBanner ? 'primary' : undefined}
+      borderBottom={isBanner ? 'primary' : undefined}
       radius={isBanner ? '0 0 md md' : 'md'}
       align="center"
       justify={isBanner ? 'between' : 'center'}

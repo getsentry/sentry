@@ -80,7 +80,7 @@ function PipelineRunner({
 
   return (
     <Stack gap="md">
-      <Container borderColor="primary" padding="md">
+      <Container border="primary" padding="md">
         <Stack gap="sm">
           <Flex gap="lg" align="center">
             <Flex gap="sm" align="center">

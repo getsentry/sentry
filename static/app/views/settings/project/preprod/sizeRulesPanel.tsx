@@ -119,12 +119,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
       <PanelBody>
         {hasRepositories ? (
           <Fragment>
-            <Flex
-              align="center"
-              justify="between"
-              padding="xl"
-              borderBottomColor="primary"
-            >
+            <Flex align="center" justify="between" padding="xl" borderBottom="primary">
               <Stack gap="xs">
                 <Text size="lg" bold>
                   {copy.enabledLabel}
@@ -177,7 +172,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
                 margin="md"
                 padding="xl"
                 background="secondary"
-                borderColor="primary"
+                border="primary"
                 radius="md"
                 style={{borderStyle: 'dashed'}}
               >
@@ -187,7 +182,7 @@ export function SizeRulesPanel({config: panelConfig}: Props) {
               </Container>
             )}
 
-            <Flex padding="lg xl" borderTopColor="primary" align="start">
+            <Flex padding="lg xl" borderTop="primary" align="start">
               <Button icon={<IconAdd />} onClick={handleAddRule}>
                 {copy.addRuleButtonLabel}
               </Button>

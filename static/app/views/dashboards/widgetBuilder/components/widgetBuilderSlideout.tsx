@@ -290,7 +290,7 @@ function WidgetBuilderSlideoutInner({
       align="center"
       justify="between"
       gap="md"
-      borderBottomColor="primary"
+      borderBottom="primary"
       height="44px"
       padding="0 lg"
     >

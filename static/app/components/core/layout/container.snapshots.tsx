@@ -69,7 +69,7 @@ describe('Container', () => {
     () => (
       <Gallery>
         {BORDER_COLORS.map(color => (
-          <Swatch key={color} borderColor={color}>
+          <Swatch key={color} border={color}>
             {color}
           </Swatch>
         ))}
@@ -82,14 +82,14 @@ describe('Container', () => {
     'border sides',
     () => (
       <Gallery>
-        <Swatch borderTopColor="primary">top</Swatch>
-        <Swatch borderRightColor="primary">right</Swatch>
-        <Swatch borderBottomColor="primary">bottom</Swatch>
-        <Swatch borderLeftColor="primary">left</Swatch>
-        <Swatch borderColor="primary" borderTopColor="danger.vibrant">
+        <Swatch borderTop="primary">top</Swatch>
+        <Swatch borderRight="primary">right</Swatch>
+        <Swatch borderBottom="primary">bottom</Swatch>
+        <Swatch borderLeft="primary">left</Swatch>
+        <Swatch border="primary" borderTop="danger.vibrant">
           danger top
         </Swatch>
-        <Swatch borderColor="primary" borderBottomColor="none">
+        <Swatch border="primary" borderBottom="none">
           no bottom
         </Swatch>
       </Gallery>
@@ -109,10 +109,8 @@ describe('Container', () => {
         width="100%"
         background="primary"
       >
-        <Swatch borderColor={{zero: 'primary', md: 'danger.vibrant'}}>
-          primary → danger
-        </Swatch>
-        <Swatch borderBottomColor={{zero: 'primary', md: 'none'}}>bottom → none</Swatch>
+        <Swatch border={{zero: 'primary', md: 'danger.vibrant'}}>primary → danger</Swatch>
+        <Swatch borderBottom={{zero: 'primary', md: 'none'}}>bottom → none</Swatch>
       </Flex>
     ),
     width => ({viewport: width, tags: {area: 'core'}})

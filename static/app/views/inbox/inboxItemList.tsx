@@ -80,7 +80,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   });
 
   return (
-    <Container position="relative" padding="xl" borderBottomColor="primary">
+    <Container position="relative" padding="xl" borderBottom="primary">
       {props => (
         <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />

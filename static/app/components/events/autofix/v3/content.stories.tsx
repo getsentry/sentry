@@ -319,7 +319,7 @@ function DrawerStory({
       >
         <QueryClientProvider client={queryClient}>
           <Stack
-            borderColor="primary"
+            border="primary"
             radius="md"
             background="secondary"
             overflow="hidden"

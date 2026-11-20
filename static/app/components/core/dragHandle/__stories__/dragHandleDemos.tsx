@@ -16,7 +16,7 @@ export function DragHandleDemo({variant}: {variant?: DragHandleVariant}) {
   return (
     <Stack gap="sm" width="100%">
       <Text variant="muted">Sized pane width: {size}px</Text>
-      <Flex height="140px" borderColor="primary" radius="md" overflow="hidden">
+      <Flex height="140px" border="primary" radius="md" overflow="hidden">
         <Stack padding="md" background="secondary" flexShrink={0} flexBasis={`${size}px`}>
           <Text bold>Sized</Text>
         </Stack>

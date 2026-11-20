@@ -77,7 +77,7 @@ export function ZoomableArea({children}: {children: React.ReactNode}) {
       height="100%"
       flex={1}
       minHeight={0}
-      borderColor="primary"
+      border="primary"
       radius="md"
       overflow="hidden"
       background="secondary"

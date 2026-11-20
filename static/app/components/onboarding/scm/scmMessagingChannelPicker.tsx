@@ -233,7 +233,7 @@ export function ScmMessagingChannelPicker({
         justify="end"
         padding="lg"
         background="secondary"
-        borderTopColor="primary"
+        borderTop="primary"
         style={{borderRadius: `0 0 ${theme.radius.xl} ${theme.radius.xl}`}}
       >
         {onCancel && (

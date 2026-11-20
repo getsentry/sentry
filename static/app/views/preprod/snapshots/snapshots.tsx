@@ -773,7 +773,7 @@ export default function SnapshotsPage() {
         <Flex
           flexShrink={0}
           overflow="auto"
-          borderRightColor="primary"
+          borderRight="primary"
           display={{zero: 'none', xl: 'flex'}}
           style={{width: sidebarWidth}}
         >

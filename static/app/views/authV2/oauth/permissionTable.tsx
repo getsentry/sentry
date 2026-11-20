@@ -21,13 +21,13 @@ export function PermissionTable({groups}: {groups: OAuthContext['permissionGroup
       role="table"
       aria-label={t('Requested permissions')}
       columns="minmax(0, 1fr) repeat(4, max-content)"
-      borderTopColor="secondary"
+      borderTop="secondary"
     >
       <Grid
         role="rowgroup"
         column="1 / -1"
         columns="subgrid"
-        borderBottomColor="secondary"
+        borderBottom="secondary"
         padding="sm lg"
       >
         <Grid role="row" column="1 / -1" columns="subgrid" align="center" gap="md">
@@ -96,7 +96,7 @@ function PermissionRow({group, isLast}: {group: PermissionGroup; isLast: boolean
       gap="md"
       minHeight={`${ROW_HEIGHT}px`}
       padding="sm lg"
-      borderBottomColor={isLast ? undefined : 'secondary'}
+      borderBottom={isLast ? undefined : 'secondary'}
     >
       <Text role="rowheader" size="sm">
         {group.label}

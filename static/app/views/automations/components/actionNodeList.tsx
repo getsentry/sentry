@@ -226,7 +226,7 @@ const AddActionSelect = memo(function AddActionSelect({
   const organization = useOrganization();
   const {removeError} = useAutomationBuilderErrorContext();
   const menuFooter = (
-    <Container padding="md" borderTopColor="secondary">
+    <Container padding="md" borderTop="secondary">
       <LinkButton
         size="xs"
         variant="secondary"

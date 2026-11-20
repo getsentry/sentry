@@ -40,7 +40,7 @@ export function DemoHeader() {
       gap="md"
       background="primary"
       whiteSpace="nowrap"
-      borderBottomColor="primary"
+      borderBottom="primary"
     >
       <StyledLogoSentry />
       <Container display={{zero: 'none', xl: 'contents'}}>

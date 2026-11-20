@@ -57,7 +57,7 @@ function PrimaryNavigationSidebar({children, ...props}: PrimaryNavigationSidebar
       aria-label={t('Primary Navigation')}
       width={`${PRIMARY_SIDEBAR_WIDTH}px`}
       padding="0"
-      borderRightColor="primary"
+      borderRight="primary"
       background="primary"
       align="center"
       style={{zIndex: theme.zIndex.sidebarPanel}}
@@ -77,7 +77,7 @@ function PrimaryNavigationSidebarHeader(props: PrimaryNavigationSidebarHeaderPro
         as="header"
         align="center"
         justify="center"
-        borderBottomColor="primary"
+        borderBottom="primary"
         width="100%"
         height={`${PRIMARY_HEADER_HEIGHT}px`}
         flexShrink={0}

@@ -79,7 +79,7 @@ export function ServerRenderingSection(props: ServerRenderingSectionProps) {
           padding="md"
           radius="md"
           background="secondary"
-          borderColor="primary"
+          border="primary"
           // Dashed, because the spans of a reused part are never in this trace.
           // The border prop only draws solid lines.
           style={{borderStyle: 'dashed'}}
@@ -137,7 +137,7 @@ function RequestBlock({
   ...props
 }: RenderActionProps & {hasReusedPart: boolean; render: ServerRender}) {
   return (
-    <Stack padding="md" radius="md" borderColor="primary" background="primary">
+    <Stack padding="md" radius="md" border="primary" background="primary">
       <BlockHeader
         // Not "Page": framework users can read that as a page file.
         title={hasReusedPart ? t('Dynamic part') : t('Server request')}

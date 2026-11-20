@@ -521,7 +521,7 @@ export function CartDiff({
   return (
     <Stack
       data-test-id="cart-diff"
-      borderColor="primary"
+      border="primary"
       radius="lg"
       align="start"
       background="primary"
@@ -549,7 +549,7 @@ export function CartDiff({
           padding="xl xl 0 xl"
           maxHeight="240px"
           overflowY="auto"
-          borderTopColor="primary"
+          borderTop="primary"
         >
           {planChanges.length + productChanges.length + cycleChanges.length > 0 && (
             <PlanDiff

@@ -115,7 +115,7 @@ export function InnerIntentForm({
             align="center"
             justify="end"
             gap="md"
-            borderTopColor="secondary"
+            borderTop="secondary"
             paddingTop="lg"
           >
             {onCancel && <Button onClick={onCancel}>{t('Cancel')}</Button>}

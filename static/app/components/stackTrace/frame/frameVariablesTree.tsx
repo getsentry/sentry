@@ -67,7 +67,7 @@ export function FrameVariablesTree({
       {variables.map((variable, index) => (
         <Container
           key={variable.name}
-          borderBottomColor={index < variables.length - 1 ? 'secondary' : undefined}
+          borderBottom={index < variables.length - 1 ? 'secondary' : undefined}
         >
           <Variable
             variable={variable}
@@ -200,7 +200,7 @@ function Variable({
         columns="minmax(0, 1fr) 20px"
         gap="xs"
         align="start"
-        borderLeftColor="secondary"
+        borderLeft="secondary"
         padding={depth > 0 ? 'sm md' : 'md'}
         minWidth="0"
       >
@@ -258,7 +258,7 @@ function Variable({
             {truncatedCount > 0 && (
               <Grid columns="minmax(0, 192px) minmax(0, 1fr)" width="100%" role="note">
                 <Container />
-                <Container borderLeftColor="secondary" padding="xs md" minWidth="0">
+                <Container borderLeft="secondary" padding="xs md" minWidth="0">
                   <Text as="div" variant="muted" size="xs">
                     {`(${tn('%s item truncated', '%s items truncated', truncatedCount)})`}
                   </Text>

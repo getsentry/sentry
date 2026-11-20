@@ -24,7 +24,7 @@ export function EventUserFeedback({eventLink, report}: Props) {
       <ActivityAvatar type="user" user={getAvatarUser(report)} />
 
       <FeedbackBubble>
-        <Flex align="center" padding="sm xl" borderBottomColor="primary">
+        <Flex align="center" padding="sm xl" borderBottom="primary">
           <Flex flex={1} align="center" gap="md">
             <Text as="span" bold size="md">
               {report.name}

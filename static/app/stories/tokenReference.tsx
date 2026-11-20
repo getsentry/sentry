@@ -25,7 +25,7 @@ export function TokenReference<T extends Record<string, string | number>>(
       overflowY="hidden"
       overflowX="auto"
       background="primary"
-      borderColor="primary"
+      border="primary"
     >
       {Object.entries(props.tokens).map(([token, value]) => (
         <Token key={token} scale={props.scale} {...{token, value}}>

@@ -151,7 +151,7 @@ export function MergedItem({
           align="center"
           gap="sm"
           background="secondary"
-          borderTopColor="secondary"
+          borderTop="secondary"
           padding="md"
         >
           <FingerprintConnector aria-hidden="true" />

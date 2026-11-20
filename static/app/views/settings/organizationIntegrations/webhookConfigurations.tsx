@@ -130,7 +130,7 @@ function WebhookProjectRow({project}: {project: WebhookProject}) {
   return (
     <Container
       padding="xl"
-      borderColor="primary"
+      border="primary"
       radius="md"
       background="primary"
       data-test-id="webhook-project-row"

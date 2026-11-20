@@ -155,7 +155,7 @@ export function SeerEmbedBlock({
   return (
     <Container
       background="primary"
-      borderColor="primary"
+      border="primary"
       containerType="inline-size"
       data-test-id={testId}
       overflow="hidden"

@@ -49,7 +49,7 @@ The `Stack` implements composition via <a href="/scraps/layout/composition">rend
 
 <Storybook.Demo>
   <Stack
-    borderColor="primary"
+    border="primary"
     radius="md"
     padding="md"
     justify="between"
@@ -59,13 +59,13 @@ The `Stack` implements composition via <a href="/scraps/layout/composition">rend
   >
     {props => (
       <CustomComponent {...props}>
-        <Container padding="sm" borderColor="primary" radius="sm" background="secondary">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           First Item
         </Container>
-        <Container padding="sm" borderColor="primary" radius="sm" background="secondary">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           Second Item
         </Container>
-        <Container padding="sm" borderColor="primary" radius="sm" background="secondary">
+        <Container padding="sm" border="primary" radius="sm" background="secondary">
           Third Item
         </Container>
       </CustomComponent>
@@ -104,13 +104,13 @@ Like other layout components, `Stack` inherits all spacing props like `m`, `p`, 
 
 <Storybook.Demo>
   <Stack gap="md" justify="center" align="center" padding="md">
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 1
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 2
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 3
     </Container>
   </Stack>
@@ -127,13 +127,13 @@ Like other layout components, `Stack` inherits all spacing props like `m`, `p`, 
 
 <Storybook.Demo>
   <Stack direction="row" gap="md" justify="between" align="center" padding="md">
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 1
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 2
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Item 3
     </Container>
   </Stack>
@@ -155,13 +155,13 @@ The `Stack` `gap` property follows the same spacing system as other layout compo
     <Stack direction="column" gap="sm" key={size}>
       <strong>{size} gap</strong>
       <Stack margin="md" gap={size} align="center">
-        <Container padding="md" borderColor="primary" radius="md" background="primary">
+        <Container padding="md" border="primary" radius="md" background="primary">
           Item 1
         </Container>
-        <Container padding="md" borderColor="primary" radius="md" background="primary">
+        <Container padding="md" border="primary" radius="md" background="primary">
           Item 2
         </Container>
-        <Container padding="md" borderColor="primary" radius="md" background="primary">
+        <Container padding="md" border="primary" radius="md" background="primary">
           Item 3
         </Container>
       </Stack>
@@ -188,16 +188,16 @@ Example of a responsive stack that uses a static gap, but changes direction base
     gap="md"
     padding="md"
   >
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Responsive
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Stack
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       Layout
     </Container>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       🔥
     </Container>
   </Stack>
@@ -225,19 +225,19 @@ The `Stack` component provides a `Stack.Separator` subcomponent that can be used
 - When Stack `direction` is `row` or `row-reverse` → Separator orientation becomes `horizontal`
 - When Stack `direction` is `column` or `column-reverse` → Separator orientation becomes `vertical`
 
-This automatic orientation inheritance means separators adapt seamlessly to responsive direction changes without requiring manual orientation props. The separator uses the `borderColor` prop (defaults to `'primary'`) and automatically applies the correct styling based on the inherited orientation.
+This automatic orientation inheritance means separators adapt seamlessly to responsive direction changes without requiring manual orientation props. The separator uses the `border` prop (defaults to `'primary'`) and automatically applies the correct styling based on the inherited orientation.
 
 <Storybook.Demo>
   <Stack gap="md" direction={{'screen:sm': 'column', 'screen:md': 'row'}}>
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Container padding="md" border="primary" radius="md" background="primary">
       First Item
     </Container>
-    <Stack.Separator borderColor="primary" />
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Stack.Separator border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
       Second Item
     </Container>
-    <Stack.Separator borderColor="primary" />
-    <Container padding="md" borderColor="primary" radius="md" background="primary">
+    <Stack.Separator border="primary" />
+    <Container padding="md" border="primary" radius="md" background="primary">
       Third Item
     </Container>
   </Stack>
@@ -245,9 +245,9 @@ This automatic orientation inheritance means separators adapt seamlessly to resp
 ```jsx
 <Stack gap="md" direction={{'screen:sm': 'column', 'screen:md': 'row'}}>
   <div>First Item</div>
-  <Stack.Separator borderColor="primary" />
+  <Stack.Separator border="primary" />
   <div>Second Item</div>
-  <Stack.Separator borderColor="primary" />
+  <Stack.Separator border="primary" />
   <div>Third Item</div>
 </Stack>
 ```

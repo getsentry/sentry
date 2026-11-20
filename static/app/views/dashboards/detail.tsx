@@ -1078,7 +1078,7 @@ class DashboardDetail extends Component<Props, State> {
             {/* Mirrors ExploreBodySearch, the sticky controls pattern shared by Logs,
                             Traces, and Replays. */}
             <Layout.Body
-              borderBottomColor="primary"
+              borderBottom="primary"
               flexGrow={0}
               padding="0"
               position="sticky"

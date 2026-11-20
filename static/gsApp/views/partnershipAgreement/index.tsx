@@ -74,12 +74,7 @@ export default function PartnershipAgreement({
           </Text>
         </Stack>
         <form.AppForm form={form}>
-          <Flex
-            justify="end"
-            borderTopColor="secondary"
-            paddingTop="xl"
-            paddingBottom="xl"
-          >
+          <Flex justify="end" borderTop="secondary" paddingTop="xl" paddingBottom="xl">
             <form.SubmitButton>{t('Continue')}</form.SubmitButton>
           </Flex>
         </form.AppForm>

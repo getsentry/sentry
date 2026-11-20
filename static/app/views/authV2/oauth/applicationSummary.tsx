@@ -65,7 +65,7 @@ export function ApplicationSummary({
       : null;
 
   return (
-    <Stack borderColor="secondary" radius="md" overflow="hidden">
+    <Stack border="secondary" radius="md" overflow="hidden">
       <Flex align="center" gap="md" padding="lg">
         {sentryApplication ? (
           <Flex

@@ -27,7 +27,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
     <Stack
       as="ul"
       aria-label={t('Linked issues')}
-      borderColor="primary"
+      border="primary"
       radius="md"
       overflow="hidden"
       margin="0"
@@ -37,7 +37,7 @@ export function LinkedIssueRows({linkedIssues}: LinkedIssueRowsProps) {
         <Container
           as="li"
           key={linkedIssue.key}
-          borderTopColor={index === 0 ? undefined : 'primary'}
+          borderTop={index === 0 ? undefined : 'primary'}
           style={{listStyle: 'none'}}
         >
           <LinkedIssueRow linkedIssue={linkedIssue} />

@@ -264,7 +264,7 @@ function Highlights({
                   <Flex
                     align="center"
                     justify="between"
-                    borderBottomColor="primary"
+                    borderBottom="primary"
                     radius="md md 0 0"
                     background="secondary"
                     position="relative"
@@ -280,7 +280,7 @@ function Highlights({
           </Stack>
         </Stack>
       </Flex>
-      <Separator orientation="horizontal" borderColor="secondary" />
+      <Separator orientation="horizontal" border="secondary" />
     </Stack>
   );
 }

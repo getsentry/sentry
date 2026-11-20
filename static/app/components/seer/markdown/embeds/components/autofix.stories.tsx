@@ -173,14 +173,14 @@ function ChatShell({children, notice}: {children: ReactNode; notice?: ReactNode}
         maxWidth="518px"
         height="640px"
         background="primary"
-        borderColor="primary"
+        border="primary"
         radius="md"
         overflow="hidden"
       >
         <Container flex="1" overflow="auto">
           {children}
         </Container>
-        <Stack gap="lg" borderTopColor="primary" background="primary" padding="lg xl">
+        <Stack gap="lg" borderTop="primary" background="primary" padding="lg xl">
           {notice}
           <InputGroup>
             <InputGroup.TextArea
@@ -390,7 +390,7 @@ function AutofixRefStory() {
       width="100%"
       minWidth="640px"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       padding="xl"
       gap="xl"
@@ -402,7 +402,7 @@ function AutofixRefStory() {
 
       {issue && <Text>{issue.title}</Text>}
 
-      <Container borderTopColor="primary" paddingTop="xl">
+      <Container borderTop="primary" paddingTop="xl">
         {issue ? (
           <AutofixIssueDemo key={issue.id} group={issue} />
         ) : (

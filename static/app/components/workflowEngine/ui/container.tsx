@@ -6,7 +6,7 @@ export function Container(props: StackProps) {
       gap="xl"
       justify="start"
       background="primary"
-      borderColor="primary"
+      border="primary"
       radius="md"
       padding="lg"
       minWidth={{zero: 'fit-content', '4xl': 'auto'}}

@@ -73,7 +73,7 @@ export function InboxListHeader({filters, setFilters}: InboxListHeaderProps) {
   };
 
   return (
-    <Stack gap="md" padding="md xl" borderBottomColor="primary">
+    <Stack gap="md" padding="md xl" borderBottom="primary">
       <Flex align="center" justify="between" gap="md" minHeight={theme.form.sm.height}>
         <Flex align="center" gap="2xl" minWidth={0}>
           <Flex align="center" gap="xl">

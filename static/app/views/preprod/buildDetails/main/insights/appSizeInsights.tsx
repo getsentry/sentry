@@ -55,7 +55,7 @@ export function AppSizeInsights({
   const topInsights = processedInsights.slice(0, 5);
 
   return (
-    <Container background="primary" radius="md" padding="lg" borderColor="secondary">
+    <Container background="primary" radius="md" padding="lg" border="secondary">
       <Flex align="center" justify="between" style={{marginBottom: '16px'}}>
         <Heading as="h2" size="lg">
           {t('Top insights')}

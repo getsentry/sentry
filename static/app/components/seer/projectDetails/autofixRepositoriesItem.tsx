@@ -330,7 +330,7 @@ export function AutofixRepositoriesItem({
                 mutationOptions={mutationOptions}
               >
                 {field => (
-                  <Stack gap="sm" borderTopColor="primary" paddingTop="lg">
+                  <Stack gap="sm" borderTop="primary" paddingTop="lg">
                     <Heading as="h4">{t('Context for Seer')}</Heading>
                     <field.TextArea
                       size="sm"

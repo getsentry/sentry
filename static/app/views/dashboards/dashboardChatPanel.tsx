@@ -100,7 +100,7 @@ export function DashboardChatPanel({
     <Container
       position="sticky"
       bottom={0}
-      borderColor="primary"
+      border="primary"
       radius="md"
       maxWidth="800px"
       width="100%"
@@ -201,7 +201,7 @@ const ChatHistory = memo(function ChatHistoryInner({
       maxHeight={`${MAX_CHAT_HISTORY_HEIGHT}px`}
       overflowY="auto"
       overflowX="hidden"
-      borderTopColor="primary"
+      borderTop="primary"
     >
       <Stack>
         {blocks.map((block, index) => (

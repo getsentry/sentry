@@ -53,7 +53,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
         <Stack gap="xl">
           <Stack gap="sm">
             <Text bold>{t('Start from scratch')}</Text>
-            <Stack borderColor="primary" radius="md">
+            <Stack border="primary" radius="md">
               <ChoiceRow
                 title={t('Internal Integration')}
                 description={tct(
@@ -139,7 +139,7 @@ function CreateNewIntegrationModal({Body, Header, Footer, closeModal}: ModalRend
                   {t('Get started with a pre-configured internal integration.')}
                 </Text>
               </Stack>
-              <Stack borderColor="primary" radius="md">
+              <Stack border="primary" radius="md">
                 {templates.map((template, index) => (
                   <Fragment key={template.slug}>
                     {index > 0 && <Stack.Separator />}

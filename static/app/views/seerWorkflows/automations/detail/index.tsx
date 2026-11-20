@@ -313,7 +313,7 @@ export default function AutomationDetail() {
           gap="lg"
           padding="xl xl 0 xl"
           background="secondary"
-          borderBottomColor="primary"
+          borderBottom="primary"
           position="sticky"
           top={pageContentTop}
           style={{zIndex: theme.zIndex.stickyHeader}}

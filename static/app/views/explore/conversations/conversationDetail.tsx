@@ -105,12 +105,7 @@ function ConversationDetailPage() {
   return (
     <ViewportConstrainedPage background="secondary">
       <ConversationsBreadcrumbs conversationId={conversationId} />
-      <Container
-        flexShrink={0}
-        background="primary"
-        borderBottomColor="primary"
-        padding="xl"
-      >
+      <Container flexShrink={0} background="primary" borderBottom="primary" padding="xl">
         <ConversationSummary
           stats={stats}
           nodes={nodes}

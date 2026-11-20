@@ -72,7 +72,7 @@ The `padding` prop uses the theme's spacing system with shorthand support:
         key={size}
         background="primary"
         padding={size}
-        borderColor="primary"
+        border="primary"
         radius="md"
       >
         <strong>{size} padding</strong> -{' '}
@@ -103,13 +103,13 @@ Apply rounded corners using theme radius values:
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container background="primary" padding="md" radius="sm" borderColor="primary">
+    <Container background="primary" padding="md" radius="sm" border="primary">
       Small radius
     </Container>
-    <Container background="primary" padding="md" radius="md" borderColor="primary">
+    <Container background="primary" padding="md" radius="md" border="primary">
       Medium radius
     </Container>
-    <Container background="primary" padding="md" radius="lg" borderColor="primary">
+    <Container background="primary" padding="md" radius="lg" border="primary">
       Large radius
     </Container>
   </Flex>
@@ -122,25 +122,25 @@ Apply rounded corners using theme radius values:
 
 ### Border
 
-`borderColor` adds a 1px border in the given color. To border a single side, use `borderTopColor`, `borderBottomColor`, `borderLeftColor` or `borderRightColor`.
+`border` adds a 1px border in the given color. To border a single side, use `borderTop`, `borderBottom`, `borderLeft` or `borderRight`.
 
 Any border token works, written as its path in `tokens.border`, for example `neutral.muted`, `accent.moderate` or `transparent.danger.muted`. Values match the token names in the theme exactly, so they stay in sync with Figma. Use `none` to remove a border, for example at a breakpoint.
 
 <Storybook.Demo>
   <Flex gap="md">
-    <Container padding="md" radius="md" borderColor="accent.moderate">
+    <Container padding="md" radius="md" border="accent.moderate">
       accent.moderate
     </Container>
-    <Container padding="md" radius="md" borderColor="transparent.neutral.muted">
+    <Container padding="md" radius="md" border="transparent.neutral.muted">
       transparent.neutral.muted
     </Container>
   </Flex>
 </Storybook.Demo>
 ```jsx
-<Container borderColor="accent.moderate" radius="md">
+<Container border="accent.moderate" radius="md">
   accent.moderate
 </Container>
-<Container borderColor="transparent.neutral.muted" radius="md">
+<Container border="transparent.neutral.muted" radius="md">
   transparent.neutral.muted
 </Container>
 ```
@@ -150,18 +150,13 @@ Any border token works, written as its path in `tokens.border`, for example `neu
 Set positioning for absolute/relative layouts:
 
 <Storybook.Demo>
-  <Container
-    position="relative"
-    height="100px"
-    background="primary"
-    borderColor="primary"
-  >
+  <Container position="relative" height="100px" background="primary" border="primary">
     <Container
       position="absolute"
       padding="xs"
       background="primary"
       style={{top: '12px', right: '8px'}}
-      borderColor="primary"
+      border="primary"
     >
       Absolute positioned
     </Container>
@@ -193,12 +188,12 @@ Set positioning for absolute/relative layouts:
       'screen:lg': 'primary',
     }}
     radius={{'screen:xs': '0', 'screen:sm': 'md'}}
-    borderColor="primary"
+    border="primary"
   >
-    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 1
     </Container>
-    <Container padding="sm" background="primary" style={{flex: 1}} borderColor="primary">
+    <Container padding="sm" background="primary" style={{flex: 1}} border="primary">
       Item 2
     </Container>
   </Flex>
@@ -257,10 +252,10 @@ An element can't query its own size — mark a parent with
 
 <Storybook.Demo resizable align="start">
   <Flex direction={{zero: 'column', sm: 'row'}} gap="md">
-    <Container padding="sm" background="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" border="primary" radius="md">
       Stacked below `sm` (container narrower than 512px)...
     </Container>
-    <Container padding="sm" background="primary" borderColor="primary" radius="md">
+    <Container padding="sm" background="primary" border="primary" radius="md">
       ...and side by side from `sm` up (512px+). Drag the handle at the bottom-right to
       flip it — the viewport never changes.
     </Container>
@@ -349,7 +344,7 @@ The `area` prop supports CSS Grid integration:
       area="header"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Header
@@ -358,7 +353,7 @@ The `area` prop supports CSS Grid integration:
       area="sidebar"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Sidebar
@@ -367,7 +362,7 @@ The `area` prop supports CSS Grid integration:
       area="content"
       background="primary"
       padding="sm"
-      borderColor="primary"
+      border="primary"
       radius="md"
     >
       Content

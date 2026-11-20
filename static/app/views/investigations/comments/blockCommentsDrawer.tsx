@@ -148,7 +148,7 @@ function BlockThread({
             </Stack>
           )}
           {readOnly || blockMissing ? null : (
-            <Container ref={composerRef} paddingTop="lg" borderTopColor="primary">
+            <Container ref={composerRef} paddingTop="lg" borderTop="primary">
               <CommentComposer
                 key={blockId}
                 investigationId={investigationId}

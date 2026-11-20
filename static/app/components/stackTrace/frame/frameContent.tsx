@@ -129,7 +129,7 @@ export function FrameContent({
           />
         ) : null}
         {hasFrameRegisters ? (
-          <Container borderTopColor="primary">
+          <Container borderTop="primary">
             <FrameRegisters
               registers={expandedFrameRegisters}
               meta={meta?.registers}
@@ -138,7 +138,7 @@ export function FrameContent({
           </Container>
         ) : null}
         {hasFrameAssembly ? (
-          <Container borderTopColor="primary">
+          <Container borderTop="primary">
             <Assembly {...parseAssembly(frame.package ?? null)} />
           </Container>
         ) : null}
