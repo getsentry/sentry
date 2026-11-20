@@ -3270,6 +3270,51 @@ register(
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Anomaly detection rollout limits (sentry.anomaly_detection.schedule)
+register(
+    "anomaly_detection.max_organizations_per_tick",
+    type=Int,
+    default=20,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.max_projects_per_organization",
+    type=Int,
+    default=10,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.max_catchup_minutes",
+    type=Int,
+    default=15,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Checkpoints further behind than this restart cold instead of replaying the gap.
+register(
+    "anomaly_detection.max_resume_lag_minutes",
+    type=Int,
+    default=60,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Optional evaluator stages. Off until their precision is proven in production.
+register(
+    "anomaly_detection.rate_shifts.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.novelty_admission.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "anomaly_detection.shared_dependencies.enabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+)
 register(
     "statistical_detectors.query.batch_size",
     type=Int,
