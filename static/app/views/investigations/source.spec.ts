@@ -9,7 +9,26 @@ describe('getInvestigationSource', () => {
 
     expect(getInvestigationSource(investigation)).toEqual({
       groupId: '123',
+      openPeriodId: '456',
+      analysisWindow: null,
       monitorName: 'Checkout error rate',
+    });
+  });
+
+  it('reads the analysis window of the open period', () => {
+    const source = InvestigationMetricSourceFixture();
+    const analysisWindow = {
+      baselineStart: '2026-08-27T09:00:00Z',
+      breachStart: '2026-08-27T10:00:00Z',
+      end: '2026-08-27T11:00:00Z',
+    };
+    const investigation = InvestigationDetailFixture({
+      source: {...source, snapshot: {...source.snapshot, analysisWindow}},
+    });
+
+    expect(getInvestigationSource(investigation).analysisWindow).toEqual({
+      breachStart: '2026-08-27T10:00:00Z',
+      end: '2026-08-27T11:00:00Z',
     });
   });
 
@@ -25,6 +44,8 @@ describe('getInvestigationSource', () => {
 
     expect(getInvestigationSource(investigation)).toEqual({
       groupId: '123',
+      openPeriodId: '456',
+      analysisWindow: null,
       monitorName: null,
     });
   });
@@ -32,6 +53,8 @@ describe('getInvestigationSource', () => {
   it('has no issue for a manual investigation', () => {
     expect(getInvestigationSource(InvestigationDetailFixture())).toEqual({
       groupId: null,
+      openPeriodId: null,
+      analysisWindow: null,
       monitorName: null,
     });
   });
