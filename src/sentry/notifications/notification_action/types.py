@@ -24,7 +24,6 @@ from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.notifications.platform.shadow.capture import shadow_read
 from sentry.notifications.platform.types import NotificationSource
 from sentry.notifications.types import (
     TEST_NOTIFICATION_ID,
@@ -348,55 +347,49 @@ class BaseIssueAlertHandler(ABC):
             get_platform_provider,
             send_issue_alert,
         )
-        from sentry.notifications.notification_action.utils import issue_notification_data_factory
 
         provider = get_platform_provider(invocation, NotificationSource.ISSUE)
         if provider is not None:
             send_issue_alert(invocation, provider)
             return
 
-        with shadow_read(
-            invocation,
-            NotificationSource.ISSUE,
-            lambda _: issue_notification_data_factory(invocation),
-        ):
-            context = cls.create_action_context(
-                invocation.action,
-                invocation.detector,
-                invocation.event_data,
-                workflow_id=invocation.workflow_id,
-            )
-            rule_data = cls.build_rule_data_from_action(
-                invocation.action, invocation.detector, context.origin
-            )
+        context = cls.create_action_context(
+            invocation.action,
+            invocation.detector,
+            invocation.event_data,
+            workflow_id=invocation.workflow_id,
+        )
+        rule_data = cls.build_rule_data_from_action(
+            invocation.action, invocation.detector, context.origin
+        )
 
-            logger.info(
-                "notification_action.execute_via_issue_alert_handler",
-                extra={
-                    "action_id": invocation.action.id,
-                    "detector_id": invocation.detector.id,
-                    "event_data": asdict(invocation.event_data),
-                    "legacy_rule_id": context.origin.legacy_rule_id,
-                    "workflow_id": context.origin.workflow_id,
-                    "rule_project_id": context.project.id,
-                    "rule_environment_id": context.origin.environment_id,
-                    "rule_label": context.origin.label,
-                    "rule_data": rule_data,
-                },
-            )
-            # Get the futures
-            futures = cls.get_rule_futures(
-                invocation.event_data,
-                context,
-                rule_data["actions"],
-                invocation.notification_uuid,
-            )
+        logger.info(
+            "notification_action.execute_via_issue_alert_handler",
+            extra={
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
+                "legacy_rule_id": context.origin.legacy_rule_id,
+                "workflow_id": context.origin.workflow_id,
+                "rule_project_id": context.project.id,
+                "rule_environment_id": context.origin.environment_id,
+                "rule_label": context.origin.label,
+                "rule_data": rule_data,
+            },
+        )
+        # Get the futures
+        futures = cls.get_rule_futures(
+            invocation.event_data,
+            context,
+            rule_data["actions"],
+            invocation.notification_uuid,
+        )
 
-            # Execute the futures
-            if context.origin.is_test_notification():
-                cls.send_test_notification(invocation.event_data, futures)
-            else:
-                cls.execute_futures(invocation.event_data, futures)
+        # Execute the futures
+        if context.origin.is_test_notification():
+            cls.send_test_notification(invocation.event_data, futures)
+        else:
+            cls.execute_futures(invocation.event_data, futures)
 
 
 class TicketingIssueAlertHandler(BaseIssueAlertHandler):
@@ -470,9 +463,6 @@ class BaseMetricAlertHandler(ABC):
             get_platform_provider,
             send_metric_alert,
         )
-        from sentry.notifications.notification_action.utils import (
-            metric_alert_notification_data_factory,
-        )
 
         issue_notification_context = IssueNotificationContext(invocation)
         provider = get_platform_provider(invocation, NotificationSource.METRIC_ALERT)
@@ -480,51 +470,37 @@ class BaseMetricAlertHandler(ABC):
             send_metric_alert(issue_notification_context, provider)
             return
 
-        with shadow_read(
-            invocation,
-            NotificationSource.METRIC_ALERT,
-            lambda legacy_render: metric_alert_notification_data_factory(
-                action_type=invocation.action.type,
-                notification_context=issue_notification_context.notification_context,
-                alert_context=issue_notification_context.alert_context,
-                metric_issue_context=issue_notification_context.metric_issue_context,
-                open_period_context=issue_notification_context.open_period_context,
-                organization=issue_notification_context.organization,
-                notification_uuid=invocation.notification_uuid,
-                chart_url=legacy_render.chart_url,
-            ),
-        ):
-            notification_context = issue_notification_context.notification_context
-            alert_context = issue_notification_context.alert_context
-            metric_issue_context = issue_notification_context.metric_issue_context
-            open_period_context = issue_notification_context.open_period_context
-            trigger_status = issue_notification_context.trigger_status
+        notification_context = issue_notification_context.notification_context
+        alert_context = issue_notification_context.alert_context
+        metric_issue_context = issue_notification_context.metric_issue_context
+        open_period_context = issue_notification_context.open_period_context
+        trigger_status = issue_notification_context.trigger_status
 
-            logged_notification_context = asdict(notification_context)
-            logged_notification_context.pop("notes")
-            logger.info(
-                "notification_action.execute_via_metric_alert_handler",
-                extra={
-                    "action_id": invocation.action.id,
-                    "detector_id": invocation.detector.id,
-                    "event_data": asdict(invocation.event_data),
-                    "notification_context": logged_notification_context,
-                    "alert_context": asdict(alert_context),
-                    "metric_issue_context": asdict(metric_issue_context),
-                    "open_period_context": open_period_context.dict(),
-                    "trigger_status": trigger_status,
-                },
-            )
-            cls.send_alert(
-                notification_context=notification_context,
-                alert_context=alert_context,
-                metric_issue_context=metric_issue_context,
-                open_period_context=open_period_context,
-                trigger_status=trigger_status,
-                notification_uuid=invocation.notification_uuid,
-                organization=invocation.detector.linked_project.organization,
-                project=invocation.detector.linked_project,
-            )
+        logged_notification_context = asdict(notification_context)
+        logged_notification_context.pop("notes")
+        logger.info(
+            "notification_action.execute_via_metric_alert_handler",
+            extra={
+                "action_id": invocation.action.id,
+                "detector_id": invocation.detector.id,
+                "event_data": asdict(invocation.event_data),
+                "notification_context": logged_notification_context,
+                "alert_context": asdict(alert_context),
+                "metric_issue_context": asdict(metric_issue_context),
+                "open_period_context": open_period_context.dict(),
+                "trigger_status": trigger_status,
+            },
+        )
+        cls.send_alert(
+            notification_context=notification_context,
+            alert_context=alert_context,
+            metric_issue_context=metric_issue_context,
+            open_period_context=open_period_context,
+            trigger_status=trigger_status,
+            notification_uuid=invocation.notification_uuid,
+            organization=invocation.detector.linked_project.organization,
+            project=invocation.detector.linked_project,
+        )
 
 
 class NotificationActionForm(Protocol):

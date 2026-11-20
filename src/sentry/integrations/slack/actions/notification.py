@@ -29,8 +29,6 @@ from sentry.integrations.slack.utils.threads import NotificationActionThreadUtil
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.integrations.utils.metrics import EventLifecycle
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.notifications.platform.shadow.capture import record_legacy_render
-from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.notifications.types import NotificationOrigin, RuleFuture
 from sentry.notifications.utils.open_period import open_period_start_for_group
 from sentry.rules.actions import IntegrationEventAction
@@ -181,7 +179,6 @@ class SlackNotifyServiceAction(IntegrationEventAction):
 
         client = SlackSdkClient(integration_id=integration.id)
         text = str(blocks.get("text"))
-        record_legacy_render(NotificationProviderKey.SLACK, {"blocks": json_blocks, "text": text})
         message_ts: str | None = None
         # Wrap the Slack API call with lifecycle tracking
         with MessagingInteractionEvent(

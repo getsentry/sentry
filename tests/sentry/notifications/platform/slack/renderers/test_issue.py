@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import uuid
 from typing import Any
 
 import pytest
@@ -24,10 +25,12 @@ from sentry.notifications.platform.types import (
     NotificationSource,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.notifications.platform import MockNotification
 from sentry.utils import json
 from sentry.workflow_engine.models import Action
 from sentry.workflow_engine.types import ActionInvocation, WorkflowEventData
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 def render_issue(
@@ -88,7 +91,7 @@ class IssueAlertInvocationMixin(TestCase):
         )
 
 
-class IssueNotificationDataTest(IssueAlertInvocationMixin):
+class IssueNotificationDataTest(IssueAlertInvocationMixin, OccurrenceTestMixin):
     def test_rule_proxy_is_frozen(self) -> None:
         proxy = SerializableRuleProxy(label="Test Detector", workflow_id=1)
 
@@ -168,6 +171,28 @@ class IssueNotificationDataTest(IssueAlertInvocationMixin):
         assert action_blob["workspace"] == invocation.action.integration_id
         assert action_blob["channel_id"] == "C12345"
         assert action_blob["channel"] == "#test-channel"
+
+    def test_from_action_invocation_carries_occurrence_id(self) -> None:
+        invocation = self._create_invocation()
+        _, group_info = self.process_occurrence(
+            event_id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_data={"timestamp": before_now(minutes=1).isoformat()},
+        )
+        assert group_info is not None
+        event = group_info.group.get_latest_event()
+        assert isinstance(event, GroupEvent) and event.occurrence_id is not None
+        invocation = ActionInvocation(
+            event_data=WorkflowEventData(event=event, group=group_info.group),
+            action=invocation.action,
+            detector=invocation.detector,
+            notification_uuid=invocation.notification_uuid,
+            workflow_id=invocation.workflow_id,
+        )
+
+        result = issue_notification_data_factory(invocation)
+
+        assert result.occurrence_id == event.occurrence_id
 
 
 class IssueAlertNotificationTemplateTest(TestCase):

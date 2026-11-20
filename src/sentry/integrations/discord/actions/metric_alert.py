@@ -22,8 +22,6 @@ from sentry.integrations.messaging.metrics import (
 )
 from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
-from sentry.notifications.platform.shadow.capture import record_legacy_render
-from sentry.notifications.platform.types import NotificationProviderKey
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.workflow_engine.endpoints.serializers.detector_serializer import (
     DetectorSerializerResponse,
@@ -83,7 +81,6 @@ def send_incident_alert_notification(
         date_started=open_period_context.date_started,
         chart_url=chart_url,
     ).build(notification_uuid=notification_uuid)
-    record_legacy_render(NotificationProviderKey.DISCORD, message, chart_url=chart_url)
 
     client = DiscordClient()
     with MessagingInteractionEvent(

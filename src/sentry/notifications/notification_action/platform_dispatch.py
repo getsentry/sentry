@@ -30,7 +30,7 @@ from sentry.notifications.platform.service import NotificationService
 from sentry.notifications.platform.target import IntegrationNotificationTarget
 from sentry.notifications.platform.threading import ThreadingOptions, ThreadKey
 from sentry.notifications.platform.types import (
-    SHADOW_PROVIDERS,
+    ALERT_ACTION_PROVIDERS,
     SLACK_PROVIDERS,
     NotificationData,
     NotificationProviderKey,
@@ -93,7 +93,7 @@ def get_platform_provider(
     Returns the provider to send this alert through the notification platform, or None to keep the
     legacy send. Call once per invocation: the platform and legacy paths store threads separately.
     """
-    provider = SHADOW_PROVIDERS.get(invocation.action.type)
+    provider = ALERT_ACTION_PROVIDERS.get(invocation.action.type)
     if (
         provider is None
         or invocation.workflow_id == TEST_NOTIFICATION_ID

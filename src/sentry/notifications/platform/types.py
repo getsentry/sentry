@@ -197,7 +197,7 @@ class NotificationProviderKey(StrEnum):
 
 SLACK_PROVIDERS = frozenset({NotificationProviderKey.SLACK, NotificationProviderKey.SLACK_STAGING})
 
-SHADOW_PROVIDERS: dict[str, NotificationProviderKey] = {
+ALERT_ACTION_PROVIDERS: dict[str, NotificationProviderKey] = {
     "slack": NotificationProviderKey.SLACK,
     "slack_staging": NotificationProviderKey.SLACK_STAGING,
     "discord": NotificationProviderKey.DISCORD,
