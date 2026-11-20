@@ -26,7 +26,7 @@ const STORY_REFERRER = 'seer-log-embed-story';
  */
 const BREAKDOWN_ATTRIBUTE = OurLogKnownFieldKey.SEVERITY;
 
-function toIdentity(log: OurLogsResponseItem) {
+export function toIdentity(log: OurLogsResponseItem) {
   const timestampMs = getLogRowTimestampMillis(log);
 
   return {

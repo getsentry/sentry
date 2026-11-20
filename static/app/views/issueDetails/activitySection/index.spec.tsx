@@ -21,6 +21,7 @@ import {
 
 import {toast} from '@sentry/scraps/toast';
 
+import {EXAMPLE_CITATIONS} from 'sentry/components/seer/citations/__fixtures__/examples';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {GroupStore} from 'sentry/stores/groupStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
@@ -2674,6 +2675,71 @@ describe('ActivitySection', () => {
     expect(
       await screen.findByText('The request failed before order creation.')
     ).toBeInTheDocument();
+  });
+
+  it('renders Impact claims with typed citations', async () => {
+    const byId = Object.fromEntries(EXAMPLE_CITATIONS.map(c => [c.id, c]));
+    const impactGroup = GroupFixture({
+      activity: [
+        {
+          type: GroupActivityType.IMPACT_ASSESSMENT,
+          id: 'impact-2',
+          dateCreated: '2020-01-01T00:00:00',
+          data: {
+            score: 70,
+            level: 'high',
+            description: 'Users cannot complete checkout.',
+            citations: [
+              {source: 'event', reference: 'c_frame01', claim: 'Checkout crashes.'},
+            ],
+            claims: [
+              {
+                claim: 'Checkout crashes on submit.',
+                citationIds: ['c_frame01', 'c_code01'],
+              },
+              {claim: '903 users hit it.', citationIds: ['c_issue01', 'c_unknown']},
+            ],
+            evidence: [byId.c_frame01, byId.c_code01, byId.c_issue01, {id: 'junk'}],
+            sourceEventId: '8f2c1a9d7e6b4f30a1b2c3d4e5f60718',
+          },
+          user: null,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={impactGroup} project={impactGroup.project}>
+        <ActivitySection group={impactGroup} />
+      </GroupDataContextProvider>,
+      {organization: OrganizationFixture()}
+    );
+
+    const claims = await screen.findByTestId('impact-claims');
+    expect(claims).toHaveTextContent('Checkout crashes on submit.');
+    expect(claims).toHaveTextContent('903 users hit it.');
+    expect(screen.queryByText('Citations:')).not.toBeInTheDocument();
+    expect(
+      within(claims).getByRole('button', {name: 'submitOrder in checkout.ts'})
+    ).toBeInTheDocument();
+    expect(
+      within(claims).getByRole('button', {name: 'JAVASCRIPT-22SP'})
+    ).toBeInTheDocument();
+
+    const codeChip = within(claims).getByRole('button', {name: 'app/checkout.ts:80-95'});
+    expect(codeChip).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(codeChip);
+    expect(codeChip).toHaveAttribute('aria-expanded', 'true');
+
+    const detail = screen.getByTestId('citation-detail-c_code01');
+    expect(detail).toHaveTextContent('const total = order.summary.total;');
+    expect(within(detail).getByRole('button', {name: 'Open code'})).toHaveAttribute(
+      'href',
+      'https://github.com/example/shop/blob/abc1234/app/checkout.ts#L80-L95'
+    );
+
+    await userEvent.click(codeChip);
+    expect(screen.queryByTestId('citation-detail-c_code01')).not.toBeInTheDocument();
   });
 
   it('renders a link from an investigation', async () => {

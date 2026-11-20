@@ -202,6 +202,9 @@ const citationSchema = z.discriminatedUnion('kind', [
 ]);
 
 export type Citation = z.output<typeof citationSchema>;
+export type CitationOfKind<K extends CitationKind> = z.output<
+  (typeof CITATION_KIND_SCHEMAS)[K]
+>;
 
 /**
  * Parses a citation from the API. Returns null for anything Sentry can't
