@@ -138,8 +138,7 @@ export const OUT_OF_CREDITS_RETRY_TOOLTIP = t(
 // TODO(CW-3133): Add daily_cap_exceeded copies.
 /**
  * Stands in for the backend's `pr_creation_error` on a PR that failed for
- * credits. A PR number means the PR already exists, so the push failed. It
- * says "ran out" since it can still show after a top-up.
+ * credits. A PR number means the PR already exists, so the push failed.
  */
 export function getStoppedPRMessage(
   state: Pick<RepoPRState, 'pr_number' | 'repo_name'>
