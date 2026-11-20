@@ -8,6 +8,7 @@ from django.urls import reverse
 from sentry import audit_log
 from sentry.auth.authenticators.recovery_code import RecoveryCodeInterface
 from sentry.auth.authenticators.totp import TotpInterface
+from sentry.hybridcloud.models.outbox import CellOutbox
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
@@ -1025,6 +1026,26 @@ class UpdateOrganizationMemberTest(OrganizationMemberTestBase, HybridCloudTestMi
 
         response = self.get_error_response(self.organization.slug, placeholder_om.id, role="member")
         assert response.data["detail"] == "The requested resource does not exist"
+
+
+class UpdateOrganizationMemberAsyncReplicationTest(OrganizationMemberTestBase):
+    method = "put"
+
+    def _drains(self, member: OrganizationMember, role: str) -> bool:
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with self.captureOnCommitCallbacks(execute=True):
+                self.get_success_response(self.organization.slug, member.id, orgRole=role)
+        return mock_drain_shard.called
+
+    @override_options({"hybridcloud.outbox.organization_member_async_replication.enabled": True})
+    def test_only_owner_role_changes_drain(self) -> None:
+        member = self.create_member(
+            organization=self.organization, user=self.create_user(), role="member"
+        )
+
+        assert not self._drains(member, "manager")
+        assert self._drains(member, "owner")
+        assert self._drains(member, "manager")
 
 
 class DeleteOrganizationMemberTest(OrganizationMemberTestBase):

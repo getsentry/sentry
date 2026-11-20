@@ -714,6 +714,23 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
                 lambda: service.remove_user(organization_id=self.org.id, user_id=user.id)
             )
 
+    def test_merge_users_promoting_to_owner_is_sync(self) -> None:
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
+
+        service = DatabaseBackedOrganizationService()
+        owner = self.create_user()
+        self.create_member(organization=self.org, user=owner, role="owner")
+        with self.options({self.OPTION: True}):
+            assert self._drains(
+                lambda: service.merge_users(
+                    organization_id=self.org.id,
+                    from_user_id=owner.id,
+                    to_user_id=self.member.user_id,
+                )
+            )
+
     def test_sync_write_drains_async_rows_in_the_same_shard(self) -> None:
         from sentry.hybridcloud.models.outbox import CellOutbox
 
