@@ -1,8 +1,17 @@
+import {useQuery, type UseQueryOptions} from '@tanstack/react-query';
+
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import type {ApiQueryKey} from 'sentry/utils/api/apiQueryKey';
 import type {TransactionThresholdMetric} from 'sentry/views/performance/transactionSummary/transactionThresholdModal';
 
 import type {EventsMetaType, MetaType} from './eventView';
 import type {DiscoverQueryProps, GenericChildrenProps} from './genericDiscoverQuery';
-import {GenericDiscoverQuery, useGenericDiscoverQuery} from './genericDiscoverQuery';
+import {
+  GenericDiscoverQuery,
+  getDiscoverQueryPayload,
+  parseError,
+} from './genericDiscoverQuery';
 
 /**
  * An individual row in a DiscoverQuery result
@@ -57,20 +66,40 @@ export function DiscoverQuery(props: DiscoverQueryComponentProps) {
   );
 }
 
-export function useDiscoverQuery(props: Omit<DiscoverQueryComponentProps, 'children'>) {
-  const afterFetch = (data: any, _: any) => {
-    const {fields, ...otherMeta} = data.meta ?? {};
-    return {...data, meta: {...fields, ...otherMeta, fields}};
-  };
+type DiscoverQueryOptions = Omit<
+  UseQueryOptions<ApiResponse<TableData>, Error, ApiResponse<TableData>, ApiQueryKey>,
+  'queryKey' | 'queryFn' | 'select'
+>;
 
-  const res = useGenericDiscoverQuery<TableData, DiscoverQueryPropsWithThresholds>({
-    route: 'events',
-    shouldRefetchData,
-    afterFetch,
-    ...props,
+export function useDiscoverQuery({
+  additionalQueryKey = [],
+  options,
+  ...props
+}: DiscoverQueryPropsWithThresholds & {
+  additionalQueryKey?: readonly unknown[];
+  options?: DiscoverQueryOptions;
+}) {
+  const tableOptions = apiOptions.as<TableData>()(
+    '/organizations/$organizationIdOrSlug/events/',
+    {
+      path: {organizationIdOrSlug: props.orgSlug},
+      query: getDiscoverQueryPayload(props),
+      staleTime: 0,
+    }
+  );
+  const baseQueryKey: ApiQueryKey = tableOptions.queryKey;
+  const res = useQuery({
+    ...tableOptions,
+    queryKey: [...baseQueryKey, ...additionalQueryKey] as const,
+    select: selectJsonWithHeaders,
+    ...options,
   });
 
-  const pageLinks = res.response?.getResponseHeader('Link') ?? undefined;
-
-  return {...res, pageLinks};
+  return {
+    // eslint-disable-next-line @tanstack/query/no-rest-destructuring
+    ...res,
+    data: res.data?.json,
+    error: parseError(res.error),
+    pageLinks: res.data?.headers.Link,
+  };
 }

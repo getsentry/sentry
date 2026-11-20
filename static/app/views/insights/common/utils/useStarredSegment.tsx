@@ -10,7 +10,7 @@ type StarServiceSpanParams = {project_id?: string; service_span?: string};
 
 interface Props {
   segmentName: string;
-  onError?: () => void;
+  onError?: (previousIsStarred: boolean) => void;
   projectId?: string | undefined;
 }
 
@@ -29,9 +29,9 @@ export function useStarredSegment({
   });
   const data: StarServiceSpanParams = {project_id: projectId, service_span: segmentName};
 
-  const onError = (message: string) => {
+  const onError = (message: string, previousIsStarred: boolean) => {
     toast.error(message);
-    errorCallback?.();
+    errorCallback?.(previousIsStarred);
   };
 
   const onSuccess = (message: string) => {
@@ -42,14 +42,14 @@ export function useStarredSegment({
     mutationKey: starredSegmentMutationKey,
     mutationFn: () => fetchMutation({url, method: 'POST', data}),
     onSuccess: () => onSuccess(t('Transaction starred')),
-    onError: () => onError(t('Failed to star transaction')),
+    onError: () => onError(t('Failed to star transaction'), false),
   });
 
   const {mutate: unstarTransaction} = useMutation({
     mutationKey: starredSegmentMutationKey,
     mutationFn: () => fetchMutation({url, method: 'DELETE', options: {query: data}}),
     onSuccess: () => onSuccess(t('Transaction unstarred')),
-    onError: () => onError(t('Failed to unstar transaction')),
+    onError: () => onError(t('Failed to unstar transaction'), true),
   });
 
   const setStarredSegment = (star: boolean) => {

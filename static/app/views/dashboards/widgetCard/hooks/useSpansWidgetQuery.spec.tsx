@@ -1,19 +1,112 @@
+import {AsyncQueuer} from '@tanstack/react-pacer';
+import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 import {WidgetFixture} from 'sentry-fixture/widget';
 
+import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
+import {SAMPLING_MODE} from 'sentry/views/explore/hooks/useProgressiveQuery';
 
 import {useSpansSeriesQuery, useSpansTableQuery} from './useSpansWidgetQuery';
+import {useTransactionsTableQuery} from './useTransactionsWidgetQuery';
+
+type QueueItem = {fetchDataRef: {current: () => Promise<void>}};
+let mockQueue: AsyncQueuer<QueueItem> | null = null;
 
 jest.mock('sentry/views/dashboards/utils/widgetQueryQueue', () => ({
-  useWidgetQueryQueue: () => ({queue: null}),
+  useWidgetQueryQueue: () => ({queue: mockQueue}),
 }));
+
+it('loads a Transactions table after leaving a dashboard with a matching queued Spans request', async () => {
+  const organization = OrganizationFixture();
+  const pageFilters = PageFiltersFixture();
+  PageFiltersStore.init();
+  PageFiltersStore.onInitializeUrlState(pageFilters);
+  const request = MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/events/`,
+    body: {data: [{transaction: 'checkout', 'count()': 1}], meta: {fields: {}}},
+  });
+  const widget = WidgetFixture({
+    widgetType: WidgetType.SPANS,
+    displayType: DisplayType.TABLE,
+    queries: [
+      {
+        name: '',
+        fields: ['transaction', 'count()'],
+        aggregates: ['count()'],
+        columns: ['transaction'],
+        conditions: '',
+        orderby: '',
+      },
+    ],
+  });
+  const params = {
+    widget,
+    organization,
+    pageFilters,
+    enabled: true,
+    limit: 5,
+    samplingMode: SAMPLING_MODE.LOW_PRIORITY,
+  };
+  const client = makeTestQueryClient();
+  const providers = {
+    organization,
+    additionalWrapper: ({children}: {children?: React.ReactNode}) => (
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    ),
+  };
+  const makeQueue = () =>
+    new AsyncQueuer((item: QueueItem) => item.fetchDataRef.current(), {
+      started: true,
+      concurrency: 1,
+    });
+  const firstQueue = makeQueue();
+  const nextQueue = makeQueue();
+  const slot = Promise.withResolvers<void>();
+
+  try {
+    const occupySlot = jest.fn(() => slot.promise);
+    firstQueue.addItem({fetchDataRef: {current: occupySlot}});
+    await waitFor(() => expect(occupySlot).toHaveBeenCalledTimes(1));
+    mockQueue = firstQueue;
+    const first = renderHookWithProviders(() => useSpansTableQuery(params), providers);
+    await waitFor(() => expect(firstQueue.peekPendingItems()).toHaveLength(1));
+
+    first.unmount();
+    firstQueue.abort();
+    firstQueue.clear();
+    slot.resolve();
+
+    mockQueue = nextQueue;
+    const {result} = renderHookWithProviders(
+      () =>
+        useTransactionsTableQuery({
+          ...params,
+          widget: {...widget, widgetType: WidgetType.TRANSACTIONS},
+        }),
+      providers
+    );
+
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(result.current.loading).toBe(false));
+    expect(result.current.tableResults?.[0]?.data).toEqual([
+      {transaction: 'checkout', 'count()': 1},
+    ]);
+  } finally {
+    slot.resolve();
+    firstQueue.abort();
+    firstQueue.clear();
+    nextQueue.abort();
+    nextQueue.clear();
+    mockQueue = null;
+  }
+});
 
 describe('useSpansSeriesQuery', () => {
   const organization = OrganizationFixture();

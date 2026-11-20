@@ -447,10 +447,14 @@ export function useSpansTableQuery(
 
       const baseQueryKey: ApiQueryKey = baseOptions.queryKey;
 
-      // eslint-disable-next-line @tanstack/query/exhaustive-deps
+      // eslint-disable-next-line @tanstack/query/exhaustive-deps -- The queue schedules the request without changing its result.
       return queryOptions({
         ...baseOptions,
-        queryKey: [...baseQueryKey, ...STARRED_SEGMENT_TABLE_QUERY_KEY] as const,
+        // Keep queued Spans requests separate from Transactions widgets.
+        queryKey: [
+          ...baseQueryKey,
+          hasStarredField ? STARRED_SEGMENT_TABLE_QUERY_KEY : 'dashboard-spans-table',
+        ] as const,
         queryFn: (context): Promise<ApiResponse<SpansTableResponse>> => {
           if (queue) {
             return new Promise((resolve, reject) => {

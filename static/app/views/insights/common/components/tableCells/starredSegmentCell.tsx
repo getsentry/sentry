@@ -5,11 +5,16 @@ import type {Simplify} from 'type-fest';
 import {Button} from '@sentry/scraps/button';
 
 import {t} from 'sentry/locale';
-import type {EventsMetaType} from 'sentry/utils/discover/eventView';
+import type {ApiResponse} from 'sentry/utils/api/apiFetch';
+import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {defined} from 'sentry/utils/defined';
 import {FlexContainer} from 'sentry/utils/discover/styles';
+import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useStarredSegment} from 'sentry/views/insights/common/utils/useStarredSegment';
 import type {SpanResponse} from 'sentry/views/insights/types';
+
+export const STARRED_SEGMENT_TABLE_QUERY_KEY = 'starred-segment-table';
 
 interface Props {
   isStarred: boolean;
@@ -18,14 +23,9 @@ interface Props {
   projectSlug?: string;
 }
 
-type TableRow = Simplify<
-  Partial<SpanResponse> & Pick<SpanResponse, 'is_starred_transaction' | 'transaction'>
->;
+type TableRow = Simplify<Partial<SpanResponse> & Pick<SpanResponse, 'transaction'>>;
 
-type TableResponse = [{confidence: any; meta: EventsMetaType; data?: TableRow[]}];
-
-// The query key used for the starred segments table request, this key is used to reference that query and update the starred segment state
-export const STARRED_SEGMENT_TABLE_QUERY_KEY = ['starred-segment-table'];
+type TableData = {data: TableRow[]};
 
 export function StarredSegmentCell({
   segmentName,
@@ -34,59 +34,52 @@ export function StarredSegmentCell({
   projectId,
 }: Props) {
   const queryClient = useQueryClient();
+  const organization = useOrganization();
   const {projects} = useProjects();
-  const project = projects.find(p => p.slug === projectSlug);
-
-  const {setStarredSegment, isPending} = useStarredSegment({
-    projectId: project?.id || projectId,
-    segmentName,
-    onError: () => updateTableData(!isStarred),
-  });
-
-  const disabled = (!project && !projectId) || !segmentName || isPending;
+  const project =
+    projects.find(p => p.slug === projectSlug) ?? projects.find(p => p.id === projectId);
+  const selectedProjectId = project?.id ?? projectId;
+  const selectedProjectSlug = project?.slug ?? projectSlug;
 
   const updateTableData = (newIsStarred: boolean) => {
     queryClient.setQueriesData(
       {
-        // Discover tables put the key first, dashboard widgets put it after the api key
-        predicate: query =>
-          STARRED_SEGMENT_TABLE_QUERY_KEY.every(part => query.queryKey.includes(part)),
+        ...apiOptions.queryFilter('/organizations/$organizationIdOrSlug/events/', {
+          path: {organizationIdOrSlug: organization.slug},
+        }),
+        predicate: ({queryKey}) => queryKey.at(-1) === STARRED_SEGMENT_TABLE_QUERY_KEY,
       },
-      (oldResponse: TableResponse | any): TableResponse | any => {
+      (oldResponse: ApiResponse<TableData> | undefined) => {
         if (!oldResponse) {
-          return oldResponse;
+          return;
         }
-
-        // Handles `useSpans` format: [{confidence, meta, data}]
-        if (oldResponse?.[0]?.data && !oldResponse?.[1]) {
-          const oldTableData = oldResponse[0].data || [];
-          const newData = oldTableData.map((row: TableRow): TableRow => {
-            if (row.transaction === segmentName) {
-              return {...row, is_starred_transaction: newIsStarred};
-            }
-            return row;
-          });
-          return [{...oldResponse[0], data: newData}];
-        }
-
-        // Handles `useSpansWidgetQuery` format: [responseData, headers, responseMeta]
-        // TODO: unify the format of the response data
-        if (oldResponse?.[0]?.data && oldResponse?.[1]) {
-          const responseData = oldResponse[0];
-          const oldTableData = responseData.data || [];
-          const newData = oldTableData.map((row: TableRow): TableRow => {
-            if (row.transaction === segmentName) {
-              return {...row, is_starred_transaction: newIsStarred};
-            }
-            return row;
-          });
-          return [{...responseData, data: newData}, oldResponse[1], oldResponse[2]];
-        }
-
-        return oldResponse;
+        const previousRows = oldResponse.json.data;
+        const data = previousRows.map(row => {
+          const rowProjectId = row['project.id'];
+          const matchesProject = defined(rowProjectId)
+            ? String(rowProjectId) === selectedProjectId
+            : selectedProjectSlug !== undefined && row.project === selectedProjectSlug;
+          return row.transaction === segmentName &&
+            matchesProject &&
+            defined(row.is_starred_transaction) &&
+            row.is_starred_transaction !== newIsStarred
+            ? {...row, is_starred_transaction: newIsStarred}
+            : row;
+        });
+        return data.some((row, index) => row !== previousRows[index])
+          ? {...oldResponse, json: {...oldResponse.json, data}}
+          : undefined;
       }
     );
   };
+
+  const {setStarredSegment, isPending} = useStarredSegment({
+    projectId: selectedProjectId,
+    segmentName,
+    onError: updateTableData,
+  });
+
+  const disabled = !selectedProjectId || !segmentName || isPending;
 
   const toggleStarredTransaction = () => {
     setStarredSegment(!isStarred);

@@ -212,7 +212,7 @@ function EAPMobileOverviewPage({datePageFilterProps}: EAPMobileOverviewPageProps
       search: existingQuery,
       sorts,
       cursor: pagesCursor || undefined,
-      useQueryOptions: {additonalQueryKey: STARRED_SEGMENT_TABLE_QUERY_KEY},
+      useQueryOptions: {additionalQueryKey: [STARRED_SEGMENT_TABLE_QUERY_KEY]},
       fields: [
         'is_starred_transaction',
         'transaction',
