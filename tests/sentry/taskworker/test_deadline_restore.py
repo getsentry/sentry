@@ -7,6 +7,7 @@ from unittest import mock
 
 import pytest
 from django.db import OperationalError, ProgrammingError, connections, transaction
+from taskbroker_client.state import CurrentTaskState
 from taskbroker_client.worker.workerchild import ProcessingDeadlineExceeded
 
 from sentry.models.options.option import Option
@@ -231,6 +232,60 @@ class TestDeadlineRestoreRule(TransactionTestCase):
                     write_in_a_block("deadline_restore.interrupted")
 
         options.get.assert_not_called()
+
+    def test_report_and_enforce_count_each_match_by_task_and_database(self) -> None:
+        running_task = CurrentTaskState(
+            id="1",
+            namespace="tests",
+            taskname="tests.write_rows",
+            attempt=0,
+            processing_deadline_duration=10,
+            retries_remaining=False,
+        )
+
+        with (
+            mock.patch.object(deadline_restore, "metrics") as metrics,
+            mock.patch.object(deadline_restore, "current_task", side_effect=[None, running_task]),
+        ):
+            with task("off"), self._deadline_during_commit():
+                with pytest.raises(ProgrammingError):
+                    write_in_a_block("deadline_restore.interrupted")
+
+            reset_connections()
+
+            with task("report"), self._deadline_during_commit():
+                with pytest.raises(ProgrammingError):
+                    write_in_a_block("deadline_restore.interrupted")
+
+            reset_connections()
+
+            with task("enforce"), self._deadline_during_commit():
+                with pytest.raises(ProcessingDeadlineExceeded):
+                    write_in_a_block("deadline_restore.interrupted")
+
+        assert metrics.incr.call_args_list == [
+            mock.call(
+                "taskworker.deadline_restore.matched",
+                tags={"taskname": "unknown", "using": "default"},
+                sample_rate=1.0,
+            ),
+            mock.call(
+                "taskworker.deadline_restore.matched",
+                tags={"taskname": "tests.write_rows", "using": "default"},
+                sample_rate=1.0,
+            ),
+        ]
+
+    def test_a_failing_metric_never_changes_the_error(self) -> None:
+        with (
+            task("enforce"),
+            mock.patch.object(deadline_restore, "metrics") as metrics,
+            self._deadline_during_commit(),
+        ):
+            metrics.incr.side_effect = RuntimeError("metrics are down")
+
+            with pytest.raises(ProcessingDeadlineExceeded):
+                write_in_a_block("deadline_restore.interrupted")
 
     def test_refuses_to_install_over_a_wrapper(self) -> None:
         # The test fixtures that wrap the same method (simulate_on_commit, savepoints) already have
