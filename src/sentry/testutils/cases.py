@@ -2070,7 +2070,7 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
         if project is None:
             project = self.project.id
 
-        values = cast(list[int | dict[str, int]], value if isinstance(value, list) else [value])
+        values: list[int | dict[str, int]] = value if isinstance(value, list) else [value]
         for subvalue in values:
             self.store_metric(
                 org_id,
