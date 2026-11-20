@@ -3,9 +3,7 @@ import {t} from 'sentry/locale';
 
 import {NoContextWrapper} from './styles';
 
-type NoContextProps = {
-  isLoading: boolean;
-};
+type NoContextProps = {isLoading: boolean};
 
 export function NoContext({isLoading}: NoContextProps) {
   return isLoading ? (

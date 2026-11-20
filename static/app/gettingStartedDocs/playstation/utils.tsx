@@ -10,14 +10,8 @@ export const platformOptions = {
   installationMode: {
     label: t('Installation Mode'),
     items: [
-      {
-        label: t('Retail'),
-        value: InstallationMode.RETAIL,
-      },
-      {
-        label: t('Devkit'),
-        value: InstallationMode.DEVKIT,
-      },
+      {label: t('Retail'), value: InstallationMode.RETAIL},
+      {label: t('Devkit'), value: InstallationMode.DEVKIT},
     ],
     defaultValue: InstallationMode.DEVKIT,
   },

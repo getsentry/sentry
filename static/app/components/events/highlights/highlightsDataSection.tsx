@@ -244,10 +244,7 @@ export function HighlightsDataSection({event, project}: HighlightsDataSectionPro
     data: highlightsProject,
     isError,
     refetch,
-  } = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug: project.slug,
-  });
+  } = useDetailedProject({orgSlug: organization.slug, projectSlug: project.slug});
 
   return (
     <FoldSection

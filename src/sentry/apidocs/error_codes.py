@@ -50,6 +50,7 @@ def _detail_schema(cls: type[SentryAPIException]) -> dict[str, Any]:
             },
         },
         "x-sentry-status": cls.status_code,
+        "x-sentry-auth-challenge": cls.auth_challenge,
     }
 
 
@@ -58,7 +59,9 @@ def sentry_api_error_schema() -> dict[str, Any]:
         "type": "object",
         "description": (
             "The body of an error with a machine-readable code. Each `detail` variant "
-            "names its HTTP status in `x-sentry-status`."
+            "names its HTTP status in `x-sentry-status`, and `x-sentry-auth-challenge` "
+            "says whether the user can clear it by acting in Sentry, such as by logging "
+            "in with SSO."
         ),
         "required": ["detail"],
         "properties": {

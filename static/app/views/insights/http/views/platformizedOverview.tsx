@@ -5,9 +5,7 @@ import {PrebuiltDashboardId} from 'sentry/views/dashboards/utils/prebuiltConfigs
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 
 export function PlatformizedHttpOverview() {
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
 
   return (
     <ModulePageProviders

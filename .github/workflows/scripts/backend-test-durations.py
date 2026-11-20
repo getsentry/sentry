@@ -26,7 +26,6 @@ import json
 import statistics
 from collections import defaultdict
 from pathlib import Path
-from typing import cast
 
 
 def extract(pytest_json: Path) -> dict[str, object]:
@@ -62,7 +61,7 @@ def median(runs: list[dict[str, object]]) -> dict[str, object]:
     for run in runs:
         for path, seconds in run["files"].items():  # type: ignore[attr-defined]
             files[path].append(seconds)
-    per_test = statistics.median(cast(float, run["seconds_per_test"]) for run in runs)
+    per_test = statistics.median(run["seconds_per_test"] for run in runs)
     return {
         "seconds_per_test": round(per_test, 3),
         "files": {path: round(statistics.median(files[path]), 1) for path in sorted(files)},

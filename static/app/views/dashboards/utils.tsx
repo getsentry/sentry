@@ -4,7 +4,6 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import trimStart from 'lodash/trimStart';
 import {parseAsJson} from 'nuqs';
-import * as qs from 'query-string';
 import {z} from 'zod';
 
 import {parseArithmetic} from 'sentry/components/arithmeticInput/parser';
@@ -36,6 +35,7 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {FieldKind} from 'sentry/utils/fields';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import {decodeList} from 'sentry/utils/queryString';
+import * as qs from 'sentry/utils/url/qs';
 import type {ReactRouter3Navigate} from 'sentry/utils/useNavigate';
 
 import {DEFAULT_STATS_PERIOD} from './data';
@@ -114,10 +114,7 @@ export function getThresholdUnitSelectOptions(
   }
 
   if (dataType === 'size') {
-    return Object.values(ABYTE_UNITS).map(unit => ({
-      label: unit,
-      value: unit,
-    }));
+    return Object.values(ABYTE_UNITS).map(unit => ({label: unit, value: unit}));
   }
 
   return [];
@@ -394,9 +391,7 @@ export function hasUnsavedFilterChanges(
     end: normalizeDateTimeString(initialDashboard.end),
     utc: initialDashboard.utc,
   };
-  let currentFilters = {
-    ...getCurrentPageFilters(location),
-  } as unknown as Filters;
+  let currentFilters = {...getCurrentPageFilters(location)} as unknown as Filters;
   currentFilters = {
     ...currentFilters,
     projects: new Set(currentFilters.projects),
@@ -451,13 +446,7 @@ export function resetPageFilters(
   location: Location,
   navigate: ReactRouter3Navigate
 ) {
-  navigate(
-    {
-      ...location,
-      query: getSavedPageFilters(dashboard),
-    },
-    {replace: true}
-  );
+  navigate({...location, query: getSavedPageFilters(dashboard)}, {replace: true});
 }
 
 export function getCurrentPageFilters(

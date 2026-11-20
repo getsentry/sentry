@@ -113,38 +113,6 @@
 }
 
 /*
-// Pills
-// -------------------------
-*/
-.nav-pills {
-  > li {
-    float: left;
-
-    /*
-    // Links rendered as pills
-    */
-    > a {
-      border-radius: 4px;
-    }
-    + li {
-      margin-left: 2px;
-    }
-
-    /*
-    // Active state
-    */
-    &.active > a {
-      &,
-      &:hover,
-      &:focus {
-        color: #fff;
-        background-color: #337ab7;
-      }
-    }
-  }
-}
-
-/*
 // Tabbable tabs
 // -------------------------
 

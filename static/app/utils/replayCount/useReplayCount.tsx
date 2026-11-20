@@ -2,7 +2,6 @@ import {useCallback} from 'react';
 
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
-import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {useAggregatedQueryKeys} from 'sentry/utils/api/useAggregatedQueryKeys';
 import {useHasReplayAccess} from 'sentry/utils/replays/hooks/useHasReplayAccess';
 
@@ -64,7 +63,7 @@ export function useReplayCount({
     cacheKey: `/organizations/${organization.slug}/replay-count/|${dataSource}|${fieldName}|${cachePeriod}`,
     bufferLimit,
     queryFilter: useCallback(
-      queryKey => !safeParseQueryKey(queryKey)?.options.query?.returnIds,
+      parsedQueryKey => !parsedQueryKey.options.query?.returnIds,
       []
     ),
     getQueryOptions: useCallback(

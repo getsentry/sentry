@@ -52,6 +52,10 @@ class SentryAPIException(APIException):
     # The keys this exception's `extra` can carry. The API schema publishes them
     # (sentry.apidocs.error_codes), and a test checks them against `__init__`.
     extra_keys: ClassVar[tuple[str, ...]] = ()
+    # Whether the user can clear this error by acting in Sentry, such as logging in
+    # with SSO or confirming their password. Each 401 and 403 subclass sets it, and
+    # the API schema publishes it as `x-sentry-auth-challenge`.
+    auth_challenge: ClassVar[bool] = False
 
     def __init__(
         self,
@@ -92,6 +96,7 @@ class ParameterValidationError(SentryAPIException):
 class SsoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sso-required"
+    auth_challenge = True
     message = "Must login via SSO"
     extra_keys = ("loginUrl", "organizationSlug")
 
@@ -115,6 +120,7 @@ class SsoRequired(SentryAPIException):
 class MemberDisabledOverLimit(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "member-disabled-over-limit"
+    auth_challenge = True
     message = "Organization over member limit"
     extra_keys = ("next",)
 
@@ -127,6 +133,7 @@ class MemberDisabledOverLimit(SentryAPIException):
 class SuperuserRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "superuser-required"
+    auth_challenge = True
     message = "You need to re-authenticate for superuser."
     # Only organization-scoped superuser checks pass it.
     extra_keys = ("orgSlug",)
@@ -137,23 +144,27 @@ class UserRequired(SentryAPIException):
 
     status_code = status.HTTP_403_FORBIDDEN
     code = "user-required"
+    auth_challenge = False
     message = "This action requires a user."
 
 
 class StaffRequired(SentryAPIException):
     status_code = status.HTTP_403_FORBIDDEN
     code = "staff-required"
+    auth_challenge = True
     message = "You need to re-authenticate for staff."
 
 
 class DataSecrecyError(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "data-secrecy"
+    auth_challenge = False
 
 
 class SudoRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "sudo-required"
+    auth_challenge = True
     message = "Account verification required."
     extra_keys = ("username",)
 
@@ -164,6 +175,7 @@ class SudoRequired(SentryAPIException):
 class PrimaryEmailVerificationRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "primary-email-verification-required"
+    auth_challenge = True
     message = "Primary email verification required."
     extra_keys = ("username",)
 
@@ -174,6 +186,7 @@ class PrimaryEmailVerificationRequired(SentryAPIException):
 class TwoFactorRequired(SentryAPIException):
     status_code = status.HTTP_401_UNAUTHORIZED
     code = "2fa-required"
+    auth_challenge = True
     message = "Organization requires two-factor authentication to be enabled"
 
 

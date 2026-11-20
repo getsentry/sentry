@@ -3,12 +3,8 @@ import type {TabularData} from 'sentry/views/dashboards/widgets/common/types';
 
 export const spanSamplesWithDurations: TabularData = {
   meta: {
-    fields: {
-      'p99(span.duration)': 'duration',
-    },
-    units: {
-      'p99(span.duration)': DurationUnit.MILLISECOND,
-    },
+    fields: {'p99(span.duration)': 'duration'},
+    units: {'p99(span.duration)': DurationUnit.MILLISECOND},
   },
   data: [
     {

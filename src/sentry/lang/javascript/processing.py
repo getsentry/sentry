@@ -66,6 +66,12 @@ def _merge_frame(new_frame: Mapping[str, Any], symbolicated: Mapping[str, Any]) 
             frame_meta["resolved_with"] = data_resolved_with
         if data.get("symbolicated") is not None:
             frame_meta["symbolicated"] = data["symbolicated"]
+        if data.get("minified_source_found_by_debug_id") is not None:
+            frame_meta["minified_source_found_by_debug_id"] = data[
+                "minified_source_found_by_debug_id"
+            ]
+        if data.get("sourcemap_found_by_debug_id") is not None:
+            frame_meta["sourcemap_found_by_debug_id"] = data["sourcemap_found_by_debug_id"]
     if symbolicated.get("module"):
         new_frame["module"] = symbolicated["module"]
 

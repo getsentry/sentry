@@ -69,10 +69,7 @@ function makeIntegrationIssueConfigTicketRuleApiOptions({
   return apiOptions.as<IntegrationIssueConfig>()(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
     {
-      path: {
-        organizationIdOrSlug: orgSlug,
-        integrationId,
-      },
+      path: {organizationIdOrSlug: orgSlug, integrationId},
       query: {ignored: IGNORED_FIELDS, ...query},
       staleTime: Infinity,
     }
@@ -122,12 +119,7 @@ export function TicketRuleModal({
 
   const endpointString = getApiUrl(
     '/organizations/$organizationIdOrSlug/integrations/$integrationId/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-        integrationId: instance.integration,
-      },
-    }
+    {path: {organizationIdOrSlug: organization.slug, integrationId: instance.integration}}
   );
 
   const initialConfigQuery = useMemo(() => {
@@ -234,10 +226,7 @@ export function TicketRuleModal({
    */
   const cleanData = useCallback(
     (data: Record<string, unknown>) => {
-      const formData: {
-        [key: string]: any;
-        integration?: string | number;
-      } = {};
+      const formData: {[key: string]: any; integration?: string | number} = {};
       if (instance && Object.hasOwn(instance, 'integration')) {
         formData.integration = instance.integration;
       }
@@ -312,10 +301,7 @@ export function TicketRuleModal({
           field.url &&
           cachedChoices
         ) {
-          return {
-            ...field,
-            choices: mergeChoices(field.choices ?? [], cachedChoices),
-          };
+          return {...field, choices: mergeChoices(field.choices ?? [], cachedChoices)};
         }
         return field;
       }

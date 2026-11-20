@@ -10,15 +10,10 @@ import type {User} from 'sentry/types/user';
 import {CustomerContact} from 'admin/components/customerContact';
 import type {PromoCode} from 'admin/types';
 
-type Props = {
-  promoCode: PromoCode;
-};
+type Props = {promoCode: PromoCode};
 
 type PromoClaimant = {
-  customer: {
-    name: string;
-    slug: string;
-  };
+  customer: {name: string; slug: string};
   dateCreated: string;
   id: string;
   user: User;
@@ -72,9 +67,7 @@ export function PromoCodeClaimants({promoCode}: Props) {
         {key: 'date', label: 'Date Claimed', width: 200, align: 'right'},
       ]}
       columnsForRow={getRow}
-      defaultParams={{
-        per_page: 10,
-      }}
+      defaultParams={{per_page: 10}}
       useQueryString={false}
     />
   );

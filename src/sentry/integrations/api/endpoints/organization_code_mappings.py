@@ -217,7 +217,7 @@ class OrganizationIntegrationMixin:
         self, organization: Organization, integration_id: object
     ) -> RpcOrganizationIntegration:
         org_integration = integration_service.get_organization_integration(
-            integration_id=cast(int, integration_id), organization_id=organization.id
+            integration_id=integration_id, organization_id=organization.id
         )
         if not org_integration:
             raise Http404

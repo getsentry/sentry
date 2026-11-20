@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Annotated, Any, TypedDict, cast
+from typing import Annotated, Any, TypedDict
 
 from django.contrib.auth.models import AnonymousUser
 from drf_spectacular.utils import extend_schema
@@ -82,20 +82,17 @@ class ReplayDeletionJobSerializer(Serializer):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> ReplayDeletionJobResponseData:
-        return cast(
-            ReplayDeletionJobResponseData,
-            {
-                "id": obj.id,
-                "dateCreated": obj.date_added,
-                "dateUpdated": obj.date_updated,
-                "rangeStart": obj.range_start,
-                "rangeEnd": obj.range_end,
-                "environments": obj.environments,
-                "status": obj.status,
-                "query": obj.query,
-                "countDeleted": obj.offset,
-            },
-        )
+        return {
+            "id": obj.id,
+            "dateCreated": obj.date_added,
+            "dateUpdated": obj.date_updated,
+            "rangeStart": obj.range_start,
+            "rangeEnd": obj.range_end,
+            "environments": obj.environments,
+            "status": obj.status,
+            "query": obj.query,
+            "countDeleted": obj.offset,
+        }
 
 
 class ReplayDeletionJobCreateDataSerializer(serializers.Serializer):

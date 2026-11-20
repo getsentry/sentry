@@ -15,15 +15,8 @@ describe('GroupMergedView', () => {
     '<http://localhost/api/0/issues/1/hashes/?cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
     '<http://localhost/api/0/issues/1/hashes/?cursor=0:50:0>; rel="next"; results="false"; cursor="0:50:0"';
   const mergedFingerprints = [
-    {
-      latestEvent: events[0],
-      id: '2c4887696f708c476a81ce4e834c4b02',
-      mergedBySeer: true,
-    },
-    {
-      latestEvent: events[1],
-      id: 'e05da55328a860b21f62e371f0a7507d',
-    },
+    {latestEvent: events[0], id: '2c4887696f708c476a81ce4e834c4b02', mergedBySeer: true},
+    {latestEvent: events[1], id: 'e05da55328a860b21f62e371f0a7507d'},
   ];
 
   beforeEach(() => {

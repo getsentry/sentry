@@ -152,6 +152,9 @@ class ExploreSavedQueryDetailEndpoint(ExploreSavedQueryBase):
             query=data["query"],
             dataset=data["dataset"],
             changed_reason=None,
+            query_priority=(
+                data["query_priority"] if "query_priority" in data else query.query_priority
+            ),
         )
 
         query.set_projects(data["project_ids"])
@@ -220,7 +223,7 @@ class ExploreSavedQueryVisitEndpoint(ExploreSavedQueryBase):
 
         self.check_object_permissions(request, query)
 
-        query.visits = cast(int, F("visits") + 1)
+        query.visits = F("visits") + 1
         query.last_visited = timezone.now()
         query.save(update_fields=["visits", "last_visited"])
 

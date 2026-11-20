@@ -20,7 +20,6 @@ from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPosit
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
-from sentry.models.dashboard_widget import TypesClass
 from sentry.models.organization import Organization
 from sentry.utils import json
 
@@ -75,7 +74,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
         """
         return self.filter(
             organization=organization, user_id=user_id, dashboard=dashboard, favorited=True
-        ).first()
+        ).first()  # noqa: S035
 
     def reorder_favorite_dashboards(
         self, organization: Organization, user_id: int, new_dashboard_positions: list[int]
@@ -177,7 +176,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S035
             )
 
             if existing and existing.favorited:
@@ -223,7 +222,7 @@ class DashboardFavoriteUserManager(BaseManager["DashboardFavoriteUser"]):
                     dashboard=dashboard,
                 )
                 .select_for_update()
-                .first()
+                .first()  # noqa: S035
             )
 
             if existing and existing.favorited:
@@ -363,19 +362,11 @@ class DashboardLastVisited(DefaultFieldsModel):
         ]
 
 
-class QueryPriorities(TypesClass):
-    """
-    Which query priority this dashboard should use
-    """
+def _query_priority_choices() -> list[tuple[int, str]]:
+    # need to avoid a circular import
+    from sentry.search.eap.constants import QueryPriorities
 
-    NORMAL = 0
-    FASTER = 1
-
-    TYPES = [
-        (NORMAL, "normal"),
-        (FASTER, "faster"),
-    ]
-    TYPE_NAMES = [t[1] for t in TYPES]
+    return QueryPriorities.as_choices()
 
 
 @cell_silo_model
@@ -406,7 +397,7 @@ class Dashboard(Model):
     filters: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     prebuilt_id = BoundedPositiveIntegerField(null=True, db_default=None)
     # defaults to normal if its null
-    query_priority = BoundedPositiveIntegerField(choices=QueryPriorities.as_choices(), null=True)
+    query_priority = BoundedPositiveIntegerField(choices=_query_priority_choices, null=True)
 
     MAX_WIDGETS = 30
 
@@ -481,7 +472,7 @@ class Dashboard(Model):
             users_to_refavorite = new_user_ids & existing_user_ids
 
             for user_id in users_to_refavorite:
-                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()
+                fav = existing_favorites.filter(user_id=user_id, favorited=False).first()  # noqa: S035
                 if fav:
                     last_position = DashboardFavoriteUser.objects.get_last_position(
                         self.organization, user_id

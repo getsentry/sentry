@@ -119,6 +119,20 @@ await sentry.getOrganizationIssueEvent({ path, query: { collapse: [] } }); // in
 
 Standalone operations, bound methods, and `narrowError_*` wrappers behave the same way. The operation catalog describes the API itself, so it does not list these defaults.
 
+### Query serialization
+
+The client writes the query string the way `query-string@7`'s `stringify` does with its default options. Keys are sorted, `null` becomes a bare key, `undefined` is omitted, and arrays repeat the key (`field=id&field=title`). Keys and values are percent-encoded, including `!'()*`. Objects, which query-string doesn't encode, are written in `deepObject` style (`filter[status]=open`):
+
+```ts
+import { createSentryClient } from "@sentry/api";
+
+const sentry = createSentryClient({ baseUrl: "https://sentry.example.com" });
+sentry.client.buildUrl({ url: "/organizations/", query: { sortBy: "date", query: null, cursor: undefined } });
+// https://sentry.example.com/api/0/organizations/?query&sortBy=date
+```
+
+Pass `querySerializer`, a function that takes the query object and returns the string after `?`, to write it some other way.
+
 ### Operation discovery
 
 `@sentry/api/operations` exports a readonly catalog for offline discovery, without importing the client, validators, or transport:
@@ -308,6 +322,22 @@ It runs once per request, including `prepareRequest`, after `requestValidator`
 and before request interceptors. A per-call `resolveBaseUrl` replaces the
 configured one. A throw rejects the request unchanged, before `fetch` is called.
 
+### Renamed projects
+
+A request that uses a project's old slug gets a 302 to the same URL with the new slug, and fetch follows it. `getSentryProjectRename(request, response)` reports such a rename, from the followed redirect or from the 302's `Location` when redirects are not followed. It returns `{ organization, previousSlug, slug, url }`, or `undefined` for any other response, and never redirects. Use it in a response interceptor to update stored slugs or links:
+
+```ts
+import { getSentryProjectRename } from "@sentry/api";
+
+sentry.client.interceptors.response.use((response, request) => {
+  const rename = getSentryProjectRename(request, response);
+  if (rename) console.info(`Project ${rename.previousSlug} is now ${rename.slug}`);
+  return response;
+});
+```
+
+Browsers hide the target of an unfollowed (`redirect: "manual"`) redirect, so there only a followed redirect is reported.
+
 ### Linking to Sentry
 
 To link to something in Sentry, use the URL the API returns instead of building one from the base URL and slugs. Those URLs account for how the deployment is set up, such as organization subdomains or a self-hosted URL prefix:
@@ -357,8 +387,8 @@ For endpoints with an existing query, serialized query keys replace all existing
 occurrences of those keys. Explicit `null` input keys also remove existing values,
 even with custom serializers; the serialized output can then add them back.
 Unrelated repeated parameters and their encoding are retained, as is custom
-query-serializer output. The default serializer omits `null` and `undefined`:
-`null` clears the original value, while `undefined` leaves it unchanged.
+query-serializer output. With the default serializer, `null` replaces the
+original values with a bare key, while `undefined` leaves them unchanged.
 Literal URL fragments are removed; encoded `%23` values are retained. These
 rules also apply to ordinary requests through the same URL builder.
 
@@ -426,7 +456,7 @@ Failures throw `ObjectstoreError`, an `ApiError` with the failing object or requ
 
 ## Runtime validation
 
-The root `@sentry/api` entry has no runtime dependencies. It provides the API client and pure TypeScript types without installing a validation library.
+The root `@sentry/api` entry imports no other package at runtime, and neither do `@sentry/api/browser`, `@sentry/api/operations`, and `@sentry/api/docs`. It provides the API client and pure TypeScript types without installing a validation library. Only `@sentry/api/client` imports packages, `p-limit` and `http-cache-semantics`. They are regular dependencies, so npm installs them with `@sentry/api` even when you never import `/client`.
 
 Valibot 1 runtime schemas are available through a separate optional entry point:
 
@@ -475,6 +505,55 @@ if ("error" in result) {
 ```
 
 `error` is typed as `unknown`: a custom `fetch` or error interceptor can supply its own error. Fetch rejections, including cancellation, keep their original identity and have no HTTP response. They are returned or thrown according to `throwOnError`. Exceptions from serialization, validation, interceptors, or response body reading/decoding reject unchanged, even with `throwOnError: false`; that setting does not make a request exception-free.
+
+### Error codes
+
+Many Sentry errors have a `{"detail": {"code", "message", "extra"}}` body. For those, `SentryApiError` and its subclasses also have `code`, `detailMessage` (the body's `message`; `message` stays the error's own), and `extra`. Some endpoints put a string `code` at the top level instead, such as Seer's 402 `{"detail", "code", "denialReason"}`. Then `code` and `detailMessage` come from the body's `code` and `detail`, `extra` is empty, and the other fields stay on `body`. Other bodies leave the three fields unset. `code` is a `SentryErrorCode`: one of the `KnownSentryErrorCode` values, or any other string the server sends. The known codes come from the spec: the `SentryApiErrorBody` component, such as `sudo-required` or `sso-required`, and the `code` values operations document in their error responses, such as `seer_out_of_credits`. Map codes to your own copy with a `switch`, and fall back for codes you don't handle:
+
+```ts
+import { isSentryErrorCode, SentryApiError } from "@sentry/api";
+
+function describeError(error: unknown): string {
+  if (!(error instanceof SentryApiError)) return "Something went wrong.";
+  switch (error.code) {
+    case "sudo-required":
+      return "Confirm your password to continue.";
+    case "2fa-required":
+      return "This organization requires two-factor authentication.";
+    default:
+      return error.detailMessage || "The request failed.";
+  }
+}
+
+function loginUrlFor(error: unknown): unknown {
+  // Narrows `error` to a SentryApiError with that code, `detailMessage`, and `extra`.
+  return isSentryErrorCode(error, "sso-required") ? error.extra.loginUrl : undefined;
+}
+```
+
+### Auth challenges
+
+Some 401 and 403 responses ask the user to act in Sentry: `sso-required`, `sudo-required`, `superuser-required`, `staff-required`, `2fa-required`, `member-disabled-over-limit`, and `primary-email-verification-required`. The spec marks these codes with `x-sentry-auth-challenge`, and the SDK reads them from there. `getSentryAuthChallenge(error)` returns one as data, a `SentryAuthChallenge` with its `code`, `status`, `message`, and the code's string fields (`loginUrl` and `organizationSlug` for SSO, `orgSlug` for superuser, `username` for sudo and email verification, `next` for a disabled member). It returns `undefined` for any other error.
+
+To handle challenges where requests are sent, wrap `fetch` with `withAuthChallenges`. On a challenge it calls `onAuthChallenge(challenge, request)`. Re-authenticate however your app does, then return `"retry"` to send the request once more, or `"fail"` to keep the challenge response. The SDK opens no UI and never redirects or reloads. Without the wrapper, nothing is retried. The wrapper keeps a copy of each request body to replay.
+
+```ts
+import { createSentryClient, withAuthChallenges } from "@sentry/api";
+
+declare function confirmPassword(username: string | undefined): Promise<boolean>;
+
+const client = createSentryClient({
+  baseUrl: "https://sentry.example.com",
+  fetch: withAuthChallenges(fetch, {
+    async onAuthChallenge(challenge) {
+      if (challenge.code === "sudo-required") {
+        return (await confirmPassword(challenge.username)) ? "retry" : "fail";
+      }
+      return "fail";
+    },
+  }),
+});
+```
 
 ### Custom errors
 

@@ -21,6 +21,10 @@ describe("matchOperation", () => {
     expect(matchOperation("get", path)?.operation.path).toBe(orgIssues);
   });
 
+  test("does not look for the base path under a path prefix, which Sentry doesn't support", () => {
+    expect(matchOperation("get", "/sentry/api/0/organizations/acme/issues/")).toBeUndefined();
+  });
+
   test("decodes parameter values", () => {
     expect(matchOperation("GET", "/organizations/my%20org/issues/")?.params).toEqual({ organization_id_or_slug: "my org" });
   });

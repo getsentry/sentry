@@ -51,6 +51,7 @@ def test_describes_the_detail_shape() -> None:
             },
         },
         "x-sentry-status": 401,
+        "x-sentry-auth-challenge": True,
     }
     assert list(_variants()) == sorted(_variants())
 
@@ -89,6 +90,31 @@ def test_extra_keys_match_init(cls: type[SentryAPIException]) -> None:
         assert passed <= set(cls.extra_keys)
     else:
         assert passed == set(cls.extra_keys)
+
+
+@pytest.mark.parametrize("cls", sentry_api_exceptions(), ids=lambda cls: cls.code)
+def test_auth_challenge_is_decided_for_401_and_403(cls: type[SentryAPIException]) -> None:
+    # A new 401 or 403 code must say whether it is an auth challenge, so clients
+    # that read `x-sentry-auth-challenge` don't miss it.
+    if cls.status_code in (401, 403):
+        assert "auth_challenge" in vars(cls), f"{cls.__qualname__} must set auth_challenge"
+    else:
+        assert not cls.auth_challenge
+
+
+def test_publishes_auth_challenges() -> None:
+    challenges = sorted(
+        code for code, variant in _variants().items() if variant["x-sentry-auth-challenge"]
+    )
+    assert challenges == [
+        "2fa-required",
+        "member-disabled-over-limit",
+        "primary-email-verification-required",
+        "sso-required",
+        "staff-required",
+        "sudo-required",
+        "superuser-required",
+    ]
 
 
 def test_rejects_one_code_with_two_statuses() -> None:

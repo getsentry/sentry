@@ -786,7 +786,7 @@ class GitlabIntegrationProvider(IntegrationProvider):
         # Hooks on GitLab outlive the org integration that created them, so the
         # secret has to survive a reinstall. No status filter: a disabled row still
         # owns hooks carrying its secret.
-        existing = Integration.objects.filter(provider=self.key, external_id=external_id).first()
+        existing = Integration.objects.get_or_none(provider=self.key, external_id=external_id)
         webhook_secret = existing.metadata.get("webhook_secret") if existing else None
         if not webhook_secret:
             webhook_secret = secrets.token_hex(20)

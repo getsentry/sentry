@@ -5,7 +5,7 @@ import {FeatureBadge} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 import {useModal} from '@sentry/scraps/modal';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
@@ -106,31 +106,33 @@ export function ExploreTables(props: ExploreTablesProps) {
     <Fragment>
       <Flex justify="between" marginBottom="md" gap="md" wrap="wrap">
         <Tabs value={tab} onChange={newTab => setTab(newTab, 'click')} size="sm">
-          <TabList variant="floating">
-            <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
-            <TabList.Item
-              key={Tab.TRACE}
-              disabled={hasCrossEvents}
-              tooltip={{
-                title: hasCrossEvents
-                  ? t(
-                      'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
-                    )
-                  : undefined,
-              }}
-            >
-              {t('Trace Samples')}
-            </TabList.Item>
-            <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
-            <TabList.Item
-              key={Tab.ATTRIBUTE_BREAKDOWNS}
-              textValue={t('Attribute Breakdowns')}
-              disabled={hasCrossEvents}
-            >
-              {t('Attribute Breakdowns')}
-              <FeatureBadge type="beta" />
-            </TabList.Item>
-          </TabList>
+          {({TabList}) => (
+            <TabList variant="floating">
+              <TabList.Item key={Tab.SPAN}>{t('Span Samples')}</TabList.Item>
+              <TabList.Item
+                key={Tab.TRACE}
+                disabled={hasCrossEvents}
+                tooltip={{
+                  title: hasCrossEvents
+                    ? t(
+                        'Trace samples do not yet work with Cross-Event queries. Use the Spans tab instead.'
+                      )
+                    : undefined,
+                }}
+              >
+                {t('Trace Samples')}
+              </TabList.Item>
+              <TabList.Item key={Mode.AGGREGATE}>{t('Aggregates')}</TabList.Item>
+              <TabList.Item
+                key={Tab.ATTRIBUTE_BREAKDOWNS}
+                textValue={t('Attribute Breakdowns')}
+                disabled={hasCrossEvents}
+              >
+                {t('Attribute Breakdowns')}
+                <FeatureBadge type="beta" />
+              </TabList.Item>
+            </TabList>
+          )}
         </Tabs>
         {tab === Tab.SPAN ? (
           <Button

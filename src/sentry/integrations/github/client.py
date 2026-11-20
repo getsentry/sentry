@@ -7,7 +7,7 @@ from collections.abc import Iterator, Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import StrEnum
 from functools import cached_property
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import orjson
 import sentry_sdk
@@ -303,12 +303,9 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/apps/installations?apiVersion=2022-11-28#list-app-installations-accessible-to-the-user-access-token
         """
-        return cast(
-            GithubUserInstallations,
-            self.get(
-                "/user/installations",
-                api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
-            ),
+        return self.get(
+            "/user/installations",
+            api_request_type=GitHubApiRequestType.GET_USER_INFO_INSTALLATIONS,
         )
 
     def get_organization_memberships_for_user(self) -> list[GithubUserOrganizationMembership]:
@@ -316,12 +313,9 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: Access Token
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-an-organization-membership-for-the-authenticated-user
         """
-        return cast(
-            list[GithubUserOrganizationMembership],
-            self.get(
-                "/user/memberships/orgs",
-                api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
-            ),
+        return self.get(
+            "/user/memberships/orgs",
+            api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIPS_FOR_USER,
         )
 
     def create_installation_token(
@@ -346,12 +340,9 @@ class GithubSetupApiClient(IntegrationProxyClient):
         Authentication: Installation access token with organization members read
         Docs: https://docs.github.com/en/rest/orgs/members?apiVersion=2022-11-28#get-organization-membership-for-a-user
         """
-        return cast(
-            GithubOrganizationMembership,
-            self.get(
-                f"/orgs/{org}/memberships/{username}",
-                api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIP,
-            ),
+        return self.get(
+            f"/orgs/{org}/memberships/{username}",
+            api_request_type=GitHubApiRequestType.GET_ORGANIZATION_MEMBERSHIP,
         )
 
 
@@ -405,7 +396,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
-        integration = Integration.objects.filter(id=self.integration.id).first()
+        integration = Integration.objects.get_or_none(id=self.integration.id)
         if not integration:
             return None
 
@@ -536,7 +527,7 @@ class GithubProxyClient(IntegrationProxyClient):
                 organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            ).first()  # noqa: S035
 
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})

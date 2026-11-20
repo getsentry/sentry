@@ -3,6 +3,7 @@ import {useCallback} from 'react';
 import {defined} from 'sentry/utils/defined';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
+import {useExploreQuerySpeed} from 'sentry/views/explore/hooks/useExploreQuerySpeed';
 import {
   useProgressiveQuery,
   type RPCQueryExtras,
@@ -35,6 +36,7 @@ export function useLogsTimeseries({
 }: UseLogsTimeseriesOptions) {
   const visualizes = useQueryParamsVisualizes();
   const topEventsLimit = useQueryParamsTopEventsLimit();
+  const {isReady: querySpeedReady, samplingMode} = useExploreQuerySpeed();
 
   const isTopN = !!topEventsLimit;
 
@@ -62,10 +64,8 @@ export function useLogsTimeseries({
 
   const timeseriesResult = useProgressiveQuery<typeof useLogsTimeseriesImpl>({
     queryHookImplementation: useLogsTimeseriesImpl, // oxlint-disable-line react/hooks -- useProgressiveQuery takes the query hook as a value and calls it per accuracy tier.
-    queryHookArgs: {enabled, timeseriesIngestDelay},
-    queryOptions: {
-      canTriggerHighAccuracy,
-    },
+    queryHookArgs: {enabled: enabled && querySpeedReady, timeseriesIngestDelay},
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 
   return useStreamingTimeseriesResult(
@@ -80,11 +80,7 @@ function useLogsTimeseriesImpl({
   queryExtras,
   timeseriesIngestDelay,
 }: UseLogsTimeseriesImplOptions) {
-  const request = useLogsTimeseriesRequest({
-    enabled,
-    queryExtras,
-    timeseriesIngestDelay,
-  });
+  const request = useLogsTimeseriesRequest({enabled, queryExtras, timeseriesIngestDelay});
 
   const timeseriesResult = useSortedTimeSeries(
     request,
@@ -92,7 +88,5 @@ function useLogsTimeseriesImpl({
     DiscoverDatasets.OURLOGS
   );
 
-  return {
-    result: timeseriesResult,
-  };
+  return {result: timeseriesResult};
 }

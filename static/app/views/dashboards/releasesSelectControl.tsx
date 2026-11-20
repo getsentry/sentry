@@ -6,10 +6,10 @@ import isEqual from 'lodash/isEqual';
 
 import {Badge} from '@sentry/scraps/badge';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {TextOverflow} from 'sentry/components/textOverflow';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {RELEASES_SORT_OPTIONS, ReleasesSortOption} from 'sentry/constants/releases';
@@ -50,9 +50,7 @@ export function ReleasesSelectControl({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeReleases, setActiveReleases] = useState(selectedReleases);
   const [isReleasesDropdownOpen, setIsReleasesDropdownOpen] = useState(false);
-  const searchDebouncer = useDebouncer(setSearchTerm, {
-    wait: DEFAULT_DEBOUNCE_DURATION,
-  });
+  const searchDebouncer = useDebouncer(setSearchTerm, {wait: DEFAULT_DEBOUNCE_DURATION});
 
   // Event counts are lazy-loaded only when the dropdown is open to reduce API calls
   const {data: releases, isLoading: loading} = useReleases(
@@ -133,9 +131,7 @@ export function ReleasesSelectControl({
       onClose={() => {
         resetSearch();
         if (!isEqual(activeReleases, selectedReleases)) {
-          handleChangeFilter?.({
-            [DashboardFilterKeys.RELEASE]: activeReleases,
-          });
+          handleChangeFilter?.({[DashboardFilterKeys.RELEASE]: activeReleases});
         }
       }}
       value={activeReleases}
@@ -153,10 +149,7 @@ export function ReleasesSelectControl({
   );
 }
 
-type LabelDetailsProps = {
-  dateCreated?: string;
-  eventCount?: number;
-};
+type LabelDetailsProps = {dateCreated?: string; eventCount?: number};
 
 function LabelDetails(props: LabelDetailsProps) {
   return (
@@ -167,7 +160,7 @@ function LabelDetails(props: LabelDetailsProps) {
 
       <Container justifySelf="right">
         {defined(props.dateCreated) && (
-          <DateTime dateOnly year date={props.dateCreated} />
+          <DateTime date={props.dateCreated} mode="date" year="always" />
         )}
       </Container>
     </Grid>

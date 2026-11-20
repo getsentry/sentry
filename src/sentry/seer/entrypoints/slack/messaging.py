@@ -57,7 +57,7 @@ from sentry.utils.registry import NoRegistrationExistsError
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
-    from sentry.seer.entrypoints.slack.entrypoint import SlackThreadDetails
+    from sentry.seer.entrypoints.slack.types import SlackThreadDetails
 
 
 logger = logging.getLogger(__name__)

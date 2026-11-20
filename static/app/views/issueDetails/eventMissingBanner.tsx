@@ -21,9 +21,7 @@ export function EventMissingBanner() {
   const organization = useOrganization();
   const defaultEventId = useDefaultIssueEvent();
   const groupId = useGroupId();
-  const {eventId: eventIdParam} = useParams<{
-    eventId: string;
-  }>();
+  const {eventId: eventIdParam} = useParams<{eventId: string}>();
   const eventId = eventIdParam ?? defaultEventId;
 
   const useGetMaxRetentionDays =

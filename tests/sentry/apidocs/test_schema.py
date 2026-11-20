@@ -6,6 +6,8 @@ from django.test import RequestFactory
 from drf_spectacular.utils import extend_schema
 from rest_framework.request import Request
 
+import sentry.apidocs.extensions  # noqa: F401
+from sentry.agent_handoff.endpoints.claim_agent_handoff import ClaimAgentHandoffEndpoint
 from sentry.api.base import Endpoint
 from sentry.api.endpoints.organization_events import OrganizationEventsEndpoint
 from sentry.api.endpoints.organization_events_timeseries import OrganizationEventsTimeseriesEndpoint
@@ -17,6 +19,8 @@ from sentry.api.helpers.timeseries_transformations import (
     SmaSmoothTransformation,
     get_transformations,
 )
+from sentry.core.endpoints.organization_member_details import OrganizationMemberDetailsEndpoint
+from sentry.core.endpoints.organization_member_index import OrganizationMemberIndexEndpoint
 from sentry.dashboards.endpoints.organization_dashboards import OrganizationDashboardsEndpoint
 from sentry.replays.endpoints.organization_replay_index import OrganizationReplayIndexEndpoint
 from sentry.workflow_engine.endpoints.organization_detector_index import (
@@ -26,6 +30,34 @@ from sentry.workflow_engine.endpoints.organization_workflow_index import (
     OrganizationWorkflowIndexEndpoint,
 )
 from tests.sentry.apidocs import generate_schema
+
+
+@pytest.mark.parametrize(
+    ("view", "method", "component", "has_default"),
+    [
+        (OrganizationMemberIndexEndpoint, "post", "OrganizationMemberRequest", True),
+        (OrganizationMemberDetailsEndpoint, "put", "UpdateOrgMemberRoles", False),
+    ],
+)
+def test_member_team_role_request_schema(
+    view: type[Endpoint], method: str, component: str, has_default: bool
+) -> None:
+    route = "organizations/<str:organization_id_or_slug>/members/"
+    schema = generate_schema(route, view=view)
+    operation = schema["paths"]["/organizations/{organization_id_or_slug}/members/"][method]
+    assert operation["requestBody"]["content"]["application/json"]["schema"] == {
+        "$ref": f"#/components/schemas/{component}"
+    }
+    components = schema["components"]["schemas"]
+    team_roles = components[component]["properties"]["teamRoles"]
+    assert team_roles["type"] == "array"
+    assert ("default" in team_roles) is has_default
+    assert not team_roles.get("nullable", False)
+    assert team_roles["items"] == {"$ref": "#/components/schemas/TeamRoleAssignment"}
+    assignment = components["TeamRoleAssignment"]
+    assert set(assignment["required"]) == {"teamSlug", "role"}
+    assert assignment["properties"]["teamSlug"]["type"] == "string"
+    assert assignment["properties"]["role"]["nullable"] is True
 
 
 def test_simple() -> None:
@@ -89,6 +121,27 @@ def test_description() -> None:
 
     assert schema["paths"]["/foo"]["put"]["operationId"] != "Autoschema Description"
     assert schema["paths"]["/foo"]["put"]["description"] == "Autoschema Description"
+
+
+def test_claim_agent_handoff_schema() -> None:
+    path = "/api/0/agent-handoff/"
+    schema = generate_schema(path.removeprefix("/"), view=ClaimAgentHandoffEndpoint)
+    operation = schema["paths"][path]["post"]
+
+    assert operation["operationId"] == "claimAgentHandoff"
+    assert set(operation["requestBody"]["content"]) == {"application/json"}
+    assert operation["responses"]["200"]["content"]["application/json"]["schema"] == {
+        "$ref": "#/components/schemas/AgentHandoffClaimResponse"
+    }
+    assert set(schema["components"]["schemas"]["AgentHandoffClaimResponse"]["properties"]) == {
+        "sentryUrl",
+        "userEmail",
+        "organizationName",
+        "organizationSlug",
+        "clientId",
+        "setupCode",
+        "flowInstructions",
+    }
 
 
 @pytest.mark.parametrize(

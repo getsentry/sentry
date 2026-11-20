@@ -9,10 +9,7 @@ const learnMoreClicked = ({
   source,
   organization,
 }: Pick<Props, 'source' | 'organization'>) =>
-  trackGetsentryAnalytics('learn_more_link.clicked', {
-    organization,
-    source,
-  });
+  trackGetsentryAnalytics('learn_more_link.clicked', {organization, source});
 
 type Props = React.PropsWithChildren<{
   organization: Organization;

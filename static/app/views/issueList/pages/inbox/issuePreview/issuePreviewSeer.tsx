@@ -100,9 +100,7 @@ function getSeerButtonAction(
 
 function useIssuePreviewSeerState(group: Group, project: Project) {
   const aiConfig = useAiConfig(group, project);
-  const autofix = useExplorerAutofix(group, {
-    enabled: aiConfig.hasAutofix,
-  });
+  const autofix = useExplorerAutofix(group, {enabled: aiConfig.hasAutofix});
   const {isPending: isSetupPending, setupType} = useAutofixSetupStep({
     seerReposLinked: aiConfig.seerReposLinked,
   });
@@ -130,7 +128,11 @@ function useIssuePreviewSeerState(group: Group, project: Project) {
     : getSeerButtonAction(state, autofix, {
         suppressResultLink: hidesCodingAgentResultLink(pullRequests),
       });
-  const creditCheck = useAutofixCreditCheck(creditAction);
+  const creditCheck = useAutofixCreditCheck(creditAction, {
+    // Find Root Cause and Restart Autofix both start a new run.
+    billingFeature:
+      creditAction === 'root_cause' ? undefined : autofix.runState?.billing_feature,
+  });
 
   return {
     aiConfig,

@@ -22,7 +22,7 @@ Icons, Scraps, and Search Syntax use their own Jest configurations.
 
 The root `test-all` command invokes these scripts through pnpm with watch mode
 disabled. The root `test-ci` command runs each workspace's test script in a
-separate Jest process, with up to two workspaces in parallel. Both commands
+separate Jest process, one workspace at a time. Both commands
 exclude the root package, which owns the combined `test` watcher.
 
 Standalone package tests run once after the app, lint, and test-support workspaces.

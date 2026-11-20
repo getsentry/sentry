@@ -1,5 +1,6 @@
 """
-Finds issues with errors in the same trace as an issue's latest event.
+Finds issues with errors in the same trace as an issue's event (the latest, unless the caller
+picks one).
 
 It reuses trace_connected_issues(), which also backs the trace section of the Similar Issues tab
 (RelatedIssuesEndpoint): it looks up the issues of up to 100 error events in the trace, over the last
@@ -24,8 +25,7 @@ from sentry.utils.snuba import SnubaError
 
 # What this type finds, for the API docs
 SAME_TRACE_DESCRIPTION = (
-    "Issues, in any project you can read, with errors in the same trace as this issue's latest "
-    "event."
+    "Issues, in any project you can read, with errors in the same trace as this issue's event."
 )
 NO_TRACE_DETAIL = "This issue's event has no trace."
 TRACE_SEARCH_UNAVAILABLE_DETAIL = "Trace search is temporarily unavailable. Try again later."
@@ -33,8 +33,8 @@ TRACE_SEARCH_UNAVAILABLE_DETAIL = "Trace search is temporarily unavailable. Try 
 
 def same_trace_issues(ctx: RelatedIssuesContext, projects: Sequence[Project]) -> RelationTypeResult:
     """
-    Issues in `projects` with errors in the same trace as the issue's latest event, most recently
-    seen first. A trace can cross projects, so callers pass every project the user can read.
+    Issues in `projects` with errors in the same trace as `ctx.event`, most recently seen first. A
+    trace can cross projects, so callers pass every project the user can read.
     """
     event = ctx.event
     if event is None:

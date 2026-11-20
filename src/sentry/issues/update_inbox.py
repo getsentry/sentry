@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, cast
+from typing import Any
 
 from sentry.issues.ongoing import bulk_transition_group_to_ongoing
 from sentry.models.group import Group, GroupStatus
@@ -45,7 +45,7 @@ def update_inbox(
             if group.substatus != GroupSubStatus.ONGOING and group.status == GroupStatus.UNRESOLVED:
                 bulk_transition_group_to_ongoing(
                     group.status,
-                    cast("int", group.substatus),
+                    group.substatus,
                     [group.id],
                     activity_data={"manually": True},
                 )

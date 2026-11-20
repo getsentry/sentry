@@ -310,10 +310,7 @@ export function BuildDetailsMainContent(props: BuildDetailsMainContentProps) {
     selectedCategories.size > 0 ? selectedCategories : undefined
   );
   const filteredTreemapData = filteredRoot
-    ? {
-        ...appSizeData.treemap,
-        root: filteredRoot,
-      }
+    ? {...appSizeData.treemap, root: filteredRoot}
     : null;
 
   let visualizationContent: React.ReactNode;

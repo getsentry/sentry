@@ -82,10 +82,7 @@ export function ReplayController({
     setIsCompact(width < COMPACT_WIDTH_BREAKPOINT);
   }, []);
 
-  useResizeObserver({
-    ref: barRef,
-    onResize: updateIsCompact,
-  });
+  useResizeObserver({ref: barRef, onResize: updateIsCompact});
   useLayoutEffect(() => updateIsCompact, [updateIsCompact]);
 
   return (

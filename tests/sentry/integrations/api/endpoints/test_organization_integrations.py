@@ -75,7 +75,11 @@ class OrganizationIntegrationsListTest(APITestCase):
         ):
             response = self.get_success_response(self.organization.slug)
 
-        assert response.data == expected
+        unaffected = [i for i in response.data if i["provider"]["key"] != "github"]
+        assert unaffected == expected
+        github = next(i for i in response.data if i["provider"]["key"] == "github")
+        assert github["externalId"] == "github:1"
+        assert "configOrganization" not in github
 
     def test_config_shares_full_organization_for_github(self) -> None:
         for number in range(30):

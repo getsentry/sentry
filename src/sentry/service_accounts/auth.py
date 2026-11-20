@@ -63,9 +63,9 @@ def resolve_service_account(
         )
         organization = org_context.organization if org_context is not None else None
     else:
-        service_account = ServiceAccountReplica.objects.filter(
+        service_account = ServiceAccountReplica.objects.get_or_none(
             service_account_id=service_account_id, organization_id=organization_id, is_active=True
-        ).first()
+        )
         if service_account is None:
             return None
         try:

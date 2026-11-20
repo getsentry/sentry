@@ -18,7 +18,7 @@ import {
   organizationRepositoriesInfiniteOptions,
   selectUniqueRepos,
 } from 'sentry/utils/repositories/repoQueryOptions';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {MAX_REPOS_LIMIT} from './constants';
@@ -51,9 +51,7 @@ export function AddAutofixRepoModal({
   closeModal,
 }: Props) {
   const organization = useOrganization();
-  const maxRepos = isSeerTokenBasedBillingOnboardingEnabled(organization)
-    ? Infinity
-    : MAX_REPOS_LIMIT;
+  const maxRepos = isTokenBilledSeerEnabled(organization) ? Infinity : MAX_REPOS_LIMIT;
 
   const repositoriesQuery = useInfiniteQuery({
     ...organizationRepositoriesInfiniteOptions({organization, query: {per_page: 100}}),
@@ -147,13 +145,7 @@ export function AddAutofixRepoModal({
           </EmptyMessage>
         ) : (
           <ModalReposContainer ref={parentRef}>
-            <div
-              style={{
-                height: `${totalSize}px`,
-                width: '100%',
-                position: 'relative',
-              }}
-            >
+            <div style={{height: `${totalSize}px`, width: '100%', position: 'relative'}}>
               {virtualItems.map(virtualItem => {
                 const repo = filteredRepositories[virtualItem.index]!;
                 return (

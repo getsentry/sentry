@@ -13,22 +13,10 @@ export const customRepoTypeLabel = {
 };
 
 export const dropDownItems = [
-  {
-    key: CustomRepoType.S3,
-    label: customRepoTypeLabel[CustomRepoType.S3],
-  },
-  {
-    key: CustomRepoType.GCS,
-    label: customRepoTypeLabel[CustomRepoType.GCS],
-  },
-  {
-    key: CustomRepoType.AZURE,
-    label: customRepoTypeLabel[CustomRepoType.AZURE],
-  },
-  {
-    key: CustomRepoType.HTTP,
-    label: customRepoTypeLabel[CustomRepoType.HTTP],
-  },
+  {key: CustomRepoType.S3, label: customRepoTypeLabel[CustomRepoType.S3]},
+  {key: CustomRepoType.GCS, label: customRepoTypeLabel[CustomRepoType.GCS]},
+  {key: CustomRepoType.AZURE, label: customRepoTypeLabel[CustomRepoType.AZURE]},
+  {key: CustomRepoType.HTTP, label: customRepoTypeLabel[CustomRepoType.HTTP]},
 ];
 
 export function getRequestMessages(

@@ -19,21 +19,12 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Flue ships an official Sentry blueprint. Run it from your project root - it generates a [code:sentry.ts] module and installs the matching Sentry SDK along with [fluePackage].',
-            {
-              code: <code />,
-              fluePackage: <code>@flue/opentelemetry</code>,
-            }
+            {code: <code />, fluePackage: <code>@flue/opentelemetry</code>}
           ),
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'Blueprint',
-              language: 'bash',
-              code: 'flue add tooling sentry',
-            },
-          ],
+          tabs: [{label: 'Blueprint', language: 'bash', code: 'flue add tooling sentry'}],
         },
       ],
     },
@@ -76,10 +67,7 @@ export { cloudflare } from "../sentry.ts";`,
               type: 'text',
               text: tct(
                 'The blueprint only instruments your agents. Wrap the outer Worker with [code:withSentry] as well. See the [link:Flue on Cloudflare guide] for the full setup.',
-                {
-                  code: <code />,
-                  link: <ExternalLink href={CLOUDFLARE_GUIDE} />,
-                }
+                {code: <code />, link: <ExternalLink href={CLOUDFLARE_GUIDE} />}
               ),
             },
           ],

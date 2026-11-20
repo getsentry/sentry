@@ -468,10 +468,7 @@ function AutoTriggerFixesButton({
     }) =>
       fetchMutation({
         url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
         }),
         method: 'PUT',
         data,
@@ -568,10 +565,7 @@ function EnableIssueScansButton({
     }) =>
       fetchMutation({
         url: getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: projectSlug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: projectSlug},
         }),
         method: 'PUT',
         data,
