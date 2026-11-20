@@ -15,18 +15,11 @@ import {testableWindowLocation} from 'sentry/utils/testableWindowLocation';
 
 import {ReprocessingEventModal} from './reprocessEventModal';
 
-const group = GroupFixture({
-  id: '1337',
-});
+const group = GroupFixture({id: '1337'});
 
 describe('ReprocessEventModal', () => {
   it('form fields & info', () => {
-    const {organization} = initializeOrg({
-      organization: {
-        id: '4660',
-        slug: 'org',
-      },
-    });
+    const {organization} = initializeOrg({organization: {id: '4660', slug: 'org'}});
 
     render(
       <ReprocessingEventModal
@@ -69,12 +62,7 @@ describe('ReprocessEventModal', () => {
   });
 
   it('reprocess all events', async () => {
-    const {organization} = initializeOrg({
-      organization: {
-        id: '4660',
-        slug: 'org',
-      },
-    });
+    const {organization} = initializeOrg({organization: {id: '4660', slug: 'org'}});
 
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/reprocessing/`,

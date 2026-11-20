@@ -26,10 +26,7 @@ function renderComponent(isHidden: boolean) {
   return render(<ProjectEnvironments />, {
     organization,
     outletContext: {project},
-    initialRouterConfig: {
-      location: {pathname},
-      route,
-    },
+    initialRouterConfig: {location: {pathname}, route},
   });
 }
 
@@ -114,9 +111,7 @@ describe('ProjectEnvironments', () => {
 
     const {router} = renderComponent(false);
 
-    const searchInput = await screen.findByRole('textbox', {
-      name: 'Search environments',
-    });
+    const searchInput = await screen.findByRole('textbox', {name: 'Search environments'});
     await userEvent.type(searchInput, 'pdct');
 
     await waitFor(() => {
@@ -151,9 +146,7 @@ describe('ProjectEnvironments', () => {
 
     expect(hideMock).toHaveBeenCalledWith(
       `/projects/org-slug/project-slug/environments/${encodedName}/`,
-      expect.objectContaining({
-        data: expect.objectContaining({isHidden: true}),
-      })
+      expect.objectContaining({data: expect.objectContaining({isHidden: true})})
     );
   });
 
@@ -174,9 +167,7 @@ describe('ProjectEnvironments', () => {
     expect(screen.queryByText('All Environments')).not.toBeInTheDocument();
     expect(showMock).toHaveBeenCalledWith(
       '/projects/org-slug/project-slug/environments/zzz/',
-      expect.objectContaining({
-        data: expect.objectContaining({isHidden: false}),
-      })
+      expect.objectContaining({data: expect.objectContaining({isHidden: false})})
     );
   });
 });

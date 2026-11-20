@@ -516,11 +516,7 @@ describe('moveTo', () => {
           operator: {cmp: UptimeComparisonType.EQUALS},
           value: 200,
         },
-        {
-          id: 'or-1',
-          op: UptimeOpType.OR,
-          children: [],
-        },
+        {id: 'or-1', op: UptimeOpType.OR, children: []},
       ],
     };
 
@@ -547,11 +543,7 @@ describe('moveTo', () => {
         {
           id: 'not-1',
           op: UptimeOpType.NOT,
-          operand: {
-            id: 'or-1',
-            op: UptimeOpType.OR,
-            children: [],
-          },
+          operand: {id: 'or-1', op: UptimeOpType.OR, children: []},
         },
       ],
     };
@@ -694,11 +686,7 @@ describe('moveTo', () => {
             },
           ],
         },
-        {
-          id: 'or-2',
-          op: UptimeOpType.OR,
-          children: [],
-        },
+        {id: 'or-2', op: UptimeOpType.OR, children: []},
       ],
     };
 

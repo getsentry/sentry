@@ -31,9 +31,7 @@ import {List} from './list';
 
 const RELAY_DOCS_LINK = 'https://getsentry.github.io/relay/';
 
-const relaySchema = z.object({
-  ingestThroughTrustedRelaysOnly: z.boolean(),
-});
+const relaySchema = z.object({ingestThroughTrustedRelaysOnly: z.boolean()});
 
 const relayDsnEndpointSchema = z.object({
   relayDsnEndpoint: z

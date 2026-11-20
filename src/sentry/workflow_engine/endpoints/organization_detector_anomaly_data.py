@@ -64,7 +64,7 @@ class OrganizationDetectorAnomalyDataEndpoint(OrganizationEndpoint):
 
         data_source = detector.data_sources.filter(
             type=DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-        ).first()
+        ).first()  # noqa: S035
         if not data_source:
             raise SubscriptionNotFound
 

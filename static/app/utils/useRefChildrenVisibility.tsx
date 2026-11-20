@@ -54,10 +54,7 @@ export function useRefChildrenVisibility({
               : entry.intersectionRatio > visibleRatio;
           })
         ),
-      {
-        root: scrollContainerRef.current,
-        threshold: [visibleRatio],
-      }
+      {root: scrollContainerRef.current, threshold: [visibleRatio]}
     );
 
     childrenEls.map(child => observer.observe(child));

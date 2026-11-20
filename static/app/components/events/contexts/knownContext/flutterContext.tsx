@@ -29,11 +29,7 @@ export function getFlutterContextData({
           value: data.default_route_name,
         };
       case FlutterContextKeys.HAS_RENDER_VIEW:
-        return {
-          key: ctxKey,
-          subject: t('Has Render View'),
-          value: data.has_render_view,
-        };
+        return {key: ctxKey, subject: t('Has Render View'), value: data.has_render_view};
       default:
         return {
           key: ctxKey,

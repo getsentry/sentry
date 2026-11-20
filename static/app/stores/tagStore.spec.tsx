@@ -11,24 +11,13 @@ describe('TagStore', () => {
       const unsubscribe = TagStore.subscribe(listener);
 
       TagStore.loadTagsSuccess([
-        {
-          key: 'mytag',
-          name: 'My Custom Tag',
-        },
+        {key: 'mytag', name: 'My Custom Tag'},
         {key: 'other', name: 'Other'},
       ]);
 
       const tags = TagStore.getState();
-      expect(tags.mytag).toEqual({
-        key: 'mytag',
-        name: 'My Custom Tag',
-        values: [],
-      });
-      expect(tags.other).toEqual({
-        key: 'other',
-        name: 'Other',
-        values: [],
-      });
+      expect(tags.mytag).toEqual({key: 'mytag', name: 'My Custom Tag', values: []});
+      expect(tags.other).toEqual({key: 'other', name: 'Other', values: []});
 
       expect(listener).toHaveBeenCalledTimes(1);
       unsubscribe();
@@ -53,12 +42,7 @@ describe('TagStore', () => {
   });
 
   it('returns a stable reference from getState', () => {
-    TagStore.loadTagsSuccess([
-      {
-        key: 'mytag',
-        name: 'My Custom Tag',
-      },
-    ]);
+    TagStore.loadTagsSuccess([{key: 'mytag', name: 'My Custom Tag'}]);
     const state = TagStore.getState();
     expect(Object.is(state, TagStore.getState())).toBe(true);
   });

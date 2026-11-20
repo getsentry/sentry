@@ -23,11 +23,7 @@ import {PlatformizedAppStartsOverview} from './platformizedAppStartsOverview';
 import {PlatformizedScreenLoadsOverview} from './platformizedScreenLoadsOverview';
 import {PlatformizedScreenRenderingOverview} from './platformizedScreenRenderingOverview';
 
-type Query = {
-  project: string;
-  tab: string | undefined;
-  transaction: string;
-};
+type Query = {project: string; tab: string | undefined; transaction: string};
 
 export type TabKey = 'app_start' | 'screen_load' | 'screen_rendering';
 
@@ -107,11 +103,7 @@ function ScreenDetailsPage() {
             <MobileHeader
               module={moduleName}
               hideDefaultTabs
-              tabs={{
-                renderTabList,
-                value: selectedTabKey,
-                onTabChange: handleTabChange,
-              }}
+              tabs={{renderTabList, value: selectedTabKey, onTabChange: handleTabChange}}
               headerTitle={transactionName}
               breadcrumbs={[{type: 'link', label: t('Mobile Vitals'), to: moduleURL}]}
             />

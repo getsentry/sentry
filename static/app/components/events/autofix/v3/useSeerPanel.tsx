@@ -101,12 +101,7 @@ function useHandleRestart({
         return;
       }
       openSingleRunChat(runId);
-      chatDispatch({
-        type: 'set pending restart',
-        payload: {
-          onSubmit: rerun,
-        },
-      });
+      chatDispatch({type: 'set pending restart', payload: {onSubmit: rerun}});
     };
   }, [asksInChat, chatDispatch, disabled, openSingleRunChat, rerun, runId]);
 }

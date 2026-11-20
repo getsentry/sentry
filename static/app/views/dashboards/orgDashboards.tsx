@@ -61,10 +61,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     isPending: isDashboardsPending,
     isError: isDashboardsError,
     error: dashboardsError,
-  } = useQuery({
-    ...dashboardsApiOptions(organization),
-    retry: false,
-  });
+  } = useQuery({...dashboardsApiOptions(organization), retry: false});
 
   const {
     data: fetchedSelectedDashboard,
@@ -168,10 +165,7 @@ export function OrgDashboards({children, initialDashboard}: OrgDashboardsProps) 
     () => ({
       error: Boolean(dashboardsError || selectedDashboardError),
       dashboard: selectedDashboard
-        ? {
-            ...selectedDashboard,
-            widgets: selectedDashboard.widgets.map(assignTempId),
-          }
+        ? {...selectedDashboard, widgets: selectedDashboard.widgets.map(assignTempId)}
         : null,
       dashboards: Array.isArray(dashboards) ? dashboards : [],
       onDashboardUpdate: setSelectedDashboardState,

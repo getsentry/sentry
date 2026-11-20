@@ -218,9 +218,7 @@ export function useSpanProfileDetails(
         organization,
         projectSlug: metadata.projectSlug,
         profileId: metadata.profileId,
-        query: {
-          spanId: span.span_id,
-        },
+        query: {spanId: span.span_id},
       });
     }
 
@@ -374,8 +372,8 @@ export function SpanProfileDetails({metadata, span}: SpanProfileDetailsProps) {
 
 function getTopNodes(
   profile: Profile,
-  startTimestamp: any,
-  stopTimestamp: any
+  startTimestamp: number,
+  stopTimestamp: number
 ): CallTreeNode[] {
   let duration = profile.startedAt;
 

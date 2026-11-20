@@ -77,11 +77,7 @@ export function FlamegraphWarnings(props: FlamegraphWarningProps) {
 
     return (
       <Overlay data-test-id="flamegraph-warning-overlay">
-        <p>
-          {tct('No frames match the [filter] frame filter', {
-            filter: props.filter,
-          })}
-        </p>
+        <p>{tct('No frames match the [filter] frame filter', {filter: props.filter})}</p>
         {props.onResetFilter ? (
           <div>
             <Button size="sm" onClick={props.onResetFilter}>

@@ -25,9 +25,7 @@ export function AutofixCursorGithubAccessModal({
         <Text as="p">
           {tct(
             'Cursor does not have access to this repository. To use Cursor as a coding agent, you need to install the [link:Cursor GitHub App] and grant it access to your repository.',
-            {
-              link: <ExternalLink href={CURSOR_GITHUB_APP_URL} />,
-            }
+            {link: <ExternalLink href={CURSOR_GITHUB_APP_URL} />}
           )}
         </Text>
       </Body>

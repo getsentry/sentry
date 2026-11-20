@@ -41,11 +41,7 @@ export function PreprodBuildsSizeTable({
   showProjectColumn,
 }: PreprodBuildsSizeTableProps) {
   const rows = builds.map(build => {
-    const linkUrl =
-      getSizeBuildPath({
-        organizationSlug,
-        baseArtifactId: build.id,
-      }) ?? '';
+    const linkUrl = getSizeBuildPath({organizationSlug, baseArtifactId: build.id}) ?? '';
     return (
       <SimpleTable.Row key={build.id}>
         <PreprodBuildsRowCells

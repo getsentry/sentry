@@ -261,10 +261,7 @@ function EnhancedUsageStatsOrganization({
       '/organizations/$organizationIdOrSlug/projects/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          options: SPIKE_PROTECTION_OPTION_DISABLED,
-          query: `id:${project?.id}`,
-        },
+        query: {options: SPIKE_PROTECTION_OPTION_DISABLED, query: `id:${project?.id}`},
         staleTime: Infinity,
       }
     ),
@@ -279,9 +276,7 @@ function EnhancedUsageStatsOrganization({
       '/organizations/$organizationIdOrSlug/spikes/projects/$projectIdOrSlug/',
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.id!},
-        query: {
-          ...endpointQueryDatetime,
-        },
+        query: {...endpointQueryDatetime},
         staleTime: Infinity,
       }
     ),
@@ -295,14 +290,8 @@ function EnhancedUsageStatsOrganization({
     ...apiOptions.as<SpikeThresholds>()(
       '/organizations/$organizationIdOrSlug/spike-projection/projects/$projectIdOrSlug/',
       {
-        path: {
-          organizationIdOrSlug: organization.slug,
-          projectIdOrSlug: project?.slug!,
-        },
-        query: {
-          ...endpointQueryDatetime,
-          interval: REQUIRED_INTERVAL,
-        },
+        path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project?.slug!},
+        query: {...endpointQueryDatetime, interval: REQUIRED_INTERVAL},
         staleTime: Infinity,
       }
     ),

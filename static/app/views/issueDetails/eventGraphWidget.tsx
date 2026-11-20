@@ -32,11 +32,7 @@ export default function EventGraphWidget({
     group: groupData,
     isPending,
     isError,
-  } = useFetchGroupAndEvent({
-    eventId,
-    groupId,
-    enabled: Boolean(eventId && groupId),
-  });
+  } = useFetchGroupAndEvent({eventId, groupId, enabled: Boolean(eventId && groupId)});
 
   if (isPending) {
     return (

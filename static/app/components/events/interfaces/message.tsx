@@ -14,10 +14,7 @@ import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 import {renderLinksInText} from './crashContent/exception/utils';
 
 type Props = {
-  data: {
-    formatted: string | null;
-    params?: Record<string, any> | any[] | null;
-  };
+  data: {formatted: string | null; params?: Record<string, any> | any[] | null};
   event: Event;
 };
 

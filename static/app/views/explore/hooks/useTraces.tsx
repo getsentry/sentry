@@ -21,15 +21,9 @@ interface TraceBreakdownBase {
   start: number;
 }
 
-type TraceBreakdownProject = TraceBreakdownBase & {
-  kind: 'project';
-  project: string;
-};
+type TraceBreakdownProject = TraceBreakdownBase & {kind: 'project'; project: string};
 
-type TraceBreakdownMissing = TraceBreakdownBase & {
-  kind: 'missing';
-  project: null;
-};
+type TraceBreakdownMissing = TraceBreakdownBase & {kind: 'missing'; project: null};
 
 export interface TraceResult {
   breakdowns: TraceBreakdownResult[];

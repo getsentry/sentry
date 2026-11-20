@@ -12,15 +12,11 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 
 type FetchDataFn = () => Promise<void>;
 
-type QueueItem = {
-  fetchDataRef: RefObject<FetchDataFn>;
-};
+type QueueItem = {fetchDataRef: RefObject<FetchDataFn>};
 
 type WidgetQueryQueue = ReactAsyncQueuer<QueueItem>;
 
-type Context = {
-  queue: WidgetQueryQueue;
-};
+type Context = {queue: WidgetQueryQueue};
 
 const WidgetQueueContext = createContext<Context | undefined>(undefined);
 
@@ -59,19 +55,13 @@ export function WidgetQueryQueueProvider({children}: {children: React.ReactNode}
         onSettled: (_item: QueueItem, queuer) => {
           const queueIsEmpty = queuer.peekAllItems().length === 0;
           if (queueIsEmpty && startTimeRef.current) {
-            // oxlint-disable-next-line react/purity
             const endTime = performance.now();
             const totalTime = endTime - startTimeRef.current;
             startTimeRef.current = undefined;
             metrics.distribution(
               'dashboards.widget_query_queue.time_to_empty',
               totalTime,
-              {
-                attributes: {
-                  url: location.pathname,
-                },
-                unit: 'millisecond',
-              }
+              {attributes: {url: location.pathname}, unit: 'millisecond'}
             );
           }
         },

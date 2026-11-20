@@ -13,10 +13,7 @@ export const getSearchGroupWithItemMarkedActive = (
     ...group,
     children: group.children?.map(item => {
       if (item.value === currentItem.value && item.type === currentItem.type) {
-        return {
-          ...item,
-          active,
-        };
+        return {...item, active};
       }
 
       if (item.children && item.children.length > 0) {
@@ -24,10 +21,7 @@ export const getSearchGroupWithItemMarkedActive = (
           ...item,
           children: item.children.map(child => {
             if (child.value === currentItem.value && item.type === currentItem.type) {
-              return {
-                ...child,
-                active,
-              };
+              return {...child, active};
             }
 
             return child;

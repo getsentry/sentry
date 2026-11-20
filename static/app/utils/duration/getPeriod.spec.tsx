@@ -6,9 +6,7 @@ describe('getPeriod()', () => {
 
   it('prioritizes period over start/end', () => {
     const periodObj = {period: '7d', start, end};
-    expect(getPeriod(periodObj)).toEqual({
-      statsPeriod: '7d',
-    });
+    expect(getPeriod(periodObj)).toEqual({statsPeriod: '7d'});
   });
 
   it('doubles relative period', () => {

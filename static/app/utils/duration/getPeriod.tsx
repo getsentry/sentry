@@ -65,14 +65,8 @@ export function getPeriod(
     const previousPeriodStart = moment(start).subtract(diff);
 
     // This is not as accurate as having 2 start/end objs
-    return {
-      start: getUtcDateString(previousPeriodStart),
-      end: formattedEnd,
-    };
+    return {start: getUtcDateString(previousPeriodStart), end: formattedEnd};
   }
 
-  return {
-    start: formattedStart,
-    end: formattedEnd,
-  };
+  return {start: formattedStart, end: formattedEnd};
 }

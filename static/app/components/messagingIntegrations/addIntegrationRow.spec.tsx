@@ -25,10 +25,7 @@ describe('AddIntegrationRow', () => {
         provider,
         type: 'first_party',
         installStatus: 'Not Installed',
-        analyticsParams: {
-          view: 'onboarding',
-          already_installed: false,
-        },
+        analyticsParams: {view: 'onboarding', already_installed: false},
       }}
     >
       <AddIntegrationRow onClick={jest.fn()} />

@@ -189,10 +189,7 @@ function WidgetInteractiveTitle({
     if (useEap) {
       menuOptions.push({label: t('Open in Explore'), value: 'open_in_explore'});
     } else {
-      menuOptions.push({
-        label: t('Open in Explore'),
-        value: 'open_in_discover',
-      });
+      menuOptions.push({label: t('Open in Explore'), value: 'open_in_discover'});
     }
   }
 
@@ -204,10 +201,7 @@ function WidgetInteractiveTitle({
         getExploreUrl({
           selection: eventView.getPageFilters(),
           organization,
-          visualize: yAxis?.map(y => ({
-            chartType: ChartType.LINE,
-            yAxes: [y],
-          })),
+          visualize: yAxis?.map(y => ({chartType: ChartType.LINE, yAxes: [y]})),
           mode: Mode.AGGREGATE,
           title: eventView.name,
           query: eventView.getQueryWithAdditionalConditions(),

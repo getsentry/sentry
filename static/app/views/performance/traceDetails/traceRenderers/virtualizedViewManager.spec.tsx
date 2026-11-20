@@ -11,10 +11,7 @@ import {VirtualizedViewManager} from './virtualizedViewManager';
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
     const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
+      {list: {width: 0.5}, span_list: {width: 0.5}},
       new TraceScheduler(),
       new TraceView(),
       ThemeFixture()
@@ -28,10 +25,7 @@ describe('VirtualizedViewManger', () => {
 
   it('initializes physical space', () => {
     const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
+      {list: {width: 0.5}, span_list: {width: 0.5}},
       new TraceScheduler(),
       new TraceView(),
       ThemeFixture()
@@ -48,10 +42,7 @@ describe('VirtualizedViewManger', () => {
   it('recomputes time compression before redrawing during divider resize', () => {
     const scheduler = new TraceScheduler();
     const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
+      {list: {width: 0.5}, span_list: {width: 0.5}},
       scheduler,
       new TraceView(),
       ThemeFixture()
@@ -134,10 +125,7 @@ describe('VirtualizedViewManger', () => {
 
   it('uses explicit time compression options over previously stored options', () => {
     const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
+      {list: {width: 0.5}, span_list: {width: 0.5}},
       new TraceScheduler(),
       new TraceView(),
       ThemeFixture()
@@ -165,10 +153,7 @@ describe('VirtualizedViewManger', () => {
   it('re-dispatches the container content box when scrollbar width changes', () => {
     const scheduler = new TraceScheduler();
     const manager = new VirtualizedViewManager(
-      {
-        list: {width: 0.5},
-        span_list: {width: 0.5},
-      },
+      {list: {width: 0.5}, span_list: {width: 0.5}},
       scheduler,
       new TraceView(),
       ThemeFixture()
@@ -182,17 +167,19 @@ describe('VirtualizedViewManger', () => {
     container.style.paddingRight = '10px';
     manager.container = container;
 
-    jest.spyOn(container, 'getBoundingClientRect').mockReturnValue({
-      x: 0,
-      y: 0,
-      top: 0,
-      left: 0,
-      bottom: 238,
-      right: 520,
-      width: 520,
-      height: 238,
-      toJSON: () => ({}),
-    });
+    jest
+      .spyOn(container, 'getBoundingClientRect')
+      .mockReturnValue({
+        x: 0,
+        y: 0,
+        top: 0,
+        left: 0,
+        bottom: 238,
+        right: 520,
+        width: 520,
+        height: 238,
+        toJSON: () => ({}),
+      });
 
     let dispatchedContainerPhysicalSpace: [number, number, number, number] | null = null;
     scheduler.on('set container physical space', containerPhysicalSpace => {
@@ -209,10 +196,7 @@ describe('VirtualizedViewManger', () => {
   describe('computeSpanCSSMatrixTransform', () => {
     it('enforces min scaling', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -227,10 +211,7 @@ describe('VirtualizedViewManger', () => {
     });
     it('computes width scaling correctly', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -244,10 +225,7 @@ describe('VirtualizedViewManger', () => {
 
     it('computes x position correctly', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -263,10 +241,7 @@ describe('VirtualizedViewManger', () => {
 
     it('computes span x position correctly', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -283,10 +258,7 @@ describe('VirtualizedViewManger', () => {
     describe('when start is not 0', () => {
       it('computes width scaling correctly', () => {
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0},
-            span_list: {width: 1},
-          },
+          {list: {width: 0}, span_list: {width: 1}},
           new TraceScheduler(),
           new TraceView(),
           ThemeFixture()
@@ -301,10 +273,7 @@ describe('VirtualizedViewManger', () => {
       });
       it('computes x position correctly when view is offset', () => {
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0},
-            span_list: {width: 1},
-          },
+          {list: {width: 0}, span_list: {width: 1}},
           new TraceScheduler(),
           new TraceView(),
           ThemeFixture()
@@ -323,10 +292,7 @@ describe('VirtualizedViewManger', () => {
   describe('transformXFromTimestamp', () => {
     it('computes x position correctly', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -340,10 +306,7 @@ describe('VirtualizedViewManger', () => {
 
     it('computes x position correctly when view is offset', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -359,10 +322,7 @@ describe('VirtualizedViewManger', () => {
 
     it('when view is offset and scaled', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -379,10 +339,7 @@ describe('VirtualizedViewManger', () => {
   describe('trace issue icon placement', () => {
     it('does not treat icons away from the physical right edge as end-clamped in a zoomed view', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -398,10 +355,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses current view geometry before the span matrix has been recomputed', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -420,10 +374,7 @@ describe('VirtualizedViewManger', () => {
 
     it('anchors end-clamped icons to the visible trace end in a zoomed view', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -444,10 +395,7 @@ describe('VirtualizedViewManger', () => {
   describe('isTimestampInsideCollapsedGap', () => {
     it('only treats timestamps inside collapsed gaps as hidden timeline intervals', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -478,10 +426,7 @@ describe('VirtualizedViewManger', () => {
   describe('drawCollapsedGapMarkers', () => {
     it('centers markers using the actual compressed gap width', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -521,10 +466,7 @@ describe('VirtualizedViewManger', () => {
 
     it('treats nearby timeline labels as overlapping collapsed gap markers', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -572,10 +514,7 @@ describe('VirtualizedViewManger', () => {
   describe('vertical indicator labels', () => {
     function setupIndicator(start: number) {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -713,10 +652,7 @@ describe('VirtualizedViewManger', () => {
     it('zooms to a fake span from the trace start to the vital timestamp', () => {
       const scheduler = new TraceScheduler();
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0.5},
-          span_list: {width: 0.5},
-        },
+        {list: {width: 0.5}, span_list: {width: 0.5}},
         scheduler,
         new TraceView(),
         ThemeFixture()
@@ -741,10 +677,7 @@ describe('VirtualizedViewManger', () => {
 
     it('does not zoom again when already at the vital target', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0.5},
-          span_list: {width: 0.5},
-        },
+        {list: {width: 0.5}, span_list: {width: 0.5}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -770,10 +703,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses compressed viewport width when the real viewport is at max zoom', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0.5},
-          span_list: {width: 0.5},
-        },
+        {list: {width: 0.5}, span_list: {width: 0.5}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -813,10 +743,7 @@ describe('VirtualizedViewManger', () => {
         wheelOptions => {
           const scheduler = new TraceScheduler();
           const manager = new VirtualizedViewManager(
-            {
-              list: {width: 0.5},
-              span_list: {width: 0.5},
-            },
+            {list: {width: 0.5}, span_list: {width: 0.5}},
             scheduler,
             new TraceView(),
             ThemeFixture()
@@ -848,10 +775,7 @@ describe('VirtualizedViewManger', () => {
       it('keeps the cursor anchored when zooming a compressed timeline', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           scheduler,
           new TraceView(),
           ThemeFixture()
@@ -903,10 +827,7 @@ describe('VirtualizedViewManger', () => {
       it('scrolls horizontally with shift + vertical wheel', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           scheduler,
           new TraceView(),
           ThemeFixture()
@@ -940,10 +861,7 @@ describe('VirtualizedViewManger', () => {
       it('scrolls horizontally with trackpad horizontal swipe', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           scheduler,
           new TraceView(),
           ThemeFixture()
@@ -977,10 +895,7 @@ describe('VirtualizedViewManger', () => {
       it('does not scroll horizontally with vertical wheel (no shift)', () => {
         const scheduler = new TraceScheduler();
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           scheduler,
           new TraceView(),
           ThemeFixture()
@@ -1014,10 +929,7 @@ describe('VirtualizedViewManger', () => {
     describe('onSyncedScrollbarScroll (span names list)', () => {
       it('scrolls horizontally with shift + vertical wheel', () => {
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           new TraceScheduler(),
           new TraceView(),
           ThemeFixture()
@@ -1049,10 +961,7 @@ describe('VirtualizedViewManger', () => {
 
       it('scrolls horizontally with trackpad horizontal swipe', () => {
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           new TraceScheduler(),
           new TraceView(),
           ThemeFixture()
@@ -1083,10 +992,7 @@ describe('VirtualizedViewManger', () => {
 
       it('does not scroll when content fits within container', () => {
         const manager = new VirtualizedViewManager(
-          {
-            list: {width: 0.5},
-            span_list: {width: 0.5},
-          },
+          {list: {width: 0.5}, span_list: {width: 0.5}},
           new TraceScheduler(),
           new TraceView(),
           ThemeFixture()
@@ -1120,10 +1026,7 @@ describe('VirtualizedViewManger', () => {
   describe('computeSpanTextPlacement', () => {
     it('uses ceil(text_width) when placing text outside on the left', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1147,10 +1050,7 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps right-outside placement behavior unchanged', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1174,10 +1074,7 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps grouped issue pill bounds centered when it does not cross the view edge', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1229,10 +1126,7 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps direct issue icon bounds centered when it does not cross the view edge', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1266,10 +1160,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses the physical viewport edge for issue icon bounds in a zoomed view', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1305,10 +1196,7 @@ describe('VirtualizedViewManger', () => {
 
     it('places right-outside text after a view-edge anchored direct issue icon', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1342,10 +1230,7 @@ describe('VirtualizedViewManger', () => {
 
     it('places right-outside text after a view-edge anchored grouped issue pill', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1391,10 +1276,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses ceil(text_width) when placing text inside on the right', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1422,10 +1304,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses ceil(text_width) for window-right placement when span covers the view', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1453,10 +1332,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses ceil(text_width) for right-window-edge anchoring inside a partial span', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1484,10 +1360,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses ceil(text_width) for near-right-edge fit checks before inside-right placement', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1514,10 +1387,7 @@ describe('VirtualizedViewManger', () => {
 
     it('uses ceil(text_width) for full-span fit checks before placing text inside', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1542,10 +1412,7 @@ describe('VirtualizedViewManger', () => {
 
     it('moves duration text away from collapsed gap markers', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()
@@ -1584,10 +1451,7 @@ describe('VirtualizedViewManger', () => {
 
     it('keeps duration text clear of the right side of collapsed gap markers', () => {
       const manager = new VirtualizedViewManager(
-        {
-          list: {width: 0},
-          span_list: {width: 1},
-        },
+        {list: {width: 0}, span_list: {width: 1}},
         new TraceScheduler(),
         new TraceView(),
         ThemeFixture()

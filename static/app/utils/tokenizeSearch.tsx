@@ -30,11 +30,7 @@ const FILTER_TOKENS = [
   TokenType.REGEX_FILTER,
 ];
 
-type Token = {
-  type: TokenType;
-  value: string;
-  key?: string;
-};
+type Token = {type: TokenType; value: string; key?: string};
 
 function isOp(t: Token) {
   return t.type === TokenType.OPERATOR;

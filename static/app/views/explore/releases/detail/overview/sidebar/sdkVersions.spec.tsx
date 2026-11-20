@@ -91,9 +91,7 @@ describe('SdkVersions', () => {
     await waitFor(() => expect(eventsRequest).toHaveBeenCalled());
     expect(eventsRequest).toHaveBeenCalledWith(
       expect.anything(),
-      expect.objectContaining({
-        query: expect.not.objectContaining({cursor: '0:25:0'}),
-      })
+      expect.objectContaining({query: expect.not.objectContaining({cursor: '0:25:0'})})
     );
   });
 

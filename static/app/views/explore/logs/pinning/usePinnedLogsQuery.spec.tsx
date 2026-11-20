@@ -14,9 +14,7 @@ import {OurLogKnownFieldKey} from 'sentry/views/explore/logs/types';
 import type {LogsPinning} from './useLogsPinning';
 import {usePinnedLogsQuery} from './usePinnedLogsQuery';
 
-const organization = OrganizationFixture({
-  features: ['ourlogs-enabled'],
-});
+const organization = OrganizationFixture({features: ['ourlogs-enabled']});
 const project = ProjectFixture();
 
 function makeLogsPinning(pinnedIds: string[]): LogsPinning {
@@ -48,12 +46,7 @@ describe('usePinnedLogsQuery', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
   });
 
@@ -238,9 +231,7 @@ describe('usePinnedLogsQuery', () => {
     await waitFor(() => {
       expect(eventsRequest).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({statsPeriod: '9999d'}),
-        })
+        expect.objectContaining({query: expect.objectContaining({statsPeriod: '9999d'})})
       );
     });
   });

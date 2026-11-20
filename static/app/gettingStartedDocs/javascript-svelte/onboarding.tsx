@@ -48,9 +48,7 @@ export const onboarding: OnboardingConfig = {
   introduction: () =>
     tct(
       "In this quick guide you'll use [strong:npm], [strong:yarn], or [strong:pnpm] to set up:",
-      {
-        strong: <strong />,
-      }
+      {strong: <strong />}
     ),
   install: () => [
     {
@@ -117,11 +115,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Svelte v5',
-              language: 'html',
-              code: getVerifySnippet(params, true),
-            },
+            {label: 'Svelte v5', language: 'html', code: getVerifySnippet(params, true)},
             {
               label: 'Svelte v3/v4',
               language: 'html',

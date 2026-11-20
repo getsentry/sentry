@@ -38,7 +38,14 @@ describe('CustomCommitsResolutionModal', () => {
       expect(commitsMock).toHaveBeenCalled();
     });
 
-    await selectEvent.select(screen.getByText('e.g. d86b832'), 'f7f395d14b2f');
+    await selectEvent.openMenu(screen.getByText('e.g. d86b832'));
+    expect(
+      await screen.findByText(/f7f395d · example\/repo-name · Foo Bar/)
+    ).toBeInTheDocument();
+
+    await userEvent.click(
+      screen.getByText('(improve) Add Links to Spike-Protection Email (#2408)')
+    );
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
     expect(onSelected).toHaveBeenCalledWith(
@@ -49,6 +56,45 @@ describe('CustomCommitsResolutionModal', () => {
         },
       })
     );
+  });
+
+  it('can select a commit whose author has no name', async () => {
+    const onSelected = jest.fn();
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/commits/',
+      body: [CommitFixture({author: {email: 'unmapped@example.com', name: null} as any})],
+    });
+
+    const wrapper = styled((p: any) => p.children);
+    render(
+      <CustomCommitsResolutionModal
+        Header={p => <span>{p.children}</span>}
+        Body={wrapper()}
+        Footer={wrapper()}
+        orgSlug="org-slug"
+        projectSlug="project-slug"
+        onSelected={onSelected}
+        closeModal={jest.fn()}
+        CloseButton={makeCloseButton(() => null)}
+      />
+    );
+
+    await selectEvent.select(
+      screen.getByText('e.g. d86b832'),
+      '(improve) Add Links to Spike-Protection Email (#2408)'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
+
+    await waitFor(() => {
+      expect(onSelected).toHaveBeenCalledWith(
+        expect.objectContaining({
+          inCommit: {
+            commit: 'f7f395d14b2fe29a4e253bf1d3094d61e6ad4434',
+            repository: 'example/repo-name',
+          },
+        })
+      );
+    });
   });
 
   it('can filter commits via typeahead and select a filtered result', async () => {
@@ -89,16 +135,13 @@ describe('CustomCommitsResolutionModal', () => {
     await userEvent.type(selectInput, 'abc');
 
     // Wait for filtered results to appear and select the commit
-    await selectEvent.select(screen.getByRole('textbox'), 'abc123filtered');
+    await selectEvent.select(screen.getByRole('textbox'), 'Filtered commit message');
 
     await userEvent.click(screen.getByRole('button', {name: 'Resolve'}));
 
     expect(onSelected).toHaveBeenCalledWith(
       expect.objectContaining({
-        inCommit: {
-          commit: 'abc123filtered',
-          repository: 'example/repo-name',
-        },
+        inCommit: {commit: 'abc123filtered', repository: 'example/repo-name'},
       })
     );
   });

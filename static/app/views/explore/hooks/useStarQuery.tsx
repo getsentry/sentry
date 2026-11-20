@@ -24,20 +24,14 @@ export function useStarQuery() {
           queryType === SavedQueryType.EXPLORE
             ? getApiUrl(
                 '/organizations/$organizationIdOrSlug/explore/saved/$id/starred/',
-                {
-                  path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
-                }
+                {path: {organizationIdOrSlug: organization.slug, id: String(queryId)}}
               )
             : getApiUrl(
                 '/organizations/$organizationIdOrSlug/discover/saved/$id/starred/',
-                {
-                  path: {organizationIdOrSlug: organization.slug, id: String(queryId)},
-                }
+                {path: {organizationIdOrSlug: organization.slug, id: String(queryId)}}
               ),
         method: 'POST',
-        data: {
-          starred,
-        },
+        data: {starred},
       }),
   });
 

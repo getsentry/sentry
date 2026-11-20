@@ -19,11 +19,7 @@ type Props = {
   thread: Thread;
 };
 
-type ThreadInfo = {
-  filename?: string;
-  label?: string;
-  state?: ThreadStates;
-};
+type ThreadInfo = {filename?: string; label?: string; state?: ThreadStates};
 
 export function getThreadSelectorColumns(
   hasThreadStates: boolean

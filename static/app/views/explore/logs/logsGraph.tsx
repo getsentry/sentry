@@ -212,10 +212,7 @@ function Graph({
     const samplingMeta = determineSeriesSampleCountAndIsSampled(series, isTopEvents);
     const resultForChart = (
       hasValidConditionalFilter
-        ? {
-            ...timeseriesResult,
-            isPending: timeseriesResult.isPending || tableIsPending,
-          }
+        ? {...timeseriesResult, isPending: timeseriesResult.isPending || tableIsPending}
         : {
             ...timeseriesResult,
             error: new Error(getConditionalFilterInvalidSeriesMessageForYAxis(aggregate)),

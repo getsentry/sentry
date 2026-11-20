@@ -17,6 +17,7 @@ import type {useExplorerAutofix} from 'sentry/components/events/autofix/useExplo
 import {SeerOutOfCreditsCta} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {t} from 'sentry/locale';
 import type {Group} from 'sentry/types/group';
+import {orgHasNewSeerPlan} from 'sentry/utils/seer/orgHasNewSeerPlan';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {useOpenSingleRunChat} from './useToggleSingleRunChat';
@@ -62,9 +63,9 @@ export function AutofixStartCard({
   const openSingleRunChat = useOpenSingleRunChat();
   const handleStartRootCause = async () => {
     setStartingRun(true);
-    const run = await startStep('root_cause', {
-      userContext: userContext.trim(),
-    }).catch(() => null);
+    const run = await startStep('root_cause', {userContext: userContext.trim()}).catch(
+      () => null
+    );
     setStartingRun(false);
     if (!run) {
       return;
@@ -85,11 +86,7 @@ export function AutofixStartCard({
       onClick={handleStartRootCause}
       analyticsEventKey="autofix.start_fix_clicked"
       analyticsEventName="Autofix: Start Fix Clicked"
-      analyticsParams={{
-        group_id: group.id,
-        mode: 'explorer',
-        referrer,
-      }}
+      analyticsParams={{group_id: group.id, mode: 'explorer', referrer}}
       busy={isStarting}
       // Held disabled until this mount's credit check answers, so it is never
       // clickable before the answer arrives, even with an earlier one cached.
@@ -99,7 +96,10 @@ export function AutofixStartCard({
     </Button>
   );
 
-  if (!organization.features.includes('autofix-single-run')) {
+  if (
+    !organization.features.includes('autofix-single-run') ||
+    !orgHasNewSeerPlan(organization)
+  ) {
     return (
       <Stack gap="md">
         {/* The Billing Gates design gives the sidebar one card: the notice takes the explainer's place. */}
@@ -213,9 +213,7 @@ function LegacyStartCardContent() {
   );
 }
 
-const LegacyImageContainer = styled(Flex)<{
-  aspectRatio?: CSS['aspectRatio'];
-}>`
+const LegacyImageContainer = styled(Flex)<{aspectRatio?: CSS['aspectRatio']}>`
   ${p => p.aspectRatio && `aspect-ratio: ${p.aspectRatio}`};
 `;
 

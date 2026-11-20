@@ -31,11 +31,7 @@ describe('makeUndoableReducer', () => {
       next: undefined,
     };
 
-    const current = {
-      previous: first,
-      current: 1,
-      next: undefined,
-    };
+    const current = {previous: first, current: 1, next: undefined};
 
     first.next = current;
 
@@ -62,9 +58,7 @@ describe('makeUndoableReducer', () => {
       const {result} = renderHook(
         (args: Parameters<typeof useUndoableReducer>) =>
           useUndoableReducer(args[0], args[1]),
-        {
-          initialProps: [reducer, 100],
-        }
+        {initialProps: [reducer, 100]}
       );
       expect(reducer).not.toHaveBeenCalled();
       expect(result.current[0]).toBe(100);
@@ -137,9 +131,7 @@ describe('makeUndoableReducer', () => {
     const {result} = renderHook(
       (args: Parameters<typeof useUndoableReducer>) =>
         useUndoableReducer(args[0], args[1]),
-      {
-        initialProps: [simpleReducer, 0],
-      }
+      {initialProps: [simpleReducer, 0]}
     );
 
     act(() => result.current[1]({type: 'add'}));
@@ -156,9 +148,7 @@ describe('makeUndoableReducer', () => {
     const {result} = renderHook(() =>
       useReducer(makeUndoableReducer(makeCombinedReducers({simple: simpleReducer})), {
         previous: undefined,
-        current: {
-          simple: 0,
-        },
+        current: {simple: 0},
         next: undefined,
       })
     );
@@ -181,9 +171,7 @@ describe('makeUndoableReducer', () => {
     const {result} = renderHook(() =>
       useReducer(makeUndoableReducer(combinedReducers), {
         previous: undefined,
-        current: {
-          math: 0,
-        },
+        current: {math: 0},
         next: undefined,
       })
     );

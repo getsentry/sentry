@@ -10,9 +10,7 @@ import type {
 } from 'admin/components/adminConfirmationModal';
 import type {Subscription} from 'getsentry/types';
 
-type Props = AdminConfirmRenderProps & {
-  subscription: Subscription;
-};
+type Props = AdminConfirmRenderProps & {subscription: Subscription};
 
 const REMOVE_SPONSORSHIP = 'remove';
 

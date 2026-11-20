@@ -66,9 +66,8 @@ export function useInvestigationTitle(investigation: InvestigationDetail) {
       titleGenerationSettledFor.current = investigation.id;
       void queryClient.invalidateQueries({queryKey: detailOptions.queryKey});
       void queryClient.invalidateQueries({
-        queryKey: investigationListQueryOptions({
-          organizationSlug: organization.slug,
-        }).queryKey,
+        queryKey: investigationListQueryOptions({organizationSlug: organization.slug})
+          .queryKey,
       });
     }
   }, [

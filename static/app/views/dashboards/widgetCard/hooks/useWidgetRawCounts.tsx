@@ -10,10 +10,7 @@ import {
 } from 'sentry/views/explore/metrics/utils';
 import {useRawCounts, type RawCounts} from 'sentry/views/explore/useRawCounts';
 
-type Props = {
-  selection: PageFilters;
-  widget: Widget;
-};
+type Props = {selection: PageFilters; widget: Widget};
 
 type RawCountConfig = {
   dataset: DiscoverDatasets;
@@ -84,11 +81,7 @@ export function useWidgetRawCounts({selection, widget}: Props): RawCounts | null
           enabled: isSupportedDisplayType,
         };
       default:
-        return {
-          supported: false,
-          dataset: DiscoverDatasets.SPANS,
-          enabled: false,
-        };
+        return {supported: false, dataset: DiscoverDatasets.SPANS, enabled: false};
     }
   }, [widget]);
 

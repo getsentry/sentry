@@ -11,10 +11,6 @@ export function buildDetailsApiOptions({
 }) {
   return apiOptions.as<BuildDetailsApiResponse[]>()(
     '/organizations/$organizationIdOrSlug/builds/',
-    {
-      path: {organizationIdOrSlug: organization.slug},
-      query: queryParams,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, query: queryParams, staleTime: 0}
   );
 }

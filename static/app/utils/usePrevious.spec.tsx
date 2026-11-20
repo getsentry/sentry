@@ -9,9 +9,7 @@ describe('usePrevious', () => {
   });
 
   it('provides initial value', () => {
-    const {result} = renderHook(usePrevious, {
-      initialProps: 'Initial Value',
-    });
+    const {result} = renderHook(usePrevious, {initialProps: 'Initial Value'});
 
     expect(result.current).toBe('Initial Value');
   });

@@ -22,22 +22,13 @@ import {ReleasesDisplayOption} from './releasesDisplayOptions';
 import {ReleasesStatusOption} from './releasesStatusOptions';
 
 describe('ReleasesList', () => {
-  const organization = OrganizationFixture({
-    features: [],
-  });
+  const organization = OrganizationFixture({features: []});
   const projects = [ProjectFixture({features: ['releases']})];
   const semverVersionInfo = {
     buildHash: null,
     description: '1.2.3',
     package: 'package',
-    version: {
-      raw: '1.2.3',
-      major: 1,
-      minor: 2,
-      patch: 3,
-      buildCode: null,
-      components: 3,
-    },
+    version: {raw: '1.2.3', major: 1, minor: 2, patch: 3, buildCode: null, components: 3},
   };
 
   let endpointMock: jest.Mock;
@@ -89,10 +80,7 @@ describe('ReleasesList', () => {
       body: null,
     });
 
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/projects/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
 
     MockApiClient.addMockResponse({
       url: `/projects/org-slug/${projects[0]!.slug}/`,
@@ -179,10 +167,7 @@ describe('ReleasesList', () => {
       features: [],
     });
     ProjectsStore.loadInitialData([projectWithoutReleases]);
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/sentry-apps/',
       body: [],
@@ -218,10 +203,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {
-            sort: ReleasesSortOption.SESSIONS,
-            statsPeriod: '7d',
-          },
+          query: {sort: ReleasesSortOption.SESSIONS, statsPeriod: '7d'},
         },
       },
     });
@@ -238,10 +220,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {
-            sort: ReleasesSortOption.USERS_24_HOURS,
-            statsPeriod: '7d',
-          },
+          query: {sort: ReleasesSortOption.USERS_24_HOURS, statsPeriod: '7d'},
         },
       },
     });
@@ -257,10 +236,7 @@ describe('ReleasesList', () => {
       initialRouterConfig: {
         location: {
           pathname: `/organizations/${organization.slug}/releases/`,
-          query: {
-            sort: ReleasesSortOption.SESSIONS_24_HOURS,
-            statsPeriod: '7d',
-          },
+          query: {sort: ReleasesSortOption.SESSIONS_24_HOURS, statsPeriod: '7d'},
         },
       },
     });
@@ -289,9 +265,7 @@ describe('ReleasesList', () => {
     const errorMessage = 'dumpster fire';
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/',
-      body: {
-        detail: errorMessage,
-      },
+      body: {detail: errorMessage},
       statusCode: 400,
     });
 
@@ -302,9 +276,7 @@ describe('ReleasesList', () => {
 
     // we want release header to be visible despite the error message
     expect(
-      await screen.findByRole('combobox', {
-        name: 'Add a search term',
-      })
+      await screen.findByRole('combobox', {name: 'Add a search term'})
     ).toBeInTheDocument();
   });
 
@@ -329,9 +301,7 @@ describe('ReleasesList', () => {
 
     expect(endpointMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/releases/`,
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'derp'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'derp'})})
     );
 
     await userEvent.clear(input);
@@ -354,9 +324,7 @@ describe('ReleasesList', () => {
       expect(endpointMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/releases/`,
         expect.objectContaining({
-          query: expect.objectContaining({
-            sort: ReleasesSortOption.SESSIONS,
-          }),
+          query: expect.objectContaining({sort: ReleasesSortOption.SESSIONS}),
         })
       );
     });
@@ -391,9 +359,7 @@ describe('ReleasesList', () => {
     const {router} = render(<ReleasesList />, {organization});
 
     // Find and click on the display menu's trigger button
-    const statusTriggerButton = screen.getByRole('button', {
-      name: 'Display Sessions',
-    });
+    const statusTriggerButton = screen.getByRole('button', {name: 'Display Sessions'});
     expect(statusTriggerButton).toBeInTheDocument();
     await userEvent.click(statusTriggerButton);
 
@@ -456,9 +422,7 @@ describe('ReleasesList', () => {
       expect(endpointMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/releases/`,
         expect.objectContaining({
-          query: expect.not.objectContaining({
-            somethingBad: 'XXX',
-          }),
+          query: expect.not.objectContaining({somethingBad: 'XXX'}),
         })
       );
     });
@@ -516,21 +480,9 @@ describe('ReleasesList', () => {
         {
           ...ReleaseFixture({version: '2.0.0'}),
           projects: [
-            {
-              id: 1,
-              name: 'Test',
-              slug: 'test',
-            },
-            {
-              id: 2,
-              name: 'Test2',
-              slug: 'test2',
-            },
-            {
-              id: 3,
-              name: 'Test3',
-              slug: 'test3',
-            },
+            {id: 1, name: 'Test', slug: 'test'},
+            {id: 2, name: 'Test2', slug: 'test2'},
+            {id: 3, name: 'Test3', slug: 'test3'},
           ],
         },
       ],
@@ -788,11 +740,7 @@ describe('ReleasesList', () => {
             date_added: '2024-01-01T00:00:00Z',
           },
           size_info: {},
-          vcs_info: {
-            head_sha: 'abcdef1',
-            pr_number: 123,
-            head_ref: 'main',
-          },
+          vcs_info: {head_sha: 'abcdef1', pr_number: 123, head_ref: 'main'},
         },
       ],
     });
@@ -909,11 +857,7 @@ describe('ReleasesList', () => {
       },
     });
 
-    await userEvent.click(
-      screen.getByRole('tab', {
-        name: 'Releases',
-      })
-    );
+    await userEvent.click(screen.getByRole('tab', {name: 'Releases'}));
 
     expect(router.location.query.tab).toBeUndefined();
   });

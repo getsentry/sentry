@@ -32,16 +32,8 @@ type TopBarSlotProps =
       children?: never;
       items?: BreadcrumbListProps['items'];
     }
-  | ({
-      name: 'feedback';
-      children?: never;
-      title?: never;
-    } & TopBarFeedbackButtonProps)
-  | {
-      children: React.ReactNode;
-      name: 'search' | 'actions';
-      title?: never;
-    };
+  | ({name: 'feedback'; children?: never; title?: never} & TopBarFeedbackButtonProps)
+  | {children: React.ReactNode; name: 'search' | 'actions'; title?: never};
 
 function TopBarSlot(props: TopBarSlotProps) {
   if (props.name === 'breadcrumbs') {
@@ -98,9 +90,7 @@ function TopBarContent() {
       position="sticky"
       borderBottom="primary"
       top={topBarTop}
-      style={{
-        zIndex: theme.zIndex.sidebarPanel - 1,
-      }}
+      style={{zIndex: theme.zIndex.sidebarPanel - 1}}
     >
       <SizeProvider size="sm">
         {/*

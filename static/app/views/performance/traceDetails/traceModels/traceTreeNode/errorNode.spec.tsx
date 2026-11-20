@@ -11,10 +11,7 @@ import {ErrorNode} from './errorNode';
 
 const createMockExtra = (
   overrides: Partial<TraceTreeNodeExtra> = {}
-): TraceTreeNodeExtra => ({
-  organization: OrganizationFixture(),
-  ...overrides,
-});
+): TraceTreeNodeExtra => ({organization: OrganizationFixture(), ...overrides});
 
 describe('ErrorNode', () => {
   describe('constructor', () => {
@@ -115,10 +112,7 @@ describe('ErrorNode', () => {
 
     it('should add error to errors set', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -169,11 +163,7 @@ describe('ErrorNode', () => {
 
     it('should return empty string when both title and message are empty for TraceError', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: '',
-        message: '',
-        level: 'error',
-      });
+      const value = makeTraceError({title: '', message: '', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -207,10 +197,7 @@ describe('ErrorNode', () => {
 
     it('should handle empty description for EAPError', () => {
       const extra = createMockExtra();
-      const value = makeEAPError({
-        description: '',
-        level: 'warning',
-      });
+      const value = makeEAPError({description: '', level: 'warning'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -219,10 +206,7 @@ describe('ErrorNode', () => {
 
     it('should handle undefined description for EAPError', () => {
       const extra = createMockExtra();
-      const value = makeEAPError({
-        description: undefined,
-        level: 'warning',
-      });
+      const value = makeEAPError({description: undefined, level: 'warning'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -233,17 +217,11 @@ describe('ErrorNode', () => {
   describe('getter methods', () => {
     it('should return correct traceHeaderTitle', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Trace',
-        subtitle: 'Test Error',
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Trace', subtitle: 'Test Error'});
     });
 
     it('should return correct traceHeaderTitle with undefined description', () => {
@@ -256,18 +234,12 @@ describe('ErrorNode', () => {
 
       const node = new ErrorNode(null, value, extra);
 
-      expect(node.traceHeaderTitle).toEqual({
-        title: 'Trace',
-        subtitle: undefined,
-      });
+      expect(node.traceHeaderTitle).toEqual({title: 'Trace', subtitle: undefined});
     });
 
     it('should return correct drawerTabsTitle with description', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -276,10 +248,7 @@ describe('ErrorNode', () => {
 
     it('should strip ANSI escape codes from drawerTabsTitle', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: '\x1B[31mTest\x1B[0m Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: '\x1B[31mTest\x1B[0m Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -301,11 +270,7 @@ describe('ErrorNode', () => {
 
     it('should return fallback drawerTabsTitle with empty description', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: '',
-        message: '',
-        level: 'error',
-      });
+      const value = makeTraceError({title: '', message: '', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -316,10 +281,7 @@ describe('ErrorNode', () => {
   describe('abstract method implementations', () => {
     it('should return correct matchByPath', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        event_id: 'errorId',
-        title: 'Test Error',
-      });
+      const value = makeTraceError({event_id: 'errorId', title: 'Test Error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -328,10 +290,7 @@ describe('ErrorNode', () => {
 
     it('should return correct pathToNode', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        event_id: 'test-error-id',
-        title: 'Test Error',
-      });
+      const value = makeTraceError({event_id: 'test-error-id', title: 'Test Error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -340,10 +299,7 @@ describe('ErrorNode', () => {
 
     it('should return correct analyticsName for TraceError', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -352,10 +308,7 @@ describe('ErrorNode', () => {
 
     it('should return correct analyticsName for EAPError', () => {
       const extra = createMockExtra();
-      const value = makeEAPError({
-        description: 'EAP Error',
-        level: 'warning',
-      });
+      const value = makeEAPError({description: 'EAP Error', level: 'warning'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -405,10 +358,7 @@ describe('ErrorNode', () => {
   describe('matchWithFreeText', () => {
     it('should match by error level', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Database Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Database Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -418,10 +368,7 @@ describe('ErrorNode', () => {
 
     it('should match by description content', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Database Connection Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Database Connection Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -433,10 +380,7 @@ describe('ErrorNode', () => {
 
     it('should match EAPError by description', () => {
       const extra = createMockExtra();
-      const value = makeEAPError({
-        description: 'API Request Failed',
-        level: 'warning',
-      });
+      const value = makeEAPError({description: 'API Request Failed', level: 'warning'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -448,10 +392,7 @@ describe('ErrorNode', () => {
 
     it('should be case sensitive', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'DATABASE ERROR',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'DATABASE ERROR', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
 
@@ -465,10 +406,7 @@ describe('ErrorNode', () => {
   describe('makeBarColor', () => {
     it('should return warning vibrant token for error level', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'error'});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -478,10 +416,7 @@ describe('ErrorNode', () => {
 
     it('should return semantic bad token for fatal level', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'fatal',
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'fatal'});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -491,10 +426,7 @@ describe('ErrorNode', () => {
 
     it('should return semantic meh token for warning', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Warning',
-        level: 'warning',
-      });
+      const value = makeTraceError({title: 'Test Warning', level: 'warning'});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -504,10 +436,7 @@ describe('ErrorNode', () => {
 
     it('should return theme level color for info', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Info',
-        level: 'info',
-      });
+      const value = makeTraceError({title: 'Test Info', level: 'info'});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -517,10 +446,7 @@ describe('ErrorNode', () => {
 
     it('should return theme level color for sample', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Sample',
-        level: 'sample',
-      });
+      const value = makeTraceError({title: 'Test Sample', level: 'sample'});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -530,10 +456,7 @@ describe('ErrorNode', () => {
 
     it('should return red fallback for level not in theme.level', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: 'custom-level' as any,
-      });
+      const value = makeTraceError({title: 'Test Error', level: 'custom-level' as any});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -543,10 +466,7 @@ describe('ErrorNode', () => {
 
     it('should return red fallback for undefined level', () => {
       const extra = createMockExtra();
-      const value = makeTraceError({
-        title: 'Test Error',
-        level: undefined,
-      });
+      const value = makeTraceError({title: 'Test Error', level: undefined});
 
       const node = new ErrorNode(null, value, extra);
       const theme = ThemeFixture();
@@ -556,14 +476,8 @@ describe('ErrorNode', () => {
 
     it('should handle EAPError levels correctly', () => {
       const extra = createMockExtra();
-      const warningValue = makeEAPError({
-        description: 'EAP Warning',
-        level: 'warning',
-      });
-      const errorValue = makeEAPError({
-        description: 'EAP Error',
-        level: 'error',
-      });
+      const warningValue = makeEAPError({description: 'EAP Warning', level: 'warning'});
+      const errorValue = makeEAPError({description: 'EAP Error', level: 'error'});
 
       const warningNode = new ErrorNode(null, warningValue, extra);
       const errorNode = new ErrorNode(null, errorValue, extra);
@@ -575,14 +489,8 @@ describe('ErrorNode', () => {
 
     it('should use warning vibrant token for error and semantic bad token for fatal', () => {
       const extra = createMockExtra();
-      const errorValue = makeTraceError({
-        title: 'Test Error',
-        level: 'error',
-      });
-      const fatalValue = makeTraceError({
-        title: 'Test Fatal',
-        level: 'fatal',
-      });
+      const errorValue = makeTraceError({title: 'Test Error', level: 'error'});
+      const fatalValue = makeTraceError({title: 'Test Fatal', level: 'fatal'});
 
       const errorNode = new ErrorNode(null, errorValue, extra);
       const fatalNode = new ErrorNode(null, fatalValue, extra);

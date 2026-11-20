@@ -282,7 +282,11 @@ describe('SeerDrawerContent', () => {
         autofix={makeAutofix({startStep})}
         group={GroupFixture()}
       />,
-      {organization: OrganizationFixture({features: ['autofix-single-run']})}
+      {
+        organization: OrganizationFixture({
+          features: ['autofix-single-run', 'seat-based-seer-enabled'],
+        }),
+      }
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
@@ -298,9 +302,7 @@ describe('SeerDrawerContent', () => {
   });
 
   describe('out of Seer credits', () => {
-    const organization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-    });
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
     // getsentry fills in the CTA; this stand-in shows what it was asked for.
@@ -534,7 +536,7 @@ describe('SeerDrawerContent', () => {
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
-    it('starts as before without seer-credit-checks', () => {
+    it('starts as before without token-billed Seer', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,
         body: {hasEnoughCredits: false},

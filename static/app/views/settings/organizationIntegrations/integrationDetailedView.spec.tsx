@@ -18,9 +18,7 @@ import * as integrationUtil from 'sentry/utils/integrationUtil';
 import IntegrationDetailedView from './integrationDetailedView';
 
 describe('IntegrationDetailedView', () => {
-  const organization = OrganizationFixture({
-    access: ['org:integrations', 'org:write'],
-  });
+  const organization = OrganizationFixture({access: ['org:integrations', 'org:write']});
 
   function createRouterConfig(integrationSlug: string, query?: Record<string, any>) {
     return {
@@ -101,9 +99,7 @@ describe('IntegrationDetailedView', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'github'})],
-      body: {
-        providers: [GitHubIntegrationProviderFixture()],
-      },
+      body: {providers: [GitHubIntegrationProviderFixture()]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
@@ -113,9 +109,7 @@ describe('IntegrationDetailedView', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/config/integrations/`,
       match: [MockApiClient.matchQuery({provider_key: 'gitlab'})],
-      body: {
-        providers: [GitLabIntegrationProviderFixture()],
-      },
+      body: {providers: [GitLabIntegrationProviderFixture()]},
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/integrations/`,
@@ -726,16 +720,18 @@ describe('IntegrationDetailedView', () => {
 
       // Simulate the gsApp IntegrationFeatures gate reporting the integration as
       // plan-disabled (the default sentry gate always reports enabled).
-      jest.spyOn(integrationUtil, 'getIntegrationFeatureGate').mockReturnValue({
-        IntegrationFeatures: ({children}) =>
-          children({
-            disabled: true,
-            disabledReason: 'Requires a higher plan',
-            ungatedFeatures: [],
-            gatedFeatureGroups: [],
-          }),
-        FeatureList: () => null,
-      });
+      jest
+        .spyOn(integrationUtil, 'getIntegrationFeatureGate')
+        .mockReturnValue({
+          IntegrationFeatures: ({children}) =>
+            children({
+              disabled: true,
+              disabledReason: 'Requires a higher plan',
+              ungatedFeatures: [],
+              gatedFeatureGroups: [],
+            }),
+          FeatureList: () => null,
+        });
 
       render(<IntegrationDetailedView />, {
         initialRouterConfig: createRouterConfig('slack', {showInstallModal: '1'}),

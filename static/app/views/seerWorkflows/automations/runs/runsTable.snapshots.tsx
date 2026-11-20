@@ -143,10 +143,7 @@ const TRIGGER_RUNS: SeerAutomationRun[] = [
     id: '204',
     trigger: makeMonitorTrigger({groupExists: false, groupShortId: null}),
   }),
-  makeRun({
-    id: '203',
-    trigger: makeMonitorTrigger({projectId: '999'}),
-  }),
+  makeRun({id: '203', trigger: makeMonitorTrigger({projectId: '999'})}),
   makeRun({id: '202', strategy: 'agentic_triage_v2', trigger: {type: 'cron'}}),
   makeRun({
     id: '201',
@@ -215,14 +212,16 @@ function renderRunsTable(
   result: Partial<ReturnType<typeof useAutomationRuns>>,
   props: React.ComponentProps<typeof RunsTable> = {}
 ) {
-  jest.mocked(useAutomationRuns).mockReturnValue({
-    runs: [],
-    pageLinks: undefined,
-    isPending: false,
-    isLoadingError: false,
-    refetch: jest.fn(),
-    ...result,
-  });
+  jest
+    .mocked(useAutomationRuns)
+    .mockReturnValue({
+      runs: [],
+      pageLinks: undefined,
+      isPending: false,
+      isLoadingError: false,
+      refetch: jest.fn(),
+      ...result,
+    });
 
   return (
     <AutomationSnapshotFrame width={width}>

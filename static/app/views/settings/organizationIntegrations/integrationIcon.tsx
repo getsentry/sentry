@@ -4,10 +4,7 @@ import styled from '@emotion/styled';
 import {PluginIcon} from 'sentry/icons/pluginIcon';
 import type {Integration} from 'sentry/types/integrations';
 
-type IconProps = {
-  integration: Integration;
-  size?: number;
-};
+type IconProps = {integration: Integration; size?: number};
 
 function ImageIcon(props: IconProps) {
   const [renderFallback, setRenderFallback] = useState(false);

@@ -2580,7 +2580,11 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
 
-    def test_widget_does_not_exist(self) -> None:
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.sentry_sdk.capture_message")
+    @mock.patch("sentry.api.serializers.rest_framework.dashboard.sdk_logger")
+    def test_widget_does_not_exist(
+        self, mock_sdk_logger: mock.MagicMock, mock_capture_message: mock.MagicMock
+    ) -> None:
         response = self.do_request(
             "put",
             self.url(self.dashboard.id),
@@ -2589,6 +2593,15 @@ class OrganizationDashboardDetailsPutTest(OrganizationDashboardDetailsTestCase):
         assert response.status_code == 400
         assert response.data == ["You cannot update widgets that are not part of this dashboard."]
         self.assert_no_changes()
+        mock_sdk_logger.info.assert_called_once()
+        assert (
+            mock_sdk_logger.info.call_args.args[0]
+            == "dashboard.update_widgets.widget_not_in_dashboard"
+        )
+        assert mock_sdk_logger.info.call_args.kwargs["attributes"]["dashboard.widget_id"] == (
+            1234567890
+        )
+        mock_capture_message.assert_not_called()
 
     def test_add_issue_widget_valid_query(self) -> None:
         data = {

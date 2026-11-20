@@ -6,9 +6,7 @@ import {t} from 'sentry/locale';
 import {useOrganizationMutationOptions} from 'sentry/utils/organization/useOrganizationMutationOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const schema = z.object({
-  allowSuperuserAccess: z.boolean(),
-});
+const schema = z.object({allowSuperuserAccess: z.boolean()});
 
 export function DataSecrecy() {
   const organization = useOrganization();

@@ -76,11 +76,7 @@ describe('InstallDetailsContent', () => {
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   afterEach(() => {
@@ -180,10 +176,7 @@ describe('InstallDetailsContent', () => {
   it('shows distribution error reason when no install URL and error code is provided', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
-      body: {
-        platform: 'apple',
-        is_code_signature_valid: true,
-      },
+      body: {platform: 'apple', is_code_signature_valid: true},
     });
 
     render(
@@ -204,10 +197,7 @@ describe('InstallDetailsContent', () => {
   it('shows settings link when error code is distribution_disabled', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
-      body: {
-        platform: 'apple',
-        is_code_signature_valid: true,
-      },
+      body: {platform: 'apple', is_code_signature_valid: true},
     });
 
     render(
@@ -231,10 +221,7 @@ describe('InstallDetailsContent', () => {
   it('shows generic fallback when no install URL and no error code', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
-      body: {
-        platform: 'apple',
-        is_code_signature_valid: true,
-      },
+      body: {platform: 'apple', is_code_signature_valid: true},
     });
 
     render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {
@@ -304,10 +291,7 @@ describe('InstallDetailsContent', () => {
   it('opens the raw install URL for android downloads', async () => {
     MockApiClient.addMockResponse({
       url: INSTALL_DETAILS_URL,
-      body: {
-        platform: 'android',
-        install_url: 'https://example.com/install',
-      },
+      body: {platform: 'android', install_url: 'https://example.com/install'},
     });
 
     render(<InstallDetailsContent artifactId="artifact-1" projectSlug="my-project" />, {

@@ -62,12 +62,7 @@ describe('incremental trace fetch', () => {
       method: 'GET',
       url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
       body: makeEAPTrace([
-        makeEAPSpan({
-          event_id: '5',
-          start_timestamp: 0,
-          end_timestamp: 3,
-          op: 'op5',
-        }),
+        makeEAPSpan({event_id: '5', start_timestamp: 0, end_timestamp: 3, op: 'op5'}),
       ]),
     });
 
@@ -134,24 +129,14 @@ describe('incremental trace fetch', () => {
       method: 'GET',
       url: '/organizations/org-slug/trace/slug2/?include_uptime=1&limit=10000&timestamp=2',
       body: makeEAPTrace([
-        makeEAPSpan({
-          event_id: '5',
-          start_timestamp: 0,
-          end_timestamp: 1,
-          op: 'op5',
-        }),
+        makeEAPSpan({event_id: '5', start_timestamp: 0, end_timestamp: 1, op: 'op5'}),
       ]),
     });
     const mockedResponse3 = MockApiClient.addMockResponse({
       method: 'GET',
       url: '/organizations/org-slug/trace/slug3/?include_uptime=1&limit=10000&timestamp=3',
       body: makeEAPTrace([
-        makeEAPSpan({
-          event_id: '7',
-          start_timestamp: 0,
-          end_timestamp: 1,
-          op: 'op7',
-        }),
+        makeEAPSpan({event_id: '7', start_timestamp: 0, end_timestamp: 1, op: 'op7'}),
       ]),
     });
 

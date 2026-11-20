@@ -34,10 +34,7 @@ export interface EntityHeaderProps {
    *
    * `null` items are dropped so callers can inline conditionals.
    */
-  metadata?: {
-    items: Array<EntityHeaderMetadataItemProps | null>;
-    label: string;
-  };
+  metadata?: {items: Array<EntityHeaderMetadataItemProps | null>; label: string};
   /**
    * People related to this entity — who viewed it, who is participating in it.
    * Rendered as an avatar stack at the head of the stats row.
@@ -52,10 +49,7 @@ export interface EntityHeaderProps {
    *
    * `null` items are dropped so callers can inline conditionals.
    */
-  stats?: {
-    items: Array<EntityHeaderStatProps | null>;
-    label: string;
-  };
+  stats?: {items: Array<EntityHeaderStatProps | null>; label: string};
   /**
    * A single line of secondary text under the title, e.g. an error message.
    *

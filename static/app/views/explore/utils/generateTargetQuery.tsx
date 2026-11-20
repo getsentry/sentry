@@ -90,10 +90,7 @@ export function generateTargetQuery({
   }
 
   // fall back, sort the last column present
-  let sortBy: Sort = {
-    field: newFields[newFields.length - 1]!,
-    kind: 'desc' as const,
-  };
+  let sortBy: Sort = {field: newFields[newFields.length - 1]!, kind: 'desc' as const};
 
   // find the first valid sort and sort on that
   for (const sort of sorts) {
@@ -109,16 +106,9 @@ export function generateTargetQuery({
       newFields.push(field);
     }
 
-    sortBy = {
-      field,
-      kind: sort.kind,
-    };
+    sortBy = {field, kind: sort.kind};
     break;
   }
 
-  return {
-    fields: newFields,
-    search,
-    sortBys: [sortBy],
-  };
+  return {fields: newFields, search, sortBys: [sortBy]};
 }

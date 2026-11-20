@@ -123,9 +123,7 @@ function useWrappedDiscoverQueryBase<T>({
   spanQuery,
   extrapolationMode,
   staleTime,
-}: WrappedDiscoverQueryProps<T> & {
-  pageFiltersReady: boolean;
-}) {
+}: WrappedDiscoverQueryProps<T> & {pageFiltersReady: boolean}) {
   const location = useLocation();
   const organization = useOrganization();
 
@@ -193,11 +191,7 @@ function useWrappedDiscoverQueryBase<T>({
   const data =
     result.isPending && initialData ? initialData : (result.data?.data as T | undefined);
 
-  return {
-    ...result,
-    data,
-    meta,
-  };
+  return {...result, data, meta};
 }
 
 export function useWrappedDiscoverQuery<T>(props: WrappedDiscoverQueryProps<T>) {

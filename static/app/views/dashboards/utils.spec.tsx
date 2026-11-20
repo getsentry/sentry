@@ -21,12 +21,7 @@ import {
 
 describe('Dashboards util', () => {
   const selection = {
-    datetime: {
-      period: '7d',
-      utc: null,
-      start: null,
-      end: null,
-    },
+    datetime: {period: '7d', utc: null, start: null, end: null},
     environments: [],
     projects: [],
   };
@@ -62,19 +57,10 @@ describe('Dashboards util', () => {
     it('uses the dashboard default when no datetime is saved', () => {
       expect(
         getSavedFiltersAsPageFilters(
-          DashboardFixture([], {
-            environment: ['production'],
-            projects: [1],
-            utc: false,
-          })
+          DashboardFixture([], {environment: ['production'], projects: [1], utc: false})
         )
       ).toEqual({
-        datetime: {
-          end: null,
-          period: '24h',
-          start: null,
-          utc: false,
-        },
+        datetime: {end: null, period: '24h', start: null, utc: false},
         environments: ['production'],
         projects: [1],
       });
@@ -264,11 +250,7 @@ describe('Dashboards util', () => {
   describe('flattenErrors', () => {
     it('flattens nested errors', () => {
       const errorResponse = {
-        widgets: [
-          {
-            title: ['Ensure this field has no more than 3 characters.'],
-          },
-        ],
+        widgets: [{title: ['Ensure this field has no more than 3 characters.']}],
       };
       expect(flattenErrors(errorResponse, {})).toEqual({
         title: 'Ensure this field has no more than 3 characters.',
@@ -305,46 +287,26 @@ describe('Dashboards util', () => {
 
   describe('hasUnsavedFilterChanges', () => {
     it('ignores the order of projects', () => {
-      const initialDashboard = {
-        projects: [1, 2],
-      } as DashboardDetails;
-      const location = {
-        ...LocationFixture(),
-        query: {
-          project: ['2', '1'],
-        },
-      };
+      const initialDashboard = {projects: [1, 2]} as DashboardDetails;
+      const location = {...LocationFixture(), query: {project: ['2', '1']}};
 
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of environments', () => {
-      const initialDashboard = {
-        environment: ['alpha', 'beta'],
-      } as DashboardDetails;
-      const location = {
-        ...LocationFixture(),
-        query: {
-          environment: ['beta', 'alpha'],
-        },
-      };
+      const initialDashboard = {environment: ['alpha', 'beta']} as DashboardDetails;
+      const location = {...LocationFixture(), query: {environment: ['beta', 'alpha']}};
 
       expect(hasUnsavedFilterChanges(initialDashboard, location)).toBe(false);
     });
 
     it('ignores the order of releases', () => {
-      const initialDashboard = {
-        filters: {
-          release: ['v1', 'v2'],
-        },
-      } as DashboardDetails;
+      const initialDashboard = {filters: {release: ['v1', 'v2']}} as DashboardDetails;
 
       expect(
         hasUnsavedFilterChanges(initialDashboard, {
           ...LocationFixture(),
-          query: {
-            release: ['v2', 'v1'],
-          },
+          query: {release: ['v2', 'v1']},
         })
       ).toBe(false);
     });
@@ -353,12 +315,7 @@ describe('Dashboards util', () => {
 
 describe('getCurrentPageFilters', () => {
   it('returns empty array for environment when not defined in location query', () => {
-    const location = LocationFixture({
-      query: {
-        project: '1',
-        statsPeriod: '7d',
-      },
-    });
+    const location = LocationFixture({query: {project: '1', statsPeriod: '7d'}});
 
     const result = getCurrentPageFilters(location);
 
@@ -369,11 +326,7 @@ describe('getCurrentPageFilters', () => {
 
   it('returns empty array for environment when environment is undefined', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: undefined,
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: undefined, statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -383,11 +336,7 @@ describe('getCurrentPageFilters', () => {
 
   it('returns empty array for environment when environment is null', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: null,
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: null, statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -397,11 +346,7 @@ describe('getCurrentPageFilters', () => {
 
   it('converts single environment string to array', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: 'production',
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: 'production', statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);
@@ -411,11 +356,7 @@ describe('getCurrentPageFilters', () => {
 
   it('preserves environment array when already an array', () => {
     const location = LocationFixture({
-      query: {
-        project: '1',
-        environment: ['production', 'staging'],
-        statsPeriod: '7d',
-      },
+      query: {project: '1', environment: ['production', 'staging'], statsPeriod: '7d'},
     });
 
     const result = getCurrentPageFilters(location);

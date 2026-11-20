@@ -1,3 +1,4 @@
+import {getDuration} from '@sentry/scraps/duration';
 import type {SelectValue} from '@sentry/scraps/select';
 
 import {RowLine} from 'sentry/components/workflowEngine/form/automationBuilderRowLine';
@@ -6,7 +7,6 @@ import {ConditionBadge} from 'sentry/components/workflowEngine/ui/conditionBadge
 import {t, tct} from 'sentry/locale';
 import type {DataCondition} from 'sentry/types/workflowEngine/dataConditions';
 import {DataConditionType} from 'sentry/types/workflowEngine/dataConditions';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import {useAutomationBuilderErrorContext} from 'sentry/views/automations/components/automationBuilderErrorContext';
 import type {ValidateDataConditionProps} from 'sentry/views/automations/components/automationFormData';
@@ -104,10 +104,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       aria-label={t('Comparison type')}
       value={condition.type}
       options={[
-        {
-          label: 'more than...',
-          value: DataConditionType.EVENT_FREQUENCY_COUNT,
-        },
+        {label: 'more than...', value: DataConditionType.EVENT_FREQUENCY_COUNT},
         {
           label: 'relatively higher than...',
           value: DataConditionType.EVENT_FREQUENCY_PERCENT,
@@ -116,10 +113,7 @@ function ComparisonTypeField({getDefaultComparison}: DataConditionNodeComponentP
       onChange={(option: SelectValue<DataConditionType>) => {
         onUpdate({
           type: option.value,
-          comparison: {
-            ...condition.comparison,
-            ...getDefaultComparison(option.value),
-          },
+          comparison: {...condition.comparison, ...getDefaultComparison(option.value)},
         });
         removeError(condition.id);
       }}

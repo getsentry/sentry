@@ -169,11 +169,7 @@ export function ToolbarSaveAs() {
   });
 
   items.push({
-    ...getSaveAsAlertMenuItem({
-      alertsUrls,
-      submenu: true,
-      disabled: hasTransformations,
-    }),
+    ...getSaveAsAlertMenuItem({alertsUrls, submenu: true, disabled: hasTransformations}),
     details: alertCaseDetails,
   });
 

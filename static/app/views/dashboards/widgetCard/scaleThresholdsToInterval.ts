@@ -27,8 +27,5 @@ export function scaleThresholdsToInterval(
     maxValues.max2 *= scale;
   }
 
-  return {
-    ...thresholds,
-    max_values: maxValues,
-  };
+  return {...thresholds, max_values: maxValues};
 }

@@ -26,7 +26,7 @@ def sync_metadata(integration_id: int) -> None:
     from sentry.integrations.jira_server.integration import JiraServerIntegration
 
     integration = Integration.objects.get(id=integration_id)
-    org_install = integration.organizationintegration_set.first()
+    org_install = integration.organizationintegration_set.first()  # noqa: S035
     if not org_install:
         return
     installation = integration.get_installation(org_install.organization_id)

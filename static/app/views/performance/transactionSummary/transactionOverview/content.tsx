@@ -39,7 +39,6 @@ import {
 import {SEGMENT_SPANS_CURSOR_NAME} from './constants';
 import {EAPChartsWidget} from './eapChartsWidget';
 import {EAPSidebarCharts} from './eapSidebarCharts';
-import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';
 
@@ -68,18 +67,12 @@ export function EAPSummaryContent({
 
   const handleSearch = useCallback(
     (query: string) => {
-      const queryParams = normalizeDateTimeParams({
-        ...location.query,
-        query,
-      });
+      const queryParams = normalizeDateTimeParams({...location.query, query});
 
       // do not propagate pagination when making a new search
       const searchQueryParams = omit(queryParams, 'cursor');
 
-      navigate({
-        pathname: location.pathname,
-        query: searchQueryParams,
-      });
+      navigate({pathname: location.pathname, query: searchQueryParams});
     },
     [location, navigate]
   );
@@ -177,9 +170,7 @@ export function EAPSummaryContent({
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
@@ -193,11 +184,7 @@ export function EAPSummaryContent({
     <Fragment>
       <Layout.Main>
         <Grid
-          columns={{
-            zero: 'auto',
-            xl: 'repeat(2, min-content)',
-            '5xl': 'auto auto 1fr',
-          }}
+          columns={{zero: 'auto', xl: 'repeat(2, min-content)', '5xl': 'auto auto 1fr'}}
           gap="xl"
           marginBottom="xl"
         >
@@ -220,16 +207,14 @@ export function EAPSummaryContent({
           <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
-        <PerformanceAtScaleContextProvider>
-          <SegmentSpansTable
-            eventView={transactionsListEventView}
-            handleDropdownChange={handleTransactionsListSortChange}
-            totalValues={totalValues}
-            transactionName={transactionName}
-            query={query}
-            showViewSampledEventsButton
-          />
-        </PerformanceAtScaleContextProvider>
+        <SegmentSpansTable
+          eventView={transactionsListEventView}
+          handleDropdownChange={handleTransactionsListSortChange}
+          totalValues={totalValues}
+          transactionName={transactionName}
+          query={query}
+          showViewSampledEventsButton
+        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"

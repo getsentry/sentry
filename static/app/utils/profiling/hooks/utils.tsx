@@ -49,32 +49,16 @@ export function transformStatsResponse<F extends string>(
   // into the proposed update for forward compatibility and ease of use
 
   if (yAxes.length === 0) {
-    return {
-      data: [],
-      meta: {
-        dataset,
-        end: 0,
-        start: 0,
-      },
-      timestamps: [],
-    };
+    return {data: [], meta: {dataset, end: 0, start: 0}, timestamps: []};
   }
 
   if (yAxes.length === 1) {
     const {series, meta, timestamps} = transformSingleSeries(dataset, yAxes[0]!, rawData);
-    return {
-      data: [series],
-      meta,
-      timestamps,
-    };
+    return {data: [series], meta, timestamps};
   }
 
   const data: EventsStatsSeries<F>['data'] = [];
-  let meta: EventsStatsSeries<F>['meta'] = {
-    dataset,
-    end: -1,
-    start: -1,
-  };
+  let meta: EventsStatsSeries<F>['meta'] = {dataset, end: -1, start: -1};
   let timestamps: EventsStatsSeries<F>['timestamps'] = [];
 
   let firstAxis = true;
@@ -106,11 +90,7 @@ export function transformStatsResponse<F extends string>(
     firstAxis = false;
   }
 
-  return {
-    data,
-    meta,
-    timestamps,
-  };
+  return {data, meta, timestamps};
 }
 
 export function transformSingleSeries<F extends string>(
@@ -133,11 +113,7 @@ export function transformSingleSeries<F extends string>(
         ? (value: any) => value || ''
         : (value: any) => value;
 
-  const series: EventsStatsSeries<F>['data'][number] = {
-    axis: yAxis,
-    values: [],
-    label,
-  };
+  const series: EventsStatsSeries<F>['data'][number] = {axis: yAxis, values: [], label};
   const meta: EventsStatsSeries<F>['meta'] = {
     dataset,
     end: rawSeries.end,
@@ -151,9 +127,5 @@ export function transformSingleSeries<F extends string>(
     timestamps.push(timestamp);
   }
 
-  return {
-    series,
-    meta,
-    timestamps,
-  };
+  return {series, meta, timestamps};
 }

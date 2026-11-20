@@ -62,12 +62,7 @@ describe('TraceViewMetricsSection', () => {
     eventsRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       method: 'GET',
-      body: {
-        data: [],
-        meta: {
-          fields: {},
-        },
-      },
+      body: {data: [], meta: {fields: {}}},
     });
     recentSearchesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/recent-searches/`,
@@ -180,10 +175,7 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {
-              metricsQuery: 'metric.name:duration',
-              query: 'unrelated:value',
-            },
+            query: {metricsQuery: 'metric.name:duration', query: 'unrelated:value'},
           },
         },
       }
@@ -217,10 +209,7 @@ describe('TraceViewMetricsSection', () => {
         initialRouterConfig: {
           location: {
             pathname: `/organizations/${organization.slug}/traces/trace/${traceId}/`,
-            query: {
-              metricsQuery: 'metric.name:duration',
-              query: 'unrelated:value',
-            },
+            query: {metricsQuery: 'metric.name:duration', query: 'unrelated:value'},
           },
         },
       }
@@ -248,12 +237,7 @@ describe('TraceViewMetricsSection', () => {
     const valuesRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/trace-items/attributes/metric.name/values/`,
       method: 'GET',
-      body: [
-        {
-          key: 'metric.name',
-          value: 'duration',
-        },
-      ],
+      body: [{key: 'metric.name', value: 'duration'}],
     });
 
     render(

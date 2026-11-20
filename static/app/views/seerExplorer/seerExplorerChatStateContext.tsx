@@ -22,13 +22,9 @@ export type PollingState =
   | 'not-polling'
   | 'timed-out';
 
-type ChatState = {
-  polling: PollingState;
-};
+type ChatState = {polling: PollingState};
 
-type PendingRestart = {
-  onSubmit: (userContext: string) => Promise<void>;
-};
+type PendingRestart = {onSubmit: (userContext: string) => Promise<void>};
 
 type SeerExplorerChatState = {
   /** An "Ask Seer" question waiting for the user's reply. Never persisted. */
@@ -39,10 +35,7 @@ type SeerExplorerChatState = {
 };
 
 type ChatStateAction =
-  | {
-      payload: {polling: PollingState; runId: SeerExplorerRunId};
-      type: 'set polling';
-    }
+  | {payload: {polling: PollingState; runId: SeerExplorerRunId}; type: 'set polling'}
   | {payload: SeerExplorerRunId | null; type: 'set run id'}
   /** The unsaved chat on screen was created on the server; it's the same conversation. */
   | {payload: SeerExplorerRunId; type: 'set created run id'}
@@ -97,12 +90,7 @@ function chatStateReducer(
         return state;
       }
       // A pending question belongs to the conversation it was asked in.
-      return {
-        ...state,
-        runId: action.payload,
-        chatPrompt: null,
-        pendingRestart: null,
-      };
+      return {...state, runId: action.payload, chatPrompt: null, pendingRestart: null};
     }
     case 'set created run id': {
       if (state.runId === action.payload) {
@@ -193,10 +181,7 @@ function SeerExplorerChatStatePolling({
     if (runId === null) {
       return;
     }
-    dispatch({
-      type: 'set polling',
-      payload: {runId, polling: pollingState},
-    });
+    dispatch({type: 'set polling', payload: {runId, polling: pollingState}});
   }, [dispatch, runId, pollingState]);
 
   return children;

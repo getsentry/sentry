@@ -67,10 +67,7 @@ describe('IssuesTraceTree', () => {
 
   it('errors only', () => {
     // has +100 issues at the end
-    const tree = IssuesTraceTree.FromTrace(errorsOnlyTrace, {
-      replay: null,
-      organization,
-    });
+    const tree = IssuesTraceTree.FromTrace(errorsOnlyTrace, {replay: null, organization});
 
     const errors = tree.root
       .findAllChildren(

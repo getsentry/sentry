@@ -24,10 +24,7 @@ import {
   selectSdkVersionRows,
 } from 'sentry/views/explore/releases/utils/releaseSdkVersionsApiOptions';
 
-type Props = {
-  organization: Organization;
-  version: string;
-};
+type Props = {organization: Organization; version: string};
 
 export function SdkVersions({organization, version}: Props) {
   const location = useLocation();

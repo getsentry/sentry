@@ -15,9 +15,7 @@ jest.mock('sentry/components/events/eventReplay/replayClipPreview', () => {
 
 describe('ReplaySection', () => {
   const user = UserFixture({id: '1'});
-  const organization = OrganizationFixture({
-    features: ['session-replay'],
-  });
+  const organization = OrganizationFixture({features: ['session-replay']});
 
   beforeEach(() => {
     ConfigStore.set('user', user);
@@ -48,9 +46,7 @@ describe('ReplaySection', () => {
         organization={orgWithGranularPermissions}
         replayId="test-replay-id"
       />,
-      {
-        organization: orgWithGranularPermissions,
-      }
+      {organization: orgWithGranularPermissions}
     );
 
     expect(screen.queryByTestId('replay-clip-preview')).not.toBeInTheDocument();

@@ -348,10 +348,7 @@ describe('formatQueryToNaturalLanguage', () => {
       query: `url:${WildcardOperators.STARTS_WITH}/api`,
       expected: 'url starts with /api ',
     },
-    {
-      query: `path:${WildcardOperators.ENDS_WITH}.js`,
-      expected: 'path ends with .js ',
-    },
+    {query: `path:${WildcardOperators.ENDS_WITH}.js`, expected: 'path ends with .js '},
     {
       query: `!browser.name:${WildcardOperators.CONTAINS}FireFox`,
       expected: 'browser.name does not contain FireFox ',
@@ -384,14 +381,8 @@ describe('formatQueryToNaturalLanguage', () => {
       query: '!message://^GET /api//',
       expected: 'message does not match regex "^GET /api" ',
     },
-    {
-      query: 'message://"v2"//',
-      expected: 'message matches regex "\\"v2\\"" ',
-    },
-    {
-      query: 'message://^GET "v2"//',
-      expected: 'message matches regex "^GET \\"v2\\"" ',
-    },
+    {query: 'message://"v2"//', expected: 'message matches regex "\\"v2\\"" '},
+    {query: 'message://^GET "v2"//', expected: 'message matches regex "^GET \\"v2\\"" '},
   ])('formats $query as $expected', ({query, expected}) => {
     expect(formatQueryToNaturalLanguage(query)).toBe(expected);
   });

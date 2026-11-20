@@ -10,12 +10,7 @@ export default function ProjectDetailContainer() {
   const project = projects.find(p => p.slug === params.projectId);
 
   useRouteAnalyticsParams(
-    project
-      ? {
-          project_id: project.id,
-          project_platform: project.platform,
-        }
-      : {}
+    project ? {project_id: project.id, project_platform: project.platform} : {}
   );
 
   return <ProjectDetail />;

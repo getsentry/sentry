@@ -37,9 +37,7 @@ describe('AddBillingInformation', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/subscription/preview/`,
       method: 'GET',
-      body: {
-        invoiceItems: [],
-      },
+      body: {invoiceItems: []},
     });
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/billing-details/`,

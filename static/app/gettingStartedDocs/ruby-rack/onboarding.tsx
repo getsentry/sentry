@@ -71,9 +71,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'The Sentry SDK for Ruby comes as a gem that should be added to your [gemfileCode:Gemfile]:',
-            {
-              gemfileCode: <code />,
-            }
+            {gemfileCode: <code />}
           ),
         },
         {
@@ -94,20 +92,12 @@ export const onboarding: OnboardingConfig = {
             },
           ],
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getInstallSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getInstallSnippet(params)},
         {
           type: 'text',
           text: t('After adding the gems, run the following to install the SDK:'),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: 'bundle install',
-        },
+        {type: 'code', language: 'ruby', code: 'bundle install'},
       ],
     },
   ],
@@ -119,16 +109,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Add [code:use Sentry::Rack::CaptureExceptions] to your [code:config.ru] or other rackup file (this is automatically inserted in Rails):',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'ruby',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'ruby', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -144,13 +128,7 @@ export const onboarding: OnboardingConfig = {
         },
         {
           type: 'code',
-          tabs: [
-            {
-              label: 'ruby',
-              language: 'ruby',
-              code: getVerifySnippet(),
-            },
-          ],
+          tabs: [{label: 'ruby', language: 'ruby', code: getVerifySnippet()}],
         },
       ],
     },

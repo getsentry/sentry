@@ -2,10 +2,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleCommonAffixData: CategoricalSeries = {
   valueAxis: 'count()',
-  meta: {
-    valueType: 'integer',
-    valueUnit: null,
-  },
+  meta: {valueType: 'integer', valueUnit: null},
   values: [
     {category: '/api/v2/organizations/:orgId/projects', value: 1250},
     {category: '/api/v2/organizations/:orgId/teams', value: 890},

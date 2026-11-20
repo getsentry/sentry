@@ -4,11 +4,7 @@ import {determineTimeSeriesConfidence} from './determineSeriesConfidence';
 
 describe('determineTimeSeriesConfidence', () => {
   it('equal null if no data', () => {
-    const confidence = determineTimeSeriesConfidence(
-      TimeSeriesFixture({
-        values: [],
-      })
-    );
+    const confidence = determineTimeSeriesConfidence(TimeSeriesFixture({values: []}));
     expect(confidence).toBeNull();
   });
 

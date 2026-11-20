@@ -637,9 +637,7 @@ export const ClearButton = styled(Button)`
 
 const withUnits = (value: unknown) => (typeof value === 'string' ? value : `${value}px`);
 
-const StyledOverlay = styled(Overlay, {
-  shouldForwardProp: prop => isPropValid(prop),
-})<{
+const StyledOverlay = styled(Overlay, {shouldForwardProp: prop => isPropValid(prop)})<{
   maxHeightProp: string | number;
   height?: string | number;
   maxHeight?: string | number;

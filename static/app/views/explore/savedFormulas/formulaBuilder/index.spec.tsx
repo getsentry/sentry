@@ -74,9 +74,7 @@ describe('FormulaBuilderPage', () => {
       body: formula,
     });
 
-    const suggestedNumber = await screen.findByRole('textbox', {
-      name: 'Suggested value',
-    });
+    const suggestedNumber = await screen.findByRole('textbox', {name: 'Suggested value'});
     expect(suggestedNumber).toHaveValue('300');
     expect(screen.getByRole('button', {name: 'Suggested value'})).toHaveTextContent(
       'span.duration'

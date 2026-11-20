@@ -1,7 +1,4 @@
-type Annotation = {
-  key: string;
-  values: string[];
-};
+type Annotation = {key: string; values: string[]};
 
 export type Trace = {
   device_classification: string;
@@ -34,10 +31,6 @@ type Span = {
   thread_name: string;
   annotations?: readonly Annotation[];
   children?: readonly Span[];
-  network_request?: Readonly<{
-    method: string;
-    status_code: number;
-    success: boolean;
-  }>;
+  network_request?: Readonly<{method: string; status_code: number; success: boolean}>;
   queue_label?: string;
 };

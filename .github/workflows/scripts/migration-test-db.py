@@ -4,6 +4,11 @@
 With --reuse-db, pytest keeps a restored database and only applies the
 migrations added since it was dumped, instead of running every migration.
 
+`save` builds the databases with a no-op test and dumps them before the real
+tests run. Tests leave rows behind in tables whose models were removed, since
+Django's flush only truncates tables of models it knows, and a dump taken after
+the tests would hand those rows to every later run.
+
 Usage: migration-test-db.py save|restore DIR
 """
 
@@ -20,6 +25,7 @@ POSTGRES_USER = "postgres"
 TEST_DATABASES = ("test_region", "test_control", "test_secondary")
 MIGRATION_GLOB = "src/**/migrations/*.py"
 MANIFEST = "migrations.txt"
+NOOP_MIGRATION_TEST = "tests/sentry/migrations/test_noop.py"
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 
@@ -34,7 +40,27 @@ def postgres(*args: str, stdin: BinaryIO | None = None, stdout: BinaryIO | None 
     )
 
 
+def migrate() -> None:
+    subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pytest",
+            NOOP_MIGRATION_TEST,
+            "-m",
+            "migrations",
+            "--migrations",
+            "--reuse-db",
+            "-p",
+            "no:cacheprovider",
+        ],
+        check=True,
+        cwd=REPO_ROOT,
+    )
+
+
 def save(cache_dir: Path) -> None:
+    migrate()
     cache_dir.mkdir(parents=True, exist_ok=True)
     for db in TEST_DATABASES:
         with open(cache_dir / f"{db}.dump", "wb") as f:

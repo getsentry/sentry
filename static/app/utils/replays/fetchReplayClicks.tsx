@@ -10,10 +10,7 @@ type Props = {
   replayId: string;
 };
 
-type NodeMarker = {
-  node_id: number;
-  timestamp: string;
-};
+type NodeMarker = {node_id: number; timestamp: string};
 
 export async function fetchReplayClicks({
   api,
@@ -26,24 +23,14 @@ export async function fetchReplayClicks({
   try {
     const [{data}, _textStatus, resp] = await api.requestPromise(path, {
       includeAllArgs: true,
-      query: {
-        query,
-      },
+      query: {query},
     });
 
     const pageLinks = resp?.getResponseHeader('Link') ?? '';
 
-    return {
-      fetchError: undefined,
-      pageLinks,
-      clicks: data as NodeMarker[],
-    };
+    return {fetchError: undefined, pageLinks, clicks: data as NodeMarker[]};
   } catch (error) {
     Sentry.captureException(error);
-    return {
-      fetchError: error,
-      pageLinks: null,
-      clicks: [],
-    };
+    return {fetchError: error, pageLinks: null, clicks: []};
   }
 }

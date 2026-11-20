@@ -25,11 +25,7 @@ interface IssueAlertDetailsProps extends DateTimeObject {
 }
 
 type WorkflowStatsResponse = {
-  meta: {
-    dataset: string;
-    end: number;
-    start: number;
-  };
+  meta: {dataset: string; end: number; start: number};
   timeSeries: [TimeSeries];
 };
 
@@ -88,13 +84,8 @@ export function AutomationStatsChart({
               top: theme.space['2xl'],
               bottom: 0,
             }}
-            yAxis={{
-              minInterval: 1,
-            }}
-            xAxis={{
-              min: stats.meta.start,
-              max: stats.meta.end,
-            }}
+            yAxis={{minInterval: 1}}
+            xAxis={{min: stats.meta.start, max: stats.meta.end}}
             series={[
               {
                 seriesName: t('Alerts Triggered'),
@@ -102,9 +93,7 @@ export function AutomationStatsChart({
                   name: timestamp,
                   value: value ?? 0,
                 })),
-                emphasis: {
-                  disabled: true,
-                },
+                emphasis: {disabled: true},
                 animation: false,
               },
             ]}

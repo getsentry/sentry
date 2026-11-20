@@ -22,10 +22,7 @@ import {getIssueViewQueryParams} from './issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from './types';
 
-type Props = {
-  children: React.ReactNode;
-  title?: string;
-};
+type Props = {children: React.ReactNode; title?: string};
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
@@ -58,10 +55,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${view.id}/`,
-          query: {
-            ...getIssueViewQueryParams({view}),
-            ...query,
-          },
+          query: {...getIssueViewQueryParams({view}), ...query},
         }),
         {replace: true}
       );

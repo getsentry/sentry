@@ -94,18 +94,12 @@ function SentryAppExternalInstallationContent() {
               getApiUrl('/organizations/$organizationIdOrSlug/', {
                 path: {organizationIdOrSlug: orgSlug},
               }),
-              {
-                query: {
-                  include_feature_flags: 1,
-                },
-              }
+              {query: {include_feature_flags: 1}}
             ),
             api.requestPromise(
               getApiUrl(
                 '/organizations/$organizationIdOrSlug/sentry-app-installations/',
-                {
-                  path: {organizationIdOrSlug: orgSlug},
-                }
+                {path: {organizationIdOrSlug: orgSlug}}
               )
             ),
           ]);
@@ -307,10 +301,7 @@ function CheckAndRenderError({
   return null;
 }
 
-type SingleOrgProps = {
-  organizations: OrganizationSummary[];
-  sentryApp: SentryApp;
-};
+type SingleOrgProps = {organizations: OrganizationSummary[]; sentryApp: SentryApp};
 function SingleOrgView({organizations, sentryApp}: SingleOrgProps) {
   const organizationName = organizations[0]!.name;
   return (
@@ -344,10 +335,7 @@ function MultiOrgView({
       <p>
         {tct(
           'Please pick a specific [organization:organization] to install [sentryAppName]',
-          {
-            organization: <strong />,
-            sentryAppName: <strong>{sentryApp.name}</strong>,
-          }
+          {organization: <strong />, sentryAppName: <strong>{sentryApp.name}</strong>}
         )}
       </p>
       <FieldGroup label={t('Organization')} inline={false} stacked required>

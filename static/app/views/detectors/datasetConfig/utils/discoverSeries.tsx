@@ -1,8 +1,9 @@
+import {getDuration} from '@sentry/scraps/duration';
+
 import type {Series} from 'sentry/types/echarts';
 import type {EventsStats, Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import type {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {
   EAP_EXTRAPOLATION_MODE_MAP,
   ExtrapolationMode,
@@ -18,10 +19,7 @@ export function transformEventsStatsToSeries(
   seriesName: string
 ): Series {
   if (!stats?.data?.length) {
-    return {
-      seriesName,
-      data: [],
-    };
+    return {seriesName, data: []};
   }
 
   return {
@@ -47,10 +45,7 @@ export function transformEventsStatsComparisonSeries(
   );
 
   if (!hasComparisonData || !stats?.data?.length) {
-    return {
-      seriesName: 'Comparison',
-      data: [],
-    };
+    return {seriesName: 'Comparison', data: []};
   }
 
   return {
@@ -89,9 +84,7 @@ interface DiscoverSeriesQueryOptions {
   /**
    * Extra query parameters to pass
    */
-  extra?: {
-    useOnDemandMetrics: 'true';
-  };
+  extra?: {useOnDemandMetrics: 'true'};
   extrapolationMode?: ExtrapolationMode;
   start?: string | null;
   /**
@@ -119,7 +112,7 @@ export function getDiscoverSeriesQueryOptions({
     {
       path: {organizationIdOrSlug: organization.slug},
       query: {
-        interval: getDuration(interval, 0, false, true),
+        interval: getDuration(interval, {style: 'narrow'}),
         project: [projectId],
         yAxis: aggregate,
         dataset,

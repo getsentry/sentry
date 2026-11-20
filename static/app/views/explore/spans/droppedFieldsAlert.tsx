@@ -32,9 +32,7 @@ export function DroppedFieldsAlert(): React.JSX.Element | null {
   const changedReason = savedQuery.changedReason;
   if (changedReason.columns.length > 0) {
     columnsWarning.push(
-      tct('[columns] is no longer supported', {
-        columns: changedReason.columns.join(', '),
-      })
+      tct('[columns] is no longer supported', {columns: changedReason.columns.join(', ')})
     );
   }
   if (changedReason.equations) {

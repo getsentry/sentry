@@ -130,10 +130,7 @@ export function SavedQueriesTable({
   const getHandleUpdateFromSavedQuery = useCallback(
     (savedQuery: CombinedSavedQuery) => {
       return ({name}: {name: string}) => {
-        return updateQueryFromSavedQuery({
-          ...savedQuery,
-          name,
-        } as CombinedSavedQuery);
+        return updateQueryFromSavedQuery({...savedQuery, name} as CombinedSavedQuery);
       };
     },
     [updateQueryFromSavedQuery]
@@ -148,10 +145,7 @@ export function SavedQueriesTable({
 
   const handleCursor: CursorHandler = _cursor => {
     const {pathname, query} = location;
-    navigate({
-      pathname,
-      query: {...query, [cursorKey]: _cursor},
-    });
+    navigate({pathname, query: {...query, [cursorKey]: _cursor}});
   };
 
   const debouncedOnClick = useMemo(
