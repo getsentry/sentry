@@ -8,7 +8,7 @@ from pathlib import Path
 
 from tools.api_guidelines.entries import EXCEPTIONS_PATH, describe_entry, diff_entries
 from tools.api_guidelines.owners import UNOWNED
-from tools.api_guidelines.rules import BASELINED_RULES, ApiRule
+from tools.api_guidelines.rules import BASELINED_RULES, RULE_SUMMARIES, ApiRule
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
@@ -186,6 +186,21 @@ def _text_row(row: list[str], width: int) -> str:
     return text
 
 
+def format_legend(markdown: bool) -> list[str]:
+    """What each rule column in the table means -> one line per column
+    `markdown` True for a markdown list, False for plain text
+    Returns lines like "S026  query or body param read without a declared serializer"
+    """
+    lines: list[str] = []
+    for rule in rule_columns():
+        summary = RULE_SUMMARIES[ApiRule(rule)]
+        if markdown:
+            lines.append(f"- `{rule}` {summary}")
+        else:
+            lines.append(f"{rule}  {summary}")
+    return lines
+
+
 def team_findings(entries: list[Entry], team: str) -> list[str]:
     """One team's entries, one line each, in the file's order (path, scope, rule, key)
     `entries` every entry in exceptions.json
@@ -331,7 +346,12 @@ def main(argv: list[str] | None = None) -> int:
         for line in lines:
             print(line)
     else:
-        for line in format_table(entries, markdown=args.format == "markdown"):
+        markdown = args.format == "markdown"
+        for line in format_table(entries, markdown=markdown):
+            print(line)
+        # the columns stay as codes so the table is narrow, the legend says what they mean
+        print()
+        for line in format_legend(markdown=markdown):
             print(line)
 
     if older is not None:

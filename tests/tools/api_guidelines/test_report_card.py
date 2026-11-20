@@ -7,11 +7,13 @@ import pytest
 
 from tools.api_guidelines.report_card import (
     format_changes,
+    format_legend,
     format_table,
     main,
     rule_columns,
     team_findings,
 )
+from tools.api_guidelines.rules import RULE_SUMMARIES, ApiRule
 
 FEED = "src/sentry/api/endpoints/feed.py"
 INGEST = "src/sentry/api/endpoints/ingest.py"
@@ -80,14 +82,29 @@ def test_table_sums_each_entrys_count_with_unowned_last() -> None:
     ]
 
 
-def test_main_prints_the_header_and_the_table(
+@pytest.mark.parametrize("markdown", [False, True])
+def test_legend_has_one_line_per_rule_column(markdown: bool) -> None:
+    columns = rule_columns()
+    lines = format_legend(markdown=markdown)
+
+    # check one line per column in the same order so it lists every rule in the table and nothing else
+    assert len(lines) == len(columns)
+    for line, rule in zip(lines, columns):
+        assert rule in line
+        assert RULE_SUMMARIES[ApiRule(rule)] in line
+
+
+def test_main_prints_the_table_and_its_legend(
     exceptions: Path, capsys: pytest.CaptureFixture[str]
 ) -> None:
     assert main(["--exceptions", str(exceptions)]) == 0
 
     out = capsys.readouterr().out
-    assert "issues-feed" in out
-    assert out.splitlines()[-1].split() == ["total", "5", "0", "4", "0", "1", "3"]
+    legend = format_legend(markdown=False)
+    assert out.endswith("\n".join(legend) + "\n")
+    # the total row is the table's last line, right before the blank line and the legend
+    total_row = out.splitlines()[-len(legend) - 2]
+    assert total_row.split() == ["total", "5", "0", "4", "0", "1", "3"]
 
 
 def test_main_lists_one_teams_entries(exceptions: Path, capsys: pytest.CaptureFixture[str]) -> None:
