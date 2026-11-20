@@ -35,16 +35,6 @@ class Migration(CheckedMigration):
         ),
         migrations.AddField(
             model_name="artifactbundle",
-            name="content_type",
-            field=models.TextField(null=True),
-        ),
-        migrations.AddField(
-            model_name="artifactbundle",
-            name="date_created",
-            field=models.DateTimeField(null=True),
-        ),
-        migrations.AddField(
-            model_name="artifactbundle",
             name="file_size",
             field=sentry.db.models.fields.bounded.BoundedBigIntegerField(null=True),
         ),

@@ -70,9 +70,7 @@ class ArtifactBundle(Model):
     file = FlexibleForeignKey("sentry.File", null=True)
     storage_path = models.TextField(null=True)
     checksum = models.CharField(max_length=40, null=True)
-    content_type = models.TextField(null=True)
     file_size = BoundedBigIntegerField(null=True)
-    date_created = models.DateTimeField(null=True)
     artifact_count = BoundedPositiveIntegerField()
     indexing_state = models.IntegerField(
         default=None, null=True, choices=ArtifactBundleIndexingState.choices()
