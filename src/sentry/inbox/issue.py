@@ -28,6 +28,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import TeamStatus
+from sentry.notifications.platform.templates.activity.base import build_activity_notification_data
 from sentry.notifications.types import NotificationSettingEnum
 
 if TYPE_CHECKING:
@@ -168,10 +169,6 @@ class IssueActivityNotifier[DataT: InboxEventData](InboxNotifier[Group, DataT]):
         url: str,
         target: NotificationTarget,
     ) -> NotificationData:
-        from sentry.notifications.platform.templates.activity.base import (
-            build_activity_notification_data,
-        )
-
         activity = Activity.objects.get(id=self.get_activity_id(data), group=subject)
         return build_activity_notification_data(activity, target=target, inbox_url=url)
 

@@ -3,6 +3,8 @@ from dataclasses import replace
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from django.db import router, transaction
+
 from sentry.inbox.issue import (
     ISSUE,
     ISSUE_PR_READY_FOR_REVIEW,
@@ -173,6 +175,24 @@ class InboxNotificationsTest(TestCase):
         assert _sent(notify_async) == [(NotificationSource.ACTIVITY_NOTE, "recipient@example.com")]
 
     @with_feature(INBOX_FEATURES)
+    def test_notifies_after_commit(self, notify_async: MagicMock) -> None:
+        note = self.create_group_activity(type=ActivityType.NOTE.value, data={"text": "hi"})
+
+        with transaction.atomic(using=router.db_for_write(InboxItemEvent)):
+            create_inbox_items(
+                event_type=ISSUE_USER_MENTIONED,
+                subject=self.group,
+                data=IssueMentionedData(comment_id=note.id),
+                user_ids=[self.recipient.id],
+                actor=SYSTEM_ACTOR,
+            )
+
+            assert InboxItemEvent.objects.filter(inbox_item__user_id=self.recipient.id).exists()
+            assert _sent(notify_async) == []
+
+        assert _sent(notify_async) == [(NotificationSource.ACTIVITY_NOTE, "recipient@example.com")]
+
+    @with_feature(INBOX_FEATURES)
     def test_assignment_notifies_assignee(self, notify_async: MagicMock) -> None:
         GroupAssignee.objects.assign(self.group, self.recipient, acting_user=self.user)
 
@@ -326,6 +346,21 @@ class GetInboxNotifiedUserIdsTest(TestCase):
             self.user.id,
             self.recipient.id,
         }
+
+    @with_feature(INBOX_FEATURES)
+    def test_excludes_users_without_project_access(self) -> None:
+        outsider = self.create_user()
+        self.create_member(organization=self.organization, user=outsider)
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        self.group = Group.objects.get(id=self.group.id)
+
+        assert (
+            self._activity(
+                ActivityType.ASSIGNED, {"assignee": str(outsider.id), "assigneeType": "user"}
+            )
+            == set()
+        )
 
     @with_feature(INBOX_FEATURES)
     def test_other_activity_types(self) -> None:

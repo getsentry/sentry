@@ -1,9 +1,12 @@
 from collections.abc import Iterable, Sequence
+from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
 from sentry.inbox.event_data import InboxEventData
+from sentry.inbox.issue import ISSUE
 from sentry.inbox.types import InboxActor, InboxEventType
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
@@ -12,6 +15,7 @@ from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
 from sentry.types.activity import ActivityType
 from sentry.types.actor import ActorType
+from sentry.utils.safe import safe_execute
 
 _INBOX_NOTIFIED_ACTIVITY_TYPES = frozenset(
     {
@@ -53,12 +57,17 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
         subject=subject, data=data, recipient_user_ids=recipient_user_ids, actor=actor
     )
     if events and features.has("organizations:universal-inbox-notifications", organization):
-        _send_notifications(
-            organization=organization,
-            event_type=event_type,
-            subject=subject,
-            data=data,
-            events=events,
+        transaction.on_commit(
+            partial(
+                safe_execute,
+                _send_notifications,
+                organization=organization,
+                event_type=event_type,
+                subject=subject,
+                data=data,
+                events=events,
+            ),
+            using=router.db_for_write(InboxItemEvent),
         )
 
 
@@ -97,8 +106,11 @@ def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
             return set()
 
     recipient_user_ids = set(
-        _get_recipient_user_ids(
-            organization_id=organization.id, user_ids=user_ids, team_ids=team_ids
+        ISSUE.filter_recipients(
+            subject=activity.group,
+            user_ids=_get_recipient_user_ids(
+                organization_id=organization.id, user_ids=user_ids, team_ids=team_ids
+            ),
         )
     )
     if activity.user_id is not None:
