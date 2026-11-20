@@ -795,6 +795,28 @@ describe('ProjectFilters', () => {
     ).toBeInTheDocument();
   });
 
+  it('joins the conditions of a filter with AND', async () => {
+    renderInboundFilters([
+      CustomInboundFilterFixture({
+        id: '1',
+        name: 'One condition',
+        conditions: [{type: 'release', value: ['1.*']}],
+      }),
+      CustomInboundFilterFixture({
+        id: '2',
+        name: 'Three conditions',
+        conditions: [
+          {type: 'release', value: ['1.*']},
+          {type: 'error_message', value: ['*timeout*']},
+          {type: 'error_value', value: ['*boom*']},
+        ],
+      }),
+    ]);
+
+    expect(await screen.findByText('Three conditions')).toBeInTheDocument();
+    expect(screen.getAllByText('and')).toHaveLength(2);
+  });
+
   it('edits the lines of a legacy list row as text', async () => {
     // A legacy list of the project settings moves into the table as one row with
     // one condition. Its lines stay a plain list, comments included, instead of a
@@ -1357,9 +1379,10 @@ describe('ProjectFilters', () => {
     ]);
 
     expect(await screen.findByText('Old or odd releases')).toBeInTheDocument();
-    // A negated list reads with "and": the release must match none of them.
+    // A negated list reads with "and": the release must match none of them. The
+    // other four join the five conditions.
     expect(screen.getByText('does not start with')).toBeInTheDocument();
-    expect(screen.getByText('and')).toBeInTheDocument();
+    expect(screen.getAllByText('and')).toHaveLength(5);
     expect(screen.getByText('<')).toBeInTheDocument();
     expect(screen.getByText('contains')).toBeInTheDocument();
     expect(screen.getByText('is')).toBeInTheDocument();
