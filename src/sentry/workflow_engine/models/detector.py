@@ -277,9 +277,6 @@ class Detector(DefaultFieldsModel, OwnerModel, JSONConfigBase):
         if self.project_id is None:
             return self.config.get("organization_id")
 
-        organization_id = getattr(self, "project_organization_id", None)
-        if organization_id is not None:
-            return organization_id
         if is_model_attr_cached(self, "project"):
             return self.linked_project.organization_id
         return Project.objects.get_from_cache(id=self.project_id).organization_id
