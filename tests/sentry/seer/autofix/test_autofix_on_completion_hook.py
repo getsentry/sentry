@@ -3086,7 +3086,8 @@ class TestSingleRunRootCause(TestCase):
 
         assert single_run_root_cause_payload(state) == {
             "headline": "H",
-            "one_line_description": "C",
+            "cause": "C",
+            "one_line_description": "H",
             "five_whys": [],
             "reproduction_steps": [],
         }
@@ -3223,7 +3224,9 @@ class TestSingleRunCompletion(TestCase):
 
         assert self._events(mocks) == ["root_cause_completed"]
         payload = mocks["broadcast"].call_args.kwargs["payload"]
-        assert payload["root_cause"]["one_line_description"] == "C"
+        assert payload["root_cause"]["headline"] == "H"
+        assert payload["root_cause"]["cause"] == "C"
+        assert payload["root_cause"]["one_line_description"] == "H"
         assert Activity.objects.filter(
             group=self.group, type=ActivityType.SEER_RCA_COMPLETED.value
         ).exists()
