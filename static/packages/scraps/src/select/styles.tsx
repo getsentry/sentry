@@ -3,11 +3,7 @@ import styled from '@emotion/styled';
 
 import type {FormSize, Theme} from '@sentry/scraps/theme';
 
-export const CheckWrap = styled('div')<{
-  isMultiple: boolean;
-  isSelected: boolean;
-  size: FormSize;
-}>`
+export const CheckWrap = styled('div')<{isMultiple: boolean; isSelected: boolean}>`
   display: flex;
   justify-content: center;
   align-items: center;

@@ -1,5 +1,4 @@
 // Based on https://github.com/romgain/react-select-event
-// Switched from fireEvent to userEvent to avoid act warnings in react 18
 
 // Copyright 2019 Romain Bertrand
 //
@@ -59,24 +58,6 @@ const openMenu = async (
   await user.click(getSelectInput(input), {skipHover: true});
 };
 
-/**
- * Type text in the input field
- */
-const type = async (
-  input: HTMLElement,
-  text: string,
-  {user}: Required<UserEventOptions>
-) => {
-  await user.type(input, text);
-};
-
-/**
- * Press the "clear" button, and reset various states
- */
-const clear = async (clearButton: Element, {user}: Required<UserEventOptions>) => {
-  await user.click(clearButton, {skipHover: true});
-};
-
 interface Config extends UserEventOptions {
   /**
    * A container where the dropdown gets rendered to.
@@ -99,7 +80,6 @@ const select = async (
   input = getSelectInput(input);
   const options = Array.isArray(optionOrOptions) ? optionOrOptions : [optionOrOptions];
 
-  // Select the items we care about
   for (const option of options) {
     if (input.getAttribute('aria-expanded') !== 'true') {
       await openMenu(input, {user});
@@ -127,7 +107,7 @@ const select = async (
   }
 };
 
-interface CreateConfig extends Config, UserEventOptions {
+interface CreateConfig extends Config {
   /**
    * Custom label for the "create new ..." option in the menu (string or regexp)
    */
@@ -151,7 +131,7 @@ const create = async (
   input = getSelectInput(input);
   const createOptionText = config.createOptionText || /^Create "/;
   await openMenu(input, {user});
-  await type(input, option, {user});
+  await user.type(input, option);
 
   await select(input, createOptionText, {...config, user});
 
@@ -161,7 +141,7 @@ const create = async (
 };
 
 /**
- * Clears the first value of a `react-select` dropdown.
+ * Clears the first value of a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  */
 const clearFirst = async (
@@ -170,11 +150,11 @@ const clearFirst = async (
 ) => {
   const container = getSelectContainer(input);
   const clearButton = within(container).getAllByRole('button', {name: 'Remove item'})[0]!;
-  await clear(clearButton, {user});
+  await user.click(clearButton, {skipHover: true});
 };
 
 /**
- * Clears all values in a `react-select` dropdown.
+ * Clears all values in a Select dropdown.
  * @param input The input field (eg. `getByLabelText('The label')`)
  */
 const clearAll = async (
@@ -182,10 +162,10 @@ const clearAll = async (
   {user = userEvent}: UserEventOptions = {}
 ) => {
   const container = getSelectContainer(input);
-  await clear(
+  await user.click(
     within(container).queryByRole('button', {name: 'Clear choices'}) ??
       within(container).getAllByRole('button', {name: 'Remove item'})[0]!,
-    {user}
+    {skipHover: true}
   );
 };
 

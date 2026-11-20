@@ -494,19 +494,24 @@ describe('SelectField keyboard navigation', () => {
   it('navigates options with arrow keys', async () => {
     render(<TestForm label="Favorite Fruit" />);
 
-    await userEvent.click(screen.getByRole('combobox'));
+    const input = screen.getByRole('combobox');
+    await userEvent.click(input);
 
-    // First option is focused by default
-    expect(screen.getByRole('option', {name: 'Apple'})).toHaveClass('option--is-focused');
-
-    await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('option', {name: 'Banana'})).toHaveClass(
-      'option--is-focused'
+    expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', {name: 'Apple'}).id
     );
 
     await userEvent.keyboard('{ArrowDown}');
-    expect(screen.getByRole('option', {name: 'Cherry'})).toHaveClass(
-      'option--is-focused'
+    expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', {name: 'Banana'}).id
+    );
+
+    await userEvent.keyboard('{ArrowDown}');
+    expect(input).toHaveAttribute(
+      'aria-activedescendant',
+      screen.getByRole('option', {name: 'Cherry'}).id
     );
   });
 

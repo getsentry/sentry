@@ -62,7 +62,7 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
 
   return (
     <ClassNames>
-      {({css, cx}) => (
+      {({css}) => (
         <ListItem
           {...option}
           {...mergeProps(optionProps, {
@@ -71,17 +71,10 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
           {...row.props}
           ref={mergeRefs<HTMLLIElement>(ref, row.props?.ref)}
           {...{
-            className: cx(
-              {
-                option: true,
-                'option--is-selected': isSelected,
-                'option--is-focused': isFocused,
-                'option--is-disabled': isDisabled,
-              },
-              option &&
-                styleOption &&
-                css(styleOption({}, {data: option, isDisabled, isSelected}))
-            ),
+            className:
+              option && styleOption
+                ? css(styleOption({}, {data: option, isDisabled, isSelected}))
+                : undefined,
           }}
           data-test-id={option?.value == null ? undefined : String(option.value)}
           label={label}
@@ -102,7 +95,6 @@ export function SelectOption<TValue, TOption extends SelectValue<TValue>>({
                   aria-hidden="true"
                   isMultiple={multiple}
                   isSelected={isSelected}
-                  size={size}
                 >
                   {isSelected && <IconCheckmark size={multiple ? 'xs' : 'sm'} />}
                 </CheckWrap>
