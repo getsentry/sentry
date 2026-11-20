@@ -6,7 +6,6 @@ import {mergeRefs} from '@react-aria/utils';
 import type {CSS} from '@sentry/scraps/cssTypes';
 import type {
   BorderVariant,
-  BorderWidth,
   RadiusSize,
   SpaceSize,
   SurfaceVariant,
@@ -14,7 +13,7 @@ import type {
 
 import {
   ContainerQueryProvider,
-  getBorderLonghands,
+  getBorder,
   getMargin,
   getRadius,
   getSpacing,
@@ -82,19 +81,13 @@ interface ContainerLayoutProps {
   maxHeight?: Responsive<CSS['maxHeight']>;
 
   /**
-   * Border color on all sides. Renders a solid border at the `md` width (1px)
-   * unless `borderWidth` overrides it.
+   * Border color on all sides. Renders a 1px solid border.
    */
   borderColor?: Responsive<BorderVariant>;
   borderTopColor?: Responsive<BorderVariant>;
   borderBottomColor?: Responsive<BorderVariant>;
   borderLeftColor?: Responsive<BorderVariant>;
   borderRightColor?: Responsive<BorderVariant>;
-  /**
-   * Border width token for every side that has a border color. Defaults to `md`
-   * (1px). Set on its own, it draws a `primary` border on all sides.
-   */
-  borderWidth?: Responsive<BorderWidth>;
 
   // Grid Item Properties
   area?: Responsive<CSS['gridArea']>;
@@ -221,7 +214,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'borderBottomColor',
   'borderLeftColor',
   'borderRightColor',
-  'borderWidth',
   'bottom',
   'column',
   'contain',
@@ -264,35 +256,6 @@ const omitContainerProps = new Set<keyof ContainerLayoutProps | 'as'>([
   'width',
   'whiteSpace',
 ]);
-
-/**
- * `borderWidth` on its own asks for a border, so it falls back to `primary` on
- * all sides when no border color prop is set. Otherwise it only sizes the sides
- * that have a color.
- */
-function resolveBorderColor(
-  p: Pick<
-    ContainerLayoutProps,
-    | 'borderColor'
-    | 'borderTopColor'
-    | 'borderBottomColor'
-    | 'borderLeftColor'
-    | 'borderRightColor'
-    | 'borderWidth'
-  >
-): Responsive<BorderVariant> | undefined {
-  if (p.borderColor !== undefined || p.borderWidth === undefined) {
-    return p.borderColor;
-  }
-
-  const hasSideColor =
-    p.borderTopColor !== undefined ||
-    p.borderBottomColor !== undefined ||
-    p.borderLeftColor !== undefined ||
-    p.borderRightColor !== undefined;
-
-  return hasSideColor ? undefined : 'primary';
-}
 
 export const Container = styled(
   <T extends ContainerElement = 'div'>(
@@ -408,11 +371,11 @@ export const Container = styled(
   ${p => rc('align-self', p.alignSelf, p.theme)};
   ${p => rc('justify-self', p.justifySelf, p.theme)};
 
-  ${p => getBorderLonghands('border', resolveBorderColor(p), p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-top', p.borderTopColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-bottom', p.borderBottomColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-left', p.borderLeftColor, p.borderWidth, p.theme)};
-  ${p => getBorderLonghands('border-right', p.borderRightColor, p.borderWidth, p.theme)};
+  ${p => rc('border', p.borderColor, p.theme, getBorder)};
+  ${p => rc('border-top', p.borderTopColor, p.theme, getBorder)};
+  ${p => rc('border-bottom', p.borderBottomColor, p.theme, getBorder)};
+  ${p => rc('border-left', p.borderLeftColor, p.theme, getBorder)};
+  ${p => rc('border-right', p.borderRightColor, p.theme, getBorder)};
 
   ${p => rc('visibility', p.visibility, p.theme)};
   ${p => rc('white-space', p.whiteSpace, p.theme)};

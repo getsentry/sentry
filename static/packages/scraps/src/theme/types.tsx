@@ -34,12 +34,6 @@ export type SpaceSize = SizeRange<'0', '3xl'>;
 export type RadiusSize = SizeRange<'0', '2xl'> | 'full';
 
 /**
- * Border width constraint. Derived from the generated `size.border` token, so
- * it can't drift from it. See `theme.border`.
- */
-export type BorderWidth = keyof (typeof size)['border'];
-
-/**
  * Animation easing curve preset.
  */
 export type MotionEasing = 'smooth' | 'snap' | 'enter' | 'exit' | 'spring';

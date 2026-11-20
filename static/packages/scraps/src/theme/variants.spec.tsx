@@ -3,7 +3,6 @@ import {expectTypeOf} from 'expect-type';
 import type {
   AlertVariant,
   BorderVariant,
-  BorderWidth,
   ButtonVariant,
   ContentVariant,
   GraphicsVariant,
@@ -38,7 +37,6 @@ it('preserves the variant unions and constrains tracked button variants', () => 
     | 'transparent'
     | 'none'
   >();
-  expectTypeOf<BorderWidth>().toEqualTypeOf<'0' | 'md' | 'lg' | 'xl' | '2xl'>();
   expectTypeOf<TagVariant>().toEqualTypeOf<
     'muted' | 'info' | 'success' | 'warning' | 'danger' | 'promotion'
   >();

@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {BorderVariant, BorderWidth} from '@sentry/scraps/theme';
+import type {BorderVariant} from '@sentry/scraps/theme';
 
 const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
   'primary',
@@ -15,8 +15,6 @@ const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
   'success',
   'promotion',
 ];
-
-const BORDER_WIDTHS: BorderWidth[] = ['md', 'lg', 'xl', '2xl'];
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
   return (
@@ -68,24 +66,6 @@ describe('Container', () => {
     {tags: {area: 'core'}}
   );
 
-  it.snapshot(
-    'border widths',
-    () => (
-      <Gallery>
-        {BORDER_WIDTHS.map(width => (
-          <Swatch key={width} borderColor="primary" borderWidth={width}>
-            {width}
-          </Swatch>
-        ))}
-        <Swatch borderBottomColor="primary" borderWidth="xl">
-          xl bottom
-        </Swatch>
-        <Swatch borderWidth="xl">xl, no color</Swatch>
-      </Gallery>
-    ),
-    {tags: {area: 'core'}}
-  );
-
   // The container is narrower than `md` (576px) at 480 and wider at 800.
   it.snapshot.each([480, 800])(
     'responsive borders at %s',
@@ -98,13 +78,8 @@ describe('Container', () => {
         width="100%"
         background="primary"
       >
-        <Swatch borderColor={{zero: 'primary', md: 'danger'}} borderWidth="xl">
-          primary → danger, xl
-        </Swatch>
+        <Swatch borderColor={{zero: 'primary', md: 'danger'}}>primary → danger</Swatch>
         <Swatch borderBottomColor={{zero: 'primary', md: 'none'}}>bottom → none</Swatch>
-        <Swatch borderColor="primary" borderWidth={{zero: 'md', md: '2xl'}}>
-          md → 2xl
-        </Swatch>
       </Flex>
     ),
     width => ({viewport: width, tags: {area: 'core'}})

@@ -9,6 +9,7 @@ import {lightTheme as theme} from '@sentry/scraps/theme';
 import type {BreakpointSize} from '@sentry/scraps/theme';
 
 import {
+  getBorder,
   rc,
   useActiveBreakpoint,
   useContainerBreakpoint,
@@ -176,6 +177,38 @@ describe('rc', () => {
       'container-type: inline-size;'
     );
     expect(rc('container-type', undefined, theme)).toBeUndefined();
+  });
+});
+
+describe('getBorder', () => {
+  it('resolves a border variant to a full declaration', () => {
+    expect(getBorder('primary', undefined, theme)).toBe(
+      `1px solid ${theme.tokens.border.primary}`
+    );
+  });
+
+  it('resolves transparent to the transparent neutral border token', () => {
+    expect(getBorder('transparent', undefined, theme)).toBe(
+      `1px solid ${theme.tokens.border.transparent.neutral.muted}`
+    );
+  });
+
+  it('returns "none" so a border can be turned off responsively', () => {
+    expect(getBorder('none', undefined, theme)).toBe('none');
+  });
+
+  it('returns undefined when omitted', () => {
+    expect(getBorder(undefined, undefined, theme)).toBeUndefined();
+  });
+
+  it('lets a responsive border move sides across breakpoints', () => {
+    const output = rc('border-bottom', {zero: 'primary', lg: 'none'}, theme, getBorder);
+    assert(output);
+    // Present below lg…
+    expect(output).toContain(`border-bottom: 1px solid ${theme.tokens.border.primary}`);
+    // …and explicitly removed at lg via `none`.
+    expect(output).toContain(`@container (min-width: ${theme.container.lg})`);
+    expect(output).toContain('border-bottom: none');
   });
 });
 
