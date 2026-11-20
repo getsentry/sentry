@@ -67,6 +67,17 @@ def _schedule_event_retention(items: Sequence[InboxItem]) -> None:
             safe_execute(cleanup_inbox_item_events.delay, item_id=item.id)
 
 
+@dataclass(frozen=True, kw_only=True)
+class InboxSubject(ABC):
+    """Details about a subject, fetched from its source each time inbox items are serialized."""
+
+    id: int
+    title: str
+
+    @abstractmethod
+    def serialize(self) -> InboxSubjectResponse: ...
+
+
 class InboxItemType[SubjectT](ABC):
     """Groups activity for the same subject into one inbox item per recipient."""
 
@@ -82,8 +93,8 @@ class InboxItemType[SubjectT](ABC):
     @abstractmethod
     def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> Mapping[str, InboxSubjectResponse]:
-        """Subject responses keyed by ID, scoped to organization. Omit missing subjects."""
+    ) -> Mapping[str, InboxSubject]:
+        """Subjects keyed by subject ID, scoped to organization. Omit missing subjects."""
 
     @abstractmethod
     def get_url(self, *, organization: Organization, subject_id: str) -> str:

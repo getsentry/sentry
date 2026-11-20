@@ -25,6 +25,7 @@ from sentry.inbox.notebook import (
     NotebookCompletedData,
     NotebookMentionedData,
     NotebookParticipantAddedData,
+    NotebookSubject,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.response_types import InboxItemEventResponse
@@ -121,19 +122,10 @@ class InboxItemSerializerTest(TestCase):
                     "invalid",
                 ],
             )
-        first_subject = {
-            "id": str(first.id),
-            "type": "notebook",
-            "title": "First notebook",
-            "metadata": {},
+        assert subjects == {
+            str(first.id): NotebookSubject(id=first.id, title="First notebook"),
+            str(archived.id): NotebookSubject(id=archived.id, title="Archived notebook"),
         }
-        archived_subject = {
-            "id": str(archived.id),
-            "type": "notebook",
-            "title": "Archived notebook",
-            "metadata": {},
-        }
-        assert subjects == {str(first.id): first_subject, str(archived.id): archived_subject}
 
         items = [
             self.create_inbox_item(subject_type="notebook", subject_id=subject_id)
@@ -148,8 +140,13 @@ class InboxItemSerializerTest(TestCase):
             results = serialize(items, self.user, InboxItemSerializer())
 
         assert [result["subject"] for result in results if result is not None] == [
-            first_subject,
-            archived_subject,
+            {"id": str(first.id), "type": "notebook", "title": "First notebook", "metadata": {}},
+            {
+                "id": str(archived.id),
+                "type": "notebook",
+                "title": "Archived notebook",
+                "metadata": {},
+            },
         ]
         assert results[2:] == [None, None]
 

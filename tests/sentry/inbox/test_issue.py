@@ -10,6 +10,7 @@ from sentry.inbox.issue import (
     IssueAssignedData,
     IssueMentionedData,
     IssuePRReadyForReviewData,
+    IssueSubject,
 )
 from sentry.inbox.registry import inbox_item_event_type_registry, inbox_item_type_registry
 from sentry.inbox.types import InboxActor
@@ -58,15 +59,25 @@ class IssueItemTypeTest(TestCase):
             )
 
         assert subjects == {
-            str(first.id): {
-                "id": str(first.id),
-                "type": "issue",
-                "title": "First issue",
-                "metadata": {
-                    "shortId": "TEST-PROJECT-1",
-                    "project": {"id": str(project.id), "slug": "test-project"},
-                },
-            },
+            str(first.id): IssueSubject(
+                id=first.id,
+                title="First issue",
+                short_id="TEST-PROJECT-1",
+                project_id=project.id,
+                project_slug="test-project",
+            ),
+        }
+
+    def test_subject_serialize(self) -> None:
+        subject = IssueSubject(
+            id=1, title="First issue", short_id="WEB-1", project_id=2, project_slug="web"
+        )
+
+        assert subject.serialize() == {
+            "id": "1",
+            "type": "issue",
+            "title": "First issue",
+            "metadata": {"shortId": "WEB-1", "project": {"id": "2", "slug": "web"}},
         }
 
     def test_url(self) -> None:

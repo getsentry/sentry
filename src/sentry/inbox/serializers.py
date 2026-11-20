@@ -12,8 +12,8 @@ from sentry.inbox.response_types import (
     InboxActorResponse,
     InboxItemEventResponse,
     InboxItemResponse,
-    InboxSubjectResponse,
 )
+from sentry.inbox.types import InboxSubject
 from sentry.models.organization import Organization
 from sentry.notifications.models.inboxitem import InboxItem
 from sentry.notifications.models.inboxitemevent import InboxActorType, InboxItemEvent
@@ -76,7 +76,7 @@ class InboxItemSerializer(Serializer[InboxItemResponse | None]):
         grouped_items: dict[tuple[int, str], list[InboxItem]] = defaultdict(list)
         for item in item_list:
             grouped_items[item.organization_id, item.subject_type].append(item)
-        resolved: dict[InboxItem, tuple[Organization, InboxSubjectResponse]] = {}
+        resolved: dict[InboxItem, tuple[Organization, InboxSubject]] = {}
         for (_, subject_type), items in grouped_items.items():
             item_type = inbox_item_type_registry.registrations.get(subject_type)
             if item_type is None:
@@ -130,12 +130,12 @@ class InboxItemSerializer(Serializer[InboxItemResponse | None]):
     def serialize(
         self, obj: InboxItem, attrs: Mapping[str, Any], user: Any, **kwargs: Any
     ) -> InboxItemResponse | None:
-        subject: InboxSubjectResponse | None = attrs.get("subject")
+        subject: InboxSubject | None = attrs.get("subject")
         if subject is None:
             return None
         return {
             "id": str(obj.id),
-            "subject": subject,
+            "subject": subject.serialize(),
             "url": attrs["url"],
             "subtitle": attrs["latest_event"]["summary"],
             "eventTypes": attrs["event_types"],

@@ -33,6 +33,7 @@ from sentry.inbox.types import (
     InboxEventSummary,
     InboxEventType,
     InboxItemType,
+    InboxSubject,
 )
 from sentry.issues.comments import create_comment
 from sentry.models.group import Group
@@ -61,7 +62,7 @@ class StubItemType[SubjectT](InboxItemType[SubjectT]):
 
     def get_subjects(
         self, *, organization: Organization, subject_ids: Sequence[str]
-    ) -> Mapping[str, InboxSubjectResponse]:
+    ) -> Mapping[str, InboxSubject]:
         raise NotImplementedError
 
     def get_url(self, *, organization: Organization, subject_id: str) -> str:
