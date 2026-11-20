@@ -42,6 +42,7 @@ def test_authenticated_token_translates_deprecated_scopes() -> None:
         "org:read",
         "saved_query:read",
         "saved_query:write",
+        "telemetry:read",
         "user_preference:read",
         "user_preference:write",
     ]
