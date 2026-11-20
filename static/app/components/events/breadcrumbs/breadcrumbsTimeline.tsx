@@ -2,13 +2,12 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import moment from 'moment-timezone';
 
-import {useTimezone} from '@sentry/scraps/datetime';
+import {useTimezone, DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {Container, Grid} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {Duration} from 'sentry/components/duration';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {useVirtualRows} from 'sentry/components/tables/useVirtualRows';
@@ -30,9 +29,14 @@ function BreadcrumbTimestampTooltipBody({timestamp}: {timestamp: Date}) {
         <DescriptionList.Term>{t('Occurred')}</DescriptionList.Term>
         <DescriptionList.Details>
           <TimestampValues>
-            <DateTime date={timestamp} seconds milliseconds timeZone />
+            <DateTime date={timestamp} precision="millisecond" showTimezone />
             {!isUTCLocalTimezone && (
-              <DateTime date={timestamp} seconds milliseconds timeZone utc />
+              <DateTime
+                date={timestamp}
+                precision="millisecond"
+                showTimezone
+                timezone="UTC"
+              />
             )}
           </TimestampValues>
         </DescriptionList.Details>
@@ -125,7 +129,7 @@ export function BreadcrumbsTimeline({
               abbreviation
             />
           ) : (
-            <DateTime date={timestamp} seconds milliseconds timeZone />
+            <DateTime date={timestamp} precision="millisecond" showTimezone />
           )}
         </Tooltip>
       </Timestamp>
@@ -166,12 +170,7 @@ export function BreadcrumbsTimeline({
   });
 
   return (
-    <div
-      style={{
-        height: totalSize,
-        position: 'relative',
-      }}
-    >
+    <div style={{height: totalSize, position: 'relative'}}>
       <VirtualOffset offset={virtualItems?.[0]?.start ?? 0}>
         <Timeline.Container>{items}</Timeline.Container>
       </VirtualOffset>

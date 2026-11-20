@@ -133,11 +133,7 @@ export function DemoToursProvider({children}: {children: React.ReactNode}) {
     (tourKey: DemoTour) => {
       setTourState(prev => ({
         ...prev,
-        [tourKey]: {
-          ...prev[tourKey],
-          currentStepId: undefined,
-          isCompleted: true,
-        },
+        [tourKey]: {...prev[tourKey], currentStepId: undefined, isCompleted: true},
       }));
       recordFinish(tourKey, null);
     },
@@ -208,10 +204,7 @@ export function DemoTourElement({
 
   if (!isDemoModeActive() || !tourContextValue || disabled) {
     // Tour is not active, render children with no-op props
-    return children({
-      'aria-expanded': false,
-      ref: () => {},
-    });
+    return children({'aria-expanded': false, ref: () => {}});
   }
 
   return (

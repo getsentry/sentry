@@ -11,11 +11,7 @@ const cases: Array<{
   substatus: Group['substatus'];
 }> = [
   {label: 'resolved', status: GroupStatus.RESOLVED, substatus: null},
-  {
-    label: 'new',
-    status: GroupStatus.UNRESOLVED,
-    substatus: GroupSubstatus.NEW,
-  },
+  {label: 'new', status: GroupStatus.UNRESOLVED, substatus: GroupSubstatus.NEW},
   {
     label: 'regressed',
     status: GroupStatus.UNRESOLVED,
@@ -26,11 +22,7 @@ const cases: Array<{
     status: GroupStatus.UNRESOLVED,
     substatus: GroupSubstatus.ESCALATING,
   },
-  {
-    label: 'ongoing',
-    status: GroupStatus.UNRESOLVED,
-    substatus: GroupSubstatus.ONGOING,
-  },
+  {label: 'ongoing', status: GroupStatus.UNRESOLVED, substatus: GroupSubstatus.ONGOING},
   {
     label: 'archived-forever',
     status: GroupStatus.IGNORED,

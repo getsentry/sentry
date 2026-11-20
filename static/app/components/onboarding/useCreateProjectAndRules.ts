@@ -40,9 +40,7 @@ function useRollbackProject() {
 
   return useCallback(
     async (project: Project) => {
-      Sentry.logger.error('Rolling back project', {
-        projectToRollback: project,
-      });
+      Sentry.logger.error('Rolling back project', {projectToRollback: project});
 
       try {
         // Rolling back the project also deletes its associated alert rules

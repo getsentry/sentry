@@ -7,16 +7,8 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-import {getHandoffPrompt} from './handoffPrompt';
+import {formatHandoffPrompt} from './handoffPrompt';
 import {AgentHandoffFlow, type AgentHandoffContext} from './types';
-
-function formatPrompt(
-  code: string,
-  flow: AgentHandoffFlow,
-  context: AgentHandoffContext | null
-) {
-  return getHandoffPrompt(code, flow, context, handoffCode => `\`${handoffCode}\``);
-}
 
 interface Handoff {
   code: string;
@@ -99,7 +91,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     if (cachedHandoff && !isHandoffStale(cachedHandoff, promptContext)) {
       return {
         handoffId: cachedHandoff.handoffId,
-        text: formatPrompt(cachedHandoff.code, flow, options.context),
+        text: formatHandoffPrompt(cachedHandoff.code, flow, options.context),
       };
     }
 
@@ -119,7 +111,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
 
       return {
         handoffId: minted.handoffId,
-        text: formatPrompt(minted.code, flow, options.context),
+        text: formatHandoffPrompt(minted.code, flow, options.context),
       };
     } catch {
       throw new Error(t('Unable to create your agent prompt. Try again.'));
@@ -138,11 +130,7 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
     let clipboardWrite: Promise<void>;
     try {
       clipboardWrite = navigator.clipboard
-        .write([
-          new ClipboardItem({
-            'text/plain': clipboardPayload,
-          }),
-        ])
+        .write([new ClipboardItem({'text/plain': clipboardPayload})])
         .catch(() => {
           throw clipboardError();
         });

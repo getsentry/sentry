@@ -141,9 +141,7 @@ describe('FeatureFlagCommandPaletteActions', () => {
       await screen.findByRole('option', {name: /Toggle Org Feature Flag/})
     );
 
-    const disabledFlag = await screen.findByRole('option', {
-      name: 'enabled-feature',
-    });
+    const disabledFlag = await screen.findByRole('option', {name: 'enabled-feature'});
     expect(disabledFlag).toHaveTextContent('Disabled');
   });
 

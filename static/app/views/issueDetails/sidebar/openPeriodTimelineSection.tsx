@@ -3,11 +3,11 @@ import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconFire} from '@sentry/icons/fire';
 import orderBy from 'lodash/orderBy';
 
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
 import {IconCellSignal} from 'sentry/components/badge/iconCellSignal';
-import {DateTime} from 'sentry/components/dateTime';
 import {LoadingError} from 'sentry/components/loadingError';
 import {Placeholder} from 'sentry/components/placeholder';
 import {Timeline} from 'sentry/components/timeline';
@@ -17,10 +17,7 @@ import {unreachable} from 'sentry/utils/unreachable';
 import {useEventOpenPeriod} from 'sentry/views/detectors/hooks/useOpenPeriods';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
-type OpenPeriodTimelineSectionProps = {
-  eventId: string;
-  groupId: string;
-};
+type OpenPeriodTimelineSectionProps = {eventId: string; groupId: string};
 
 function getOpenPeriodActivityLabel(
   activity: GroupOpenPeriod['activities'][number]
@@ -79,14 +76,7 @@ export function OpenPeriodTimelineSection({
   groupId,
   eventId,
 }: OpenPeriodTimelineSectionProps) {
-  const {
-    data: openPeriod,
-    isPending,
-    isError,
-  } = useEventOpenPeriod({
-    groupId,
-    eventId,
-  });
+  const {data: openPeriod, isPending, isError} = useEventOpenPeriod({groupId, eventId});
 
   if (isPending) {
     return (

@@ -105,16 +105,10 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
           type: 'text',
           text: tct(
             'To see source context in Sentry, you have to generate an auth token by visiting the [link:Organization Tokens] settings. You can then set the token as an environment variable that is used by the build plugins.',
-            {
-              link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />,
-            }
+            {link: <Link to={`/settings/${params.organization.slug}/auth-tokens/`} />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___',
-        },
+        {type: 'code', language: 'bash', code: 'SENTRY_AUTH_TOKEN=___ORG_AUTH_TOKEN___'},
         {
           type: 'conditional',
           condition: params.platformOptions.packageManager === PackageManager.GRADLE,
@@ -131,11 +125,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'groovy',
-              code: getGradleInstallSnippet(params),
-            },
+            {type: 'code', language: 'groovy', code: getGradleInstallSnippet(params)},
           ],
         },
         {
@@ -154,11 +144,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'xml',
-              code: getMavenInstallSnippet(params),
-            },
+            {type: 'code', language: 'xml', code: getMavenInstallSnippet(params)},
           ],
         },
         {
@@ -180,11 +166,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
                 }
               ),
             },
-            {
-              type: 'code',
-              language: 'bash',
-              code: getOpenTelemetryRunSnippet(params),
-            },
+            {type: 'code', language: 'bash', code: getOpenTelemetryRunSnippet(params)},
             {
               type: 'text',
               text: t(
@@ -246,16 +228,8 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: getJavaConfigSnippet(params),
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: getKotlinConfigSnippet(params),
-            },
+            {label: 'Java', language: 'java', code: getJavaConfigSnippet(params)},
+            {label: 'Kotlin', language: 'kotlin', code: getKotlinConfigSnippet(params)},
           ],
         },
         {
@@ -269,9 +243,7 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
               type: 'text',
               text: tct(
                 'Add a [code:sentry.properties] file to enable additional features:',
-                {
-                  code: <code />,
-                }
+                {code: <code />}
               ),
             },
             {
@@ -297,16 +269,8 @@ export const onboarding: OnboardingConfig<PlatformOptions> = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'Java',
-              language: 'java',
-              code: getVerifyJavaSnippet(),
-            },
-            {
-              label: 'Kotlin',
-              language: 'kotlin',
-              code: getVerifyKotlinSnippet(),
-            },
+            {label: 'Java', language: 'java', code: getVerifyJavaSnippet()},
+            {label: 'Kotlin', language: 'kotlin', code: getVerifyKotlinSnippet()},
           ],
         },
         metricsVerify(params),

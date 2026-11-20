@@ -114,11 +114,7 @@ export function OrganizationContextProvider({children}: Props) {
       // If the user has an active staff session, the response will not return a
       // 403 but access scopes will be an empty list.
       if (user?.isSuperuser && user?.isStaff && organization?.access?.length === 0) {
-        openSudo({
-          accessMode: 'superuser',
-          closeEvents: 'none',
-          closeButton: false,
-        });
+        openSudo({accessMode: 'superuser', closeEvents: 'none', closeButton: false});
       }
 
       return;

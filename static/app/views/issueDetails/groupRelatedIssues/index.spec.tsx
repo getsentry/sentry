@@ -22,34 +22,25 @@ describe('Related Issues View', () => {
       id: group1,
       shortId: `EARTH-${group1}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-15T20:15:30Z',
     }),
     GroupFixture({
       id: group2,
       shortId: `EARTH-${group2}`,
       project: ProjectFixture({id: '3', name: 'Earth', slug: 'earth'}),
-      metadata: {
-        type: errorType,
-      },
+      metadata: {type: errorType},
       lastSeen: '2024-03-16T20:15:30Z',
     }),
   ];
   const sameTraceData = {
     data: issuesData.map(issue => ({issue, relations: [{type: 'same_trace'}]})),
-    meta: {
-      types: [{type: 'same_trace', status: 'ok', eventId: 'abcd', traceId: '1234'}],
-    },
+    meta: {types: [{type: 'same_trace', status: 'ok', eventId: 'abcd', traceId: '1234'}]},
   };
 
   beforeEach(() => {
     // GroupList calls this but we don't need it for this test
-    MockApiClient.addMockResponse({
-      url: `/organizations/${orgSlug}/users/`,
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/users/`, body: []});
     MockApiClient.addMockResponse({
       url: `/organizations/org-slug/issues/${group.id}/`,
       body: group,
@@ -72,9 +63,7 @@ describe('Related Issues View', () => {
       match: [MockApiClient.matchQuery({query: `issue.id:[${group1},${group2}]`})],
       body: issuesData,
     });
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
+    render(<GroupRelatedIssues group={group} />, {organization});
 
     // Wait for the issues showing up on the table
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();
@@ -102,9 +91,7 @@ describe('Related Issues View', () => {
       statusCode: 503,
       body: {detail: 'Related issues are temporarily unavailable. Try again later.'},
     });
-    render(<GroupRelatedIssues group={group} />, {
-      organization,
-    });
+    render(<GroupRelatedIssues group={group} />, {organization});
 
     expect(
       await screen.findByText('Unable to load related issues, please try again later')
@@ -115,10 +102,7 @@ describe('Related Issues View', () => {
       match: [MockApiClient.matchQuery({type: ['same_trace']})],
       body: sameTraceData,
     });
-    MockApiClient.addMockResponse({
-      url: orgIssuesEndpoint,
-      body: issuesData,
-    });
+    MockApiClient.addMockResponse({url: orgIssuesEndpoint, body: issuesData});
     await userEvent.click(screen.getByRole('button', {name: 'Retry'}));
 
     expect(await screen.findByText(`EARTH-${group1}`)).toBeInTheDocument();

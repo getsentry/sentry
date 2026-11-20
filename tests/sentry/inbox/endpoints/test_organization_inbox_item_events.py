@@ -17,9 +17,13 @@ class OrganizationInboxItemEventsTest(APITestCase):
 
     def test_list_events(self) -> None:
         item = self.create_inbox_item(last_read_at=before_now(minutes=2))
-        older = self.create_inbox_item_event(inbox_item=item, data={"summary": "Older"})
+        older = self.create_inbox_item_event(
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+        )
         older.update(date_added=before_now(minutes=5))
-        newer = self.create_inbox_item_event(inbox_item=item, data={"summary": "Newer"})
+        newer = self.create_inbox_item_event(
+            inbox_item=item, data={"assignment_source": None, "activity_id": 1}
+        )
 
         response = self.get_success_response(self.organization.slug, item.id)
 
@@ -35,16 +39,22 @@ class OrganizationInboxItemEventsTest(APITestCase):
         timestamp = before_now(minutes=1).replace(microsecond=123456)
         newest = self.create_inbox_item_event(
             inbox_item=item,
-            data={"summary": "Newest"},
+            data={"assignment_source": None, "activity_id": 1},
         )
         newest.update(date_added=timestamp + timedelta(microseconds=1))
-        first_tie = self.create_inbox_item_event(inbox_item=item, data={"summary": "First tie"})
+        first_tie = self.create_inbox_item_event(
+            inbox_item=item,
+            data={"assignment_source": None, "activity_id": 1},
+        )
         first_tie.update(date_added=timestamp)
-        second_tie = self.create_inbox_item_event(inbox_item=item, data={"summary": "Second tie"})
+        second_tie = self.create_inbox_item_event(
+            inbox_item=item,
+            data={"assignment_source": None, "activity_id": 1},
+        )
         second_tie.update(date_added=timestamp)
         oldest = self.create_inbox_item_event(
             inbox_item=item,
-            data={"summary": "Oldest"},
+            data={"assignment_source": None, "activity_id": 1},
         )
         oldest.update(date_added=timestamp - timedelta(microseconds=1))
 

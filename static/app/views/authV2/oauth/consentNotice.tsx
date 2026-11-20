@@ -15,9 +15,7 @@ export function ConsentFooter({application}: {application: OAuthApplication}) {
       <Text as="p" size="sm" variant="muted" align="center" textWrap="balance">
         {tct(
           "You can manage or revoke this app's access anytime in [link:Account → Authorized Applications].",
-          {
-            link: <ExternalLink href="/settings/account/authorizations/" />,
-          }
+          {link: <ExternalLink href="/settings/account/authorizations/" />}
         )}
       </Text>
       {(privacy || terms) && (
@@ -41,10 +39,7 @@ export function ConsentFooter({application}: {application: OAuthApplication}) {
                 )
               : tct(
                   'By clicking “Authorize”, you acknowledge reviewing and agreeing to the [terms:terms of service] published by [application].',
-                  {
-                    terms: <ExternalLink href={terms!} />,
-                    application: application.name,
-                  }
+                  {terms: <ExternalLink href={terms!} />, application: application.name}
                 )}
         </Text>
       )}

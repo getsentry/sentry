@@ -1,8 +1,4 @@
-type RelocationState = {
-  localityName: string;
-  orgSlugs: string;
-  promoCode: string;
-};
+type RelocationState = {localityName: string; orgSlugs: string; promoCode: string};
 
 export type MaybeUpdateRelocationState = {
   localityName?: string;

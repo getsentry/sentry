@@ -23,9 +23,7 @@ export function ServiceField() {
         value: service.id,
       }))}
       onChange={(option: SelectValue<string>) => {
-        onUpdate({
-          config: {...action.config, targetIdentifier: option.value},
-        });
+        onUpdate({config: {...action.config, targetIdentifier: option.value}});
       }}
     />
   );

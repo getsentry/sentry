@@ -28,10 +28,7 @@ const mockIsFullscreen = jest.fn();
 
 const mockReplay = ReplayReader.factory({
   replayRecord: ReplayRecordFixture({
-    browser: {
-      name: 'Chrome',
-      version: '110.0.0',
-    },
+    browser: {name: 'Chrome', version: '110.0.0'},
     started_at: new Date('Sep 22, 2022 4:58:39 PM UTC'),
     finished_at: new Date(mockEventTimestampMs + 5_000),
     duration: duration(10, 'seconds'),
@@ -39,9 +36,7 @@ const mockReplay = ReplayReader.factory({
   errors: [],
   fetching: false,
   attachments: [
-    ...RRWebInitFrameEventsFixture({
-      timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
-    }),
+    ...RRWebInitFrameEventsFixture({timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC')}),
     RRWebFullSnapshotFrameEventFixture({
       timestamp: new Date('Sep 22, 2022 4:58:39 PM UTC'),
     }),
@@ -55,9 +50,7 @@ const mockReplay = ReplayReader.factory({
 const render = (children: React.ReactElement, orgParams: Partial<Organization> = {}) => {
   const organization = OrganizationFixture({slug: mockOrgSlug, ...orgParams});
 
-  return baseRender(children, {
-    organization,
-  });
+  return baseRender(children, {organization});
 };
 
 describe('GroupReplaysPlayer', () => {
@@ -75,10 +68,7 @@ describe('GroupReplaysPlayer', () => {
     orgSlug: mockOrgSlug,
     replaySlug: mockReplaySlug,
     eventTimestampMs: mockEventTimestampMs,
-    clipOffsets: {
-      durationAfterMs: 5_000,
-      durationBeforeMs: 5_000,
-    },
+    clipOffsets: {durationAfterMs: 5_000, durationBeforeMs: 5_000},
     fullReplayButtonProps: {},
     overlayContent: null,
     replayReaderResult: {

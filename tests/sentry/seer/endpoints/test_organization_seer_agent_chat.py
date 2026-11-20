@@ -16,6 +16,7 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
+from sentry.seer.autofix.feature.dispatch import SINGLE_RUN_LEGACY_PLAN_DETAIL
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
@@ -615,7 +616,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.data["code"] == "run_in_flight"
         mock_continue.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_reply_to_single_run_without_credits_is_402(self, mock_client_class: MagicMock) -> None:
         run = self._single_run(user_id=self.user.id)
@@ -642,6 +643,19 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                     "code": "seer_out_of_credits",
                     "denialReason": expected,
                 }
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_on_legacy_seer_plan_is_403(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 403
+        assert response.data["detail"] == SINGLE_RUN_LEGACY_PLAN_DETAIL
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
@@ -1103,7 +1117,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 403
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_post_new_conversation_without_credits_returns_402(
         self, mock_client_class: MagicMock
@@ -1130,7 +1144,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                 }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=True),
@@ -1148,7 +1162,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert response.status_code == 200
         mock_client.start_run.assert_called_once()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),
@@ -1173,7 +1187,7 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         }
         mock_client_class.assert_not_called()
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),

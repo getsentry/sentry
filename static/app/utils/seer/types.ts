@@ -64,11 +64,7 @@ export type SeerProjectSettingResponse = {
   stoppingPoint: SeerAutofixStoppingPoint;
 };
 
-type BranchOverrideInput = {
-  branchName: string;
-  tagName: string;
-  tagValue: string;
-};
+type BranchOverrideInput = {branchName: string; tagName: string; tagValue: string};
 
 export type SeerProjectRepoCreateInput = {
   repositoryId: string;

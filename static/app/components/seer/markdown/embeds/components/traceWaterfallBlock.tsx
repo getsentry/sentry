@@ -28,11 +28,7 @@ import {getTraceHref} from './traceLink';
 const TRACE_EMBED_PREFERENCES = {
   ...DEFAULT_TRACE_VIEW_PREFERENCES,
   compressed_timeline: false,
-  drawer: {
-    ...DEFAULT_TRACE_VIEW_PREFERENCES.drawer,
-    layoutOptions: [],
-    minimized: true,
-  },
+  drawer: {...DEFAULT_TRACE_VIEW_PREFERENCES.drawer, layoutOptions: [], minimized: true},
   layout: 'drawer bottom',
 } satisfies TracePreferencesState;
 

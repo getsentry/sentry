@@ -38,10 +38,7 @@ export function IssueAssignee({
       id: groupId,
       assignedTo: currentAssignedTo,
       owners,
-      project: {
-        id: projectId,
-        slug: projectSlug,
-      },
+      project: {id: projectId, slug: projectSlug},
     }),
     [currentAssignedTo, groupId, owners, projectId, projectSlug]
   );

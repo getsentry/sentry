@@ -20,9 +20,7 @@ export abstract class UIFramesRenderer {
   canvas: HTMLCanvasElement | null;
   uiFrames: UIFrames;
   theme: FlamegraphTheme;
-  options: {
-    draw_border: boolean;
-  };
+  options: {draw_border: boolean};
 
   constructor(
     canvas: HTMLCanvasElement,

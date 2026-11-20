@@ -95,12 +95,7 @@ function PaginatedList({cursor, items, limit, pageLinks, total}) {
   return (
     <Pagination
       {...getPaginationProps(pageLinks)}
-      caption={getPaginationCaption({
-        cursor,
-        limit,
-        pageLength: items.length,
-        total,
-      })}
+      caption={getPaginationCaption({cursor, limit, pageLength: items.length, total})}
     />
   );
 }

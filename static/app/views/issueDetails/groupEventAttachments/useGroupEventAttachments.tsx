@@ -96,11 +96,7 @@ export function fetchGroupEventAttachmentsApiOptions({
 
   return apiOptions.as<IssueAttachment[]>()(
     '/organizations/$organizationIdOrSlug/issues/$issueId/attachments/',
-    {
-      path: {organizationIdOrSlug: orgSlug, issueId: group.id},
-      query,
-      staleTime: 60_000,
-    }
+    {path: {organizationIdOrSlug: orgSlug, issueId: group.id}, query, staleTime: 60_000}
   );
 }
 

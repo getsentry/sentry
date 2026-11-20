@@ -27,15 +27,8 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
         },
       ],
     });
@@ -112,17 +105,13 @@ describe('SavedQueriesTable', () => {
     await userEvent.click(screen.getByText('Delete'));
     await screen.findByText('Are you sure you want to delete the query "Query Name"?');
     await userEvent.click(
-      within(screen.getByRole('dialog')).getByRole('button', {
-        name: 'Delete Query',
-      })
+      within(screen.getByRole('dialog')).getByRole('button', {name: 'Delete Query'})
     );
 
     await waitFor(() =>
       expect(deleteQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/`,
-        expect.objectContaining({
-          method: 'DELETE',
-        })
+        expect.objectContaining({method: 'DELETE'})
       )
     );
   });
@@ -144,19 +133,10 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
+          createdBy: {name: 'Test User'},
           query: [
-            {
-              visualize: [],
-              groupby: [],
-              caseInsensitive: true,
-            },
-            {
-              visualize: [],
-              groupby: [],
-            },
+            {visualize: [], groupby: [], caseInsensitive: true},
+            {visualize: [], groupby: []},
           ],
         },
       ],
@@ -177,9 +157,7 @@ describe('SavedQueriesTable', () => {
           name: 'Logs Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
+          createdBy: {name: 'Test User'},
           query: [
             {
               mode: 'samples',
@@ -214,9 +192,7 @@ describe('SavedQueriesTable', () => {
           name: 'ABC',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'User1',
-          },
+          createdBy: {name: 'User1'},
           query: [
             {
               mode: 'samples',
@@ -250,15 +226,8 @@ describe('SavedQueriesTable', () => {
           name: 'Replays Query Name',
           projects: [1, 2],
           environment: ['production', 'staging'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              query: 'user.email:*@example.com',
-              mode: 'samples',
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{query: 'user.email:*@example.com', mode: 'samples'}],
           start: '2024-01-01T00:00:00Z',
           end: '2024-01-02T00:00:00Z',
           dataset: 'replays',
@@ -281,15 +250,8 @@ describe('SavedQueriesTable', () => {
           name: 'Recent Replays',
           projects: [3],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              query: 'browser.name:Chrome',
-              mode: 'samples',
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{query: 'browser.name:Chrome', mode: 'samples'}],
           range: '24h',
           statsPeriod: '24h',
           dataset: 'replays',
@@ -312,15 +274,8 @@ describe('SavedQueriesTable', () => {
           name: 'Query Name',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
           starred: false,
         },
         {
@@ -328,15 +283,8 @@ describe('SavedQueriesTable', () => {
           name: 'Starred Query',
           projects: [1],
           environment: ['production'],
-          createdBy: {
-            name: 'Test User',
-          },
-          query: [
-            {
-              visualize: [],
-              groupby: [],
-            },
-          ],
+          createdBy: {name: 'Test User'},
+          query: [{visualize: [], groupby: []}],
           starred: true,
         },
       ],
@@ -350,24 +298,14 @@ describe('SavedQueriesTable', () => {
     await waitFor(() =>
       expect(starQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/1/starred/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            starred: true,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {starred: true}})
       )
     );
     await userEvent.click(screen.getAllByLabelText('Unstar')[1]!);
     await waitFor(() =>
       expect(unstarQueryMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/explore/saved/2/starred/`,
-        expect.objectContaining({
-          method: 'POST',
-          data: {
-            starred: false,
-          },
-        })
+        expect.objectContaining({method: 'POST', data: {starred: false}})
       )
     );
   });
@@ -388,9 +326,7 @@ describe('SavedQueriesTable', () => {
     await screen.findByText('Query Name');
     expect(getQueriesMock).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/explore/all-queries/`,
-      expect.objectContaining({
-        query: expect.objectContaining({query: 'Query Name'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({query: 'Query Name'})})
     );
   });
 
@@ -457,9 +393,7 @@ describe('SavedQueriesTable', () => {
         `/organizations/${organization.slug}/explore/saved/`,
         expect.objectContaining({
           method: 'POST',
-          data: expect.objectContaining({
-            name: 'Query Name (Copy)',
-          }),
+          data: expect.objectContaining({name: 'Query Name (Copy)'}),
         })
       )
     );

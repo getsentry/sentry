@@ -2,9 +2,7 @@
 export interface SnapshotImageMetadata {
   display_name: string;
   canvas_theme?: 'light' | 'dark';
-  context?: {
-    test_file_path: string;
-  };
+  context?: {test_file_path: string};
   group?: string | null;
   tags?: Record<string, string>;
   // Skip height, width and image_file_name as they're handled by the CLI

@@ -30,10 +30,7 @@ export const feedbackOnboardingJsLoader: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add this script tag to the top of the page:'),
-        },
+        {type: 'text', text: t('Add this script tag to the top of the page:')},
         {
           type: 'code',
           language: 'html',
@@ -104,10 +101,7 @@ export const replayOnboardingJsLoader: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Add this script tag to the top of the page:'),
-        },
+        {type: 'text', text: t('Add this script tag to the top of the page:')},
         {
           type: 'code',
           language: 'html',
@@ -146,11 +140,7 @@ export const replayOnboardingJsLoader: OnboardingConfig = {
             link: 'https://docs.sentry.io/platforms/javascript/session-replay/',
           }),
         },
-        {
-          type: 'code',
-          language: 'html',
-          code: getReplayJsLoaderSdkSetupSnippet(params),
-        },
+        {type: 'code', language: 'html', code: getReplayJsLoaderSdkSetupSnippet(params)},
         tracePropagationBlock,
       ],
     },
@@ -169,11 +159,7 @@ export const replayOnboardingJsLoader: OnboardingConfig = {
           type: 'text',
           text: t('You can simulate an error by adding the following code:'),
         },
-        {
-          type: 'code',
-          language: 'html',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'html', code: getVerifySnippet()},
         {
           type: 'text',
           text: t(

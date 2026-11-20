@@ -85,11 +85,7 @@ function MergeAccounts() {
       return fetchMutation({
         url: ENDPOINT,
         method: 'POST',
-        data: {
-          idsToMerge,
-          idsToDelete,
-          verificationCode,
-        },
+        data: {idsToMerge, idsToDelete, verificationCode},
       });
     },
     onSuccess: data => {
@@ -114,11 +110,7 @@ function MergeAccounts() {
 
   const {mutate: postVerificationCode} = useMutation({
     mutationFn: () => {
-      return fetchMutation({
-        url: VERIFICATION_CODE_ENDPOINT,
-        method: 'POST',
-        data: {},
-      });
+      return fetchMutation({url: VERIFICATION_CODE_ENDPOINT, method: 'POST', data: {}});
     },
     onSuccess: () => {
       toast.success(t('Verification code posted!'));
@@ -240,9 +232,7 @@ function AccountSelection({users, onSelect, selectedUsers}: AccountSelectionProp
         {tct(
           `Select the accounts that you want to merge into your currently active account,
           then confirm and merge. [strong:The accounts that you do not select will be deleted!]`,
-          {
-            strong: <strong />,
-          }
+          {strong: <strong />}
         )}
       </TextBlock>
       <TextBlock id={currentAccountLabelId}>

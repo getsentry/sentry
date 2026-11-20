@@ -23,9 +23,7 @@ import {TextBlock} from 'sentry/views/settings/components/text/textBlock';
 
 const ENDPOINT = getApiUrl('/users/$userId/subscriptions/', {path: {userId: 'me'}});
 
-const subscriptionSchema = z.object({
-  subscribed: z.boolean(),
-});
+const subscriptionSchema = z.object({subscribed: z.boolean()});
 
 export type Subscription = {
   email: string;

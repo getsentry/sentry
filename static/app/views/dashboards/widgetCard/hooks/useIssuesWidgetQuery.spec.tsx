@@ -53,12 +53,7 @@ describe('useIssuesSeriesQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useIssuesSeriesQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useIssuesSeriesQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -121,9 +116,7 @@ describe('useIssuesSeriesQuery', () => {
         widget,
         organization,
         pageFilters,
-        dashboardFilters: {
-          release: ['1.0.0'],
-        },
+        dashboardFilters: {release: ['1.0.0']},
         enabled: true,
       })
     );
@@ -181,12 +174,7 @@ describe('useIssuesTableQuery', () => {
     });
 
     renderHookWithProviders(() =>
-      useIssuesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useIssuesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => {
@@ -246,10 +234,7 @@ describe('useIssuesTableQuery', () => {
       expect(mockRequest).toHaveBeenCalledWith(
         '/organizations/org-slug/issues/',
         expect.objectContaining({
-          data: expect.objectContaining({
-            limit: 50,
-            cursor: 'test-cursor',
-          }),
+          data: expect.objectContaining({limit: 50, cursor: 'test-cursor'}),
         })
       );
     });
@@ -277,12 +262,7 @@ describe('useIssuesTableQuery', () => {
     });
 
     const {result} = renderHookWithProviders(() =>
-      useIssuesTableQuery({
-        widget,
-        organization,
-        pageFilters,
-        enabled: true,
-      })
+      useIssuesTableQuery({widget, organization, pageFilters, enabled: true})
     );
 
     await waitFor(() => expect(result.current.loading).toBe(false));

@@ -10,12 +10,8 @@ import {HeaderCards} from 'getsentry/views/subscriptionPage/headerCards/headerCa
 describe('HeaderCards', () => {
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/subscription/next-bill/',
-    });
-    MockApiClient.addMockResponse({
-      url: '/customers/org-slug/billing-details/',
-    });
+    MockApiClient.addMockResponse({url: '/customers/org-slug/subscription/next-bill/'});
+    MockApiClient.addMockResponse({url: '/customers/org-slug/billing-details/'});
     MockApiClient.addMockResponse({
       url: '/customers/org-slug/seer-wallet/',
       body: {

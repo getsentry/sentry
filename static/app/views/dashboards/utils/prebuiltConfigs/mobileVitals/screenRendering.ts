@@ -46,13 +46,7 @@ const SPAN_OPERATIONS_TABLE: PrebuiltWidget = {
       orderby: `-avg(${SpanFields.APP_VITALS_FRAMES_DELAY_VALUE})`,
     },
   ],
-  layout: {
-    h: 7,
-    x: 0,
-    y: 0,
-    w: 6,
-    minH: 2,
-  },
+  layout: {h: 7, x: 0, y: 0, w: 6, minH: 2},
 };
 
 export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard = {
@@ -64,11 +58,7 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
     globalFilter: [
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'os.name',
-          name: 'os.name',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'os.name', name: 'os.name', kind: FieldKind.TAG},
         value: '',
       },
       {
@@ -82,11 +72,7 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: SpanFields.SPAN_OP,
-          name: SpanFields.SPAN_OP,
-          kind: FieldKind.TAG,
-        },
+        tag: {key: SpanFields.SPAN_OP, name: SpanFields.SPAN_OP, kind: FieldKind.TAG},
         value: '',
       },
       {
@@ -100,11 +86,7 @@ export const MOBILE_VITALS_SCREEN_RENDERING_PREBUILT_CONFIG: PrebuiltDashboard =
       },
       {
         dataset: WidgetType.SPANS,
-        tag: {
-          key: 'user.geo.region',
-          name: 'user.geo.region',
-          kind: FieldKind.TAG,
-        },
+        tag: {key: 'user.geo.region', name: 'user.geo.region', kind: FieldKind.TAG},
         value: '',
       },
     ],

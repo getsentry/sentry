@@ -33,6 +33,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -43,6 +44,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.cell import Cell, get_local_cell
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 
 def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
@@ -119,6 +121,40 @@ class ControlOutboxTest(TestCase):
             (OutboxScope.USER_SCOPE.value, user1.id, expected_region_name),
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
         }
+
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
+        user = self.create_user()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_organization(owner=user)
+
+        with patch.object(ControlOutbox, "drain_shard") as mock_drain_shard:
+            with patch.object(UserEmail, "default_flush", False):
+                with self.captureOnCommitCallbacks(execute=True):
+                    self.create_useremail(user)
+                assert ControlOutbox.objects.filter(shard_identifier=user.id).exists()
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                        self.create_useremail(user)
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(UserEmail)), flush=True
+                    ):
+                        with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                            self.create_useremail(user)
+                mock_drain_shard.assert_called_once_with()
+
+            mock_drain_shard.reset_mock()
+            with patch.object(UserEmail, "default_flush", True):
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(UserEmail)), flush=False
+                    ):
+                        self.create_useremail(user)
+                mock_drain_shard.assert_not_called()
 
     def test_prepare_next_from_shard_no_conflict_with_processing(self) -> None:
         with outbox_runner():
@@ -626,6 +662,48 @@ class CellOutboxTest(TestCase):
 
         assert [t["caller"] for t in _drain_timer_tags(mock_timer)] == ["unknown"]
         mock_drain_shard.assert_called_once_with()
+
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
+        org = self.create_organization()
+
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with patch.object(Organization, "default_flush", False):
+                with self.captureOnCommitCallbacks(execute=True):
+                    org.update(name="no caller context")
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                        org.update(name="caller context without a flag")
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(Organization)), flush=True
+                    ):
+                        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                            org.update(name="flushing caller")
+                mock_drain_shard.assert_called_once_with()
+
+            mock_drain_shard.reset_mock()
+            with patch.object(Organization, "default_flush", True):
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(Organization)), flush=False
+                    ):
+                        org.update(name="non-flushing caller")
+                mock_drain_shard.assert_not_called()
+
+    def test_delete_inside_flushing_context_stays_async(self) -> None:
+        team = self.create_team(organization=self.create_organization())
+        team_id = team.id
+
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with self.captureOnCommitCallbacks(execute=True):
+                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=True):
+                    team.delete()
+            assert CellOutbox.objects.filter(object_identifier=team_id).exists()
+            mock_drain_shard.assert_not_called()
 
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):

@@ -147,32 +147,20 @@ type WidgetAction =
   | {payload: LinkedDashboard[]; type: typeof BuilderStateAction.SET_LINKED_DASHBOARDS}
   | {payload: number; type: typeof BuilderStateAction.SET_LIMIT}
   | {payload: string[]; type: typeof BuilderStateAction.SET_LEGEND_ALIAS}
-  | {
-      payload: LegendType | undefined;
-      type: typeof BuilderStateAction.SET_LEGEND_TYPE;
-    }
+  | {payload: LegendType | undefined; type: typeof BuilderStateAction.SET_LEGEND_TYPE}
   | {payload: number | undefined; type: typeof BuilderStateAction.SET_SELECTED_AGGREGATE}
   | {payload: WidgetBuilderStateParams; type: typeof BuilderStateAction.SET_STATE}
   | {
       payload: ThresholdsConfig | null | undefined;
       type: typeof BuilderStateAction.SET_THRESHOLDS;
     }
-  | {
-      payload: string;
-      type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS;
-    }
-  | {
-      payload: Column[];
-      type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE;
-    }
+  | {payload: string; type: typeof BuilderStateAction.SET_CATEGORICAL_X_AXIS}
+  | {payload: Column[]; type: typeof BuilderStateAction.SET_CATEGORICAL_AGGREGATE}
   | {
       payload: number; // index of the field to delete within the visible fields list
       type: typeof BuilderStateAction.DELETE_AGGREGATE;
     }
-  | {
-      payload: AxisRange | undefined;
-      type: typeof BuilderStateAction.SET_AXIS_RANGE;
-    }
+  | {payload: AxisRange | undefined; type: typeof BuilderStateAction.SET_AXIS_RANGE}
   | {payload: string | undefined; type: typeof BuilderStateAction.SET_TEXT_CONTENT};
 type WidgetBuilderStateActionOptions = {
   /**
@@ -599,12 +587,7 @@ export function useWidgetBuilderState(): {
                         },
                       ]
                     : []
-                  : [
-                      {
-                        kind: 'desc',
-                        field: generateFieldAsString(newFields[0]!),
-                      },
-                    ],
+                  : [{kind: 'desc', field: generateFieldAsString(newFields[0]!)}],
                 options
               );
             }
@@ -764,6 +747,19 @@ export function useWidgetBuilderState(): {
             }
             setYAxis(nextAggregates, options);
 
+            // Aggregates past the y-axis cap were dropped above, so a sort on
+            // one of them (e.g. a table's `equation[N]`) would point at nothing.
+            const nextTimeseriesSort = getUpdatedTimeseriesSort(
+              nextAggregates,
+              yAxis,
+              columnsWithoutAlias,
+              dataset,
+              sort
+            );
+            if (nextTimeseriesSort) {
+              setSort(nextTimeseriesSort, options);
+            }
+
             // Reset the limit to a valid value, bias towards the current limit or
             // default if possible
             const maxLimit = getResultsLimit(query?.length ?? 1, nextAggregates.length);
@@ -832,10 +828,7 @@ export function useWidgetBuilderState(): {
 
             // Add aggregate from dataset config
             if (config.defaultField) {
-              categoricalBarFields.push({
-                ...config.defaultField,
-                alias: undefined,
-              });
+              categoricalBarFields.push({...config.defaultField, alias: undefined});
             }
             setFields(categoricalBarFields, options);
 
@@ -998,15 +991,7 @@ export function useWidgetBuilderState(): {
 
             // Only update sort if we have a valid field to sort by
             if (sortField) {
-              setSort(
-                [
-                  {
-                    kind: 'desc',
-                    field: sortField,
-                  },
-                ],
-                options
-              );
+              setSort([{kind: 'desc', field: sortField}], options);
             }
           }
 
@@ -1410,10 +1395,7 @@ export function useWidgetBuilderState(): {
     ]
   );
 
-  return {
-    state,
-    dispatch,
-  };
+  return {state, dispatch};
 }
 
 /**
@@ -1460,10 +1442,7 @@ function deserializeSorts(dataset?: WidgetType) {
         dataset === WidgetType.ISSUE &&
         REVERSED_ORDER_FIELD_SORT_LIST.includes(sort.field)
       ) {
-        return {
-          field: normalizeSortField(sort.field),
-          kind: 'desc',
-        };
+        return {field: normalizeSortField(sort.field), kind: 'desc'};
       }
       return {...sort, field: normalizeSortField(sort.field)};
     });
@@ -1554,10 +1533,7 @@ function parseAsWidgetSorts(datasetRef: RefObject<WidgetType | undefined>) {
 
 // No default here, unlike the other scalars: clearing the limit is meaningful
 // (a table has none), and a default would keep resurrecting it.
-const parseAsLimit = createParser({
-  parse: deserializeLimit,
-  serialize: String,
-});
+const parseAsLimit = createParser({parse: deserializeLimit, serialize: String});
 
 const parseAsSelectedAggregate = createParser({
   parse: (value: string) => deserializeSelectedAggregate(value) ?? null,

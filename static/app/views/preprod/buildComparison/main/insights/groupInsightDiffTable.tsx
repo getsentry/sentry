@@ -36,10 +36,7 @@ interface GroupInsightItemDiffTableProps {
 export function GroupInsightItemDiffTable({
   groupDiffItems,
 }: GroupInsightItemDiffTableProps) {
-  const [sort, setSort] = useState<DiffTableSort>({
-    field: 'size_diff',
-    kind: 'desc',
-  });
+  const [sort, setSort] = useState<DiffTableSort>({field: 'size_diff', kind: 'desc'});
 
   const [currentPage, setCurrentPage] = useState(0);
 
@@ -176,7 +173,6 @@ export function GroupInsightItemDiffTable({
           </SimpleTable.Empty>
         )}
         {currentDiffItems.map(groupDiffItem => {
-          // oxlint-disable-next-line react/todo
           rowIndex++;
           const groupDiffItemChange = getDiffChangeElements(groupDiffItem);
 
@@ -222,7 +218,6 @@ export function GroupInsightItemDiffTable({
               {groupDiffItem.diff_items?.map(diffItem => {
                 const diffItemChange = getDiffChangeElements(diffItem);
                 return (
-                  // oxlint-disable-next-line react/todo
                   <SimpleTable.Row key={++rowIndex}>
                     <SimpleTable.RowCell>
                       <Tag icon={diffItemChange.icon} variant={diffItemChange.type}>

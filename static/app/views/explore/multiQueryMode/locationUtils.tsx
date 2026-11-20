@@ -65,12 +65,7 @@ function validateSortBys(
       if (parsedSortBys.every(sort => fields?.includes(sort.field))) {
         return parsedSortBys;
       }
-      return [
-        {
-          field: 'timestamp',
-          kind: 'desc' as const,
-        },
-      ];
+      return [{field: 'timestamp', kind: 'desc' as const}];
     }
 
     return defaultSortBys(fields ?? []);

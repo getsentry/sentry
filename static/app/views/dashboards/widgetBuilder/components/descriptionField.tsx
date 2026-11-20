@@ -46,10 +46,7 @@ export function WidgetBuilderDescriptionField({
         );
       }}
       onBlur={e => {
-        dispatch({
-          type: builderStateAction,
-          payload: e.target.value,
-        });
+        dispatch({type: builderStateAction, payload: e.target.value});
         trackAnalytics('dashboards_views.widget_builder.change', {
           from: source,
           widget_type: state.dataset ?? '',

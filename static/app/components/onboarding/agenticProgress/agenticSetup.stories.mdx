@@ -64,13 +64,13 @@ export function ProjectSetupExample() {
       </ButtonBar>
       <AgenticSetup
         run={run}
-        onboardingCode="Example123"
         prompt={
           'Help me create and set up Sentry projects for this application.\n\norg slug: org-slug\nrun code: Example123'
         }
         isAgentConnected={state !== 'connecting'}
         hasInitFailed={false}
         hasProgressFailed={false}
+        hasRunFailed={state === 'failed'}
         onRefresh={() => {}}
         onRetry={() => setState('connecting')}
         onCopyCommand={() => {}}

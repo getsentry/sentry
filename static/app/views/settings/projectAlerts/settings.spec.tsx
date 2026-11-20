@@ -11,15 +11,10 @@ describe('ProjectAlertSettings', () => {
   // 55 minutes
   const digestsMaxDelay = 55 * 60;
 
-  const project = DetailedProjectFixture({
-    digestsMinDelay,
-    digestsMaxDelay,
-  });
+  const project = DetailedProjectFixture({digestsMinDelay, digestsMaxDelay});
   const {organization} = initializeOrg({
     projects: [project],
-    router: {
-      params: {projectId: project.slug},
-    },
+    router: {params: {projectId: project.slug}},
   });
 
   it('renders', async () => {

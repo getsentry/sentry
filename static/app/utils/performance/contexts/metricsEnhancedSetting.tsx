@@ -54,13 +54,7 @@ export function MEPSettingProvider({
         return;
       }
       navigate(
-        {
-          ...location,
-          query: {
-            ...location.query,
-            [METRIC_SETTING_PARAM]: settingState,
-          },
-        },
+        {...location, query: {...location.query, [METRIC_SETTING_PARAM]: settingState}},
         {replace: true}
       );
       _setMetricSettingState(settingState);

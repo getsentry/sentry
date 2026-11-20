@@ -6,7 +6,7 @@ import moment from 'moment-timezone';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
-import {DateTimeProvider, useClockDisplay, useTimezone} from '@sentry/scraps/datetime';
+import {DateTimeProvider, useClock, useTimezone} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
 import {useDrawer, DrawerBody, DrawerHeader} from '@sentry/scraps/drawer';
 import {Flex} from '@sentry/scraps/layout';
@@ -53,10 +53,7 @@ import {ScheduleType} from 'sentry/views/insights/crons/types';
 import {useMonitorProcessingErrors} from 'sentry/views/insights/crons/useMonitorProcessingErrors';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type CronDetectorDetailsProps = {
-  detector: CronDetector;
-  project: Project;
-};
+type CronDetectorDetailsProps = {detector: CronDetector; project: Project};
 
 function getLatestCronMonitorEnv(detector: CronDetector) {
   const environments = detector.dataSources[0].queryObj.environments;
@@ -72,12 +69,12 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
   const {selection} = usePageFilters();
   const dataSource = detector.dataSources[0];
   const userTimezone = useTimezone();
-  const clockDisplay = useClockDisplay();
+  const clock = useClock();
   const [timezoneOverride, setTimezoneOverride] = useState(userTimezone);
 
   const dateTime = useMemo(
-    () => ({timezone: timezoneOverride, clockDisplay}),
-    [timezoneOverride, clockDisplay]
+    () => ({timezone: timezoneOverride, clock}),
+    [timezoneOverride, clock]
   );
   const openDocsPanel = useDocsPanel(dataSource.queryObj.slug, project);
   const queryClient = useQueryClient();
@@ -124,12 +121,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
 
   const monitorEnv = getLatestCronMonitorEnv({
     ...detector,
-    dataSources: [
-      {
-        ...detector.dataSources[0],
-        queryObj: filteredMonitor,
-      },
-    ],
+    dataSources: [{...detector.dataSources[0], queryObj: filteredMonitor}],
   });
   const hasCheckedIn = hasLastCheckIn(filteredMonitor.environments);
 
@@ -281,7 +273,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
                 {dataSource.queryObj.status !== 'disabled' && monitorEnv?.nextCheckIn ? (
                   moment(monitorEnv.nextCheckIn).isAfter(moment()) ? (
                     <TimeSince
-                      unitStyle="regular"
+                      unitStyle="long"
                       liveUpdateInterval="second"
                       date={monitorEnv.nextCheckIn}
                     />
@@ -296,7 +288,7 @@ export function CronDetectorDetails({detector, project}: CronDetectorDetailsProp
               <DescriptionList.Details>
                 {monitorEnv?.lastCheckIn ? (
                   <TimeSince
-                    unitStyle="regular"
+                    unitStyle="long"
                     liveUpdateInterval="second"
                     date={monitorEnv.lastCheckIn}
                   />

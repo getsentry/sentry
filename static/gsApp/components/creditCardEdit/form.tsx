@@ -3,9 +3,7 @@ import {SetupIntentForm} from 'getsentry/components/creditCardEdit/intentForms/s
 import type {IntentFormProps} from 'getsentry/components/creditCardEdit/intentForms/types';
 import {StripeWrapper} from 'getsentry/components/stripeWrapper';
 
-export type CreditCardFormProps = IntentFormProps & {
-  amount?: number;
-};
+export type CreditCardFormProps = IntentFormProps & {amount?: number};
 
 export function CreditCardForm(props: CreditCardFormProps) {
   return (

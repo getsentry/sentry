@@ -103,7 +103,7 @@ class SeerAutofixActionTest(BaseEventTest):
         assert mock_trigger.called
         assert not mock_not_member_message.called
 
-    @with_feature(["organizations:seer-credit-checks", "organizations:token-billed-seer-enabled"])
+    @with_feature("organizations:token-billed-seer-enabled")
     @patch(
         "sentry.seer_credit.backend.check_seer_credits",
         return_value=CheckSeerCreditsResponse(has_enough_credits=False),

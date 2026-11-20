@@ -65,13 +65,7 @@ describe('LaunchpadAdminPage', () => {
   });
 
   it('copies fetched artifact information as formatted JSON', async () => {
-    const artifactInfo = {
-      success: true,
-      artifact_info: {
-        id: 123,
-        state: 1,
-      },
-    };
+    const artifactInfo = {success: true, artifact_info: {id: 123, state: 1}};
     MockApiClient.addMockResponse({
       url: '/internal/preprod-artifact/123/info/',
       body: artifactInfo,

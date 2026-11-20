@@ -24,10 +24,7 @@ export function ReplayConsoleEventFixture({
   return ReplayBreadcrumbFrameEventFixture({
     timestamp,
     data: {
-      payload: ReplayConsoleFrameFixture({
-        timestamp,
-        message: message ?? 'Hello World',
-      }),
+      payload: ReplayConsoleFrameFixture({timestamp, message: message ?? 'Hello World'}),
     },
   });
 }
@@ -39,9 +36,7 @@ export function ReplayClickEventFixture({timestamp}: {timestamp: Date}) {
       payload: ReplayClickFrameFixture({
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
-        data: {
-          nodeId: 42,
-        },
+        data: {nodeId: 42},
       }),
     },
   });
@@ -55,9 +50,7 @@ export function ReplayDeadClickEventFixture({timestamp}: {timestamp: Date}) {
         timestamp,
         message: 'nav[aria-label="Primary Navigation"] > div > a#sidebar-item-projects',
         data: {
-          node: {
-            tagName: 'a',
-          },
+          node: {tagName: 'a'},
           nodeId: 42,
           url: '',
           timeAfterClickMs: 7000,

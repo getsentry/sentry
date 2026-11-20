@@ -34,13 +34,7 @@ export function uptimeChecksApiOptions({
           projectIdOrSlug: projectSlug,
           uptimeDetectorId: detectorId,
         },
-        query: {
-          per_page: limit,
-          cursor,
-          start,
-          end,
-          statsPeriod,
-        },
+        query: {per_page: limit, cursor, start, end, statsPeriod},
         staleTime: 10_000,
       }
     ),

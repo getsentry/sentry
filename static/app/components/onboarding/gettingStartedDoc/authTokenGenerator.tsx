@@ -19,10 +19,7 @@ const AuthTokenGeneratorContext = createContext<{
   generateAuthToken: () => void;
   isLoading: boolean;
   authToken?: string;
-}>({
-  isLoading: false,
-  generateAuthToken: () => {},
-});
+}>({isLoading: false, generateAuthToken: () => {}});
 
 interface AuthTokenGeneratorProviderProps {
   children: React.ReactNode;
@@ -49,9 +46,7 @@ export function AuthTokenGeneratorProvider({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          name,
-        },
+        data: {name},
       });
     },
 

@@ -48,17 +48,11 @@ interface DefaultProps {
 type MappedSelector = DistributedOmit<
   ControlProps<string | number>,
   'options' | 'value' | 'onChange'
-> & {
-  choices?: Choices;
-  options?: ControlProps<string | number>['options'];
-};
+> & {choices?: Choices; options?: ControlProps<string | number>['options']};
 type MappedSelectors = Record<string, MappedSelector>;
 
 function getSelectProps({choices, options, ...props}: MappedSelector = {}) {
-  return {
-    ...props,
-    options: options ?? convertFromSelect2Choices(choices) ?? [],
-  };
+  return {...props, options: options ?? convertFromSelect2Choices(choices) ?? []};
 }
 
 export interface ChoiceMapperProps extends DefaultProps {
@@ -310,18 +304,12 @@ export function ChoiceMapperField({
       ...restDropdownProps
     } = addDropdown;
 
-    const buildAsyncQueryParams = (query: string) => ({
-      field: searchField,
-      query,
-    });
+    const buildAsyncQueryParams = (query: string) => ({field: searchField, query});
 
     const formatAsyncOptions = (data: any) =>
       data
         .filter((item: SelectOption<string>) => !Object.hasOwn(value, item.value))
-        .map((item: SelectOption<string>) => ({
-          value: item.value,
-          label: item.label,
-        }));
+        .map((item: SelectOption<string>) => ({value: item.value, label: item.label}));
 
     const dropdown = asyncUrl ? (
       <AsyncCompactSelectForIntegrationConfig

@@ -22,10 +22,7 @@ jest.mock('sentry/components/stream/group', () => ({
   LoadingStreamGroup: jest.fn(() => <tr data-test-id="loading-group" />),
 }));
 
-jest.mock('js-cookie', () => ({
-  get: jest.fn(),
-  set: jest.fn(),
-}));
+jest.mock('js-cookie', () => ({get: jest.fn(), set: jest.fn()}));
 
 const PREVIOUS_PAGE_CURSOR = '1443575731';
 // The poller sends the previous page link with its query string still encoded.
@@ -101,10 +98,7 @@ describe('IssueList -> Polling', () => {
     issuesRequest = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/',
       body: [group],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues-stats/',
@@ -113,10 +107,7 @@ describe('IssueList -> Polling', () => {
     pollRequest = MockApiClient.addMockResponse({
       url: POLL_URL,
       body: [],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '1',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '1'},
     });
 
     jest.mocked(StreamGroup).mockClear();
@@ -161,10 +152,7 @@ describe('IssueList -> Polling', () => {
     pollRequest = MockApiClient.addMockResponse({
       url: POLL_URL,
       body: [group2],
-      headers: {
-        Link: DEFAULT_LINKS_HEADER,
-        'X-Hits': '2',
-      },
+      headers: {Link: DEFAULT_LINKS_HEADER, 'X-Hits': '2'},
     });
 
     await renderComponent();

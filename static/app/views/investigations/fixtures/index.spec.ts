@@ -13,9 +13,6 @@ describe.each([
   it('derives the block count from overridden blocks', () => {
     const blocks = [InvestigationBlockFixture({id: 'custom-block'})];
 
-    expect(fixture({blocks})).toMatchObject({
-      blockCount: 1,
-      blocks,
-    });
+    expect(fixture({blocks})).toMatchObject({blockCount: 1, blocks});
   });
 });

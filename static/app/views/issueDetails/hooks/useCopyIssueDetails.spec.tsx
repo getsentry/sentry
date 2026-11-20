@@ -32,10 +32,7 @@ describe('useCopyIssueDetails', () => {
     issueCategory: IssueCategory.PERFORMANCE,
     issueType: IssueType.PROFILE_FUNCTION_REGRESSION,
   });
-  const event = EventFixture({
-    id: '123456',
-    dateCreated: '2023-01-01T00:00:00Z',
-  });
+  const event = EventFixture({id: '123456', dateCreated: '2023-01-01T00:00:00Z'});
 
   const mockAutofixData: ExplorerAutofixState = {
     run_id: 123,
@@ -55,10 +52,7 @@ describe('useCopyIssueDetails', () => {
           {
             key: 'root_cause',
             reason: 'Root cause analysis',
-            data: {
-              one_line_description: 'Root cause text',
-              five_whys: ['Why 1'],
-            },
+            data: {one_line_description: 'Root cause text', five_whys: ['Why 1']},
           },
         ],
       },
@@ -120,7 +114,9 @@ describe('useCopyIssueDetails', () => {
           organization,
         });
 
-        expect(result).toContain(`**Issue ID:** ${group.id}`);
+        expect(result).toContain(
+          `**Issue ID:** ${group.id}\n**Short ID:** ${group.shortId}\n**Project:** ${group.project?.slug}\n`
+        );
         expect(result).toContain('**Date:** 2023-01-01 00:00:00 UTC');
         // the server body carries the only date; the header must not add a local-time one
         expect(result.match(/\*\*Date:\*\*/g)).toHaveLength(1);
@@ -262,11 +258,7 @@ describe('useCopyIssueDetails', () => {
         ],
       };
 
-      const result = issueAndEventToMarkdown({
-        group,
-        event: eventWithTags,
-        organization,
-      });
+      const result = issueAndEventToMarkdown({group, event: eventWithTags, organization});
 
       expect(result).toContain('## Tags');
       expect(result).toContain('**browser:** Chrome');
@@ -640,9 +632,7 @@ describe('useCopyIssueDetails', () => {
         entries: [
           {
             type: EntryType.BREADCRUMBS,
-            data: {
-              values: [{type: 'default', level: 'info', message: longMessage}],
-            },
+            data: {values: [{type: 'default', level: 'info', message: longMessage}]},
           },
         ],
       });
@@ -697,24 +687,16 @@ describe('useCopyIssueDetails', () => {
         entries: [
           {
             type: EntryType.BREADCRUMBS,
-            data: {
-              values: [{type: 'default', level: 'info', message: 'crumb'}],
-            },
+            data: {values: [{type: 'default', level: 'info', message: 'crumb'}]},
           },
           {
             type: EntryType.EXCEPTION,
-            data: {
-              values: [{type: 'TypeError', value: 'boom'}],
-            },
+            data: {values: [{type: 'TypeError', value: 'boom'}]},
           },
         ],
       });
 
-      const result = issueAndEventToMarkdown({
-        group,
-        event: eventWithBoth,
-        organization,
-      });
+      const result = issueAndEventToMarkdown({group, event: eventWithBoth, organization});
 
       expect(result.indexOf('## Exception')).toBeLessThan(
         result.indexOf('## Breadcrumbs')
@@ -859,11 +841,7 @@ describe('useCopyIssueDetails', () => {
         ],
       });
 
-      const result = issueAndEventToMarkdown({
-        group,
-        event: eventWithBoth,
-        organization,
-      });
+      const result = issueAndEventToMarkdown({group, event: eventWithBoth, organization});
 
       expect(result.indexOf('## Breadcrumbs')).toBeLessThan(result.indexOf('## Request'));
     });
@@ -896,12 +874,7 @@ describe('useCopyIssueDetails', () => {
     it('does not include a request section when there is no request data', () => {
       const eventWithEmptyRequest = EventFixture({
         ...event,
-        entries: [
-          {
-            type: EntryType.REQUEST,
-            data: {method: null, url: '', data: null},
-          },
-        ],
+        entries: [{type: EntryType.REQUEST, data: {method: null, url: '', data: null}}],
       });
 
       const result = issueAndEventToMarkdown({
@@ -1368,10 +1341,7 @@ LIMIT 21`;
       const functionRegressionEvent = EventFixture({
         ...event,
         title: 'ApiException',
-        occurrence: {
-          type: 2010,
-          evidenceDisplay: [],
-        },
+        occurrence: {type: 2010, evidenceDisplay: []},
       });
 
       const functionResult = issueAndEventToMarkdown({
@@ -1399,30 +1369,30 @@ LIMIT 21`;
 
       mockCopy.mockResolvedValue('');
 
-      jest.mocked(copyToClipboardModule.useCopyToClipboard).mockReturnValue({
-        copy: mockCopy,
-      });
+      jest
+        .mocked(copyToClipboardModule.useCopyToClipboard)
+        .mockReturnValue({copy: mockCopy});
 
-      jest.spyOn(explorerAutofixHooks, 'useExplorerAutofix').mockReturnValue({
-        runState: mockAutofixData,
-        isLoading: false,
-        isPolling: false,
-        startStep: jest.fn(),
-        createPR: jest.fn(),
-        reset: jest.fn(),
-        triggerCodingAgentHandoff: jest.fn(),
-        codingAgentErrors: [],
-        dismissCodingAgentError: jest.fn(),
-      } as any);
+      jest
+        .spyOn(explorerAutofixHooks, 'useExplorerAutofix')
+        .mockReturnValue({
+          runState: mockAutofixData,
+          isLoading: false,
+          isPolling: false,
+          startStep: jest.fn(),
+          createPR: jest.fn(),
+          reset: jest.fn(),
+          triggerCodingAgentHandoff: jest.fn(),
+          codingAgentErrors: [],
+          dismissCodingAgentError: jest.fn(),
+        } as any);
 
       jest.spyOn(toast, 'success').mockImplementation(() => 'toast-id');
       jest.spyOn(toast, 'error').mockImplementation(() => 'toast-id');
     });
 
     it('calls useCopyToClipboard hook', () => {
-      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
-        organization,
-      });
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {organization});
 
       // Check that the hook was called
       expect(copyToClipboardModule.useCopyToClipboard).toHaveBeenCalled();
@@ -1458,9 +1428,7 @@ LIMIT 21`;
         return Promise.resolve(text);
       });
 
-      renderHookWithProviders(() => useCopyIssueDetails(group, event), {
-        organization,
-      });
+      renderHookWithProviders(() => useCopyIssueDetails(group, event), {organization});
 
       await userEvent.keyboard('{Control>}{Alt>}c{/Alt}{/Control}');
 

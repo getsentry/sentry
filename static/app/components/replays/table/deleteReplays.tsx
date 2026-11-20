@@ -176,11 +176,7 @@ function ReplayQueryPreview({
   project: Project;
 }) {
   const contentItems = Object.entries(deletePayload).map(([key, value]) => ({
-    item: {
-      key,
-      subject: key,
-      value,
-    },
+    item: {key, subject: key, value},
   }));
   return (
     <Fragment>

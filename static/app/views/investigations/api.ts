@@ -30,11 +30,7 @@ import type {
   MetricOpenPeriodInvestigationSource,
 } from './types';
 
-type ListOptions = {
-  organizationSlug: string;
-  cursor?: string;
-  query?: string;
-};
+type ListOptions = {organizationSlug: string; cursor?: string; query?: string};
 
 export function investigationListQueryOptions({
   organizationSlug,
@@ -58,10 +54,7 @@ export function getInvestigationDetailQueryOptions(
   return apiOptions.as<InvestigationDetail>()(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/',
     {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        notebookId: investigationId,
-      },
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
       staleTime: 30_000,
     }
   );
@@ -271,10 +264,7 @@ export function investigationTitleGenerationQueryOptions(
   return apiOptions.as<InvestigationTitleGeneration>()(
     '/organizations/$organizationIdOrSlug/notebooks/$notebookId/title-generation/',
     {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        notebookId: investigationId,
-      },
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
       staleTime: 0,
     }
   );
@@ -294,10 +284,7 @@ export function investigationPresenceQueryOptions(
     total: number;
     viewers: InvestigationViewer[];
   }>()('/organizations/$organizationIdOrSlug/notebooks/$notebookId/presence/', {
-    path: {
-      organizationIdOrSlug: organizationSlug,
-      notebookId: investigationId,
-    },
+    path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
     query: {limit},
     method: 'PUT',
     staleTime: 0,
@@ -320,10 +307,7 @@ export function investigationOrchestrationQueryOptions(
   return apiOptions.as<InvestigationOrchestration>()(
     '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/',
     {
-      path: {
-        organizationIdOrSlug: organizationSlug,
-        notebookId: investigationId,
-      },
+      path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
       staleTime: 0,
     }
   );
@@ -356,12 +340,7 @@ export function useInvestigationOrchestrationCommandMutation(
       fetchMutation<InvestigationOrchestrationCommandResponse>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/investigations/$notebookId/orchestration/commands/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              notebookId: investigationId,
-            },
-          }
+          {path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId}}
         ),
         method: 'POST',
         data: {requestId, expectedWorkflowVersion, command},
@@ -406,20 +385,11 @@ function investigationCandidatesUrl(organizationSlug: string) {
   return url;
 }
 
-type FavoriteVariables = {
-  investigation: InvestigationListItem;
-  shouldFavorite: boolean;
-};
+type FavoriteVariables = {investigation: InvestigationListItem; shouldFavorite: boolean};
 
-type DeleteBlockVariables = {
-  block: InvestigationBlock;
-  notebookVersion: number;
-};
+type DeleteBlockVariables = {block: InvestigationBlock; notebookVersion: number};
 
-type StopExecutionVariables = {
-  blockId: string;
-  executionId: string;
-};
+type StopExecutionVariables = {blockId: string; executionId: string};
 
 type ResumeExecutionVariables = StopExecutionVariables & {
   inputId: string;
@@ -524,10 +494,7 @@ export function useRenameInvestigationMutation(
 
       return fetchMutation<InvestigationDetail>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/$notebookId/', {
-          path: {
-            organizationIdOrSlug: organizationSlug,
-            notebookId: investigationId,
-          },
+          path: {organizationIdOrSlug: organizationSlug, notebookId: investigationId},
         }),
         method: 'PUT',
         data: {title, notebookVersion: current.version},
@@ -586,10 +553,7 @@ export function useDeleteInvestigationBlockMutation(
           }
         ),
         method: 'DELETE',
-        data: {
-          notebookVersion,
-          version: block.version,
-        },
+        data: {notebookVersion, version: block.version},
       });
     },
     onSuccess: async (_data, variables, onMutateResult, context) => {
@@ -660,10 +624,7 @@ const actionRequestErrorSchema = z.discriminatedUnion('code', [
       'not_retryable',
     ]),
   }),
-  z.object({
-    code: z.literal('stale'),
-    current: detectorValuesSchema,
-  }),
+  z.object({code: z.literal('stale'), current: detectorValuesSchema}),
   z.object({code: z.literal('validation_failed'), messages: z.array(z.string())}),
 ]);
 
@@ -952,12 +913,7 @@ export function useSetInvestigationFavoriteMutation(
       fetchMutation<void>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/notebooks/$notebookId/favorite/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              notebookId: investigation.id,
-            },
-          }
+          {path: {organizationIdOrSlug: organizationSlug, notebookId: investigation.id}}
         ),
         method: 'PUT',
         data: {shouldFavorite},
@@ -976,12 +932,7 @@ export function useDuplicateInvestigationMutation(
       fetchMutation<InvestigationListItem>({
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/notebooks/$notebookId/duplicate/',
-          {
-            path: {
-              organizationIdOrSlug: organizationSlug,
-              notebookId: investigation.id,
-            },
-          }
+          {path: {organizationIdOrSlug: organizationSlug, notebookId: investigation.id}}
         ),
         method: 'POST',
       }),
@@ -998,10 +949,7 @@ export function useDeleteInvestigationMutation(
     investigation =>
       fetchMutation<void>({
         url: getApiUrl('/organizations/$organizationIdOrSlug/notebooks/$notebookId/', {
-          path: {
-            organizationIdOrSlug: organizationSlug,
-            notebookId: investigation.id,
-          },
+          path: {organizationIdOrSlug: organizationSlug, notebookId: investigation.id},
         }),
         method: 'DELETE',
         data: {notebookVersion: investigation.version},

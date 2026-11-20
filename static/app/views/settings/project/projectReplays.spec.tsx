@@ -14,9 +14,7 @@ describe('ProjectReplays', () => {
     },
   });
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/${project.slug}/replays/`,
-    },
+    location: {pathname: `/settings/projects/${project.slug}/replays/`},
     route: '/settings/projects/:projectId/replays/',
   };
   const getProjectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
@@ -123,9 +121,7 @@ describe('ProjectReplays', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:replay_rage_click_issues': true},
-          },
+          data: {options: {'sentry:replay_rage_click_issues': true}},
         })
       )
     );
@@ -165,9 +161,7 @@ describe('ProjectReplays', () => {
         getProjectEndpoint,
         expect.objectContaining({
           method: 'PUT',
-          data: {
-            options: {'sentry:replay_hydration_error_issues': true},
-          },
+          data: {options: {'sentry:replay_hydration_error_issues': true}},
         })
       )
     );

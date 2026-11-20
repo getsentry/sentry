@@ -1,4 +1,7 @@
-import {SEARCH_PAGE__SERVER_RENDERING__TYPE} from '@sentry/conventions/attributes/search';
+import {
+  SEARCH_PAGE__SERVER_RENDERING__AGE,
+  SEARCH_PAGE__SERVER_RENDERING__TYPE,
+} from '@sentry/conventions/attributes/search';
 
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import type {
@@ -32,6 +35,11 @@ export interface ServerRender {
 
 /** A render whose HTML the server reuses for many page loads. */
 interface SharedRender extends ServerRender {
+  /**
+   * Seconds from the start of this render to the start of the pageload.
+   * `undefined` for older SDKs.
+   */
+  age: number | undefined;
   /** `undefined` when the type is not set. */
   part: StaticPart | undefined;
 }
@@ -89,7 +97,7 @@ export function getPageServerRendering({
   const cacheOrigin = findLinkOfType(links, CACHE_ORIGIN_LINK_TYPE);
   const serverRequest = findLinkOfType(links, SERVER_REQUEST_LINK_TYPE);
 
-  const sharedRender = getSharedRender(type, cacheOrigin);
+  const sharedRender = getSharedRender(type, cacheOrigin, getRenderAge(attributes));
   const requestRender = getRequestRender(type, serverRequest);
 
   if (!sharedRender && !requestRender) {
@@ -105,10 +113,19 @@ function findLinkOfType(
   return links?.find(link => getSpanLinkType(link) === type);
 }
 
+/** SDKs clamp the age at 0, so a negative value is not valid. */
+function getRenderAge(attributes: TraceItemResponseAttribute[]): number | undefined {
+  const age = Number(
+    getAttributeValue(attributes, SEARCH_PAGE__SERVER_RENDERING__AGE, 'number')
+  );
+  return Number.isFinite(age) && age >= 0 ? age : undefined;
+}
+
 /** A `cache_origin` link or a static type means the server reused HTML. */
 function getSharedRender(
   type: ServerRenderingType | undefined,
-  cacheOrigin: TraceItemResponseLink | undefined
+  cacheOrigin: TraceItemResponseLink | undefined,
+  age: number | undefined
 ): SharedRender | undefined {
   if (!type && !cacheOrigin) {
     return undefined;
@@ -116,6 +133,7 @@ function getSharedRender(
   return {
     part: type ? getStaticPart(type) : undefined,
     location: cacheOrigin ? toLinkedLocation(cacheOrigin) : {type: 'not_traced'},
+    age,
   };
 }
 

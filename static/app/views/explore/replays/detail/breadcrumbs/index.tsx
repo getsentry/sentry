@@ -109,12 +109,7 @@ export function Breadcrumbs() {
     visibleRange,
   });
 
-  useScrollToCurrentItem({
-    autoScrollEnabled,
-    currentTime,
-    frames: items,
-    virtualizer,
-  });
+  useScrollToCurrentItem({autoScrollEnabled, currentTime, frames: items, virtualizer});
 
   const handleShowSnipppet = useCallback((index: number) => {
     setShowSnippetSet(prev => {

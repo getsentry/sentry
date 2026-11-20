@@ -77,12 +77,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
           type={ChartType.AREA}
           disableXAxis
           loading={false}
-          grid={{
-            left: 5,
-            right: 5,
-            top: 5,
-            bottom: 0,
-          }}
+          grid={{left: 5, right: 5, top: 5, bottom: 0}}
           dataMax={100}
           chartColors={segmentColors}
           hideYAxisSplitLine

@@ -15,6 +15,7 @@ import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/e
 import {PageFilterBar} from 'sentry/components/pageFilters/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/pageFilters/project/projectPageFilter';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import {getQuerySpeedLabel, QuerySpeedMenu} from 'sentry/components/querySpeedMenu';
 import {
   DEFAULT_RELEASES_SORT,
   RELEASES_SORT_OPTIONS,
@@ -231,7 +232,6 @@ export function FiltersBar({
   const [chartInterval, setChartInterval, intervalOptions] = useDashboardChartInterval();
   const {
     enabled: showQueryPriority,
-    options: queryPriorityOptions,
     priority,
     setPriority,
   } = useDashboardQueryPriority(dashboard?.queryPriority);
@@ -285,9 +285,7 @@ export function FiltersBar({
       }
     });
   };
-  const queryPriorityLabel =
-    queryPriorityOptions.find(option => option.value === priority)?.label ??
-    t('Balanced Querying');
+  const queryPriorityLabel = getQuerySpeedLabel(priority);
   return (
     <Flex
       align={{zero: 'stretch', xl: 'start'}}
@@ -387,9 +385,7 @@ export function FiltersBar({
                   f => !globalFilterKeysAreEqual(f, removedFilter)
                 )
               );
-              trackAnalytics('dashboards2.global_filter.remove', {
-                organization,
-              });
+              trackAnalytics('dashboards2.global_filter.remove', {organization});
             }}
           />
         ))}
@@ -399,9 +395,7 @@ export function FiltersBar({
           onFilterKeySearch={onFilterKeySearch}
           onAddFilter={newFilter => {
             updateGlobalFilters([...activeGlobalFilters, newFilter]);
-            trackAnalytics('dashboards2.global_filter.add', {
-              organization,
-            });
+            trackAnalytics('dashboards2.global_filter.add', {organization});
           }}
         />
         {!hasTemporaryFilters &&
@@ -447,9 +441,9 @@ export function FiltersBar({
       </Flex>
       <Grid flow="column" align="center" gap="md">
         {showQueryPriority && (
-          <CompactSelect
-            value={priority}
-            onChange={option => handleQueryPriorityChange(option.value)}
+          <QuerySpeedMenu
+            menuWidth={240}
+            onChange={handleQueryPriorityChange}
             trigger={triggerProps => (
               <OverlayTrigger.Button
                 {...triggerProps}
@@ -459,9 +453,7 @@ export function FiltersBar({
                 {queryPriorityLabel}
               </OverlayTrigger.Button>
             )}
-            menuTitle={t('Query Speed')}
-            menuWidth={240}
-            options={queryPriorityOptions}
+            value={priority}
           />
         )}
         <CompactSelect

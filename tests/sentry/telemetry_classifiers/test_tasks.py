@@ -153,6 +153,21 @@ class SelectEntitiesTest(ClassifierTaskTestCase):
 
         self.dataset.select.assert_not_called()
 
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_skips_killswitched_organizations(self, mock_incr: MagicMock) -> None:
+        classifier = self.create_telemetry_classifier(project=self.project)
+
+        with override_options(
+            {"telemetry-classifiers.killswitch-organization-ids": [self.organization.id]}
+        ):
+            select_entities(classifier.id)
+
+        self.dataset.select.assert_not_called()
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.select",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "org_killswitched"},
+        )
+
     def test_skips_invalid_filters(self) -> None:
         classifier = self.create_telemetry_classifier(project=self.project)
         self.dataset.select.side_effect = InvalidSearchQuery("invalid")
@@ -183,7 +198,7 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
             timestamp=datetime(2020, 1, 1, 12, 0, tzinfo=UTC),
             client_sample_rate=1.0,
             conversation_id="conversation",
-            environment="production",
+            copied_attributes={"sentry.environment": "production"},
         )
         self.dataset.load.return_value = self.source
         self.classify.return_value = {"type": "predicate", "name": "match", "probability": 0.8}
@@ -213,6 +228,22 @@ class ClassifyEntityTest(ClassifierTaskTestCase):
         classify_entity(classifier_id=classifier.id, entity_id="conversation")
 
         self.dataset.load.assert_not_called()
+
+    @patch("sentry.telemetry_classifiers.tasks.metrics.incr")
+    def test_skips_killswitched_organizations(self, mock_incr: MagicMock) -> None:
+        classifier = self.create_prebuilt_classifier()
+
+        with override_options(
+            {"telemetry-classifiers.killswitch-organization-ids": [self.organization.id]}
+        ):
+            classify_entity(classifier_id=classifier.id, entity_id="conversation")
+
+        self.dataset.load.assert_not_called()
+        self.classify.assert_not_called()
+        mock_incr.assert_any_call(
+            "telemetry_classifiers.classify",
+            tags={"dataset": Dataset.CONVERSATION, "outcome": "org_killswitched"},
+        )
 
     def test_skips_classifiers_that_cant_run(self) -> None:
         # Custom classifiers can't run yet.

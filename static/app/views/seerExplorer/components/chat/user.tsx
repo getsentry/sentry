@@ -30,10 +30,7 @@ export function UserBlock({block}: UserBlockProps) {
 function PrFeedbackNotice({block}: UserBlockProps) {
   const metadata = block.message.metadata;
   const items = metadata?.feedback
-    ? parseFeedback(metadata.feedback).map(item => ({
-        ...item,
-        timestamp: undefined,
-      }))
+    ? parseFeedback(metadata.feedback).map(item => ({...item, timestamp: undefined}))
     : [];
   return (
     <MessageRow from="assistant" density="compact" data-test-id="pr-feedback-notice">

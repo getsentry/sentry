@@ -84,15 +84,7 @@ function PageUpsellOverlay({
                 </UpsellProvider>
               )}
               {customSecondaryCTA ?? (
-                <Button
-                  onClick={() =>
-                    openUpsellModal({
-                      organization,
-                      source,
-                    })
-                  }
-                  size="sm"
-                >
+                <Button onClick={() => openUpsellModal({organization, source})} size="sm">
                   {t('Learn More')}
                 </Button>
               )}

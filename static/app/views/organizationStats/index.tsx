@@ -160,11 +160,7 @@ export function getDataDatetime(
   const utc = utcString === 'true';
   if (start && end) {
     // Treat start/end URL params as UTC (consistent with DatePageFilter)
-    return {
-      start: moment.utc(start).format(),
-      end: moment.utc(end).format(),
-      utc,
-    };
+    return {start: moment.utc(start).format(), end: moment.utc(end).format(), utc};
   }
 
   return {period: DEFAULT_STATS_PERIOD};
@@ -285,10 +281,7 @@ export function OrganizationStatsInner({
     (project: Project): Record<string, LocationDescriptorObject> => {
       const nextLocation: LocationDescriptorObject = {
         ...location,
-        query: {
-          ...location.query,
-          project: project.id,
-        },
+        query: {...location.query, project: project.id},
       };
 
       // Do not leak out page-specific keys
@@ -301,18 +294,13 @@ export function OrganizationStatsInner({
         },
         projectDetail: {
           ...nextLocation,
-          pathname: makeProjectsPathname({
-            path: `/${project.slug}/`,
-            organization,
-          }),
+          pathname: makeProjectsPathname({path: `/${project.slug}/`, organization}),
         },
         issueList: {
           ...nextLocation,
           pathname: `/organizations/${organization.slug}/issues/`,
         },
-        settings: {
-          pathname: `/settings/${organization.slug}/projects/${project.slug}/`,
-        },
+        settings: {pathname: `/settings/${organization.slug}/projects/${project.slug}/`},
       };
     },
     [location, organization]
@@ -325,13 +313,7 @@ export function OrganizationStatsInner({
     (nextState, options = {willUpdateRouter: true}) => {
       const nextQueryParams = pick(nextState, PAGE_QUERY_PARAMS);
 
-      const nextLocation = {
-        ...location,
-        query: {
-          ...location?.query,
-          ...nextQueryParams,
-        },
-      };
+      const nextLocation = {...location, query: {...location?.query, ...nextQueryParams}};
 
       if (options.willUpdateRouter) {
         navigate(nextLocation);

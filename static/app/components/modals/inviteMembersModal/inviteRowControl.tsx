@@ -19,10 +19,7 @@ import type {InviteStatus} from './types';
 
 type SelectOption = SelectValue<string>;
 
-type Props = {
-  roleDisabledUnallowed: boolean;
-  roleOptions: OrgRole[];
-};
+type Props = {roleDisabledUnallowed: boolean; roleOptions: OrgRole[]};
 
 // Address lists copied from mail clients look like `Jane Doe <jane@example.com>`.
 const EMAIL_PATTERN = /[^\s<>[\],;"()]+@[^\s<>[\],;"()]+/g;

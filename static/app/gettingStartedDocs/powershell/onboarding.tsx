@@ -60,10 +60,7 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.INSTALL,
       content: [
-        {
-          type: 'text',
-          text: t('Install the module:'),
-        },
+        {type: 'text', text: t('Install the module:')},
         {
           type: 'code',
           language: 'powershell',
@@ -76,15 +73,8 @@ export const onboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       content: [
-        {
-          type: 'text',
-          text: t('Initialize the SDK as early as possible.'),
-        },
-        {
-          type: 'code',
-          language: 'powershell',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'text', text: t('Initialize the SDK as early as possible.')},
+        {type: 'code', language: 'powershell', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -112,11 +102,7 @@ export const onboarding: OnboardingConfig = {
             'You can measure the performance of your code by capturing transactions and spans.'
           ),
         },
-        {
-          type: 'code',
-          language: 'powershell',
-          code: getPerformanceMonitoringSnippet(),
-        },
+        {type: 'code', language: 'powershell', code: getPerformanceMonitoringSnippet()},
         {
           type: 'text',
           text: tct(
@@ -133,10 +119,7 @@ export const onboarding: OnboardingConfig = {
     {
       title: t('Samples'),
       content: [
-        {
-          type: 'text',
-          text: t('You can find sample usage of the SDK:'),
-        },
+        {type: 'text', text: t('You can find sample usage of the SDK:')},
         {
           type: 'list',
           items: [

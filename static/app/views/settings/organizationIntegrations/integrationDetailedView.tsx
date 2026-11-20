@@ -151,9 +151,7 @@ function getOrgMutationOptions(organization: Organization) {
   });
 }
 
-export type IntegrationInformation = {
-  providers: IntegrationProvider[];
-};
+export type IntegrationInformation = {providers: IntegrationProvider[]};
 
 function makeIntegrationApiOptions({
   orgSlug,
@@ -166,10 +164,7 @@ function makeIntegrationApiOptions({
     '/organizations/$organizationIdOrSlug/integrations/',
     {
       path: {organizationIdOrSlug: orgSlug},
-      query: {
-        provider_key: integrationSlug,
-        includeConfig: 0,
-      },
+      query: {provider_key: integrationSlug, includeConfig: 0},
       staleTime: 0,
     }
   );
@@ -203,9 +198,7 @@ export default function IntegrationDetailedView() {
       '/organizations/$organizationIdOrSlug/config/integrations/',
       {
         path: {organizationIdOrSlug: organization.slug},
-        query: {
-          provider_key: integrationSlug,
-        },
+        query: {provider_key: integrationSlug},
         staleTime: Infinity,
       }
     ),
@@ -242,11 +235,7 @@ export default function IntegrationDetailedView() {
     // We map those to the currently in use values to their react equivalents
     // and fallback to IconFlag just in case.
     const alertList: AlertType[] = (provider?.metadata.aspects.alerts || []).map(
-      alert => ({
-        variant: alert.variant ?? 'muted',
-        text: alert.text,
-        icon: alert.icon,
-      })
+      alert => ({variant: alert.variant ?? 'muted', text: alert.text, icon: alert.icon})
     );
 
     if (!provider?.canAdd && provider?.metadata.aspects.externalInstall) {
@@ -338,7 +327,7 @@ export default function IntegrationDetailedView() {
         `/settings/${organization.slug}/integrations/${integration.provider.key}/${integration.id}/`
       );
     },
-    [organization.slug, integrationSlug, navigate, queryClient, provider?.features]
+    [organization.slug, integrationSlug, navigate, queryClient, provider]
   );
 
   const {mutate: onRemove} = useMutation({
@@ -367,10 +356,7 @@ export default function IntegrationDetailedView() {
           headers: previous?.headers ?? {},
           json: (current ?? []).map((config): OrganizationIntegration =>
             config.id === integration.id
-              ? {
-                  ...config,
-                  organizationIntegrationStatus: 'pending_deletion',
-                }
+              ? {...config, organizationIntegrationStatus: 'pending_deletion'}
               : config
           ),
         };

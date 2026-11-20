@@ -72,11 +72,7 @@ export function SecondaryNavigationContextProvider(
   );
 
   const value = useMemo(() => {
-    return {
-      collapsible,
-      view: collapsible ? view : 'expanded',
-      setView,
-    };
+    return {collapsible, view: collapsible ? view : 'expanded', setView};
   }, [collapsible, view, setView]);
 
   return (

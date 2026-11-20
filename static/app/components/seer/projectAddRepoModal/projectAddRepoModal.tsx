@@ -32,7 +32,7 @@ import {useCompactSelectProjectOptions} from 'sentry/utils/project/useCompactSel
 import {useProjectsById} from 'sentry/utils/project/useProjectsById';
 import {useCompactSelectRepositoryOptions} from 'sentry/utils/repositories/useCompactSelectRepositoryOptions';
 import {useRepositoriesById} from 'sentry/utils/repositories/useRepositoriesById';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {
   NON_GITHUB_HANDOFF_WARNING,
   orgDefaultAgentQueryOptions,
@@ -78,18 +78,14 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
   const repoEntrySchema = z.object({
     repoId: z
       .string()
-      .refine(id => repositoriesById.has(id), {
-        message: t('Repository not found'),
-      })
+      .refine(id => repositoriesById.has(id), {message: t('Repository not found')})
       .nonempty(),
     branch: z.string(),
   });
   const formSchema = z.object({
     project: z
       .string()
-      .refine(id => projectsById.has(id), {
-        message: t('Please select a project'),
-      })
+      .refine(id => projectsById.has(id), {message: t('Please select a project')})
       .transform(id => projectsById.get(id)!),
     repoEntries: z
       .array(repoEntrySchema)
@@ -111,7 +107,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
       agentOption,
       stoppingPoint,
       // Opt-in under token-based billing, matching the backend default.
-      prIteration: !isSeerTokenBasedBillingOnboardingEnabled(organization),
+      prIteration: !isTokenBilledSeerEnabled(organization),
     },
     validators: {
       onMount: formSchema.extend({
@@ -182,7 +178,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
         <Body>
           <Stack gap="xl">
             <Text size="md">
-              {isSeerTokenBasedBillingOnboardingEnabled(organization)
+              {isTokenBilledSeerEnabled(organization)
                 ? tct(
                     "Seer uses the repositories linked to your project. If you don't see the repositories you expect, [manage_repositories_link:manage your repository connections].",
                     {manage_repositories_link: manageRepositoriesLink}
@@ -326,10 +322,7 @@ export function ProjectAddRepoModal({Header, Body, Footer, title, closeModal}: P
                             }
                             emptyMessage={t('No repositories found')}
                             onChange={option => {
-                              field.pushValue({
-                                repoId: option.value,
-                                branch: '',
-                              });
+                              field.pushValue({repoId: option.value, branch: ''});
                             }}
                             options={repositoryOptions.data ?? []}
                             search
@@ -431,9 +424,7 @@ function useUnconfiguredProjects({projects}: {projects: Project[]}) {
   const result = useInfiniteQuery({
     ...getInfiniteSeerProjectsSettingsQueryOptions({
       organization,
-      query: {
-        per_page: 100,
-      },
+      query: {per_page: 100},
     }),
     select: useCallback(
       ({pages}: InfiniteData<ApiResponse<SeerProjectSettingResponse[]>>) => {

@@ -2,10 +2,11 @@ import {useMemo} from 'react';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {t} from 'sentry/locale';
 import {escape} from 'sentry/utils';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import type {TimeSeries} from 'sentry/views/dashboards/widgets/common/types';
 

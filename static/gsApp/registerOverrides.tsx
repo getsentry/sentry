@@ -69,7 +69,6 @@ import {SpikeProtectionProjectSettings} from 'getsentry/overrides/spendVisibilit
 import {statsRoutes} from 'getsentry/overrides/statsRoutes';
 import {subscriptionSettingsRoutes} from 'getsentry/overrides/subscriptionSettingsRoutes';
 import {SuperuserAccessCategory} from 'getsentry/overrides/superuserAccessCategory';
-import TargetedOnboardingHeader from 'getsentry/overrides/targetedOnboardingHeader';
 import {useBillingNavigationConfig} from 'getsentry/overrides/useBillingNavigationConfig';
 import {useDashboardDatasetRetentionLimit} from 'getsentry/overrides/useDashboardDatasetRetentionLimit';
 import {useExperiment} from 'getsentry/overrides/useExperiment';
@@ -185,13 +184,6 @@ const GETSENTRY_OVERRIDES: Partial<Overrides> = {
    * inviting members.
    */
   'member-invite-modal:customization': () => MemberInviteModalCustomization,
-
-  /**
-   * Augment the targeted onboarding page with a different header
-   */
-  'onboarding:targeted-onboarding-header': ({source}: {source: string}) => (
-    <TargetedOnboardingHeader source={source} key="targeted-onboarding-header" />
-  ),
 
   /**
    * Get list of organization roles

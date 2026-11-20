@@ -61,12 +61,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [1],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: false,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: false},
     });
   });
 
@@ -205,11 +200,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
       initialProps: {
         ...defaultInitialProps,
         stringAttributes: {
-          'log.message': {
-            key: 'log.message',
-            name: 'log.message',
-            kind: FieldKind.TAG,
-          },
+          'log.message': {key: 'log.message', name: 'log.message', kind: FieldKind.TAG},
         },
         stringSecondaryAliases: {
           'log.message_alias': {
@@ -247,10 +238,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('does not warn for product fields that opt out of convention deprecation', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        itemType: TraceItemDataset.REPLAYS,
-      },
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.REPLAYS},
       organization,
     });
 
@@ -320,11 +308,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
     'disables recent searches when disableRecentSearches is true for item type %s',
     itemType => {
       const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-        initialProps: {
-          ...defaultInitialProps,
-          itemType,
-          disableRecentSearches: true,
-        },
+        initialProps: {...defaultInitialProps, itemType, disableRecentSearches: true},
         organization,
       });
 
@@ -344,10 +328,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('passes disabled through to search query builder provider props', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        disabled: true,
-      },
+      initialProps: {...defaultInitialProps, disabled: true},
       organization,
     });
 
@@ -356,10 +337,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('passes invalid filter keys through to search query builder provider props', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        invalidFilterKeys: ['missing.key'],
-      },
+      initialProps: {...defaultInitialProps, invalidFilterKeys: ['missing.key']},
       organization,
     });
 
@@ -404,10 +382,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('uses a custom placeholder when provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        placeholder: 'Custom placeholder text',
-      },
+      initialProps: {...defaultInitialProps, placeholder: 'Custom placeholder text'},
       organization,
     });
 
@@ -416,10 +391,7 @@ describe('useTraceItemSearchQueryBuilderProps', () => {
 
   it('falls back to the default placeholder for logs when no placeholder is provided', () => {
     const {result} = renderHookWithProviders(useTraceItemSearchQueryBuilderProps, {
-      initialProps: {
-        ...defaultInitialProps,
-        itemType: TraceItemDataset.LOGS,
-      },
+      initialProps: {...defaultInitialProps, itemType: TraceItemDataset.LOGS},
       organization,
     });
 

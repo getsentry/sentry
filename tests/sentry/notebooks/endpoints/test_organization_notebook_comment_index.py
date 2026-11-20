@@ -4,6 +4,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.notebooks.models import NotebookComment, NotebookStatus
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
 
@@ -37,14 +38,108 @@ class OrganizationNotebookCommentsTest(APITestCase):
         comment = NotebookComment.objects.get(id=response.data["id"])
         assert comment.notebook_id == self.notebook.id
         assert comment.author_id == self.user.id
+        assert response.data["mentions"] == []
 
-    def test_create_block_comment(self) -> None:
+    @with_feature("organizations:universal-inbox-recording")
+    def test_create_with_mentions(self) -> None:
+        mentioned = self.create_user()
+        team = self.create_team(organization=self.organization, members=[self.user, mentioned])
+
         response = self.client.post(
-            self.url, data={"body": "This query is wrong", "blockId": self.block.id}, format="json"
+            self.url,
+            data={
+                "body": "Please take a look",
+                "mentions": [f"user:{mentioned.id}", f"team:{team.id}"],
+            },
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        comment = NotebookComment.objects.get(id=response.data["id"])
+        assert comment.mentions == [
+            {"id": mentioned.id, "actor_type": "User", "slug": None},
+            {"id": team.id, "actor_type": "Team", "slug": None},
+        ]
+        assert response.data["mentions"] == comment.mentions
+        events = InboxItemEvent.objects.order_by("type")
+        assert list(events.values_list("type", "inbox_item__user_id")) == [
+            ("notebook.team_mentioned", mentioned.id),
+            ("notebook.user_mentioned", mentioned.id),
+        ]
+        for event in events:
+            assert event.actor_id == self.user.id
+            assert event.data == {"comment_id": comment.id, "block_id": None}
+            assert event.inbox_item.subject_id == str(self.notebook.id)
+        assert self.client.get(self.url).data[0]["mentions"] == comment.mentions
+
+    @with_feature({"organizations:universal-inbox-recording": False})
+    def test_mentions_with_recording_disabled(self) -> None:
+        mentioned = self.create_user()
+        self.create_member(organization=self.organization, user=mentioned)
+
+        response = self.client.post(
+            self.url,
+            data={"body": "Please take a look", "mentions": [f"user:{mentioned.id}"]},
+            format="json",
+        )
+
+        assert response.status_code == 201, response.data
+        comment = NotebookComment.objects.get(id=response.data["id"])
+        assert comment.mentions == [{"id": mentioned.id, "actor_type": "User", "slug": None}]
+        assert not InboxItemEvent.objects.exists()
+
+    def test_empty_mention(self) -> None:
+        response = self.client.post(self.url, data={"body": "Hi", "mentions": [""]}, format="json")
+
+        assert response.status_code == 400
+        assert "mentions" in response.data
+        assert not NotebookComment.objects.exists()
+
+    def test_mention_user_outside_organization(self) -> None:
+        other_org = self.create_organization()
+        other_user = self.create_user()
+        self.create_member(organization=other_org, user=other_user)
+
+        response = self.client.post(
+            self.url, data={"body": "Hi", "mentions": [f"user:{other_user.id}"]}, format="json"
+        )
+
+        assert response.status_code == 400
+        assert "mentions" in response.data
+        assert not NotebookComment.objects.exists()
+
+    def test_mention_team_outside_organization(self) -> None:
+        other_org = self.create_organization()
+        other_team = self.create_team(organization=other_org)
+
+        response = self.client.post(
+            self.url, data={"body": "Hi", "mentions": [f"team:{other_team.id}"]}, format="json"
+        )
+
+        assert response.status_code == 400
+        assert "mentions" in response.data
+        assert not NotebookComment.objects.exists()
+
+    @with_feature("organizations:universal-inbox-recording")
+    def test_create_block_comment(self) -> None:
+        mentioned = self.create_user()
+        self.create_member(organization=self.organization, user=mentioned)
+        response = self.client.post(
+            self.url,
+            data={
+                "body": "This query is wrong",
+                "blockId": self.block.id,
+                "mentions": [f"user:{mentioned.id}"],
+            },
+            format="json",
         )
 
         assert response.status_code == 201, response.data
         assert response.data["blockId"] == str(self.block.id)
+        assert InboxItemEvent.objects.get().data == {
+            "comment_id": int(response.data["id"]),
+            "block_id": self.block.id,
+        }
 
     def test_create_rejects_a_block_from_another_notebook(self) -> None:
         other = self.create_notebook(organization=self.organization, title="Other")

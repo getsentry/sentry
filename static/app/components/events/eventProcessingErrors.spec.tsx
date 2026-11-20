@@ -8,9 +8,7 @@ import {DOCS_URLS, EventProcessingErrors} from './eventProcessingErrors';
 
 jest.mock(
   'sentry/components/events/interfaces/crashContent/exception/useActionableItems',
-  () => ({
-    useActionableItemsWithProguardErrors: jest.fn(),
-  })
+  () => ({useActionableItemsWithProguardErrors: jest.fn()})
 );
 
 const {useActionableItemsWithProguardErrors} = jest.requireMock(

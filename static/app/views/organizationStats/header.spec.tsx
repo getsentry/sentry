@@ -11,9 +11,7 @@ describe('StatsHeader', () => {
       access: ['org:read'],
     });
 
-    render(<StatsHeader organization={organization} activeTab="seer" />, {
-      organization,
-    });
+    render(<StatsHeader organization={organization} activeTab="seer" />, {organization});
 
     expect(screen.getByRole('tab', {name: 'Usage'})).toBeInTheDocument();
     expect(screen.getByRole('tab', {name: 'Seer'})).toHaveAttribute(
@@ -29,9 +27,7 @@ describe('StatsHeader', () => {
       features: ['token-billed-seer-enabled', 'team-insights'],
     });
 
-    render(<StatsHeader organization={organization} activeTab="stats" />, {
-      organization,
-    });
+    render(<StatsHeader organization={organization} activeTab="stats" />, {organization});
 
     expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual([
       'Usage',
@@ -44,9 +40,7 @@ describe('StatsHeader', () => {
   it('hides the Seer tab in orgs without token-billed Seer', () => {
     const organization = OrganizationFixture({features: ['team-insights']});
 
-    render(<StatsHeader organization={organization} activeTab="stats" />, {
-      organization,
-    });
+    render(<StatsHeader organization={organization} activeTab="stats" />, {organization});
 
     expect(screen.getByRole('tab', {name: 'Issues'})).toBeInTheDocument();
     expect(screen.queryByRole('tab', {name: 'Seer'})).not.toBeInTheDocument();
@@ -55,9 +49,7 @@ describe('StatsHeader', () => {
   it('shows no tabs when the org has only the Usage tab', () => {
     const organization = OrganizationFixture();
 
-    render(<StatsHeader organization={organization} activeTab="stats" />, {
-      organization,
-    });
+    render(<StatsHeader organization={organization} activeTab="stats" />, {organization});
 
     expect(screen.getByRole('heading', {name: 'Stats & Usage'})).toBeInTheDocument();
     expect(screen.queryByRole('tab')).not.toBeInTheDocument();

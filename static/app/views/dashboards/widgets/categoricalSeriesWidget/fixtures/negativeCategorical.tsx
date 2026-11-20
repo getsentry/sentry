@@ -2,10 +2,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleNegativeData: CategoricalSeries = {
   valueAxis: 'change(count())',
-  meta: {
-    valueType: 'integer',
-    valueUnit: null,
-  },
+  meta: {valueType: 'integer', valueUnit: null},
   values: [
     {category: 'Chrome', value: 150},
     {category: 'Firefox', value: -45},

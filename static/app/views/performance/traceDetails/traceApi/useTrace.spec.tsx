@@ -138,9 +138,7 @@ describe('useTrace', () => {
         body: [],
       });
 
-      renderHookWithProviders(useTrace, {
-        initialProps: {traceSlug: 'test-trace-id'},
-      });
+      renderHookWithProviders(useTrace, {initialProps: {traceSlug: 'test-trace-id'}});
 
       // Wait for the hook to make the API call
       await waitFor(() => {
@@ -151,9 +149,7 @@ describe('useTrace', () => {
       expect(eapTraceMock).toHaveBeenCalledWith(
         `/organizations/${organization.slug}/trace/test-trace-id/`,
         expect.objectContaining({
-          query: expect.not.objectContaining({
-            errorId: expect.anything(),
-          }),
+          query: expect.not.objectContaining({errorId: expect.anything()}),
         })
       );
     });
@@ -175,9 +171,7 @@ describe('useTrace', () => {
           body: [],
         });
 
-        renderHookWithProviders(useTrace, {
-          initialProps: {traceSlug: 'trace-test-id'},
-        });
+        renderHookWithProviders(useTrace, {initialProps: {traceSlug: 'trace-test-id'}});
 
         await waitFor(() => {
           expect(eapTraceMock).toHaveBeenCalled();
@@ -186,9 +180,7 @@ describe('useTrace', () => {
         expect(eapTraceMock).toHaveBeenCalledWith(
           `/organizations/${organization.slug}/trace/trace-test-id/`,
           expect.objectContaining({
-            query: expect.objectContaining({
-              [expectedParamKey]: validUUid,
-            }),
+            query: expect.objectContaining({[expectedParamKey]: validUUid}),
           })
         );
       }

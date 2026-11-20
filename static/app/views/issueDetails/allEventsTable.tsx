@@ -62,10 +62,7 @@ export const useEventColumns = (group: Group, organization: Organization): Colum
       t('Minidump'),
     ];
 
-    return {
-      fields,
-      columnTitles,
-    };
+    return {fields, columnTitles};
   }, [group, organization]);
 };
 
@@ -85,22 +82,10 @@ const getPlatformColumns = (
       fields: ['url', 'browser'],
       columnTitles: [t('URL'), t('Browser')],
     },
-    [PlatformCategory.MOBILE]: {
-      fields: ['url'],
-      columnTitles: [t('URL')],
-    },
-    [PlatformCategory.DESKTOP]: {
-      fields: [],
-      columnTitles: [],
-    },
-    [PlatformCategory.GAMING]: {
-      fields: [],
-      columnTitles: [],
-    },
-    [PlatformCategory.OTHER]: {
-      fields: [],
-      columnTitles: [],
-    },
+    [PlatformCategory.MOBILE]: {fields: ['url'], columnTitles: [t('URL')]},
+    [PlatformCategory.DESKTOP]: {fields: [], columnTitles: []},
+    [PlatformCategory.GAMING]: {fields: [], columnTitles: []},
+    [PlatformCategory.OTHER]: {fields: [], columnTitles: []},
   };
 
   const platformCategory = platformToCategory(platform);

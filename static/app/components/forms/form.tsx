@@ -14,9 +14,7 @@ import type {FormOptions} from './model';
 import {fieldIsRequiredMessage, FormModel} from './model';
 import type {Data, OnSubmitCallback} from './types';
 
-type RenderProps = {
-  model: FormModel;
-};
+type RenderProps = {model: FormModel};
 
 type RenderFunc = (props: RenderProps) => React.ReactNode;
 

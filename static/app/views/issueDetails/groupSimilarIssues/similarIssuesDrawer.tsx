@@ -15,11 +15,7 @@ export function SimilarIssuesDrawer({group}: {group: Group}) {
   return (
     <EventDrawerContainer>
       <DrawerHeader>
-        <DrawerBreadcrumbs
-          current={{
-            label: t('Similar Issues'),
-          }}
-        />
+        <DrawerBreadcrumbs current={{label: t('Similar Issues')}} />
       </DrawerHeader>
       <EventDrawerBody>
         <GroupIdProvider groupId={group.id}>

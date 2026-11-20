@@ -63,10 +63,7 @@ export function StoryFooter() {
 function findPreviousAndNextStory(
   story: StoryDescriptor,
   stories: StoryTreeNode[]
-): {
-  next?: StoryTreeNode;
-  prev?: StoryTreeNode;
-} | null {
+): {next?: StoryTreeNode; prev?: StoryTreeNode} | null {
   const currentIndex = stories.findIndex(s => s.filesystemPath === story.filename);
 
   if (currentIndex === -1) {
@@ -85,7 +82,7 @@ const Card = styled(LinkButton)`
   flex: 1;
   height: 80px;
   margin-bottom: ${p => p.theme.space['3xl']};
-  span:last-child {
+  && > [data-button-label] {
     width: 100%;
     display: grid;
     grid-template-areas:
@@ -95,7 +92,7 @@ const Card = styled(LinkButton)`
     place-content: center;
     gap: ${p => p.theme.space.md} ${p => p.theme.space.xl};
   }
-  &[data-flip] span:last-child {
+  &&[data-flip] > [data-button-label] {
     grid-template-areas:
       'label icon'
       'text icon';

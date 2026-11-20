@@ -105,9 +105,7 @@ import {useValidatedLogsTabColumns} from './useValidatedLogsTabColumns';
 import {useValidateLogsTab} from './useValidateLogsTab';
 import {calculateAverageLogsPerSecond} from './utils';
 
-type LogsTabProps = {
-  datePageFilterProps: DatePageFilterProps;
-};
+type LogsTabProps = {datePageFilterProps: DatePageFilterProps};
 
 interface LogsSearchBarProps {
   tracesItemSearchQueryBuilderProps: Parameters<typeof TraceItemSearchQueryBuilder>[0];
@@ -264,6 +262,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
   const autorefreshEnabled = useLogsAutoRefreshEnabled();
   const searchQuery = useQueryParamsSearch().formatString();
   const visualizes = useQueryParamsVisualizes();
+  const [interval] = useChartInterval();
 
   useLLMContext({
     contextHint:
@@ -276,7 +275,8 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     fields,
     sortBys: sortBys.map(s => (s.kind === 'desc' ? `-${s.field}` : s.field)),
     groupBys: groupBys.filter(g => g !== ''),
-    visualizes: visualizes.map(v => v.yAxis),
+    visualizes: visualizes.map(v => v.serialize()),
+    interval,
     currentSelectedDateRange: pageFilters.selection.datetime,
     ...toLLMContextProjectFields(selectedProjects),
   });
@@ -285,9 +285,6 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     getMaxIngestDelayTimestamp()
   );
   usePersistentLogsPageParameters(); // persist the columns you chose last time
-
-  // always use the smallest interval possible (the most bars)
-  const [interval] = useChartInterval();
 
   const [sidebarOpen, setSidebarOpen] = useState(mode === Mode.AGGREGATE);
 
@@ -348,10 +345,7 @@ function LogsTabContentInner({datePageFilterProps}: LogsTabProps) {
     queryClient.setQueryData(tableData.queryKey, data => {
       if (data?.pages) {
         // We only want to keep the first page of data to avoid re-fetching multiple pages, since infinite query will otherwise fetch up to max pages (eg. 30) all at once.
-        return {
-          pages: data.pages.slice(0, 1),
-          pageParams: data.pageParams.slice(0, 1),
-        };
+        return {pages: data.pages.slice(0, 1), pageParams: data.pageParams.slice(0, 1)};
       }
       return data;
     });

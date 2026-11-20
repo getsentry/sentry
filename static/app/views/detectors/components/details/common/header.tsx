@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
@@ -16,10 +16,7 @@ import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {DisableDetectorAction, EditDetectorAction} from './actions';
 
-type DetectorDetailsHeaderProps = {
-  detector: Detector;
-  useLocalDetailActions?: boolean;
-};
+type DetectorDetailsHeaderProps = {detector: Detector; useLocalDetailActions?: boolean};
 
 function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
   const organization = useOrganization();
@@ -32,7 +29,9 @@ function DetectorDetailsDefaultHeaderContent({detector}: {detector: Detector}) {
         type: 'page-title',
         label: detector.name,
         leadingGraphic: project ? (
-          <ProjectBadge disableLink hideName project={project} avatarSize={16} />
+          <ProjectsBadge
+            projectPlatforms={project.platform ? [project.platform] : ['default']}
+          />
         ) : (
           <Placeholder width="16px" height="16px" />
         ),

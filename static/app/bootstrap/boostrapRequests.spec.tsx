@@ -106,10 +106,7 @@ describe('useBootstrapOrganizationQuery', () => {
   it('falls back to the api when the preload request fails', async () => {
     jest.mocked(Sentry.metrics.count).mockClear();
     const preloadError = new Error('Preload request failed with status 401');
-    window.__sentry_preload = {
-      orgSlug,
-      organization: Promise.reject(preloadError),
-    };
+    window.__sentry_preload = {orgSlug, organization: Promise.reject(preloadError)};
     const orgRequest = MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/`,
       body: org,
@@ -240,10 +237,7 @@ describe('useBootstrapProjectsQuery', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${orgSlug}/projects/`,
       body: mockProjects,
-      query: {
-        all_projects: 1,
-        collapse: ['latestDeploys', 'unusedFeatures'],
-      },
+      query: {all_projects: 1, collapse: ['latestDeploys', 'unusedFeatures']},
     });
 
     const {result} = renderHookWithProviders(() => useBootstrapProjectsQuery(orgSlug));

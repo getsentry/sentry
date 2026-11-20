@@ -9,7 +9,7 @@ import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {SeerProjectTable} from 'sentry/components/seer/projectTable/seerProjectTable';
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
-import {isSeerTokenBasedBillingOnboardingEnabled} from 'sentry/utils/seer/isSeerTokenBasedBillingOnboardingEnabled';
+import {isTokenBilledSeerEnabled} from 'sentry/utils/seer/isTokenBilledSeerEnabled';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -46,7 +46,7 @@ export default function SeerAutomationProjects() {
           </LinkButton>
         }
         subtitle={
-          isSeerTokenBasedBillingOnboardingEnabled(organization)
+          isTokenBilledSeerEnabled(organization)
             ? tct(
                 'Configure [rca:Autofix] for your projects. Seer reads code from the repositories linked to each project, which gives the coding agent context for Root Cause Analysis, Solution generation, and PR creation. Enable Autofix Handoff to automatically process and fix actionable issues as they are detected. [docs:Read the docs] to learn what Seer can do.',
                 subtitleLinks

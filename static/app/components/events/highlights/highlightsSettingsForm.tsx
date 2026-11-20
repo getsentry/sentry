@@ -19,9 +19,7 @@ interface HighlightsSettingsFormProps {
   projectSlug: string;
 }
 
-const highlightTagsSchema = z.object({
-  highlightTags: z.string(),
-});
+const highlightTagsSchema = z.object({highlightTags: z.string()});
 
 const highlightContextSchema = z.object({
   highlightContext: z.string().transform((value, ctx) => {
@@ -39,10 +37,7 @@ const highlightContextSchema = z.object({
 
 export function HighlightsSettingsForm({projectSlug}: HighlightsSettingsFormProps) {
   const organization = useOrganization();
-  const {data: project} = useDetailedProject({
-    orgSlug: organization.slug,
-    projectSlug,
-  });
+  const {data: project} = useDetailedProject({orgSlug: organization.slug, projectSlug});
 
   if (!project) {
     return null;

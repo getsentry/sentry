@@ -8,6 +8,7 @@ import {IconGraph} from '@sentry/icons/graph';
 
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect, type SelectOption} from '@sentry/scraps/compactSelect';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -21,7 +22,6 @@ import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t} from 'sentry/locale';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {determineSeriesSampleCountAndIsSampled} from 'sentry/utils/timeSeries/determineSeriesSampleCount';
 import {getTimeSeriesForQuery} from 'sentry/utils/timeSeries/getTimeSeriesForQuery';
 import {useChartInterval} from 'sentry/utils/useChartInterval';
@@ -98,18 +98,9 @@ interface ExploreChartsProps {
 }
 
 export const EXPLORE_CHART_TYPE_OPTIONS = [
-  {
-    value: ChartType.LINE,
-    label: t('Line'),
-  },
-  {
-    value: ChartType.AREA,
-    label: t('Area'),
-  },
-  {
-    value: ChartType.BAR,
-    label: t('Bar'),
-  },
+  {value: ChartType.LINE, label: t('Line')},
+  {value: ChartType.AREA, label: t('Area')},
+  {value: ChartType.BAR, label: t('Bar')},
 ];
 
 const CHART_TYPE_TO_ICON: Record<ChartType, 'line' | 'area' | 'bar' | 'heatmap'> = {
@@ -325,9 +316,7 @@ function Chart({
   const {
     dismiss: dismissChartSelectionAlert,
     isDismissed: isChartSelectionAlertDismissed,
-  } = useDismissAlert({
-    key: CHART_SELECTION_ALERT_KEY,
-  });
+  } = useDismissAlert({key: CHART_SELECTION_ALERT_KEY});
 
   const chartRef = useRef<ReactEchartsRef>(null);
   const chartWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -335,7 +324,7 @@ function Chart({
   const isCombinedChart = visualizes.length > 1;
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const {droppedData, layerControl} = useChartLayers({
+  const {droppedData, annotations, layerControl, onAnnotationClick} = useChartLayers({
     dataset,
     interval: chartInterval,
     source: 'explore',
@@ -419,7 +408,7 @@ function Chart({
         label: cutoff,
         trailingItems: bounds ? (
           <Text size="xs" variant="muted" wrap="nowrap">
-            {`> ${getDuration(bounds.yMax / 1000, 2, true)}`}
+            {`> ${getDuration(bounds.yMax / 1000, {precision: 2, style: 'short'})}`}
           </Text>
         ) : undefined,
         disabled: !isClippable,
@@ -564,6 +553,8 @@ function Chart({
               tooltipLimit={MAX_TOOLTIP_SERIES}
               droppedData={droppedData.band}
               isDroppedDataLoading={droppedData.isLoading}
+              annotations={annotations}
+              onAnnotationClick={onAnnotationClick}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {

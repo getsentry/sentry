@@ -58,9 +58,7 @@ export type GroupListProps = {
    * Defaults to path '/organizations/$organizationIdOrSlug/issues/'
    */
   endpoint?:
-    | {
-        path: '/organizations/$organizationIdOrSlug/issues/';
-      }
+    | {path: '/organizations/$organizationIdOrSlug/issues/'}
     | {
         path: '/organizations/$organizationIdOrSlug/releases/$version/resolved/';
         version: string;
@@ -162,10 +160,7 @@ export function GroupList({
         nextPage = undefined;
       }
 
-      navigate({
-        pathname: path,
-        query: {...queryParam, cursor, page: nextPage},
-      });
+      navigate({pathname: path, query: {...queryParam, cursor, page: nextPage}});
     },
     [location, navigate]
   );

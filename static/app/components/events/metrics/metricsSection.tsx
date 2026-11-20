@@ -68,18 +68,10 @@ function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}
 
   const onOpenMetricsDrawer = (e: React.MouseEvent) => {
     e.stopPropagation();
-    trackAnalytics('metrics.issue_details.drawer_opened', {
-      organization,
-    });
+    trackAnalytics('metrics.issue_details.drawer_opened', {organization});
 
     navigate(
-      {
-        ...location,
-        query: {
-          ...location.query,
-          [METRICS_DRAWER_QUERY_PARAM]: 'true',
-        },
-      },
+      {...location, query: {...location.query, [METRICS_DRAWER_QUERY_PARAM]: 'true'}},
       {replace: true}
     );
   };
@@ -104,10 +96,7 @@ function MetricsSectionContent({event, traceId}: {event: Event; traceId: string}
             navigate(
               {
                 ...location,
-                query: {
-                  ...location.query,
-                  [METRICS_DRAWER_QUERY_PARAM]: undefined,
-                },
+                query: {...location.query, [METRICS_DRAWER_QUERY_PARAM]: undefined},
               },
               {replace: true}
             );

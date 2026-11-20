@@ -4,9 +4,7 @@ import {Marked} from 'marked'; // eslint-disable-line no-restricted-imports
 import type {TagToken} from './tag';
 import {blockTagExtension, inlineTagExtension} from './tag';
 
-const tagMarked = new Marked({
-  extensions: [blockTagExtension, inlineTagExtension],
-});
+const tagMarked = new Marked({extensions: [blockTagExtension, inlineTagExtension]});
 
 function lex(src: string) {
   return tagMarked.lexer(src);
@@ -272,18 +270,14 @@ describe('marked tag extension', () => {
       const tag = findTag(
         '{% ref %}{"meta":{"priority":"high","tags":{"env":"prod"}}}{% /ref %}'
       );
-      expect(tag?.data).toEqual({
-        meta: {priority: 'high', tags: {env: 'prod'}},
-      });
+      expect(tag?.data).toEqual({meta: {priority: 'high', tags: {env: 'prod'}}});
     });
 
     it('parses arrays within objects', () => {
       const tag = findTag(
         '{% artifact %}{"steps":[{"title":"Fix"},{"title":"Test"}]}{% /artifact %}'
       );
-      expect(tag?.data).toEqual({
-        steps: [{title: 'Fix'}, {title: 'Test'}],
-      });
+      expect(tag?.data).toEqual({steps: [{title: 'Fix'}, {title: 'Test'}]});
     });
 
     it('parses empty object body', () => {

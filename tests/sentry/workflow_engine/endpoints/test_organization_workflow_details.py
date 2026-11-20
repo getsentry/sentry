@@ -32,6 +32,7 @@ from sentry.workflow_engine.models import (
     WorkflowDataConditionGroup,
 )
 from sentry.workflow_engine.models.detector_workflow import DetectorWorkflow
+from sentry.workflow_engine.registry import condition_handler_registry
 from sentry.workflow_engine.typings.notification_action import ActionTarget, ActionType
 from tests.sentry.workflow_engine.test_base import (
     BaseWorkflowTest,
@@ -146,6 +147,77 @@ class OrganizationWorkflowProjectScopeTest(APITestCase):
 @cell_silo_test
 class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWorkflowTest):
     method = "PUT"
+
+    def test_update_cannot_replace_internal_condition(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                status_code=400,
+                raw_data={
+                    **self.valid_workflow,
+                    "triggers": {
+                        "logicType": "any",
+                        "conditions": [
+                            {
+                                "id": condition.id,
+                                "type": Condition.REAPPEARED_EVENT,
+                                "comparison": True,
+                                "conditionResult": True,
+                            }
+                        ],
+                    },
+                },
+            )
+        assert "Internal condition groups" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.type == Condition.FIRST_SEEN_EVENT
+
+    def test_update_cannot_clear_internal_conditions(self) -> None:
+        condition = self.create_data_condition(
+            condition_group=self.workflow.when_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                status_code=400,
+                raw_data={
+                    **self.valid_workflow,
+                    "triggers": {"logicType": "any", "conditions": []},
+                },
+            )
+        assert "Internal condition groups" in str(response.data)
+        condition.refresh_from_db()
+        assert condition.type == Condition.FIRST_SEEN_EVENT
+
+    def test_update_cannot_remove_internal_action_filter(self) -> None:
+        group = self.create_data_condition_group(organization=self.organization)
+        self.create_data_condition(
+            condition_group=group, type=Condition.ISSUE_OCCURRENCES, comparison={"value": 1}
+        )
+        link = self.create_workflow_data_condition_group(
+            workflow=self.workflow, condition_group=group
+        )
+        handler = condition_handler_registry.get(Condition.ISSUE_OCCURRENCES)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                status_code=400,
+                raw_data={**self.valid_workflow, "actionFilters": []},
+            )
+        assert "Internal condition groups" in str(response.data)
+        assert self.workflow.workflowdataconditiongroup_set.filter(id=link.id).exists()
 
     def setUp(self) -> None:
         super().setUp()
@@ -559,6 +631,30 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         assert response.data["environment"] == test_environment.name
         assert updated_workflow.environment_id == test_environment.id
 
+    def test_update_rejects_operator_condition_in_triggers(self) -> None:
+        self.valid_workflow["triggers"] = {
+            "logicType": "any-short",
+            "conditions": [
+                {
+                    "type": Condition.GREATER.value,
+                    "comparison": 0,
+                    "conditionResult": 75,
+                }
+            ],
+        }
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.workflow.id,
+            raw_data=self.valid_workflow,
+            status_code=400,
+        )
+        assert "is not a valid workflow_trigger condition" in str(response.data)
+        assert self.workflow.when_condition_group is not None
+        assert not self.workflow.when_condition_group.conditions.filter(
+            type=Condition.GREATER
+        ).exists()
+
     @responses.activate
     def test_update_add_sentry_app_action(self) -> None:
         """
@@ -574,8 +670,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                 "logicType": "any",
                 "conditions": [
                     {
-                        "type": Condition.EQUAL.value,
-                        "comparison": 1,
+                        "type": Condition.ISSUE_OCCURRENCES.value,
+                        "comparison": {"value": 1},
                         "conditionResult": True,
                     }
                 ],
@@ -1195,8 +1291,8 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
                     "conditions": [
                         {
                             "conditionGroupId": other_dcg.id,
-                            "type": "first_seen_event",
-                            "comparison": True,
+                            "type": "issue_occurrences",
+                            "comparison": {"value": 1},
                             "conditionResult": True,
                         }
                     ],
@@ -1589,6 +1685,11 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             organization=other_organization,
             logic_type=DataConditionGroup.Type.ALL,
         )
+        other_condition = self.create_data_condition(
+            condition_group=other_data_condition_group,
+            type=Condition.FIRST_SEEN_EVENT,
+            comparison=True,
+        )
 
         other_workflow = self.create_workflow(
             organization=other_organization,
@@ -1604,12 +1705,14 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
             },
         }
 
-        response = self.get_error_response(
-            self.organization.slug,
-            self.workflow.id,
-            raw_data=data,
-            status_code=400,
-        )
+        handler = condition_handler_registry.get(Condition.FIRST_SEEN_EVENT)
+        with mock.patch.object(handler, "is_internal", True):
+            response = self.get_error_response(
+                self.organization.slug,
+                self.workflow.id,
+                raw_data=data,
+                status_code=400,
+            )
 
         response_data = str(response.data).lower()
 
@@ -1622,6 +1725,13 @@ class OrganizationUpdateWorkflowTest(OrganizationWorkflowDetailsBaseTest, BaseWo
         other_workflow.refresh_from_db()
 
         assert other_workflow.when_condition_group_id == other_data_condition_group.id
+
+        other_data_condition_group.refresh_from_db()
+        assert other_data_condition_group.logic_type == DataConditionGroup.Type.ALL
+        other_condition.refresh_from_db()
+        assert other_condition.condition_group_id == other_data_condition_group.id
+        assert other_condition.type == Condition.FIRST_SEEN_EVENT
+        assert other_condition.comparison is True
 
     def test_update_triggers_from_different_organization_without_data_condition_group(self) -> None:
         workflow = self.create_workflow(

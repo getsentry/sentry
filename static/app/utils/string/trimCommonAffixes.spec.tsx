@@ -164,9 +164,7 @@ describe('trimCommonAffixes', () => {
 
       // Suffix '/shared' (7 chars). '/' at cut point → snap keeps same boundary.
       expect(
-        trimCommonAffixes(['prefix/seg1/shared', 'prefix/seg2/shared'], {
-          separator: '/',
-        })
+        trimCommonAffixes(['prefix/seg1/shared', 'prefix/seg2/shared'], {separator: '/'})
       ).toEqual(['…/seg1…', '…/seg2…']);
     });
 
@@ -291,9 +289,7 @@ describe('trimCommonAffixes', () => {
       // Outlier 'x/other' constrains raw prefix to just 0 (no common chars).
       // No trim at all.
       expect(
-        trimCommonAffixes(['/api/v2/users', '/api/v2/teams', 'x/other'], {
-          separator: '/',
-        })
+        trimCommonAffixes(['/api/v2/users', '/api/v2/teams', 'x/other'], {separator: '/'})
       ).toEqual(['/api/v2/users', '/api/v2/teams', 'x/other']);
     });
 
