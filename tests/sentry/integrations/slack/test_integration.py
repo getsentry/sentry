@@ -7,6 +7,7 @@ from urllib.parse import parse_qs, urlparse
 import orjson
 import pytest
 import responses
+from cryptography.fernet import Fernet
 from django.urls import reverse
 from responses.matchers import query_string_matcher
 from slack_sdk.errors import SlackApiError
@@ -16,6 +17,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import SlackIntegration, SlackIntegrationProvider
+from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.errors import TypedSlackApiError
 from sentry.integrations.slack.utils.users import SLACK_GET_USERS_PAGE_SIZE
@@ -301,6 +303,93 @@ class SlackIntegrationPostInstallTest(APITestCase):
         assert user3_identity
         assert user3_identity.external_id == "UXXXXXXX4"
         assert user3_identity.user.email == "ialreadyexist@example.com"
+
+    def _post_install(self, extra: dict[str, Any]) -> None:
+        with self.tasks():
+            SlackIntegrationProvider().post_install(
+                self.integration,
+                serialize_rpc_organization(
+                    self.organization, include_projects=False, include_teams=False
+                ),
+                extra=extra,
+            )
+
+    def _users_list_auth_header(self, mock_api_call: MagicMock) -> str:
+        return mock_api_call.call_args.kwargs["args"]["headers"]["Authorization"]
+
+    @responses.activate
+    def test_link_users_with_installer_user_token(self, mock_api_call: MagicMock) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+        fernet = Fernet(Fernet.generate_key())
+
+        with (
+            patch(
+                "sentry.integrations.slack.tasks.link_slack_user_identities.FernetKeyStore.get_primary_fernet",
+                return_value=("key", fernet),
+            ),
+            patch(
+                "sentry.integrations.slack.tasks.link_slack_user_identities.FernetKeyStore.get_fernet_for_key_id",
+                return_value=fernet,
+            ),
+        ):
+            self._post_install({"user_access_token": "xoxp-installer-user-token"})
+
+        assert self._users_list_auth_header(mock_api_call) == "Bearer xoxp-installer-user-token"
+        assert Identity.objects.get(user=self.user2).external_id == "UXXXXXXX2"
+
+    @responses.activate
+    def test_link_users_falls_back_to_bot_token_without_encryption_key(
+        self, mock_api_call: MagicMock
+    ) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        with patch(
+            "sentry.integrations.slack.tasks.link_slack_user_identities.FernetKeyStore.get_primary_fernet",
+            side_effect=ValueError("Fernet primary key ID is not configured."),
+        ):
+            self._post_install({"user_access_token": "xoxp-installer-user-token"})
+
+        assert (
+            self._users_list_auth_header(mock_api_call)
+            == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        )
+        assert Identity.objects.get(user=self.user2).external_id == "UXXXXXXX2"
+
+    @responses.activate
+    def test_link_users_falls_back_to_bot_token_when_user_token_expired(
+        self, mock_api_call: MagicMock
+    ) -> None:
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+        fernet = Fernet(Fernet.generate_key())
+        expired = fernet.encrypt_at_time(b"xoxp-installer-user-token", current_time=0).decode()
+
+        with patch(
+            "sentry.integrations.slack.tasks.link_slack_user_identities.FernetKeyStore.get_fernet_for_key_id",
+            return_value=fernet,
+        ):
+            link_slack_user_identities(
+                integration_id=self.integration.id,
+                organization_id=self.organization.id,
+                key_id="key",
+                encrypted_user_token=expired,
+            )
+
+        assert (
+            self._users_list_auth_header(mock_api_call)
+            == "Bearer xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
+        )
 
 
 @control_silo_test
@@ -629,8 +718,11 @@ class SlackApiPipelineTest(APITestCase):
         assert resp.status_code == 400
 
     @responses.activate
+    @patch("sentry.integrations.slack.integration.SlackIntegrationProvider.post_install")
     @patch("sentry.integrations.slack.integration.WebClient")
-    def test_full_pipeline_flow(self, mock_web_client_cls: MagicMock) -> None:
+    def test_full_pipeline_flow(
+        self, mock_web_client_cls: MagicMock, mock_post_install: MagicMock
+    ) -> None:
         mock_client = MagicMock()
         mock_web_client_cls.return_value = mock_client
         mock_client.team_info.return_value = SlackResponse(
@@ -659,7 +751,7 @@ class SlackApiPipelineTest(APITestCase):
                 "access_token": "xoxb-test-token",
                 "scope": "channels:read,chat:write",
                 "team": {"name": "Test Team", "id": "T1234"},
-                "authed_user": {"id": "U1234"},
+                "authed_user": {"id": "U1234", "access_token": "xoxp-user-token"},
             },
         )
 
@@ -675,6 +767,11 @@ class SlackApiPipelineTest(APITestCase):
         integration = Integration.objects.get(provider="slack")
         assert integration.external_id == "T1234"
         assert integration.name == "Test Team"
+        assert integration.metadata["access_token"] == "xoxb-test-token"
+        assert "xoxp-user-token" not in orjson.dumps(integration.metadata).decode()
+        assert mock_post_install.call_args.kwargs["extra"] == {
+            "user_access_token": "xoxp-user-token"
+        }
 
         assert OrganizationIntegration.objects.filter(
             organization_id=self.organization.id,
