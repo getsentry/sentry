@@ -4,7 +4,6 @@ from typing import NamedTuple
 from sentry.utils import metrics
 from sentry.workflow_engine.caches import CacheMapping
 from sentry.workflow_engine.models.data_source import DataSource
-from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.types import DetectorId
 
 CACHE_TTL = timedelta(days=1).total_seconds()
@@ -18,12 +17,6 @@ class _DataSourceCacheKey(NamedTuple):
 _data_sources_by_detector_and_source_id = CacheMapping[_DataSourceCacheKey, list[DataSource]](
     lambda key: f"{key.detector_id}:{key.source_id}",
     namespace="data_source:data_sources_by_detector_and_source_id",
-    ttl_seconds=CACHE_TTL,
-)
-
-_detector_has_data_sources = CacheMapping[DetectorId, bool](
-    lambda detector_id: str(detector_id),
-    namespace="data_source:detector_has_data_sources",
     ttl_seconds=CACHE_TTL,
 )
 
@@ -71,20 +64,3 @@ def invalidate_data_sources_by_detector_and_source_id_cache(
     _data_sources_by_detector_and_source_id.delete(data_source_cache_key)
 
     metrics.incr("workflow_engine.invalidate_data_sources_by_detector_and_source_id_cache")
-
-
-def detector_has_data_sources(detector_id: DetectorId) -> bool:
-    """
-    Whether any data source is connected to the detector, from cache when possible.
-    """
-    has_data_sources = _detector_has_data_sources.get(detector_id)
-
-    if has_data_sources is None:
-        has_data_sources = DataSourceDetector.objects.filter(detector_id=detector_id).exists()
-        _detector_has_data_sources.set(detector_id, has_data_sources)
-
-    return has_data_sources
-
-
-def invalidate_detector_has_data_sources_cache(detector_id: DetectorId) -> None:
-    _detector_has_data_sources.delete(detector_id)
