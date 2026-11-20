@@ -1,8 +1,9 @@
 import {useQuery} from '@tanstack/react-query';
 
-import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import type {ClassifierDataset, PrebuiltClassifier} from 'sentry/views/classifiers/types';
+import type {ClassifierDataset} from 'sentry/views/classifiers/types';
+
+import {prebuiltClassifiersApiOptions} from './classifierApiOptions';
 
 export function usePrebuiltClassifiers(
   dataset: ClassifierDataset,
@@ -10,14 +11,7 @@ export function usePrebuiltClassifiers(
 ) {
   const organization = useOrganization();
   return useQuery({
-    ...apiOptions.as<PrebuiltClassifier[]>()(
-      '/organizations/$organizationIdOrSlug/classifiers/prebuilt/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-        query: {dataset},
-        staleTime: 60_000,
-      }
-    ),
+    ...prebuiltClassifiersApiOptions(organization.slug, dataset),
     enabled,
   });
 }
