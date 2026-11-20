@@ -356,11 +356,6 @@ class BaseDetectorHandler(abc.ABC, Generic[DataPacketType, DataPacketEvaluationT
         try:
             data_sources = get_data_sources_by_detector_and_source_id(self.detector.id, source_id)
 
-            # Detectors invoked directly via `process_detectors` may have no data sources, so an
-            # empty match is expected.
-            if not data_sources:
-                return []
-
             # Serializers return camelcased keys, but evidence data should use snakecase
             return convert_dict_key_case(serialize(data_sources), camel_to_snake_case)
         except Exception:
