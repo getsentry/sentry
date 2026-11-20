@@ -52,6 +52,18 @@ def test_absolute_url_rejects(url: str) -> None:
         absolute_url(url)
 
 
+@pytest.mark.parametrize(
+    "url",
+    [
+        "app://C:\\Users\\dev\\app\\.next\\server\\chunks\\ssr\\[turbopack]_runtime.js",
+        "http://[::1",
+    ],
+)
+def test_absolute_url_rejects_unparseable(url: str) -> None:
+    with pytest.raises(ValueError, match="can't be parsed"):
+        absolute_url(url)
+
+
 def test_uuid_str_formats_a_uuid() -> None:
     value = uuid.UUID("6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21")
     assert uuid_str(value) == "6a2c8b1e-5d4f-4c3b-9a8e-7f6d5c4b3a21"
@@ -133,10 +145,13 @@ def test_invalid_value_is_logged_outside_tests(caplog: pytest.LogCaptureFixture)
         caplog.at_level(logging.WARNING, logger="sentry.apidocs.formats"),
     ):
         assert absolute_url("/relative/") == "/relative/"
+        unparseable = "app://C:\\dir\\[name].js"
+        assert absolute_url(unparseable) == unparseable
         naive = datetime(2024, 1, 2, 3, 4, 5)
         assert iso_datetime(naive) == "2024-01-02T03:04:05"
 
     assert [(r.message, r.__dict__["format"], r.__dict__["problem"]) for r in caplog.records] == [
         ("apidocs.invalid_format", "uri", "the URL has no scheme or host"),
+        ("apidocs.invalid_format", "uri", "the URL can't be parsed: Invalid IPv6 URL"),
         ("apidocs.invalid_format", "date-time", "the datetime has no UTC offset"),
     ]
