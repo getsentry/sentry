@@ -1123,16 +1123,21 @@ export function parseSystemPrompt(node: AITraceSpanNode): string | null {
 }
 
 /**
- * The system prompt of the conversation's first LLM call that has one. Later
- * calls (follow-up turns, sub-agents) usually repeat it or set up a different
- * agent, so only the first is shown, at the top of the transcript.
+ * The system prompt of the conversation's first LLM call or agent span that
+ * has one. Later calls (follow-up turns, sub-agents) usually repeat it or set
+ * up a different agent, so only the first is shown, at the top of the
+ * transcript.
  */
 export function getConversationSystemPrompt(nodes: AITraceSpanNode[]): string | null {
   let firstPrompt: string | null = null;
   let firstStart = Infinity;
-  // Enriched like the transcript, so a prompt sent on the agent span counts.
-  const {generationSpans} = partitionSpansByType(enrichAgentMessages(nodes));
-  for (const node of generationSpans) {
+  // Agent spans count too: some SDKs send the prompt, as messages or as
+  // `gen_ai.system_instructions`, only on the agent span.
+  const candidates = [
+    ...partitionSpansByType(nodes).generationSpans,
+    ...nodes.filter(isAgentNode),
+  ];
+  for (const node of candidates) {
     const start = getNodeStartTimestamp(node);
     if (start >= firstStart) {
       continue;

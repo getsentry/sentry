@@ -780,6 +780,43 @@ describe('MessagesPanel', () => {
     );
   });
 
+  it('reads gen_ai.system_instructions from the agent span', () => {
+    const agent = createMockNode({
+      id: 'agent',
+      startTimestamp: 1000,
+      endTimestamp: 2000,
+      attributes: {
+        [SpanFields.GEN_AI_OPERATION_TYPE]: 'agent',
+        [SpanFields.GEN_AI_SYSTEM_INSTRUCTIONS]: 'You sort emails into labels.',
+      },
+    });
+    // The LLM call has its own messages, so the agent span's aren't copied.
+    const generation = createMockNode({
+      id: 'gen-1',
+      parentId: 'agent',
+      startTimestamp: 1100,
+      endTimestamp: 1900,
+      attributes: {
+        [SpanFields.GEN_AI_INPUT_MESSAGES]: JSON.stringify([
+          {role: 'user', content: 'Label this email'},
+        ]),
+        [SpanFields.GEN_AI_RESPONSE_TEXT]: 'newsletter',
+      },
+    });
+
+    render(
+      <MessagesPanel
+        nodes={[agent, generation] as any}
+        selectedNodeId={null}
+        onSelectNode={mockOnSelectNode}
+      />
+    );
+
+    expect(screen.getByText('System prompt', {exact: false})).toHaveTextContent(
+      'You sort emails into labels.'
+    );
+  });
+
   it('keeps reasoning text in the DOM inside a collapsed details element', () => {
     const node = createMockNode({
       id: 'span-1',
