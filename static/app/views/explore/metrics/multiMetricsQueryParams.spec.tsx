@@ -3,6 +3,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   act,
+  cleanup,
   renderHookWithProviders,
   screen,
   waitFor,
@@ -887,6 +888,7 @@ describe('MultiMetricsQueryParamsProvider', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

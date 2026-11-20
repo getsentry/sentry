@@ -3,7 +3,12 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {PageFiltersFixture} from 'sentry-fixture/pageFilters';
 import {ProjectFixture} from 'sentry-fixture/project';
 
-import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  renderHookWithProviders,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {ALL_ACCESS_PROJECTS} from 'sentry/components/pageFilters/constants';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
@@ -193,6 +198,7 @@ describe('useChatSuggestions', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();
@@ -320,6 +326,7 @@ describe('useChatSuggestions', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => jest.runOnlyPendingTimers());
       } finally {
         jest.useRealTimers();

@@ -833,7 +833,7 @@ describe('AutofixSection', () => {
     render(<AutofixSection group={mockGroup} project={mockProject} />, {
       organization: OrganizationFixture({
         hideAiFeatures: false,
-        features: ['autofix-single-run'],
+        features: ['autofix-single-run', 'seat-based-seer-enabled'],
       }),
     });
 
@@ -843,6 +843,23 @@ describe('AutofixSection', () => {
     expect(screen.queryByText('Have Seer...')).not.toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Context'})).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Start Analysis'})).toBeInTheDocument();
+  });
+
+  it('keeps the step-by-step start card for legacy Seer orgs with autofix-single-run', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${mockProject.organization.slug}/issues/${mockGroup.id}/autofix/`,
+      body: {autofix: null},
+    });
+
+    render(<AutofixSection group={mockGroup} project={mockProject} />, {
+      organization: OrganizationFixture({
+        hideAiFeatures: false,
+        features: ['autofix-single-run'],
+      }),
+    });
+
+    expect(await screen.findByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Context'})).not.toBeInTheDocument();
   });
 
   it('keeps the start card on screen while a run is starting', async () => {

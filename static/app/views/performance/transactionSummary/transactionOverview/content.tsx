@@ -39,7 +39,6 @@ import {
 import {SEGMENT_SPANS_CURSOR_NAME} from './constants';
 import {EAPChartsWidget} from './eapChartsWidget';
 import {EAPSidebarCharts} from './eapSidebarCharts';
-import {PerformanceAtScaleContextProvider} from './performanceAtScaleContext';
 import {RelatedIssues} from './relatedIssues';
 import {StatusBreakdown} from './statusBreakdown';
 
@@ -208,16 +207,14 @@ export function EAPSummaryContent({
           <EAPChartsWidget transactionName={transactionName} query={query} />
         </EAPChartsWidgetContainer>
 
-        <PerformanceAtScaleContextProvider>
-          <SegmentSpansTable
-            eventView={transactionsListEventView}
-            handleDropdownChange={handleTransactionsListSortChange}
-            totalValues={totalValues}
-            transactionName={transactionName}
-            query={query}
-            showViewSampledEventsButton
-          />
-        </PerformanceAtScaleContextProvider>
+        <SegmentSpansTable
+          eventView={transactionsListEventView}
+          handleDropdownChange={handleTransactionsListSortChange}
+          totalValues={totalValues}
+          transactionName={transactionName}
+          query={query}
+          showViewSampledEventsButton
+        />
         <SuspectFunctionsTable
           eventView={eventView}
           analyticsPageSource="performance_transaction"

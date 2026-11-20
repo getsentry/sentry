@@ -1310,6 +1310,37 @@ describe('Modals -> DataWidgetViewerModal', () => {
       ).toEqual(['http.status_code:200', 'http.status_code:500']);
     });
 
+    it('keeps the dashboard query speed on the metrics Open in Explore link', async () => {
+      const widget = WidgetFixture({
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'http.status_code:200',
+            orderby: '',
+            name: '',
+          },
+        ],
+      });
+      await renderModal({
+        initialData: {
+          ...initialData,
+          organization: OrganizationFixture({
+            features: ['discover-query', 'low-priority-queries'],
+          }),
+        },
+        widget,
+        queryPriority: 'faster',
+      });
+
+      const action = screen.getByRole('button', {name: 'Open in Explore'});
+      const url = new URL(action.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/metrics/');
+      expect(url.searchParams.get('queryPriority')).toBe('faster');
+    });
+
     it('does not make an events-timeseries request with an arbitrary table sort as a y-axis', async () => {
       const eventsTimeseriesMock = MockApiClient.addMockResponse({
         url: '/organizations/org-slug/events-timeseries/',

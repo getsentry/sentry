@@ -20,6 +20,7 @@ import {
   CONVERSATIONS_DETAIL_SUB_PATH,
   EXPLORE_AGENTS_SUB_PATH,
 } from 'sentry/views/explore/conversations/settings';
+import type {InboxRouteHandle} from 'sentry/views/inbox/types';
 import {MODULE_BASE_URLS} from 'sentry/views/insights/common/utils/useModuleURL';
 import {AGENTS_LANDING_SUB_PATH} from 'sentry/views/insights/pages/agents/settings';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -168,6 +169,10 @@ function buildRoutes(): RouteObject[] {
     children: publicRootChildren,
   };
   const rootChildren: SentryRouteObject[] = [
+    {
+      path: '/account/settings/wizard/:wizardHash/',
+      component: make(() => import('sentry/views/setupWizard/route')),
+    },
     {index: true, component: make(() => import('sentry/views/app/root'))},
     routeHook('routes:root'),
     {
@@ -1099,6 +1104,45 @@ function buildRoutes(): RouteObject[] {
             () =>
               import('sentry/views/settings/organizationMembers/organizationMemberDetail')
           ),
+        },
+      ],
+    },
+    {
+      path: 'service-accounts/',
+      name: t('Service Accounts'),
+      children: [
+        {
+          component: make(
+            () =>
+              import('sentry/views/settings/organizationServiceAccounts/serviceAccountsLayout')
+          ),
+          children: [
+            {
+              index: true,
+              component: make(
+                () => import('sentry/views/settings/organizationServiceAccounts')
+              ),
+            },
+            {
+              handle: {
+                settingsBreadcrumb: {
+                  type: 'link',
+                  label: t('Service Accounts'),
+                  to: '/settings/:orgId/service-accounts/',
+                },
+              },
+              children: [
+                {
+                  path: ':serviceAccountId/',
+                  name: t('Service Account'),
+                  component: make(
+                    () =>
+                      import('sentry/views/settings/organizationServiceAccounts/serviceAccountDetails')
+                  ),
+                },
+              ],
+            },
+          ],
         },
       ],
     },
@@ -2912,7 +2956,22 @@ function buildRoutes(): RouteObject[] {
     path: '/inbox/',
     withOrgPath: true,
     component: make(() => import('sentry/views/inbox')),
-    children: [{index: true}, {path: 'issue/:id/'}, {path: 'notebook/:id/'}],
+    children: [
+      {
+        index: true,
+        component: make(() => import('sentry/views/inbox/inboxEmptyPreview')),
+      },
+      {
+        path: 'issue/:id/',
+        component: make(() => import('sentry/views/inbox/inboxIssuePreview')),
+        handle: {inboxSubjectType: 'issue'} satisfies InboxRouteHandle,
+      },
+      {
+        path: 'notebook/:id/',
+        component: make(() => import('sentry/views/inbox/inboxNotebookPreview')),
+        handle: {inboxSubjectType: 'notebook'} satisfies InboxRouteHandle,
+      },
+    ],
   };
 
   const issueRoutes: SentryRouteObject = {

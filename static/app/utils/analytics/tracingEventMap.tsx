@@ -112,8 +112,6 @@ export type TracingEventParameters = {
   'trace.trace_layout.view_event_json': Record<string, unknown>;
   'trace.trace_layout.view_in_insight_module': {module: string};
   'trace.trace_layout.view_shortcuts': Record<string, unknown>;
-  'trace.trace_layout.view_similar_spans': {module: string; source: string};
-  'trace.trace_layout.view_span_summary': {module: string};
   'trace.trace_layout.zoom_to_fill': Record<string, unknown>;
   'trace.trace_warning_type': {type: string};
   'trace.tracing_onboarding': {
@@ -123,10 +121,7 @@ export type TracingEventParameters = {
   };
   'trace.tracing_onboarding_performance_docs_viewed': {platform: string};
   'trace.tracing_onboarding_platform_docs_viewed': {platform: string};
-  'trace_explorer.add_span_condition': Record<string, unknown>;
-  'trace_explorer.compare_queries': Record<string, unknown>;
   'trace_explorer.delete_query': Record<string, unknown>;
-  'trace_explorer.open_in_issues': Record<string, unknown>;
   'trace_explorer.open_saved_query': {
     is_prebuilt: boolean;
     query_name: string;
@@ -134,7 +129,6 @@ export type TracingEventParameters = {
   };
   'trace_explorer.open_trace': {source: 'trace explorer' | 'new explore'};
   'trace_explorer.open_trace_span': {source: 'trace explorer' | 'new explore'};
-  'trace_explorer.remove_span_condition': Record<string, unknown>;
   'trace_explorer.save_as': {
     save_type: 'alert' | 'dashboard' | 'update_query';
     ui_source: 'toolbar' | 'chart' | 'compare chart';
@@ -144,16 +138,7 @@ export type TracingEventParameters = {
     save_type: 'save_new_query' | 'rename_query';
     ui_source: 'toolbar' | 'table' | 'explorer';
   };
-  'trace_explorer.search_failure': {error: string; queries: string[]};
-  'trace_explorer.search_request': {queries: string[]};
 
-  'trace_explorer.search_success': {
-    has_data: boolean;
-    num_missing_trace_root: number;
-    num_traces: number;
-    project_platforms: string[];
-    queries: string[];
-  };
   'trace_explorer.star_query': {
     save_type: 'star_query' | 'unstar_query';
     ui_source: 'table' | 'explorer';
@@ -218,27 +203,18 @@ export const tracingEventMap: Record<TracingEventKey, string | null> = {
   'trace.trace_layout.search_clear': 'Clear Trace Search',
   'trace.trace_layout.view_in_insight_module': 'View Trace Span in Insight Module',
   'trace.trace_layout.search_match_navigate': 'Navigate Trace Search Matches',
-  'trace.trace_layout.view_similar_spans': 'View Similar Spans in Trace',
-  'trace.trace_layout.view_span_summary': 'More Samples in Trace',
   'trace.trace_layout.span_row_click': 'Clicked Span Row in Trace',
-  'trace_explorer.add_span_condition': 'Trace Explorer: Add Another Span',
-  'trace_explorer.open_in_issues': 'Trace Explorer: Open Trace in Issues',
   'trace_explorer.open_saved_query': 'Trace Explorer: Open Saved Query',
   'trace_explorer.open_trace': 'Trace Explorer: Open Trace in Trace Viewer',
   'trace_explorer.open_trace_span': 'Trace Explorer: Open Trace Span in Trace Viewer',
-  'trace_explorer.remove_span_condition': 'Trace Explorer: Remove Span',
   'trace_explorer.toggle_trace_details': 'Trace Explorer: Toggle Trace Details in Table',
   'trace_explorer.toggle_span_details': 'Trace Explorer: Toggle Span Details in Table',
-  'trace_explorer.search_failure': 'Trace Explorer: Search Failure',
-  'trace_explorer.search_request': 'Trace Explorer: Search Request',
-  'trace_explorer.search_success': 'Trace Explorer: Search Success',
   'trace.preferences.autogrouping_change': 'Changed Autogrouping Preference',
   'trace.preferences.compressed_timeline_change':
     'Changed Compressed Timeline Preference',
   'trace.preferences.missing_instrumentation_change':
     'Changed Missing Instrumentation Preference',
   'trace_explorer.save_as': 'Trace Explorer: Save As',
-  'trace_explorer.compare_queries': 'Trace Explorer: Compare',
   'trace_explorer.save_query_modal': 'Trace Explorer: Save Query Modal',
   'trace_explorer.star_query': 'Trace Explorer: Star Query',
   'trace_explorer.delete_query': 'Trace Explorer: Delete Query',

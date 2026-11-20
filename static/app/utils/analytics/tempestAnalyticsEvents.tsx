@@ -11,8 +11,6 @@ export type TempestEventParameters = {
   'tempest.credentials.added': TempestEventBaseWithOrigin;
   'tempest.credentials.error_displayed': TempestEventBase & {error_count: number};
   'tempest.credentials.removed': TempestEventBase;
-  'tempest.sdk_access_modal_opened': TempestEventBaseWithOrigin;
-  'tempest.sdk_access_modal_submitted': TempestEventBaseWithOrigin;
 };
 
 type TempestEventKey = keyof TempestEventParameters;
@@ -22,6 +20,4 @@ export const tempestEventMap: Record<TempestEventKey, string | null> = {
   'tempest.credentials.added': 'Tempest: Credentials Added',
   'tempest.credentials.error_displayed': 'Tempest: Error Displayed',
   'tempest.credentials.removed': 'Tempest: Credentials Removed',
-  'tempest.sdk_access_modal_opened': 'Tempest: SDK Access Modal Opened',
-  'tempest.sdk_access_modal_submitted': 'Tempest: SDK Access Modal Submitted',
 };

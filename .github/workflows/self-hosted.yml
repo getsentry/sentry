@@ -36,6 +36,8 @@ jobs:
       packages: write
     steps:
       - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+        with:
+          persist-credentials: true
 
       - uses: actions/setup-node@1e60f620b9541d16bece96c5465dc8ee9832be0b # v4
         id: setup-node
@@ -67,7 +69,7 @@ jobs:
           path: ${{ steps.config.outputs.webpack-path }}
           key: ${{ runner.os }}-self-hosted-webpack-cache-${{ hashFiles('rsbuild.config.ts', 'pnpm-lock.yaml', 'package.json') }}
 
-      - uses: ./.github/actions/node-modules-cache-paths
+      - uses: $/.github/actions/node-modules-cache-paths
         id: workspace-cache
 
       - name: node_modules cache

@@ -88,9 +88,6 @@
   "overrides/spendVisibility/enhancedUsageStatsOrganization.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 1}
   },
-  "overrides/targetedOnboardingHeader.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
-  },
   "overrides/useMaxPickableDays.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 5}
   },

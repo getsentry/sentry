@@ -2,6 +2,7 @@ import {useMemo} from 'react';
 import {useMutation} from '@tanstack/react-query';
 
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {useCaseInsensitivity} from 'sentry/components/searchQueryBuilder/hooks';
 import type {DateString} from 'sentry/types/core';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -56,7 +57,7 @@ type ExploreSavedQueryRequest = {
     query?: string;
     visualize?: Array<{yAxes: string[]; chartType?: number}>;
   }>;
-  queryPriority?: 'normal' | 'faster';
+  queryPriority?: QuerySpeed;
   start?: DateString;
   statsPeriod?: string;
 };

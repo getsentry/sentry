@@ -17,6 +17,7 @@ import {
 import * as modal from 'sentry/actionCreators/modal';
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {FieldKind} from 'sentry/utils/fields';
+import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
 import {
   DashboardFilterKeys,
@@ -923,6 +924,30 @@ describe('Dashboards > WidgetCard', () => {
 
       await userEvent.click(await screen.findByLabelText('Widget actions'));
       expect(screen.getByText('Open in Explore')).toBeInTheDocument();
+    });
+
+    it('keeps the dashboard query speed on the Open in Explore link', async () => {
+      renderWithProviders(
+        <SavedDashboardQueryPriorityProvider priority="faster">
+          <WidgetCard
+            widget={spansWidget}
+            selection={selection}
+            onDelete={() => {}}
+            onEdit={() => {}}
+            onDuplicate={() => {}}
+            showContextMenu
+            widgetLimitReached={false}
+            widgetLegendState={widgetLegendState}
+          />
+        </SavedDashboardQueryPriorityProvider>,
+        ['visibility-explore-view', 'low-priority-queries']
+      );
+
+      await userEvent.click(await screen.findByLabelText('Widget actions'));
+      const link = screen.getByRole('menuitemradio', {name: 'Open in Explore'});
+      const url = new URL(link.getAttribute('href')!, 'https://example.com');
+      expect(url.pathname).toBe('/organizations/org-slug/explore/traces/');
+      expect(url.searchParams.get('queryPriority')).toBe('faster');
     });
   });
 

@@ -16,6 +16,7 @@ from sentry.seer.agent.client_models import (
     UsageAccumulator,
 )
 from sentry.seer.agent.client_utils import snapshot_to_markdown
+from sentry.seer.autofix.feature.dispatch import SINGLE_RUN_LEGACY_PLAN_DETAIL
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
 from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
@@ -642,6 +643,19 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
                     "code": "seer_out_of_credits",
                     "denialReason": expected,
                 }
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_reply_to_single_run_on_legacy_seer_plan_is_403(
+        self, mock_client_class: MagicMock
+    ) -> None:
+        run = self._single_run(user_id=self.user.id)
+
+        response = self.client.post(
+            f"{self.url}{run.seer_run_state_id}/", {"query": "make a code fix"}, format="json"
+        )
+
+        assert response.status_code == 403
+        assert response.data["detail"] == SINGLE_RUN_LEGACY_PLAN_DETAIL
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.continue_single_run")
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")

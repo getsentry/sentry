@@ -51,6 +51,8 @@ const defaultHookReturn: ReturnType<typeof useSeerExplorerModule.useSeerExplorer
 const CONTAINER_SIZE = {width: 1200, height: 800};
 // Too narrow for the app and Seer minimums side by side, so `auto` docks bottom.
 const NARROW_CONTAINER_SIZE = {width: 700, height: 800};
+// Narrower than the app's minimum width, like a phone in portrait.
+const PHONE_CONTAINER_SIZE = {width: 393, height: 615};
 
 function mockContainerSize(size: {height: number; width: number}) {
   return jest.spyOn(useDimensionsModule, 'useDimensions').mockReturnValue(size);
@@ -292,6 +294,46 @@ describe('SeerExplorerSidebarLayout', () => {
 
     expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
     expect(splitOrientation()).toBe('horizontal');
+  });
+
+  it('docks Seer to the bottom on a phone-width viewport even when right is persisted', async () => {
+    // Narrower than the app's 480px minimum: a right dock would push Seer off-screen.
+    localStorage.setItem(POSITION_KEY, JSON.stringify('right'));
+    mockContainerSize(PHONE_CONTAINER_SIZE);
+
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+    expect(splitOrientation()).toBe('vertical');
+  });
+
+  it('opens Seer over the whole pane on a phone-width viewport', async () => {
+    mockContainerSize(PHONE_CONTAINER_SIZE);
+
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    expect(await screen.findByTestId('seer-explorer-input')).toBeInTheDocument();
+
+    // The divider's value is the app pane's size.
+    expect(Number(screen.getByRole('separator').getAttribute('aria-valuenow'))).toBe(0);
+  });
+
+  it('does not persist Seer size from a resize on a phone-width viewport', async () => {
+    mockContainerSize(PHONE_CONTAINER_SIZE);
+    renderSidebar(orgWithSidebar);
+    await userEvent.click(screen.getByText('open-seer'));
+    const input = await screen.findByTestId('seer-explorer-input');
+    await waitFor(() => expect(input).toHaveFocus());
+
+    const separator = screen.getByRole('separator');
+    separator.focus();
+    await userEvent.keyboard('{ArrowDown}');
+
+    // The drag lands (the app pane grows), but the size saved for wider
+    // screens is left alone.
+    await waitFor(() => expect(Number(separator.getAttribute('aria-valuenow'))).toBe(10));
+    expect(localStorage.getItem('seer-explorer-sidebar-seer-size:bottom')).toBeNull();
   });
 
   it('changes and persists the dock position via the dropdown', async () => {

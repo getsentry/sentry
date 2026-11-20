@@ -179,13 +179,6 @@ export type SeerAnalyticsEventsParameters = {
     source: 'cta' | 'settings_dropdown' | 'settings_toggle';
     user_id: string;
   };
-  'seer.autofix.feedback_submitted': {
-    autofix_run_id: string;
-    group_id: string;
-    positive: boolean;
-    step_type: 'root_cause' | 'solution' | 'changes';
-    user_id: string;
-  };
   'seer.config_reminder.rendered': {
     can_write_settings: boolean;
     has_code_review_beta: boolean;
@@ -285,7 +278,6 @@ export const seerAnalyticsEventsMap: Record<SeerAnalyticsEventKey, string | null
   'coding_integration.install_clicked': 'Coding Integration: Install Clicked',
   'coding_integration.send_to_agent_clicked': 'Coding Integration: Send to Agent Clicked',
   'coding_integration.setup_handoff_clicked': 'Coding Integration: Setup Handoff Clicked',
-  'seer.autofix.feedback_submitted': 'Seer: Autofix Feedback Submitted',
   'seer.config_reminder.rendered': 'Seer: Config Reminder Rendered',
   'seer.explorer.block_copied': 'Seer Explorer: Block Content Copied',
   'seer.explorer.feedback_submitted': 'Seer Explorer: Feedback Submitted',

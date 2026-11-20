@@ -70,7 +70,6 @@ import {
 import {getDiscoverQueriesUrl} from 'sentry/utils/discover/urls';
 import {localStorageWrapper} from 'sentry/utils/localStorage';
 import {MarkedText} from 'sentry/utils/marked/markedText';
-import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {generateQueryWithTag, decodeList} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -708,23 +707,18 @@ class ResultsContent extends Component<Props, State> {
                 handleSearch={this.handleSearch}
               />
               {!transactionsUnsupported && (
-                <MetricsCardinalityProvider
+                <ResultsChartContainer
                   organization={organization}
+                  eventView={eventView}
                   location={location}
-                >
-                  <ResultsChartContainer
-                    organization={organization}
-                    eventView={eventView}
-                    location={location}
-                    onAxisChange={this.handleYAxisChange}
-                    onDisplayChange={this.handleDisplayChange}
-                    onTopEventsChange={this.handleTopEventsChange}
-                    onIntervalChange={this.handleIntervalChange}
-                    total={totalValues}
-                    confirmedQuery={confirmedQuery}
-                    yAxis={yAxisArray}
-                  />
-                </MetricsCardinalityProvider>
+                  onAxisChange={this.handleYAxisChange}
+                  onDisplayChange={this.handleDisplayChange}
+                  onTopEventsChange={this.handleTopEventsChange}
+                  onIntervalChange={this.handleIntervalChange}
+                  total={totalValues}
+                  confirmedQuery={confirmedQuery}
+                  yAxis={yAxisArray}
+                />
               )}
             </Top>
             <Layout.Main

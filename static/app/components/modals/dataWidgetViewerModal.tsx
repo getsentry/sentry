@@ -58,7 +58,10 @@ import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useUserTeams} from 'sentry/utils/useUserTeams';
 import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
-import {SavedDashboardQueryPriorityProvider} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
+import {
+  SavedDashboardQueryPriorityProvider,
+  useDashboardQueryPriority,
+} from 'sentry/views/dashboards/hooks/useDashboardQueryPriority';
 import type {
   DashboardFilters,
   DashboardPermissions,
@@ -828,6 +831,7 @@ function OpenButton({
   disabled,
   disabledTooltip,
 }: OpenButtonProps) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   let openLabel: string;
   let path: string;
   switch (widget.widgetType) {
@@ -854,12 +858,26 @@ function OpenButton({
           </Tooltip>
         );
       }
-      path = getWidgetExploreUrl(widget, dashboardFilters, selection, organization)!;
+      path = getWidgetExploreUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        undefined,
+        undefined,
+        queryPriority
+      )!;
       break;
     }
     case WidgetType.TRACEMETRICS:
       openLabel = t('Open in Explore');
-      path = getWidgetMetricsUrl(widget, dashboardFilters, selection, organization);
+      path = getWidgetMetricsUrl(
+        widget,
+        dashboardFilters,
+        selection,
+        organization,
+        queryPriority
+      );
       break;
     case WidgetType.PREPROD_APP_SIZE:
       // Mobile app size widgets are not integrated with Explore or Discover
@@ -951,6 +969,7 @@ function ViewerTableV2({
   modalSelection,
   selectedQueryIndex,
 }: ViewerTableV2Props) {
+  const {priority: queryPriority} = useDashboardQueryPriority();
   const page = decodeInteger(location.query[WidgetViewerQueryField.PAGE]) ?? 0;
   const links = parseLinkHeader(pageLinks ?? null);
 
@@ -1044,7 +1063,8 @@ function ViewerTableV2({
             meta as MetaType,
             widget,
             organization,
-            dashboardFilters
+            dashboardFilters,
+            queryPriority
           )!;
 
           // For SPANS widgets, the customRenderer already returns a link, so we shouldn't wrap it
@@ -1093,7 +1113,8 @@ function ViewerTableV2({
               widget,
               organization,
               dashboardFilters,
-              selectedQueryIndex
+              selectedQueryIndex,
+              queryPriority
             );
             const exploreUrl = getExploreUrl(dataRow);
             if (exploreUrl) {

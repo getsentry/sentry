@@ -154,3 +154,18 @@ class MonitorCheckInSerializerTest(TestCase):
         result = serialize([snapshot], self.user, MonitorCheckInSerializer())
 
         assert result[0]["monitorConfig"] == {**config, "schedule_type": "crontab"}
+
+    def test_serialize_with_missing_checkin_config(self) -> None:
+        monitor = self.create_monitor()
+        monitor_env = self.create_monitor_environment(
+            monitor=monitor, environment_id=self.environment.id
+        )
+        checkin = self.create_monitor_checkin(
+            monitor_environment=monitor_env,
+            status=CheckInStatus.OK,
+            checkin_config_id=999999,
+        )
+
+        result = serialize([checkin], self.user, MonitorCheckInSerializer())
+
+        assert dict(result[0]["monitorConfig"]) == {}

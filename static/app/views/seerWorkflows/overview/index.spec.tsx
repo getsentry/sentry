@@ -8,6 +8,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {
   act,
+  cleanup,
   render,
   screen,
   userEvent,
@@ -843,6 +844,7 @@ describe('AutofixOverview', () => {
 
     afterEach(async () => {
       try {
+        cleanup();
         await act(() => jest.runOnlyPendingTimersAsync());
       } finally {
         jest.useRealTimers();

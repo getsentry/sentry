@@ -51,7 +51,6 @@ export interface Overrides
     AnalyticsOverrides,
     FeatureDisabledOverrides,
     InterfaceChromeOverrides,
-    OnboardingOverrides,
     FeatureSpecificOverrides,
     ReactHookOverrides,
     CallbackOverrides {
@@ -268,13 +267,6 @@ type InterfaceChromeOverrides = {
   'sidebar:item-label': SidebarItemLabelOverride;
   'sidebar:seer-config-reminder': GenericOrganizationComponentOverride;
   'sidebar:try-business': SidebarTryBusinessOverride;
-};
-
-/**
- * Onboarding experience overrides
- */
-type OnboardingOverrides = {
-  'onboarding:targeted-onboarding-header': (opts: {source: string}) => React.ReactNode;
 };
 
 /**

@@ -165,6 +165,44 @@ describe('useMetricTimeseries', () => {
     );
   });
 
+  it('uses low priority sampling when the explore url requests a faster query', async () => {
+    const lowPriorityRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.LOW_PRIORITY;
+        },
+      ],
+    });
+    const normalRequest = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/events-timeseries/',
+      body: {timeSeries: []},
+      match: [
+        function (_url: string, options: Record<string, any>) {
+          return options.query.sampling === SAMPLING_MODE.NORMAL;
+        },
+      ],
+    });
+
+    renderHookWithProviders(useMetricTimeseries, {
+      organization: OrganizationFixture({features: ['low-priority-queries']}),
+      initialRouterConfig: {
+        location: {
+          pathname: '/organizations/org-slug/explore/metrics/',
+          query: {queryPriority: 'faster'},
+        },
+      },
+      initialProps: {traceMetric: {name: 'test metric', type: 'counter'}, enabled: true},
+      additionalWrapper: MockMetricQueryParamsContext,
+    });
+
+    await waitFor(() => {
+      expect(lowPriorityRequest).toHaveBeenCalledTimes(1);
+    });
+    expect(normalRequest).not.toHaveBeenCalled();
+  });
+
   it('requests multiple yAxis values from the API', async () => {
     const mockTimeSeries1 = TimeSeriesFixture();
     const mockTimeSeries2 = TimeSeriesFixture();

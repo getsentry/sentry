@@ -4,6 +4,10 @@ export const INBOX_SUBJECT_TYPES = ['issue', 'notebook'] as const;
 
 export type InboxSubjectType = (typeof INBOX_SUBJECT_TYPES)[number];
 
+export interface InboxRouteHandle {
+  inboxSubjectType: InboxSubjectType;
+}
+
 export const INBOX_RECIPIENTS = ['team', 'user'] as const;
 
 export type InboxRecipient = (typeof INBOX_RECIPIENTS)[number];

@@ -6,11 +6,11 @@ from typing import Any, TypedDict
 
 import jwt
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PublicKey
+from django.conf import settings
 from django.http import HttpRequest
 from django.urls import reverse
 from rest_framework import serializers
 
-from sentry import options
 from sentry.api.serializers.rest_framework.base import CamelSnakeSerializer
 from sentry.integrations.cursor_origin.constants import (
     CURSOR_ORIGIN_CLOCK_SKEW_SECONDS,
@@ -103,7 +103,7 @@ def verify_receipt(receipt: str, expected_state: str | None) -> str | None:
         logger.warning("cursor_origin.install.receipt_wrong_typ", extra=signing)
         return None
 
-    app_id = options.get("cursor-origin-app.id")
+    app_id = settings.SENTRY_CURSOR_ORIGIN_APP_ID
     kid = header.get("kid")
 
     for key in signing_keys_for(kid):

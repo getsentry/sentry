@@ -45,9 +45,7 @@ export type ReplayEventParameters = {
   'replay.details-time-spent': {seconds: number; user_email: string};
   'replay.details-timestamp-button-clicked': {area: string};
 
-  'replay.frame-after-background': {frame: string};
   'replay.gaps_detected': {gaps: number; max_gap: number; replay_duration: number};
-  'replay.hydration-error.issue-details-opened': Record<string, unknown>;
   'replay.hydration-modal.slider-interaction': Record<string, unknown>;
 
   'replay.hydration-modal.tab-change': {tabKey: string};
@@ -69,8 +67,6 @@ export type ReplayEventParameters = {
     play: boolean;
     user_email: string;
   };
-  'replay.rage-click-sdk-banner.dismissed': {surface: string};
-  'replay.rage-click-sdk-banner.rendered': {is_dismissed: boolean; surface: string};
   'replay.render-issues-group-list': {
     platform: string | undefined;
     project_id: string | undefined;
@@ -103,8 +99,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.details-tab-changed': 'Changed Replay Details Tab',
   'replay.details-time-spent': 'Time Spent Viewing Replay Details',
   'replay.details-timestamp-button-clicked': 'Clicked Timestamp in Replay Details',
-  'replay.frame-after-background': 'Replay Frame Following Background Frame',
-  'replay.hydration-error.issue-details-opened': 'Hydration Issue Details Opened',
   'replay.hydration-modal.slider-interaction': 'Hydration Modal Slider Clicked',
   'replay.hydration-modal.tab-change': 'Hydration Modal Tab Changed',
   'replay.list-navigate-to-details': 'Replays List Navigate to Replay Details',
@@ -115,8 +109,6 @@ export const replayEventMap: Record<ReplayEventKey, string | null> = {
   'replay.list-view-setup-sidebar': 'Views Set Up Replays Sidebar',
   'replay.gaps_detected': 'Number of Gaps in Replay Timeline',
   'replay.play-pause': 'Played/Paused Replay',
-  'replay.rage-click-sdk-banner.dismissed': 'Replay Rage Click SDK Banner Dismissed',
-  'replay.rage-click-sdk-banner.rendered': 'Replay Rage Click SDK Banner Rendered',
   'replay.render-issues-group-list': 'Render Issues Detail Replay List',
   'replay.render-missing-replay-alert': 'Render Missing Replay Alert',
   'replay.search': 'Searched Replay',

@@ -15,7 +15,11 @@ import {
 import {AggregationKey, FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import {decodeBoolean, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import type {DashboardFilters, Widget} from 'sentry/views/dashboards/types';
+import type {
+  DashboardFilters,
+  DashboardQueryPriority,
+  Widget,
+} from 'sentry/views/dashboards/types';
 import {DisplayType, WidgetType} from 'sentry/views/dashboards/types';
 import {
   applyDashboardFilters,
@@ -54,7 +58,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
     selection: PageFilters,
     organization: Organization,
     preferMode?: Mode,
-    referrer?: string
+    referrer?: string,
+    queryPriority?: DashboardQueryPriority
   ) => {
     return _getWidgetExploreUrl(
       widget,
@@ -64,7 +69,8 @@ function getWidgetExploreUrlWithDataset(traceItemDataset: TraceItemDataset) {
       preferMode,
       undefined,
       traceItemDataset,
-      referrer
+      referrer,
+      queryPriority
     );
   };
 }
@@ -77,7 +83,8 @@ const WIDGET_TRACE_ITEM_TO_URL_FUNCTION: Record<
       selection: PageFilters,
       organization: Organization,
       preferMode?: Mode,
-      referrer?: string
+      referrer?: string,
+      queryPriority?: DashboardQueryPriority
     ) => string | null)
   | undefined
 > = {
@@ -112,7 +119,8 @@ export function getWidgetExploreUrl(
   selection: PageFilters,
   organization: Organization,
   preferMode?: Mode,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ): string | null {
   const traceItemDataset = getTraceItemDatasetFromWidgetType(widget.widgetType);
 
@@ -123,7 +131,8 @@ export function getWidgetExploreUrl(
       selection,
       organization,
       traceItemDataset,
-      referrer
+      referrer,
+      queryPriority
     );
   }
 
@@ -136,7 +145,8 @@ export function getWidgetExploreUrl(
       selection,
       organization,
       preferMode,
-      referrer
+      referrer,
+      queryPriority
     );
   }
 
@@ -148,7 +158,8 @@ export function getWidgetExploreUrl(
     preferMode,
     undefined,
     traceItemDataset,
-    referrer
+    referrer,
+    queryPriority
   );
 }
 
@@ -211,7 +222,8 @@ function _getWidgetExploreUrl(
   preferMode?: Mode,
   overrideQuery?: MutableSearch,
   traceItemDataset?: TraceItemDataset,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ) {
   if (!widget.queries[0]) {
     return null;
@@ -350,6 +362,7 @@ function _getWidgetExploreUrl(
     interval:
       decodeScalar(locationQueryParams.interval) ??
       getWidgetInterval(widget, selection.datetime),
+    queryPriority,
     referrer,
   };
 
@@ -378,6 +391,7 @@ function _getWidgetExploreUrl(
       aggregateFields: logsAggregateFields,
       interval: queryParams.interval,
       mode: queryParams.mode,
+      queryPriority: queryParams.queryPriority,
       referrer: queryParams.referrer,
     });
   }
@@ -396,7 +410,8 @@ function _getWidgetExploreUrlForMultipleQueries(
   selection: PageFilters,
   organization: Organization,
   _traceItemDataset: TraceItemDataset,
-  referrer?: string
+  referrer?: string,
+  queryPriority?: DashboardQueryPriority
 ): string | null {
   if (!widgetTypeSupportsExploreMultiQuery(widget.widgetType)) {
     return null;
@@ -436,6 +451,7 @@ function _getWidgetExploreUrlForMultipleQueries(
       ),
     })),
     interval: getWidgetInterval(widget, currentSelection.datetime),
+    queryPriority,
     referrer,
   });
 }
@@ -445,7 +461,8 @@ export function getWidgetTableRowExploreUrlFunction(
   widget: Widget,
   organization: Organization,
   dashboardFilters?: DashboardFilters,
-  selectedQueryIndex = 0
+  selectedQueryIndex = 0,
+  queryPriority?: DashboardQueryPriority
 ) {
   return (dataRow: TabularRow) => {
     let fields: string[] = [];
@@ -477,7 +494,8 @@ export function getWidgetTableRowExploreUrlFunction(
       Mode.SAMPLES,
       query,
       undefined,
-      `${getReferrer(widget.displayType)}.row`
+      `${getReferrer(widget.displayType)}.row`,
+      queryPriority
     );
   };
 }

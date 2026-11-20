@@ -1,3 +1,4 @@
+import {matchRoutes} from 'react-router';
 import {ActivityFeedFixture} from 'sentry-fixture/activityFeed';
 import {EventFixture} from 'sentry-fixture/event';
 import {GroupFixture} from 'sentry-fixture/group';
@@ -6,17 +7,25 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {PRELOAD_HANDLE} from 'sentry/router/preload';
+import {buildRoutes} from 'sentry/router/routes';
 import {GroupActivityType, type GroupActivity} from 'sentry/types/group';
 import Inbox from 'sentry/views/inbox';
 import {InvestigationDetailFixture} from 'sentry/views/investigations/fixtures';
 
 import type {InboxSubject} from './types';
 
-const INBOX_ROUTES = [
-  '/organizations/:orgId/inbox/',
-  '/organizations/:orgId/inbox/issue/:id/',
-  '/organizations/:orgId/inbox/notebook/:id/',
-];
+const inboxPath = '/organizations/org-slug/inbox/';
+const inboxRoute = matchRoutes(buildRoutes(), inboxPath)?.at(-2)?.route;
+if (!inboxRoute?.path || !inboxRoute.children) {
+  throw new Error('The Inbox layout route must have preview children.');
+}
+
+const INBOX_ROUTER_CONFIG = {
+  route: inboxRoute.path,
+  children: inboxRoute.children,
+  location: {pathname: inboxPath},
+};
 
 const NEXT_CURSOR = '2020-01-01T00:00:00+00:00|3:0:0';
 
@@ -106,6 +115,15 @@ describe('Inbox', () => {
     );
   }
 
+  beforeAll(async () => {
+    await Promise.all(
+      INBOX_ROUTER_CONFIG.children.map(({handle}) => {
+        const preloadHandle = handle as {[PRELOAD_HANDLE]: () => Promise<unknown>};
+        return preloadHandle[PRELOAD_HANDLE]();
+      })
+    );
+  });
+
   beforeEach(() => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/inbox/',
@@ -124,7 +142,7 @@ describe('Inbox', () => {
       body: [notebookItem, InboxItemFixture({id: '4', title: null})],
     });
 
-    render(<Inbox />, {organization});
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(
       await screen.findByRole('link', {
@@ -138,13 +156,13 @@ describe('Inbox', () => {
   it('shows an empty state when there are no items', async () => {
     MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
 
-    render(<Inbox />, {organization});
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(await screen.findByText('Your inbox is empty')).toBeInTheDocument();
   });
 
   it('links to the Inbox notification settings', async () => {
-    render(<Inbox />, {organization});
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     const settingsButton = await screen.findByRole('button', {
       name: 'Inbox notification settings',
@@ -165,7 +183,7 @@ describe('Inbox', () => {
       body: {detail: 'Internal Error'},
     });
 
-    render(<Inbox />, {organization});
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(
       await screen.findByText('There was an error loading data.')
@@ -186,7 +204,7 @@ describe('Inbox', () => {
       body: [readNotebookItem],
     });
 
-    render(<Inbox />, {organization});
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     await userEvent.click(await screen.findByRole('button', {name: 'Show more'}));
 
@@ -200,10 +218,7 @@ describe('Inbox', () => {
   it('selects an item from the list', async () => {
     const {router} = render(<Inbox />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/inbox/'},
-        routes: INBOX_ROUTES,
-      },
+      initialRouterConfig: INBOX_ROUTER_CONFIG,
     });
 
     const item = await screen.findByRole('link', {
@@ -220,7 +235,7 @@ describe('Inbox', () => {
     await expectMarkedRead(notebookItem);
   });
 
-  it('previews the selected item', async () => {
+  it('opens the notebook preview and returns to the index', async () => {
     const detailUrl = '/organizations/org-slug/notebooks/1000210/';
     MockApiClient.addMockResponse({
       url: detailUrl,
@@ -237,39 +252,42 @@ describe('Inbox', () => {
       body: {viewers: [], total: 0, heartbeatIntervalMs: 5000},
     });
 
-    render(<Inbox />, {
+    const {router} = render(<Inbox />, {
       organization: OrganizationFixture({
         features: ['universal-inbox', 'investigations'],
         openMembership: true,
       }),
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/inbox/'},
-        routes: INBOX_ROUTES,
-      },
+      initialRouterConfig: INBOX_ROUTER_CONFIG,
     });
 
-    expect(await screen.findByText('No item selected')).toBeInTheDocument();
+    expect(screen.getByText('No item selected')).toBeInTheDocument();
 
+    const issueCheckbox = {name: `Select ${issueItem.title}`};
+    await userEvent.click(await screen.findByRole('checkbox', issueCheckbox));
     await userEvent.click(
-      await screen.findByRole('link', {
-        name: /OperationalError: could not connect to server/,
-      })
+      screen.getByRole('link', {name: /OperationalError: could not connect to server/})
     );
 
     expect(await screen.findByRole('textbox', {name: 'Investigation title'})).toHaveValue(
       'OperationalError: could not connect to server'
     );
+    expect(screen.getByRole('checkbox', issueCheckbox)).toBeChecked();
+
+    router.navigate(-1);
+
+    expect(screen.getByText('No item selected')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', issueCheckbox)).toBeChecked();
   });
 
   it('does not carry query params between items', async () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {
           pathname: '/organizations/org-slug/inbox/',
           query: {project: '1', environment: 'production'},
         },
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -286,8 +304,8 @@ describe('Inbox', () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {pathname: '/organizations/org-slug/inbox/issue/7656018581/'},
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -304,8 +322,8 @@ describe('Inbox', () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {pathname: '/organizations/org-slug/inbox/issue/9999/'},
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -328,8 +346,8 @@ describe('Inbox', () => {
     const {router} = render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {pathname: `${issuePath}#activity=456`},
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -391,10 +409,10 @@ describe('Inbox', () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {
           pathname: `/organizations/${organization.slug}/inbox/issue/${issueItem.subjectId}#activity-1`,
         },
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -424,11 +442,11 @@ describe('Inbox', () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {
           pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
           query: {subjectType: 'notebook'},
         },
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -451,8 +469,8 @@ describe('Inbox', () => {
     render(<Inbox />, {
       organization,
       initialRouterConfig: {
+        ...INBOX_ROUTER_CONFIG,
         location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
-        routes: INBOX_ROUTES,
       },
     });
 
@@ -463,13 +481,7 @@ describe('Inbox', () => {
   });
 
   it('does not mark items as read without viewing them', async () => {
-    render(<Inbox />, {
-      organization,
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/inbox/'},
-        routes: INBOX_ROUTES,
-      },
-    });
+    render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(await screen.findByText('No item selected')).toBeInTheDocument();
     expect(markReadRequest).not.toHaveBeenCalled();
@@ -478,10 +490,7 @@ describe('Inbox', () => {
   it('selects items with checkboxes without opening them', async () => {
     const {router} = render(<Inbox />, {
       organization,
-      initialRouterConfig: {
-        location: {pathname: '/organizations/org-slug/inbox/'},
-        routes: INBOX_ROUTES,
-      },
+      initialRouterConfig: INBOX_ROUTER_CONFIG,
     });
 
     const checkbox = await screen.findByRole('checkbox', {
@@ -506,10 +515,7 @@ describe('Inbox', () => {
     it('marks only that item as read without opening it', async () => {
       const {router} = render(<Inbox />, {
         organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
+        initialRouterConfig: INBOX_ROUTER_CONFIG,
       });
 
       const selectedCheckbox = await screen.findByRole('checkbox', {
@@ -548,10 +554,7 @@ describe('Inbox', () => {
     it('marks only that item as unread without opening it', async () => {
       const {router} = render(<Inbox />, {
         organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
+        initialRouterConfig: INBOX_ROUTER_CONFIG,
       });
 
       const selectedCheckbox = await screen.findByRole('checkbox', {
@@ -595,8 +598,8 @@ describe('Inbox', () => {
       const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -631,10 +634,10 @@ describe('Inbox', () => {
       render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {
             pathname: `/organizations/org-slug/inbox/issue/${issueItem.subjectId}/`,
           },
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -676,8 +679,8 @@ describe('Inbox', () => {
       render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {pathname: '/organizations/org-slug/inbox/notebook/1000209/'},
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -711,7 +714,7 @@ describe('Inbox', () => {
         method: 'DELETE',
         statusCode: 204,
       });
-      render(<Inbox />, {organization});
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       const actions = await screen.findByRole('button', {
         name: `Actions for ${notebookItem.title}`,
@@ -770,7 +773,7 @@ describe('Inbox', () => {
         method: 'DELETE',
         statusCode: 500,
       });
-      render(<Inbox />, {organization});
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       await userEvent.click(
         await screen.findByRole('button', {name: `Actions for ${notebookItem.title}`})
@@ -785,18 +788,8 @@ describe('Inbox', () => {
   });
 
   describe('bulk actions', () => {
-    function renderInbox() {
-      return render(<Inbox />, {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
-      });
-    }
-
     it('selects and deselects all items', async () => {
-      renderInbox();
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       const selectAll = await screen.findByRole('checkbox', {name: 'Select all'});
       await screen.findByRole('link', {name: /Checkout latency regression/});
@@ -825,7 +818,7 @@ describe('Inbox', () => {
     });
 
     it('marks the selected items as read', async () => {
-      renderInbox();
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       await userEvent.click(
         await screen.findByRole('checkbox', {
@@ -851,7 +844,7 @@ describe('Inbox', () => {
         method: 'DELETE',
         statusCode: 204,
       });
-      renderInbox();
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       await screen.findByRole('link', {name: /Checkout latency regression/});
       MockApiClient.addMockResponse({url: '/organizations/org-slug/inbox/', body: []});
@@ -879,7 +872,7 @@ describe('Inbox', () => {
           Link: `<http://localhost/?cursor=${encodeURIComponent(NEXT_CURSOR)}>; rel="next"; results="true"; cursor="${NEXT_CURSOR}"`,
         },
       });
-      renderInbox();
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       await screen.findByRole('link', {name: /TypeError: Cannot read properties/});
       // The first page is refetched after the removal and now starts with the next item
@@ -910,10 +903,7 @@ describe('Inbox', () => {
 
       const {router} = render(<Inbox />, {
         organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
+        initialRouterConfig: INBOX_ROUTER_CONFIG,
       });
 
       expect(
@@ -954,10 +944,7 @@ describe('Inbox', () => {
 
       const {router} = render(<Inbox />, {
         organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
+        initialRouterConfig: INBOX_ROUTER_CONFIG,
       });
 
       expect(
@@ -1000,10 +987,7 @@ describe('Inbox', () => {
 
       const {router} = render(<Inbox />, {
         organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
+        initialRouterConfig: INBOX_ROUTER_CONFIG,
       });
 
       await userEvent.click(await screen.findByRole('button', {name: 'Filter'}));
@@ -1039,11 +1023,11 @@ describe('Inbox', () => {
       const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {
             pathname: '/organizations/org-slug/inbox/',
             query: {subjectType: 'notebook'},
           },
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -1069,13 +1053,7 @@ describe('Inbox', () => {
         body: [notebookItem, readNotebookItem],
       });
 
-      render(<Inbox />, {
-        organization,
-        initialRouterConfig: {
-          location: {pathname: '/organizations/org-slug/inbox/'},
-          routes: INBOX_ROUTES,
-        },
-      });
+      render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
       expect(
         await screen.findByRole('link', {name: /TypeError: Cannot read properties/})
@@ -1122,11 +1100,11 @@ describe('Inbox', () => {
       const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {
             pathname: '/organizations/org-slug/inbox/',
             query: {eventType: 'issue.user_assigned'},
           },
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -1152,11 +1130,11 @@ describe('Inbox', () => {
       const {router} = render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {
             pathname: '/organizations/org-slug/inbox/',
             query: {subjectType: 'notebook', recipient: 'team', project: '1'},
           },
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -1195,11 +1173,11 @@ describe('Inbox', () => {
       render(<Inbox />, {
         organization,
         initialRouterConfig: {
+          ...INBOX_ROUTER_CONFIG,
           location: {
             pathname: '/organizations/org-slug/inbox/',
             query: {subjectType: 'bogus', recipient: 'bogus'},
           },
-          routes: INBOX_ROUTES,
         },
       });
 
@@ -1222,7 +1200,10 @@ describe('Inbox', () => {
       body: [notebookItem],
     });
 
-    render(<Inbox />, {organization: OrganizationFixture()});
+    render(<Inbox />, {
+      organization: OrganizationFixture(),
+      initialRouterConfig: INBOX_ROUTER_CONFIG,
+    });
 
     expect(
       screen.queryByText('OperationalError: could not connect to server')

@@ -1930,9 +1930,6 @@
   "views/navigation/topBar.tsx": {
     "@sentry/scraps/prefer-container-responsive-props": {"count": 2}
   },
-  "views/onboarding/components/firstEventFooter.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
-  },
   "views/onboarding/components/onboardingSkipButton.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },

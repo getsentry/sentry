@@ -4,6 +4,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {TimeSeriesFixture} from 'sentry-fixture/timeSeries';
 
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import type {TagCollection} from 'sentry/types/group';
 import {FieldKind} from 'sentry/utils/fields';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -690,7 +691,7 @@ describe('getSavedQueryTraceItemUrl', () => {
   function makeSavedQuery(
     dataset: ReadableSavedQuery['dataset'],
     query: ReadableSavedQuery['query'],
-    queryPriority?: 'normal' | 'faster'
+    queryPriority?: QuerySpeed
   ) {
     return new SavedQuery({
       id: 1,
@@ -765,6 +766,12 @@ describe('getSavedQueryTraceItemUrl', () => {
     ]);
 
     expect(getCompareCaseInsensitiveParams(savedQuery)).toEqual([false, '1']);
+  });
+
+  it('leaves a saved query priority off the compare url', () => {
+    const savedQuery = makeSavedQuery('spans', [readableQuery, readableQuery], 'faster');
+
+    expect(parseSavedQueryUrl(savedQuery).queryPriority).toBeUndefined();
   });
 
   function conversationsSavedQuery(overrides: Partial<ReadableSavedQuery> = {}) {

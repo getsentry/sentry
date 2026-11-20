@@ -1,10 +1,10 @@
-import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 
 import {useSetupWizardViewedAnalytics} from './utils/setupWizardAnalytics';
 import {useOrganizationsWithRegion} from './utils/useOrganizationsWithRegion';
 import {WaitingForWizardToConnect} from './waitingForWizardToConnect';
+import {WizardError} from './wizardError';
 import {WizardProjectSelection} from './wizardProjectSelection';
 
 type Props = {hash: string; enableProjectSelection?: boolean};
@@ -19,7 +19,7 @@ function SetupWizard({hash, enableProjectSelection = false}: Props) {
   }
 
   if (isError || !organizations) {
-    return <LoadingError message={t('Failed to load organizations')} />;
+    return <WizardError message={t('Failed to load organizations')} />;
   }
 
   return enableProjectSelection ? (

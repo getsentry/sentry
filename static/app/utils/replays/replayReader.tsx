@@ -24,7 +24,6 @@ import type {
   ErrorFrame,
   fullSnapshotEvent,
   incrementalSnapshotEvent,
-  MemoryFrame,
   OptionFrame,
   RawReplayError,
   RecordingFrame,
@@ -43,6 +42,7 @@ import {
   isDeadClick,
   isDeadRageClick,
   isMetaFrame,
+  isMemoryFrame,
   isPaintFrame,
   isSlowClickFrame,
   isTouchEndFrame,
@@ -798,9 +798,7 @@ export class ReplayReader {
     ].sort(sortFrames)
   );
 
-  getMemoryFrames = memoize(() =>
-    this._sortedSpanFrames.filter((frame): frame is MemoryFrame => frame.op === 'memory')
-  );
+  getMemoryFrames = memoize(() => this._sortedSpanFrames.filter(isMemoryFrame));
 
   getCustomFrames = memoize(() =>
     this._sortedBreadcrumbFrames.filter(

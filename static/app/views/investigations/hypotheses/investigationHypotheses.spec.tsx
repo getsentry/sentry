@@ -2,7 +2,14 @@ import {QueryClientProvider} from '@tanstack/react-query';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {investigationOrchestrationQueryOptions} from 'sentry/views/investigations/api';
 import {InvestigationOrchestrationFixture} from 'sentry/views/investigations/fixtures';
@@ -629,6 +636,7 @@ describe('InvestigationHypotheses', () => {
 
       afterEach(async () => {
         try {
+          cleanup();
           await act(() => jest.runOnlyPendingTimersAsync());
         } finally {
           jest.useRealTimers();

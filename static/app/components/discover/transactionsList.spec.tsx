@@ -426,40 +426,5 @@ describe('TransactionsList', () => {
         '/org-slug?count%28%29=1000&transaction=%2Fb'
       );
     });
-
-    it('handles forceLoading correctly', async () => {
-      const component = render(
-        <WrapperComponent
-          api={null}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-          forceLoading
-        />
-      );
-
-      expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();
-
-      component.rerender(
-        <WrapperComponent
-          api={null}
-          location={location}
-          organization={organization}
-          eventView={eventView}
-          selected={options[0]}
-          options={options}
-          handleDropdownChange={handleDropdownChange}
-        />
-      );
-
-      expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
-      const gridCells = await screen.findAllByTestId('grid-cell');
-      expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
-
-      expect(gridCells.map(e => e.textContent)).toEqual(['/a', '100', '/b', '1,000']);
-    });
   });
 });

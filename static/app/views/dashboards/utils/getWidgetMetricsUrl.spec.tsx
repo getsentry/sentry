@@ -58,6 +58,38 @@ describe('getWidgetMetricsUrl', () => {
       expect(Array.isArray(params.metric) ? params.metric.length : 1).toBe(1);
     });
 
+    it('preserves the dashboard query speed', () => {
+      const widget: Widget = {
+        id: '1',
+        title: 'Test Widget',
+        displayType: DisplayType.LINE,
+        interval: '5m',
+        widgetType: WidgetType.TRACEMETRICS,
+        queries: [
+          {
+            name: 'Query 1',
+            fields: [],
+            aggregates: ['avg(value,duration,d,none)'],
+            columns: [],
+            conditions: 'transaction:"/api/users"',
+            orderby: '',
+            fieldAliases: [],
+          },
+        ],
+      };
+
+      const url = getWidgetMetricsUrl(
+        widget,
+        undefined,
+        selection,
+        organization,
+        'faster'
+      );
+      const {params} = parseMetricsUrl(url);
+
+      expect(params.queryPriority).toBe('faster');
+    });
+
     it('generates URL for multiple aggregates', () => {
       const widget: Widget = {
         id: '1',

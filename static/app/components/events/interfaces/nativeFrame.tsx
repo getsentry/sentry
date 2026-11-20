@@ -49,7 +49,7 @@ import {
 } from './frame/utils';
 import {useStacktraceContext} from './stackTraceContext';
 import {SymbolicatorStatus} from './types';
-import {formatAddress, parseAddress} from './utils';
+import {formatAddress, getImageName, parseAddress} from './utils';
 
 type Props = {
   emptySourceNotation: boolean;
@@ -274,6 +274,7 @@ export function NativeFrame({
   const addressTooltip = getAddressTooltip();
   const functionName = getFunctionName();
   const status = getStatus();
+  const packageName = frame.package ?? getImageName(image);
 
   return (
     <StackTraceFrame data-test-id="stack-trace-frame">
@@ -324,7 +325,7 @@ export function NativeFrame({
             )}
             <InfoText
               title={
-                frame.package ??
+                packageName ??
                 (isDartAsyncSuspensionFrame
                   ? t('Dart async operation')
                   : t('Go to images loaded'))
@@ -336,8 +337,8 @@ export function NativeFrame({
               variant="inherit"
             >
               <Container as="span" paddingRight="2xs">
-                {frame.package
-                  ? trimPackage(frame.package)
+                {packageName
+                  ? trimPackage(packageName)
                   : isDartAsyncSuspensionFrame
                     ? t('Dart async')
                     : `<${t('unknown')}>`}

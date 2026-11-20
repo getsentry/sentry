@@ -12,6 +12,7 @@ import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
+import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Panel} from 'sentry/components/panels/panel';
@@ -24,20 +25,21 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 
 type RowStatus = 'match' | 'mismatch' | 'legacy_only' | 'platform_only';
 
+type InvoiceRef = {date_added: string; guid: string};
+
 type Row = {
   delta_cents: number;
   delta_pct: number | null;
-  // guid is present only when the side has exactly one invoice in the window
-  // (otherwise there's no single invoice to deep-link to).
   legacy_amount: number | null;
   legacy_invoice_count: number;
-  legacy_invoice_guid: string | null;
   organization_id: number;
   organization_slug: string | null;
   platform_amount: number | null;
   platform_invoice_count: number;
-  platform_invoice_guid: string | null;
   status: RowStatus;
+  // Oldest first. Absent from backends that don't list invoices yet.
+  legacy_invoices?: InvoiceRef[];
+  platform_invoices?: InvoiceRef[];
 };
 
 type Summary = {
@@ -75,24 +77,72 @@ function formatDollars(cents: number | null) {
   return `$${dollars.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
 }
 
-// Render a dollar amount, deep-linking to the admin invoice detail page when
-// the side has a single invoice. AdminInvoiceDetailsEndpoint resolves legacy
-// and platform invoices alike by guid, and unlike the org-scoped receipts
-// page it doesn't hide legacy shadow invoices for migrated orgs.
-function InvoiceAmount({
+// `MM/DD` of the UTC day, matching the whole-UTC-day window.
+function formatInvoiceDay(iso: string): string {
+  return utcDay(Date.parse(iso)).slice(5).replace('-', '/');
+}
+
+// Most invoices land just after 00:00 UTC, so a side's dates are often the
+// same day; the full time and guid tell them apart.
+function describeInvoice(invoice: InvoiceRef): string {
+  const created = new Date(invoice.date_added)
+    .toISOString()
+    .slice(0, 16)
+    .replace('T', ' ');
+  return `Invoice ${invoice.guid}, created ${created} UTC`;
+}
+
+// Render a side's total followed by the day of each of its invoices, each
+// deep-linked to the admin invoice detail page. AdminInvoiceDetailsEndpoint
+// resolves legacy and platform invoices alike by guid, and unlike the
+// org-scoped receipts page it doesn't hide legacy shadow invoices for
+// migrated orgs.
+function InvoiceSide({
   cents,
-  guid,
+  count,
+  invoices,
   region,
 }: {
   cents: number | null;
-  guid: string | null;
+  count: number;
+  invoices: InvoiceRef[] | undefined;
   region: string | undefined;
 }) {
   const amount = formatDollars(cents);
-  if (!guid || !region) {
+  if (invoices === undefined) {
+    return (
+      <Fragment>
+        {amount}{' '}
+        <Text size="sm" variant="muted">
+          ({count})
+        </Text>
+      </Fragment>
+    );
+  }
+  if (invoices.length === 0) {
     return amount;
   }
-  return <Link to={`/_admin/invoices/${region}/${guid}/`}>{amount}</Link>;
+  return (
+    <Fragment>
+      {amount} (
+      {invoices.map((invoice, i) => {
+        const day = formatInvoiceDay(invoice.date_added);
+        return (
+          <Fragment key={invoice.guid}>
+            {i > 0 && ', '}
+            <Tooltip title={describeInvoice(invoice)} skipWrapper>
+              {region ? (
+                <Link to={`/_admin/invoices/${region}/${invoice.guid}/`}>{day}</Link>
+              ) : (
+                <span>{day}</span>
+              )}
+            </Tooltip>
+          </Fragment>
+        );
+      })}
+      )
+    </Fragment>
+  );
 }
 
 function formatPercent(pct: number | null) {
@@ -568,24 +618,20 @@ export function InvoiceComparison() {
                         )}
                       </td>
                       <RightCell>
-                        <InvoiceAmount
+                        <InvoiceSide
                           cents={row.legacy_amount}
-                          guid={row.legacy_invoice_guid}
+                          count={row.legacy_invoice_count}
+                          invoices={row.legacy_invoices}
                           region={cell?.name}
-                        />{' '}
-                        <Text size="sm" variant="muted">
-                          ({row.legacy_invoice_count})
-                        </Text>
+                        />
                       </RightCell>
                       <RightCell>
-                        <InvoiceAmount
+                        <InvoiceSide
                           cents={row.platform_amount}
-                          guid={row.platform_invoice_guid}
+                          count={row.platform_invoice_count}
+                          invoices={row.platform_invoices}
                           region={cell?.name}
-                        />{' '}
-                        <Text size="sm" variant="muted">
-                          ({row.platform_invoice_count})
-                        </Text>
+                        />
                       </RightCell>
                       <RightCell>{formatPercent(row.delta_pct)}</RightCell>
                       <RightCell>{formatDollars(row.delta_cents)}</RightCell>

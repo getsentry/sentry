@@ -1,14 +1,12 @@
 import {useEffect, useMemo} from 'react';
 
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
-import {LoadingContainer} from 'sentry/components/loading/loadingContainer';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
 import {EventView} from 'sentry/utils/discover/eventView';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import {useMetricsCardinalityContext} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {
   getIsMetricsDataFromResults,
   useMEPDataContext,
@@ -43,19 +41,9 @@ function TransactionOverview() {
 
   return (
     <MEPSettingProvider>
-      <EAPCardinalityLoadingWrapper />
+      <EAPOverviewContentWrapper />
     </MEPSettingProvider>
   );
-}
-
-function EAPCardinalityLoadingWrapper() {
-  const mepCardinalityContext = useMetricsCardinalityContext();
-
-  if (mepCardinalityContext?.isLoading) {
-    return <LoadingContainer isLoading />;
-  }
-
-  return <EAPOverviewContentWrapper />;
 }
 
 function EAPOverviewContentWrapper() {

@@ -324,7 +324,7 @@ function Chart({
   const isCombinedChart = visualizes.length > 1;
   const heatMapYAxis = getSpansHeatMapYAxis(visualize);
   const isHeatMap = !isCombinedChart && isSpansHeatMap(visualize, organization);
-  const {droppedData, annotations, layerControl} = useChartLayers({
+  const {droppedData, annotations, layerControl, onAnnotationClick} = useChartLayers({
     dataset,
     interval: chartInterval,
     source: 'explore',
@@ -554,6 +554,7 @@ function Chart({
               droppedData={droppedData.band}
               isDroppedDataLoading={droppedData.isLoading}
               annotations={annotations}
+              onAnnotationClick={onAnnotationClick}
               chartXRangeSelection={
                 isAttributeBreakdown
                   ? {
