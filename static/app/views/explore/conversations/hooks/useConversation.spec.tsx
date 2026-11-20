@@ -271,9 +271,10 @@ describe('useConversation', () => {
     });
 
     it('leaves them alone unless asked to mark them, like for the export', () => {
-      const {nodes} = buildConversationNodes([
-        {...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta},
-      ]);
+      const {nodes} = buildConversationNodes(
+        [{...BASE_SPAN, 'gen_ai.input.messages': inputMessages, meta}],
+        {organization}
+      );
 
       expect(nodes[0]?.attributes?.[SpanFields.GEN_AI_INPUT_MESSAGES]).toBe(
         inputMessages

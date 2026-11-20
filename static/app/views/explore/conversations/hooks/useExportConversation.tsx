@@ -66,7 +66,7 @@ export function useExportConversation(
         data: InfiniteData<ApiResponse<ConversationApiResponse>>
       ): ConversationExport => {
         const spans = data.pages.flatMap(page => page.json.spans ?? []);
-        const nodes = buildConversationNodes(spans).nodes;
+        const nodes = buildConversationNodes(spans, {organization}).nodes;
         return {
           markdown: messagesToMarkdown(extractMessagesFromNodes(nodes)),
           title: data.pages[0]?.json.title ?? null,

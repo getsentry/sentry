@@ -21,6 +21,7 @@ import {getGenAiOperationTypeFromSpanName} from 'sentry/views/insights/pages/age
 import type {AITraceSpanNode} from 'sentry/views/insights/pages/agents/utils/types';
 import {SpanFields} from 'sentry/views/insights/types';
 import type {TraceTree} from 'sentry/views/performance/traceDetails/traceModels/traceTree';
+import {EapSpanNode} from 'sentry/views/performance/traceDetails/traceModels/traceTreeNode/eapSpanNode';
 
 export interface UseConversationsOptions {
   conversationId: string;
@@ -169,24 +170,22 @@ function markScrubbedSpan(apiSpan: ConversationApiSpan): ConversationApiSpan {
   ) {
     return apiSpan;
   }
-  const marked: Record<string, unknown> = {...apiSpan};
-  for (const attribute of Object.keys(meta)) {
-    const value = marked[attribute];
-    if (typeof value === 'string') {
-      marked[attribute] = markScrubbedValue(attribute, value, meta, apiSpan.project);
-    }
-  }
-  return marked as unknown as ConversationApiSpan;
+  const markedValues = Object.entries(apiSpan).flatMap(([attribute, value]) =>
+    attribute in meta && typeof value === 'string'
+      ? [[attribute, markScrubbedValue(attribute, value, meta, apiSpan.project)]]
+      : []
+  );
+  return {...apiSpan, ...Object.fromEntries(markedValues)};
 }
 
 /**
- * Creates a node-like object from a flat API span response so existing UI
- * components (AiSpanTimeline, MessagesPanel) work without full trace fetches.
+ * Creates a trace node from a flat API span response so existing UI components
+ * (AiSpanTimeline, MessagesPanel) work without full trace fetches. Its parent is
+ * linked once all of the conversation's nodes exist.
  */
 function createNodeFromApiSpan(
   apiSpan: ConversationApiSpan,
-  nodeMap: Map<string, AITraceSpanNode>,
-  parentIdBySpanId: Map<string, string>
+  organization: Organization
 ): AITraceSpanNode {
   const operationType =
     apiSpan['gen_ai.operation.type'] ||
@@ -268,67 +267,30 @@ function createNodeFromApiSpan(
     },
   };
 
-  const startMs = value.start_timestamp * 1e3;
-  const durationMs = (value.end_timestamp - value.start_timestamp) * 1e3;
-  const parentSpanId = apiSpan.parent_span;
+  return new EapSpanNode(null, value, {organization});
+}
 
-  const dedupeByIssueId = <T extends {issue_id: number}>(issues: T[]): T[] => {
-    const seen = new Set<number>();
-    return issues.filter(issue => {
-      if (seen.has(issue.issue_id)) {
-        return false;
-      }
-      seen.add(issue.issue_id);
-      return true;
-    });
-  };
-
-  const uniqueErrorIssues = dedupeByIssueId(value.errors);
-  const uniqueOccurrenceIssues = dedupeByIssueId(value.occurrences);
-
-  const node = {
-    id: apiSpan.span_id,
-    value,
-    type: 'span' as const,
-    extra: null,
-    space: [startMs, durationMs] as [number, number],
-    op: value.op,
-    description: value.description,
-    startTimestamp: value.start_timestamp,
-    endTimestamp: value.end_timestamp,
-    projectSlug: value.project_slug,
-    attributes: value.additional_attributes,
-    errors: new Set<TraceTree.TraceErrorIssue>(value.errors),
-    occurrences: new Set<TraceTree.TraceOccurrence>(value.occurrences),
-    profileId: undefined,
-    profilerId: undefined,
-    uniqueErrorIssues,
-    uniqueOccurrenceIssues,
-    uniqueIssues: [
-      ...uniqueErrorIssues,
-      ...uniqueOccurrenceIssues,
-    ] as TraceTree.TraceIssue[],
-
-    findClosestParentTransaction: () => null,
-    // Walks through the conversation's spans that aren't nodes, like spans that
-    // aren't gen_ai spans, so they don't cut a node off from its ancestors.
-    findParent<T>(predicate: (node: T) => boolean): T | null {
-      const visited = new Set<string>([apiSpan.span_id]);
-      let currentParentId: string | undefined = parentSpanId;
-      while (currentParentId && !visited.has(currentParentId)) {
-        visited.add(currentParentId);
-        const parentNode = nodeMap.get(currentParentId);
-        if (parentNode && predicate(parentNode as unknown as T)) {
-          return parentNode as unknown as T;
-        }
-        currentParentId = parentIdBySpanId.get(currentParentId);
-      }
-      return null;
-    },
-    findParentEapTransaction: () => null,
-  };
-
-  return node as unknown as AITraceSpanNode;
+/**
+ * The node's closest ancestor among the conversation's nodes. Walks through the
+ * conversation's other spans, like spans that aren't gen_ai spans, so they don't
+ * cut a node off from its ancestors.
+ */
+function findClosestNodeAncestor(
+  spanId: string,
+  parentIdBySpanId: Map<string, string>,
+  nodeMap: Map<string, AITraceSpanNode>
+): AITraceSpanNode | null {
+  const visited = new Set([spanId]);
+  let parentId = parentIdBySpanId.get(spanId);
+  while (parentId && !visited.has(parentId)) {
+    const parent = nodeMap.get(parentId);
+    if (parent) {
+      return parent;
+    }
+    visited.add(parentId);
+    parentId = parentIdBySpanId.get(parentId);
+  }
+  return null;
 }
 
 /**
@@ -402,14 +364,16 @@ function buildConversationQueryParams(
 export function buildConversationNodes(
   allSpans: ConversationApiSpan[],
   {
+    organization,
     markScrubbed = false,
   }: {
+    organization: Organization;
     /**
      * Marks where PII scrubbing changed the spans' values, see `markScrubbedValue`.
      * Only for nodes that are rendered by components that show the marks.
      */
     markScrubbed?: boolean;
-  } = {}
+  }
 ): {nodeTraceMap: Map<string, string>; nodes: AITraceSpanNode[]} {
   if (allSpans.length === 0) {
     return {nodes: [], nodeTraceMap: new Map<string, string>()};
@@ -428,13 +392,15 @@ export function buildConversationNodes(
   const transformedNodes = genAiSpans.map(apiSpan => {
     const node = createNodeFromApiSpan(
       markScrubbed ? markScrubbedSpan(apiSpan) : apiSpan,
-      nodeMap,
-      parentIdBySpanId
+      organization
     );
     nodeMap.set(node.id, node);
     traceMap.set(node.id, apiSpan.trace);
     return node;
   });
+  for (const node of transformedNodes) {
+    node.parent = findClosestNodeAncestor(node.id, parentIdBySpanId, nodeMap);
+  }
 
   return {nodes: orderDepthFirst(transformedNodes), nodeTraceMap: traceMap};
 }
@@ -514,8 +480,8 @@ export function useConversation(
   const stats = firstPage?.stats ?? null;
 
   const {nodes, nodeTraceMap} = useMemo(
-    () => buildConversationNodes(allSpans, {markScrubbed: true}),
-    [allSpans]
+    () => buildConversationNodes(allSpans, {organization, markScrubbed: true}),
+    [allSpans, organization]
   );
 
   if (!conversation.conversationId) {
