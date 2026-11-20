@@ -130,12 +130,13 @@ def observe_viewer_context_propagation(
     )
 
     metric_name = "viewer_context.observation"
+    if is_window_sampled(metric_name):
+        sentry_sdk.metrics.count(metric_name, 1, attributes=attributes)
     # testing internal sampling on high volume metrics, not yet public api
-    sample_rate = 0.01 if is_window_sampled(metric_name) else 0.001
-    if random() < sample_rate:
+    elif random() < 0.001:
         attributes_with_sampling: dict[str, str | float] = {
             **attributes,
-            "sentry.client_sample_rate": sample_rate,
+            "sentry.client_sample_rate": 0.001,
         }
         sentry_sdk.metrics.count(metric_name, 1, attributes=attributes_with_sampling)
 
