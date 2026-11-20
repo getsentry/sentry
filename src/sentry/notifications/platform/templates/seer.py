@@ -86,7 +86,6 @@ class SeerAutofixStoppedTemplate(NotificationTemplate[SeerAutofixStopped]):
 # NO_RELOADS is for when auto-reload is already on.
 AUTOFIX_OUT_OF_CREDITS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run. Set up auto-reload to keep your flow uninterrupted."
 AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE = "Your organization does not have enough credits to continue your Autofix run, and you have no auto-reloads remaining. Adjust your spend and turn on auto-reload."
-# DAILY_LIMIT is for an org that still has credits but hit its daily usage limit.
 AUTOFIX_DAILY_LIMIT_MESSAGE = (
     "Your organization hit its daily usage limit, so you cannot continue your Autofix run."
 )
