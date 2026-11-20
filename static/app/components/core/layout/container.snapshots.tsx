@@ -2,50 +2,22 @@ import type {ReactNode} from 'react';
 
 import {Container, Flex, type ContainerProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
-import type {BorderVariant} from '@sentry/scraps/theme';
+import {lightTheme, type BorderToken} from '@sentry/scraps/theme';
 
-const BORDER_COLORS: Array<Exclude<BorderVariant, 'none'>> = [
-  'primary',
-  'secondary',
-  'neutral.muted',
-  'neutral.moderate',
-  'neutral.vibrant',
-  'accent.muted',
-  'accent.moderate',
-  'accent.vibrant',
-  'promotion.muted',
-  'promotion.moderate',
-  'promotion.vibrant',
-  'danger.muted',
-  'danger.moderate',
-  'danger.vibrant',
-  'warning.muted',
-  'warning.moderate',
-  'warning.vibrant',
-  'success.muted',
-  'success.moderate',
-  'success.vibrant',
-  'onVibrant.light',
-  'onVibrant.dark',
-  'transparent.neutral.muted',
-  'transparent.neutral.moderate',
-  'transparent.neutral.vibrant',
-  'transparent.accent.muted',
-  'transparent.accent.moderate',
-  'transparent.accent.vibrant',
-  'transparent.promotion.muted',
-  'transparent.promotion.moderate',
-  'transparent.promotion.vibrant',
-  'transparent.danger.muted',
-  'transparent.danger.moderate',
-  'transparent.danger.vibrant',
-  'transparent.warning.muted',
-  'transparent.warning.moderate',
-  'transparent.warning.vibrant',
-  'transparent.success.muted',
-  'transparent.success.moderate',
-  'transparent.success.vibrant',
-];
+/**
+ * Every leaf path of a token object, e.g. `'transparent.neutral.muted'`.
+ * Mirrors the `BorderToken` type, which is derived from the same object.
+ */
+function tokenPaths(tokens: Record<string, unknown>, prefix = ''): string[] {
+  return Object.entries(tokens).flatMap(([key, value]) => {
+    const path = prefix ? `${prefix}.${key}` : key;
+    return typeof value === 'string'
+      ? [path]
+      : tokenPaths(value as Record<string, unknown>, path);
+  });
+}
+
+const BORDER_COLORS = tokenPaths(lightTheme.tokens.border) as BorderToken[];
 
 function Swatch({children, ...props}: ContainerProps & {children: ReactNode}) {
   return (
