@@ -57,9 +57,7 @@ describe('ProjectSymbolicationErrors', () => {
     MockApiClient.addMockResponse({
       url: eventsUrl,
       match: [MockApiClient.matchQuery({field: ISSUE_VOLUME_FIELDS})],
-      body: {
-        data: [{'issue.id': 1, issue: 'PROJ-1', 'count()': 250}],
-      },
+      body: {data: [{'issue.id': 1, issue: 'PROJ-1', 'count()': 250}]},
     });
     mockFailures({
       data: [

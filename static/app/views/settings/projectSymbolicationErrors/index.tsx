@@ -222,10 +222,7 @@ const COLUMNS: TableColumnConfig[] = [
   {key: 'project', visible: {[WIDE]: true}, width: '48px'},
   {key: 'issue', width: 'minmax(0, 2fr)'},
   {key: 'cause', visible: {[WIDE]: true}, width: 'minmax(0, 1fr)'},
-  {
-    key: 'failures',
-    width: {zero: 'max-content', [WITH_TREND]: `${TREND_WIDTH + 130}px`},
-  },
+  {key: 'failures', width: {zero: 'max-content', [WITH_TREND]: `${TREND_WIDTH + 130}px`}},
   {key: 'actions', visible: {[WIDE]: true}, width: 'max-content'},
 ];
 

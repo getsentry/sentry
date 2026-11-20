@@ -600,6 +600,13 @@
       "path": "/settings/projects/{project_slug}/source-maps/"
     },
     {
+      "crumbs": "Settings → Organization → Projects → <project> → Processing → Symbolication Errors",
+      "path": "/settings/projects/{project_slug}/symbolication-errors/",
+      "when": {
+        "flag": "symbolication-errors-page"
+      }
+    },
+    {
       "crumbs": "Settings → Organization → Projects → <project> → Processing → Performance",
       "path": "/settings/projects/{project_slug}/performance/",
       "when": {
@@ -862,7 +869,11 @@
   ],
   "summary": {
     "sections": {
-      "dashboards": ["Dashboards", "All Dashboards", "Starred Dashboards"],
+      "dashboards": [
+        "Dashboards",
+        "All Dashboards",
+        "Starred Dashboards"
+      ],
       "explore": [
         "Explore",
         "Traces",
@@ -880,7 +891,14 @@
         "Saved Formulas",
         "Starred Queries"
       ],
-      "insights": ["Insights", "AI", "Moved", "Crons", "Moved", "Uptime"],
+      "insights": [
+        "Insights",
+        "AI",
+        "Moved",
+        "Crons",
+        "Moved",
+        "Uptime"
+      ],
       "issues": [
         "Issues",
         "Feed",
@@ -903,8 +921,15 @@
         "Mobile Build",
         "Alerts"
       ],
-      "projects": ["Projects"],
-      "seer": ["Seer", "Automations", "Investigations", "Classifiers"]
+      "projects": [
+        "Projects"
+      ],
+      "seer": [
+        "Seer",
+        "Automations",
+        "Investigations",
+        "Classifiers"
+      ]
     },
     "prebuilt_dashboards": [
       "AI Agents Model Details",
