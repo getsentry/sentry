@@ -1,10 +1,9 @@
 import {useEffect, useImperativeHandle, type RefObject} from 'react';
-import {IconFire} from '@sentry/icons/fire';
 import {z} from 'zod';
 
 import {Alert} from '@sentry/scraps/alert';
-import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
+import {CompactSelect} from '@sentry/scraps/compactSelect';
 import {Disclosure} from '@sentry/scraps/disclosure';
 import {
   defaultFormOptions,
@@ -64,6 +63,10 @@ function getSchema(allowNoProjects: boolean) {
           allowNoProjects || projects.allProjects || projects.projectIds.length > 0,
         {message: t('Choose at least one project.')}
       ),
+    /**
+     * Empty means all environments
+     */
+    environment: z.string(),
     serviceAccountProjects: z.object({
       allProjects: z.boolean(),
       projectIds: z.array(z.string()),
@@ -73,6 +76,13 @@ function getSchema(allowNoProjects: boolean) {
       .min(1, t('Give the service account at least one permission.')),
   });
 }
+
+const ENVIRONMENTS = ['production', 'staging', 'development'];
+
+/**
+ * Select value for all environments, since the select shows an empty value as unset
+ */
+const ALL_ENVIRONMENTS = '__all__';
 
 /**
  * Stands for every project in a config's project list
@@ -136,6 +146,13 @@ export function AgenticTriageForm(props: Props) {
   if (props.mode === 'edit') {
     defaultProjects = getProjectSelection(props.config.projects);
   }
+  const savedEnvironment =
+    props.mode === 'edit' ? (props.config.environments[0] ?? '') : '';
+  // Keeps a saved environment outside the presets selectable
+  const environments =
+    !savedEnvironment || ENVIRONMENTS.includes(savedEnvironment)
+      ? ENVIRONMENTS
+      : [...ENVIRONMENTS, savedEnvironment];
   const createConfig = useCreateConfig();
   // Only called in edit mode, where the config ID is known
   const updateConfig = useUpdateConfig({
@@ -147,6 +164,7 @@ export function AgenticTriageForm(props: Props) {
       projectIds: value.projects.allProjects
         ? [ALL_PROJECTS_ID]
         : value.projects.projectIds.map(Number),
+      environments: value.environment ? [value.environment] : [],
       serviceAccount: {
         scopes: value.scopes,
         projectIds: getServiceAccountProjectIds(value.serviceAccountProjects).map(Number),
@@ -179,6 +197,7 @@ export function AgenticTriageForm(props: Props) {
           ? t('Agentic Triage')
           : (props.config.name ?? STRATEGY_META.agentic_triage_v2.label),
       projects: defaultProjects,
+      environment: savedEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
       scopes:
         serviceAccount?.scopes ??
@@ -193,6 +212,7 @@ export function AgenticTriageForm(props: Props) {
             name: value.name,
             enabled: config.enabled,
             projects: getProjectSelection(config.projects),
+            environment: config.environments[0] ?? '',
             serviceAccountProjects: getServiceAccountProjectSelection(
               config.serviceAccount
             ),
@@ -252,17 +272,16 @@ export function AgenticTriageForm(props: Props) {
 
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
-              <DisplayField.Row
-                label={t('Metric breach')}
-                hintText={t(
-                  'Runs when any connected monitor crosses its alert threshold.'
-                )}
-              >
-                <Flex>
-                  <Tag icon={<IconFire />} variant="muted">
-                    {t('When a monitor breaches')}
-                  </Tag>
-                </Flex>
+              {/* Not configurable yet, so this shows the fixed schedule */}
+              <DisplayField.Row label={t('Schedule')} hintText={t('Runs on a schedule.')}>
+                <CompactSelect
+                  value="twice-daily"
+                  onChange={() => {}}
+                  disabled={readOnly}
+                  options={[
+                    {value: 'twice-daily', label: t('Every day at 8 AM and 8 PM')},
+                  ]}
+                />
               </DisplayField.Row>
             </form.FieldGroup>
           </FormSection>
@@ -290,6 +309,26 @@ export function AgenticTriageForm(props: Props) {
                       )}
                     </field.Base>
                   </field.Layout.Stack>
+                )}
+              </form.AppField>
+              <form.AppField name="environment">
+                {field => (
+                  <field.Layout.Row label={t('Environments')}>
+                    <field.Select
+                      value={field.state.value || ALL_ENVIRONMENTS}
+                      onChange={value =>
+                        field.handleChange(value === ALL_ENVIRONMENTS ? '' : value)
+                      }
+                      disabled={readOnly}
+                      options={[
+                        {value: ALL_ENVIRONMENTS, label: t('All environments')},
+                        ...environments.map(environment => ({
+                          value: environment,
+                          label: environment,
+                        })),
+                      ]}
+                    />
+                  </field.Layout.Row>
                 )}
               </form.AppField>
             </form.FieldGroup>
