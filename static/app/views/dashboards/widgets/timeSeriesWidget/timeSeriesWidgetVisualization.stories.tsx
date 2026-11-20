@@ -862,10 +862,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
         <p>
           Data points with <code>confidence: 'low'</code> are estimated from too few
           samples to be reliable. <code>TimeSeriesWidgetVisualization</code> draws them
-          differently from high-confidence data, and the tooltip labels them. This only
-          happens when the organization has the{' '}
-          <code>data-browsing-time-series-confidence</code> feature, which these examples
-          turn on.
+          differently from high-confidence data, and the tooltip labels them.
         </p>
 
         <WithTimeSeriesConfidenceFeature>
