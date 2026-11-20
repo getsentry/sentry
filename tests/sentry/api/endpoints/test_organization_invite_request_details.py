@@ -11,6 +11,8 @@ from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import Feature
+from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.roles import granular_roles_granting
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -112,6 +114,31 @@ class OrganizationInviteRequestDeleteTest(InviteRequestBase):
 
 class OrganizationInviteRequestUpdateTest(InviteRequestBase, HybridCloudTestMixin):
     method = "put"
+
+    def test_owner_can_update_team_roles(self) -> None:
+        self.login_as(user=self.user)
+        response = self.get_success_response(
+            self.org.slug,
+            self.invite_request.id,
+            teamRoles=[{"teamSlug": self.team.slug, "role": "admin"}],
+        )
+
+        assert response.data["teams"] == [self.team.slug]
+        assert list(
+            OrganizationMemberTeam.objects.filter(
+                organizationmember=self.invite_request
+            ).values_list("team_id", "role")
+        ) == [(self.team.id, None)]
+
+    def test_owner_can_clear_team_roles(self) -> None:
+        self.create_team_membership(team=self.team, member=self.invite_request)
+        self.login_as(user=self.user)
+
+        self.get_success_response(self.org.slug, self.invite_request.id, teamRoles=[])
+
+        assert not OrganizationMemberTeam.objects.filter(
+            organizationmember=self.invite_request
+        ).exists()
 
     def test_owner_can_update_role(self) -> None:
         self.login_as(user=self.user)
@@ -366,3 +393,29 @@ class OrganizationInviteRequestApproveTest(InviteRequestBase, HybridCloudTestMix
         resp = self.get_response(self.org.slug, invite_request.id, approve=1)
 
         assert resp.status_code == 200
+
+
+class OrganizationInviteRequestMembershipScopeTest(InviteRequestBase):
+    def _use_token(self, scope_list: list[str]) -> None:
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.client.logout()
+            token = self.create_user_auth_token(user=self.user, scope_list=scope_list)
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.token}")
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_can_get_invite_request(self) -> None:
+        self._use_token(["membership:read"])
+        response = self.get_success_response(self.org.slug, self.invite_request.id)
+        assert response.data["id"] == str(self.invite_request.id)
+
+    @with_feature("organizations:granular-permission-scopes")
+    @granular_roles_granting("membership:read")
+    def test_membership_read_cannot_approve_or_delete_invite_request(self) -> None:
+        self._use_token(["membership:read"])
+        self.get_error_response(
+            self.org.slug, self.invite_request.id, method="put", approve=1, status_code=403
+        )
+        self.get_error_response(
+            self.org.slug, self.invite_request.id, method="delete", status_code=403
+        )

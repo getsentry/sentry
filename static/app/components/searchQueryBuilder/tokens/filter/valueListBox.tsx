@@ -176,18 +176,10 @@ export function ValueListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
       const refsToSync = [listBoxRef, popoverRef];
 
-      constrainAndAlignListBox({
-        popoverRef,
-        refsToSync,
-        referenceRef: wrapperRef,
-      });
+      constrainAndAlignListBox({popoverRef, refsToSync, referenceRef: wrapperRef});
 
       const observer = new ResizeObserver(() => {
-        constrainAndAlignListBox({
-          popoverRef,
-          refsToSync,
-          referenceRef: wrapperRef,
-        });
+        constrainAndAlignListBox({popoverRef, refsToSync, referenceRef: wrapperRef});
       });
 
       observer.observe(element);
@@ -260,9 +252,9 @@ const SectionedOverlay = styled(Overlay)`
   width: min-content;
 `;
 
-const StyledListBox = styled(ListBox, {
-  shouldForwardProp: prop => prop !== 'fullWidth',
-})<{fullWidth: boolean}>`
+const StyledListBox = styled(ListBox, {shouldForwardProp: prop => prop !== 'fullWidth'})<{
+  fullWidth: boolean;
+}>`
   width: ${p => (p.fullWidth ? '100%' : 'min-content')};
   min-width: ${p => (p.fullWidth ? '0' : '200px')};
 `;

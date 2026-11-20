@@ -121,7 +121,6 @@ def prepare_synthetic_breach(
     configs = SeerWorkflowConfig.objects.filter(
         organization_id=organization.id,
         strategy=SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION,
-        enabled=True,
         backing_workflow__status=ObjectStatus.ACTIVE,
         backing_workflow__enabled=True,
         backing_workflow__detectorworkflow__detector=detector,

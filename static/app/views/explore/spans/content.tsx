@@ -240,7 +240,7 @@ function SpansTabHeader() {
             type: 'page-title',
             label: title || t('Traces'),
             labelTooltip: (
-              <DocumentationHint docsUrl="https://docs.sentry.io/product/explore/trace-explorer/">
+              <DocumentationHint docsUrl="https://docs.sentry.io/product/trace-explorer/">
                 {t(
                   'Find problematic spans/traces or compute real-time metrics via aggregation.'
                 )}

@@ -48,10 +48,7 @@ function GroupEventDetails() {
     isError: isEventError,
     error: eventError,
     refetch: refetchEvent,
-  } = useGroupEvent({
-    groupId,
-    eventId,
-  });
+  } = useGroupEvent({groupId, eventId});
 
   const {
     data: group,

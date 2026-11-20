@@ -109,6 +109,7 @@ class IntegrationProviderSlug(StrEnum):
     GCP = "gcp"
     GRAFANA = "grafana"
     LINEAR = "linear"
+    SUPABASE = "supabase"
 
 
 MONITORING_PROVIDERS: frozenset[str] = frozenset(

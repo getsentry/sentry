@@ -3,7 +3,8 @@ from collections.abc import Iterable
 from django.db.models import Q
 
 from sentry import features
-from sentry.inbox.types import InboxActor, InboxEventData, InboxEventType
+from sentry.inbox.event_data import InboxEventData
+from sentry.inbox.types import InboxActor, InboxEventType
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 

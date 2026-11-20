@@ -11,10 +11,7 @@ import {getIntegrationNoun} from 'sentry/utils/integrationUtil';
 
 import {IntegrationIcon} from './integrationIcon';
 
-type Props = {
-  integration: Integration;
-  requiresUpgrade?: boolean | undefined;
-};
+type Props = {integration: Integration; requiresUpgrade?: boolean | undefined};
 
 export function IntegrationItem({integration, requiresUpgrade}: Props) {
   return (

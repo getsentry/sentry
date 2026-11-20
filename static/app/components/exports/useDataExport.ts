@@ -152,9 +152,7 @@ export function useDataExport() {
         url: getApiUrl('/organizations/$organizationIdOrSlug/data-export/', {
           path: {organizationIdOrSlug: organization.slug},
         }),
-        options: {
-          includeAllArgs: true,
-        },
+        options: {includeAllArgs: true},
         method: 'POST',
         data: {
           format,

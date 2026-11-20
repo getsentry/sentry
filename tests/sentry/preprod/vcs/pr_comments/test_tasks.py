@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from typing import cast
 from unittest.mock import Mock, patch
 
 import pytest
@@ -57,14 +56,14 @@ class CreatePreprodPrCommentTaskTest(TestCase):
             artifact_type=artifact_type,
             app_id=app_id,
             build_configuration=self.build_config,
-            installable_app_file_id=cast("int", installable_app_file_id),
+            installable_app_file_id=installable_app_file_id,
             extras=extras,
         )
         PreprodArtifactMobileAppInfo.objects.create(
             preprod_artifact=artifact,
             app_name="TestApp",
             build_version="1.0.0",
-            build_number=cast("int", build_number),
+            build_number=build_number,
         )
 
         if with_commit_comparison:

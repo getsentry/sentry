@@ -48,6 +48,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
 
   const isOutOfCredits = isOutOfCreditsSection(section);
   const outOfCreditsRetry = useOutOfCreditsRetry('solution', {
+    billingFeature: autofix.runState?.billing_feature,
     enabled: isOutOfCredits,
   });
 
@@ -70,10 +71,7 @@ export function SolutionCard({autofix, section}: SolutionCardProps) {
       prompt={rethinkPrompt}
     />
   ) : null;
-  const rethinkInChat = useRethinkInChat({
-    prompt: rethinkPrompt,
-    step: 'solution',
-  });
+  const rethinkInChat = useRethinkInChat({prompt: rethinkPrompt, step: 'solution'});
 
   return (
     <ArtifactCard

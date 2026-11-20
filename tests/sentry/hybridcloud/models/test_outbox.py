@@ -21,13 +21,19 @@ from sentry.hybridcloud.models.outbox import (
     outbox_context,
 )
 from sentry.hybridcloud.outbox.category import OutboxCategory, OutboxScope
-from sentry.hybridcloud.tasks.deliver_from_outbox import enqueue_outbox_jobs, schedule_outbox_model
+from sentry.hybridcloud.tasks.deliver_from_outbox import (
+    _get_category_depths,
+    _record_category_depths,
+    enqueue_outbox_jobs,
+    schedule_outbox_model,
+)
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectkey import ProjectKey
+from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -38,6 +44,7 @@ from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.cell import Cell, get_local_cell
 from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 
 
 def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
@@ -114,6 +121,40 @@ class ControlOutboxTest(TestCase):
             (OutboxScope.USER_SCOPE.value, user1.id, expected_region_name),
             (OutboxScope.USER_SCOPE.value, user2.id, expected_region_name),
         }
+
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
+        user = self.create_user()
+        with assume_test_silo_mode(SiloMode.CELL):
+            self.create_organization(owner=user)
+
+        with patch.object(ControlOutbox, "drain_shard") as mock_drain_shard:
+            with patch.object(UserEmail, "default_flush", False):
+                with self.captureOnCommitCallbacks(execute=True):
+                    self.create_useremail(user)
+                assert ControlOutbox.objects.filter(shard_identifier=user.id).exists()
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                        self.create_useremail(user)
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(UserEmail)), flush=True
+                    ):
+                        with outbox_context(transaction.atomic(router.db_for_write(UserEmail))):
+                            self.create_useremail(user)
+                mock_drain_shard.assert_called_once_with()
+
+            mock_drain_shard.reset_mock()
+            with patch.object(UserEmail, "default_flush", True):
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(UserEmail)), flush=False
+                    ):
+                        self.create_useremail(user)
+                mock_drain_shard.assert_not_called()
 
     def test_prepare_next_from_shard_no_conflict_with_processing(self) -> None:
         with outbox_runner():
@@ -622,6 +663,48 @@ class CellOutboxTest(TestCase):
         assert [t["caller"] for t in _drain_timer_tags(mock_timer)] == ["unknown"]
         mock_drain_shard.assert_called_once_with()
 
+    def test_caller_flush_flag_overrides_default_flush(self) -> None:
+        org = self.create_organization()
+
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with patch.object(Organization, "default_flush", False):
+                with self.captureOnCommitCallbacks(execute=True):
+                    org.update(name="no caller context")
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                        org.update(name="caller context without a flag")
+                mock_drain_shard.assert_not_called()
+
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(Organization)), flush=True
+                    ):
+                        with outbox_context(transaction.atomic(router.db_for_write(Organization))):
+                            org.update(name="flushing caller")
+                mock_drain_shard.assert_called_once_with()
+
+            mock_drain_shard.reset_mock()
+            with patch.object(Organization, "default_flush", True):
+                with self.captureOnCommitCallbacks(execute=True):
+                    with outbox_context(
+                        transaction.atomic(router.db_for_write(Organization)), flush=False
+                    ):
+                        org.update(name="non-flushing caller")
+                mock_drain_shard.assert_not_called()
+
+    def test_delete_inside_flushing_context_stays_async(self) -> None:
+        team = self.create_team(organization=self.create_organization())
+        team_id = team.id
+
+        with patch.object(CellOutbox, "drain_shard") as mock_drain_shard:
+            with self.captureOnCommitCallbacks(execute=True):
+                with outbox_context(transaction.atomic(router.db_for_write(Team)), flush=True):
+                    team.delete()
+            assert CellOutbox.objects.filter(object_identifier=team_id).exists()
+            mock_drain_shard.assert_not_called()
+
     def test_creating_org_outboxes(self) -> None:
         with outbox_context(flush=False):
             Organization(id=10).outbox_for_update().save()
@@ -1061,6 +1144,11 @@ class OutboxAggregationTest(TestCase):
             OutboxCategory.AUDIT_LOG_EVENT.value: 12,
             OutboxCategory.ORGANIZATION_UPDATE.value: 1,
         }
+        assert ControlOutbox.get_cell_category_depths() == {
+            ("eu", OutboxCategory.AUDIT_LOG_EVENT.value): 4,
+            ("us", OutboxCategory.AUDIT_LOG_EVENT.value): 8,
+            ("us", OutboxCategory.ORGANIZATION_UPDATE.value): 1,
+        }
 
     @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
     def test_category_shard_depth_gauge(self, mock_metrics: Mock) -> None:
@@ -1079,26 +1167,49 @@ class OutboxAggregationTest(TestCase):
             drain_task=Mock(),
         )
 
-        gauge_calls_by_category = {
-            gauge_call.kwargs["tags"]["category"]: gauge_call
+        gauge_calls = [
+            gauge_call.kwargs
             for gauge_call in mock_metrics.gauge.mock_calls
             if gauge_call.args and gauge_call.args[0] == "deliver_from_outbox.category_shard_depth"
-        }
+        ]
 
-        assert gauge_calls_by_category[OutboxCategory.AUDIT_LOG_EVENT.name].kwargs == dict(
-            value=12,
-            tags={
-                "silo": "control",
-                "type": "ControlOutbox",
-                "category": OutboxCategory.AUDIT_LOG_EVENT.name,
-            },
-            sample_rate=1.0,
+        def expected(cell: str, category: OutboxCategory, value: int) -> dict[str, Any]:
+            return dict(
+                value=value,
+                tags={
+                    "silo": "control",
+                    "type": "ControlOutbox",
+                    "category": category.name,
+                    "destination_cell": cell,
+                },
+                sample_rate=1.0,
+            )
+
+        assert sorted(gauge_calls, key=repr) == sorted(
+            [
+                expected("eu", OutboxCategory.AUDIT_LOG_EVENT, 4),
+                expected("us", OutboxCategory.AUDIT_LOG_EVENT, 8),
+                expected("us", OutboxCategory.ORGANIZATION_UPDATE, 1),
+            ],
+            key=repr,
         )
-        assert gauge_calls_by_category[OutboxCategory.ORGANIZATION_UPDATE.name].kwargs == dict(
-            value=1,
+
+    @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
+    def test_category_shard_depth_gauge_without_cell(self, mock_metrics: Mock) -> None:
+        # Cell outboxes all go to control, so they have no destination_cell tag.
+        with patch.object(
+            CellOutbox,
+            "get_category_depths",
+            return_value={OutboxCategory.ORGANIZATION_UPDATE.value: 3},
+        ):
+            _record_category_depths(SiloMode.CELL, CellOutbox, _get_category_depths(CellOutbox))
+
+        mock_metrics.gauge.assert_called_once_with(
+            "deliver_from_outbox.category_shard_depth",
+            value=3,
             tags={
-                "silo": "control",
-                "type": "ControlOutbox",
+                "silo": "region",
+                "type": "CellOutbox",
                 "category": OutboxCategory.ORGANIZATION_UPDATE.name,
             },
             sample_rate=1.0,
@@ -1155,7 +1266,7 @@ class OutboxAggregationTest(TestCase):
     @override_options({"hybridcloud.outbox.category_depth_metric.enabled": False})
     @patch("sentry.hybridcloud.tasks.deliver_from_outbox.metrics")
     def test_category_shard_depth_gauge_disabled(self, mock_metrics: Mock) -> None:
-        with patch.object(ControlOutbox, "get_category_depths") as mock_depths:
+        with patch.object(ControlOutbox, "get_cell_category_depths") as mock_depths:
             schedule_outbox_model(
                 silo_mode=SiloMode.CONTROL,
                 outbox_model=ControlOutbox,

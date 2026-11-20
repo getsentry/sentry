@@ -7,6 +7,7 @@ from rest_framework import serializers
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import traces
 from snuba_sdk import Column, Condition, Limit, Op, Query, Storage
 from snuba_sdk import Request as SnqlRequest
 
@@ -39,6 +40,7 @@ from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import proxy_profiling_service
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
+from sentry.utils.sdk import sdk_logger
 from sentry.utils.snuba import raw_snql_query
 
 
@@ -249,6 +251,28 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         profiler_id = serializer.validated_data["profiler_id"].hex
 
         chunk_ids = get_chunk_ids(snuba_params, profiler_id, project_ids[0])
+
+        span = traces.get_current_span()
+        if span:
+            span.set_attribute("profiling.chunks.count", len(chunk_ids))
+
+        # Vroom fails with "no chunks found to merge" when given no chunk IDs, which the UI
+        # shows as "Failed to fetch profiles". Log it so we can track how often a span
+        # references a profiler ID that has no chunks in the requested window.
+        if not chunk_ids:
+            sdk_logger.warning(
+                "profiling.chunks.no_chunks_found",
+                attributes={
+                    "organization_id": organization.id,
+                    "project_id": project_ids[0],
+                    "profiler_id": profiler_id,
+                    "start": snuba_params.start_date.isoformat(),
+                    "end": snuba_params.end_date.isoformat(),
+                    "window_seconds": (
+                        snuba_params.end_date - snuba_params.start_date
+                    ).total_seconds(),
+                },
+            )
 
         return proxy_profiling_service(
             method="POST",

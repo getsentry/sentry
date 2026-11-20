@@ -1,6 +1,4 @@
-const identifyInstance: any = {
-  set: jest.fn(() => identifyInstance),
-};
+const identifyInstance: any = {set: jest.fn(() => identifyInstance)};
 
 export const Identify = jest.fn(() => identifyInstance);
 export const setUserId = jest.fn();

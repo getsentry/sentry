@@ -5,6 +5,7 @@ import {Container} from '@sentry/scraps/layout';
 import {PictureInPictureProvider} from '@sentry/scraps/pictureInPicture';
 
 import * as Storybook from 'sentry/stories';
+import {safeParseQueryKey} from 'sentry/utils/api/apiQueryKey';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {SeerExplorerContent} from 'sentry/views/seerExplorer/components/seerExplorerContent';
@@ -91,7 +92,7 @@ class FixtureQueryClient extends QueryClient {
 
   override defaultQueryOptions: QueryClient['defaultQueryOptions'] = options => {
     const defaulted = super.defaultQueryOptions(options);
-    const url = String(defaulted.queryKey[0]);
+    const url = safeParseQueryKey(defaulted.queryKey)?.url ?? '';
     // `then` turns a fixture that throws into a failed query.
     const queryFn = () =>
       Promise.resolve().then(() => ({json: this.respond(url), headers: {}}));
@@ -106,8 +107,8 @@ interface ChatWindowProps {
   /** A new chat when null. */
   session: Session | null;
   /**
-   * Turns on `seer-credit-checks` and `token-billed-seer-enabled`, and answers
-   * the chat's credit check with this.
+   * Turns on `token-billed-seer-enabled`, and answers the chat's credit check
+   * with this.
    */
   hasEnoughCredits?: boolean;
   initialQuery?: string;
@@ -141,9 +142,7 @@ function ChatWindow({session, hasEnoughCredits, initialQuery, wallet}: ChatWindo
           // fixed ones instead.
           ...organization.features.filter(feature => feature !== 'seer-chat-suggestions'),
           'seer-explorer',
-          ...(hasEnoughCredits === undefined
-            ? []
-            : ['seer-credit-checks', 'token-billed-seer-enabled']),
+          ...(hasEnoughCredits === undefined ? [] : ['token-billed-seer-enabled']),
         ],
       }}
     >

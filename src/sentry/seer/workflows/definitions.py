@@ -5,24 +5,12 @@ from typing import Any
 
 from sentry.seer.models.workflow import SeerWorkflowStrategy
 from sentry.seer.workflows.base import AutomationDefinition
-from sentry.seer.workflows.breached_metrics import (
-    InvestigateBreachedMetricAction,
-    MetricAlertTrigger,
-    MetricBreachInputs,
-)
-from sentry.seer.workflows.scheduled import (
-    PromptedInvestigationAction,
-    ScheduledRunInputs,
-    ScheduleTrigger,
-)
+from sentry.seer.workflows.breached_metrics import MetricAlertDefinition
+from sentry.seer.workflows.scheduled import ScheduleDefinition
 
 DEFINITIONS: Mapping[SeerWorkflowStrategy, AutomationDefinition[Any]] = {
-    SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: AutomationDefinition[ScheduledRunInputs](
-        trigger=ScheduleTrigger(), action=PromptedInvestigationAction()
-    ),
-    SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: AutomationDefinition[MetricBreachInputs](
-        trigger=MetricAlertTrigger(), action=InvestigateBreachedMetricAction()
-    ),
+    SeerWorkflowStrategy.AGENTIC_TRIAGE_V2: ScheduleDefinition(),
+    SeerWorkflowStrategy.BREACHED_METRIC_INVESTIGATION: MetricAlertDefinition(),
 }
 
 
@@ -33,10 +21,9 @@ def find_definition(strategy: str) -> AutomationDefinition[Any] | None:
 def get_definition(strategy: str) -> AutomationDefinition[Any]:
     definition = find_definition(strategy)
     if definition is None:
-        raise ValueError(f"{strategy} automations have no trigger or action")
+        raise ValueError(f"{strategy} automations have no definition")
     return definition
 
 
 def is_scheduled(strategy: str) -> bool:
-    definition = find_definition(strategy)
-    return definition is not None and isinstance(definition.trigger, ScheduleTrigger)
+    return isinstance(find_definition(strategy), ScheduleDefinition)

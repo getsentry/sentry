@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from datetime import datetime
-from typing import Any, cast
+from typing import Any
 
 from django.utils import timezone
 
@@ -185,7 +185,7 @@ def _compare_with_commit_neighbours(
 
 def _record_compare_duration(artifact: PreprodArtifact, triggered_at: str) -> None:
     try:
-        artifact_type = PreprodArtifact.ArtifactType(cast(int, artifact.artifact_type))
+        artifact_type = PreprodArtifact.ArtifactType(artifact.artifact_type)
         artifact_type_name = artifact_type.name.lower()
     except (ValueError, AttributeError, TypeError):
         artifact_type_name = "unknown"

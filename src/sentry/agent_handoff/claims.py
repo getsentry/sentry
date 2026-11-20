@@ -13,7 +13,6 @@ from sentry.agent_handoff.codes import (
 )
 from sentry.agent_handoff.flows import get_flow
 from sentry.agent_handoff.flows.base import InvalidHandoffContext
-from sentry.agent_handoff.runbook import render_agent_runbook
 from sentry.analytics.events.agent_handoff import AgentHandoffClaimedEvent
 from sentry.analytics.events.oauth_setup_code import OAuthSetupCodeIssuedEvent
 from sentry.api.helpers.oauth_consent import (
@@ -56,24 +55,6 @@ class ClaimedHandoff:
     setup_code: str = field(repr=False)
     flow_instructions: str = field(repr=False)
 
-    def render_runbook(self) -> str:
-        return render_agent_runbook(
-            organization_slug=self.organization_slug,
-            organization_name=self.organization_name,
-            user_email=self.user_email,
-            sentry_url=self.sentry_url,
-            client_id=self.client_id,
-            setup_code=self.setup_code,
-            flow_instructions=self.flow_instructions,
-        )
-
-
-@sensitive_variables()
-def claim_handoff(code: str, *, ip_address: str | None) -> str | None:
-    """Consume a handoff and render credentials after revalidating its authorization."""
-    claim = claim_handoff_context(code, ip_address=ip_address)
-    return claim.render_runbook() if claim is not None else None
-
 
 @sensitive_variables()
 def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandoff | None:
@@ -98,7 +79,7 @@ def claim_handoff_context(code: str, *, ip_address: str | None) -> ClaimedHandof
 
 @sensitive_variables()
 def _claim(handoff: AgentHandoff) -> ClaimedHandoff | None:
-    user = User.objects.filter(id=handoff.user_id, is_active=True, is_suspended=False).first()
+    user = User.objects.get_or_none(id=handoff.user_id, is_active=True, is_suspended=False)
     application = get_handoff_application(handoff.scope_list)
     if user is None or application is None or application.id != handoff.application_id:
         return None

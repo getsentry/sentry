@@ -23,11 +23,7 @@ describe('Business Landing Footer', () => {
   it('renders start trial if can trial', async () => {
     render(
       <Footer
-        subscription={{
-          ...subscription,
-          plan: 'mm2_f',
-          canTrial: true,
-        }}
+        subscription={{...subscription, plan: 'mm2_f', canTrial: true}}
         organization={organization}
         onCloseModal={jest.fn()}
       />
@@ -63,11 +59,7 @@ describe('Business Landing Footer', () => {
   it('renders upgrade button if cannot trial and not trialing', async () => {
     render(
       <Footer
-        subscription={{
-          ...subscription,
-          plan: 'mm2_f',
-          canTrial: false,
-        }}
+        subscription={{...subscription, plan: 'mm2_f', canTrial: false}}
         organization={organization}
         onCloseModal={jest.fn()}
       />
@@ -82,11 +74,7 @@ describe('Business Landing Footer', () => {
   it('directs to checkout if cannot trial and not trialing', async () => {
     render(
       <Footer
-        subscription={{
-          ...subscription,
-          plan: 'mm2_a_500k',
-          canTrial: false,
-        }}
+        subscription={{...subscription, plan: 'mm2_a_500k', canTrial: false}}
         organization={organization}
         onCloseModal={jest.fn()}
       />
@@ -109,15 +97,8 @@ describe('Business Landing Footer', () => {
 
     render(
       <Footer
-        subscription={{
-          ...subscription,
-          plan: 'mm2_f',
-          canTrial: false,
-        }}
-        organization={OrganizationFixture({
-          ...organization,
-          access: [],
-        })}
+        subscription={{...subscription, plan: 'mm2_f', canTrial: false}}
+        organization={OrganizationFixture({...organization, access: []})}
         onCloseModal={onCloseModal}
       />
     );
@@ -129,10 +110,7 @@ describe('Business Landing Footer', () => {
     });
     expect(upgradeRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/plan-upgrade-request/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {},
-      })
+      expect.objectContaining({method: 'POST', data: {}})
     );
   });
 
@@ -147,15 +125,8 @@ describe('Business Landing Footer', () => {
 
     render(
       <Footer
-        subscription={{
-          ...subscription,
-          plan: 'mm2_f',
-          canTrial: true,
-        }}
-        organization={OrganizationFixture({
-          ...organization,
-          access: [],
-        })}
+        subscription={{...subscription, plan: 'mm2_f', canTrial: true}}
+        organization={OrganizationFixture({...organization, access: []})}
         onCloseModal={onCloseModal}
       />
     );
@@ -168,10 +139,7 @@ describe('Business Landing Footer', () => {
     });
     expect(upgradeRequest).toHaveBeenCalledWith(
       `/organizations/${organization.slug}/trial-request/`,
-      expect.objectContaining({
-        method: 'POST',
-        data: {},
-      })
+      expect.objectContaining({method: 'POST', data: {}})
     );
   });
 });

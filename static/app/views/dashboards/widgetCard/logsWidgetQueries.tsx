@@ -52,8 +52,5 @@ export function LogsWidgetQueries({
     widgetInterval,
   });
 
-  return getDynamicText({
-    value: children(props),
-    fixed: <div />,
-  });
+  return getDynamicText({value: children(props), fixed: <div />});
 }

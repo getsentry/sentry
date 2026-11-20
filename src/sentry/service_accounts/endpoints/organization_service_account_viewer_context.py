@@ -105,9 +105,9 @@ class OrganizationServiceAccountViewerContextEndpoint(OrganizationEndpoint):
         if not features.has(FEATURE_FLAG, organization):
             raise ResourceDoesNotExist
 
-        service_account = ServiceAccountReplica.objects.filter(
+        service_account = ServiceAccountReplica.objects.get_or_none(
             service_account_id=service_account_id, organization_id=organization.id, is_active=True
-        ).first()
+        )
         if service_account is None:
             raise ResourceDoesNotExist
 

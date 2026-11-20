@@ -19,35 +19,23 @@ describe('EventPackageData', () => {
       wheel: '0.31.1',
       wsgiref: '0.1.2',
     },
-    _meta: {
-      packages: {
-        certifi: {'': {rem: [['organization:1', 'x']]}},
-      },
-    },
+    _meta: {packages: {certifi: {'': {rem: [['organization:1', 'x']]}}}},
   });
   const organization = OrganizationFixture({
     relayPiiConfig: JSON.stringify(DataScrubbingRelayPiiConfigFixture()),
   });
 
   it('changes section title depending on the platform', () => {
-    render(<EventPackageData event={event} />, {
-      organization,
-    });
+    render(<EventPackageData event={event} />, {organization});
     expect(screen.getByText('Packages')).toBeInTheDocument();
-    render(<EventPackageData event={{...event, platform: 'csharp'}} />, {
-      organization,
-    });
+    render(<EventPackageData event={{...event, platform: 'csharp'}} />, {organization});
     expect(screen.getByText('Assemblies')).toBeInTheDocument();
-    render(<EventPackageData event={{...event, platform: 'java'}} />, {
-      organization,
-    });
+    render(<EventPackageData event={{...event, platform: 'java'}} />, {organization});
     expect(screen.getByText('Dependencies')).toBeInTheDocument();
   });
 
   it('displays all the data in column format', async () => {
-    render(<EventPackageData event={event} />, {
-      organization,
-    });
+    render(<EventPackageData event={event} />, {organization});
     // Should be collapsed by default
     expect(screen.queryByText(/python/)).not.toBeInTheDocument();
     // Displays when open
@@ -67,9 +55,7 @@ describe('EventPackageData', () => {
   });
 
   it('display redacted data', async () => {
-    render(<EventPackageData event={event} />, {
-      organization,
-    });
+    render(<EventPackageData event={event} />, {organization});
     expect(screen.getByText(/redacted/)).toBeInTheDocument();
     await userEvent.hover(screen.getByText(/redacted/));
     expect(

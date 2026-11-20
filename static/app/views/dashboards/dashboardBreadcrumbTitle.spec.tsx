@@ -48,9 +48,7 @@ function renderTitle({
   dashboard?: Partial<Parameters<typeof DashboardFixture>[1]>;
   organization?: Partial<Parameters<typeof OrganizationFixture>[0]>;
 } = {}) {
-  const organization = OrganizationFixture({
-    ...organizationOverrides,
-  });
+  const organization = OrganizationFixture({...organizationOverrides});
   const dashboard = DashboardFixture([], {
     id: '1',
     title: 'My Dashboard',
@@ -141,10 +139,7 @@ describe('DashboardBreadcrumbTitle rename', () => {
     // widgets with a stale copy of them.
     expect(updateMock).toHaveBeenCalledWith(
       '/organizations/org-slug/dashboards/1/',
-      expect.objectContaining({
-        method: 'PUT',
-        data: {title: 'Renamed Dashboard'},
-      })
+      expect.objectContaining({method: 'PUT', data: {title: 'Renamed Dashboard'}})
     );
     await waitFor(() => expect(onRename).toHaveBeenCalledWith('Renamed Dashboard'));
   });

@@ -23,10 +23,7 @@ export function SpanGroupDetailsLink({moduleName, group, projectId, description}
 
   const moduleURL = useModuleURL(moduleName);
 
-  const queryString = {
-    ...location.query,
-    project: projectId,
-  };
+  const queryString = {...location.query, project: projectId};
 
   return (
     <OverflowEllipsisTextContainer>

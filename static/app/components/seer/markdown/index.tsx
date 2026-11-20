@@ -22,7 +22,7 @@ import {STRUCTURED_SEER_EMBED_SCHEMAS} from './embeds/schemas';
 import {SeerEmbedRegistry} from './embeds';
 
 const ISSUE_SHORT_ID_PATTERN =
-  /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)+)\b/;
+  /\b((?:[A-Z][A-Z0-9_]+|[0-9_]+[A-Z][A-Z0-9_]*)(?:-[A-Z0-9]+)*-[0-9A-HJKMNP-TV-Z]+)\b/;
 
 function LinkifyIssueShortIds({children}: {children: string}): ReactNode {
   const parts = children.split(ISSUE_SHORT_ID_PATTERN);

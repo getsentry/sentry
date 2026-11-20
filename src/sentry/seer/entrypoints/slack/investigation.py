@@ -56,6 +56,14 @@ from sentry.utils.locking import UnableToAcquireLock
 if TYPE_CHECKING:
     from sentry.integrations.slack.integration import SlackIntegration
     from sentry.integrations.slack.requests.action import SlackActionRequest
+    from sentry.utils.locking.lock import Lock
+
+
+ACTIVE_INVESTIGATION_STATUSES = (
+    InvestigationOrchestrationStatus.PENDING,
+    InvestigationOrchestrationStatus.PROCESSING,
+    InvestigationOrchestrationStatus.AWAITING_INPUT,
+)
 
 
 class SlackInvestigationCachePayload(TypedDict):
@@ -70,6 +78,7 @@ class SlackInvestigationCachePayload(TypedDict):
 class SlackInvestigationThreadState(TypedDict, total=False):
     """What the investigation sent in a Slack thread, kept in its NotificationThread's provider_data."""
 
+    started_sent: bool
     status_message_ts: str | None
     last_sent_state: str | None
     final_sent: bool
@@ -138,7 +147,27 @@ class SlackInvestigationEntrypoint(
             message_ts=self.message_ts,
             data=data,
         )
-        self._send_thread_update(data)
+        try:
+            with _get_investigation_lock(investigation.id).acquire():
+                run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                    investigation_id=investigation.id,
+                    investigation__organization_id=self.organization.id,
+                )
+                self._send_investigation_started(
+                    run=run,
+                    install=self.install,
+                    thread=SlackThreadDetails(channel_id=self.channel_id, thread_ts=self.thread_ts),
+                    slack_user_id=self.slack_user_id,
+                )
+        except UnableToAcquireLock as e:
+            # The operator queues an update after this callback, so let that task send it instead.
+            with SlackEntrypointEventLifecycleMetric(
+                interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STARTED,
+                integration_id=self.install.model.id,
+                organization_id=self.organization.id,
+            ).capture() as lifecycle:
+                lifecycle.add_extras({"investigation_id": investigation.id})
+                lifecycle.record_halt(halt_reason=e)
 
     def create_investigation_cache_payload(self) -> SlackInvestigationCachePayload:
         return SlackInvestigationCachePayload(
@@ -155,11 +184,7 @@ class SlackInvestigationEntrypoint(
         cache_payload: SlackInvestigationCachePayload | None, run: InvestigationOrchestrationRun
     ) -> None:
         investigation_id = run.investigation_id
-        lock = locks.get(
-            f"seer:investigation:slack:{investigation_id}",
-            duration=10,
-            name="investigation_entrypoint_slack",
-        )
+        lock = _get_investigation_lock(investigation_id)
         with SlackEntrypointEventLifecycleMetric(
             interaction_type=SlackEntrypointInteractionType.UPDATE_INVESTIGATION_STATUS,
             integration_id=cache_payload["integration_id"] if cache_payload else None,
@@ -168,6 +193,9 @@ class SlackInvestigationEntrypoint(
             lifecycle.add_extras({"investigation_id": investigation_id})
             try:
                 with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+                    SlackInvestigationEntrypoint._send_started_to_alert_threads(
+                        cache_payload=cache_payload, run=run
+                    )
                     if cache_payload is not None:
                         SlackInvestigationEntrypoint._update_investigation_status(
                             cache_payload=cache_payload, run_id=run.id, lifecycle=lifecycle
@@ -177,6 +205,108 @@ class SlackInvestigationEntrypoint(
                 lifecycle.record_halt(halt_reason=e)
                 # The holder may have read an older run, so retry once it lets go.
                 raise
+
+    @staticmethod
+    def _send_investigation_started(
+        *,
+        run: InvestigationOrchestrationRun,
+        install: SlackIntegration,
+        thread: SlackThreadDetails,
+        slack_user_id: str | None = None,
+    ) -> None:
+        """Send once per destination. The caller holds the investigation lock and loads the run."""
+        if run.status not in ACTIVE_INVESTIGATION_STATUSES:
+            return
+        investigation_thread = _get_investigation_thread(
+            investigation_id=run.investigation_id,
+            integration_id=install.model.id,
+            channel_id=thread["channel_id"],
+            thread_ts=thread["thread_ts"],
+        )
+        state: SlackInvestigationThreadState = investigation_thread.provider_data
+        if state.get("started_sent"):
+            return
+        with SlackEntrypointEventLifecycleMetric(
+            interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STARTED,
+            integration_id=install.model.id,
+            organization_id=run.investigation.organization_id,
+        ).capture() as lifecycle:
+            lifecycle.add_extras(
+                {
+                    "investigation_id": run.investigation_id,
+                    "notification_thread_id": investigation_thread.id,
+                }
+            )
+            try:
+                message_ts = send_thread_update(
+                    install=install,
+                    thread=thread,
+                    data=SeerInvestigationStarted(
+                        organization_id=run.investigation.organization_id,
+                        investigation_url=run.investigation.get_absolute_url(),
+                        slack_user_id=slack_user_id,
+                    ),
+                )
+            except IntegrationError as e:
+                lifecycle.record_halt(halt_reason=e)
+                return
+            if not message_ts:
+                lifecycle.record_halt(halt_reason="started_not_sent")
+                return
+            investigation_thread.update(provider_data={**state, "started_sent": True})
+
+    @staticmethod
+    def _send_started_to_alert_threads(
+        *, cache_payload: SlackInvestigationCachePayload | None, run: InvestigationOrchestrationRun
+    ) -> None:
+        try:
+            run = InvestigationOrchestrationRun.objects.select_related("investigation").get(
+                id=run.id, investigation__organization_id=run.investigation.organization_id
+            )
+        except InvestigationOrchestrationRun.DoesNotExist:
+            return
+        if run.status not in ACTIVE_INVESTIGATION_STATUSES:
+            return
+
+        destinations: dict[tuple[int, str, str], str | None] = {}
+        if cache_payload is not None:
+            destinations[
+                (
+                    cache_payload["integration_id"],
+                    cache_payload["channel_id"],
+                    cache_payload["thread_ts"],
+                )
+            ] = cache_payload["slack_user_id"]
+        open_period = _get_metric_open_period(run.investigation)
+        if open_period is not None:
+            for thread in _get_alert_threads(open_period):
+                if thread.integration_id is not None:
+                    destinations.setdefault(
+                        (thread.integration_id, thread.target_id, thread.thread_identifier), None
+                    )
+
+        organization_id = run.investigation.organization_id
+        installs: dict[int, SlackIntegration | None] = {}
+        for (integration_id, channel_id, thread_ts), slack_user_id in destinations.items():
+            if integration_id not in installs:
+                installs[integration_id] = _get_install(
+                    integration_id=integration_id, organization_id=organization_id
+                )
+            install = installs[integration_id]
+            if install is None:
+                with SlackEntrypointEventLifecycleMetric(
+                    interaction_type=SlackEntrypointInteractionType.SEND_INVESTIGATION_STARTED,
+                    integration_id=integration_id,
+                    organization_id=organization_id,
+                ).capture() as lifecycle:
+                    lifecycle.record_halt(halt_reason="integration_not_found")
+                continue
+            SlackInvestigationEntrypoint._send_investigation_started(
+                run=run,
+                install=install,
+                thread=SlackThreadDetails(channel_id=channel_id, thread_ts=thread_ts),
+                slack_user_id=slack_user_id,
+            )
 
     @staticmethod
     def _update_investigation_status(
@@ -353,6 +483,14 @@ class SlackInvestigationEntrypoint(
                     lifecycle=lifecycle,
                 ):
                     investigation_thread.update(provider_data={**state, "final_sent": True})
+
+
+def _get_investigation_lock(investigation_id: int) -> Lock:
+    return locks.get(
+        f"seer:investigation:slack:{investigation_id}",
+        duration=10,
+        name="investigation_entrypoint_slack",
+    )
 
 
 def _get_metric_open_period(investigation: Notebook) -> GroupOpenPeriod | None:

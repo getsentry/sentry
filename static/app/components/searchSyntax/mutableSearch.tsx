@@ -349,11 +349,7 @@ function consolidateUnquotedValues(tokens: Token[]): Token[] {
             newText = `${token.keyText}:"${escapeDoubleQuotes(completeValue)}"`;
           }
 
-          result.push({
-            ...token,
-            value: completeValue,
-            text: newText,
-          });
+          result.push({...token, value: completeValue, text: newText});
           i = j - 1; // Skip the consumed free text tokens
         } else {
           result.push(token);
