@@ -434,7 +434,7 @@ class TestInboxActionFrequency(BaseWorkflowTest):
             ),
         )
         self.alert = self.create_workflow(config={"frequency": 30})
-        self.alert_group, self.alert_action = self.create_workflow_action(self.alert)
+        self.alert_group, _ = self.create_workflow_action(self.alert)
         self.activity = Activity(
             project=self.project,
             group=self.group,
@@ -443,7 +443,6 @@ class TestInboxActionFrequency(BaseWorkflowTest):
         )
         self.activity.save()
         self.event_data = WorkflowEventData(event=self.activity, group=self.group)
-        self.groups = {self.inbox_group, self.alert_group}
 
     def test_group_less_event_excludes_alerts_and_unsupported_actions(self) -> None:
         event_data = WorkflowEventData(
