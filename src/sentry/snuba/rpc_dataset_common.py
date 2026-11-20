@@ -182,6 +182,25 @@ def check_timeseries_has_data(timeseries: SnubaData, y_axes: list[str]) -> bool:
     return False
 
 
+def build_empty_timeseries(
+    params: SnubaParams, aggregates: list[ResolvedColumn], *, zerofill_timeseries: bool
+) -> SnubaData:
+    """Build the buckets for a timeseries query that returned no results."""
+    timeseries = zerofill(
+        [],
+        params.start_date,
+        params.end_date,
+        params.timeseries_granularity_secs,
+        ["time"],
+    )
+    if not zerofill_timeseries:
+        # Serializers default a missing value to 0, so mark each bucket as empty explicitly
+        for row in timeseries:
+            for aggregate in aggregates:
+                row[aggregate.public_alias] = None
+    return timeseries
+
+
 def apply_resolved_literals(timeseries: SnubaData, resolved_fields: list[ResolvedColumn]) -> None:
     """Copy constant equations onto each bucket. They are not sent to Snuba."""
     for resolved_field in resolved_fields:
@@ -1062,18 +1081,9 @@ class RPCBase:
                         existing.update(new)
         if len(result.timeseries) == 0:
             # The rpc only returns buckets when there are results, if there aren't any we have to build them ourselves
-            result.timeseries = zerofill(
-                [],
-                params.start_date,
-                params.end_date,
-                params.timeseries_granularity_secs,
-                ["time"],
+            result.timeseries = build_empty_timeseries(
+                params, aggregates, zerofill_timeseries=config.zerofill_timeseries
             )
-            if not config.zerofill_timeseries:
-                # Serializers default a missing value to 0, so mark each bucket as empty explicitly
-                for row in result.timeseries:
-                    for aggregate in aggregates:
-                        row[aggregate.public_alias] = None
         apply_resolved_literals(result.timeseries, aggregates)
 
         cls.apply_timeseries_transformations(
