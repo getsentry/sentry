@@ -81,7 +81,7 @@ When authoring or reviewing a data migration, inspect the live model's save hook
 
 ### Tables on Separate Databases
 
-The rules under "Physical Databases" in `src/AGENTS.md` apply to every table a migration touches. One more applies only to migrations: `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes.
+Some production tables live on separate Postgres databases. `RunPython` and `SafeRunSQL` need `hints={"tables": [...]}`. The operation runs only on the database those tables resolve to, and they must all resolve to the same one, so list the tables it writes. To find which database a table is on, use the **`django-queries`** skill.
 
 ### Adding Columns
 
