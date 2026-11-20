@@ -866,6 +866,47 @@ def _create_seer_activity(
                 )
 
 
+def _get_pr_url(pull_request: Any) -> str | None:
+    return get_path(pull_request, "pull_request", "pr_url")
+
+
+def _get_announced_pr_urls(group: Group, run_id: object) -> set[str]:
+    return {
+        pr_url
+        for data in Activity.objects.filter(
+            group=group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
+        ).values_list("data", flat=True)
+        if data and data.get("run_id") == run_id
+        for pr in data.get("pull_requests") or []
+        if (pr_url := _get_pr_url(pr))
+    }
+
+
+def _create_pr_ready_activity(
+    group: Group,
+    event_payload: dict[str, Any],
+    activity_attribution: SeerActivityAttribution | None,
+) -> None:
+    """Records the reported pull requests that no earlier PR-ready activity for the run includes,
+    and nothing if every reported pull request was already recorded."""
+    run_id = event_payload.get("run_id")
+    lock = locks.get(
+        f"seer:pr_ready_activity:{group.id}:{run_id}", duration=30, name="seer_pr_ready_activity"
+    )
+    with lock.blocking_acquire(initial_delay=0.1, timeout=10):
+        pull_requests = event_payload.get("pull_requests") or []
+        announced = _get_announced_pr_urls(group, run_id)
+        unannounced = [pr for pr in pull_requests if _get_pr_url(pr) not in announced]
+        if pull_requests and not unannounced:
+            return
+        _create_seer_activity(
+            group,
+            SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+            {**event_payload, "pull_requests": unannounced},
+            activity_attribution,
+        )
+
+
 def record_seer_activity(
     *,
     group: Group,
@@ -897,7 +938,10 @@ def record_seer_activity(
 
     try:
         with action_context_scope(action_source, action_actor):
-            _create_seer_activity(group, event_type, event_payload, normalized_attribution)
+            if event_type == SentryAppEventType.SEER_PR_READY_FOR_REVIEW:
+                _create_pr_ready_activity(group, event_payload, normalized_attribution)
+            else:
+                _create_seer_activity(group, event_type, event_payload, normalized_attribution)
     except Exception:
         logger.exception(
             "seer.activity_creation_failed",

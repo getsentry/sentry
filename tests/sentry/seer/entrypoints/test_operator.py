@@ -1100,6 +1100,44 @@ class SeerOperatorTest(TestCase):
         )
 
     @patch.object(SeerAutofixOperator, "has_access", return_value=True)
+    def test_create_seer_activity_pr_ready_records_each_pull_request_once(
+        self, _mock_has_access: MagicMock
+    ) -> None:
+        def report(run_id: int, pr_numbers: list[int]) -> None:
+            process_autofix_updates(
+                event_type=SentryAppEventType.SEER_PR_READY_FOR_REVIEW,
+                event_payload={
+                    "run_id": run_id,
+                    "group_id": self.group.id,
+                    "pull_requests": [
+                        {"pull_request": {"pr_url": f"https://github.com/owner/repo/pull/{n}"}}
+                        for n in pr_numbers
+                    ],
+                },
+                organization_id=self.organization.id,
+            )
+
+        report(MOCK_RUN_ID, [1])
+        report(MOCK_RUN_ID, [1])
+        report(MOCK_RUN_ID, [1, 2])
+        report(MOCK_RUN_ID + 1, [1])
+
+        activities = Activity.objects.filter(
+            group=self.group, type=ActivityType.SEER_PR_READY_FOR_REVIEW.value
+        ).order_by("id")
+        assert [
+            (
+                activity.data["run_id"],
+                [pr["pull_request"]["pr_url"] for pr in activity.data["pull_requests"]],
+            )
+            for activity in activities
+        ] == [
+            (MOCK_RUN_ID, ["https://github.com/owner/repo/pull/1"]),
+            (MOCK_RUN_ID, ["https://github.com/owner/repo/pull/2"]),
+            (MOCK_RUN_ID + 1, ["https://github.com/owner/repo/pull/1"]),
+        ]
+
+    @patch.object(SeerAutofixOperator, "has_access", return_value=True)
     def test_create_seer_activity_iteration_completed(self, _mock_has_access: MagicMock) -> None:
         event_payload = {
             "run_id": MOCK_RUN_ID,
