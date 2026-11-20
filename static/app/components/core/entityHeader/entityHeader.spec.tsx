@@ -1622,6 +1622,39 @@ describe('EntityHeader', () => {
         await userEvent.tab();
         expect(screen.getByText('browse')).toHaveFocus();
       });
+
+      it('does not move focus again when the items change after expanding', async () => {
+        function Page({names}: {names: string[]}) {
+          return (
+            <Fragment>
+              <EntityHeader
+                title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
+                metadata={{
+                  label: 'Conversation properties',
+                  items: [
+                    {
+                      label: 'Tools',
+                      type: 'list',
+                      maxVisible: 1,
+                      items: toolEntries(names),
+                    },
+                  ],
+                }}
+              />
+              <input aria-label="Elsewhere" />
+            </Fragment>
+          );
+        }
+
+        const {rerender} = render(<Page names={['search', 'fetch', 'browse']} />);
+        await userEvent.click(screen.getByRole('button', {name: '+2 more'}));
+        await userEvent.click(screen.getByRole('textbox', {name: 'Elsewhere'}));
+
+        // A different entry now sits where the first revealed one was.
+        rerender(<Page names={['search', 'browse', 'fetch']} />);
+
+        expect(screen.getByRole('textbox', {name: 'Elsewhere'})).toHaveFocus();
+      });
     });
 
     it('resolves a responsive maxVisible against the header width', () => {

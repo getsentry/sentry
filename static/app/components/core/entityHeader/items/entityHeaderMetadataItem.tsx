@@ -1,4 +1,4 @@
-import {Fragment, useState} from 'react';
+import {Fragment, useCallback, useRef, useState} from 'react';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
 import type {SVGIconProps} from '@sentry/icons/svgIcon';
 import type {PlatformIcon} from 'platformicons';
@@ -350,6 +350,16 @@ function MetadataList({
   // Kept rather than re-read from `cut`, so a later resize neither collapses
   // the list again nor moves focus.
   const [revealedFrom, setRevealedFrom] = useState<number | null>(null);
+  // Set by the click that reveals the rest and cleared by the first focus, so
+  // a later change to `items` that moves another entry to `revealedFrom`
+  // cannot pull focus back into the header.
+  const pendingFocusRef = useRef(false);
+  const focusIfPending = useCallback((element: HTMLElement | null) => {
+    if (element && pendingFocusRef.current) {
+      pendingFocusRef.current = false;
+      element.focus();
+    }
+  }, []);
   const isCollapsed = revealedFrom === null && cut < items.length;
   const shown = isCollapsed ? items.slice(0, cut) : items;
 
@@ -387,7 +397,7 @@ function MetadataList({
             trailing={!isCollapsed && index === shown.length - 1 ? trailing : undefined}
             // "+N more" unmounts as it reveals the rest, so focus moves to
             // the first revealed entry rather than falling to the page.
-            ref={index === revealedFrom ? focusOnMount : undefined}
+            ref={index === revealedFrom ? focusIfPending : undefined}
             tabIndex={index === revealedFrom ? -1 : undefined}
           />
         ))}
@@ -402,7 +412,10 @@ function MetadataList({
               variant="transparent"
               size="zero"
               aria-expanded={false}
-              onClick={() => setRevealedFrom(cut)}
+              onClick={() => {
+                pendingFocusRef.current = true;
+                setRevealedFrom(cut);
+              }}
             >
               <Text {...METADATA_TEXT_STYLES} variant="inherit">
                 {t('+%s more', items.length - cut)}
@@ -413,10 +426,6 @@ function MetadataList({
       </Container>
     </Container>
   );
-}
-
-function focusOnMount(element: HTMLElement | null) {
-  element?.focus();
 }
 
 export function EntityHeaderMetadataItem({
