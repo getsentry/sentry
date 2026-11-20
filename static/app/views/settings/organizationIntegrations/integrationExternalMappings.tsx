@@ -54,6 +54,11 @@ type Props = Pick<
   type: 'team' | 'user';
   onSubmitSuccess?: () => Promise<void>;
   pageLinks?: string;
+  /**
+   * Filters the CODEOWNERS suggestions by external name. Saved mappings are
+   * filtered by the parent's API query.
+   */
+  searchQuery?: string;
 };
 
 type LocationQuery = {cursor?: string};
@@ -134,7 +139,9 @@ export function IntegrationExternalMappings(props: Props) {
     onDelete,
     onSubmitSuccess,
     getBaseFormEndpoint,
+    searchQuery = '',
   } = props;
+  const normalizedSearch = searchQuery.trim().toLowerCase();
 
   const [newlyAssociatedMappings, setNewlyAssociatedMappings] = useState<
     ExternalActorMapping[]
@@ -177,7 +184,9 @@ export function IntegrationExternalMappings(props: Props) {
       },
       new Set<string>()
     );
-    return Array.from(unassociatedMappingsSet).map(externalName => ({externalName}));
+    return Array.from(unassociatedMappingsSet)
+      .filter(externalName => externalName.toLowerCase().includes(normalizedSearch))
+      .map(externalName => ({externalName}));
   };
 
   const allMappings = (): ExternalActorMappingOrSuggestion[] => {
@@ -269,7 +278,9 @@ export function IntegrationExternalMappings(props: Props) {
           ))
         ) : (
           <SimpleTable.Empty>
-            {tct('Set up External [type] Mappings.', {type: capitalize(type)})}
+            {normalizedSearch
+              ? tct('No [type] mappings match your search.', {type})
+              : tct('Set up External [type] Mappings.', {type: capitalize(type)})}
           </SimpleTable.Empty>
         )}
       </MappingTable>
