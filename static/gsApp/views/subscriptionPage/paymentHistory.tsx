@@ -85,8 +85,6 @@ function getReceiptTypeLabel(receiptType: ReceiptType, plan: Plan | undefined) {
   switch (receiptType) {
     case 'payg':
       return displayBudgetName(plan, {title: true});
-    case 'seer_legacy_seats':
-      return t('Seer seats');
     case 'seer_token':
       return t('Seer auto-reload');
     case 'credit_grant':

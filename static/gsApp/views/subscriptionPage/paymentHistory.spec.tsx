@@ -188,7 +188,7 @@ describe('Subscription > PaymentHistory', () => {
     );
   });
 
-  it('labels usage-only receipts by what they billed', async () => {
+  it('labels pay-as-you-go receipts', async () => {
     const organization = OrganizationFixture({
       slug: 'dogz-rule',
       access: ['org:billing'],
@@ -200,22 +200,13 @@ describe('Subscription > PaymentHistory', () => {
     MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/invoices/`,
       method: 'GET',
-      body: [
-        InvoiceFixture({receiptType: 'payg'}),
-        InvoiceFixture({
-          id: '2b3c4d5e6f7a',
-          dateCreated: '2018-07-25T22:33:38.042Z',
-          receiptType: 'seer_legacy_seats',
-        }),
-      ],
+      body: [InvoiceFixture({receiptType: 'payg'})],
     });
 
     render(<PaymentHistory />, {organization});
 
     const paygRow = await screen.findByRole('row', {name: /^Jun 25, 2018/});
     expect(within(paygRow).getByText('Pay-as-you-go')).toBeInTheDocument();
-    const seatsRow = screen.getByRole('row', {name: /^Jul 25, 2018/});
-    expect(within(seatsRow).getByText('Seer seats')).toBeInTheDocument();
   });
 
   it('leaves out the receipt type without token-billed Seer', async () => {

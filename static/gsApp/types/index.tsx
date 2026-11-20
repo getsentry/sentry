@@ -490,12 +490,7 @@ export type Charge = {
 /**
  * What a receipt paid for.
  */
-export type ReceiptType =
-  | 'subscription'
-  | 'payg'
-  | 'seer_legacy_seats'
-  | 'seer_token'
-  | 'credit_grant';
+export type ReceiptType = 'subscription' | 'payg' | 'seer_token' | 'credit_grant';
 
 export type InvoiceBase = StructuredAddress & {
   amount: number;
