@@ -6,6 +6,7 @@ from sentry.constants import ObjectStatus
 from sentry.integrations.example import ExampleRepositoryProvider
 from sentry.models.repository import Repository
 from sentry.models.repositorysettings import CodeReviewTrigger
+from sentry.seer.scm_connect import SCM_CONNECT_HEADER
 from sentry.testutils.cases import APITestCase
 
 
@@ -225,6 +226,55 @@ class OrganizationRepositoriesListTest(APITestCase):
         assert response.data[0]["id"] == str(repo.id)
         assert "settings" in response.data[0]
         assert response.data[0]["settings"] is None
+
+
+class OrganizationRepositoriesScmConnectHeaderTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.org = self.create_organization(owner=self.user)
+        self.url = reverse("sentry-api-0-organization-repositories", args=[self.org.slug])
+        self.login_as(user=self.user)
+
+    def test_empty_list_without_source_control(self) -> None:
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        assert response[SCM_CONNECT_HEADER] == "no_scm_integration"
+
+    def test_empty_list_with_only_source_control_seer_cant_use(self) -> None:
+        self.create_integration(organization=self.org, provider="example", external_id="example:1")
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response[SCM_CONNECT_HEADER] == "no_scm_integration"
+
+    def test_empty_list_with_source_control_connected(self) -> None:
+        # Connected, but no repositories added yet: connecting source control wouldn't help.
+        self.create_integration(organization=self.org, provider="github", external_id="github:1")
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        assert SCM_CONNECT_HEADER not in response
+
+    def test_list_with_repositories(self) -> None:
+        self.create_repo(project=self.create_project(organization=self.org), name="example")
+
+        response = self.client.get(self.url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert len(response.data) == 1
+        assert SCM_CONNECT_HEADER not in response
+
+    def test_empty_later_page(self) -> None:
+        response = self.client.get(self.url, {"cursor": "100:1:0"}, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data == []
+        assert SCM_CONNECT_HEADER not in response
 
 
 class OrganizationRepositoriesCreateTest(APITestCase):
