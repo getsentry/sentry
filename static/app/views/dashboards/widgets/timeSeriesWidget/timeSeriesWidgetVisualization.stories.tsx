@@ -59,6 +59,25 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
   }),
 };
 
+const sampleDurationTimeSeriesP90: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p90(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {...datum, value: datum.value ? datum.value * 0.7 + 30 * Math.random() : null};
+  }),
+};
+
+const sampleDurationTimeSeriesP95: TimeSeries = {
+  ...sampleDurationTimeSeries,
+  yAxis: 'p95(span.duration)',
+  values: sampleDurationTimeSeries.values.map(datum => {
+    return {
+      ...datum,
+      value: datum.value ? datum.value * 0.85 + 30 * Math.random() : null,
+    };
+  }),
+};
+
 const shiftedSpanSamples = shiftTabularDataToNow(spanSamplesWithDurations);
 
 const releases = [
@@ -845,14 +864,13 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       [10, 15],
       [30, 33],
     ];
-    const twoIntervalsDuration = withLowConfidenceIntervals(
+    const twoIntervalsDurations = [
       sampleDurationTimeSeries,
-      twoIntervals
-    );
-    const twoIntervalsDurationP50 = withLowConfidenceIntervals(
+      sampleDurationTimeSeriesP95,
+      sampleDurationTimeSeriesP90,
+      sampleDurationTimeSeriesP75,
       sampleDurationTimeSeriesP50,
-      twoIntervals
-    );
+    ].map(timeSeries => withLowConfidenceIntervals(timeSeries, twoIntervals));
 
     const fiveIntervals: LowConfidenceInterval[] = [
       [3, 5],
@@ -896,31 +914,24 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           </Storybook.Grid>
 
           <Heading as="h3" size="md">
-            Multiple series, two low-confidence intervals
+            Five series, two low-confidence intervals
           </Heading>
           <Storybook.Grid columns={3}>
             <GridWidget>
               <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Line(twoIntervalsDuration),
-                  new Line(twoIntervalsDurationP50),
-                ]}
+                plottables={twoIntervalsDurations.map(timeSeries => new Line(timeSeries))}
               />
             </GridWidget>
             <GridWidget>
               <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Area(twoIntervalsDuration),
-                  new Area(twoIntervalsDurationP50),
-                ]}
+                plottables={twoIntervalsDurations.map(timeSeries => new Area(timeSeries))}
               />
             </GridWidget>
             <GridWidget>
               <TimeSeriesWidgetVisualization
-                plottables={[
-                  new Bars(twoIntervalsDuration, {stack: 'all'}),
-                  new Bars(twoIntervalsDurationP50, {stack: 'all'}),
-                ]}
+                plottables={twoIntervalsDurations.map(
+                  timeSeries => new Bars(timeSeries, {stack: 'all'})
+                )}
               />
             </GridWidget>
           </Storybook.Grid>
