@@ -26,14 +26,14 @@ Before coding, identify:
 
 ```mermaid
 flowchart TD
-    Start[New detector] --> State{Needs persisted priority, dedupe, thresholds, or resolution?}
+    Start[New detector] --> Conditions{Decides with the detector's condition group?}
+    Conditions -->|Yes| State{Needs persisted priority, dedupe, thresholds, or resolution?}
     State -->|Yes| Stateful[Inherit StatefulDetectorHandler]
-    State -->|No| Conditions{Decides with the detector's condition group?}
-    Conditions -->|Yes| Handler[Inherit DetectorHandler]
+    State -->|No| Handler[Inherit DetectorHandler]
     Conditions -->|No| Base[Inherit BaseDetectorHandler]
     Stateful --> Hooks[Implement extract_value, extract_dedupe_value, and create_occurrence]
     Handler --> Minimal[Implement extract_value and create_occurrence]
-    Base --> Full[Implement extract_value, evaluate, and create_occurrence]
+    Base --> Full[Implement extract_value, evaluate, and create_occurrence; persist state with DetectorStateManager]
 ```
 
 ### Handler hierarchy

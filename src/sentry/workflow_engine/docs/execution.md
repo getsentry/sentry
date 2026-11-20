@@ -56,8 +56,8 @@ invalidation is connected to source, detector, and mapping updates.
 The default manager excludes pending-deletion and deletion-in-progress rows, but this
 path does not exclude every non-active status such as plan-level `DISABLED`.
 
-Not every producer uses this generic lookup. Uptime, processing errors, and preprod
-paths can identify detectors through product-specific data and call
+Not every producer uses this generic lookup. Uptime, processing errors, preprod, and
+anomaly detection paths can identify detectors through product-specific data and call
 [`process_detectors`](../processors/detector.py) directly. The handler contract is the
 same after detector selection.
 
@@ -152,8 +152,9 @@ therefore use the stateful handler's default `OK` priority. A missing trigger gr
 invalid and produces no transition.
 
 Detectors that decide without the trigger condition group inherit `BaseDetectorHandler` and
-implement `evaluate`. Detectors that extend the condition evaluation override `evaluate` and
-call `super().evaluate()`, then own the orchestration they add.
+implement `evaluate`; ones that track per-group state use `DetectorStateManager` directly.
+Detectors that extend the condition evaluation override `evaluate` and call
+`super().evaluate()`, then own the orchestration they add.
 
 ### 5. Produce detector output
 
