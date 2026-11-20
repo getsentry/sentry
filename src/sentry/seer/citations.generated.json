@@ -1,0 +1,972 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "SeerCitation",
+  "version": 1,
+  "kinds": [
+    "issue",
+    "event",
+    "trace",
+    "log",
+    "replay",
+    "profile",
+    "query",
+    "feedback",
+    "code",
+    "commit",
+    "pullRequest",
+    "external"
+  ],
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "issue"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "groupId": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            },
+            "shortId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "stat": {
+              "description": "A single issue-level statistic the claim relies on.",
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "enum": [
+                    "users",
+                    "events",
+                    "firstSeen",
+                    "lastSeen"
+                  ]
+                },
+                "value": {
+                  "type": [
+                    "number",
+                    "string"
+                  ]
+                }
+              },
+              "required": [
+                "name",
+                "value"
+              ]
+            }
+          },
+          "required": [
+            "groupId"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "event"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "eventId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "groupId": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            },
+            "focus": {
+              "description": "Narrows the citation to one part of the event.",
+              "anyOf": [
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "frame"
+                    },
+                    "exceptionIndex": {
+                      "default": 0,
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "frameIndex": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    },
+                    "function": {
+                      "type": "string"
+                    },
+                    "filename": {
+                      "type": "string"
+                    },
+                    "lineNo": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "frameIndex"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "tag"
+                    },
+                    "key": {
+                      "type": "string",
+                      "minLength": 1
+                    },
+                    "value": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "key"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "breadcrumb"
+                    },
+                    "index": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "index"
+                  ]
+                },
+                {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "const": "context"
+                    },
+                    "key": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  },
+                  "required": [
+                    "type",
+                    "key"
+                  ]
+                }
+              ]
+            }
+          },
+          "required": [
+            "eventId"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "trace"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "traceId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "spanId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{16}$"
+            }
+          },
+          "required": [
+            "traceId"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "log"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "logId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "traceId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "timestamp": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          }
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "replay"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "replayId": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{32}$"
+            },
+            "offsetMs": {
+              "description": "Milliseconds from the start of the replay.",
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "timestamp": {
+              "description": "Wall-clock time of the cited moment.",
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            }
+          },
+          "required": [
+            "replayId"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "profile"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "profileId": {
+              "type": "string",
+              "minLength": 1
+            },
+            "projectSlug": {
+              "type": "string",
+              "minLength": 1
+            },
+            "function": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "profileId",
+            "projectSlug"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "query"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "dataset": {
+              "type": "string",
+              "enum": [
+                "spans",
+                "logs",
+                "errors",
+                "issues",
+                "metrics",
+                "replays"
+              ]
+            },
+            "query": {
+              "default": "",
+              "type": "string"
+            },
+            "fields": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "yAxes": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "groupBy": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "projects": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              }
+            },
+            "statsPeriod": {
+              "type": "string",
+              "pattern": "^\\d+[smhdw]$"
+            },
+            "start": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "end": {
+              "type": "string",
+              "format": "date-time",
+              "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+            },
+            "resultSummary": {
+              "description": "What the query returned, e.g. \"count()=4,112; count_unique(user)=903\".",
+              "type": "string",
+              "maxLength": 500
+            }
+          },
+          "required": [
+            "dataset"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "feedback"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "feedbackId": {
+              "type": "string",
+              "minLength": 1,
+              "description": "The feedback event id or issue id."
+            },
+            "groupId": {
+              "type": "string",
+              "pattern": "^\\d+$"
+            }
+          },
+          "required": [
+            "feedbackId"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "code"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "minLength": 1,
+              "description": "owner/name"
+            },
+            "path": {
+              "type": "string",
+              "minLength": 1
+            },
+            "ref": {
+              "description": "Commit sha or branch the lines came from.",
+              "type": "string",
+              "minLength": 1
+            },
+            "startLine": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            },
+            "endLine": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "repo",
+            "path"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "commit"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "minLength": 1
+            },
+            "sha": {
+              "type": "string",
+              "pattern": "^[0-9a-f]{7,40}$"
+            }
+          },
+          "required": [
+            "repo",
+            "sha"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "pullRequest"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string",
+              "minLength": 1
+            },
+            "number": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 9007199254740991
+            }
+          },
+          "required": [
+            "repo",
+            "number"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string",
+          "const": "external"
+        },
+        "id": {
+          "type": "string",
+          "pattern": "^c_[0-9a-z]{4,32}$",
+          "description": "Ledger id the agent cites, e.g. \"c_3fa1b2\". Stable for the same datum."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200,
+          "description": "Short human label, e.g. \"POST /checkout span\" or \"cart.py:120-134\"."
+        },
+        "excerpt": {
+          "description": "The exact text or value the claim relies on, copied from the tool output.",
+          "type": "string",
+          "maxLength": 1000
+        },
+        "observedAt": {
+          "description": "When the cited datum happened, if it has a timestamp.",
+          "type": "string",
+          "format": "date-time",
+          "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))T(?:(?:[01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(?:\\.\\d+)?(?:Z|([+-](?:[01]\\d|2[0-3]):[0-5]\\d)))$"
+        },
+        "projectId": {
+          "type": "string",
+          "pattern": "^\\d+$"
+        },
+        "url": {
+          "description": "Deep link built by Seer. The UI may build its own.",
+          "type": "string",
+          "format": "uri"
+        },
+        "locator": {
+          "type": "object",
+          "properties": {
+            "url": {
+              "type": "string",
+              "format": "uri"
+            },
+            "source": {
+              "description": "Where it came from, e.g. \"docs\".",
+              "type": "string",
+              "maxLength": 64
+            }
+          },
+          "required": [
+            "url"
+          ]
+        }
+      },
+      "required": [
+        "kind",
+        "id",
+        "title",
+        "locator"
+      ]
+    }
+  ]
+}
