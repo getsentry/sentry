@@ -1031,21 +1031,25 @@ class GroupRelatedEndpointTest(
     def test_supergroups_error(self, mock_seer_request: mock.MagicMock) -> None:
         mock_seer_request.side_effect = [
             HTTPResponse(b"", status=500),
+            HTTPResponse(b"<html>Bad Gateway</html>", status=200),
             Urllib3TimeoutError("Read timed out."),
         ]
 
         with self.feature(SUPERGROUP_FEATURES):
             responses = [
                 self.client.get(self.path, {"type": "same_supergroup"}),
+                self.client.get(self.path, {"type": "same_supergroup"}),
                 self.client.get(self.path, {"type": ["same_supergroup", "same_title"]}),
             ]
 
-        # The only requested type failed
+        # The only requested type failed, with an error status or a body that isn't JSON
         assert responses[0].status_code == 503
         assert responses[0].data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
+        assert responses[1].status_code == 503
+        assert responses[1].data == {"detail": ALL_TYPES_UNAVAILABLE_DETAIL}
         # same_title still answered
-        assert responses[1].status_code == 200
-        assert responses[1].data["meta"]["types"] == [
+        assert responses[2].status_code == 200
+        assert responses[2].data["meta"]["types"] == [
             {
                 "type": "same_title",
                 "status": "ok",

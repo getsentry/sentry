@@ -8,6 +8,7 @@ project of the organization. An issue is in at most one supergroup.
 
 from collections.abc import Sequence
 
+import orjson
 from urllib3.exceptions import MaxRetryError
 from urllib3.exceptions import TimeoutError as Urllib3TimeoutError
 
@@ -67,7 +68,7 @@ def same_supergroup_issues(
         response = get_supergroups_by_group_ids(
             organization, [group.id], user_id=acting_user_id(ctx.user), timeout=SEER_TIMEOUT
         )
-    except (SeerApiError, Urllib3TimeoutError, MaxRetryError):
+    except (SeerApiError, Urllib3TimeoutError, MaxRetryError, orjson.JSONDecodeError):
         return _result(RelationTypeStatus.UNAVAILABLE, detail=SUPERGROUPS_UNAVAILABLE_DETAIL)
     if not response["data"]:
         return _result(RelationTypeStatus.NOT_APPLICABLE, detail=NOT_IN_A_SUPERGROUP_DETAIL)
