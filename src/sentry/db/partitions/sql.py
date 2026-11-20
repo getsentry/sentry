@@ -1,0 +1,182 @@
+"""
+Every SQL statement used for table partitioning lives in this module.
+
+Production, CI and the default local development database run Postgres 14, and
+production is being upgraded to 18. All statements here must work on both, and
+stay compatible with Postgres 14 until the upgrade is finished. Features we rely on,
+all available in Postgres 14:
+
+- ``PARTITION BY RANGE`` / ``PARTITION BY HASH``
+- ``ALTER TABLE ... ATTACH PARTITION``
+- ``ALTER TABLE ... DETACH PARTITION ... CONCURRENTLY`` / ``FINALIZE``
+- ``CREATE INDEX ... ON ONLY`` and ``ALTER INDEX ... ATTACH PARTITION``
+- ``CREATE TABLE ... (LIKE ... INCLUDING ...)``
+- ``pg_partitioned_table``, ``pg_inherits`` (including ``inhdetachpending``),
+  ``pg_get_expr(relpartbound, oid)``
+
+Do not use anything that needs Postgres 15 or later, for example: ``MERGE``,
+``NULLS NOT DISTINCT``, ``NOT VALID`` on NOT NULL constraints, ``NOT ENFORCED``,
+or exclusion constraints on partitioned tables. ``POSTGRES_14_INCOMPATIBLE`` lists
+patterns that tests check against every template here and against generated DDL.
+
+Limitations the callers work around:
+
+- ``CREATE INDEX CONCURRENTLY`` is not supported on a partitioned table, in any
+  Postgres version up to at least 18, so indexes are created ``ON ONLY`` the parent,
+  built concurrently on each partition and then attached.
+- Postgres 14 can't add a ``NOT VALID`` foreign key to a partitioned table (Postgres
+  18 can), so foreign keys are only created together with the table, while it is
+  empty.
+- Attaching a partition takes SHARE ROW EXCLUSIVE on every table the partitioned
+  table has a foreign key to, which blocks writes to them. Dropping a detached
+  partition takes ACCESS EXCLUSIVE on those tables, which blocks reads too. Both are
+  true in Postgres 14 and 18. Range partitions are attached and dropped while the
+  table is live, so range partitioned tables can't have database foreign keys.
+
+Identifiers are formatted in with ``str.format`` after quoting. Templates that are
+handed to Django's schema editor use Django's ``%(name)s`` style instead.
+"""
+
+from __future__ import annotations
+
+from datetime import UTC, datetime
+
+POSTGRES_14_INCOMPATIBLE: tuple[str, ...] = (
+    r"\bMERGE\s+INTO\b",
+    r"\bNULLS\s+(NOT\s+)?DISTINCT\b",
+    r"\bNOT\s+ENFORCED\b",
+    # Named NOT NULL constraints, including `NOT VALID` ones (Postgres 18).
+    r"\bCONSTRAINT\s+\S+\s+NOT\s+NULL\b",
+    r"\bSPLIT\s+PARTITION\b",
+    r"\bMERGE\s+PARTITIONS\b",
+    r"\bEXCLUDE\s+USING\b",
+)
+
+# Appended to Django's CREATE TABLE statement.
+PARTITION_BY = " PARTITION BY {method} ({columns})"
+PRIMARY_KEY_CONSTRAINT = "CONSTRAINT {name} PRIMARY KEY ({columns})"
+
+# Only used right after the parent table is created, while it is empty. Creating a
+# partition this way takes an ACCESS EXCLUSIVE lock on the parent.
+CREATE_HASH_PARTITION = (
+    "CREATE TABLE {partition} PARTITION OF {table} "
+    "FOR VALUES WITH (MODULUS {modulus}, REMAINDER {remainder})"
+)
+CREATE_RANGE_PARTITION = (
+    "CREATE TABLE {partition} PARTITION OF {table} FOR VALUES FROM ({start}) TO ({end})"
+)
+
+# Used to add partitions to a live table. The partition is created as a standalone
+# table and then attached, which only needs a SHARE UPDATE EXCLUSIVE lock on the
+# parent, plus locks on the new table itself. It would also lock every table the
+# parent has a foreign key to, which is why range partitioned tables can't have any.
+# The CHECK constraint matching the bounds lets ATTACH skip scanning the new table.
+# Identity is not copied: rows inserted through the parent use its sequence.
+CREATE_STANDALONE_PARTITION = (
+    "CREATE TABLE {partition} (LIKE {table} INCLUDING DEFAULTS INCLUDING CONSTRAINTS "
+    "INCLUDING STORAGE INCLUDING COMMENTS INCLUDING STATISTICS INCLUDING GENERATED)"
+)
+ADD_RANGE_BOUND_CHECK = (
+    "ALTER TABLE {partition} ADD CONSTRAINT {name} "
+    "CHECK ({column} IS NOT NULL AND {column} >= {start} AND {column} < {end})"
+)
+ATTACH_RANGE_PARTITION = (
+    "ALTER TABLE {table} ATTACH PARTITION {partition} FOR VALUES FROM ({start}) TO ({end})"
+)
+DROP_CONSTRAINT = "ALTER TABLE {table} DROP CONSTRAINT {name}"
+
+# DETACH ... CONCURRENTLY cannot run inside a transaction block, and is not allowed
+# when the table has a default partition. If it is interrupted, the partition is
+# left "detach pending" and has to be finished with FINALIZE. If the drop after a
+# detach fails, the table is left standalone. Partition maintenance comments a
+# partition before detaching it, and only ever drops detached tables that carry that
+# comment: a partition detached by hand is kept, e.g. to preserve its data.
+EXPIRING_PARTITION_COMMENT = "Expired: dropped by Sentry partition maintenance."
+MARK_PARTITION_EXPIRING = "COMMENT ON TABLE {partition} IS '" + EXPIRING_PARTITION_COMMENT + "'"
+# Removes the mark from a partition that is no longer expired, e.g. because its detach
+# failed and retention was raised since.
+UNMARK_PARTITION_EXPIRING = "COMMENT ON TABLE {partition} IS NULL"
+DETACH_PARTITION_CONCURRENTLY = "ALTER TABLE {table} DETACH PARTITION {partition} CONCURRENTLY"
+FINALIZE_DETACH_PARTITION = "ALTER TABLE {table} DETACH PARTITION {partition} FINALIZE"
+DROP_TABLE = "DROP TABLE {table}"
+
+# Used for statements that take a strong lock on a live partitioned table, when no
+# `ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT` is configured.
+DEFAULT_LOCK_TIMEOUT = "5s"
+SET_LOCK_TIMEOUT = "SET lock_timeout TO '{timeout}'"
+SET_LOCAL_LOCK_TIMEOUT = "SET LOCAL lock_timeout TO '{timeout}'"
+SET_LOCAL_STATEMENT_TIMEOUT = "SET LOCAL statement_timeout TO '{timeout}'"
+# Attaching a partition to a table with a default partition takes ACCESS EXCLUSIVE on
+# the default partition and scans all of it for rows in the new range, holding the
+# lock until commit. Every query on the table that can't skip the default partition
+# waits meanwhile, so the scan gets this long at most.
+DEFAULT_PARTITION_SCAN_TIMEOUT = "5s"
+RESET_LOCK_TIMEOUT = "SET lock_timeout TO DEFAULT"
+
+# Django schema editor templates, see `Index.create_sql` / `_create_index_sql`.
+CREATE_INDEX_ON_ONLY = (
+    "CREATE INDEX IF NOT EXISTS %(name)s ON ONLY %(table)s%(using)s "
+    "(%(columns)s)%(include)s%(extra)s%(condition)s"
+)
+CREATE_INDEX_CONCURRENTLY = (
+    "CREATE INDEX CONCURRENTLY %(name)s ON %(table)s%(using)s "
+    "(%(columns)s)%(include)s%(extra)s%(condition)s"
+)
+# Partitioned indexes cannot be dropped concurrently. Dropping one is a catalog-only
+# change, but it takes an ACCESS EXCLUSIVE lock on the table and its partitions.
+DROP_INDEX = "DROP INDEX IF EXISTS %(name)s"
+DROP_INDEX_CONCURRENTLY = "DROP INDEX CONCURRENTLY IF EXISTS {name}"
+ATTACH_INDEX = "ALTER INDEX {parent} ATTACH PARTITION {child}"
+
+# Catalog queries. All take the unquoted relation name as a parameter.
+TABLE_EXISTS = "SELECT to_regclass(%s) IS NOT NULL"
+PARTITIONED_TABLE_INFO = """
+    SELECT
+        pt.partstrat,
+        ARRAY(
+            SELECT a.attname
+            FROM unnest(pt.partattrs::int2[]) WITH ORDINALITY AS k(attnum, ord)
+            JOIN pg_attribute AS a ON a.attrelid = pt.partrelid AND a.attnum = k.attnum
+            ORDER BY k.ord
+        )
+    FROM pg_partitioned_table AS pt
+    WHERE pt.partrelid = to_regclass(%s)
+"""
+# Standalone tables (not partitions) whose name matches a LIKE pattern, with their
+# comment. Used to find range partitions that were detached but not dropped.
+LIST_STANDALONE_TABLES_LIKE = """
+    SELECT c.relname, obj_description(c.oid, 'pg_class')
+    FROM pg_class AS c
+    WHERE c.relkind = 'r'
+        AND NOT c.relispartition
+        AND pg_table_is_visible(c.oid)
+        AND c.relname LIKE %s
+    ORDER BY c.relname
+"""
+LIST_PARTITIONS = """
+    SELECT
+        c.relname,
+        pg_get_expr(c.relpartbound, c.oid),
+        i.inhdetachpending,
+        obj_description(c.oid, 'pg_class')
+    FROM pg_inherits AS i
+    JOIN pg_class AS c ON c.oid = i.inhrelid
+    WHERE i.inhparent = to_regclass(%s)
+    ORDER BY c.relname
+"""
+# Takes the parent index name and the partition name.
+ATTACHED_PARTITION_INDEX = """
+    SELECT c.relname
+    FROM pg_inherits AS h
+    JOIN pg_index AS i ON i.indexrelid = h.inhrelid
+    JOIN pg_class AS c ON c.oid = i.indexrelid
+    WHERE h.inhparent = to_regclass(%s) AND i.indrelid = to_regclass(%s)
+"""
+INDEX_IS_VALID = "SELECT indisvalid FROM pg_index WHERE indexrelid = to_regclass(%s)"
+
+
+def timestamp_literal(value: datetime) -> str:
+    """SQL literal for a partition bound. Only for datetimes we computed ourselves."""
+    if value.tzinfo is None:
+        raise ValueError("Partition boundaries require timezone-aware datetimes.")
+    return "'{}'".format(value.astimezone(UTC).isoformat(sep=" "))

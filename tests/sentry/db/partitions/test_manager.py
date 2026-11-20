@@ -1,0 +1,660 @@
+from datetime import UTC, datetime, timedelta
+from unittest import mock
+
+import pytest
+from django.db import OperationalError, connection, transaction
+from django.db.backends.base.base import BaseDatabaseWrapper
+from django.test import override_settings
+from django.test.utils import CaptureQueriesContext
+
+from fixtures.partitions import (
+    FIXTURE_TABLES,
+    HashPartitionedFixture,
+    RangePartitionedFixture,
+    fixture_tables,
+    leave_detach_pending,
+)
+from sentry.db.partitions import manager, sql
+from sentry.db.partitions.catalog import (
+    DetachedPartition,
+    PartitionInfo,
+    default_partition_problem,
+    list_detached_range_partitions,
+    list_partitions,
+    verify_partition_state,
+)
+from sentry.db.partitions.manager import (
+    DefaultPartitionError,
+    RangeTable,
+    ensure_partitions,
+    expire_partitions,
+    get_range_table,
+    maintain_partitions,
+)
+from sentry.db.partitions.spec import RangePartitionBound
+from sentry.silo.base import SiloMode
+from sentry.testutils.cases import TransactionTestCase
+from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.silo import assume_test_silo_mode
+
+RANGE_TABLE = RangePartitionedFixture._meta.db_table
+# A Wednesday. Tables are created with the weeks of 03-04, 03-11 and 03-18.
+CREATED_AT = datetime(2024, 3, 6, 12, tzinfo=UTC)
+
+
+def partition_names() -> list[str]:
+    return [p.name for p in list_partitions(connection, RANGE_TABLE)]
+
+
+def week(day: int) -> str:
+    return f"{RANGE_TABLE}_p202403{day:02d}"
+
+
+def locked_tables() -> list[str]:
+    """User tables this connection holds a lock on."""
+    with connection.cursor() as cursor:
+        cursor.execute(
+            """
+            SELECT DISTINCT c.relname
+            FROM pg_locks AS l
+            JOIN pg_class AS c ON c.oid = l.relation
+            JOIN pg_namespace AS n ON n.oid = c.relnamespace
+            WHERE l.pid = pg_backend_pid()
+                AND c.relkind IN ('r', 'p')
+                AND n.nspname NOT IN ('pg_catalog', 'information_schema')
+            ORDER BY c.relname
+            """
+        )
+        return [row[0] for row in cursor.fetchall()]
+
+
+def mark_expiring(partition: str) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute(sql.MARK_PARTITION_EXPIRING.format(partition=f'"{partition}"'))
+
+
+def detach(partition: str) -> None:
+    with connection.cursor() as cursor:
+        cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{partition}"')
+
+
+class EnsurePartitionsTest(TransactionTestCase):
+    @freeze_time(CREATED_AT)
+    def test_creates_upcoming_partitions(self) -> None:
+        with fixture_tables():
+            later = CREATED_AT + timedelta(weeks=2)
+            assert ensure_partitions(RangePartitionedFixture, now=later) == [
+                week(25),
+                f"{RANGE_TABLE}_p20240401",
+            ]
+            assert ensure_partitions(RangePartitionedFixture, now=later) == []
+            assert partition_names() == [
+                week(4),
+                week(11),
+                week(18),
+                week(25),
+                f"{RANGE_TABLE}_p20240401",
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_attaching_only_locks_the_table_and_the_new_partition(self) -> None:
+        with fixture_tables():
+            locked: list[str] = []
+            attach = manager._attach_range_partition
+
+            def attach_and_record_locks(
+                target: RangeTable, bound: RangePartitionBound, **kwargs: bool
+            ) -> None:
+                # Hold the locks until after they are recorded.
+                with transaction.atomic(using="default"):
+                    attach(target, bound, **kwargs)
+                    locked.extend(locked_tables())
+
+            with mock.patch.object(
+                manager, "_attach_range_partition", side_effect=attach_and_record_locks
+            ):
+                ensure_partitions(RangePartitionedFixture, now=CREATED_AT + timedelta(weeks=1))
+            assert locked == [RANGE_TABLE, week(25)]
+
+    @freeze_time(CREATED_AT)
+    def test_new_partitions_get_indexes(self) -> None:
+        with fixture_tables():
+            ensure_partitions(RangePartitionedFixture, now=CREATED_AT + timedelta(weeks=1))
+            with connection.cursor() as cursor:
+                index_counts = []
+                for table in (RANGE_TABLE, week(25)):
+                    cursor.execute(
+                        "SELECT count(*) FROM pg_index WHERE indrelid = to_regclass(%s)", [table]
+                    )
+                    index_counts.append(cursor.fetchone()[0])
+                # Primary key, `value` and `parent_id` indexes.
+                assert index_counts == [3, 3]
+                cursor.execute(
+                    "SELECT count(*) FROM pg_constraint WHERE conrelid = to_regclass(%s) "
+                    "AND contype = 'c'",
+                    [week(25)],
+                )
+                # The temporary bound check is dropped again.
+                assert cursor.fetchone() == (0,)
+
+            parent = HashPartitionedFixture.objects.create(name="p")
+            row = RangePartitionedFixture.objects.create(
+                date_added=datetime(2024, 3, 26, tzinfo=UTC), parent=parent
+            )
+            assert RangePartitionedFixture.objects.filter(id=row.id, parent=parent).exists()
+
+    @freeze_time(CREATED_AT)
+    def test_skips_ranges_covered_by_other_partitions(self) -> None:
+        with fixture_tables():
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'CREATE TABLE "{RANGE_TABLE}_manual" PARTITION OF "{RANGE_TABLE}" '
+                    "FOR VALUES FROM ('2024-03-25') TO ('2024-03-27')"
+                )
+            assert (
+                ensure_partitions(RangePartitionedFixture, now=CREATED_AT + timedelta(weeks=1))
+                == []
+            )
+
+    def test_does_nothing_for_unpartitioned_tables(self) -> None:
+        with fixture_tables(partitioned=False):
+            assert get_range_table(RangePartitionedFixture) is None
+            assert ensure_partitions(RangePartitionedFixture) == []
+            assert expire_partitions(RangePartitionedFixture) == []
+
+    def test_does_nothing_for_hash_partitioned_tables(self) -> None:
+        with fixture_tables():
+            assert get_range_table(HashPartitionedFixture) is None
+            assert ensure_partitions(HashPartitionedFixture) == []
+
+
+class ExpirePartitionsTest(TransactionTestCase):
+    @freeze_time(CREATED_AT)
+    def test_drops_partitions_before_cutoff(self) -> None:
+        with fixture_tables():
+            for day in (5, 12, 19):
+                RangePartitionedFixture.objects.create(
+                    date_added=datetime(2024, 3, day, tzinfo=UTC)
+                )
+            now = datetime(2024, 3, 20, tzinfo=UTC)
+            before = datetime(2024, 3, 12, 12, tzinfo=UTC)
+
+            assert expire_partitions(
+                RangePartitionedFixture, before=before, now=now, dry_run=True
+            ) == [week(4)]
+            assert partition_names() == [week(4), week(11), week(18)]
+
+            assert expire_partitions(RangePartitionedFixture, before=before, now=now) == [week(4)]
+            assert partition_names() == [week(11), week(18)]
+            assert sorted(
+                RangePartitionedFixture.objects.values_list("date_added__day", flat=True)
+            ) == [12, 19]
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT to_regclass(%s)", [week(4)])
+                assert cursor.fetchone() == (None,)
+
+    @freeze_time(CREATED_AT)
+    def test_uses_declared_retention(self) -> None:
+        with fixture_tables():
+            # Retention is four weeks, so the week of 03-04 expires on 04-08.
+            assert (
+                expire_partitions(RangePartitionedFixture, now=datetime(2024, 4, 7, tzinfo=UTC))
+                == []
+            )
+            assert expire_partitions(
+                RangePartitionedFixture, now=datetime(2024, 4, 8, tzinfo=UTC)
+            ) == [week(4)]
+
+    @freeze_time(CREATED_AT)
+    def test_refuses_to_drop_future_partitions(self) -> None:
+        with fixture_tables():
+            with pytest.raises(ValueError):
+                expire_partitions(
+                    RangePartitionedFixture, before=CREATED_AT + timedelta(days=1), now=CREATED_AT
+                )
+
+    @freeze_time(CREATED_AT)
+    def test_refuses_to_run_in_a_transaction(self) -> None:
+        with fixture_tables():
+            with pytest.raises(RuntimeError), transaction.atomic(using="default"):
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+
+    @freeze_time(CREATED_AT)
+    def test_dropping_locks_no_other_table(self) -> None:
+        with fixture_tables():
+            locked: list[str] = []
+            execute = manager._execute_ddl
+
+            def execute_and_record_locks(
+                conn: BaseDatabaseWrapper, statement: str, **kwargs: bool
+            ) -> None:
+                if not statement.startswith("DROP TABLE"):
+                    execute(conn, statement, **kwargs)
+                    return
+                # Hold the locks until after they are recorded. The dropped partition
+                # itself no longer shows up.
+                with transaction.atomic(using="default"):
+                    execute(conn, statement, **kwargs)
+                    locked.extend(locked_tables())
+
+            with mock.patch.object(manager, "_execute_ddl", side_effect=execute_and_record_locks):
+                assert expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                ) == [week(4)]
+            assert locked == []
+
+    @freeze_time(CREATED_AT)
+    def test_lock_timeout_is_only_set_for_the_session_to_detach_concurrently(self) -> None:
+        with fixture_tables():
+            with CaptureQueriesContext(connection) as queries:
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+            statements = [
+                q["sql"]
+                for q in queries.captured_queries
+                if q["sql"].startswith(("SET", "COMMENT", "ALTER", "DROP"))
+            ]
+            assert statements == [
+                "SET LOCAL lock_timeout TO '5s'",
+                f'COMMENT ON TABLE "{week(4)}" IS '
+                "'Expired: dropped by Sentry partition maintenance.'",
+                "SET lock_timeout TO '5s'",
+                f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" CONCURRENTLY',
+                "SET lock_timeout TO DEFAULT",
+                "SET LOCAL lock_timeout TO '5s'",
+                f'DROP TABLE "{week(4)}"',
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_keeps_partitions_detached_by_hand(self) -> None:
+        with fixture_tables():
+            # Detaching by hand is how data is kept, e.g. for an incident or a legal
+            # hold, so these are never dropped, even past retention.
+            detach(week(4))
+            detach(week(18))
+            for expected in ([week(11)], []):
+                assert (
+                    expire_partitions(
+                        RangePartitionedFixture,
+                        before=datetime(2024, 3, 19, tzinfo=UTC),
+                        now=datetime(2024, 3, 20, tzinfo=UTC),
+                    )
+                    == expected
+                )
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=False),
+                DetachedPartition(week(18), datetime(2024, 3, 18, tzinfo=UTC), expiring=False),
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_failed_drop_is_retried(self) -> None:
+        with fixture_tables():
+            execute = manager._execute_ddl
+            failed: list[str] = []
+
+            def fail_first_drop(conn: BaseDatabaseWrapper, statement: str, **kwargs: bool) -> None:
+                if statement.startswith("DROP TABLE") and not failed:
+                    failed.append(statement)
+                    raise OperationalError("canceling statement due to lock timeout")
+                execute(conn, statement, **kwargs)
+
+            expire = mock.patch.object(manager, "_execute_ddl", side_effect=fail_first_drop)
+            with expire, pytest.raises(OperationalError):
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+            # The partition was detached, so it's no longer listed as a partition, but
+            # it was marked before that.
+            assert week(4) not in partition_names()
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=True)
+            ]
+
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
+
+    @freeze_time(CREATED_AT)
+    def test_stale_mark_is_removed(self) -> None:
+        with fixture_tables():
+            # Marked as expired, but the detach failed, so it's still attached.
+            mark_expiring(week(4))
+            assert [p.expiring for p in list_partitions(connection, RANGE_TABLE)] == [
+                True,
+                False,
+                False,
+            ]
+            # Retention was raised since, so it isn't expired anymore.
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 5, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+                == []
+            )
+            assert [p.expiring for p in list_partitions(connection, RANGE_TABLE)] == [
+                False,
+                False,
+                False,
+            ]
+            # Detaching it by hand now keeps it, even once it's past retention.
+            detach(week(4))
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+                == []
+            )
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(4), datetime(2024, 3, 4, tzinfo=UTC), expiring=False)
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_marked_detached_partitions_are_only_dropped_once_expired(self) -> None:
+        with fixture_tables():
+            # Detached as expired, but the drop failed and retention was raised since.
+            mark_expiring(week(18))
+            detach(week(18))
+            assert (
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 5, tzinfo=UTC),
+                    now=datetime(2024, 3, 27, tzinfo=UTC),
+                )
+                == []
+            )
+            assert [p.name for p in list_detached_range_partitions(connection, RANGE_TABLE)] == [
+                week(18)
+            ]
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 26, tzinfo=UTC),
+                now=datetime(2024, 3, 27, tzinfo=UTC),
+            ) == [week(18), week(4), week(11)]
+
+    @freeze_time(CREATED_AT)
+    def test_pending_detach_that_is_no_longer_expired_is_finished_and_kept(self) -> None:
+        with fixture_tables():
+            # Expiry marked it, then the detach hit the lock timeout and left it pending.
+            mark_expiring(week(11))
+            leave_detach_pending(week(11))
+            # While it's pending, no other partition can be detached concurrently.
+            with pytest.raises(OperationalError, match="already pending detach"):
+                with connection.cursor() as cursor:
+                    cursor.execute(
+                        f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" CONCURRENTLY'
+                    )
+            # Retention was raised, so it isn't expired anymore, but the week of 03-04 is.
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+            assert partition_names() == [week(18)]
+            # Kept like a partition detached by hand.
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == [
+                DetachedPartition(week(11), datetime(2024, 3, 11, tzinfo=UTC), expiring=False)
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_expired_pending_detach_is_finished_before_other_detaches(self) -> None:
+        with fixture_tables():
+            # Sorts after the week of 03-04, which is detached concurrently.
+            leave_detach_pending(week(11))
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 19, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(11), week(4)]
+            assert partition_names() == [week(18)]
+            assert list_detached_range_partitions(connection, RANGE_TABLE) == []
+
+    @freeze_time(CREATED_AT)
+    def test_finishes_interrupted_detach(self) -> None:
+        with fixture_tables():
+            pending = PartitionInfo(
+                week(4),
+                "FOR VALUES FROM ('2024-03-04 00:00:00+00') TO ('2024-03-11 00:00:00+00')",
+                detach_pending=True,
+            )
+            with (
+                mock.patch.object(manager, "list_partitions", return_value=[pending]),
+                mock.patch.object(manager, "_execute_ddl") as execute,
+            ):
+                expire_partitions(
+                    RangePartitionedFixture,
+                    before=datetime(2024, 3, 12, tzinfo=UTC),
+                    now=datetime(2024, 3, 20, tzinfo=UTC),
+                )
+            assert [c.args[1] for c in execute.call_args_list] == [
+                f'COMMENT ON TABLE "{week(4)}" IS '
+                "'Expired: dropped by Sentry partition maintenance.'",
+                f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{week(4)}" FINALIZE',
+                f'DROP TABLE "{week(4)}"',
+            ]
+
+
+class MaintainPartitionsTest(TransactionTestCase):
+    @freeze_time(CREATED_AT)
+    def test_creates_and_expires(self) -> None:
+        with fixture_tables():
+            with freeze_time(datetime(2024, 4, 9, tzinfo=UTC)):
+                maintain_partitions(SiloMode.CELL)
+            # Weeks before 03-11 are past the four week retention, 04-08 is current and
+            # two more are premade. Missed weeks in between are not backfilled.
+            assert partition_names() == [
+                week(11),
+                week(18),
+                f"{RANGE_TABLE}_p20240408",
+                f"{RANGE_TABLE}_p20240415",
+                f"{RANGE_TABLE}_p20240422",
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_failing_creation_does_not_stop_expiry(self) -> None:
+        with fixture_tables():
+            upcoming = f"{RANGE_TABLE}_p20240408"
+            # A table that keeps the name of an upcoming partition, e.g. one detached by
+            # hand, makes creating that partition fail on every run.
+            with connection.cursor() as cursor:
+                cursor.execute(f'CREATE TABLE "{upcoming}" (id bigint)')
+            with (
+                freeze_time(datetime(2024, 4, 9, tzinfo=UTC)),
+                mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
+            ):
+                maintain_partitions(SiloMode.CELL)
+            errors = [
+                c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
+            ]
+            assert [c.kwargs["tags"] for c in errors] == [{"table": RANGE_TABLE, "step": "ensure"}]
+            # The week of 03-04 is past the four week retention and still dropped.
+            assert week(4) not in partition_names()
+            assert upcoming not in partition_names()
+
+    def test_errors_do_not_propagate(self) -> None:
+        with fixture_tables():
+            with (
+                mock.patch.object(
+                    manager, "ensure_range_partitions", side_effect=Exception("boom")
+                ),
+                mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
+            ):
+                maintain_partitions(SiloMode.CELL)
+            incr.assert_any_call(
+                "db.partitions.maintenance.error", tags={"table": RANGE_TABLE, "step": "ensure"}
+            )
+
+    def gauges(self) -> dict[str, int]:
+        with mock.patch("sentry.db.partitions.manager.metrics.gauge") as gauge:
+            maintain_partitions(SiloMode.CELL)
+        return {
+            c.args[0]: c.args[1]
+            for c in gauge.call_args_list
+            if c.kwargs["tags"] == {"table": RANGE_TABLE}
+        }
+
+    @freeze_time(CREATED_AT)
+    def test_reports_partitions_detached_by_hand(self) -> None:
+        with fixture_tables():
+            assert self.gauges() == {
+                "db.partitions.ahead": 2,
+                "db.partitions.detached_by_hand": 0,
+                "db.partitions.detached_drop_failed": 0,
+            }
+            detach(week(11))
+            assert self.gauges() == {
+                "db.partitions.ahead": 1,
+                "db.partitions.detached_by_hand": 1,
+                "db.partitions.detached_drop_failed": 0,
+            }
+
+    @freeze_time(CREATED_AT)
+    def test_reports_failed_drops(self) -> None:
+        with fixture_tables():
+            mark_expiring(week(18))
+            detach(week(18))
+            # Retrying the drop fails again, e.g. on another lock timeout. The gauges are
+            # still reported.
+            with mock.patch.object(
+                manager, "expire_range_partitions", side_effect=OperationalError("lock timeout")
+            ):
+                assert self.gauges() == {
+                    "db.partitions.ahead": 1,
+                    "db.partitions.detached_by_hand": 0,
+                    "db.partitions.detached_drop_failed": 1,
+                }
+
+    def add_default_partition(self) -> str:
+        # A likely reaction to "no partition of relation found for row" errors.
+        default = f"{RANGE_TABLE}_default"
+        with connection.cursor() as cursor:
+            cursor.execute(f'CREATE TABLE "{default}" PARTITION OF "{RANGE_TABLE}" DEFAULT')
+        return default
+
+    @freeze_time(CREATED_AT)
+    def test_default_partition_only_stops_expiry(self) -> None:
+        with fixture_tables():
+            default = self.add_default_partition()
+            # A backdated row, which no partition covers, lands in the default partition.
+            RangePartitionedFixture.objects.create(date_added=datetime(2023, 6, 1, tzinfo=UTC))
+            with (
+                freeze_time(datetime(2024, 4, 9, tzinfo=UTC)),
+                mock.patch("sentry.db.partitions.manager.metrics.incr") as incr,
+                mock.patch.object(manager.logger, "exception"),
+            ):
+                gauges = self.gauges()
+                with pytest.raises(DefaultPartitionError):
+                    expire_partitions(RangePartitionedFixture)
+            errors = [
+                c for c in incr.call_args_list if c.args[0] == "db.partitions.maintenance.error"
+            ]
+            # New partitions are still created, so new rows don't go to the default
+            # partition, but nothing is dropped.
+            assert [c.kwargs["tags"]["step"] for c in errors] == ["expire"]
+            assert f"{RANGE_TABLE}_p20240422" in partition_names()
+            assert week(4) in partition_names()
+            assert gauges["db.partitions.ahead"] == 2
+            with override_settings(SENTRY_PARTITIONED_TABLES=FIXTURE_TABLES):
+                assert verify_partition_state() == [default_partition_problem(RANGE_TABLE, default)]
+
+    @freeze_time(CREATED_AT)
+    def test_scanning_the_default_partition_has_a_statement_timeout(self) -> None:
+        def ensure_statements(now: datetime) -> list[str]:
+            with CaptureQueriesContext(connection) as queries:
+                assert len(ensure_partitions(RangePartitionedFixture, now=now)) == 1
+            return [q["sql"] for q in queries.captured_queries if "statement_timeout" in q["sql"]]
+
+        with fixture_tables():
+            # Creates the week of 03-25.
+            assert ensure_statements(datetime(2024, 3, 13, tzinfo=UTC)) == []
+            self.add_default_partition()
+            # Creates the week of 04-01.
+            assert ensure_statements(datetime(2024, 3, 20, tzinfo=UTC)) == [
+                "SET LOCAL statement_timeout TO '5s'"
+            ]
+
+    @freeze_time(CREATED_AT)
+    def test_slow_default_partition_scan_fails_creation(self) -> None:
+        with fixture_tables():
+            self.add_default_partition()
+            # Backdated rows, which the scan has to go through, though none are in the
+            # new range.
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'INSERT INTO "{RANGE_TABLE}" (date_added) '
+                    "SELECT '2023-01-01'::timestamptz + n * interval '1 second' "
+                    "FROM generate_series(1, 300000) AS n"
+                )
+            with (
+                mock.patch.object(sql, "DEFAULT_PARTITION_SCAN_TIMEOUT", "1ms"),
+                pytest.raises(OperationalError, match="statement timeout"),
+            ):
+                ensure_partitions(RangePartitionedFixture, now=datetime(2024, 3, 13, tzinfo=UTC))
+            # Nothing is left behind.
+            assert week(25) not in partition_names()
+            with connection.cursor() as cursor:
+                cursor.execute(sql.TABLE_EXISTS, [week(25)])
+                assert cursor.fetchone() == (False,)
+
+    @freeze_time(CREATED_AT)
+    def test_removing_a_default_partition_as_the_error_describes(self) -> None:
+        with fixture_tables():
+            default = self.add_default_partition()
+            # Backdated, so no partition covers it. It can't be put back.
+            RangePartitionedFixture.objects.create(date_added=datetime(2023, 6, 1, tzinfo=UTC))
+            # No partition covers this week yet.
+            ahead = RangePartitionedFixture.objects.create(
+                date_added=datetime(2024, 3, 26, tzinfo=UTC)
+            )
+            problem = default_partition_problem(RANGE_TABLE, default)
+            assert f"`ALTER TABLE {RANGE_TABLE} DETACH PARTITION {default}`" in problem
+            with connection.cursor() as cursor:
+                cursor.execute(f'ALTER TABLE "{RANGE_TABLE}" DETACH PARTITION "{default}"')
+            ensure_partitions(RangePartitionedFixture, now=datetime(2024, 3, 20, tzinfo=UTC))
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    f'INSERT INTO "{RANGE_TABLE}" SELECT * FROM "{default}" '
+                    "WHERE date_added >= '2024-03-04'"
+                )
+                cursor.execute(f'DROP TABLE "{default}"')
+            assert list(RangePartitionedFixture.objects.values_list("id", flat=True)) == [ahead.id]
+            assert expire_partitions(
+                RangePartitionedFixture,
+                before=datetime(2024, 3, 12, tzinfo=UTC),
+                now=datetime(2024, 3, 20, tzinfo=UTC),
+            ) == [week(4)]
+
+    def test_each_silo_only_maintains_its_own_models(self) -> None:
+        # In a monolith every model is available, and both silos' tasks run. The
+        # fixture range model is a cell silo model.
+        with (
+            assume_test_silo_mode(SiloMode.MONOLITH),
+            mock.patch.object(manager, "get_range_table", return_value=None) as get_range,
+        ):
+            maintain_partitions(SiloMode.CONTROL)
+            assert get_range.call_args_list == []
+            maintain_partitions(SiloMode.CELL)
+            assert [c.args[0] for c in get_range.call_args_list] == [RangePartitionedFixture]
+        with (
+            assume_test_silo_mode(SiloMode.CONTROL),
+            mock.patch.object(manager, "get_range_table", return_value=None) as get_range,
+        ):
+            maintain_partitions(SiloMode.CELL)
+            assert get_range.call_args_list == []

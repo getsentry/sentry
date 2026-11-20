@@ -43,6 +43,16 @@ crons_tasks = app.taskregistry.create_namespace(
     app_feature="crons",
 )
 
+db_tasks = app.taskregistry.create_namespace(
+    "db",
+    app_feature="infra",
+)
+
+db_control_tasks = app.taskregistry.create_namespace(
+    "db.control",
+    app_feature="infra",
+)
+
 deletion_tasks = app.taskregistry.create_namespace(
     "deletions",
     processing_deadline_duration=60 * 20,

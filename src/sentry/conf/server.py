@@ -510,6 +510,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.seer",
     "sentry.scm",
     "sentry.cadence",
+    "sentry.db.partitions.apps.PartitionsConfig",
 )
 
 # Silence internal hints from Django's system checks
@@ -904,6 +905,7 @@ TASKWORKER_IMPORTS: tuple[str, ...] = (
     "sentry.cadence.tasks",
     "sentry.conduit.tasks",
     "sentry.data_export.tasks",
+    "sentry.db.partitions.tasks",
     "sentry.debug_files.objectstore_migration.tasks",
     "sentry.debug_files.tasks",
     "sentry.deletions.tasks.groups",
@@ -1117,6 +1119,10 @@ TASKWORKER_REGION_SCHEDULES: ScheduleConfigMap = {
         "task": "issues:sentry.tasks.collect_project_platforms",
         "schedule": crontab("0", "3", "*", "*", "*"),
     },
+    "maintain-partitions": {
+        "task": "db:sentry.db.partitions.tasks.maintain_partitions",
+        "schedule": crontab("17", "*", "*", "*", "*"),
+    },
     "deliver-from-outbox": {
         "task": "hybridcloud:sentry.tasks.enqueue_outbox_jobs",
         "schedule": crontab("*/1", "*", "*", "*", "*"),
@@ -1313,6 +1319,10 @@ TASKWORKER_CONTROL_SCHEDULES: ScheduleConfigMap = {
     "deliver-from-outbox-control": {
         "task": "hybridcloud.control:sentry.tasks.enqueue_outbox_jobs_control",
         "schedule": timedelta(seconds=10),
+    },
+    "maintain-partitions-control": {
+        "task": "db.control:sentry.db.partitions.tasks.maintain_partitions_control",
+        "schedule": crontab("17", "*", "*", "*", "*"),
     },
     "schedule-deletions-control": {
         "task": "deletions.control:sentry.deletions.tasks.run_scheduled_deletions_control",
@@ -3392,6 +3402,13 @@ ZERO_DOWNTIME_MIGRATIONS_RAISE_FOR_UNSAFE = True
 ZERO_DOWNTIME_MIGRATIONS_LOCK_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_STATEMENT_TIMEOUT: str | None = None
 ZERO_DOWNTIME_MIGRATIONS_IDEMPOTENT_SQL = False
+
+# Tables created as partitioned tables in this environment. Each one must belong to a
+# model that declares `__partitioning__` and is created with `CreatePartitionedModel`.
+# Listing a table only affects how it is created; an existing table is never
+# converted, including when migrations are replayed on a new database. See
+# `sentry.db.partitions`.
+SENTRY_PARTITIONED_TABLES: frozenset[str] = frozenset()
 
 if int(PG_VERSION.split(".", maxsplit=1)[0]) < 12:
     # In v0.6 of django-pg-zero-downtime-migrations this settings is deprecated for PostreSQLv12+

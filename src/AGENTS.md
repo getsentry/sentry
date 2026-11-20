@@ -147,7 +147,8 @@ Logging (`LOG005`, `LOG011`), spans, metric tag cardinality, and `options.get()`
 1. Migrations must be backwards compatible → use the **`generate-migration`** skill.
 2. Data migrations using `apps.get_model()` operate on historical model classes: custom `save()` methods are absent, and signals scoped to the live model class do not run. Identify and explicitly perform required side effects such as cache invalidation; see the **`generate-migration`** skill.
 3. Add indexes for queries on 1M+ row tables (`db_index=True` or `db_index_together`).
-4. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
+4. **Partitioned tables**: only new models can be partitioned. Declare `__partitioning__` on the model, replace the generated `CreateModel` with `CreatePartitionedModel(..., partitioning=...)`, and list the table in `SENTRY_PARTITIONED_TABLES` per environment. The rules are in `src/sentry/db/partitions/` and the **`generate-migration`** skill. Partition SQL must stay Postgres 14 compatible.
+5. **Composite indexes**: any query filtering multiple columns (e.g. `foreign_key_id__in=... AND id__gt=...`, or FK + timestamp range, or cursor pagination combining filters) needs an explicit `Index(fields=[...])` in `Meta.indexes`, ordered most-selective-first. A single FK auto-index does NOT cover multi-column filters. See **`django-perf-review`** for validation.
 
 ### Redis TTLs
 
