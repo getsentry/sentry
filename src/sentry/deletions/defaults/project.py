@@ -37,7 +37,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
         from sentry.models.projectrepository import ProjectRepository
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.promptsactivity import PromptsActivity
-        from sentry.models.release_threshold import ReleaseThreshold
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
         from sentry.models.releases.release_project import ReleaseProject
         from sentry.models.transaction_threshold import ProjectTransactionThreshold
@@ -73,7 +72,6 @@ class ProjectDeletionTask(ModelDeletionTask[Project]):
             ProjectBookmark,
             ProjectKey,
             WeeklyReportProjectExclusion,
-            ReleaseThreshold,
             ProjectTeam,
             PromptsActivity,
             # order matters, ProjectCodeOwners to be deleted before RepositoryProjectPathConfig

@@ -45,7 +45,6 @@ from .recentsearch import *  # noqa: F401,F403
 from .relayusage import *  # noqa: F401,F403
 from .release import *  # noqa: F401,F403
 from .release_file import *  # noqa: F401,F403
-from .release_threshold import *  # noqa: F401,F403
 from .repository import *  # noqa: F401,F403
 from .role import *  # noqa: F401,F403
 from .tagvalue import *  # noqa: F401,F403

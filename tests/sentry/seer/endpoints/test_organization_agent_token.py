@@ -1757,12 +1757,6 @@ class AgentTokenPublicGetMatrixTest(APITestCase, OurLogTestCase):
             }
         if endpoint.endpoint_name == "OrganizationProfilingFlamegraphEndpoint":
             return {"project": [self.project.id], "statsPeriod": "1h"}
-        if endpoint.endpoint_name == "ReleaseThresholdStatusIndexEndpoint":
-            now = timezone.now()
-            return {
-                "start": (now - timedelta(hours=1)).isoformat(),
-                "end": now.isoformat(),
-            }
         if endpoint.endpoint_name == "OrganizationSessionsEndpoint":
             return {
                 "field": ["sum(session)"],

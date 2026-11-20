@@ -80,16 +80,6 @@ from sentry.api.endpoints.organization_unsubscribe import (
 )
 from sentry.api.endpoints.project_overview import ProjectOverviewEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
-from sentry.api.endpoints.release_thresholds.release_threshold_details import (
-    ReleaseThresholdDetailsEndpoint,
-)
-from sentry.api.endpoints.release_thresholds.release_threshold_index import (
-    ReleaseThresholdIndexEndpoint,
-)
-from sentry.api.endpoints.release_thresholds.release_threshold_status_index import (
-    ReleaseThresholdStatusIndexEndpoint,
-)
 from sentry.api.endpoints.secret_scanning.github import SecretScanningGitHubEndpoint
 from sentry.api.endpoints.source_map_debug import SourceMapDebugEndpoint
 from sentry.auth_v2.urls import AUTH_V2_URLS
@@ -2346,17 +2336,6 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-organization-releases",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/release-thresholds/$",
-        ReleaseThresholdIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-release-thresholds",
-    ),
-    # TODO: also integrate release threshold status into the releases response?
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/release-threshold-statuses/$",
-        ReleaseThresholdStatusIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-release-threshold-statuses",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/releases/stats/$",
         OrganizationReleasesStatsEndpoint.as_view(),
         name="sentry-api-0-organization-releases-stats",
@@ -3218,16 +3197,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/releases/$",
         ProjectReleasesEndpoint.as_view(),
         name="sentry-api-0-project-releases",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/release-thresholds/$",
-        ReleaseThresholdEndpoint.as_view(),
-        name="sentry-api-0-project-release-thresholds",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/release-thresholds/(?P<release_threshold>[^/]+)/$",
-        ReleaseThresholdDetailsEndpoint.as_view(),
-        name="sentry-api-0-project-release-thresholds-details",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/(?P<project_id_or_slug>[^/]+)/commits/$",

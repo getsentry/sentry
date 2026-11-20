@@ -607,11 +607,9 @@ tests/sentry/api/endpoints/test_organization_attribute_mappings.py          @get
 /src/sentry/api/endpoints/organization_auditlogs.py                     @getsentry/foundations
 /src/sentry/core/endpoints/organization_projects.py                     @getsentry/foundations
 /src/sentry/api/endpoints/organization_stats*.py                        @getsentry/foundations
-/src/sentry/api/endpoints/release_threshold*.py                         @getsentry/replay
 /src/sentry/api/endpoints/user_social_identity*                         @getsentry/foundations
 /src/sentry/auth/staff.py                                               @getsentry/foundations @getsentry/owners-auth
 /src/sentry/auth/superuser.py                                           @getsentry/foundations @getsentry/owners-auth
-/src/sentry/models/release_threshold/                                   @getsentry/replay
 /src/sentry/scim/                                                       @getsentry/foundations
 /src/sentry/integrations/github/                                        @getsentry/foundations @getsentry/scm
 /src/sentry/web/frontend/auth_login.py                                  @getsentry/foundations @getsentry/owners-auth
