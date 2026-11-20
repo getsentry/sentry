@@ -1,11 +1,9 @@
 from __future__ import annotations
 
-from datetime import timedelta
 from typing import TYPE_CHECKING, TypedDict
 
 import orjson
 from django.conf import settings
-from django.utils import timezone
 from slack_sdk.models.blocks import (
     ActionsBlock,
     Block,
@@ -221,10 +219,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
         message = data.message
         blocks: list[Block] = [SectionBlock(text=message)]
-        if data.is_daily_limit_reached:
-            blocks.append(
-                SectionBlock(text=MarkdownTextObject(text=cls._render_daily_limit_reset()))
-            )
 
         try:
             organization = Organization.objects.get_from_cache(id=data.organization_id)
@@ -256,18 +250,6 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
             )
         )
         return SlackRenderable(blocks=blocks, text=message)
-
-    @staticmethod
-    def _render_daily_limit_reset() -> str:
-        # Billing counts a day's spend by its UTC date, so the limit resets at the next midnight UTC.
-        resets_at = (timezone.now() + timedelta(days=1)).replace(
-            hour=0, minute=0, second=0, microsecond=0
-        )
-        # Slack shows the time in each reader's own timezone.
-        return (
-            f"<!date^{int(resets_at.timestamp())}^This will reset at {{time}}."
-            "|This will reset at 12:00 AM UTC.>"
-        )
 
     @classmethod
     def _render_autofix_error(cls, data: SeerAutofixError) -> SlackRenderable:
