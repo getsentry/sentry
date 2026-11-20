@@ -201,7 +201,7 @@ class SlackAutofixEntrypointTest(TestCase):
         )
         blocks = str(mock_send_threaded_ephemeral_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
-        assert "Configure auto-reload" in blocks
+        assert "Configure billing" in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.update_message")
     def test_on_trigger_autofix_success(self, mock_update_message: MagicMock) -> None:
@@ -467,7 +467,7 @@ class SlackAutofixEntrypointTest(TestCase):
 
         blocks = str(mock_send_threaded_message.call_args.kwargs["renderable"]["blocks"])
         assert AUTOFIX_OUT_OF_CREDITS_MESSAGE in blocks
-        assert "Configure auto-reload" in blocks
+        assert "Configure billing" in blocks
         assert "couldn't finish working on this issue" not in blocks
 
     @patch("sentry.integrations.slack.integration.SlackIntegration.send_threaded_ephemeral_message")
