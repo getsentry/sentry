@@ -1,7 +1,6 @@
 import type {ReactNode} from 'react';
 import {IconChevron} from '@sentry/icons/chevron';
 
-import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 
@@ -77,18 +76,7 @@ export function SubAgentRow({
           )}
         </Flex>
       }
-      meta={
-        <TurnMeta
-          metric={null}
-          duration={
-            call.duration === undefined || call.duration <= 0 ? null : (
-              <Text size="xs" variant="muted" tabular align="right">
-                {getDuration(call.duration, {precision: 2, style: 'short'})}
-              </Text>
-            )
-          }
-        />
-      }
+      meta={<TurnMeta duration={call.duration} />}
       onOpenChange={open => {
         setIsOpen(open);
         trackAnalytics('conversations.detail.expand-subagent', {
