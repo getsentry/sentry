@@ -16,7 +16,7 @@ from sentry.apidocs.constants import (
     RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.descriptions import ApiDescription
-from sentry.apidocs.parameters import GlobalParams, IssueParams
+from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
@@ -51,7 +51,6 @@ class ShortIdLookupEndpoint(GroupEndpoint):
                 type=str,
                 location="path",
             ),
-            IssueParams.GROUP_INDEX_COLLAPSE,
         ],
         responses={
             200: inline_sentry_response_serializer(
