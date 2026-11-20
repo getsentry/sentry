@@ -473,6 +473,9 @@ class OrganizationEventsTimeseriesEndpoint(OrganizationEventsEndpointBase):
                 disable_aggregate_extrapolation=disable_aggregate_extrapolation,
                 extrapolation_mode=extrapolation_mode,
                 disable_array_attributes=disable_array_attributes,
+                # A bucket without a build has no size. A zero would read as an
+                # app that shrank to nothing between builds.
+                zerofill_timeseries=False,
             )
         else:
             return SearchResolverConfig(

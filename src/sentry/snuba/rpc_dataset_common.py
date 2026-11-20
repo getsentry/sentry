@@ -1060,8 +1060,8 @@ class RPCBase:
                 for attr in ["timeseries", "confidence", "sample_count", "sampling_rate"]:
                     for existing, new in zip(getattr(result, attr), getattr(processed, attr)):
                         existing.update(new)
-        if len(result.timeseries) == 0 and config.zerofill_timeseries:
-            # The rpc only zerofills for us when there are results, if there aren't any we have to do it ourselves
+        if len(result.timeseries) == 0:
+            # The rpc only returns buckets when there are results, if there aren't any we have to build them ourselves
             result.timeseries = zerofill(
                 [],
                 params.start_date,
@@ -1069,6 +1069,11 @@ class RPCBase:
                 params.timeseries_granularity_secs,
                 ["time"],
             )
+            if not config.zerofill_timeseries:
+                # Serializers default a missing value to 0, so mark each bucket as empty explicitly
+                for row in result.timeseries:
+                    for aggregate in aggregates:
+                        row[aggregate.public_alias] = None
         apply_resolved_literals(result.timeseries, aggregates)
 
         cls.apply_timeseries_transformations(
