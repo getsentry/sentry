@@ -56,8 +56,7 @@ class OrganizationAgentHandoffTest(APITestCase):
         code = response.data["code"]
         assert code.startswith("sntryh_")
         assert response.data["prompt"] == (
-            f"Follow the instructions verbatim at {response.data['guideUrl']}. "
-            f"Your handoff code is `{code}`."
+            f"Read and follow {response.data['guideUrl']} verbatim. Your handoff code is `{code}`."
         )
         record = consume_handoff(code, ip_address="127.0.0.1")
         assert record is not None
@@ -324,6 +323,10 @@ class OrganizationAgentHandoffTest(APITestCase):
         assert handoff.flow is HandoffFlow.ADD_FEATURE
         assert handoff.context == AddFeatureContext(
             product=AddFeatureProduct.TRACING, project_id=42
+        )
+        assert response.data["prompt"] == (
+            f"Read and follow {response.data['guideUrl']} verbatim to set up tracing. "
+            f"Your handoff code is `{response.data['code']}`."
         )
 
     def test_add_feature_rejects_unavailable_project(self) -> None:
