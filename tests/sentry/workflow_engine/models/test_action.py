@@ -223,7 +223,7 @@ class TestAction(TestCase):
         mock_get_detector.return_value = self.create_detector(
             project=self.create_project(organization=self.create_organization())
         )
-        with pytest.raises(ValueError, match="same organization"):
+        with pytest.raises(UnsupportedActionEvent, match="same organization"):
             self.action.trigger(self.mock_event, str(uuid.uuid4()), self.workflow.id)
 
     @patch("sentry.workflow_engine.processors.detector.get_preferred_detector")
@@ -235,7 +235,7 @@ class TestAction(TestCase):
         )
         with (
             patch.object(ActionHandler, "supports_group_less", True),
-            pytest.raises(ValueError, match="same organization"),
+            pytest.raises(UnsupportedActionEvent, match="same organization"),
         ):
             self.action.trigger(self.organization_event, str(uuid.uuid4()), self.workflow.id)
 

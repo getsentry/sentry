@@ -145,7 +145,9 @@ class Action(DefaultFieldsModel, JSONConfigBase):
             else detector.config.get("organization_id")
         )
         if detector_organization_id != organization.id:
-            raise ValueError("Action detector and event must belong to the same organization")
+            raise UnsupportedActionEvent(
+                "Action detector and event must belong to the same organization"
+            )
         if detector.project_id is None and not handler.supports_group_less:
             raise UnsupportedActionEvent("This action requires a project-scoped detector")
 
