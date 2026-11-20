@@ -3,6 +3,7 @@ from unittest import TestCase, mock
 from unittest.mock import MagicMock, Mock, patch
 
 from django.test import override_settings
+from django.urls import reverse
 
 from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.core.endpoints.organization_projects import DISABLED_FEATURE_ERROR_STRING
@@ -15,6 +16,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.utils.slug import DEFAULT_SLUG_ERROR_MESSAGE
+from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
 from sentry.workflow_engine.defaults.workflows import DEFAULT_WORKFLOW_LABEL
 from sentry.workflow_engine.models import Workflow
 
@@ -46,6 +48,30 @@ class TeamProjectsListTest(APITestCase):
         )
 
         assert str(proj3.id) not in response.data
+
+    @override_settings(SEER_API_SHARED_SECRET="service-account-secret")
+    @with_feature("organizations:service-accounts")
+    def test_service_account_cannot_list_team_projects(self) -> None:
+        # A service account has no team access, even when it is linked to the team's projects.
+        service_account = self.create_service_account(
+            organization=self.organization,
+            scope_list=["team:read", "project:read"],
+            project_ids=[self.proj1.id, self.proj2.id],
+        )
+        viewer_context = encode_viewer_context(
+            ViewerContext(
+                actor=Actor(type=ActorType.SERVICE_ACCOUNT, actor_id=service_account.id),
+                organization_id=self.organization.id,
+            ),
+            key="service-account-secret",
+        )
+
+        response = self.client.get(
+            reverse(self.endpoint, args=[self.organization.slug, self.team.slug]),
+            HTTP_X_VIEWER_CONTEXT=viewer_context,
+        )
+
+        assert response.status_code == 403, response.content
 
 
 class TeamProjectsCreateTest(APITestCase, TestCase):
