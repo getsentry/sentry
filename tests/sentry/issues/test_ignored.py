@@ -1,16 +1,25 @@
 from unittest.mock import MagicMock, patch
 
+from django.db import connections, router
+from django.test.utils import CaptureQueriesContext
+
 from sentry.issues.escalating.escalating_group_forecast import (
     ONE_EVENT_FORECAST,
     EscalatingGroupForecast,
 )
-from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
+from sentry.issues.ignored import (
+    IgnoredStatusDetails,
+    handle_archived_until_escalating,
+    handle_ignored,
+    prepare_ignored,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
+from sentry.utils.cache import cache
 from tests.sentry.issues.test_utils import get_mock_groups_past_counts_response
 
 pytestmark = [requires_snuba]
@@ -24,28 +33,61 @@ class HandleIgnoredTest(TestCase):
         self.group_ids = [self.group]
         add_group_to_inbox(self.group, GroupInboxReason.NEW)
 
+    def archive(
+        self, group_list: list[Group], status_details: dict[str, int]
+    ) -> IgnoredStatusDetails:
+        prepared = prepare_ignored(group_list, status_details, self.user)
+        return handle_ignored(group_list, prepared, self.user)
+
     def test_ignored_forever(self) -> None:
-        status_details = handle_ignored(self.group_list, {}, self.user)
+        status_details = self.archive(self.group_list, {})
         assert status_details == {}
         assert not GroupInbox.objects.filter(group=self.group).exists()
         assert not GroupSnooze.objects.filter(group=self.group).exists()
 
     def test_ignored_duration(self) -> None:
-        status_details = handle_ignored(self.group_list, {"ignoreDuration": 30}, self.user)
+        status_details = self.archive(self.group_list, {"ignoreDuration": 30})
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.until == status_details.get("ignoreUntil")
 
     def test_ignored_count(self) -> None:
-        status_details = handle_ignored(self.group_list, {"ignoreCount": 50}, self.user)
+        status_details = self.archive(self.group_list, {"ignoreCount": 50})
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.count == status_details.get("ignoreCount")
 
+    def test_archive_writes_open_no_savepoint(self) -> None:
+        group_list = [self.create_group() for _ in range(40)]
+        prepared = prepare_ignored(group_list, {"ignoreUserCount": 10}, self.user)
+
+        with CaptureQueriesContext(connections[router.db_for_write(GroupSnooze)]) as queries:
+            handle_ignored(group_list, prepared, self.user)
+
+        statements = [query["sql"] for query in queries.captured_queries]
+        assert not [sql for sql in statements if sql.startswith("SAVEPOINT")]
+        assert GroupSnooze.objects.filter(group__in=group_list).count() == 40
+
+    def test_repeat_archive_updates_snooze_and_its_caches(self) -> None:
+        self.archive(self.group_list, {"ignoreCount": 50})
+        first = GroupSnooze.objects.get(group=self.group)
+        GroupSnooze.objects.get_from_cache(group=self.group)
+        cache.set(GroupSnooze.get_cache_key(self.group.id), first, 3600)
+
+        self.archive(self.group_list, {"ignoreCount": 80})
+
+        stored = GroupSnooze.objects.get(group=self.group)
+        cached_for_status = GroupSnooze.objects.get_from_cache(group=self.group)
+        cached_for_events = cache.get(GroupSnooze.get_cache_key(self.group.id))
+        assert stored.id == first.id
+        assert stored.count == 80
+        assert cached_for_status.count == 80
+        assert cached_for_events.count == 80
+
     def test_ignored_user_count(self) -> None:
-        status_details = handle_ignored(self.group_list, {"ignoreUserCount": 100}, self.user)
+        status_details = self.archive(self.group_list, {"ignoreUserCount": 100})
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
         snooze = GroupSnooze.objects.filter(group=self.group).get()
