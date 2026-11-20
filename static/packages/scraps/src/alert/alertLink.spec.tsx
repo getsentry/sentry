@@ -28,9 +28,7 @@ describe('AlertLink', () => {
       {wrapper: ThemeWrapper}
     );
 
-    const link = screen.getByRole('link', {
-      name: 'This is an external link button',
-    });
+    const link = screen.getByRole('link', {name: 'This is an external link button'});
 
     expect(link).toHaveAttribute('target', '_blank');
     expect(link).toHaveAttribute('rel', 'noreferrer noopener');
@@ -44,9 +42,7 @@ describe('AlertLink', () => {
       {wrapper: ThemeWrapper}
     );
 
-    const link = screen.getByRole('link', {
-      name: 'This is an external link button',
-    });
+    const link = screen.getByRole('link', {name: 'This is an external link button'});
 
     expect(link).not.toHaveAttribute('target', '_blank');
     expect(link).not.toHaveAttribute('rel', 'noreferrer noopener');

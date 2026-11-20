@@ -16,12 +16,7 @@ describe('droppedEventsToOutcomeSections', () => {
     const sections = droppedEventsToOutcomeSections(
       [
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 5}),
-        OutcomeRowFixture({
-          outcome: 'invalid',
-          reason: 'timestamp',
-          start: 0,
-          count: 3,
-        }),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'timestamp', start: 0, count: 3}),
         OutcomeRowFixture({
           outcome: 'filtered',
           reason: 'web-crawlers',
@@ -44,12 +39,7 @@ describe('droppedEventsToOutcomeSections', () => {
     const sections = droppedEventsToOutcomeSections(
       [
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 2}),
-        OutcomeRowFixture({
-          outcome: 'invalid',
-          reason: 'cors',
-          start: 60_000,
-          count: 4,
-        }),
+        OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 60_000, count: 4}),
         OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 1}),
       ],
       []
@@ -61,14 +51,7 @@ describe('droppedEventsToOutcomeSections', () => {
   it('computes share against total events (accepted + dropped)', () => {
     const sections = droppedEventsToOutcomeSections(
       [OutcomeRowFixture({outcome: 'invalid', reason: 'cors', start: 0, count: 25})],
-      [
-        OutcomeRowFixture({
-          outcome: 'accepted',
-          reason: 'accepted',
-          start: 0,
-          count: 75,
-        }),
-      ]
+      [OutcomeRowFixture({outcome: 'accepted', reason: 'accepted', start: 0, count: 75})]
     );
 
     expect(sections[0]!.shareRatio).toBe(0.25);

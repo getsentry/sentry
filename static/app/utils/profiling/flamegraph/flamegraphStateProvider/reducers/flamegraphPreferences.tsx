@@ -44,36 +44,21 @@ export function flamegraphPreferencesReducer(
 ): FlamegraphPreferences {
   switch (action.type) {
     case 'set layout': {
-      return {
-        ...state,
-        layout: action.payload,
-      };
+      return {...state, layout: action.payload};
     }
     case 'set color coding': {
-      return {
-        ...state,
-        colorCoding: action.payload,
-      };
+      return {...state, colorCoding: action.payload};
     }
     case 'set sorting': {
-      return {
-        ...state,
-        sorting: action.payload,
-      };
+      return {...state, sorting: action.payload};
     }
     case 'set view': {
-      return {
-        ...state,
-        view: action.payload,
-      };
+      return {...state, view: action.payload};
     }
     case 'toggle timeline': {
       return {
         ...state,
-        timelines: {
-          ...state.timelines,
-          [action.payload.timeline]: action.payload.value,
-        },
+        timelines: {...state.timelines, [action.payload.timeline]: action.payload.value},
       };
     }
     default: {

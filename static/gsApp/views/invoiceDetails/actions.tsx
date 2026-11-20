@@ -16,11 +16,7 @@ import {THREE_DS_REFERRER} from 'getsentry/constants';
 import type {Invoice} from 'getsentry/types';
 import {trackGetsentryAnalytics} from 'getsentry/utils/trackGetsentryAnalytics';
 
-type Props = {
-  invoice: Invoice;
-  organization: Organization;
-  reloadInvoice: () => void;
-};
+type Props = {invoice: Invoice; organization: Organization; reloadInvoice: () => void};
 
 export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Props) {
   const api = useApi();
@@ -44,10 +40,7 @@ export function InvoiceDetailsActions({organization, invoice, reloadInvoice}: Pr
       toast.loading(t('Sending Email\u2026'));
       await api.requestPromise(
         `/customers/${invoice.customer.slug}/invoices/${invoice.id}/`,
-        {
-          method: 'POST',
-          data,
-        }
+        {method: 'POST', data}
       );
       toast.success(t('Email sent successfully.'));
       form.reset();

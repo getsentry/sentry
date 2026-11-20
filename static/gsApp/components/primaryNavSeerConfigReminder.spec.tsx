@@ -32,11 +32,7 @@ describe('PrimaryNavSeerConfigReminder', () => {
   function mockOnboardingCheck(organization: Organization, isAutofixEnabled: boolean) {
     return MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/seer/onboarding-check/`,
-      body: {
-        hasSupportedScmIntegration: true,
-        isAutofixEnabled,
-        isSeerConfigured: false,
-      },
+      body: {hasSupportedScmIntegration: true, isAutofixEnabled, isSeerConfigured: false},
     });
   }
 

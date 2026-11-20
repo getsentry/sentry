@@ -80,14 +80,8 @@ type ChartData = {
 
 export function getEndpointQueryDatetime(dataDatetime: DateTimeObject) {
   return dataDatetime.start && dataDatetime.end
-    ? {
-        start: dataDatetime.start,
-        end: dataDatetime.end,
-        utc: dataDatetime.utc,
-      }
-    : {
-        statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD,
-      };
+    ? {start: dataDatetime.start, end: dataDatetime.end, utc: dataDatetime.utc}
+    : {statsPeriod: dataDatetime.period || DEFAULT_STATS_PERIOD};
 }
 
 export function getEndpointQuery({
@@ -164,10 +158,7 @@ export function getChartProps({
   ) => void;
   loading: boolean;
   clientDiscard?: boolean;
-}): UsageChartProps & {
-  footer: React.ReactNode;
-  title: React.ReactNode;
-} {
+}): UsageChartProps & {footer: React.ReactNode; title: React.ReactNode} {
   const errors = error ? {error} : undefined;
 
   return {
@@ -378,11 +369,7 @@ export function UsageStatsOrganization({
         | 'card-invalid'
         | 'chart-title'
     ) => {
-      trackAnalytics('stats.docs_clicked', {
-        organization,
-        source,
-        dataCategory,
-      });
+      trackAnalytics('stats.docs_clicked', {organization, source, dataCategory});
     },
     [organization, dataCategory]
   );
@@ -667,10 +654,7 @@ const FooterDate = styled('div')`
   }
 `;
 
-type SpansStoredProps = {
-  acceptedStored: string;
-  organization: Organization;
-};
+type SpansStoredProps = {acceptedStored: string; organization: Organization};
 
 const StyledSettingsButton = styled(LinkButton)`
   top: 2px;
@@ -695,8 +679,4 @@ function SpansStored({organization, acceptedStored}: SpansStoredProps) {
   );
 }
 
-export const UsageStatsOrgComponents = {
-  PageGrid,
-  ChartContainer,
-  ScoreCards,
-};
+export const UsageStatsOrgComponents = {PageGrid, ChartContainer, ScoreCards};

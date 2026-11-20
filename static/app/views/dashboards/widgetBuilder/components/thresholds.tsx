@@ -52,10 +52,7 @@ export function ThresholdsSection({
     ) {
       dispatch({
         type: BuilderStateAction.SET_THRESHOLDS,
-        payload: {
-          ...state.thresholds,
-          unit: null,
-        },
+        payload: {...state.thresholds, unit: null},
       });
     }
   }, [dataType, dispatch, state.thresholds]);
@@ -134,10 +131,7 @@ export function ThresholdsSection({
 
           setError?.({...error, thresholds: {[maxKey]: ''}});
 
-          dispatch({
-            type: BuilderStateAction.SET_THRESHOLDS,
-            payload: newThresholds,
-          });
+          dispatch({type: BuilderStateAction.SET_THRESHOLDS, payload: newThresholds});
         }}
         onUnitChange={unit => {
           dispatch({
@@ -164,10 +158,7 @@ export function ThresholdsSection({
             delete nextThresholds.timeWindow;
           }
 
-          dispatch({
-            type: BuilderStateAction.SET_THRESHOLDS,
-            payload: nextThresholds,
-          });
+          dispatch({type: BuilderStateAction.SET_THRESHOLDS, payload: nextThresholds});
         }}
         dataType={dataType}
         dataUnit={dataUnit}

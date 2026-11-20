@@ -275,17 +275,11 @@ export function DropdownMenuItem<T extends React.ElementType = 'li'>({
 
   const makeInnerWrapProps = () => {
     if (to) {
-      return {
-        as: Link,
-        to,
-      };
+      return {as: Link, to};
     }
 
     if (externalHref) {
-      return {
-        as: ExternalLink,
-        href: externalHref,
-      };
+      return {as: ExternalLink, href: externalHref};
     }
 
     return {

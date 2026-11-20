@@ -27,10 +27,7 @@ interface Props {
   queryReferrer: ReplayListQueryReferrer;
 }
 
-type ReplaysListResponse = {
-  data: ReplayListRecord[];
-  enabled: boolean;
-};
+type ReplaysListResponse = {data: ReplayListRecord[]; enabled: boolean};
 
 function getQueryForReplaysList({
   options,
@@ -57,13 +54,7 @@ function getQueryForReplaysList({
     Object.entries(options.query).filter(([_key, val]) => val !== '')
   );
 
-  return {
-    per_page: 50,
-    ...query,
-    field: fields,
-    project,
-    queryReferrer,
-  };
+  return {per_page: 50, ...query, field: fields, project, queryReferrer};
 }
 
 export function replayListApiOptions(props: Props) {
@@ -71,11 +62,7 @@ export function replayListApiOptions(props: Props) {
 
   return apiOptions.as<ReplaysListResponse>()(
     '/organizations/$organizationIdOrSlug/replays/',
-    {
-      path: {organizationIdOrSlug: props.organization.slug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: props.organization.slug}, query, staleTime: 0}
   );
 }
 
@@ -85,10 +72,6 @@ export function replayListInfiniteApiOptions(props: Props) {
 
   return apiOptions.asInfinite<{data: ReplayListRecord[]}>()(
     '/organizations/$organizationIdOrSlug/replays/',
-    {
-      path: {organizationIdOrSlug: props.organization.slug},
-      query,
-      staleTime: 0,
-    }
+    {path: {organizationIdOrSlug: props.organization.slug}, query, staleTime: 0}
   );
 }

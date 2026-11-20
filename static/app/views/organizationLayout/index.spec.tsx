@@ -27,10 +27,7 @@ describe('OrganizationLayout', () => {
     ConfigStore.set('user', UserFixture());
 
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/environments/',
       body: [],
@@ -43,23 +40,14 @@ describe('OrganizationLayout', () => {
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
   });
 
   describe('deletion states', () => {
     it('should render a restoration prompt', async () => {
       const organization = OrganizationFixture({
-        status: {
-          id: 'pending_deletion',
-          name: 'pending deletion',
-        },
+        status: {id: 'pending_deletion', name: 'pending deletion'},
       });
       OrganizationStore.onUpdate(organization);
 
@@ -69,9 +57,7 @@ describe('OrganizationLayout', () => {
         body: organization,
       });
 
-      render(<OrganizationLayout />, {
-        organization,
-      });
+      render(<OrganizationLayout />, {organization});
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
 
@@ -88,16 +74,11 @@ describe('OrganizationLayout', () => {
     it('should render a restoration prompt without action for members', async () => {
       const organization = OrganizationFixture({
         access: [],
-        status: {
-          id: 'pending_deletion',
-          name: 'pending deletion',
-        },
+        status: {id: 'pending_deletion', name: 'pending deletion'},
       });
       OrganizationStore.onUpdate(organization);
 
-      render(<OrganizationLayout />, {
-        organization,
-      });
+      render(<OrganizationLayout />, {organization});
 
       expect(await screen.findByText('Deletion Scheduled')).toBeInTheDocument();
 
@@ -113,16 +94,11 @@ describe('OrganizationLayout', () => {
 
   it('should render a deletion in progress prompt', async () => {
     const organization = OrganizationFixture({
-      status: {
-        id: 'deletion_in_progress',
-        name: 'deletion in progress',
-      },
+      status: {id: 'deletion_in_progress', name: 'deletion in progress'},
     });
     OrganizationStore.onUpdate(organization);
 
-    render(<OrganizationLayout />, {
-      organization,
-    });
+    render(<OrganizationLayout />, {organization});
 
     const inProgress = await screen.findByText(
       'currently in the process of being deleted from Sentry.',
@@ -184,10 +160,7 @@ describe('OrganizationLayout', () => {
     await userEvent.click(await screen.findByRole('button', {name: 'Close Drawer'}));
 
     await waitFor(() => {
-      expect(router.location.query).toEqual({
-        project: '1',
-        query: 'is:unresolved',
-      });
+      expect(router.location.query).toEqual({project: '1', query: 'is:unresolved'});
     });
     expect(
       screen.queryByRole('complementary', {name: 'Releases drawer'})
@@ -200,10 +173,7 @@ describe('OrganizationLayout', () => {
         url: '/organizations/org-slug/group-search-views/starred/',
         body: [],
       });
-      MockApiClient.addMockResponse({
-        url: '/assistant/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/assistant/', body: []});
     });
 
     it('can render navigation without an organization', async () => {

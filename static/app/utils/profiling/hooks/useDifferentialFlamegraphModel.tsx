@@ -79,15 +79,10 @@ export function useDifferentialFlamegraphModel(
       return DifferentialFlamegraphModel.Empty();
     }
 
-    const span = Sentry.startInactiveSpan({
-      name: 'differential_flamegraph.import',
-    });
+    const span = Sentry.startInactiveSpan({name: 'differential_flamegraph.import'});
     // oxlint-disable-next-line react/capitalized-calls -- Static factory on DifferentialFlamegraphModel, not a component.
     const flamegraph = DifferentialFlamegraphModel.FromDiff(
-      {
-        before: beforeFlamegraph,
-        after: afterFlamegraph,
-      },
+      {before: beforeFlamegraph, after: afterFlamegraph},
       {negated: props.negated},
       theme
     );
@@ -95,10 +90,5 @@ export function useDifferentialFlamegraphModel(
     return flamegraph;
   }, [beforeFlamegraph, afterFlamegraph, theme, props.negated]);
 
-  return {
-    beforeFlamegraph,
-    afterFlamegraph,
-    differentialFlamegraph,
-    afterProfileGroup,
-  };
+  return {beforeFlamegraph, afterFlamegraph, differentialFlamegraph, afterProfileGroup};
 }

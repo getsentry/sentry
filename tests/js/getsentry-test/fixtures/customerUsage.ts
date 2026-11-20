@@ -13,11 +13,7 @@ export function CustomerUsageFixture(
       transactions: UsageTotalFixture(),
       attachments: UsageTotalFixture(),
     },
-    stats: {
-      errors: [],
-      transactions: [],
-      attachments: [],
-    },
+    stats: {errors: [], transactions: [], attachments: []},
     ...params,
   };
 }

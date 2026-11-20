@@ -5,18 +5,9 @@ import type {PageFilters, PageFilterDatetime} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 
-type PerformanceStatsGroup = {
-  by: {
-    reason: string;
-  };
-  totals: {
-    'sum(quantity)': number;
-  };
-};
+type PerformanceStatsGroup = {by: {reason: string}; totals: {'sum(quantity)': number}};
 
-type PartialUsageStats = {
-  groups?: PerformanceStatsGroup[];
-};
+type PartialUsageStats = {groups?: PerformanceStatsGroup[]};
 
 export function usePerformanceUsageStats({
   organization,

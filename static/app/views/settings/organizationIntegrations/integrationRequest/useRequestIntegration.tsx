@@ -6,11 +6,7 @@ import type {IntegrationType} from 'sentry/types/integrations';
 
 import {RequestIntegrationModal} from './RequestIntegrationModal';
 
-type IntegrationRequest = {
-  name: string;
-  slug: string;
-  type: IntegrationType;
-};
+type IntegrationRequest = {name: string; slug: string; type: IntegrationType};
 
 export function useRequestIntegration() {
   const {openModal} = useModal();

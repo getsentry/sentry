@@ -93,11 +93,13 @@ describe('SnapshotListView', () => {
     mockElementSize({width: 900, height: 600});
     // jsdom returns empty padding strings; parseFloat('') is NaN, which would
     // propagate into the virtualizer's height math. Force numeric padding.
-    jest.spyOn(window, 'getComputedStyle').mockReturnValue({
-      paddingLeft: '0px',
-      paddingRight: '0px',
-      getPropertyValue: () => '',
-    } as unknown as CSSStyleDeclaration);
+    jest
+      .spyOn(window, 'getComputedStyle')
+      .mockReturnValue({
+        paddingLeft: '0px',
+        paddingRight: '0px',
+        getPropertyValue: () => '',
+      } as unknown as CSSStyleDeclaration);
     HTMLElement.prototype.scrollIntoView = jest.fn();
     localStorage.clear();
   });
@@ -334,13 +336,15 @@ describe('SnapshotListView', () => {
     const originalScrollTo = HTMLElement.prototype.scrollTo;
 
     beforeEach(() => {
-      jest.spyOn(window, 'getComputedStyle').mockReturnValue({
-        paddingLeft: '0px',
-        paddingRight: '0px',
-        paddingTop: '16px',
-        paddingBottom: '16px',
-        getPropertyValue: () => '',
-      } as unknown as CSSStyleDeclaration);
+      jest
+        .spyOn(window, 'getComputedStyle')
+        .mockReturnValue({
+          paddingLeft: '0px',
+          paddingRight: '0px',
+          paddingTop: '16px',
+          paddingBottom: '16px',
+          getPropertyValue: () => '',
+        } as unknown as CSSStyleDeclaration);
       jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(600);
       jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(900);
       jest

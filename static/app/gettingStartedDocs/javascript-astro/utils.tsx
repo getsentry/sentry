@@ -2,11 +2,5 @@ import type {ContentBlock} from 'sentry/components/onboarding/gettingStartedDoc/
 
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
-  tabs: [
-    {
-      label: 'bash',
-      language: 'bash',
-      code: 'npx astro add @sentry/astro',
-    },
-  ],
+  tabs: [{label: 'bash', language: 'bash', code: 'npx astro add @sentry/astro'}],
 };

@@ -77,10 +77,7 @@ export function useExploreSpansTourModal() {
             img={{src: exploreSpansTourSvg, alt: t('Explore Spans Tour')}}
             closeModal={props.closeModal}
             onDismissTour={() => {
-              mutateAssistant({
-                guide: EXPLORE_SPANS_TOUR_GUIDE_KEY,
-                status: 'dismissed',
-              });
+              mutateAssistant({guide: EXPLORE_SPANS_TOUR_GUIDE_KEY, status: 'dismissed'});
               endTour();
             }}
             onStartTour={startTour}
@@ -92,10 +89,7 @@ export function useExploreSpansTourModal() {
           // If user closes modal through other means, also prevent the modal from being shown again.
           onClose: reason => {
             if (reason) {
-              mutateAssistant({
-                guide: EXPLORE_SPANS_TOUR_GUIDE_KEY,
-                status: 'dismissed',
-              });
+              mutateAssistant({guide: EXPLORE_SPANS_TOUR_GUIDE_KEY, status: 'dismissed'});
               endTour();
             }
           },

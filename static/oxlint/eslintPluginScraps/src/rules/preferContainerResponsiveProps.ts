@@ -100,9 +100,7 @@ function allowsViewportSizing(
 export const preferContainerResponsiveProps = defineRule({
   meta: {
     type: 'problem',
-    docs: {
-      description: 'Prevent new media and container queries in components',
-    },
+    docs: {description: 'Prevent new media and container queries in components'},
     schema: [],
     messages: {
       forbidden:

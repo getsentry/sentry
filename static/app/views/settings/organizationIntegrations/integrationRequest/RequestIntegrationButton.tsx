@@ -7,11 +7,7 @@ import type {IntegrationType} from 'sentry/types/integrations';
 
 import {useRequestIntegration} from './useRequestIntegration';
 
-type Props = {
-  name: string;
-  slug: string;
-  type: IntegrationType;
-};
+type Props = {name: string; slug: string; type: IntegrationType};
 
 export function RequestIntegrationButton(props: Props) {
   const {isOpen, isSent, openRequestModal} = useRequestIntegration();

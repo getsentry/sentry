@@ -32,10 +32,7 @@ import {
 function getBudgetSaveError(plan: Plan) {
   return t(
     'Unable to save your %s',
-    displayBudgetName(plan, {
-      pluralOndemand: true,
-      withBudget: true,
-    })
+    displayBudgetName(plan, {pluralOndemand: true, withBudget: true})
   );
 }
 
@@ -48,10 +45,7 @@ function getBudgetExceededInvoicedLimitError(plan: Plan) {
 
 type UpdateError = undefined | Error | string | Record<string, string[]>;
 
-type Props = {
-  organization: Organization;
-  subscription: Subscription;
-} & ModalRenderProps;
+type Props = {organization: Organization; subscription: Subscription} & ModalRenderProps;
 
 function BudgetUpdateError({error, plan}: {error: UpdateError; plan: Plan}) {
   if (!error) {

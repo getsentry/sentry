@@ -40,11 +40,7 @@ function makeValidationBody(fields: EventValidationData['field']): EventValidati
     field: fields,
     orderby: [],
     projects: [],
-    query: {
-      error: null,
-      fields: [],
-      valid: true,
-    },
+    query: {error: null, fields: [], valid: true},
     valid: fields.every(field => field.valid),
   };
 }
@@ -320,9 +316,7 @@ describe('LogsToolbar', () => {
               query: {
                 aggregateField: [
                   JSON.stringify({groupBy: ''}),
-                  JSON.stringify({
-                    yAxes: ['count_if(`severity:error`,message)'],
-                  }),
+                  JSON.stringify({yAxes: ['count_if(`severity:error`,message)']}),
                 ],
               },
             },
@@ -406,10 +400,7 @@ describe('LogsToolbar', () => {
     });
 
     it('disables an attribute already selected in another group by', async () => {
-      render(<LogsToolbar />, {
-        organization,
-        additionalWrapper: Wrapper,
-      });
+      render(<LogsToolbar />, {organization, additionalWrapper: Wrapper});
 
       const firstColumn = screen.getAllByTestId('editor-column')[0]!;
       await userEvent.click(within(firstColumn).getByRole('button', {name: '—'}));
@@ -463,12 +454,7 @@ describe('LogsToolbar', () => {
       MockApiClient.addMockResponse({
         url: `/organizations/${organization.slug}/events/validate/`,
         body: makeValidationBody([
-          {
-            attrType: 'number',
-            error: null,
-            name: 'custom.measurement',
-            valid: true,
-          },
+          {attrType: 'number', error: null, name: 'custom.measurement', valid: true},
         ]),
       });
 
@@ -562,12 +548,7 @@ describe('LogsToolbar', () => {
           (_url, options) => JSON.stringify(options.query?.field).includes('valid.first'),
         ],
         body: makeValidationBody([
-          {
-            attrType: 'string',
-            error: null,
-            name: 'valid.first',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'valid.first', valid: true},
           {
             attrType: null,
             error: 'Invalid attribute',
@@ -628,12 +609,7 @@ describe('LogsToolbar', () => {
             name: 'invalid.attribute',
             valid: false,
           },
-          {
-            attrType: 'string',
-            error: null,
-            name: 'severity',
-            valid: true,
-          },
+          {attrType: 'string', error: null, name: 'severity', valid: true},
         ]),
       });
 

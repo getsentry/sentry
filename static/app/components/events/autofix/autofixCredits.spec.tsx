@@ -24,10 +24,7 @@ describe('useAutofixCreditsDisabled', () => {
       </QueryClientProvider>
     );
 
-    MockApiClient.addMockResponse({
-      url: creditCheckUrl,
-      body: {hasEnoughCredits: true},
-    });
+    MockApiClient.addMockResponse({url: creditCheckUrl, body: {hasEnoughCredits: true}});
     const {unmount} = render(tree, {organization});
     await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     unmount();

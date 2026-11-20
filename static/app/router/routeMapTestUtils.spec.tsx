@@ -107,14 +107,8 @@ describe('walkRouteTree', () => {
         path: 'settings/',
         // layout node — no element, must not be emitted
         children: [
-          {
-            path: 'account/',
-            element: lazyElement('sentry/views/settings/account'),
-          },
-          {
-            path: 'old/',
-            element: redirectElement(),
-          },
+          {path: 'account/', element: lazyElement('sentry/views/settings/account')},
+          {path: 'old/', element: redirectElement()},
         ],
       },
     ];

@@ -21,9 +21,7 @@ type Props = {
   type: IntegrationType;
 } & ModalRenderProps;
 
-const schema = z.object({
-  message: z.string(),
-});
+const schema = z.object({message: z.string()});
 
 /**
  * This modal serves as a non-owner's confirmation step before sending
@@ -50,11 +48,7 @@ export function RequestIntegrationModal({
           path: {organizationIdOrSlug: organization.slug},
         }),
         method: 'POST',
-        data: {
-          providerSlug: slug,
-          providerType: type,
-          message: data.message,
-        },
+        data: {providerSlug: slug, providerType: type, message: data.message},
       }),
     onMutate: () => {
       trackIntegrationAnalytics('integrations.request_install', {

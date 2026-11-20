@@ -97,9 +97,7 @@ function NotesField() {
       placeholder={t('e.g. @jane, @on-call-team')}
       value={action.data.notes ?? ''}
       onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
-        onUpdate({
-          data: {...action.data, notes: e.target.value},
-        });
+        onUpdate({data: {...action.data, notes: e.target.value}});
       }}
     />
   );

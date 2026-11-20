@@ -132,10 +132,7 @@ export default Storybook.story('GuidedSteps', story => {
           onStepChange={step => {
             navigate({
               pathname: location.pathname,
-              query: {
-                ...location.query,
-                guidedStep: step,
-              },
+              query: {...location.query, guidedStep: step},
             });
           }}
         >

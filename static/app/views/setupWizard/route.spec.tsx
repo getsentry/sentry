@@ -30,10 +30,7 @@ describe('SetupWizardRoute', () => {
   it('selects a project for a pending CLI session', async () => {
     const organization = OrganizationFixture({access: []});
     const project = ProjectFixture();
-    MockApiClient.addMockResponse({
-      url: '/organizations/',
-      body: [organization],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/', body: [organization]});
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/`,
       body: organization,

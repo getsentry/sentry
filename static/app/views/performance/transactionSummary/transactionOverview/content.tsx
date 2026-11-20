@@ -67,18 +67,12 @@ export function EAPSummaryContent({
 
   const handleSearch = useCallback(
     (query: string) => {
-      const queryParams = normalizeDateTimeParams({
-        ...location.query,
-        query,
-      });
+      const queryParams = normalizeDateTimeParams({...location.query, query});
 
       // do not propagate pagination when making a new search
       const searchQueryParams = omit(queryParams, 'cursor');
 
-      navigate({
-        pathname: location.pathname,
-        query: searchQueryParams,
-      });
+      navigate({pathname: location.pathname, query: searchQueryParams});
     },
     [location, navigate]
   );
@@ -176,9 +170,7 @@ export function EAPSummaryContent({
 
   const projectIds = useMemo(() => eventView.project.slice(), [eventView.project]);
 
-  const maxPickableDays = useMaxPickableDays({
-    dataCategories: [DataCategory.SPANS],
-  });
+  const maxPickableDays = useMaxPickableDays({dataCategories: [DataCategory.SPANS]});
   const datePageFilterProps = useDatePageFilterProps(maxPickableDays);
 
   const {spanSearchQueryBuilderProps} = useSpanSearchQueryBuilderProps({
@@ -192,11 +184,7 @@ export function EAPSummaryContent({
     <Fragment>
       <Layout.Main>
         <Grid
-          columns={{
-            zero: 'auto',
-            xl: 'repeat(2, min-content)',
-            '5xl': 'auto auto 1fr',
-          }}
+          columns={{zero: 'auto', xl: 'repeat(2, min-content)', '5xl': 'auto auto 1fr'}}
           gap="xl"
           marginBottom="xl"
         >

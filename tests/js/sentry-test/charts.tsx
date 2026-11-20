@@ -9,35 +9,15 @@ const data = [
   [1543881600000, 13],
 ];
 const model = {
-  _payload: {
-    batch: [
-      {
-        startValue: 1543449600000,
-        endValue: 1543708800000,
-      },
-    ],
-  },
-  series: [
-    {
-      data,
-    },
-  ],
+  _payload: {batch: [{startValue: 1543449600000, endValue: 1543708800000}]},
+  series: [{data}],
 };
 
-const chart = {
-  getModel: jest.fn(() => ({...model})),
-};
+const chart = {getModel: jest.fn(() => ({...model}))};
 
 export const mockZoomRange = (startValue: number, endValue: number) => {
   chart.getModel.mockImplementation(() => ({
     ...model,
-    _payload: {
-      batch: [
-        {
-          startValue,
-          endValue,
-        },
-      ],
-    },
+    _payload: {batch: [{startValue, endValue}]},
   }));
 };

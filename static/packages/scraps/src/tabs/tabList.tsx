@@ -31,9 +31,7 @@ import {Tab} from './tab';
 import type {TabProps} from './tab';
 import {tabsShouldForwardProp} from './utils';
 
-const StyledTabListWrap = styled('ul', {
-  shouldForwardProp: tabsShouldForwardProp,
-})<{
+const StyledTabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   orientation: Orientation;
   variant: TabProps['variant'];
 }>`

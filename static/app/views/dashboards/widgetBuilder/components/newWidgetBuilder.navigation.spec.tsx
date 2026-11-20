@@ -64,10 +64,7 @@ describe('NewWidgetBuilder navigation layout integration', () => {
     mockUsingCustomerDomain.mockReturnValue(false);
 
     // Mocks required to render the real Navigation component
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/broadcasts/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
       body: projects,
@@ -76,10 +73,7 @@ describe('NewWidgetBuilder navigation layout integration', () => {
       url: '/projects/org-slug/project-1/',
       body: projects[0],
     });
-    MockApiClient.addMockResponse({
-      url: '/assistant/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/assistant/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/group-search-views/starred/',
       body: [GroupSearchViewFixture()],
@@ -98,26 +92,14 @@ describe('NewWidgetBuilder navigation layout integration', () => {
     });
 
     // Mocks required to render WidgetBuilderV2
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/releases/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/releases/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/tags/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dashboard/1/',
       body: [],
     });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/issues/',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/events/',
-      body: [],
-    });
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/issues/', body: []});
+    MockApiClient.addMockResponse({url: '/organizations/org-slug/events/', body: []});
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-timeseries/',
       body: {timeSeries: []},

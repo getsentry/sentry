@@ -14,10 +14,7 @@ import {TabPanels, type TabPanelsProps} from './tabPanels';
 export type TabKey = string;
 
 interface Components<T extends TabKey, I> {
-  TabList: {
-    (props: TabListProps): JSX.Element;
-    Item: (props: I) => JSX.Element;
-  };
+  TabList: {(props: TabListProps): JSX.Element; Item: (props: I) => JSX.Element};
   TabPanels: {
     (props: TabPanelsProps): JSX.Element | null;
     Item: (props: TabPanelItemProps<T>) => JSX.Element;

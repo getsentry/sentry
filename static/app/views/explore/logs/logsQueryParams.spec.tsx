@@ -32,12 +32,7 @@ function readableQueryParamOptions(
     sortBys: [{field: 'timestamp', kind: 'desc'}],
     aggregateCursor: '',
     aggregateFields: [{groupBy: ''}, new VisualizeFunction('count(message)')],
-    aggregateSortBys: [
-      {
-        field: 'count(message)',
-        kind: 'desc',
-      },
-    ],
+    aggregateSortBys: [{field: 'count(message)', kind: 'desc'}],
     ...options,
   };
 }
@@ -110,23 +105,17 @@ describe('getReadableQueryParamsFromLocation', () => {
     const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({
-          fields: ['timestamp', 'message'],
-        })
+        readableQueryParamOptions({fields: ['timestamp', 'message']})
       )
     );
   });
 
   it('decodes custom fields correctly', () => {
-    const location = locationFixture({
-      logsFields: ['timestamp', 'severity', 'message'],
-    });
+    const location = locationFixture({logsFields: ['timestamp', 'severity', 'message']});
     const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({
-          fields: ['timestamp', 'severity', 'message'],
-        })
+        readableQueryParamOptions({fields: ['timestamp', 'severity', 'message']})
       )
     );
   });
@@ -151,9 +140,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        })
+        readableQueryParamOptions({sortBys: [{field: 'timestamp', kind: 'desc'}]})
       )
     );
   });
@@ -176,9 +163,7 @@ describe('getReadableQueryParamsFromLocation', () => {
     const queryParams = getReadableQueryParamsFromLocation(location);
     expect(queryParams).toEqual(
       new ReadableQueryParams(
-        readableQueryParamOptions({
-          sortBys: [{field: 'timestamp', kind: 'desc'}],
-        })
+        readableQueryParamOptions({sortBys: [{field: 'timestamp', kind: 'desc'}]})
       )
     );
   });

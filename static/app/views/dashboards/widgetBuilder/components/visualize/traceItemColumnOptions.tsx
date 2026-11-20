@@ -4,10 +4,7 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKind, prettifyTagKey} from 'sentry/utils/fields';
 import {TypeBadge} from 'sentry/views/explore/components/typeBadge';
 
-export type TraceItemColumnOption = SelectValue<string> & {
-  label: string;
-  value: string;
-};
+export type TraceItemColumnOption = SelectValue<string> & {label: string; value: string};
 
 interface BuildTraceItemColumnOptionsParams {
   booleanTags: TagCollection;

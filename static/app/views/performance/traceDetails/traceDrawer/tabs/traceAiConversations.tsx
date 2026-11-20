@@ -112,10 +112,7 @@ function TraceAiConversationsContent({
     nodeTraceMap: conversationNodeTraceMap,
     isLoading: isConversationLoading,
     error,
-  } = useConversation({
-    conversationId: activeConversationId,
-    ...traceTimeBounds,
-  });
+  } = useConversation({conversationId: activeConversationId, ...traceTimeBounds});
 
   const localNodeTraceMap = useMemo(
     () => new Map(allAiNodes.map(node => [node.id, traceSlug])),

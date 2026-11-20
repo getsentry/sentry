@@ -6,10 +6,7 @@ import {t} from 'sentry/locale';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import {useOrganization} from 'sentry/utils/useOrganization';
-type StarServiceSpanParams = {
-  project_id?: string;
-  service_span?: string;
-};
+type StarServiceSpanParams = {project_id?: string; service_span?: string};
 
 interface Props {
   segmentName: string;
@@ -30,10 +27,7 @@ export function useStarredSegment({
   const url = getApiUrl('/organizations/$organizationIdOrSlug/starred-service-spans/', {
     path: {organizationIdOrSlug: organization.slug},
   });
-  const data: StarServiceSpanParams = {
-    project_id: projectId,
-    service_span: segmentName,
-  };
+  const data: StarServiceSpanParams = {project_id: projectId, service_span: segmentName};
 
   const onError = (message: string) => {
     toast.error(message);
@@ -72,8 +66,5 @@ export function useStarredSegment({
     }
   };
 
-  return {
-    setStarredSegment,
-    isPending: isMutating > 0,
-  };
+  return {setStarredSegment, isPending: isMutating > 0};
 }

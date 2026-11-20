@@ -117,11 +117,7 @@ const EAP_AGGREGATIONS = ALLOWED_EXPLORE_VISUALIZE_AGGREGATES.reduce(
     ) {
       acc[aggregate] = AGGREGATIONS[aggregate];
     } else if (NO_ARGUMENT_SPAN_AGGREGATES.includes(aggregate)) {
-      acc[aggregate] = {
-        isSortable: true,
-        outputType: null,
-        parameters: [],
-      };
+      acc[aggregate] = {isSortable: true, outputType: null, parameters: []};
     } else {
       acc[aggregate] = {
         isSortable: true,
@@ -434,10 +430,7 @@ function renderInternalErrorCount(
     errorQuery.addStringFilter('span.status:[internal_error,error]');
     const widgetWithErrorFilter: Widget = {
       ...widget,
-      queries: widget.queries.map(q => ({
-        ...q,
-        conditions: errorQuery.formatString(),
-      })),
+      queries: widget.queries.map(q => ({...q, conditions: errorQuery.formatString()})),
     };
 
     const selectedQueryIndex = 0;

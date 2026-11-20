@@ -168,12 +168,7 @@ export function TracesTable({
   const {cursor, setCursor} = useTableCursor();
 
   const tracesRequest = useQuery({
-    ...useTracesApiOptions({
-      query: combinedQuery,
-      sort: '-timestamp',
-      cursor,
-      limit,
-    }),
+    ...useTracesApiOptions({query: combinedQuery, sort: '-timestamp', cursor, limit}),
     select: selectJsonWithHeaders,
     placeholderData: keepPreviousData,
   });
@@ -325,11 +320,7 @@ export function TracesTable({
   );
 
   const additionalGridProps = frameless
-    ? {
-        bodyStyle: FRAMELESS_STYLES,
-        resizable: true,
-        height: '100%' as const,
-      }
+    ? {bodyStyle: FRAMELESS_STYLES, resizable: true, height: '100%' as const}
     : {};
 
   const tableComponent = (
@@ -340,10 +331,7 @@ export function TracesTable({
       emptyMessage={<TableNoDataPanel />}
       stickyHeader
       columnOrder={columnOrder}
-      grid={{
-        renderBodyCell,
-        renderHeadCell,
-      }}
+      grid={{renderBodyCell, renderHeadCell}}
       {...additionalGridProps}
     />
   );
@@ -384,10 +372,7 @@ const BodyCell = memo(function BodyCellImpl({
         traceSlug: dataRow.traceId,
         dateSelection: normalizeDateTimeParams(selection.datetime),
         timestamp: dataRow.timestamp / 1000,
-        location: {
-          ...location,
-          query: {},
-        },
+        location: {...location, query: {}},
         source: TraceViewSources.AGENT_MONITORING,
         tab: TraceLayoutTabKeys.AI_SPANS,
       });
@@ -543,10 +528,7 @@ function AgentTags({
           filter.dataset === WidgetType.SPANS &&
           filter.tag.key === SpanFields.GEN_AI_AGENT_NAME
         ) {
-          return {
-            ...filter,
-            value: buildGlobalFilterValue(filter, newAgentFilterValues),
-          };
+          return {...filter, value: buildGlobalFilterValue(filter, newAgentFilterValues)};
         }
         return filter;
       });

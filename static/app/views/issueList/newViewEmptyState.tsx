@@ -10,10 +10,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-type SearchSuggestion = {
-  label: string;
-  query: string;
-};
+type SearchSuggestion = {label: string; query: string};
 
 const RECOMMENDED_SEARCHES: SearchSuggestion[] = [
   {label: t('Prioritized'), query: 'is:unresolved issue.priority:[high, medium]'},

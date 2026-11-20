@@ -11,11 +11,7 @@ import {getCheckoutAPIData, useSubmitCheckout} from 'getsentry/views/amCheckout/
 describe('utils', () => {
   const teamPlan = PlanDetailsLookupFixture('am1_team');
   const bizPlan = PlanDetailsLookupFixture('am1_business');
-  const DEFAULT_ADDONS = {
-    [AddOnCategory.LEGACY_SEER]: {
-      enabled: false,
-    },
-  };
+  const DEFAULT_ADDONS = {[AddOnCategory.LEGACY_SEER]: {enabled: false}};
 
   describe('utils.getBucket', () => {
     it('can get exact bucket by events', () => {
@@ -208,11 +204,7 @@ describe('utils', () => {
     const organization = OrganizationFixture();
     const subscription = SubscriptionFixture({organization});
     const data = getCheckoutAPIData({
-      formData: {
-        plan: 'am3_business',
-        reserved: {errors: 10},
-        addOns: DEFAULT_ADDONS,
-      },
+      formData: {plan: 'am3_business', reserved: {errors: 10}, addOns: DEFAULT_ADDONS},
     });
 
     function renderSubmitCheckout(onSuccess: jest.Mock) {

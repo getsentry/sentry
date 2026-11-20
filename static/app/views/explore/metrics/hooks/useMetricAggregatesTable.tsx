@@ -119,10 +119,7 @@ export function useMetricAggregatesTable({
       queryExtras,
       staleTime,
     },
-    queryOptions: {
-      canTriggerHighAccuracy,
-      samplingMode,
-    },
+    queryOptions: {canTriggerHighAccuracy, samplingMode},
   });
 }
 

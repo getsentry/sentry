@@ -90,11 +90,5 @@ loadInitializers(App, config.modulePrefix);
 
 export const installSnippetBlock: ContentBlock = {
   type: 'code',
-  tabs: [
-    {
-      label: 'ember-cli',
-      language: 'bash',
-      code: 'ember install @sentry/ember',
-    },
-  ],
+  tabs: [{label: 'ember-cli', language: 'bash', code: 'ember install @sentry/ember'}],
 };

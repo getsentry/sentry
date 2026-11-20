@@ -14,10 +14,7 @@ export const metrics: OnboardingConfig = {
         ...getInstallContent(
           tct(
             'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports metrics is [code:10.25.0].',
-            {
-              code: <code />,
-              packageName: <code>@sentry/deno</code>,
-            }
+            {code: <code />, packageName: <code>@sentry/deno</code>}
           )
         ),
         getMigrationContent(),

@@ -51,11 +51,7 @@ export default function ProjectProguard() {
       '/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/',
       {
         path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
-        query: {
-          query,
-          file_formats: 'proguard',
-          cursor,
-        },
+        query: {query, file_formats: 'proguard', cursor},
         staleTime: 0,
       }
     ),
@@ -83,9 +79,7 @@ export default function ProjectProguard() {
               projectIdOrSlug: project.slug,
             },
           })}?id=${encodeURIComponent(id)}`,
-          {
-            method: 'DELETE',
-          }
+          {method: 'DELETE'}
         );
         setLoading(false);
         toast.success('Successfully deleted the mapping file');

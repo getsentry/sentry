@@ -48,10 +48,7 @@ function EAPSearchBar({
   );
 }
 
-const searchParamsParsers = {
-  cursor: parseAsString,
-  query: parseAsString.withDefault(''),
-};
+const searchParamsParsers = {cursor: parseAsString, query: parseAsString.withDefault('')};
 
 interface ProfilesProps {
   transaction: string;

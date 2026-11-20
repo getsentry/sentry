@@ -5,11 +5,7 @@ import {tct} from 'sentry/locale';
 import {useLocation} from 'sentry/utils/useLocation';
 import {EventAttachmentFilter} from 'sentry/views/issueDetails/groupEventAttachments/groupEventAttachmentsFilter';
 
-type Props = {
-  groupId: string;
-  orgSlug: string;
-  projectSlug: string;
-};
+type Props = {groupId: string; orgSlug: string; projectSlug: string};
 
 export function EventAttachmentsCrashReportsNotice({
   orgSlug,

@@ -46,10 +46,7 @@ const sampleDurationTimeSeriesP50: TimeSeries = {
   ...sampleDurationTimeSeries,
   yAxis: 'p50(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
-    return {
-      ...datum,
-      value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null,
-    };
+    return {...datum, value: datum.value ? datum.value * 0.3 + 30 * Math.random() : null};
   }),
 };
 
@@ -57,10 +54,7 @@ const sampleDurationTimeSeriesP75: TimeSeries = {
   ...sampleDurationTimeSeries,
   yAxis: 'p75(span.duration)',
   values: sampleDurationTimeSeries.values.map(datum => {
-    return {
-      ...datum,
-      value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null,
-    };
+    return {...datum, value: datum.value ? datum.value * 0.1 + 30 * Math.random() : null};
   }),
 };
 
@@ -537,10 +531,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
       const previousUser = ConfigStore.get('user');
       ConfigStore.set('user', {
         ...previousUser,
-        options: {
-          ...previousUser?.options,
-          timezone: simulatedTimezone,
-        },
+        options: {...previousUser?.options, timezone: simulatedTimezone},
       });
 
       return () => {
@@ -823,12 +814,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Bars(incompleteDurationTimeSeries, {
-                  stack: 'all',
-                }),
-                new Bars(incompleteDurationP50TimeSeries, {
-                  stack: 'all',
-                }),
+                new Bars(incompleteDurationTimeSeries, {stack: 'all'}),
+                new Bars(incompleteDurationP50TimeSeries, {stack: 'all'}),
               ]}
             />
           </MediumWidget>
@@ -891,12 +878,8 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
             <MediumWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
-                  new Bars(lowConfidenceDurationTimeSeries, {
-                    stack: 'all',
-                  }),
-                  new Bars(lowConfidenceDurationP50TimeSeries, {
-                    stack: 'all',
-                  }),
+                  new Bars(lowConfidenceDurationTimeSeries, {stack: 'all'}),
+                  new Bars(lowConfidenceDurationP50TimeSeries, {stack: 'all'}),
                 ]}
               />
             </MediumWidget>
@@ -1004,10 +987,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           onClick={() => {
             const sample = shuffle(shiftedSpanSamples.data).find(
               shuffledSample => shuffledSample.id !== sampleId
-            ) as {
-              id: string;
-              timestamp: string;
-            };
+            ) as {id: string; timestamp: string};
 
             setSampleId(sample.id);
           }}
@@ -1187,28 +1167,16 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
                   ...sampleDurationTimeSeries,
                   yAxis: 'span.duration()',
                   groupBy: [
-                    {
-                      key: 'release',
-                      value: 'proj@v0.6.2',
-                    },
-                    {
-                      key: 'env',
-                      value: 'production',
-                    },
+                    {key: 'release', value: 'proj@v0.6.2'},
+                    {key: 'env', value: 'production'},
                   ],
                 }),
                 new Line({
                   ...sampleDurationTimeSeriesP50,
                   yAxis: 'span.duration()',
                   groupBy: [
-                    {
-                      key: 'release',
-                      value: 'proj@v0.6.1',
-                    },
-                    {
-                      key: 'env',
-                      value: 'production',
-                    },
+                    {key: 'release', value: 'proj@v0.6.1'},
+                    {key: 'env', value: 'production'},
                   ],
                 }),
               ]}
@@ -1246,10 +1214,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line({
-                  ...sampleThroughputTimeSeries,
-                  yAxis: 'error_rate()',
-                }),
+                new Line({...sampleThroughputTimeSeries, yAxis: 'error_rate()'}),
               ]}
               releases={releases}
             />
@@ -1258,10 +1223,7 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <MediumWidget>
             <TimeSeriesWidgetVisualization
               plottables={[
-                new Line({
-                  ...sampleThroughputTimeSeries,
-                  yAxis: 'error_rate()',
-                }),
+                new Line({...sampleThroughputTimeSeries, yAxis: 'error_rate()'}),
               ]}
               showReleaseAs="bubble"
               releases={releases}
@@ -1479,11 +1441,7 @@ function hasTimestamp(release: Partial<Release>): release is Release {
   return Boolean(release?.timestamp);
 }
 
-const NULL_META: TimeSeriesMeta = {
-  valueType: 'number',
-  valueUnit: null,
-  interval: 0,
-};
+const NULL_META: TimeSeriesMeta = {valueType: 'number', valueUnit: null, interval: 0};
 
 // Base timestamp: Jan 15, 2025 00:00 UTC
 const TICK_STORY_BASE = Date.UTC(2025, 0, 15, 0, 0, 0);

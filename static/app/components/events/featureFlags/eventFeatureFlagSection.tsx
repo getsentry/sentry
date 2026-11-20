@@ -44,11 +44,7 @@ export function EventFeatureFlagSection(props: EventFeatureFlagSectionProps) {
   );
 }
 
-type EventFeatureFlagSectionProps = {
-  event: Event;
-  group: Group;
-  project: Project;
-};
+type EventFeatureFlagSectionProps = {event: Event; group: Group; project: Project};
 
 function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSectionProps) {
   const organization = useOrganization();
@@ -90,10 +86,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
 
       return {
         pathname: `/organizations/${organization.slug}/issues/`,
-        query: {
-          ...queryParams,
-          query: modifiedQuery.formatString(),
-        },
+        query: {...queryParams, query: modifiedQuery.formatString()},
       };
     },
     [organization, queryParams]
@@ -158,9 +151,7 @@ function BaseEventFeatureFlagList({event, group, project}: EventFeatureFlagSecti
   }, [suspectFlagNames, eventFlags, generateAction]);
 
   const onViewAllFlags = (focusControl?: FlagControlOptions) => {
-    trackAnalytics('flags.view-all-clicked', {
-      organization,
-    });
+    trackAnalytics('flags.view-all-clicked', {organization});
     openDrawer(
       () => (
         <GroupIdProvider groupId={group.id}>

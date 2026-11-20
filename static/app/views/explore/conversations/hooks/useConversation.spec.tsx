@@ -102,13 +102,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-title/`,
       body: envelope(
-        [
-          {
-            ...BASE_SPAN,
-            'gen_ai.conversation.id': 'conv-title',
-            span_id: 'span-title',
-          },
-        ],
+        [{...BASE_SPAN, 'gen_ai.conversation.id': 'conv-title', span_id: 'span-title'}],
         'My great conversation'
       ),
     });
@@ -145,11 +139,7 @@ describe('useConversation', () => {
     const requests = Array.from({length: 100}, (_, index) =>
       MockApiClient.addMockResponse({
         url,
-        match: [
-          MockApiClient.matchQuery({
-            cursor: index === 0 ? undefined : `${index}`,
-          }),
-        ],
+        match: [MockApiClient.matchQuery({cursor: index === 0 ? undefined : `${index}`})],
         body: envelope([{...BASE_SPAN, span_id: `span-${index}`}]),
         headers: {
           Link: `<${url}?cursor=${
@@ -750,9 +740,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({project: [456]}),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [456]})})
     );
   });
 
@@ -807,11 +795,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          project: [-1],
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({project: [-1]})})
     );
     // No statsPeriod sent — backend uses its 30d retention fallback
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
@@ -822,12 +806,7 @@ describe('useConversation', () => {
 
   it('uses relative period from page filters when explicitly set', async () => {
     act(() =>
-      PageFiltersStore.updateDateTime({
-        period: '7d',
-        start: null,
-        end: null,
-        utc: null,
-      })
+      PageFiltersStore.updateDateTime({period: '7d', start: null, end: null, utc: null})
     );
 
     const mockRequest = MockApiClient.addMockResponse({
@@ -844,11 +823,7 @@ describe('useConversation', () => {
 
     expect(mockRequest).toHaveBeenCalledWith(
       expect.stringContaining('/agents/conversations/conv-123/'),
-      expect.objectContaining({
-        query: expect.objectContaining({
-          statsPeriod: '7d',
-        }),
-      })
+      expect.objectContaining({query: expect.objectContaining({statsPeriod: '7d'})})
     );
     const queryArg = mockRequest.mock.calls[0]![1]!.query;
     expect(queryArg).not.toHaveProperty('start');
@@ -960,11 +935,7 @@ describe('useConversation', () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/agents/conversations/conv-no-issues/`,
       body: envelope([
-        {
-          ...BASE_SPAN,
-          'gen_ai.conversation.id': 'conv-no-issues',
-          span_id: 'span-x',
-        },
+        {...BASE_SPAN, 'gen_ai.conversation.id': 'conv-no-issues', span_id: 'span-x'},
       ]),
     });
 

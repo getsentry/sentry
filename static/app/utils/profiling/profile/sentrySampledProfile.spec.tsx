@@ -30,30 +30,13 @@ describe('SentrySampledProfile', () => {
 
   it('tracks discarded samples', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
         ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        thread_metadata: {'0': {name: 'bar'}},
       },
     });
 
@@ -68,30 +51,13 @@ describe('SentrySampledProfile', () => {
 
   it('tracks negative samples', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: -1000,
-            thread_id: '0',
-          },
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: -1000, thread_id: '0'},
         ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        thread_metadata: {'0': {name: 'bar'}},
       },
     });
 
@@ -106,35 +72,14 @@ describe('SentrySampledProfile', () => {
 
   it('tracks raw weights', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 2000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 3000,
-            thread_id: '0',
-          },
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: 2000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: 3000, thread_id: '0'},
         ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        thread_metadata: {'0': {name: 'bar'}},
       },
     });
 
@@ -149,25 +94,10 @@ describe('SentrySampledProfile', () => {
 
   it('derives a profile name from the transaction.name and thread_id', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
-        samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-        ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        samples: [{stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'}],
+        thread_metadata: {'0': {name: 'bar'}},
       },
     });
 
@@ -185,13 +115,7 @@ describe('SentrySampledProfile', () => {
     const sampledProfile = makeSentrySampledProfile({
       platform: 'python',
       profile: {
-        samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-        ],
+        samples: [{stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'}],
         thread_metadata: {},
       },
     });
@@ -209,18 +133,8 @@ describe('SentrySampledProfile', () => {
   it('derives a profile name from just thread name', () => {
     const sampledProfile = makeSentrySampledProfile({
       profile: {
-        samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-        ],
-        thread_metadata: {
-          '0': {
-            name: 'foo',
-          },
-        },
+        samples: [{stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'}],
+        thread_metadata: {'0': {name: 'foo'}},
       },
     });
 
@@ -237,13 +151,7 @@ describe('SentrySampledProfile', () => {
   it('derives a coca profile name from active thread id', () => {
     const sampledProfile = makeSentrySampledProfile({
       profile: {
-        samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-        ],
+        samples: [{stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'}],
         thread_metadata: {},
       },
     });
@@ -270,9 +178,7 @@ describe('SentrySampledProfile', () => {
           },
         ],
         thread_metadata: {},
-        queue_metadata: {
-          '0x000000016bec7180': {label: 'sentry-http-transport'},
-        },
+        queue_metadata: {'0x000000016bec7180': {label: 'sentry-http-transport'}},
       },
     });
 
@@ -288,12 +194,7 @@ describe('SentrySampledProfile', () => {
 
   it('derives a coca profile name from queue label thats main thread', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
           {
@@ -304,9 +205,7 @@ describe('SentrySampledProfile', () => {
           },
         ],
         thread_metadata: {},
-        queue_metadata: {
-          '0x000000016bec7180': {label: 'com.apple.main-thread'},
-        },
+        queue_metadata: {'0x000000016bec7180': {label: 'com.apple.main-thread'}},
       },
     });
 
@@ -322,12 +221,7 @@ describe('SentrySampledProfile', () => {
 
   it('derives a coca profile name from queue label thats not main thread', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 0,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 0, trace_id: '1'},
       profile: {
         samples: [
           {
@@ -338,9 +232,7 @@ describe('SentrySampledProfile', () => {
           },
         ],
         thread_metadata: {},
-        queue_metadata: {
-          '0x000000016bec7180': {label: 'com.apple.main-thread'},
-        },
+        queue_metadata: {'0x000000016bec7180': {label: 'com.apple.main-thread'}},
       },
     });
 
@@ -356,35 +248,14 @@ describe('SentrySampledProfile', () => {
 
   it('flamegraph tracks node occurrences', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 1,
-            elapsed_since_start_ns: 2000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 3000,
-            thread_id: '0',
-          },
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
+          {stack_id: 1, elapsed_since_start_ns: 2000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: 3000, thread_id: '0'},
         ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        thread_metadata: {'0': {name: 'bar'}},
         // Frame 0 occurs 3 times, frame 1 occurs once
         stacks: [[0], [1, 0], [0]],
         frames: [{function: 'f0'}, {function: 'f1'}, {function: 'f2'}],
@@ -403,30 +274,13 @@ describe('SentrySampledProfile', () => {
 
   it('filters frames', () => {
     const sampledProfile = makeSentrySampledProfile({
-      transaction: {
-        id: '',
-        name: 'foo',
-        active_thread_id: 1,
-        trace_id: '1',
-      },
+      transaction: {id: '', name: 'foo', active_thread_id: 1, trace_id: '1'},
       profile: {
         samples: [
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 1000,
-            thread_id: '0',
-          },
-          {
-            stack_id: 0,
-            elapsed_since_start_ns: 2000,
-            thread_id: '0',
-          },
+          {stack_id: 0, elapsed_since_start_ns: 1000, thread_id: '0'},
+          {stack_id: 0, elapsed_since_start_ns: 2000, thread_id: '0'},
         ],
-        thread_metadata: {
-          '0': {
-            name: 'bar',
-          },
-        },
+        thread_metadata: {'0': {name: 'bar'}},
         stacks: [[1, 0]],
         frames: [{function: 'f0'}, {function: 'f1'}],
       },
@@ -435,10 +289,7 @@ describe('SentrySampledProfile', () => {
     const profile = SentrySampledProfile.FromProfile(
       sampledProfile,
       createSentrySampleProfileFrameIndex(sampledProfile.profile.frames, 'javascript'),
-      {
-        type: 'flamegraph',
-        frameFilter: frame => frame.name === 'f0',
-      }
+      {type: 'flamegraph', frameFilter: frame => frame.name === 'f0'}
     );
 
     expect(profile.callTree.frame).toBe(Frame.Root);

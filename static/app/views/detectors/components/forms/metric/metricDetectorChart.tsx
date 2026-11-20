@@ -170,10 +170,7 @@ export function MetricDetectorChart({
 }: MetricDetectorChartProps) {
   const theme = useTheme();
   const {selectedTimePeriod, setSelectedTimePeriod, timePeriodOptions} =
-    useTimePeriodSelection({
-      dataset: getBackendDataset(detectorDataset),
-      interval,
-    });
+    useTimePeriodSelection({dataset: getBackendDataset(detectorDataset), interval});
 
   const shouldAlterExtrapolationMode = useIsMigratedExtrapolation({
     dataset: detectorDataset,
@@ -362,10 +359,7 @@ export function MetricDetectorChart({
 
     // Apply anomaly marker grid adjustments if available
     if (isAnomalyDetection && anomalyMarkerResult.incidentMarkerGrid) {
-      return {
-        ...baseGrid,
-        ...anomalyMarkerResult.incidentMarkerGrid,
-      };
+      return {...baseGrid, ...anomalyMarkerResult.incidentMarkerGrid};
     }
 
     return baseGrid;

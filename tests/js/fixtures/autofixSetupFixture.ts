@@ -4,14 +4,9 @@ export function AutofixSetupFixture(
   params: Partial<AutofixSetupResponse>
 ): AutofixSetupResponse {
   return {
-    integration: {
-      ok: true,
-      reason: null,
-    },
+    integration: {ok: true, reason: null},
     seerReposLinked: true,
-    billing: {
-      hasAutofixQuota: true,
-    },
+    billing: {hasAutofixQuota: true},
     ...params,
   };
 }

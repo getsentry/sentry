@@ -13,9 +13,7 @@ import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {getDetectorEnvironment} from 'sentry/views/detectors/utils/getDetectorEnvironment';
 
-type Props = {
-  children: React.ReactNode;
-};
+type Props = {children: React.ReactNode};
 
 export function DetectorExtraDetails({children}: Props) {
   return (
@@ -53,9 +51,7 @@ DetectorExtraDetails.CreatedBy = function DetectorExtraDetailsCreatedBy({
     isPending,
     isError,
     data: user,
-  } = useUserFromId({
-    id: createdBy ? parseInt(createdBy, 10) : undefined,
-  });
+  } = useUserFromId({id: createdBy ? parseInt(createdBy, 10) : undefined});
 
   const keyName = t('Created by');
 

@@ -42,12 +42,7 @@ export function DatadogPatConnectModal({
         method: isReauth ? 'PUT' : 'POST',
         url: getApiUrl(
           '/organizations/$organizationIdOrSlug/monitoring-providers/$providerKey/',
-          {
-            path: {
-              organizationIdOrSlug: orgSlug,
-              providerKey: 'datadog_pat',
-            },
-          }
+          {path: {organizationIdOrSlug: orgSlug, providerKey: 'datadog_pat'}}
         ),
         data: isReauth ? {access_token: accessToken} : {access_token: accessToken, site},
       }),

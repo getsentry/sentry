@@ -41,11 +41,7 @@ export const useDomainViewFilters = () => {
   }
 
   if (isInDomainView) {
-    return {
-      view,
-      isInDomainView,
-      isInOverviewPage,
-    };
+    return {view, isInDomainView, isInOverviewPage};
   }
 
   return {isInDomainView};

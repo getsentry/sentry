@@ -63,10 +63,7 @@ export function IntegrationServerlessRow({
   );
 
   const handleUpdate = useCallback(async () => {
-    const data = {
-      action: 'updateVersion',
-      target: serverlessFunction.name,
-    };
+    const data = {action: 'updateVersion', target: serverlessFunction.name};
     try {
       setIsSubmitting(true);
       // don't know the latest version but at least optimistically remove the update button
@@ -88,10 +85,7 @@ export function IntegrationServerlessRow({
 
   const handleToggle = async () => {
     const action = serverlessFunction.enabled ? 'disable' : 'enable';
-    const data = {
-      action,
-      target: serverlessFunction.name,
-    };
+    const data = {action, target: serverlessFunction.name};
     try {
       toast.loading(t('Saving changes...'));
       setIsSubmitting(true);

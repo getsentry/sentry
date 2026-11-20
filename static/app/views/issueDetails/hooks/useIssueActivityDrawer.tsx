@@ -34,13 +34,7 @@ export function useIssueActivityDrawer({
         drawerKey: 'issue-activity-drawer',
         onClose: () => {
           navigate(
-            {
-              pathname: getReturnPath(),
-              query: {
-                ...location.query,
-                filter: undefined,
-              },
-            },
+            {pathname: getReturnPath(), query: {...location.query, filter: undefined}},
             {replace: true, preventScrollReset: true}
           );
         },

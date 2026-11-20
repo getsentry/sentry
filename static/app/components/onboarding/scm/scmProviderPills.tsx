@@ -67,11 +67,7 @@ function ScmProviderPillRow({
               provider,
               type: 'first_party',
               installStatus: 'Not Installed',
-              analyticsParams: {
-                view,
-                variant: 'scm',
-                already_installed: false,
-              },
+              analyticsParams: {view, variant: 'scm', already_installed: false},
               suppressSuccessMessage: true,
             }}
           >
@@ -110,11 +106,7 @@ function ScmProviderPillRow({
                   provider,
                   organization,
                   onInstall,
-                  analyticsParams: {
-                    view,
-                    variant: 'scm',
-                    already_installed: false,
-                  },
+                  analyticsParams: {view, variant: 'scm', already_installed: false},
                   suppressSuccessMessage: true,
                 }),
             }))}

@@ -50,12 +50,7 @@ function DateRangeQueryLimitFooter({description, source, subscription}: Props) {
         {!canTrial && (
           <Button
             size={BUTTON_SIZE}
-            onClick={() =>
-              openUpsellModal({
-                organization,
-                source,
-              })
-            }
+            onClick={() => openUpsellModal({organization, source})}
           >
             {t('Learn More')}
           </Button>

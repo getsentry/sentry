@@ -13,10 +13,7 @@ const group = GroupFixture();
 const organization = OrganizationFixture();
 const options = apiOptions.as<PlatformExternalIssue[]>()(
   '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/',
-  {
-    path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-    staleTime: 60_000,
-  }
+  {path: {organizationIdOrSlug: organization.slug, issueId: group.id}, staleTime: 60_000}
 );
 const issue: PlatformExternalIssue = {
   id: '1',
@@ -27,10 +24,7 @@ const issue: PlatformExternalIssue = {
 };
 
 function useIssuesWithClient() {
-  return {
-    issues: useExternalIssues({group, organization}),
-    client: useQueryClient(),
-  };
+  return {issues: useExternalIssues({group, organization}), client: useQueryClient()};
 }
 
 afterEach(() => MockApiClient.clearMockResponses());

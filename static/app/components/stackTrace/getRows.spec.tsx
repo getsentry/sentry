@@ -56,10 +56,7 @@ describe('stackTrace rows utils', () => {
       1: false,
       3: false,
     });
-    expect(getFrameCountMap(frames, false)).toEqual({
-      1: 1,
-      3: 0,
-    });
+    expect(getFrameCountMap(frames, false)).toEqual({1: 1, 3: 0});
   });
 
   it('expands hidden system frames when toggle is enabled', () => {

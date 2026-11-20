@@ -98,10 +98,7 @@ describe('SubscriptionStore', () => {
 
   it('does not store an empty response as a subscription', async () => {
     jest.spyOn(Sentry, 'captureException').mockImplementation(() => '');
-    MockApiClient.addMockResponse({
-      url: `/customers/${organization.slug}/`,
-      body: '',
-    });
+    MockApiClient.addMockResponse({url: `/customers/${organization.slug}/`, body: ''});
 
     await SubscriptionStore.loadData(organization.slug);
     expect(SubscriptionStore.errors[organization.slug]).toBeDefined();

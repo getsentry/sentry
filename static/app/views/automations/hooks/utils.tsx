@@ -70,9 +70,7 @@ export function findConflictingConditions(
       findFirstSeenEventConflictingConditions(triggers);
     if (conflictingTriggerConditions.size > 1) {
       return {
-        conflictingConditionGroups: {
-          [triggers.id]: conflictingTriggerConditions,
-        },
+        conflictingConditionGroups: {[triggers.id]: conflictingTriggerConditions},
         conflictReason: t(
           'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.'
         ),
@@ -164,10 +162,7 @@ export function findConflictingConditions(
     }
   }
 
-  return {
-    conflictingConditionGroups: {},
-    conflictReason: null,
-  };
+  return {conflictingConditionGroups: {}, conflictReason: null};
 }
 
 const conflictingTriggers = new Set<DataConditionType>([

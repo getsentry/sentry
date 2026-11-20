@@ -40,11 +40,7 @@ interface BuildDetailsHeaderContentProps {
   projectType: string | null;
 }
 
-const buildDetailsFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildDetailsFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
@@ -58,10 +54,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleRerunAction,
     handleDownloadAction,
     handleRerunStatusChecksAction,
-  } = useBuildDetailsActions({
-    projectId: projectSlug,
-    artifactId,
-  });
+  } = useBuildDetailsActions({projectId: projectSlug, artifactId});
 
   const {
     data: buildDetailsData,

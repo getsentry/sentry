@@ -77,9 +77,7 @@ export function DomainViewHeader<T extends string = string>({
   const isAgentMonitoring = view === 'ai-agents';
   const isSessionsInsights = selectedModule === ModuleName.SESSIONS;
 
-  const globalQuery = {
-    ...extractSelectionParameters(location?.query),
-  };
+  const globalQuery = {...extractSelectionParameters(location?.query)};
 
   // The domain link is only useful when there is a deeper page below it;
   // otherwise the domain itself is the current page title.

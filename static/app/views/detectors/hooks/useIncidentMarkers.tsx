@@ -26,10 +26,7 @@ const INCIDENT_MARKER_PADDING_Y = INCIDENT_MARKER_PADDING * 2;
 const EMPHASIS_Z2 = 0;
 
 // Default X-axis configuration (when incidents are hidden)
-const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {
-  axisLine: {onZero: true},
-  offset: 0,
-};
+const DEFAULT_INCIDENT_MARKER_X_AXIS_CONFIG = {axisLine: {onZero: true}, offset: 0};
 
 // If incidents are shown you need to move the axis down to make space for them
 const INCIDENT_MARKER_X_AXIS_CONFIG = {
@@ -217,10 +214,7 @@ function createIncidentMarkerSeries({
             : [0, 0, 0, 0],
     };
 
-    const color = getPriorityColor({
-      priority: dataItem.priority,
-      theme,
-    });
+    const color = getPriorityColor({priority: dataItem.priority, theme});
 
     return {
       type: 'group',
@@ -264,10 +258,7 @@ function createIncidentMarkerSeries({
   const markLineData: MarkLineComponentOption['data'] = incidentPeriods
     .filter(period => period.type === 'open-period-start')
     .map(data => {
-      const color = getPriorityColor({
-        priority: data.priority,
-        theme,
-      });
+      const color = getPriorityColor({priority: data.priority, theme});
 
       const lineStyle: MarkLineComponentOption['lineStyle'] = {
         color,
@@ -279,25 +270,14 @@ function createIncidentMarkerSeries({
       return {
         xAxis: data.start,
         lineStyle,
-        emphasis: {
-          lineStyle: {
-            ...lineStyle,
-            width: 2,
-            opacity: 1,
-          },
-        },
-        label: {
-          show: false,
-        },
+        emphasis: {lineStyle: {...lineStyle, width: 2, opacity: 1}},
+        label: {show: false},
         tooltip: {
           trigger: 'item',
           position: 'bottom',
           formatter: markLineTooltip
             ? () => {
-                return markLineTooltip({
-                  theme,
-                  period: data,
-                });
+                return markLineTooltip({theme, period: data});
               }
             : undefined,
         },
@@ -313,11 +293,7 @@ function createIncidentMarkerSeries({
     data: incidentPeriods,
     color: theme.colors.red400,
     animation: false,
-    markLine: markLine({
-      silent: false,
-      animation: false,
-      data: markLineData,
-    }),
+    markLine: markLine({silent: false, animation: false, data: markLineData}),
     tooltip: seriesTooltip
       ? {
           trigger: 'item',
@@ -354,10 +330,7 @@ interface UseIncidentMarkersResult {
   highlightedIncidentAreaSeries: CustomSeriesOption | null;
   incidentMarkerGrid: GridComponentOption;
   incidentMarkerSeries: CustomSeriesOption | null;
-  incidentMarkerXAxis: {
-    axisLine: {onZero: boolean};
-    offset: number;
-  };
+  incidentMarkerXAxis: {axisLine: {onZero: boolean}; offset: number};
   incidentMarkerYAxis: YAXisComponentOption | null;
   onChartReady: EChartChartReadyHandler;
 }
@@ -511,13 +484,7 @@ export function useIncidentMarkers({
         data: highlightedPeriods.map(period => {
           const color = getPriorityColor({priority: period.priority, theme});
           return [
-            {
-              xAxis: period.start,
-              itemStyle: {
-                color,
-                opacity: 0.2,
-              },
-            },
+            {xAxis: period.start, itemStyle: {color, opacity: 0.2}},
             {xAxis: period.end},
           ];
         }),

@@ -141,10 +141,7 @@ export function useEventWaiter({
         return;
       }
 
-      Sentry.setExtras({
-        status: err.status,
-        detail: err.responseJSON?.detail,
-      });
+      Sentry.setExtras({status: err.status, detail: err.responseJSON?.detail});
     }
 
     Sentry.captureException(

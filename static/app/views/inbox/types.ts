@@ -50,19 +50,9 @@ interface InboxEventDataByType {
   'notebook.user_mentioned': {blockId: string | null; commentId: string};
 }
 
-type InboxSystemActor = {
-  avatar: null;
-  id: null;
-  name: 'Sentry';
-  type: 'system';
-};
+type InboxSystemActor = {avatar: null; id: null; name: 'Sentry'; type: 'system'};
 
-type InboxUserActor = {
-  avatar: Avatar | null;
-  id: string;
-  name: string;
-  type: 'user';
-};
+type InboxUserActor = {avatar: Avatar | null; id: string; name: string; type: 'user'};
 
 type InboxActor = InboxSystemActor | InboxUserActor;
 
@@ -75,10 +65,7 @@ interface BaseInboxItemEvent {
 }
 
 type InboxItemEvent = {
-  [T in InboxEventType]: BaseInboxItemEvent & {
-    data: InboxEventDataByType[T];
-    type: T;
-  };
+  [T in InboxEventType]: BaseInboxItemEvent & {data: InboxEventDataByType[T]; type: T};
 }[InboxEventType];
 
 export interface InboxItem {

@@ -32,12 +32,7 @@ export function FieldGroup({
   const isStackedInline = inlineProp && isStackLayout;
   const inline = inlineProp && !isStackedInline;
 
-  const props = {
-    inline,
-    disabled,
-    visible,
-    ...rest,
-  };
+  const props = {inline, disabled, visible, ...rest};
 
   const {
     alignRight,

@@ -91,12 +91,7 @@ function TransactionsTableResults({
       const fieldType = tableMeta[fieldName];
 
       const fieldRenderer = getFieldRenderer(field, tableMeta, useAggregateAlias);
-      let rendered = fieldRenderer(tableRow, {
-        navigate,
-        organization,
-        location,
-        theme,
-      });
+      let rendered = fieldRenderer(tableRow, {navigate, organization, location, theme});
 
       const target = generateLink?.[field]?.(organization, tableRow, location);
       const isEmptyTarget =

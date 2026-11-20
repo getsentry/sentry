@@ -44,11 +44,7 @@ const mockInsightDiffItems: InsightDiffItem[] = [
 
 describe('InsightComparisonSection', () => {
   beforeEach(() => {
-    Object.assign(navigator, {
-      clipboard: {
-        writeText: jest.fn().mockResolvedValue(''),
-      },
-    });
+    Object.assign(navigator, {clipboard: {writeText: jest.fn().mockResolvedValue('')}});
   });
 
   it('renders the section heading and copy button', () => {

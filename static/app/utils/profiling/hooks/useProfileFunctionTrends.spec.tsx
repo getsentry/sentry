@@ -10,15 +10,10 @@ describe('useProfileFunctionTrendss', () => {
     });
 
     const hook = renderHookWithProviders(() =>
-      useProfileFunctionTrends({
-        trendFunction: 'p95()',
-        trendType: 'regression',
-      })
+      useProfileFunctionTrends({trendFunction: 'p95()', trendType: 'regression'})
     );
     expect(hook.result.current).toMatchObject(
-      expect.objectContaining({
-        isInitialLoading: true,
-      })
+      expect.objectContaining({isInitialLoading: true})
     );
   });
 
@@ -29,10 +24,7 @@ describe('useProfileFunctionTrendss', () => {
     });
 
     const hook = renderHookWithProviders(() =>
-      useProfileFunctionTrends({
-        trendFunction: 'p95()',
-        trendType: 'regression',
-      })
+      useProfileFunctionTrends({trendFunction: 'p95()', trendType: 'regression'})
     );
     expect(hook.result.current.isPending).toBe(true);
     expect(hook.result.current.isFetched).toBe(false);
@@ -42,9 +34,7 @@ describe('useProfileFunctionTrendss', () => {
           isLoading: false,
           isFetched: true,
           data: expect.objectContaining({
-            json: expect.objectContaining({
-              data: expect.any(Array),
-            }),
+            json: expect.objectContaining({data: expect.any(Array)}),
           }),
         })
       )

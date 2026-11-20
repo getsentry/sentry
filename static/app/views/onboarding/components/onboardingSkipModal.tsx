@@ -202,11 +202,7 @@ export function openOnboardingSkipModal({
       {...modalProps}
       step={step}
       onConfirm={reason => {
-        trackAnalytics('onboarding.skip_reason_submitted', {
-          organization,
-          step,
-          reason,
-        });
+        trackAnalytics('onboarding.skip_reason_submitted', {organization, step, reason});
         onSkip();
       }}
     />

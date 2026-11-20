@@ -385,10 +385,7 @@ export class Client {
             // prompt interrupts the original request.
             const [retryData, retryTextStatus, retryResponse] = await this.requestPromise(
               path,
-              {
-                ...requestOptions,
-                includeAllArgs: true,
-              }
+              {...requestOptions, includeAllArgs: true}
             );
             requestOptions.success?.(retryData, retryTextStatus, retryResponse);
             didSuccessfullyRetry = true;

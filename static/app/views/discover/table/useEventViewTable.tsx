@@ -286,10 +286,7 @@ export function useEventViewTable({
 
   const {columnOrder, onResizeColumn} =
     resize === 'query'
-      ? {
-          columnOrder: queryResize.columns,
-          onResizeColumn: queryResize.handleResizeColumn,
-        }
+      ? {columnOrder: queryResize.columns, onResizeColumn: queryResize.handleResizeColumn}
       : resize === 'state'
         ? {columnOrder: stateColumns, onResizeColumn: handleStateResizeColumn}
         : {columnOrder: filteredColumns, onResizeColumn: undefined};

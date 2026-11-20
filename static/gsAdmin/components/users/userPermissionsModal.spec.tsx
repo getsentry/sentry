@@ -102,10 +102,7 @@ describe('UserPermissionsModal', () => {
     );
     expect(updateUser).toHaveBeenCalledWith(
       `/users/${user.id}/`,
-      expect.objectContaining({
-        method: 'PUT',
-        data: {isSuperuser: false, isStaff: true},
-      })
+      expect.objectContaining({method: 'PUT', data: {isSuperuser: false, isStaff: true}})
     );
     expect(addPermission).toHaveBeenCalledTimes(1);
     expect(removePermission).toHaveBeenCalledTimes(1);

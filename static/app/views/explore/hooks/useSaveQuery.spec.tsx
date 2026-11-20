@@ -146,11 +146,7 @@ describe('useSpansSaveQuery', () => {
       initialRouterConfig: {
         location: {
           pathname: '/traces/',
-          query: {
-            query: 'span.op:db',
-            mode: 'samples',
-            queryPriority: 'faster',
-          },
+          query: {query: 'span.op:db', mode: 'samples', queryPriority: 'faster'},
         },
       },
     });
@@ -161,10 +157,7 @@ describe('useSpansSaveQuery', () => {
       `/organizations/${organization.slug}/explore/saved/`,
       expect.objectContaining({
         method: 'POST',
-        data: expect.objectContaining({
-          name: 'Fast query',
-          queryPriority: 'faster',
-        }),
+        data: expect.objectContaining({name: 'Fast query', queryPriority: 'faster'}),
       })
     );
   });
@@ -246,10 +239,7 @@ describe('useSpansSaveQuery', () => {
       organization: OrganizationFixture({features: ['low-priority-queries']}),
       additionalWrapper: Wrapper,
       initialRouterConfig: {
-        location: {
-          pathname: '/replays/',
-          query: {query: 'replay:1'},
-        },
+        location: {pathname: '/replays/', query: {query: 'replay:1'}},
       },
     });
 

@@ -125,30 +125,18 @@ function setupMocks() {
 
   const project = ProjectFixture({hasAccess: false});
 
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/broadcasts/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/broadcasts/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/projects/',
     body: [project],
   });
-  MockApiClient.addMockResponse({
-    url: '/projects/org-slug/project-slug/',
-    body: project,
-  });
-  MockApiClient.addMockResponse({
-    url: '/assistant/',
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: '/projects/org-slug/project-slug/', body: project});
+  MockApiClient.addMockResponse({url: '/assistant/', body: []});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/group-search-views/starred/',
     body: [GroupSearchViewFixture({name: 'Starred View 1'})],
   });
-  MockApiClient.addMockResponse({
-    url: '/organizations/org-slug/issues-count/',
-    body: {},
-  });
+  MockApiClient.addMockResponse({url: '/organizations/org-slug/issues-count/', body: {}});
   MockApiClient.addMockResponse({
     url: '/organizations/org-slug/explore/all-queries/',
     body: [],
@@ -164,11 +152,7 @@ function setupMocks() {
         title: 'Multiple projects',
         projects: [1, 2, 3],
       }),
-      DashboardListItemFixture({
-        id: '4',
-        title: 'Single project',
-        projects: [1],
-      }),
+      DashboardListItemFixture({id: '4', title: 'Single project', projects: [1]}),
     ],
   });
 
@@ -183,10 +167,7 @@ describe('desktop navigation', () => {
       <PrimaryNavigationContextProvider>
         <Navigation />
       </PrimaryNavigationContextProvider>,
-      {
-        organization: null,
-        initialRouterConfig: {location: {pathname: '/'}},
-      }
+      {organization: null, initialRouterConfig: {location: {pathname: '/'}}}
     );
 
     expect(screen.getByRole('link', {name: 'Settings'})).toHaveAttribute(
@@ -371,10 +352,7 @@ describe('desktop navigation', () => {
       });
       MockApiClient.addMockResponse({url: '/assistant/', method: 'PUT', body: {}});
       ProjectsStore.loadInitialData([]);
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/projects/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/projects/', body: []});
       render(
         <PrimaryNavigationContextProvider>
           <Navigation />
@@ -744,9 +722,7 @@ describe('desktop navigation', () => {
         <PrimaryNavigationContextProvider>
           <Navigation />
         </PrimaryNavigationContextProvider>,
-        navigationContext({
-          organization: {features: [...ALL_AVAILABLE_FEATURES]},
-        })
+        navigationContext({organization: {features: [...ALL_AVAILABLE_FEATURES]}})
       );
 
       const primaryNav = screen.getByRole('navigation', {name: 'Primary Navigation'});
@@ -987,9 +963,7 @@ describe('desktop navigation', () => {
           <PrimaryNavigationContextProvider>
             <Navigation />
           </PrimaryNavigationContextProvider>,
-          navigationContext({
-            initialRouterConfig: {location: {pathname: '/manage/'}},
-          })
+          navigationContext({initialRouterConfig: {location: {pathname: '/manage/'}}})
         );
 
         const secondaryNav = screen.getByRole('navigation', {
@@ -1827,9 +1801,7 @@ describe('desktop navigation', () => {
           </PrimaryNavigationContextProvider>,
           navigationContext({
             organization: universalInbox,
-            initialRouterConfig: {
-              location: {pathname: '/organizations/org-slug/inbox/'},
-            },
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
           })
         );
 
@@ -1851,9 +1823,7 @@ describe('desktop navigation', () => {
           </PrimaryNavigationContextProvider>,
           navigationContext({
             organization: universalInbox,
-            initialRouterConfig: {
-              location: {pathname: '/organizations/org-slug/inbox/'},
-            },
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
           })
         );
 
@@ -1914,9 +1884,7 @@ describe('desktop navigation', () => {
           </PrimaryNavigationContextProvider>,
           navigationContext({
             organization: universalInbox,
-            initialRouterConfig: {
-              location: {pathname: '/organizations/org-slug/inbox/'},
-            },
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
           })
         );
 

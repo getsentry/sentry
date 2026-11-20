@@ -23,18 +23,11 @@ type PlatformSearchParam = {
   variant?: 'scm' | 'legacy';
 };
 
-type SampleEventParam = {
-  platform?: PlatformKey;
-};
+type SampleEventParam = {platform?: PlatformKey};
 
-type InviteRequestParam = {
-  invite_status: string;
-  member_id: number;
-};
+type InviteRequestParam = {invite_status: string; member_id: number};
 
-type InviteModal = {
-  modal_session: string;
-};
+type InviteModal = {modal_session: string};
 
 type SampleEvent = {
   duration: number;
@@ -47,23 +40,12 @@ type SampleEvent = {
 
 // define the event key to payload mappings
 export type GrowthEventParameters = {
-  'assistant.guide_cued': {
-    guide: string;
-  };
-  'assistant.guide_dismissed': {
-    guide: string;
-    step: number;
-  };
-  'assistant.guide_finished': {
-    guide: string;
-  };
+  'assistant.guide_cued': {guide: string};
+  'assistant.guide_dismissed': {guide: string; step: number};
+  'assistant.guide_finished': {guide: string};
   'github_invite_banner.snoozed': Record<string, unknown>;
   'github_invite_banner.viewed': {members_shown: number; total_members: number};
-  'growth.clicked_enter_sandbox': {
-    scenario?: string;
-    source?: string;
-    step?: string;
-  };
+  'growth.clicked_enter_sandbox': {scenario?: string; source?: string; step?: string};
   'growth.demo_click_docs': Record<string, unknown>;
   'growth.demo_click_request_demo': Record<string, unknown>;
   'growth.demo_click_sign_up': Record<string, unknown>;
@@ -75,30 +57,19 @@ export type GrowthEventParameters = {
   'growth.end_modal_more_tours': Record<string, unknown>;
   'growth.end_modal_restart_tours': Record<string, unknown>;
   'growth.end_modal_signup': Record<string, unknown>;
-  'growth.onboarding_take_to_error': {
-    platform?: string;
-  };
+  'growth.onboarding_take_to_error': {platform?: string};
   'growth.onboarding_view_sample_event': SampleEventParam;
   'growth.platformpicker_category': PlatformCategory;
   'growth.platformpicker_search': PlatformSearchParam;
-  'growth.sample_error_onboarding_link_clicked': {
-    platform?: string;
-    project_id?: string;
-  };
+  'growth.sample_error_onboarding_link_clicked': {platform?: string; project_id?: string};
   'growth.select_platform': PlatformPickerParam;
   'invite_modal.add_more': InviteModal;
   'invite_modal.invites_sent': InviteModal;
-  'invite_modal.opened': InviteModal & {
-    can_invite: boolean;
-    source?: string;
-  };
+  'invite_modal.opened': InviteModal & {can_invite: boolean; source?: string};
   'invite_modal.requests_sent': InviteModal;
   'invite_request.approved': InviteRequestParam;
   'invite_request.denied': InviteRequestParam;
-  'sample_event.button_viewed': {
-    project_id: string;
-    source: string;
-  };
+  'sample_event.button_viewed': {project_id: string; source: string};
   'sample_event.created': SampleEvent;
   'sample_event.failed': SampleEvent;
 };

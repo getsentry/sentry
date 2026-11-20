@@ -32,9 +32,7 @@ export function useMutateOnboardingTasks() {
         return updatedTask ? {...task, ...updatedTask} : task;
       });
 
-      OrganizationStore.onUpdate({
-        onboardingTasks: updatedOnboardingTasks,
-      });
+      OrganizationStore.onUpdate({onboardingTasks: updatedOnboardingTasks});
     },
   });
 }

@@ -195,17 +195,11 @@ export function NativeFrame({
 
   function getFunctionName() {
     if (functionNameHiddenDetails && fullFunctionName && frame.rawFunction) {
-      return {
-        value: frame.rawFunction,
-        meta: frameMeta?.rawFunction?.[''],
-      };
+      return {value: frame.rawFunction, meta: frameMeta?.rawFunction?.['']};
     }
 
     if (frame.function) {
-      return {
-        value: frame.function,
-        meta: frameMeta?.function?.[''],
-      };
+      return {value: frame.function, meta: frameMeta?.function?.['']};
     }
 
     return;
@@ -294,10 +288,7 @@ export function NativeFrame({
         >
           {expandable ? <InteractionStateLayer /> : null}
           <Container
-            row={{
-              zero: hiddenFrameCount ? '1 / 5' : '1 / 4',
-              xl: '1',
-            }}
+            row={{zero: hiddenFrameCount ? '1 / 5' : '1 / 4', xl: '1'}}
             width="14px"
           >
             {status === 'error' ? (
@@ -375,10 +366,7 @@ export function NativeFrame({
           </Flex>
           <Container
             alignSelf="center"
-            column={{
-              zero: '2 / 5',
-              xl: '4',
-            }}
+            column={{zero: '2 / 5', xl: '4'}}
             minWidth="0"
             row={{zero: '3', xl: '1'}}
           >
@@ -422,10 +410,7 @@ export function NativeFrame({
           </Container>
           {hiddenFrameCount ? (
             <Flex
-              column={{
-                zero: '2 / 4',
-                xl: '6',
-              }}
+              column={{zero: '2 / 4', xl: '6'}}
               justify="end"
               minWidth="0"
               row={{zero: '4', xl: '1'}}
@@ -451,15 +436,7 @@ export function NativeFrame({
               </Button>
             </Flex>
           ) : null}
-          <Flex
-            align="center"
-            column={{
-              zero: '3',
-              xl: '7',
-            }}
-            gap="sm"
-            justify="end"
-          >
+          <Flex align="center" column={{zero: '3', xl: '7'}} gap="sm" justify="end">
             {showStacktraceLink && (
               <ErrorBoundary>
                 <StacktraceLink

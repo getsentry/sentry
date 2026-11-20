@@ -31,29 +31,17 @@ describe('OrganizationMemberDetail', () => {
     slug: 'idp-member-team',
     name: 'Idp Member Team',
     isMember: true,
-    flags: {
-      'idp:provisioned': true,
-    },
+    flags: {'idp:provisioned': true},
   });
   const teams = [
     team,
-    TeamFixture({
-      id: '2',
-      slug: 'new-team',
-      name: 'New Team',
-      isMember: false,
-    }),
+    TeamFixture({id: '2', slug: 'new-team', name: 'New Team', isMember: false}),
     idpTeam,
   ];
 
   const teamAssignment = {
     teams: [team.slug],
-    teamRoles: [
-      {
-        teamSlug: team.slug,
-        role: null,
-      },
-    ],
+    teamRoles: [{teamSlug: team.slug, role: null}],
   };
 
   const member = MemberFixture({
@@ -81,12 +69,7 @@ describe('OrganizationMemberDetail', () => {
     roles: OrgRoleListFixture(),
     dateCreated: new Date().toISOString(),
     teams: [idpTeam.slug],
-    teamRoles: [
-      {
-        teamSlug: idpTeam.slug,
-        role: null,
-      },
-    ],
+    teamRoles: [{teamSlug: idpTeam.slug, role: null}],
   });
   const managerMember = MemberFixture({
     id: '6',
@@ -139,9 +122,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -159,11 +140,7 @@ describe('OrganizationMemberDetail', () => {
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            orgRole: 'owner',
-          }),
-        })
+        expect.objectContaining({data: expect.objectContaining({orgRole: 'owner'})})
       );
     });
 
@@ -171,9 +148,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -216,9 +191,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -231,11 +204,7 @@ describe('OrganizationMemberDetail', () => {
 
       expect(updateMember).toHaveBeenCalledWith(
         expect.anything(),
-        expect.objectContaining({
-          data: expect.objectContaining({
-            teamRoles: [],
-          }),
-        })
+        expect.objectContaining({data: expect.objectContaining({teamRoles: []})})
       );
     });
 
@@ -260,9 +229,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -302,9 +269,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -350,9 +315,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -604,9 +567,7 @@ describe('OrganizationMemberDetail', () => {
     it('shows tooltip for joined member without permission to edit', async () => {
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${noAccess.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${noAccess.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -616,9 +577,7 @@ describe('OrganizationMemberDetail', () => {
     it('shows tooltip for member without 2fa', async () => {
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${no2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${no2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -635,9 +594,7 @@ describe('OrganizationMemberDetail', () => {
 
       render(<OrganizationMemberDetail />, {
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${has2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -679,9 +636,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${has2fa.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${has2fa.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -741,9 +696,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });
@@ -804,9 +757,7 @@ describe('OrganizationMemberDetail', () => {
       render(<OrganizationMemberDetail />, {
         organization,
         initialRouterConfig: {
-          location: {
-            pathname: `/settings/${organization.slug}/members/${member.id}/`,
-          },
+          location: {pathname: `/settings/${organization.slug}/members/${member.id}/`},
           route: '/settings/:orgId/members/:memberId/',
         },
       });

@@ -30,9 +30,7 @@ describe('OrganizationContext', () => {
 
   const initialRouterConfig = {
     route: '/organizations/:orgId/',
-    location: {
-      pathname: `/organizations/${organization.slug}/`,
-    },
+    location: {pathname: `/organizations/${organization.slug}/`},
   };
 
   function setupOrgMocks(org: Organization) {
@@ -186,9 +184,7 @@ describe('OrganizationContext', () => {
       {
         initialRouterConfig: {
           route: '/organizations/',
-          location: {
-            pathname: '/organizations/',
-          },
+          location: {pathname: '/organizations/'},
         },
       }
     );

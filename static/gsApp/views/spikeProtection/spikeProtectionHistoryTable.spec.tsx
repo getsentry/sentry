@@ -14,9 +14,7 @@ import type {SpikeDetails} from 'getsentry/views/spikeProtection/types';
 import {SPIKE_PROTECTION_OPTION_DISABLED} from './constants';
 
 describe('SpikeProtectionHistoryTable', () => {
-  const organization = OrganizationFixture({
-    features: ['discover-basic'],
-  });
+  const organization = OrganizationFixture({features: ['discover-basic']});
   const subscription = SubscriptionFixture({organization});
 
   const project = DetailedProjectFixture();

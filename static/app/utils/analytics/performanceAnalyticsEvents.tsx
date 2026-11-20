@@ -4,14 +4,9 @@
 import type {Organization} from 'sentry/types/organization';
 import type {LandingDisplayField} from 'sentry/views/performance/landing/utils';
 
-type PerformanceTourParams = {
-  duration: number;
-  step: number;
-};
+type PerformanceTourParams = {duration: number; step: number};
 
-type PageLayoutParams = {
-  project_platforms: string;
-};
+type PageLayoutParams = {project_platforms: string};
 
 export type PerformanceEventParameters = {
   'performance_views.events.events_tab_clicked': PageLayoutParams;
@@ -23,16 +18,9 @@ export type PerformanceEventParameters = {
     single_project: boolean;
     stats_period: string;
   };
-  'performance_views.landingv2.transactions.sort': {
-    direction?: string;
-    field?: string;
-  };
-  'performance_views.landingv3.table_pagination': {
-    direction: string;
-  };
-  'performance_views.landingv3.widget.interaction': {
-    widget_type?: string;
-  };
+  'performance_views.landingv2.transactions.sort': {direction?: string; field?: string};
+  'performance_views.landingv3.table_pagination': {direction: string};
+  'performance_views.landingv3.widget.interaction': {widget_type?: string};
   'performance_views.landingv3.widget.switch': {
     from_default?: boolean;
     from_widget?: string;
@@ -43,9 +31,7 @@ export type PerformanceEventParameters = {
     table_data_state: 'has_data' | 'no_data' | 'onboarding';
     tab?: LandingDisplayField;
   };
-  'performance_views.overview.navigate.summary': {
-    project_platforms: string;
-  };
+  'performance_views.overview.navigate.summary': {project_platforms: string};
   'performance_views.project_issue_detection_threshold_changed': {
     organization: Organization;
     project_slug: string;
@@ -62,9 +48,7 @@ export type PerformanceEventParameters = {
     to: string;
   };
   'performance_views.project_transaction_threshold.clear': Record<string, unknown>;
-  'performance_views.relative_breakdown.selection': {
-    action: string;
-  };
+  'performance_views.relative_breakdown.selection': {action: string};
   'performance_views.sample_spans.span_clicked': {
     organization: Organization;
     source: string;
@@ -72,9 +56,7 @@ export type PerformanceEventParameters = {
   'performance_views.spans.spans_tab_clicked': PageLayoutParams;
   'performance_views.summary.create_alert_clicked': Record<string, unknown>;
   'performance_views.summary.open_issues': Record<string, unknown>;
-  'performance_views.team_key_transaction.set': {
-    action: string;
-  };
+  'performance_views.team_key_transaction.set': {action: string};
   'performance_views.tour.advance': PerformanceTourParams;
   'performance_views.tour.close': PerformanceTourParams;
   'performance_views.tour.start': Record<string, unknown>;
@@ -82,22 +64,13 @@ export type PerformanceEventParameters = {
     organization: Organization;
     source: string;
   };
-  'performance_views.transactionEvents.cellaction': {
-    action: string;
-  };
+  'performance_views.transactionEvents.cellaction': {action: string};
   'performance_views.transactionEvents.display_filter_dropdown.selection': {
     action: string;
   };
-  'performance_views.transactionEvents.ops_filter_dropdown.selection': {
-    action: string;
-  };
-  'performance_views.transactionEvents.sort': {
-    direction?: string;
-    field?: string;
-  };
-  'performance_views.transaction_summary.status_breakdown_click': {
-    status: string;
-  };
+  'performance_views.transactionEvents.ops_filter_dropdown.selection': {action: string};
+  'performance_views.transactionEvents.sort': {direction?: string; field?: string};
+  'performance_views.transaction_summary.status_breakdown_click': {status: string};
   'performance_views.transaction_summary.view': Record<string, unknown>;
 };
 

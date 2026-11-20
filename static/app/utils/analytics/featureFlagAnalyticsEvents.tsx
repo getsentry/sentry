@@ -2,41 +2,22 @@ import type {SdkProviderEnum} from 'sentry/components/events/featureFlags/utils'
 import type {PlatformKey} from 'sentry/types/platform';
 
 export type FeatureFlagEventParameters = {
-  'flags.cta_read_more_clicked': {
-    surface: string;
-  };
+  'flags.cta_read_more_clicked': {surface: string};
   'flags.cta_rendered': {surface: string};
-  'flags.drawer_details_rendered': {
-    numLogs: number;
-  };
-  'flags.drawer_rendered': {
-    numFlags: number;
-  };
+  'flags.drawer_details_rendered': {numLogs: number};
+  'flags.drawer_rendered': {numFlags: number};
   'flags.event_and_suspect_flags_found': {
     numEventFlags: number;
     numSuspectFlags: number;
     numTotalFlags: number;
   };
   'flags.layer_toggled': {selected: boolean};
-  'flags.logs-paginated': {
-    direction: 'next' | 'prev';
-    surface: string;
-  };
-  'flags.setup_sidebar_selection': {
-    platform?: string;
-    provider?: SdkProviderEnum;
-  };
+  'flags.logs-paginated': {direction: 'next' | 'prev'; surface: string};
+  'flags.setup_sidebar_selection': {platform?: string; provider?: SdkProviderEnum};
   'flags.sort_flags': {sortMethod: string};
-  'flags.table_rendered': {
-    numFlags: number;
-    orgSlug: string;
-    projectSlug: string;
-  };
+  'flags.table_rendered': {numFlags: number; orgSlug: string; projectSlug: string};
   'flags.view-all-clicked': Record<string, unknown>;
-  'flags.view-setup-sidebar': {
-    surface: string;
-    platform?: PlatformKey;
-  };
+  'flags.view-setup-sidebar': {surface: string; platform?: PlatformKey};
 };
 
 type FeatureFlagEventKey = keyof FeatureFlagEventParameters;

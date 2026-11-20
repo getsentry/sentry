@@ -47,9 +47,7 @@ describe('METRIC_DETECTOR_DRAFT_SCHEMA', () => {
   });
 
   it('crops the description when it is too long', () => {
-    const values = METRIC_DETECTOR_DRAFT_SCHEMA.parse({
-      description: '😀'.repeat(1200),
-    });
+    const values = METRIC_DETECTOR_DRAFT_SCHEMA.parse({description: '😀'.repeat(1200)});
 
     expect(values).toStrictEqual({description: '😀'.repeat(1024)});
   });

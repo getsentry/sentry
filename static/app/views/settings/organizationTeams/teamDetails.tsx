@@ -20,9 +20,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useTeamsById} from 'sentry/utils/useTeamsById';
 
-type TeamDetailsOutletContext = {
-  team: Team;
-};
+type TeamDetailsOutletContext = {team: Team};
 
 function TeamDetailsOutlet(props: TeamDetailsOutletContext) {
   return <Outlet context={props} />;
@@ -45,21 +43,10 @@ export default function TeamDetails() {
     setRequesting(true);
 
     try {
-      await joinTeamPromise(api, {
-        orgId: orgSlug,
-        teamId: teamSlug,
-      });
-      toast.success(
-        tct('You have requested access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      await joinTeamPromise(api, {orgId: orgSlug, teamId: teamSlug});
+      toast.success(tct('You have requested access to [team]', {team: `#${teamSlug}`}));
     } catch {
-      toast.error(
-        tct('Unable to request access to [team]', {
-          team: `#${teamSlug}`,
-        })
-      );
+      toast.error(tct('Unable to request access to [team]', {team: `#${teamSlug}`}));
       // oxlint-disable-next-line react/todo
     } finally {
       setRequesting(false);

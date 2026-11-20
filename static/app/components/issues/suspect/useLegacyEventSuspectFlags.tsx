@@ -56,12 +56,7 @@ export function useLegacyEventSuspectFlags({
   const {data, isError, isPending, error} = useQuery({
     ...organizationFlagLogOptions({
       organization,
-      query: {
-        flag: intersectionFlags,
-        start,
-        end: firstSeen,
-        statsPeriod: undefined,
-      },
+      query: {flag: intersectionFlags, start, end: firstSeen, statsPeriod: undefined},
     }),
     // if no intersection, then there are no suspect flags
     enabled: enabled && Boolean(intersectionFlags.length),

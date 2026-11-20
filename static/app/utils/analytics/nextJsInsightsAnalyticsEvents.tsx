@@ -1,13 +1,7 @@
 type NextJsInsightsEventParameters = {
-  'nextjs-insights.page-view': {
-    view: string;
-  };
-  'nextjs-insights.table_view_change': {
-    view: string;
-  };
-  'nextjs-insights.ui_toggle': {
-    isEnabled: boolean;
-  };
+  'nextjs-insights.page-view': {view: string};
+  'nextjs-insights.table_view_change': {view: string};
+  'nextjs-insights.ui_toggle': {isEnabled: boolean};
 };
 
 export const nextJsInsightsEventMap: Record<keyof NextJsInsightsEventParameters, string> =

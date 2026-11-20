@@ -61,10 +61,7 @@ describe('issue embed', () => {
 
   describe('block', () => {
     function mockIssuesRequest() {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/users/',
-        body: [],
-      });
+      MockApiClient.addMockResponse({url: '/organizations/org-slug/users/', body: []});
       return MockApiClient.addMockResponse({
         url: '/organizations/org-slug/issues/',
         body: [GroupFixture({id: '7716642857', shortId: 'JAVASCRIPT-22SP'})],

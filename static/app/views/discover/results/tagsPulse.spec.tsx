@@ -64,9 +64,7 @@ describe('Tags confirmedQuery pulse', () => {
       body: [{key: 'release', topValues: [{count: 30, value: 'abc', name: 'abc'}]}],
     });
 
-    render(<Harness />, {
-      initialRouterConfig: {location: {pathname: location.pathname}},
-    });
+    render(<Harness />, {initialRouterConfig: {location: {pathname: location.pathname}}});
 
     await waitFor(() =>
       expect(screen.queryAllByTestId('loading-placeholder')).toHaveLength(0)

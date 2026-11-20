@@ -136,10 +136,7 @@ describe('useMetricDetectorThresholdSeries', () => {
   describe('percent detection with non-session aggregates', () => {
     it('computes correct delta for count() (comparison=110 → 10% higher)', () => {
       const comparisonSeries = [
-        {
-          seriesName: 'Previous count()',
-          data: [{name: 1609459200000, value: 100}],
-        },
+        {seriesName: 'Previous count()', data: [{name: 1609459200000, value: 100}]},
       ];
 
       const conditions = makeConditions([
@@ -275,10 +272,7 @@ describe('useMetricDetectorThresholdSeries', () => {
 
     it('stacks the warning band between the percent threshold lines', () => {
       const comparisonSeries = [
-        {
-          seriesName: 'Previous count()',
-          data: [{name: 1609459200000, value: 100}],
-        },
+        {seriesName: 'Previous count()', data: [{name: 1609459200000, value: 100}]},
       ];
 
       const conditions = makeConditions([
@@ -321,10 +315,7 @@ describe('useMetricDetectorThresholdSeries', () => {
 
     it('lists lines from most severe to a manual percent resolution and ends the ok band there', () => {
       const comparisonSeries = [
-        {
-          seriesName: 'Previous count()',
-          data: [{name: 1609459200000, value: 100}],
-        },
+        {seriesName: 'Previous count()', data: [{name: 1609459200000, value: 100}]},
       ];
 
       const conditions = makeConditions([

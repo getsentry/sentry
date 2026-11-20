@@ -214,10 +214,7 @@ function cloneNodeWithAttrs(
   node: AITraceSpanNode,
   overrides: Record<string, string>
 ): AITraceSpanNode {
-  return {
-    ...node,
-    attributes: {...node.attributes, ...overrides},
-  } as AITraceSpanNode;
+  return {...node, attributes: {...node.attributes, ...overrides}} as AITraceSpanNode;
 }
 
 // The agent output interleaves assistant messages with `tool` result messages;
@@ -1162,14 +1159,9 @@ export function parseAssistantContent(node: AITraceSpanNode): {
     if (isFiltered(outputMessages)) {
       return {content: outputMessages, reasoning: null};
     }
-    const extracted = extractAssistantOutput(outputMessages, {
-      defaultRole: 'assistant',
-    });
+    const extracted = extractAssistantOutput(outputMessages, {defaultRole: 'assistant'});
     if (extracted.responseText) {
-      return {
-        content: extracted.responseText,
-        reasoning: extracted.reasoningText,
-      };
+      return {content: extracted.responseText, reasoning: extracted.reasoningText};
     }
     // If tool calls or reasoning were found but no text, don't fall through to
     // response attributes — tool calls are rendered separately as badges and

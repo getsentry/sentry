@@ -10,10 +10,7 @@ describe('Relocation Create', () => {
   beforeEach(() => {
     jest.spyOn(toast, 'error').mockClear();
     ConfigStore.set('cells', [
-      {
-        name: 'test',
-        locality_url: 'https://example.com/api/0/',
-      },
+      {name: 'test', locality_url: 'https://example.com/api/0/'},
     ]);
   });
 
@@ -98,16 +95,8 @@ describe('Relocation Create', () => {
         dateAdded: '2023-12-18T01:02:03:45.678Z',
         dateUpdated: '2023-12-18T02:02:03:45.678Z',
         uuid: 'd39f84fc-554a-4d7d-95b7-78f983bcba73',
-        creator: {
-          email: 'alice@example.com',
-          id: '2',
-          username: 'alice',
-        },
-        owner: {
-          email: 'alice@example.com',
-          id: '2',
-          username: 'alice',
-        },
+        creator: {email: 'alice@example.com', id: '2', username: 'alice'},
+        owner: {email: 'alice@example.com', id: '2', username: 'alice'},
         status: 'FAILURE',
         step: 'IMPORTING',
         provenance: 'SELF_HOSTED',

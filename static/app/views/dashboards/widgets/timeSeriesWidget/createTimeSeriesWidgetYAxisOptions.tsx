@@ -19,13 +19,8 @@ export function createTimeSeriesWidgetYAxisOptions(
       axisPointer: {
         type: 'line' as const,
         snap: false,
-        lineStyle: {
-          type: 'solid',
-          width: 0.5,
-        },
-        label: {
-          show: false,
-        },
+        lineStyle: {type: 'solid', width: 0.5},
+        label: {show: false},
       },
       // "Zooms" the Y-axis to start at the minimum (approximate) of the data
       // range. Better than using `min: "dataMin"` because `scale` ensure that

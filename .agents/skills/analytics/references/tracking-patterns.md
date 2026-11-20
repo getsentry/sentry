@@ -101,9 +101,7 @@ function handleFilterChange(filterType: string) {
 
 ```typescript
 useEffect(() => {
-  trackAnalytics('feedback.banner-viewed', {
-    organization,
-  });
+  trackAnalytics('feedback.banner-viewed', {organization});
 }, [organization]);
 ```
 

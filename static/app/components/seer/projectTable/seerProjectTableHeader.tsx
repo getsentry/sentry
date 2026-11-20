@@ -124,9 +124,8 @@ export function ProjectTableHeader({
   // single-row save to finish first, so a row isn't rebuilt in the middle of
   // its own save.
   const isRowSaving =
-    useIsMutating({
-      mutationKey: getSeerProjectSettingsMutationKey(organization.slug),
-    }) > 0;
+    useIsMutating({mutationKey: getSeerProjectSettingsMutationKey(organization.slug)}) >
+    0;
 
   const {mutate, isPending: isBulkSaving} = bulkEdit;
 
@@ -171,11 +170,7 @@ export function ProjectTableHeader({
               isDisabled={isDisabled}
               onChange={value => {
                 mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    agentOption: value,
-                  },
+                  {query: mutableSearch.formatString(), selectedIds, agentOption: value},
                   {
                     onError: () =>
                       toast.error(
@@ -233,11 +228,7 @@ export function ProjectTableHeader({
               isDisabled={isDisabled}
               onChange={prIteration => {
                 mutate(
-                  {
-                    query: mutableSearch.formatString(),
-                    selectedIds,
-                    prIteration,
-                  },
+                  {query: mutableSearch.formatString(), selectedIds, prIteration},
                   {
                     onError: () =>
                       toast.error(

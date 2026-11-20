@@ -54,9 +54,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install [code:sentry-sdk] from PyPI:', {
-            code: <code />,
-          }),
+          text: tct('Install [code:sentry-sdk] from PyPI:', {code: <code />}),
         },
         getPythonInstallCodeBlock({additionalPackage: 'django'}),
       ],
@@ -75,11 +73,7 @@ export const onboarding: OnboardingConfig = {
         {
           type: 'code',
           tabs: [
-            {
-              label: 'settings.py',
-              language: 'python',
-              code: getSdkSetupSnippet(params),
-            },
+            {label: 'settings.py', language: 'python', code: getSdkSetupSnippet(params)},
           ],
         },
         alternativeProfiling(params),
@@ -123,9 +117,7 @@ urlpatterns = [
           text: [
             tct(
               'When you point your browser to [link:http://localhost:8000/sentry-debug/] an error with a trace will be created. So you can explore errors and tracing portions of Sentry.',
-              {
-                link: <ExternalLink href="http://localhost:8000/sentry-debug/" />,
-              }
+              {link: <ExternalLink href="http://localhost:8000/sentry-debug/" />}
             ),
             t(
               'It can take a couple of moments for the data to appear in Sentry. Bear with us, the internet is huge.'

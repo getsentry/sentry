@@ -7,10 +7,7 @@ import {getOrderedContextItems} from './contextItems';
 describe('getOrderedContextItems', () => {
   it('orders context items correctly', () => {
     const event: Partial<Event> = {
-      user: {
-        id: '12345',
-        email: 'user@example.com',
-      },
+      user: {id: '12345', email: 'user@example.com'},
       contexts: {
         runtime: {name: 'node', type: 'runtime'},
         os: {
@@ -43,14 +40,7 @@ describe('getOrderedContextItems', () => {
 
   it('does not fail with missing context items', () => {
     const mockEventOnlyOs = EventFixture({
-      contexts: {
-        os: {
-          os: 'macOS 15.3.2',
-          name: 'macOS',
-          version: '15.3.2',
-          type: 'os',
-        },
-      },
+      contexts: {os: {os: 'macOS 15.3.2', name: 'macOS', version: '15.3.2', type: 'os'}},
     });
 
     const itemsOnlyOs = getOrderedContextItems(mockEventOnlyOs);
@@ -64,11 +54,7 @@ describe('getOrderedContextItems', () => {
         runtime: {name: 'node', type: 'runtime'},
         trace: {trace_id: 'abc123', span_id: 'def456', status: 'ok'},
       },
-      _meta: {
-        contexts: {
-          trace: {trace_id: {'': {err: ['trace_id.missing']}}},
-        },
-      },
+      _meta: {contexts: {trace: {trace_id: {'': {err: ['trace_id.missing']}}}}},
     });
 
     const items = getOrderedContextItems(mockEvent);
@@ -79,9 +65,7 @@ describe('getOrderedContextItems', () => {
 
   it('keeps the trace context when the trace is not synthetic', () => {
     const mockEvent = EventFixture({
-      contexts: {
-        trace: {trace_id: 'abc123', span_id: 'def456', status: 'ok'},
-      },
+      contexts: {trace: {trace_id: 'abc123', span_id: 'def456', status: 'ok'}},
     });
 
     const items = getOrderedContextItems(mockEvent);
@@ -99,9 +83,7 @@ describe('getOrderedContextItems', () => {
           type: 'runtime',
         },
         empty: {},
-        onlyType: {
-          type: 'default',
-        },
+        onlyType: {type: 'default'},
       },
     });
 

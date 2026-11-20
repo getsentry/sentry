@@ -64,10 +64,7 @@ const generateIntegrationFeatures = (p: any) =>
   });
 
 const defaultFeatureGateComponents: ReturnType<Overrides['integrations:feature-gates']> =
-  {
-    IntegrationFeatures: generateIntegrationFeatures,
-    FeatureList: generateFeaturesList,
-  };
+  {IntegrationFeatures: generateIntegrationFeatures, FeatureList: generateFeaturesList};
 
 export const getIntegrationFeatureGate = () => {
   const defaultHook = () => defaultFeatureGateComponents;
@@ -406,16 +403,8 @@ export function sortIntegrations({
   return list.toSorted((a: AppOrProviderOrPlugin, b: AppOrProviderOrPlugin) => {
     // sort by whether installed first
     const diffWeight =
-      getInstallValue({
-        integration: b,
-        integrationInstalls,
-        sentryAppInstalls,
-      }) -
-      getInstallValue({
-        integration: a,
-        integrationInstalls,
-        sentryAppInstalls,
-      });
+      getInstallValue({integration: b, integrationInstalls, sentryAppInstalls}) -
+      getInstallValue({integration: a, integrationInstalls, sentryAppInstalls});
     if (diffWeight !== 0) {
       return diffWeight;
     }

@@ -7,11 +7,7 @@ import {docs} from '.';
 describe('flutter onboarding docs', () => {
   it('renders docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
-      releaseRegistry: {
-        'sentry.dart.flutter': {
-          version: '1.99.9',
-        },
-      },
+      releaseRegistry: {'sentry.dart.flutter': {version: '1.99.9'}},
     });
 
     expect(
