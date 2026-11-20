@@ -40,6 +40,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
 )
 from sentry.workflow_engine.processors import DataConditionGroupEvaluation
+from sentry.workflow_engine.processors.action import filter_recently_fired_workflow_actions
 from sentry.workflow_engine.processors.data_condition_group import get_slow_conditions_for_groups
 from sentry.workflow_engine.processors.delayed_workflow import (
     EventInstance,
@@ -64,6 +65,7 @@ from sentry.workflow_engine.processors.evaluations import (
     EvaluationType,
     WorkflowEvaluationOutcome,
 )
+from sentry.workflow_engine.types import WorkflowEventData
 from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
@@ -1313,6 +1315,31 @@ class TestFireActionsForGroups(TestDelayedWorkflowBase):
             group_id=self.group1.id,
             event_id=self.event1.event_id,
         ).exists()
+
+    @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
+    def test_shared_action_does_not_record_suppressed_workflow(
+        self, mock_trigger: MagicMock
+    ) -> None:
+        action_group, action = self.create_workflow_action(self.workflow1)
+        event, _ = self.group_to_groupevent[self.group1]
+        self.workflow1.update(config={"frequency": 30})
+        filter_recently_fired_workflow_actions(
+            {action_group}, WorkflowEventData(event=event, group=self.group1)
+        )
+        shared_group, _ = self.create_workflow_action(self.workflow2, action=action)
+
+        fire_actions_for_groups(
+            self.project.organization,
+            {self.group1.id: {action_group, shared_group}},
+            {self.group1: (event, None)},
+        )
+
+        history = WorkflowFireHistory.objects.get()
+        assert history.workflow_id == self.workflow2.id
+        mock_trigger.assert_called_once()
+        params = mock_trigger.call_args.kwargs["kwargs"]
+        assert params["workflow_id"] == self.workflow2.id
+        assert params["notification_uuid"] == str(history.notification_uuid)
 
     @patch("sentry.workflow_engine.tasks.actions.trigger_action.apply_async")
     @patch("sentry.workflow_engine.processors.workflow.process_data_condition_group")
