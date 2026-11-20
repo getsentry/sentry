@@ -24,6 +24,7 @@ import type {
 } from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
 import {isExternalActorMapping} from 'sentry/utils/integrationUtil';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -39,10 +40,7 @@ const MAPPING_COLUMNS: TableColumnConfig[] = [
 
 type CodeOwnersAssociationMappings = Record<
   string,
-  {
-    associations: Record<string, string>;
-    errors: Record<string, string>;
-  }
+  {associations: Record<string, string>; errors: Record<string, string>}
 >;
 
 type Props = Pick<
@@ -58,9 +56,7 @@ type Props = Pick<
   pageLinks?: string;
 };
 
-type LocationQuery = {
-  cursor?: string;
-};
+type LocationQuery = {cursor?: string};
 
 function MappingName({
   defaultOptions,
@@ -277,7 +273,7 @@ export function IntegrationExternalMappings(props: Props) {
           </SimpleTable.Empty>
         )}
       </MappingTable>
-      <Pagination pageLinks={pageLinks} />
+      <Pagination {...getPaginationProps(pageLinks)} />
     </Fragment>
   );
 }

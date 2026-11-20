@@ -7,9 +7,7 @@ import {useReplayReader} from 'sentry/utils/replays/playback/providers/replayRea
 import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {useMouseTracking} from 'sentry/utils/useMouseTracking';
 
-type Opts<T extends Element> = {
-  elem: RefObject<T | null>;
-};
+type Opts<T extends Element> = {elem: RefObject<T | null>};
 
 /**
  * This provides scale-aware logic for accurate hover time and position

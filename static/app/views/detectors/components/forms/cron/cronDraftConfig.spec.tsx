@@ -39,9 +39,7 @@ describe('CRON_DETECTOR_DRAFT_SCHEMA', () => {
   });
 
   it('uses the canonical timezone name when given a different case', () => {
-    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({
-      timezone: 'utc',
-    });
+    const values = CRON_DETECTOR_DRAFT_SCHEMA.parse({timezone: 'utc'});
 
     expect(values).toStrictEqual({timezone: 'UTC'});
   });

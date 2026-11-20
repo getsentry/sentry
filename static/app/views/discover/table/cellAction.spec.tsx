@@ -246,9 +246,7 @@ describe('Discover -> CellAction', () => {
 
     it('exclude button appends exclusions', async () => {
       const excludeView = EventView.fromLocation(
-        LocationFixture({
-          query: {...location.query, query: '!transaction:nope'},
-        })
+        LocationFixture({query: {...location.query, query: '!transaction:nope'}})
       );
       render(
         <ExampleCellAction eventView={excludeView} handleCellAction={handleCellAction} />
@@ -318,12 +316,7 @@ describe('Discover -> CellAction', () => {
 
     it('does not offer link actions for wildcard URLs', async () => {
       const urlView = EventView.fromLocation(
-        LocationFixture({
-          query: {
-            ...location.query,
-            field: ['url'],
-          },
-        })
+        LocationFixture({query: {...location.query, field: ['url']}})
       );
 
       render(
@@ -348,12 +341,7 @@ describe('Discover -> CellAction', () => {
 
     it('does not offer open link for invalid external anchors', async () => {
       const urlView = EventView.fromLocation(
-        LocationFixture({
-          query: {
-            ...location.query,
-            field: ['url'],
-          },
-        })
+        LocationFixture({query: {...location.query, field: ['url']}})
       );
       const wildcardUrl = 'http://*/v1/api/auth/register';
 
@@ -379,12 +367,7 @@ describe('Discover -> CellAction', () => {
 
     it('keeps external links in the cell without duplicate menu actions', async () => {
       const urlView = EventView.fromLocation(
-        LocationFixture({
-          query: {
-            ...location.query,
-            field: ['url'],
-          },
-        })
+        LocationFixture({query: {...location.query, field: ['url']}})
       );
       const fullUrl = 'https://example.com/v1/api/auth/register';
 
@@ -776,10 +759,7 @@ describe('updateQuery()', () => {
     name: 'a',
     type: 'number',
     isSortable: false,
-    column: {
-      kind: 'field',
-      field: 'a',
-    },
+    column: {kind: 'field', field: 'a'},
     width: -1,
   };
 
@@ -788,10 +768,7 @@ describe('updateQuery()', () => {
     name: 'b',
     type: 'number',
     isSortable: false,
-    column: {
-      kind: 'field',
-      field: 'b',
-    },
+    column: {kind: 'field', field: 'b'},
     width: -1,
   };
 

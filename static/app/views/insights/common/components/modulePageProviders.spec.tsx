@@ -19,7 +19,6 @@ describe('ModulePageProviders', () => {
 
   afterEach(() => {
     jest.resetAllMocks();
-    PageFiltersStore.reset();
   });
 
   it('renders without module feature', async () => {
@@ -29,9 +28,7 @@ describe('ModulePageProviders', () => {
       <ModulePageProviders moduleName={ModuleName.DB}>
         <div>Module Content</div>
       </ModulePageProviders>,
-      {
-        organization: OrganizationFixture(),
-      }
+      {organization: OrganizationFixture()}
     );
 
     await screen.findByText('Module Content');

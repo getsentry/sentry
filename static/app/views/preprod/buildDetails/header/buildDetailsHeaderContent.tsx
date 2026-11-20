@@ -12,8 +12,7 @@ import type {BreadcrumbListProps} from '@sentry/scraps/breadcrumbList';
 import type {MenuItemProps} from '@sentry/scraps/dropdownMenu';
 
 import {ConfirmDelete} from 'sentry/components/confirmDelete';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {IdBadge} from 'sentry/components/idBadge';
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import {t} from 'sentry/locale';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -41,11 +40,7 @@ interface BuildDetailsHeaderContentProps {
   projectType: string | null;
 }
 
-const buildDetailsFeedbackOptions = {
-  tags: {
-    'feedback.source': 'preprod.buildDetails',
-  },
-};
+const buildDetailsFeedbackOptions = {tags: {'feedback.source': 'preprod.buildDetails'}};
 
 export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps) {
   const organization = useOrganization();
@@ -59,10 +54,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     handleRerunAction,
     handleDownloadAction,
     handleRerunStatusChecksAction,
-  } = useBuildDetailsActions({
-    projectId: projectSlug,
-    artifactId,
-  });
+  } = useBuildDetailsActions({projectId: projectSlug, artifactId});
 
   const {
     data: buildDetailsData,
@@ -77,7 +69,11 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
   const pageTitle = {
     type: 'page-title',
     label: artifactId,
-    leadingGraphic: project && <IdBadge project={project} avatarSize={16} hideName />,
+    leadingGraphic: project && (
+      <ProjectsBadge
+        projectPlatforms={project.platform ? [project.platform] : ['default']}
+      />
+    ),
   } as const;
 
   const breadcrumbItems: BreadcrumbListProps['items'] | undefined = projectSlug
@@ -91,15 +87,7 @@ export function BuildDetailsHeaderContent(props: BuildDetailsHeaderContentProps)
     : undefined;
 
   const feedback = (
-    <TopBar.Slot name="feedback">
-      <FeedbackButton
-        feedbackOptions={buildDetailsFeedbackOptions}
-        aria-label={t('Give Feedback')}
-        tooltipProps={{title: t('Give Feedback')}}
-      >
-        {null}
-      </FeedbackButton>
-    </TopBar.Slot>
+    <TopBar.Slot name="feedback" feedbackOptions={buildDetailsFeedbackOptions} />
   );
 
   if (isBuildDetailsPending || isBuildDetailsError || !buildDetailsData) {

@@ -90,9 +90,7 @@ function AppDrawers() {
 function AppLayout({organization}: LayoutProps) {
   useSeerExplorerDocumentTitle();
   const pageBannerRef = useRef<HTMLDivElement>(null);
-  const {height: pageBannerHeight} = useDimensions({
-    elementRef: pageBannerRef,
-  });
+  const {height: pageBannerHeight} = useDimensions({elementRef: pageBannerRef});
   const showSuperuserWarning =
     isActiveSuperuser() &&
     !ConfigStore.get('isSelfHosted') &&

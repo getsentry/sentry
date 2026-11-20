@@ -1,6 +1,8 @@
-import {Fragment} from 'react';
+import {Fragment, useRef, useState} from 'react';
 import {Outlet} from 'react-router';
+import {useTheme} from '@emotion/react';
 import {IconDelete} from '@sentry/icons/delete';
+import {IconEdit} from '@sentry/icons/edit';
 import {IconPause} from '@sentry/icons/pause';
 import {IconPlay} from '@sentry/icons/play';
 
@@ -8,10 +10,11 @@ import {Tag} from '@sentry/scraps/badge';
 import {Button} from '@sentry/scraps/button';
 import {openConfirmModal} from '@sentry/scraps/confirm';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 import {Heading, Text} from '@sentry/scraps/text';
 import {toast} from '@sentry/scraps/toast';
 
+import {EditableText} from 'sentry/components/editableText';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {UserBadge} from 'sentry/components/idBadge/userBadge';
 import {LoadingError} from 'sentry/components/loadingError';
@@ -26,6 +29,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {useUserFromId} from 'sentry/utils/useUserFromId';
 import {TopBar} from 'sentry/views/navigation/topBar';
+import {useTopOffset} from 'sentry/views/navigation/useTopOffset';
 import {
   getNextUpdate,
   type AutomationConfig,
@@ -33,17 +37,24 @@ import {
 import {
   useDeleteConfig,
   useFetchConfigs,
+  useIsUpdatingConfig,
   useUpdateConfig,
 } from 'sentry/views/seerWorkflows/automations/hooks/configs';
+import type {MetricAutomationFormHandle} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import {STRATEGY_META} from 'sentry/views/seerWorkflows/strategies';
 import type {WorkflowStrategy} from 'sentry/views/seerWorkflows/types';
 import {
+  AUTO_REFRESH_INTERVAL,
   getAutomationDetailPath,
   getAutomationsPath,
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
+import type {AutomationDetailOutletContext} from './configuration';
+
 export default function AutomationDetail() {
+  const theme = useTheme();
+  const {pageContentTop} = useTopOffset();
   const organization = useOrganization();
   const location = useLocation();
   const activeTab: 'configuration' | 'runs' = location.pathname.endsWith('/runs/')
@@ -55,7 +66,10 @@ export default function AutomationDetail() {
   const basePath = getAutomationDetailPath(organization.slug, automationId);
   const navigate = useNavigate();
 
-  const {data, isPending, isError, refetch} = useFetchConfigs({ids: [automationId]});
+  const {data, isPending, isError, refetch} = useFetchConfigs(
+    {ids: [automationId]},
+    {refetchInterval: AUTO_REFRESH_INTERVAL}
+  );
   const config: AutomationConfig | undefined = data?.[0];
   const strategy = config?.strategy ?? '';
   const strategyMeta = Object.hasOwn(STRATEGY_META, strategy)
@@ -64,6 +78,28 @@ export default function AutomationDetail() {
   const title = config?.name ?? strategyMeta?.label ?? strategy;
   const updateConfig = useUpdateConfig({configId: automationId});
   const deleteConfig = useDeleteConfig({configId: automationId});
+  const isUpdatingConfig = useIsUpdatingConfig({configId: automationId});
+  const [isConfiguring, setIsConfiguring] = useState(false);
+  const [draftName, setDraftName] = useState('');
+  const [formHasChanges, setFormHasChanges] = useState(false);
+  const [monitorsPending, setMonitorsPending] = useState(false);
+  const formRef = useRef<MetricAutomationFormHandle>(null);
+  const formId = `automation-config-${automationId}`;
+  // Leaving the configuration tab unmounts the form, discarding any unsaved changes
+  const [prevActiveTab, setPrevActiveTab] = useState(activeTab);
+  if (activeTab !== prevActiveTab) {
+    setPrevActiveTab(activeTab);
+    if (prevActiveTab === 'configuration') {
+      setIsConfiguring(false);
+    }
+  }
+  // Start each tab at the top. Reset every ancestor's scroll on tab change.
+  const pageRef = useRef<HTMLDivElement>(null);
+  const scrollToTop = () => {
+    for (let node = pageRef.current?.parentElement; node; node = node.parentElement) {
+      node.scrollTop = 0;
+    }
+  };
   // Show who last updated the automation, falling back to who created it
   const displayUserId = config?.updatedBy || config?.createdBy;
   const {data: displayUser} = useUserFromId({
@@ -155,33 +191,35 @@ export default function AutomationDetail() {
     </Stack>
   );
 
-  const actionButtons = (
+  const actionButtons = isConfiguring ? (
     <Flex gap="sm">
       <Button
         size="sm"
-        disabled={updateConfig.isPending}
-        icon={
-          updateConfig.isPending ? (
-            <LoadingIndicator size={14} style={{margin: 0}} />
-          ) : config.enabled ? (
-            <IconPause />
-          ) : (
-            <IconPlay />
-          )
-        }
-        onClick={() =>
-          updateConfig.mutate(
-            {enabled: !config.enabled},
-            {onError: () => toast.error(t('Unable to update automation.'))}
-          )
-        }
+        onClick={() => {
+          formRef.current?.reset();
+          setIsConfiguring(false);
+        }}
       >
-        {config.enabled ? t('Pause') : t('Resume')}
+        {t('Cancel')}
       </Button>
+      <Button
+        size="sm"
+        variant="primary"
+        type="submit"
+        form={formId}
+        busy={isUpdatingConfig}
+        disabled={monitorsPending || (!formHasChanges && draftName === title)}
+      >
+        {t('Save')}
+      </Button>
+    </Flex>
+  ) : (
+    <Flex gap="sm">
       <Button
         size="sm"
         icon={<IconDelete />}
         aria-label={t('Delete')}
+        tooltipProps={{title: t('Delete')}}
         onClick={() =>
           openConfirmModal({
             message: t('Are you sure you want to delete this automation?'),
@@ -198,6 +236,44 @@ export default function AutomationDetail() {
           })
         }
       />
+      <Button
+        size="sm"
+        disabled={isUpdatingConfig}
+        aria-label={config.enabled ? t('Disable') : t('Enable')}
+        tooltipProps={{title: config.enabled ? t('Disable') : t('Enable')}}
+        icon={
+          updateConfig.isPending ? (
+            <LoadingIndicator size={14} style={{margin: 0}} />
+          ) : config.enabled ? (
+            <IconPause />
+          ) : (
+            <IconPlay />
+          )
+        }
+        onClick={() =>
+          updateConfig.mutate(
+            {enabled: !config.enabled},
+            {onError: () => toast.error(t('Unable to update automation.'))}
+          )
+        }
+      />
+      <Button
+        size="sm"
+        variant="primary"
+        icon={<IconEdit />}
+        disabled={isUpdatingConfig}
+        onClick={() => {
+          setDraftName(title);
+          setIsConfiguring(true);
+          // The form lives on the configuration tab
+          if (activeTab !== 'configuration') {
+            scrollToTop();
+            navigate(basePath);
+          }
+        }}
+      >
+        {t('Edit')}
+      </Button>
     </Flex>
   );
 
@@ -208,20 +284,20 @@ export default function AutomationDetail() {
         <Text size="sm" variant="muted">
           {t('Cost 30D')}
         </Text>
-        <Text size="lg">$140.69</Text>
+        <Text size="lg">$mock</Text>
       </Stack>
       <Stack align="end">
         <Text size="sm" variant="muted">
           {t('Cost per Run')}
         </Text>
-        <Text size="lg">$2.50</Text>
+        <Text size="lg">$mock</Text>
       </Stack>
     </Flex>
   );
 
   return (
     <SentryDocumentTitle title={title} orgSlug={organization.slug}>
-      <Stack>
+      <Stack ref={pageRef}>
         <TopBar.Slot
           name="breadcrumbs"
           title={{type: 'page-title', label: title}}
@@ -238,13 +314,30 @@ export default function AutomationDetail() {
           padding="xl xl 0 xl"
           background="secondary"
           borderBottom="primary"
+          position="sticky"
+          top={pageContentTop}
+          style={{zIndex: theme.zIndex.stickyHeader}}
         >
           <Flex justify="between" align="start" gap="xl">
             <Stack gap="xs">
               <Flex gap="md" align="center">
-                <Heading as="h1" size="xl">
-                  {title}
-                </Heading>
+                {isConfiguring ? (
+                  <Heading as="h1" size="xl">
+                    <EditableText
+                      variant="compact"
+                      value={draftName}
+                      onChange={setDraftName}
+                      // Clearing the name reverts the edit
+                      allowEmpty
+                      maxLength={64}
+                      aria-label={t('Automation Name')}
+                    />
+                  </Heading>
+                ) : (
+                  <Heading as="h1" size="xl">
+                    {title}
+                  </Heading>
+                )}
                 {config.enabled ? (
                   <Tag variant="success">{t('Active')}</Tag>
                 ) : (
@@ -259,27 +352,42 @@ export default function AutomationDetail() {
               {headerCosts}
             </Stack>
           </Flex>
-          <Tabs value={activeTab} size="sm">
-            <TabList>
-              <TabList.Item
-                key="configuration"
-                to={basePath}
-                textValue={t('Configuration')}
-              >
-                <Text bold={activeTab === 'configuration'} variant="inherit">
-                  {t('Configuration')}
-                </Text>
-              </TabList.Item>
-              <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
-                <Text bold={activeTab === 'runs'} variant="inherit">
-                  {t('Runs')}
-                </Text>
-              </TabList.Item>
-            </TabList>
-          </Tabs>
+          <LinkTabs value={activeTab} size="sm" onChange={scrollToTop}>
+            {({TabList}) => (
+              <TabList>
+                <TabList.Item
+                  key="configuration"
+                  to={basePath}
+                  textValue={t('Configuration')}
+                >
+                  <Text bold={activeTab === 'configuration'} variant="inherit">
+                    {t('Configuration')}
+                  </Text>
+                </TabList.Item>
+                <TabList.Item key="runs" to={`${basePath}runs/`} textValue={t('Runs')}>
+                  <Text bold={activeTab === 'runs'} variant="inherit">
+                    {t('Runs')}
+                  </Text>
+                </TabList.Item>
+              </TabList>
+            )}
+          </LinkTabs>
         </Stack>
         <Container padding="xl">
-          <Outlet context={config} />
+          <Outlet
+            context={
+              {
+                config,
+                formId,
+                formRef,
+                isConfiguring,
+                name: draftName,
+                setFormHasChanges,
+                setMonitorsPending,
+                onSaved: () => setIsConfiguring(false),
+              } satisfies AutomationDetailOutletContext
+            }
+          />
         </Container>
       </Stack>
     </SentryDocumentTitle>

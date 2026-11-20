@@ -3,10 +3,10 @@ import type React from 'react';
 import {useTheme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
 import {useQuery} from '@tanstack/react-query';
-import * as qs from 'query-string';
 import type {Tagged} from 'type-fest';
 
 import {ConfigStore} from 'sentry/stores/configStore';
+import * as qs from 'sentry/utils/url/qs';
 
 import type {ImageAvatarProps} from './imageAvatar/imageAvatar';
 import type {LetterAvatarProps} from './letterAvatar/letterAvatar';
@@ -134,10 +134,7 @@ function useImageSrc(definition?: ImageDefinition): {
     return () => img?.removeEventListener('error', handleError);
   }, []);
 
-  return {
-    ref,
-    src: resolvedSrc === erroredSrc ? null : resolvedSrc,
-  };
+  return {ref, src: resolvedSrc === erroredSrc ? null : resolvedSrc};
 }
 
 /**

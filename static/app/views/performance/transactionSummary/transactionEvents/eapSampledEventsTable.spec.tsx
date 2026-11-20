@@ -13,9 +13,7 @@ import {SampledEventsTable} from './eapSampledEventsTable';
 
 describe('EAP SampledEventsTable', () => {
   const project = ProjectFixture({id: '1', platform: 'javascript'});
-  const organization = OrganizationFixture({
-    features: ['performance-view'],
-  });
+  const organization = OrganizationFixture();
 
   const META_FIELDS = {
     span_id: 'string',
@@ -44,10 +42,7 @@ describe('EAP SampledEventsTable', () => {
   function addDataMock(row: Record<string, unknown>) {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {fields: META_FIELDS},
-        data: [row],
-      },
+      body: {meta: {fields: META_FIELDS}, data: [row]},
       match: [
         (_url, options) =>
           options.query?.field?.includes('span_id') &&
@@ -79,17 +74,13 @@ describe('EAP SampledEventsTable', () => {
     // Count query
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {
-        meta: {fields: {'count()': 'integer'}},
-        data: [{'count()': 3}],
-      },
+      body: {meta: {fields: {'count()': 'integer'}}, data: [{'count()': 3}]},
       match: [(_url, options) => options.query?.field?.includes('count()')],
     });
   });
 
   afterEach(() => {
     MockApiClient.clearMockResponses();
-    ProjectsStore.reset();
   });
 
   it('renders the table with data', async () => {

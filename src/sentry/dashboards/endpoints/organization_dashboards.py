@@ -31,6 +31,7 @@ from sentry.apidocs.constants import (
     RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
+    RESPONSE_UNAUTHORIZED,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
 from sentry.apidocs.parameters import (
@@ -443,6 +444,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 "DashboardListResponse", list[DashboardListResponse]
             ),
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
@@ -699,6 +701,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         responses={
             201: DashboardDetailsModelSerializer,
             400: RESPONSE_BAD_REQUEST,
+            401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
             409: RESPONSE_CONFLICT,

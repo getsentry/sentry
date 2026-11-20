@@ -55,11 +55,7 @@ export const onboarding: OnboardingConfig = {
             }
           ),
         },
-        {
-          type: 'code',
-          language: 'url',
-          code: params.dsn.public,
-        },
+        {type: 'code', language: 'url', code: params.dsn.public},
         {
           type: 'conditional',
           condition: params.isLogsSelected,
@@ -84,16 +80,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Once the SDK is configured with the DSN you can add a [code:Node] to your test scene and attach a script with the following content',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'gdscript',
-          code: getVerifySnippet(),
-        },
+        {type: 'code', language: 'gdscript', code: getVerifySnippet()},
         {
           type: 'text',
           text: tct(
@@ -108,12 +98,7 @@ export const onboarding: OnboardingConfig = {
       ],
     },
     ...(params.isLogsSelected
-      ? ([
-          {
-            title: t('Logs'),
-            content: [logsVerify(params)],
-          },
-        ] satisfies OnboardingStep[])
+      ? ([{title: t('Logs'), content: [logsVerify(params)]}] satisfies OnboardingStep[])
       : []),
     {
       title: t('Further Settings'),

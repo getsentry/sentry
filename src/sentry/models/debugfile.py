@@ -23,6 +23,7 @@ from typing import (
     overload,
 )
 
+from django.conf import settings
 from django.db import models
 from django.db.models import ProtectedError, Q
 from django.db.models.functions import Now
@@ -38,7 +39,7 @@ from symbolic.debuginfo import (
 )
 from symbolic.exceptions import ObjectErrorUnsupportedObject, SymbolicError
 
-from sentry import features, options
+from sentry import features
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
@@ -256,15 +257,7 @@ class ProjectDebugFile(Model):
     __repr__ = sane_repr("object_name", "cpu_name", "debug_id")
 
     def uses_objectstore_for_read(self) -> bool:
-        if self.storage_path is None:
-            return False
-        if self.file is None:
-            return True
-
-        from sentry.models.project import Project
-
-        organization = Project.objects.get_from_cache(id=self.project_id).organization
-        return features.has("organizations:objectstore-debugfiles-read", organization)
+        return self.storage_path is not None
 
     def get_checksum(self) -> str:
         if self.uses_objectstore_for_read():
@@ -1108,7 +1101,7 @@ def create_files_from_dif_zip(
 class DIFCache:
     @property
     def cache_path(self) -> str:
-        cache_path = options.get("dsym.cache-path")
+        cache_path = settings.SENTRY_DSYM_CACHE_PATH
         return cache_path
 
     def get_project_path(self, project: Project) -> str:

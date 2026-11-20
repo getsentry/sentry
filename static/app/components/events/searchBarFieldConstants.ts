@@ -5,7 +5,6 @@ import {
   FIELD_TAGS,
   SEMVER_TAGS,
   SPAN_OP_BREAKDOWN_FIELDS,
-  TRACING_FIELDS,
   TRANSACTION_ONLY_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {FieldKind} from 'sentry/utils/fields';
@@ -14,14 +13,10 @@ export const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 
 export const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
   // @ts-expect-error TS(7053): Element implicitly has an 'any' type because expre... Remove this comment to see the full error message
-  tags[key] = {
-    ...FIELD_TAGS[key],
-    kind: FieldKind.FIELD,
-  };
+  tags[key] = {...FIELD_TAGS[key], kind: FieldKind.FIELD};
   return tags;
 }, {});
 
-export const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 export const STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS = omit(
   STATIC_FIELD_TAGS,
   ERROR_ONLY_FIELDS

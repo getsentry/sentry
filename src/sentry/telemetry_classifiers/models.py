@@ -25,7 +25,7 @@ class TelemetryClassifier(DefaultFieldsModel):
 
     name = models.CharField(max_length=256)
 
-    # Attribute used to store classifier results.
+    # Attribute used to store classifier results, without RESULT_ATTRIBUTE_PREFIX.
     result_attribute = models.CharField(max_length=256)
 
     dataset = models.CharField(max_length=32, choices=Dataset.choices)

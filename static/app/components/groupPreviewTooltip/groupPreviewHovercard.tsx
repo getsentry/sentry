@@ -36,11 +36,7 @@ export function GroupPreviewHovercard({
       // overlay sets on it, leaving its layout box — and therefore the
       // hovercard's anchor — out past the visible edge of a clipped title.
       containerDisplayMode="inline-block"
-      style={{
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        verticalAlign: 'bottom',
-      }}
+      style={{overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'bottom'}}
       {...props}
     >
       {children}

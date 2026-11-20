@@ -50,9 +50,7 @@ export function getExploreShareLink({
   return {url, frozenRelativePeriod: range !== null};
 }
 
-type ExploreShareButtonProps = {
-  traceItemDataset: TraceItemDataset;
-};
+type ExploreShareButtonProps = {traceItemDataset: TraceItemDataset};
 
 export function ExploreShareButton({traceItemDataset}: ExploreShareButtonProps) {
   const organization = useOrganization();
@@ -83,9 +81,7 @@ export function ExploreShareButton({traceItemDataset}: ExploreShareButtonProps) 
           }
         });
       }}
-      tooltipProps={{
-        title: t('Copy a link to this view with the current time range.'),
-      }}
+      tooltipProps={{title: t('Copy a link to this view with the current time range.')}}
     >
       {t('Share')}
     </Button>

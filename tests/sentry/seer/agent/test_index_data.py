@@ -752,6 +752,64 @@ class TestGetProfilesForTrace(APITransactionTestCase, SnubaTestCase, SpanTestCas
             assert captured_timestamps["profile_id"] == profile_id
             assert captured_timestamps["is_continuous"] is False
 
+    def test_get_profiles_for_trace_treats_empty_profiler_id_as_transaction_profile(self) -> None:
+        """A span with a transaction profile id and an empty profiler id is a transaction profile."""
+        trace_id = "e" * 32  # Valid 32-char hex trace ID
+
+        profile_id = uuid.uuid4().hex
+
+        span = self.create_span(
+            {
+                "trace_id": trace_id,
+                "description": "Transaction profile with an empty profiler id",
+                "sentry_tags": {
+                    "transaction": "api/test",
+                    "op": "http.server",
+                    "profiler_id": "",
+                },
+                "is_segment": True,
+            },
+            start_ts=self.ten_mins_ago,
+        )
+        span.update({"profile_id": profile_id})
+
+        self.store_spans([span])
+
+        with mock.patch("sentry.seer.agent.index_data.fetch_profile_data") as mock_fetch:
+            mock_fetch.return_value = {
+                "profile": {
+                    "frames": [
+                        {
+                            "function": "test_function",
+                            "module": "app",
+                            "filename": "test.py",
+                            "lineno": 10,
+                            "in_app": True,
+                        }
+                    ],
+                    "stacks": [[0]],
+                    "samples": [
+                        {
+                            "elapsed_since_start_ns": 1000000,
+                            "thread_id": "1",
+                            "stack_id": 0,
+                        }
+                    ],
+                    "thread_metadata": {"1": {"name": "MainThread"}},
+                }
+            }
+
+            result = get_profiles_for_trace(trace_id, self.project.id)
+
+            assert result is not None
+            assert len(result.profiles) == 1
+            assert result.profiles[0].profile_id == profile_id
+            assert result.profiles[0].is_continuous is False
+
+            assert mock_fetch.call_count == 1
+            assert mock_fetch.call_args.kwargs["profile_id"] == profile_id
+            assert mock_fetch.call_args.kwargs["is_continuous"] is False
+
 
 class TestGetIssuesForTransaction(APITransactionTestCase, SpanTestCase, SharedSnubaMixin):
     @property

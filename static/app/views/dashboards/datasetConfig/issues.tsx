@@ -41,10 +41,7 @@ const DEFAULT_ISSUE_SERIES_WIDGET_QUERY: WidgetQuery = {
   orderby: '-count(new_issues)',
 };
 
-const DEFAULT_FIELD: QueryFieldValue = {
-  field: 'issue',
-  kind: FieldValueKind.FIELD,
-};
+const DEFAULT_FIELD: QueryFieldValue = {field: 'issue', kind: FieldValueKind.FIELD};
 
 const DEFAULT_SERIES_FIELD: QueryFieldValue = {
   function: ['count', 'new_issues', undefined, undefined],

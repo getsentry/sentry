@@ -33,10 +33,7 @@ describe('Onboarding Product Selection', () => {
       initialRouterConfig: {
         location: {
           pathname: '/mock-pathname/',
-          query: {
-            springBoot: 'v3',
-            packageManager: 'something-else',
-          },
+          query: {springBoot: 'v3', packageManager: 'something-else'},
         },
         route: '/mock-pathname/',
       },
@@ -77,10 +74,7 @@ describe('Onboarding Product Selection', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname/',
-            query: {
-              springBoot: 'v3',
-              packageManager: 'gradle',
-            },
+            query: {springBoot: 'v3', packageManager: 'gradle'},
           },
           route: '/mock-pathname/',
         },
@@ -98,13 +92,26 @@ describe('Onboarding Product Selection', () => {
     await userEvent.click(springBootV2);
 
     expect(router.location).toEqual(
-      expect.objectContaining({
-        query: {
-          springBoot: 'v2',
-          packageManager: 'gradle',
-        },
-      })
+      expect.objectContaining({query: {springBoot: 'v2', packageManager: 'gradle'}})
     );
+  });
+
+  it('keeps history state on change', async () => {
+    const state = {fromProjectCreation: true};
+    const {router} = render(
+      <PlatformOptionsControl platformOptions={platformOptions} />,
+      {
+        initialRouterConfig: {
+          location: {pathname: '/mock-pathname/', query: {springBoot: 'v3'}, state},
+          route: '/mock-pathname/',
+        },
+      }
+    );
+
+    await userEvent.click(screen.getByRole('radio', {name: 'V2'}));
+
+    expect(router.location.query).toEqual({springBoot: 'v2'});
+    expect(router.location.state).toEqual(state);
   });
 
   it('triggers onChange callback', async () => {
@@ -119,10 +126,7 @@ describe('Onboarding Product Selection', () => {
         initialRouterConfig: {
           location: {
             pathname: '/mock-pathname',
-            query: {
-              springBoot: 'v3',
-              packageManager: 'gradle',
-            },
+            query: {springBoot: 'v3', packageManager: 'gradle'},
           },
           route: '/mock-pathname/',
         },

@@ -840,8 +840,8 @@ class PluginActionConfig(TypedDict):
     target_type: NotRequired[None]
 
 
-# config_schema of the seer_workflow action handler
-class SeerWorkflowActionConfig(TypedDict):
+# config_schema of the seer_investigation action handler
+class SeerInvestigationActionConfig(TypedDict):
     pass
 
 
@@ -859,7 +859,7 @@ class SlackActionConfig(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     target_identifier: NotRequired[str]
-    target_display: str
+    target_display: NotRequired[str]
     target_type: Literal[0]
 
 
@@ -868,7 +868,7 @@ class SlackStagingActionConfig(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     target_identifier: NotRequired[str]
-    target_display: str
+    target_display: NotRequired[str]
     target_type: Literal[0]
 
 
@@ -1001,7 +1001,7 @@ class SlackActionConfigResponse(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     targetIdentifier: NotRequired[str]
-    targetDisplay: str
+    targetDisplay: NotRequired[str]
     targetType: Literal["specific"]
 
 
@@ -1010,7 +1010,7 @@ class SlackStagingActionConfigResponse(TypedDict):
     """The configuration schema for a Messaging Action"""
 
     targetIdentifier: NotRequired[str]
-    targetDisplay: str
+    targetDisplay: NotRequired[str]
     targetType: Literal["specific"]
 
 
@@ -1165,8 +1165,8 @@ class PagerdutyActionData(TypedDict):
 PluginActionData: TypeAlias = Any
 
 
-# data_schema of the seer_workflow action handler
-class SeerWorkflowActionData(TypedDict):
+# data_schema of the seer_investigation action handler
+class SeerInvestigationActionData(TypedDict):
     pass
 
 
@@ -1231,7 +1231,7 @@ ActionConfig: TypeAlias = (
     | OpsgenieActionConfig
     | PagerdutyActionConfig
     | PluginActionConfig
-    | SeerWorkflowActionConfig
+    | SeerInvestigationActionConfig
     | SentryAppActionConfig
     | SlackActionConfig
     | SlackStagingActionConfig
@@ -1252,7 +1252,7 @@ ActionConfigResponse: TypeAlias = (
     | OpsgenieActionConfigResponse
     | PagerdutyActionConfigResponse
     | PluginActionConfigResponse
-    | SeerWorkflowActionConfig
+    | SeerInvestigationActionConfig
     | SentryAppActionConfigResponse
     | SlackActionConfigResponse
     | SlackStagingActionConfigResponse
@@ -1273,7 +1273,7 @@ ActionData: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
-    | SeerWorkflowActionData
+    | SeerInvestigationActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData
@@ -1294,7 +1294,7 @@ ActionDataResponse: TypeAlias = (
     | OpsgenieActionData
     | PagerdutyActionData
     | PluginActionData
-    | SeerWorkflowActionData
+    | SeerInvestigationActionData
     | SentryAppActionData
     | SlackActionData
     | SlackStagingActionData
@@ -1319,20 +1319,18 @@ class IssueStreamDetectorConfigResponse(TypedDict):
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfig(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparison_delta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detection_type: Literal["static", "percent", "dynamic"]
 
 
 # config_schema of the metric_issue detector
-# The schema allows keys that aren't listed here.
 class MetricIssueDetectorConfigResponse(TypedDict):
     """A representation of a metric detector config dict"""
 
-    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000] | None]
+    comparisonDelta: NotRequired[Literal[300, 900, 3600, 86400, 604800, 2592000]]
     detectionType: Literal["static", "percent", "dynamic"]
 
 

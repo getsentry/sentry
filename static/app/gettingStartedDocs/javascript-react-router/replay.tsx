@@ -23,11 +23,7 @@ export const replay: OnboardingConfig = {
             link: 'https://docs.sentry.io/platforms/javascript/guides/react-router/session-replay/',
           }),
         },
-        {
-          type: 'code',
-          language: 'tsx',
-          code: getClientSetupSnippet(params),
-        },
+        {type: 'code', language: 'tsx', code: getClientSetupSnippet(params)},
       ],
     },
   ],

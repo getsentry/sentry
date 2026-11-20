@@ -21,9 +21,7 @@ import {SharedGroupHeader} from './sharedGroupHeader';
 // TODO(shared-issues): Give this endpoint its own response type instead of
 // treating the shared issue payload as a full Group.
 type SharedGroupDetailsResponse = Group & {
-  project: Group['project'] & {
-    organization: SharedViewOrganization;
-  };
+  project: Group['project'] & {organization: SharedViewOrganization};
 };
 
 function SharedGroupDetails() {
@@ -71,10 +69,7 @@ function SharedGroupDetails() {
     return <NotFound />;
   }
 
-  const org: SharedViewOrganization = {
-    ...group.project.organization,
-    features: [],
-  };
+  const org: SharedViewOrganization = {...group.project.organization, features: []};
 
   return (
     <SentryDocumentTitle noSuffix title={group?.title ?? 'Sentry'}>

@@ -16,7 +16,6 @@ import {openImportDashboardFromFileModal} from 'sentry/actionCreators/modal';
 import {Feature} from 'sentry/components/acl/feature';
 import {DocumentationHint} from 'sentry/components/documentationHint';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {NoProjectMessage} from 'sentry/components/noProjectMessage';
 import {SearchBar} from 'sentry/components/searchBar';
@@ -25,6 +24,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {dashboardsApiOptions} from 'sentry/utils/dashboards/dashboardsApiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {areAiFeaturesAllowed} from 'sentry/utils/seer/areAiFeaturesAllowed';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useApi} from 'sentry/utils/useApi';
@@ -216,33 +216,24 @@ function ManageDashboards() {
   }
 
   function handleSearch(query: string) {
-    trackAnalytics('dashboards_manage.search', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.search', {organization});
 
     setQueryParams({cursor: null, query});
   }
 
   const handleSortChange = (value: string) => {
-    trackAnalytics('dashboards_manage.change_sort', {
-      organization,
-      sort: value,
-    });
+    trackAnalytics('dashboards_manage.change_sort', {organization, sort: value});
     setQueryParams({cursor: null, sort: value});
   };
 
   function onCreate() {
-    trackAnalytics('dashboards_manage.create.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.create.start', {organization});
 
     navigate(normalizeUrl(`/organizations/${organization.slug}/dashboards/new/`));
   }
 
   function onGenerateDashboard() {
-    trackAnalytics('dashboards_manage.generate.start', {
-      organization,
-    });
+    trackAnalytics('dashboards_manage.generate.start', {organization});
     navigate(
       normalizeUrl({
         pathname: `/organizations/${organization.slug}/dashboards/new/from-seer/`,
@@ -332,9 +323,7 @@ function ManageDashboards() {
               variant="primary"
               icon={<IconAdd />}
               disabled={hasReachedDashboardLimit || isLoadingDashboardsLimit}
-              tooltipProps={{
-                title: limitMessage,
-              }}
+              tooltipProps={{title: limitMessage}}
             >
               {t('Create Dashboard')}
             </Button>
@@ -357,8 +346,8 @@ function ManageDashboards() {
 
   const pagination = (
     <PaginationRow
-      pageLinks={dashboardsPageLinks}
-      onCursor={(cursor, _path, _query, direction) => {
+      {...getPaginationProps(dashboardsPageLinks)}
+      onCursor={(cursor, direction) => {
         const offset = Number(cursor?.split?.(':')?.[1] ?? 0);
         const isPrevious = direction === -1;
 
@@ -403,11 +392,7 @@ function ManageDashboards() {
                 <Feature features="dashboards-import">
                   <Button
                     onClick={() => {
-                      openImportDashboardFromFileModal({
-                        organization,
-                        api,
-                        location,
-                      });
+                      openImportDashboardFromFileModal({organization, api, location});
                     }}
                     variant="primary"
                     icon={<IconAdd />}
@@ -415,14 +400,6 @@ function ManageDashboards() {
                     {t('Import Dashboard from JSON')}
                   </Button>
                 </Feature>
-              </TopBar.Slot>
-              <TopBar.Slot name="feedback">
-                <FeedbackButton
-                  aria-label={t('Give Feedback')}
-                  tooltipProps={{title: t('Give Feedback')}}
-                >
-                  {null}
-                </FeedbackButton>
               </TopBar.Slot>
               <Layout.Body>
                 <Layout.Main width="full">

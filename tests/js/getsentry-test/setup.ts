@@ -3,10 +3,7 @@ jest.mock('@stripe/stripe-js', () => ({
     Promise.resolve({
       createToken: jest.fn(() => Promise.resolve({token: {id: 'test-token'}})),
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
       ),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -21,11 +18,7 @@ jest.mock('@stripe/stripe-js', () => ({
         Promise.resolve({setupIntent: {payment_method: 'test-pm'}})
       ),
       elements: jest.fn(() => ({
-        create: jest.fn(() => ({
-          mount: jest.fn(),
-          on: jest.fn(),
-          update: jest.fn(),
-        })),
+        create: jest.fn(() => ({mount: jest.fn(), on: jest.fn(), update: jest.fn()})),
       })),
     })
   ),
@@ -64,10 +57,7 @@ jest.mock('@stripe/react-stripe-js', () => {
     }),
     useStripe: jest.fn(() => ({
       confirmCardPayment: jest.fn(() =>
-        Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        })
+        Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}})
       ),
       // Used to run a 3D Secure challenge on an intent created with
       // confirmation_method=manual, which the server then confirms.
@@ -80,10 +70,7 @@ jest.mock('@stripe/react-stripe-js', () => {
         if (clientSecret === 'REJECT') {
           return Promise.reject(new Error('authentication failed'));
         }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
+        return Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}});
       }),
       confirmCardSetup: jest.fn((secretKey: string) => {
         if (secretKey === 'ERROR') {
@@ -107,10 +94,7 @@ jest.mock('@stripe/react-stripe-js', () => {
         if (options?.clientSecret === 'ERROR') {
           return Promise.resolve({error: {message: 'payment failed'}});
         }
-        return Promise.resolve({
-          error: undefined,
-          paymentIntent: {id: 'test-payment'},
-        });
+        return Promise.resolve({error: undefined, paymentIntent: {id: 'test-payment'}});
       }),
     })),
     useElements: jest.fn(() => ({

@@ -1,4 +1,7 @@
+from collections.abc import Mapping
 from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
 from django.db import models
 
@@ -26,8 +29,54 @@ class TelemetryClassifierStatus(models.TextChoices):
 
 @dataclass(frozen=True)
 class PrebuiltClassifier:
-    key: str  # Prebuilt classifier key used to identify it in Seer.
+    key: str  # The exact Seer classifier model ID. Prompts live in Seer.
     dataset: Dataset
+    output_type: TelemetryClassifierOutputType
     name: str
     description: str
-    result_attribute: str  # Attribute where classifier output materializes.
+    # Suggested result attribute name, without RESULT_ATTRIBUTE_PREFIX. Customers can change it.
+    result_attribute: str
+    # Only set for binary classifiers.
+    binary_threshold: float | None = None
+
+
+@dataclass(frozen=True)
+class ResolvedDefinition:
+    """An executable classifier definition, resolved from its persisted configuration."""
+
+    # Seer classifier model ID.
+    key: str
+    dataset: Dataset
+    output_type: TelemetryClassifierOutputType
+    binary_threshold: float | None
+
+
+# A JSON-serializable telemetry item to classify. Datasets decide what it contains.
+type Event = dict[str, Any]
+
+
+@dataclass(frozen=True)
+class PreparedInput:
+    """Events to classify, oldest first."""
+
+    events: tuple[Event, ...]
+    # Older events were left out to fit MAX_INPUT_CHARS.
+    truncated: bool
+
+
+@dataclass(frozen=True)
+class TelemetryInput:
+    """One entity's telemetry, loaded for classification."""
+
+    # Oldest first.
+    events: list[Event]
+    # Loading hit its limits, so some telemetry is missing or shortened.
+    truncated: bool
+    # Where the result is written in EAP, taken from the newest span.
+    trace_id: str
+    timestamp: datetime
+    client_sample_rate: float
+    conversation_id: str | None
+    # Attributes of the newest span copied onto the result, by EAP attribute name, so results can be
+    # filtered and grouped like the telemetry they were classified from.
+    copied_attributes: Mapping[str, str]

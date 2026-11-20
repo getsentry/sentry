@@ -26,10 +26,7 @@ export type EventMessage = PingEventMessage | AutofixStartStepEventMessage;
  * we widen the type to allow configuring them from the notification tester.
  */
 export type AllNotificationOptions = NotificationOptions & {
-  actions?: Array<{
-    action: string;
-    title: string;
-  }>;
+  actions?: Array<{action: string; title: string}>;
   image?: string;
   renotify?: boolean;
 };
@@ -47,23 +44,12 @@ interface RequestMessageBase {
 }
 
 interface TriggerTestNotificationRequestMessage extends RequestMessageBase {
-  data: {
-    options: AllNotificationOptions;
-    title: string;
-  };
+  data: {options: AllNotificationOptions; title: string};
   name: 'trigger.test-notification';
 }
 
 export type RequestMessage = TriggerTestNotificationRequestMessage;
 
 export type ResponseMessage =
-  | {
-      data: unknown;
-      messageId: string;
-      type: 'response';
-    }
-  | {
-      error: unknown;
-      messageId: string;
-      type: 'response';
-    };
+  | {data: unknown; messageId: string; type: 'response'}
+  | {error: unknown; messageId: string; type: 'response'};

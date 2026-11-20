@@ -50,10 +50,7 @@ function StoryDetail() {
   const {storyCategory, storySlug} = useStoryParams();
   const stories = useFlatStoryList();
 
-  let storyNode = getStoryFromParams(stories, {
-    category: storyCategory,
-    slug: storySlug,
-  });
+  let storyNode = getStoryFromParams(stories, {category: storyCategory, slug: storySlug});
 
   // If we don't have a story node, try to find it by the filesystem path
   if (!storyNode && name) {
@@ -77,9 +74,7 @@ function StoryDetail() {
     }
   }
 
-  const story = useStoriesLoader({
-    files: storyNode ? [storyNode.filesystemPath] : [],
-  });
+  const story = useStoriesLoader({files: storyNode ? [storyNode.filesystemPath] : []});
 
   return (
     <StoriesLayout>
@@ -167,10 +162,7 @@ function useStoriesFavicon() {
       }
     });
 
-    observer.observe(faviconNode, {
-      attributes: true,
-      attributeFilter: ['href'],
-    });
+    observer.observe(faviconNode, {attributes: true, attributeFilter: ['href']});
 
     return () => {
       observer.disconnect();

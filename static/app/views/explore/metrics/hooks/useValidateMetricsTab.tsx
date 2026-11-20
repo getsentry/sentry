@@ -52,10 +52,5 @@ export function useValidateMetricsTab({
     ...(enabled ? {} : {queryFn: skipToken}),
   });
 
-  return {
-    data,
-    isFetching,
-    isPlaceholderData,
-    isLoading,
-  };
+  return {data, isFetching, isPlaceholderData, isLoading};
 }

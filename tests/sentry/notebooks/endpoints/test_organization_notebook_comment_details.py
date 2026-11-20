@@ -3,8 +3,10 @@ from __future__ import annotations
 from django.urls import reverse
 
 from sentry.notebooks.models import NotebookComment, NotebookStatus
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
+from sentry.types.actor import Actor
 
 FEATURE = "organizations:investigations"
 
@@ -28,7 +30,7 @@ class OrganizationNotebookCommentDetailsTest(APITestCase):
             "sentry-api-0-organization-notebook-comment-details",
             kwargs={
                 "organization_id_or_slug": self.organization.slug,
-                "investigation_id": self.notebook.id,
+                "notebook_id": self.notebook.id,
                 "comment_id": comment_id,
             },
         )
@@ -47,6 +49,22 @@ class OrganizationNotebookCommentDetailsTest(APITestCase):
         response = self.client.put(self.url(self.comment.id), data={"body": "after"}, format="json")
 
         assert response.status_code == 403
+
+    @with_feature("organizations:universal-inbox-recording")
+    def test_edit_preserves_mentions(self) -> None:
+        original_mentions = [Actor.from_object(self.user).dict()]
+        self.comment.update(mentions=original_mentions)
+
+        response = self.client.put(
+            self.url(self.comment.id),
+            data={"body": "after", "mentions": [f"user:{self.member.id}"]},
+            format="json",
+        )
+
+        assert response.status_code == 200, response.data
+        self.comment.refresh_from_db()
+        assert self.comment.mentions == original_mentions
+        assert not InboxItemEvent.objects.exists()
 
     def test_edit_rejects_a_blank_body(self) -> None:
         response = self.client.put(self.url(self.comment.id), data={"body": ""}, format="json")

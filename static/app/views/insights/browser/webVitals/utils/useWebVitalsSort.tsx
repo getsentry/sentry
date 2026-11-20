@@ -12,11 +12,7 @@ export function useWebVitalsSort({
   sortName = 'sort',
   defaultSort = DEFAULT_SORT,
   sortableFields = SORTABLE_FIELDS as unknown as string[],
-}: {
-  defaultSort?: Sort;
-  sortName?: string;
-  sortableFields?: string[];
-} = {}) {
+}: {defaultSort?: Sort; sortName?: string; sortableFields?: string[]} = {}) {
   const [sorts] = useQueryState(sortName, parseAsStringArray);
   const filteredSortableFields = sortableFields;
 

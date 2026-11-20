@@ -67,10 +67,7 @@ function getWidgetContents(widgetType: EAPWidgetType, spanCategory?: string) {
   return content;
 }
 
-type EAPChartsWidgetProps = {
-  query: string;
-  transactionName: string;
-};
+type EAPChartsWidgetProps = {query: string; transactionName: string};
 
 export function EAPChartsWidget({transactionName, query}: EAPChartsWidgetProps) {
   const [spanCategoryUrlParam] = useQueryState(

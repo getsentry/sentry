@@ -243,13 +243,7 @@ function ReleasesDetailContainer() {
     const {start, end, statsPeriod, utc, ...restQuery} = location.query;
 
     if (start || end || statsPeriod || utc) {
-      navigate(
-        {
-          ...location,
-          query: restQuery,
-        },
-        {replace: true}
-      );
+      navigate({...location, query: restQuery}, {replace: true});
     }
   }, [location, navigate]);
 
@@ -285,20 +279,14 @@ function ReleasesDetailContainer() {
   if (isProjectMissingInUrl) {
     return (
       <PickProjectToContinue
-        projects={projects.map(({id, slug}: ReleaseProject) => ({
-          id: String(id),
-          slug,
-        }))}
+        projects={projects.map(({id, slug}: ReleaseProject) => ({id: String(id), slug}))}
         nextPath={{
           pathname: makeReleasesPathname({
             path: `/${encodeURIComponent(release)}/`,
             organization,
           }),
         }}
-        noProjectRedirectPath={makeReleasesPathname({
-          organization,
-          path: '/',
-        })}
+        noProjectRedirectPath={makeReleasesPathname({organization, path: '/'})}
       />
     );
   }

@@ -18,6 +18,7 @@ from sentry.api.utils import to_valid_int_id
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
+    RESPONSE_NO_CONTENT,
     RESPONSE_NOT_FOUND,
     RESPONSE_UNAUTHORIZED,
 )
@@ -50,6 +51,7 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (TelemetryClassifierPermission,)
 
@@ -122,9 +124,9 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         self, request: Request, organization: Organization, classifier: TelemetryClassifier
     ) -> Response[TelemetryClassifierResponse]:
         """
-        Enable or disable a telemetry classifier on a project the caller can write to.
+        Enable or disable a telemetry classifier on a project the caller can access.
         """
-        if not request.access.has_project_scope(classifier.project, "project:write"):
+        if not request.access.has_project_scope(classifier.project, "project:read"):
             raise PermissionDenied
 
         serializer = TelemetryClassifierUpdateRequestSerializer(
@@ -136,3 +138,25 @@ class OrganizationTelemetryClassifierDetailsEndpoint(OrganizationEndpoint):
         return self.respond(
             serialize(classifier, request.user, serializer=TelemetryClassifierSerializer())
         )
+
+    @extend_schema(
+        operation_id="Delete a Telemetry Classifier",
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, CLASSIFIER_ID_PARAM],
+        responses={
+            204: RESPONSE_NO_CONTENT,
+            401: RESPONSE_UNAUTHORIZED,
+            403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
+        },
+    )
+    def delete(
+        self, request: Request, organization: Organization, classifier: TelemetryClassifier
+    ) -> Response:
+        """
+        Delete a telemetry classifier on a project the caller can access.
+        """
+        if not request.access.has_project_scope(classifier.project, "project:read"):
+            raise PermissionDenied
+
+        classifier.delete()
+        return self.respond(status=204)

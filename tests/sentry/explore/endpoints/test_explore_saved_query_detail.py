@@ -12,6 +12,7 @@ from sentry.explore.models import (
     ExploreSavedQueryProject,
     ExploreSavedQueryStarred,
 )
+from sentry.search.eap.constants import QueryPriorities
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.viewer_context import Actor, ActorType, ViewerContext, encode_viewer_context
@@ -732,6 +733,56 @@ class ExploreSavedQueryDetailTest(APITestCase, SnubaTestCase):
             response = self.client.delete(url)
 
         assert response.status_code == 403, response.content
+
+    def test_put_updates_query_priority(self) -> None:
+        for dataset in ("spans", "logs"):
+            saved = ExploreSavedQuery.objects.create(
+                organization=self.org,
+                created_by_id=self.user.id,
+                name="Priority query",
+                query={"query": [{"fields": ["timestamp"], "mode": "samples"}]},
+                dataset=(
+                    ExploreSavedQueryDataset.SPANS
+                    if dataset == "spans"
+                    else ExploreSavedQueryDataset.OURLOGS
+                ),
+                query_priority=QueryPriorities.FASTER,
+            )
+            url = reverse("sentry-api-0-explore-saved-query-detail", args=[self.org.slug, saved.id])
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Priority query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                        "queryPriority": "normal",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["dataset"] == dataset
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.query_priority == QueryPriorities.NORMAL
+
+            with self.feature(self.feature_name):
+                response = self.client.put(
+                    url,
+                    {
+                        "name": "Renamed query",
+                        "projects": self.project_ids,
+                        "dataset": dataset,
+                        "query": [{"fields": ["timestamp"], "mode": "samples"}],
+                        "range": "24h",
+                    },
+                )
+            assert response.status_code == 200, response.content
+            assert response.data["queryPriority"] == "normal"
+            saved.refresh_from_db()
+            assert saved.name == "Renamed query"
+            assert saved.query_priority == QueryPriorities.NORMAL
 
 
 class OrganizationExploreQueryVisitTest(APITestCase, SnubaTestCase):

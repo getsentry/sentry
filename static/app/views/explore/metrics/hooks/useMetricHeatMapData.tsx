@@ -66,13 +66,7 @@ export function useMetricHeatMapData({
   const isBoundsQueryNeeded = windows.length > 1;
 
   const boundsQuery = useQuery({
-    ...metricBoundsApiOptions({
-      organization,
-      selection,
-      traceMetric,
-      query,
-      sampling,
-    }),
+    ...metricBoundsApiOptions({organization, selection, traceMetric, query, sampling}),
     enabled: enabled && isBoundsQueryNeeded,
   });
 

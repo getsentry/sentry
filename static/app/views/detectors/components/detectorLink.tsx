@@ -3,6 +3,8 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
 
+import {getDuration} from '@sentry/scraps/duration';
+
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {TitleCell} from 'sentry/components/workflowEngine/gridCell/titleCell';
@@ -22,7 +24,6 @@ import type {
   UptimeDetector,
 } from 'sentry/types/workflowEngine/detectors';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import {unreachable} from 'sentry/utils/unreachable';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -37,11 +38,7 @@ import {getMetricDetectorSuffix} from 'sentry/views/detectors/utils/metricDetect
 import {percentThresholdAbsoluteToDelta} from 'sentry/views/detectors/utils/percentThreshold';
 import {scheduleAsText} from 'sentry/views/insights/crons/utils/scheduleAsText';
 
-type DetectorLinkProps = {
-  detector: Detector;
-  className?: string;
-  openInNewTab?: boolean;
-};
+type DetectorLinkProps = {detector: Detector; className?: string; openInNewTab?: boolean};
 
 function formatConditionType(condition: MetricCondition) {
   switch (condition.type) {
@@ -266,10 +263,7 @@ export function DetectorLink({detector, className, openInNewTab}: DetectorLinkPr
   const detectorLink =
     detector.type === 'issue_stream'
       ? null
-      : {
-          pathname: makeMonitorDetailsPathname(org.slug, detector.id),
-          query,
-        };
+      : {pathname: makeMonitorDetailsPathname(org.slug, detector.id), query};
 
   return (
     <TitleCell

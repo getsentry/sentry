@@ -88,12 +88,7 @@ export function WidgetCardDataLoader({
       >
         {({tableResults, timeseriesResults, errorMessage, loading}) => (
           <Fragment>
-            {children({
-              tableResults,
-              timeseriesResults,
-              errorMessage,
-              loading,
-            })}
+            {children({tableResults, timeseriesResults, errorMessage, loading})}
           </Fragment>
         )}
       </IssueWidgetQueries>

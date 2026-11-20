@@ -31,10 +31,7 @@ export function LinkButton({
 }: LinkButtonProps) {
   const contextSize = useSizeContext();
   const size = useResponsivePropValue(explicitSize ?? contextSize ?? 'md');
-  const {hasChildren, accessibleLabel} = useButtonFunctionality({
-    ...props,
-    disabled,
-  });
+  const {hasChildren, accessibleLabel} = useButtonFunctionality({...props, disabled});
 
   return (
     <Tooltip
@@ -63,8 +60,10 @@ export function LinkButton({
                 (undefined as unknown as LinkProps['to'])
         }
       >
+        {/* See `Button` for how to target `data-button-label`. */}
         <Flex
           as="span"
+          data-button-label
           align="center"
           justify="center"
           minWidth="0"

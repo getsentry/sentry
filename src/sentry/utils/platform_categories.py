@@ -37,6 +37,7 @@ MOBILE = {
     "javascript-capacitor",
     "ionic",
     "react-native",
+    "expo",
     "flutter",
     "dart-flutter",
     "unity",
@@ -88,6 +89,7 @@ BACKEND = {
     "node-koa",
     "node-nestjs",
     "perl",
+    "php-bref",
     "php-laravel",
     "php-monolog",
     "php-symfony",
@@ -130,6 +132,7 @@ SERVERLESS = {
     "node-gcpfunctions",
     "node-cloudflare-pages",
     "node-cloudflare-workers",
+    "php-bref",
     "python-awslambda",
     "python-azurefunctions",
     "python-gcpfunctions",
@@ -189,6 +192,7 @@ CATEGORY_LIST = [
 SOURCE_MAPS = {
     *FRONTEND,
     "react-native",
+    "expo",
     "cordova",
     "electron",
 }

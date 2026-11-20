@@ -2,10 +2,7 @@ import type {CategoricalSeries} from 'sentry/views/dashboards/widgets/common/typ
 
 export const sampleLargeValueData: CategoricalSeries = {
   valueAxis: 'count()',
-  meta: {
-    valueType: 'integer',
-    valueUnit: null,
-  },
+  meta: {valueType: 'integer', valueUnit: null},
   values: [
     {category: 'United States', value: 12_500_000},
     {category: 'European Union', value: 8_200_000},

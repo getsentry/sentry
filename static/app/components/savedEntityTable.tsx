@@ -87,10 +87,7 @@ SavedEntityTable.HeaderCell = SimpleTable.HeaderCell;
 
 SavedEntityTable.Row = styled(SimpleTable.Row, {
   shouldForwardProp: prop => prop !== 'isFirst' && prop !== 'disableHover',
-})<{
-  isFirst: boolean;
-  disableHover?: boolean;
-}>`
+})<{isFirst: boolean; disableHover?: boolean}>`
   height: 40px;
 
   &:last-child {
@@ -108,9 +105,7 @@ SavedEntityTable.Row = styled(SimpleTable.Row, {
 
 SavedEntityTable.Cell = styled(SimpleTable.RowCell, {
   shouldForwardProp: prop => prop !== 'hasButton',
-})<{
-  hasButton?: boolean;
-}>`
+})<{hasButton?: boolean}>`
   height: 40px;
 
   /* Buttons already provide some padding */

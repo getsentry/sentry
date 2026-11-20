@@ -30,10 +30,7 @@ test('root lint excludes workspaces that own their lint tasks', () => {
   const result = spawnSync(
     process.execPath,
     [runner, '--debug', 'files', app, icons, scraps],
-    {
-      cwd: root,
-      encoding: 'utf8',
-    }
+    {cwd: root, encoding: 'utf8'}
   );
   assert.equal(result.status, 0, result.stderr);
   assert(result.stdout.includes(app), result.stdout);
@@ -111,10 +108,12 @@ function fixture(t: {after: (cleanup: () => void) => void}) {
   write('.gitignore', 'node_modules/\n.artifacts/\n');
   write('oxlint-suppressions.json', '{}\n');
   mkdirSync(path.join(directory, 'node_modules'));
-  symlinkSync(
-    path.join(root, 'node_modules/oxlint'),
-    path.join(directory, 'node_modules/oxlint')
-  );
+  for (const dependency of ['oxlint', 'oxfmt']) {
+    symlinkSync(
+      path.join(root, 'node_modules', dependency),
+      path.join(directory, 'node_modules', dependency)
+    );
+  }
   const git = (...args: string[]) =>
     execFileSync('git', ['-C', directory, ...args], {encoding: 'utf8'}).trim();
   const env = {...process.env, GITHUB_OUTPUT: '', SENTRY_OXLINT_VERIFIED_BASE: ''};
@@ -235,7 +234,16 @@ test('package lint enforces shared rules and local test boundaries', t => {
       'json',
       '.',
     ],
-    {cwd: directory, encoding: 'utf8'}
+    {
+      cwd: directory,
+      encoding: 'utf8',
+      env: {
+        ...process.env,
+        OXLINT_TSGOLINT_PATH: fileURLToPath(
+          new URL('bin/tsrs-lint', import.meta.resolve('tsrs/package.json'))
+        ),
+      },
+    }
   );
   assert.equal(result.status, 1, result.stderr);
   const {diagnostics} = JSON.parse(result.stdout) as {
@@ -487,9 +495,7 @@ test('base scans resolve installed dependencies and use base workspace source', 
         'utf8'
       )
     ),
-    {
-      'index.ts': {'typescript/no-floating-promises': {count: 1}},
-    }
+    {'index.ts': {'typescript/no-floating-promises': {count: 1}}}
   );
   write(
     'packages/provider/index.d.ts',
@@ -643,6 +649,43 @@ test('CI and prune report violations exceeding committed budgets', t => {
   );
 });
 
+test('prune writes budgets that the format hook leaves unchanged', t => {
+  const {directory, write, lint, commit} = fixture(t);
+  write('.oxfmtrc.json', readFileSync(path.join(root, '.oxfmtrc.json'), 'utf8'));
+  write('pnpm-workspace.yaml', 'packages: []');
+  write(
+    'oxlint.config.ts',
+    `export const incubator = {rules: {'no-console': 'error', 'no-debugger': 'error'}}; export default {categories: {correctness: 'off'}, ...incubator};`
+  );
+  const long =
+    'src/a-deliberately-long-directory-name/with-a-file-name-past-the-print-width.js';
+  write('short.js', 'debugger;\n');
+  write(long, 'console.log(1);\ndebugger;\n');
+  const budgets = (count: number) =>
+    [
+      '{',
+      `  "short.js": {"no-debugger": {"count": ${count}}},`,
+      `  "${long}": {`,
+      '    "no-console": {"count": 1},',
+      '    "no-debugger": {"count": 1}',
+      '  }',
+      '}',
+      '',
+    ].join('\n');
+  write('oxlint-suppressions.json', budgets(2));
+  commit();
+  const prune = lint('--prune');
+  assert.equal(prune.status, 0, prune.stderr);
+  const asset = path.join(directory, 'oxlint-suppressions.json');
+  assert.equal(readFileSync(asset, 'utf8'), budgets(1));
+  const check = spawnSync(
+    process.execPath,
+    [path.join(root, 'node_modules/oxfmt/bin/oxfmt'), '--check', asset],
+    {cwd: directory, encoding: 'utf8'}
+  );
+  assert.equal(check.status, 0, check.stdout + check.stderr);
+});
+
 test('missing suppression files are empty budgets and maintenance leaves them absent', t => {
   const {directory, write, lint, commit} = fixture(t);
   write('pnpm-workspace.yaml', "packages:\n  - 'packages/*'\n");
@@ -734,17 +777,13 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
   );
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 1}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 1}}})
   );
   assert.equal(ci(2).status, 0);
   write('source.js', 'debugger; alert("existing"); alert("new");\n');
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}}})
   );
   const increase = ci(2);
   assert.equal(increase.status, 1, increase.stderr);
@@ -762,9 +801,7 @@ test('CI rescans the base for changed policy or a missing baseline', t => {
   commit();
   write(
     'oxlint-suppressions.json',
-    JSON.stringify({
-      'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}},
-    })
+    JSON.stringify({'source.js': {'no-debugger': {count: 1}, 'no-alert': {count: 2}}})
   );
   assert.equal(ci(2, '').status, 0);
 });

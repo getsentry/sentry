@@ -5,7 +5,6 @@ import {apiOptions} from './api/apiOptions';
 interface SeerOnboardingCheckResponse {
   hasSupportedScmIntegration: boolean;
   isAutofixEnabled: boolean;
-  isCodeReviewEnabled: boolean;
   isSeerConfigured: boolean;
 }
 
@@ -17,11 +16,6 @@ interface Props {
 export function getSeerOnboardingCheckQueryOptions({organization, staleTime = 0}: Props) {
   return apiOptions.as<SeerOnboardingCheckResponse>()(
     '/organizations/$organizationIdOrSlug/seer/onboarding-check/',
-    {
-      path: {
-        organizationIdOrSlug: organization.slug,
-      },
-      staleTime,
-    }
+    {path: {organizationIdOrSlug: organization.slug}, staleTime}
   );
 }

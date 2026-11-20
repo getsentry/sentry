@@ -10,7 +10,6 @@ import {Link} from '@sentry/scraps/link';
 
 import {deleteMonitor, updateMonitor} from 'sentry/actionCreators/monitors';
 import {hasEveryAccess} from 'sentry/components/acl/access';
-import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {t, tct} from 'sentry/locale';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
@@ -19,15 +18,10 @@ import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {makeAlertsPathname} from 'sentry/views/alerts/pathnames';
 import type {Monitor} from 'sentry/views/insights/crons/types';
-import {TopBar} from 'sentry/views/navigation/topBar';
 
 import {StatusToggleButton} from './statusToggleButton';
 
-type Props = {
-  monitor: Monitor;
-  onUpdate: (data: Monitor) => void;
-  orgSlug: string;
-};
+type Props = {monitor: Monitor; onUpdate: (data: Monitor) => void; orgSlug: string};
 
 export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const api = useApi();
@@ -36,10 +30,7 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
   const {selection} = usePageFilters();
 
   const endpointOptions = {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-    },
+    query: {project: selection.projects, environment: selection.environments},
   };
 
   const handleDelete = async () => {
@@ -89,14 +80,6 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
 
   return (
     <Flex direction="row" align="center" gap="md" wrap="wrap">
-      <TopBar.Slot name="feedback">
-        <FeedbackButton
-          aria-label={t('Give Feedback')}
-          tooltipProps={{title: t('Give Feedback')}}
-        >
-          {null}
-        </FeedbackButton>
-      </TopBar.Slot>
       <Button
         size="sm"
         icon={monitor.isMuted ? <IconSubscribed /> : <IconUnsubscribed />}
@@ -135,10 +118,7 @@ export function MonitorHeaderActions({monitor, orgSlug, onUpdate}: Props) {
           // through the URL so that when we save the monitor and are
           // redirected back to the details page it queries the backend
           // for a monitor environment with check-in data
-          query: {
-            environment: selection.environments,
-            project: selection.projects,
-          },
+          query: {environment: selection.environments, project: selection.projects},
         }}
         {...disableProps}
       >

@@ -19,6 +19,7 @@ import {t, tct} from 'sentry/locale';
 import type {ProjectKey} from 'sentry/types/project';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {projectKeysApiOptions} from 'sentry/utils/projectKeys';
 import {useApi} from 'sentry/utils/useApi';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -52,10 +53,7 @@ export default function ProjectKeys() {
     ...projectKeysApiOptions({
       orgSlug: organization.slug,
       projSlug: project.slug,
-      query: {
-        cursor: cursor || undefined,
-        per_page: 5,
-      },
+      query: {cursor: cursor || undefined, per_page: 5},
     }),
     select: selectJsonWithHeaders,
   });
@@ -73,9 +71,7 @@ export default function ProjectKeys() {
             keyId: data.id,
           },
         }),
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: (data: ProjectKey) => {
@@ -101,10 +97,7 @@ export default function ProjectKeys() {
             keyId: data.id,
           },
         }),
-        {
-          method: 'PUT',
-          data: {isActive},
-        }
+        {method: 'PUT', data: {isActive}}
       );
     },
     onMutate: ({data}) => {
@@ -112,10 +105,7 @@ export default function ProjectKeys() {
       setKeyListState(
         keyList.map(key => {
           if (key.id === data.id) {
-            return {
-              ...key,
-              isActive: !data.isActive,
-            };
+            return {...key, isActive: !data.isActive};
           }
 
           return key;
@@ -135,10 +125,7 @@ export default function ProjectKeys() {
     mutationFn: () => {
       return api.requestPromise(
         getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/keys/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         }),
         {method: 'POST'}
       );
@@ -222,7 +209,7 @@ export default function ProjectKeys() {
               params={params}
             />
           ))}
-          <Pagination pageLinks={keyListResponse.headers.Link} />
+          <Pagination {...getPaginationProps(keyListResponse.headers.Link)} />
         </Fragment>
       )}
     </div>

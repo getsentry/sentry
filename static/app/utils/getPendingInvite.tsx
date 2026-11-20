@@ -1,11 +1,8 @@
 import Cookies from 'js-cookie';
-import * as qs from 'query-string';
 
-type PendingInvite = {
-  memberId: number;
-  token: string;
-  url: string;
-};
+import * as qs from './url/qs';
+
+type PendingInvite = {memberId: number; token: string; url: string};
 
 export function getPendingInvite(): PendingInvite | null {
   const data = Cookies.get('pending-invite');

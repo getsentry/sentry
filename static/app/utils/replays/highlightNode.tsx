@@ -16,13 +16,7 @@ interface AddHighlightBySelectorParams extends Partial<DrawProps> {
 
 type AddHighlightParams = AddHighlightByNodeIdsParams | AddHighlightBySelectorParams;
 
-type RemoveHighlightParams =
-  | {
-      nodeIds: number[];
-    }
-  | {
-      selector: string;
-    };
+type RemoveHighlightParams = {nodeIds: number[]} | {selector: string};
 
 export function clearAllHighlights(replayer: Replayer) {
   for (const nodeId of highlightsByNodeIds.keys()) {
@@ -65,7 +59,6 @@ export function removeHighlightedNode(replayer: Replayer, props: RemoveHighlight
  * Attempt to highlight the node inside of a replay recording
  */
 export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
-  const {wrapper} = replayer;
   const mirror = replayer.getMirror();
 
   const nodes =
@@ -113,7 +106,7 @@ export function highlightNode(replayer: Replayer, props: AddHighlightParams) {
       highlightsBySelector.set(props.selector, {canvas});
     }
 
-    wrapper.insertBefore(canvas, replayer.iframe);
+    replayer.iframe.before(canvas);
   }
 }
 

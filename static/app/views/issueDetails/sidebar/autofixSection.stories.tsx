@@ -52,7 +52,6 @@ class SimulatedSidebarQueryClient extends QueryClient {
       return {
         hasSupportedScmIntegration: true,
         isAutofixEnabled: true,
-        isCodeReviewEnabled: true,
         isSeerConfigured: true,
       };
     }
@@ -108,11 +107,7 @@ function SidebarStory({
             ? [...organization.access, 'org:billing']
             : organization.access.filter(scope => scope !== 'org:billing'),
           hideAiFeatures: false,
-          features: [
-            ...organization.features,
-            'seer-credit-checks',
-            'token-billed-seer-enabled',
-          ],
+          features: [...organization.features, 'token-billed-seer-enabled'],
         }}
       >
         <QueryClientProvider client={queryClient}>

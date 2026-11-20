@@ -112,7 +112,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
         elif event_type:
             cell_filter["event"] = event_type
             requests.extend(
-                get_buffer_requests_from_cells(sentry_app.id, cell_filter, datetime_org_filter)
+                get_buffer_requests_from_cells(sentry_app, cell_filter, datetime_org_filter)
             )
         else:
             control_filter["event"] = [
@@ -130,7 +130,7 @@ class SentryAppWebhookRequestsEndpoint(SentryAppBaseEndpoint):
                 }
             )
             requests.extend(
-                get_buffer_requests_from_cells(sentry_app.id, cell_filter, datetime_org_filter)
+                get_buffer_requests_from_cells(sentry_app, cell_filter, datetime_org_filter)
             )
 
         requests.sort(key=lambda x: parse_date(x.data.date), reverse=True)

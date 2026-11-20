@@ -8,7 +8,7 @@ import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
 import {useDrawer} from '@sentry/scraps/drawer';
 import {Container, Flex, Stack} from '@sentry/scraps/layout';
-import {Pagination, useGetPaginationCaption} from '@sentry/scraps/pagination';
+import {Pagination} from '@sentry/scraps/pagination';
 import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 
@@ -22,6 +22,7 @@ import {DetailSection} from 'sentry/components/workflowEngine/ui/detailSection';
 import {t, tct} from 'sentry/locale';
 import type {Detector} from 'sentry/types/workflowEngine/detectors';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps, useGetPaginationCaption} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 import {AutomationBuilderDrawerForm} from 'sentry/views/automations/components/automationBuilderDrawerForm';
@@ -36,9 +37,7 @@ import {useIssueStreamDetectorsForProject} from 'sentry/views/detectors/utils/us
 
 const AUTOMATIONS_PER_PAGE = 5;
 
-type Props = {
-  detector: Detector;
-};
+type Props = {detector: Detector};
 
 interface AutomationsTableProps {
   detectorId: string;
@@ -143,7 +142,7 @@ function AutomationsTable({detectorId, emptyMessage}: AutomationsTableProps) {
       </Stack>
       <Pagination
         onCursor={setCursor}
-        pageLinks={pageLinks}
+        {...getPaginationProps(pageLinks)}
         caption={paginationCaption}
       />
     </Container>
@@ -171,10 +170,7 @@ export function DetectorDetailsAutomations({detector}: Props) {
     (newWorkflowIds: string[]) => {
       toast.loading(t('Saving changes...'));
       updateDetector(
-        {
-          detectorId: detector.id,
-          workflowIds: newWorkflowIds,
-        },
+        {detectorId: detector.id, workflowIds: newWorkflowIds},
         {
           onSuccess: () => {
             toast.success(t('Connected alerts updated'));

@@ -6,6 +6,24 @@ import {ContinuousTimeSeries} from './continuousTimeSeries';
 import type {Plottable} from './plottable';
 
 describe('ContinuousTimeSeries', () => {
+  describe('labelSuffix', () => {
+    it.each([
+      {alias: undefined, groupBy: undefined, expectedLabel: 'avg(span.duration)'},
+      {alias: 'Duration', groupBy: undefined, expectedLabel: 'Duration'},
+      {alias: undefined, groupBy: [{key: 'span.op', value: 'db'}], expectedLabel: 'db'},
+    ])('keeps $expectedLabel separate from transformations', config => {
+      const series = TimeSeriesFixture({
+        yAxis: 'avg(span.duration)',
+        groupBy: config.groupBy,
+        requestedTransformations: ['fill(linear)', 'smooth(sma,5)'],
+      });
+      const plottable = new Dots(series, {alias: config.alias});
+
+      expect(plottable.label).toBe(config.expectedLabel);
+      expect(plottable.labelSuffix).toBe('fill(linear) → smooth(sma,5)');
+    });
+  });
+
   describe('isEmpty', () => {
     it('marks normal plottables as not empty', () => {
       const timeSeries = TimeSeriesFixture();
@@ -16,9 +34,7 @@ describe('ContinuousTimeSeries', () => {
     });
 
     it('marks empty series as empty', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -65,9 +81,7 @@ describe('ContinuousTimeSeries', () => {
 
   describe('start/end', () => {
     it('sets start and end to null if there is not data', () => {
-      const timeSeries = TimeSeriesFixture({
-        values: [],
-      });
+      const timeSeries = TimeSeriesFixture({values: []});
 
       const plottable = new Dots(timeSeries);
 
@@ -149,6 +163,38 @@ describe('ContinuousTimeSeries', () => {
         values: [
           {timestamp: 1, value: 1, sampleRate: 0.01, confidence: 'low'},
           {timestamp: 2, value: null, sampleRate: 1, confidence: 'high'},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('low');
+    });
+
+    it('ignores low confidence in incomplete points', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.5,
+            confidence: 'high',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 0.01, confidence: 'low', incomplete: true},
+        ],
+      });
+      expect(new Dots(timeSeries).confidence).toBe('high');
+    });
+
+    it('is low when every complete point is low confidence', () => {
+      const timeSeries = TimeSeriesFixture({
+        values: [
+          {
+            timestamp: 1,
+            value: 1,
+            sampleRate: 0.01,
+            confidence: 'low',
+            incomplete: false,
+          },
+          {timestamp: 2, value: 2, sampleRate: 1, confidence: 'high', incomplete: true},
         ],
       });
       expect(new Dots(timeSeries).confidence).toBe('low');

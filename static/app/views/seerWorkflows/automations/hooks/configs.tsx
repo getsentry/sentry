@@ -1,4 +1,10 @@
-import {skipToken, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {
+  skipToken,
+  useIsMutating,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
 
 import {apiOptions, selectJson} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
@@ -10,16 +16,17 @@ import type {
   SeerWorkflowConfigsResponse,
   SeerWorkflowConfigUpdateRequest,
 } from 'sentry/views/seerWorkflows/types';
-import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
+import {
+  useAutomationsEnabled,
+  type AutomationQueryOptions,
+} from 'sentry/views/seerWorkflows/utils';
 
 function useConfigUrls(configId = '') {
   const organization = useOrganization();
   return {
     configsUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
-      {
-        path: {organizationIdOrSlug: organization.slug},
-      }
+      {path: {organizationIdOrSlug: organization.slug}}
     ),
     configUrl: getApiUrl(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/$configId/',
@@ -29,9 +36,13 @@ function useConfigUrls(configId = '') {
 }
 
 /**
- * Fetches the organization's automation configs. Pass `ids` to only fetch those configs.
+ * Fetches the organization's automation configs. Pass `ids` to only fetch those configs;
+ * an empty list fetches nothing. `options` override the query's options.
  */
-export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
+export function useFetchConfigs(
+  {ids}: {ids?: string[]} = {},
+  options: AutomationQueryOptions = {}
+) {
   const organization = useOrganization();
   const automationsEnabled = useAutomationsEnabled();
 
@@ -39,12 +50,16 @@ export function useFetchConfigs({ids}: {ids?: string[]} = {}) {
     ...apiOptions.as<SeerWorkflowConfigsResponse>()(
       '/organizations/$organizationIdOrSlug/seer/workflows/configs/',
       {
-        path: automationsEnabled ? {organizationIdOrSlug: organization.slug} : skipToken,
+        path:
+          automationsEnabled && ids?.length !== 0
+            ? {organizationIdOrSlug: organization.slug}
+            : skipToken,
         query: {id: ids},
         staleTime: 0,
       }
     ),
     select: data => selectJson(data).configs,
+    ...options,
   });
 }
 
@@ -62,6 +77,17 @@ export function useCreateConfig() {
   });
 }
 
+function getUpdateConfigMutationKey(configId: string) {
+  return ['seer-workflow-config-update', configId];
+}
+
+/**
+ * Whether any update to the automation's config is in flight.
+ */
+export function useIsUpdatingConfig({configId}: {configId: string}) {
+  return useIsMutating({mutationKey: getUpdateConfigMutationKey(configId)}) > 0;
+}
+
 /**
  * Updates an automation's config and refetches the organization's configs.
  */
@@ -70,6 +96,7 @@ export function useUpdateConfig({configId}: {configId: string}) {
   const {configsUrl, configUrl} = useConfigUrls(configId);
 
   return useMutation({
+    mutationKey: getUpdateConfigMutationKey(configId),
     mutationFn: (data: SeerWorkflowConfigUpdateRequest) =>
       fetchMutation<SeerWorkflowConfigResponse>({url: configUrl, method: 'PUT', data}),
     onSuccess: () => queryClient.invalidateQueries({queryKey: [configsUrl]}),

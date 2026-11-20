@@ -6,10 +6,7 @@ import {agenticProgressRunOptions} from './api';
 
 const POLL_INTERVAL_MS = 5000;
 
-type UseAgenticProgressOptions = {
-  runId: string | null;
-  enabled?: boolean;
-};
+type UseAgenticProgressOptions = {runId: string | null; enabled?: boolean};
 
 export function useAgenticProgress({runId, enabled = true}: UseAgenticProgressOptions) {
   const organization = useOrganization();

@@ -15,11 +15,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 import {getKeyLabel} from './getKeyLabel';
 
-type KeyDescriptionProps = {
-  tag: Tag;
-  linksAsText?: boolean;
-  size?: 'sm' | 'md';
-};
+type KeyDescriptionProps = {tag: Tag; linksAsText?: boolean; size?: 'sm' | 'md'};
 
 export function ValueType({
   fieldDefinition,

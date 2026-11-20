@@ -9,7 +9,7 @@ import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
 import {Container, Grid} from '@sentry/scraps/layout';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {consoles, gaming} from 'sentry/data/platformCategories';
@@ -47,9 +47,7 @@ const selectablePlatforms = platforms.filter(platform =>
 
 export type Category = (typeof categoryList)[number]['id'];
 
-export type Platform = PlatformIntegration & {
-  category: Category;
-};
+export type Platform = PlatformIntegration & {category: Category};
 
 interface PlatformPickerProps {
   setPlatform: (props: Platform | null) => void;
@@ -218,11 +216,13 @@ export function PlatformPicker({
               setFilter('');
             }}
           >
-            <TabList>
-              {categoryList.map(({id, name}) => (
-                <TabList.Item key={id}>{name}</TabList.Item>
-              ))}
-            </TabList>
+            {({TabList}) => (
+              <TabList>
+                {categoryList.map(({id, name}) => (
+                  <TabList.Item key={id}>{name}</TabList.Item>
+                ))}
+              </TabList>
+            )}
           </Tabs>
         </Container>
         <Container width="100%" justifySelf="end">

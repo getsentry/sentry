@@ -18,6 +18,7 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types/organization
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {EventView} from 'sentry/utils/discover/eventView';
 import {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {parseLinkHeader} from 'sentry/utils/parseLinkHeader';
 import {decodeList} from 'sentry/utils/queryString';
 import {useApi} from 'sentry/utils/useApi';
@@ -119,10 +120,7 @@ function useSavedQueryActions({
 
     handleCreateQuery(api, organization, copy, yAxis).then(() => {
       refetchSavedQueries();
-      navigate({
-        pathname: location.pathname,
-        query: {},
-      });
+      navigate({pathname: location.pathname, query: {}});
     });
   };
 
@@ -379,8 +377,9 @@ export function QueryList({
         )}
       </Grid>
       <PaginationRow
-        pageLinks={pageLinks}
-        onCursor={(cursor, path, query, direction) => {
+        {...getPaginationProps(pageLinks)}
+        onCursor={(cursor, direction) => {
+          const {pathname: path, query} = location;
           const offset = Number(cursor?.split(':')?.[1] ?? 0);
 
           const newQuery: Query & {cursor?: string} = {...query, cursor};
@@ -390,10 +389,7 @@ export function QueryList({
             delete newQuery.cursor;
           }
 
-          navigate({
-            pathname: path,
-            query: newQuery,
-          });
+          navigate({pathname: path, query: newQuery});
         }}
       />
     </Fragment>

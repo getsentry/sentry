@@ -4,13 +4,13 @@ import styled from '@emotion/styled';
 import color from 'color';
 import type {LocationDescriptor} from 'history';
 import {useQueryState} from 'nuqs';
-import * as qs from 'query-string';
 
 import {Link} from '@sentry/scraps/link';
 
 import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {defined} from 'sentry/utils/defined';
+import * as qs from 'sentry/utils/url/qs';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
@@ -63,10 +63,7 @@ export function IssueTraceWaterfallOverlay({
         organization,
         {
           ...location,
-          query: {
-            ...(groupId ? {groupId} : {}),
-            referrer: referrer ?? undefined,
-          },
+          query: {...(groupId ? {groupId} : {}), referrer: referrer ?? undefined},
         },
         source === 'feedback'
           ? TraceViewSources.FEEDBACK_DETAILS
@@ -125,9 +122,7 @@ export function IssueTraceWaterfallOverlay({
   }, [viewManager, containerRef, tree]);
 
   const handleLinkClick = useCallback(() => {
-    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {
-      organization,
-    });
+    trackAnalytics('issue_details.view_full_trace_waterfall_clicked', {organization});
   }, [organization]);
 
   // Link to an offender span in the trace view if the event includes an occurrence.

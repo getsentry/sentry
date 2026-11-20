@@ -24,6 +24,7 @@ import type {
 import type {ProjectSummaryWithOptions} from 'sentry/types/project';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {ProjectBadge} from 'sentry/views/organizationStats/teamInsights/styles';
@@ -211,10 +212,7 @@ function SpikeProtectionProjects({subscription}: Props) {
         `${getApiUrl('/organizations/$organizationIdOrSlug/spike-protections/', {
           path: {organizationIdOrSlug: organization.slug},
         })}?projectSlug=$all`,
-        {
-          method: isEnabling ? 'POST' : 'DELETE',
-          data: {projects: []},
-        }
+        {method: isEnabling ? 'POST' : 'DELETE', data: {projects: []}}
       );
       const newProjects = projects.map(p => ({
         ...p,
@@ -343,7 +341,9 @@ function SpikeProtectionProjects({subscription}: Props) {
           );
         })}
       </StyledSimpleTable>
-      {pageLinks && <Pagination pageLinks={pageLinks} onCursor={setCurrentCursor} />}
+      {pageLinks && (
+        <Pagination {...getPaginationProps(pageLinks)} onCursor={setCurrentCursor} />
+      )}
     </Fragment>
   );
 }

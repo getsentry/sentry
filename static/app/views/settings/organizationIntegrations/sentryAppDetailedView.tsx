@@ -35,7 +35,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import {sentryAppComponentsApiOptions} from 'sentry/utils/useSentryAppComponents';
 
-import type {IntegrationTab} from './detailedView/integrationLayout';
 import {IntegrationLayout} from './detailedView/integrationLayout';
 import {RequestIntegrationButton} from './integrationRequest/RequestIntegrationButton';
 import {SplitInstallationIdModal} from './SplitInstallationIdModal';
@@ -43,10 +42,7 @@ import {SplitInstallationIdModal} from './SplitInstallationIdModal';
 function makeSentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppInstallation[]>()(
     '/organizations/$organizationIdOrSlug/sentry-app-installations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 }
 
@@ -54,7 +50,6 @@ export default function SentryAppDetailedView() {
   const {openModal} = useModal();
 
   const theme = useTheme();
-  const tabs: IntegrationTab[] = ['overview'];
   const api = useApi({persistInFlight: true});
   const queryClient = useQueryClient();
   const navigate = useNavigate();
@@ -78,10 +73,7 @@ export default function SentryAppDetailedView() {
   } = useQuery({
     ...apiOptions.as<IntegrationFeature[]>()(
       '/sentry-apps/$sentryAppIdOrSlug/features/',
-      {
-        path: {sentryAppIdOrSlug: integrationSlug},
-        staleTime: Infinity,
-      }
+      {path: {sentryAppIdOrSlug: integrationSlug}, staleTime: Infinity}
     ),
     retry: false,
   });
@@ -456,7 +448,7 @@ export default function SentryAppDetailedView() {
           additionalCTA={null}
         />
       }
-      tabs={<IntegrationLayout.Tabs tabs={tabs} activeTab="overview" />}
+      tabs={null}
       content={
         <IntegrationLayout.InformationCard
           integrationSlug={integrationSlug}

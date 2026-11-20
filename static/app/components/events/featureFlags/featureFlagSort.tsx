@@ -9,10 +9,7 @@ import {type OrderBy} from './utils';
 
 interface Props {
   orderBy: OrderBy;
-  orderByOptions: Array<{
-    label: string;
-    value: OrderBy;
-  }>;
+  orderByOptions: Array<{label: string; value: OrderBy}>;
   setOrderBy: (value: React.SetStateAction<OrderBy>) => void;
   size?: 'xs' | 'sm';
   variant?: 'secondary' | 'transparent';

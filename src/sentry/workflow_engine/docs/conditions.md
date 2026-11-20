@@ -295,6 +295,10 @@ run later from the resulting issue event; they are not part of the detector stat
 
 ## Workflows
 
+Handlers define their input requirements: use `require_group()` when issue context is
+needed. Organization events with unresolved slow conditions produce an evaluation error;
+delayed processing requires a `GroupEvent`.
+
 A [`Workflow`](../models/workflow.py) is connected to detectors through
 [`DetectorWorkflow`](../models/detector_workflow.py). Its conditions have two stages:
 
@@ -304,8 +308,8 @@ A [`Workflow`](../models/workflow.py) is connected to detectors through
 
 Both stages pass equivalent [`WorkflowEventData`](../types.py) values to the shared
 layer. Each stage creates a dataclass copy with its Workflow environment; the copies
-share the event-local cache. The value contains a `GroupEvent` or `Activity`, the issue
-group, optional state and escalation data, and an optional workflow environment.
+share the event-local cache. The value contains the source event, an optional issue
+group, state and escalation data, and an optional workflow environment.
 
 [`process_workflows`](../processors/workflow.py) performs the surrounding lifecycle:
 
@@ -461,8 +465,11 @@ the buffered condition cannot fire.
 
 Once registered, the handler appears in
 [`OrganizationDataConditionIndexEndpoint`](../endpoints/organization_data_condition_index.py)
-under its `group`, unless it is in `LEGACY_CONDITIONS`. The endpoint exposes the type,
-group, optional subgroup, and comparison schema.
+under its `group`, unless it is in `LEGACY_CONDITIONS` or sets `is_internal = True`.
+The endpoint exposes the type, group, optional subgroup, and comparison schema.
+
+Internal conditions also reject API configuration, including group reuse by ID.
+Provision them through model saves, which still validate the comparison schema.
 
 Stored conditions serialize through
 [`DataConditionSerializer`](../endpoints/serializers/data_condition_serializer.py).

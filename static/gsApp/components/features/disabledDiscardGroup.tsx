@@ -14,10 +14,7 @@ import {LearnMoreButton} from 'getsentry/components/features/learnMoreButton';
 import PlanFeature from 'getsentry/components/features/planFeature';
 import {displayPlanName} from 'getsentry/utils/billing';
 
-type Props = {
-  features: Organization['features'];
-  organization: Organization;
-};
+type Props = {features: Organization['features']; organization: Organization};
 
 export function DisabledDiscardGroup({organization, features}: Props) {
   return (
@@ -33,10 +30,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
                 variant="primary"
                 icon={<IconBusiness />}
                 onClick={() =>
-                  openUpsellModal({
-                    organization,
-                    source: 'feature.discard_group',
-                  })
+                  openUpsellModal({organization, source: 'feature.discard_group'})
                 }
               >
                 {t('Learn More')}
@@ -45,7 +39,7 @@ export function DisabledDiscardGroup({organization, features}: Props) {
                 organization={organization}
                 size="sm"
                 source="feature.discard_group"
-                href="https://blog.sentry.io/2018/01/03/delete-and-discard"
+                href="https://docs.sentry.io/pricing/quotas/manage-event-stream-guide/#delete--discard"
                 external
               >
                 {t('About Discard and Delete')}

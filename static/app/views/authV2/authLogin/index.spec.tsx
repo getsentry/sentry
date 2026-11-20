@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import {focusManager} from '@tanstack/react-query';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -26,6 +27,10 @@ describe('AuthLogin', () => {
   beforeEach(() => {
     jest.mocked(trackAnalytics).mockClear();
     ConfigStore.set('singleOrganization', false);
+  });
+
+  afterEach(() => {
+    focusManager.setFocused(undefined);
   });
 
   afterAll(() => {
@@ -80,10 +85,7 @@ describe('AuthLogin', () => {
 
   it('does not render the sign-in flow while auth config is loading', async () => {
     const authConfig = Promise.withResolvers<AuthConfig>();
-    MockApiClient.addMockResponse({
-      url: '/auth/config/',
-      body: () => authConfig.promise,
-    });
+    MockApiClient.addMockResponse({url: '/auth/config/', body: () => authConfig.promise});
 
     renderWithLoadingState();
 
@@ -114,11 +116,7 @@ describe('AuthLogin', () => {
     expect(screen.getByText('Authentication ready')).toBeInTheDocument();
     expect(trackAnalytics).toHaveBeenCalledWith(
       'auth.login.rendered',
-      {
-        organization: null,
-        entrypoint: 'generic',
-        state: 'login',
-      },
+      {organization: null, entrypoint: 'generic', state: 'login'},
       {startSession: true}
     );
   });
@@ -329,10 +327,7 @@ describe('AuthLogin', () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(1));
     expect(request).toHaveBeenCalledWith(
       '/auth/organizations/acme/demo/',
-      expect.objectContaining({
-        method: 'POST',
-        data: {nextUri: null},
-      })
+      expect.objectContaining({method: 'POST', data: {nextUri: null}})
     );
     expect(screen.getByText('Loading authentication')).toBeInTheDocument();
     expect(
@@ -341,10 +336,7 @@ describe('AuthLogin', () => {
     expect(screen.queryByRole('textbox', {name: 'Email'})).not.toBeInTheDocument();
 
     act(() => {
-      demoLogin.resolve({
-        nextUri: '/organizations/acme/issues/',
-        user: UserFixture(),
-      });
+      demoLogin.resolve({nextUri: '/organizations/acme/issues/', user: UserFixture()});
     });
 
     await waitFor(() =>
@@ -445,6 +437,94 @@ describe('AuthLogin', () => {
       screen.queryByRole('button', {name: 'Clear organization login context'})
     ).not.toBeInTheDocument();
     expect(testableWindowLocation.assign).not.toHaveBeenCalled();
+  });
+
+  it('resumes on focus after SSO completes in another tab', async () => {
+    mockAuthConfig();
+    const organizationAuth = {
+      authenticated: false,
+      memberAuthenticated: false,
+      canRegister: false,
+      joinRequestUrl: null,
+      loginMethod: 'sso',
+      ssoRequired: true,
+      organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+      provider: {key: 'saml2', name: 'SAML'},
+      warnings: [],
+    };
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: organizationAuth,
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
+    act(() => focusManager.setFocused(false));
+
+    MockApiClient.addMockResponse({
+      url: '/auth/config/',
+      body: {nextUri: '/organizations/acme/issues/'},
+    });
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {...organizationAuth, authenticated: true, memberAuthenticated: true},
+    });
+
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() =>
+      expect(testableWindowLocation.assign).toHaveBeenCalledWith(
+        '/organizations/acme/issues/'
+      )
+    );
+  });
+
+  it('keeps the loaded organization login when a focus refetch fails', async () => {
+    mockAuthConfig();
+    MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      body: {
+        authenticated: false,
+        memberAuthenticated: false,
+        canRegister: false,
+        joinRequestUrl: null,
+        loginMethod: 'sso',
+        ssoRequired: true,
+        organization: {avatarUrl: null, name: 'Acme', slug: 'acme'},
+        provider: {key: 'saml2', name: 'SAML'},
+        warnings: [],
+      },
+    });
+
+    render(<AuthLogin />, {
+      initialRouterConfig: {
+        location: {pathname: '/auth/login/acme/'},
+        route: '/auth/login/:orgSlug/',
+      },
+    });
+
+    expect(await screen.findByRole('button', {name: 'SSO'})).toBeVisible();
+    act(() => focusManager.setFocused(false));
+
+    const failedRefetch = MockApiClient.addMockResponse({
+      url: '/auth/organizations/acme/config/',
+      statusCode: 503,
+      body: {detail: 'Provider unavailable'},
+    });
+
+    act(() => focusManager.setFocused(true));
+
+    await waitFor(() => expect(failedRefetch).toHaveBeenCalled());
+    expect(screen.getByRole('button', {name: 'SSO'})).toBeVisible();
+    expect(
+      screen.queryByText('Unable to load organization authentication. Please try again.')
+    ).not.toBeInTheDocument();
   });
 
   it('redirects when the authenticated user can access the organization', async () => {
@@ -587,10 +667,7 @@ describe('AuthLogin', () => {
       vstsLoginLink: '',
       warning: 'Your session has expired.',
     };
-    MockApiClient.addMockResponse({
-      url: '/auth/config/',
-      body: authConfig,
-    });
+    MockApiClient.addMockResponse({url: '/auth/config/', body: authConfig});
 
     render(<AuthLogin />);
 

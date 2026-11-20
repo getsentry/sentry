@@ -11,16 +11,10 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install our Laravel SDK with a minimum version that supports metrics ([code:4.20.0] or higher).',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'bash',
-          code: 'composer require sentry/sentry-laravel',
-        },
+        {type: 'code', language: 'bash', code: 'composer require sentry/sentry-laravel'},
       ],
     },
   ],
@@ -33,9 +27,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are automatically enabled in your [code:\\Sentry\\init] configuration. You can emit metrics using the [code:\\Sentry\\traceMetrics()] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

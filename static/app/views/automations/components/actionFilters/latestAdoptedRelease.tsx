@@ -82,10 +82,7 @@ function EnvironmentField() {
   const {removeError} = useAutomationBuilderErrorContext();
 
   const {environments} = useOrganizationEnvironments();
-  const environmentOptions = environments.map(({name}) => ({
-    value: name,
-    label: name,
-  }));
+  const environmentOptions = environments.map(({name}) => ({value: name, label: name}));
 
   return (
     <AutomationBuilderSelect

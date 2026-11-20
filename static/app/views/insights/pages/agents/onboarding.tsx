@@ -270,10 +270,7 @@ export function Onboarding() {
     isPerformanceSelected: true,
     isProfilingSelected: false,
     isReplaySelected: false,
-    sourcePackageRegistries: {
-      isLoading: isLoadingRegistry,
-      data: registryData,
-    },
+    sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
     platformOptions: {...selectedPlatformOptions, deploymentTarget},
     docsLocation: DocsPageLocation.PROFILING_PAGE,
     urlPrefix,
@@ -369,9 +366,7 @@ function CopyInstructionsButton() {
       source="agent_monitoring_onboarding"
       getMarkdown={() => LLM_ONBOARDING_COPY_MARKDOWN}
       onCopy={() => {
-        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {
-          organization,
-        });
+        trackAnalytics('agent-monitoring.copy-llm-prompt-click', {organization});
       }}
     />
   );
@@ -390,9 +385,7 @@ export function UnsupportedPlatformOnboarding({
         <p>
           {tct(
             'Fiddlesticks. Auto instrumentation of AI Agents is not available for your [platform] project.',
-            {
-              platform: platformName,
-            }
+            {platform: platformName}
           )}
         </p>
         <p>

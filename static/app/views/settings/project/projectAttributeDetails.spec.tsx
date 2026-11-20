@@ -151,9 +151,7 @@ describe('ProjectAttributeDetails', () => {
     expect(await screen.findByText('Custom')).toBeInTheDocument();
     expect(request).toHaveBeenCalledWith(
       detailsEndpoint,
-      expect.objectContaining({
-        query: expect.objectContaining({attributeSource: 'user'}),
-      })
+      expect.objectContaining({query: expect.objectContaining({attributeSource: 'user'})})
     );
   });
 
@@ -184,10 +182,7 @@ describe('ProjectAttributeDetails', () => {
   });
 
   it('renders a not found state without requesting attributes when the type is invalid', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: detailsEndpoint,
-      body: {},
-    });
+    const request = MockApiClient.addMockResponse({url: detailsEndpoint, body: {}});
 
     renderDetails('constructor', 'cart.size');
 
@@ -197,10 +192,7 @@ describe('ProjectAttributeDetails', () => {
 
   it('hides the page when the feature is disabled', () => {
     const {organization: organizationWithoutFeature} = initializeOrg();
-    const request = MockApiClient.addMockResponse({
-      url: detailsEndpoint,
-      body: {},
-    });
+    const request = MockApiClient.addMockResponse({url: detailsEndpoint, body: {}});
 
     render(<ProjectAttributeDetails />, {
       organization: organizationWithoutFeature,

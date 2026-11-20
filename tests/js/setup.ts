@@ -130,9 +130,9 @@ jest
   .mockImplementation(props => props.children as ReactElement);
 
 jest.mock('@sentry-internal/global-search', () => ({
-  SentryGlobalSearch: jest.fn().mockImplementation(() => ({
-    query: jest.fn().mockResolvedValue([]),
-  })),
+  SentryGlobalSearch: jest
+    .fn()
+    .mockImplementation(() => ({query: jest.fn().mockResolvedValue([])})),
 }));
 
 jest.mock('sentry/utils/testableWindowLocation', () => ({
@@ -141,11 +141,7 @@ jest.mock('sentry/utils/testableWindowLocation', () => ({
    * instead of mocking properties on the testableLocation object.
    * Use this mock for checking if window.location.assign was called.
    */
-  testableWindowLocation: {
-    assign: jest.fn(),
-    replace: jest.fn(),
-    reload: jest.fn(),
-  },
+  testableWindowLocation: {assign: jest.fn(), replace: jest.fn(), reload: jest.fn()},
 }));
 
 // The hooks below reset state only when its module is already loaded. Check
@@ -215,19 +211,14 @@ jest.mock('@sentry/react', function sentryReact() {
     browserTracingIntegration: jest.fn().mockReturnValue({}),
     browserProfilingIntegration: jest.fn().mockReturnValue({}),
     addEventProcessor: jest.fn(),
-    BrowserClient: jest.fn().mockReturnValue({
-      captureEvent: jest.fn(),
-    }),
+    BrowserClient: jest.fn().mockReturnValue({captureEvent: jest.fn()}),
     startInactiveSpan: () => ({
       end: jest.fn(),
       setStatus: jest.fn(),
-      startChild: jest.fn().mockReturnValue({
-        end: jest.fn(),
-      }),
-      spanContext: jest.fn().mockReturnValue({
-        spanId: 'test-span-id',
-        traceId: 'test-trace-id',
-      }),
+      startChild: jest.fn().mockReturnValue({end: jest.fn()}),
+      spanContext: jest
+        .fn()
+        .mockReturnValue({spanId: 'test-span-id', traceId: 'test-trace-id'}),
     }),
     logger: {
       warn: jest.fn(),
@@ -244,13 +235,15 @@ jest.mock('@sentry/react', function sentryReact() {
 ConfigStore.loadInitialData(ConfigFixture());
 
 // Default browser timezone to UTC
-jest.spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions').mockImplementation(() => ({
-  locale: 'en-US',
-  calendar: 'gregory',
-  numberingSystem: 'latn',
-  timeZone: 'UTC',
-  timeZoneName: 'short',
-}));
+jest
+  .spyOn(Intl.DateTimeFormat.prototype, 'resolvedOptions')
+  .mockImplementation(() => ({
+    locale: 'en-US',
+    calendar: 'gregory',
+    numberingSystem: 'latn',
+    timeZone: 'UTC',
+    timeZoneName: 'short',
+  }));
 
 /**
  * Test Globals
@@ -346,11 +339,7 @@ HTMLElement.prototype.setPointerCapture ??= jest.fn();
 window.ResizeObserver = MockResizeObserver;
 
 // Mock the crypto.subtle API for Gravatar
-Object.defineProperty(global.self, 'crypto', {
-  value: {
-    subtle: webcrypto.subtle,
-  },
-});
+Object.defineProperty(global.self, 'crypto', {value: {subtle: webcrypto.subtle}});
 
 if (typeof globalThis.structuredClone !== 'function') {
   const nodeUtil = require('node:util') as {

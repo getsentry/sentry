@@ -177,14 +177,10 @@ export const getNodeProfilingOnboarding = ({
           type: 'text',
           text: tct(
             'To enable profiling, add [code:@sentry/profiling-node] to your imports.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        getInstallCodeBlock(params, {
-          packageName,
-        }),
+        getInstallCodeBlock(params, {packageName}),
       ],
     },
   ],
@@ -196,9 +192,7 @@ export const getNodeProfilingOnboarding = ({
           type: 'text',
           text: tct(
             'Set up the [code:nodeProfilingIntegration] in your [code:Sentry.init()] call.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -330,10 +324,7 @@ function getMcpDataCollectionStep(params: DocsParams) {
 export const getNodeMcpOnboarding = ({
   packageName = '@sentry/node',
   importPath,
-}: {
-  importPath?: string;
-  packageName?: `@sentry/${string}`;
-} = {}): OnboardingConfig => {
+}: {importPath?: string; packageName?: `@sentry/${string}`} = {}): OnboardingConfig => {
   const importFrom = (importPath ?? packageName) as `@sentry/${string}`;
   return {
     install: params => [
@@ -344,14 +335,10 @@ export const getNodeMcpOnboarding = ({
             type: 'text',
             text: tct(
               'To enable MCP monitoring, you need to install the Sentry SDK with a minimum version of [code:9.44.0].',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
           },
-          getInstallCodeBlock(params, {
-            packageName,
-          }),
+          getInstallCodeBlock(params, {packageName}),
         ],
       },
     ],
@@ -383,9 +370,7 @@ Sentry.init({
           type: 'text',
           text: tct(
             'Wrap your MCP server in a [code:Sentry.wrapMcpServerWithSentry()] call. This will automatically capture spans for all MCP server interactions.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -442,13 +427,7 @@ Sentry.init({
       const selected = (params.platformOptions as any)?.integration ?? 'mcp_sdk';
       const content = selected === 'manual' ? manualStep : mcpSdkStep;
 
-      return [
-        {
-          type: StepType.CONFIGURE,
-          content,
-        },
-        getMcpDataCollectionStep(params),
-      ];
+      return [{type: StepType.CONFIGURE, content}, getMcpDataCollectionStep(params)];
     },
     verify: () => [
       {
@@ -509,10 +488,7 @@ export const getNodeLogsOnboarding = <
             type: 'text',
             text: tct(
               'Add the Sentry SDK as a dependency. The minimum version of [packageName] that supports logs is [code:9.41.0].',
-              {
-                code: <code />,
-                packageName: <code>{packageName}</code>,
-              }
+              {code: <code />, packageName: <code>{packageName}</code>}
             ),
           },
           getInstallCodeBlock(params, {packageName}),

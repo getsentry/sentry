@@ -14,6 +14,7 @@ from sentry.workflow_engine.models.data_condition import (
     Condition,
     DataCondition,
     get_condition_handler,
+    get_internal_condition_types,
 )
 from sentry.workflow_engine.types import DataConditionHandler
 
@@ -29,14 +30,60 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
     logic_type = serializers.ChoiceField([(t.value, t.value) for t in DataConditionGroup.Type])
     conditions = serializers.ListField(required=False)
 
+    # When set, every condition must use a handler from this group. Workflow triggers and
+    # action filters are evaluated against WorkflowEventData, so operator conditions and
+    # other handler groups can never evaluate there.
+    handler_group: DataConditionHandler.Group | None = None
+
+    def __init__(
+        self, *args: Any, handler_group: DataConditionHandler.Group | None = None, **kwargs: Any
+    ) -> None:
+        super().__init__(*args, **kwargs)
+        if handler_group is not None:
+            self.handler_group = handler_group
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        group_id = attrs.get("id")
+        organization = self.context.get("organization")
+        if group_id is not None and organization is not None:
+            self._validate_no_internal_conditions(group_id, organization.id)
+        return attrs
+
+    def _validate_no_internal_conditions(self, group_id: int, organization_id: int) -> None:
+        # Check stored conditions: the request may omit or replace internal ones.
+        internal_types = get_internal_condition_types()
+        if (
+            internal_types
+            and DataConditionGroup.objects.filter(
+                id=group_id,
+                organization_id=organization_id,
+                conditions__type__in=internal_types,
+            ).exists()
+        ):
+            raise serializers.ValidationError(
+                "Internal condition groups cannot be configured through the API."
+            )
+
     def validate_conditions(self, value: list[dict[str, Any]]) -> list[dict[str, Any]]:
         conditions = []
         for condition in value:
             condition_validator = BaseDataConditionValidator(data=condition, context=self.context)
             condition_validator.is_valid(raise_exception=True)
-            conditions.append(condition_validator.validated_data)
+            validated = condition_validator.validated_data
+            self._validate_handler_group(validated["type"])
+            conditions.append(validated)
 
         return conditions
+
+    def _validate_handler_group(self, condition_type: str) -> None:
+        if self.handler_group is None:
+            return
+
+        handler = get_condition_handler(Condition(condition_type))
+        if handler is None or handler.group != self.handler_group:
+            raise serializers.ValidationError(
+                f"Condition type '{condition_type}' is not a valid {self.handler_group} condition"
+            )
 
     def _validate_logic_type(self, condition_data: list[dict[str, Any]], logic_type: str) -> None:
         """
@@ -105,6 +152,9 @@ class BaseDataConditionGroupValidator(CamelSnakeSerializer[Any]):
             raise serializers.ValidationError("Organization context is required.")
         if instance.organization_id != context_org.id:
             raise serializers.ValidationError(f"Condition group with id {instance.id} not found.")
+
+        # Detector updates call update() directly and may omit the group ID from validation.
+        self._validate_no_internal_conditions(instance.id, context_org.id)
 
         remove_items_by_api_input(validated_data.get("conditions", []), instance.conditions, "id")
         conditions = validated_data.pop("conditions", None)

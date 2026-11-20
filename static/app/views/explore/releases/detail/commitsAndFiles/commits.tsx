@@ -14,6 +14,7 @@ import {t} from 'sentry/locale';
 import type {Repository} from 'sentry/types/integrations';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -94,7 +95,7 @@ function CommitsList({organization, releaseRepos, projectSlug}: CommitsProps) {
                 ))}
               </PanelBody>
             </Panel>
-            <Pagination pageLinks={data?.headers.Link} />
+            <Pagination {...getPaginationProps(data?.headers.Link)} />
           </Fragment>
         ) : (
           <EmptyState>
@@ -120,9 +121,7 @@ function Commits() {
     isLoading: isLoadingRepositories,
     isError: isRepositoriesError,
     refetch: refetchRepositories,
-  } = useRepositories({
-    orgSlug: organization.slug,
-  });
+  } = useRepositories({orgSlug: organization.slug});
   const {
     data: releaseRepos,
     isLoading: isLoadingReleaseRepos,
@@ -132,9 +131,7 @@ function Commits() {
     orgSlug: organization.slug,
     projectSlug: releaseContext.project.slug,
     release: params.release,
-    options: {
-      enabled: !!releaseContext.project.slug,
-    },
+    options: {enabled: !!releaseContext.project.slug},
   });
 
   if (isLoadingReleaseRepos || isLoadingRepositories) {

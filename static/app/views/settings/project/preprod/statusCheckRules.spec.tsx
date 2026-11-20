@@ -9,9 +9,7 @@ import {StatusCheckRules} from './statusCheckRules';
 describe('StatusCheckRules', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/preprod/`,
-    },
+    location: {pathname: `/settings/projects/test-project/preprod/`},
     route: '/settings/projects/:projectId/preprod/',
   };
 
@@ -71,6 +69,7 @@ describe('StatusCheckRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle status checks'})
     ).toBeChecked();
+    expect(screen.queryByText('Disabled')).not.toBeInTheDocument();
   });
 
   it('reflects a disabled project from the option key when the explicit field is absent', async () => {
@@ -92,8 +91,35 @@ describe('StatusCheckRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle status checks'})
     ).not.toBeChecked();
+    expect(screen.getByText('Disabled')).toBeInTheDocument();
+  });
+
+  it('shows saved rules while disabled', async () => {
+    mockRepositories();
+    const project = DetailedProjectFixture({
+      options: {
+        'sentry:preprod_size_status_checks_enabled': false,
+        'sentry:preprod_size_status_checks_rules': JSON.stringify([
+          {id: 'rule1', metric: 'install_size', measurement: 'absolute', value: 100},
+        ]),
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/`,
+      body: project,
+    });
+
+    render(<StatusCheckRules />, {
+      organization,
+      outletContext: {project},
+      initialRouterConfig,
+    });
+
     expect(
-      screen.getByText('Enable status checks above to configure rules.')
+      await screen.findByText(/Install\/Uncompressed Size • Absolute Size • Main App/)
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Create Status Check Rule'})
     ).toBeInTheDocument();
   });
 
@@ -124,10 +150,7 @@ describe('StatusCheckRules', () => {
     );
 
     await waitFor(() =>
-      expect(router.location.query).toEqual({
-        other: 'kept',
-        expanded: expect.any(String),
-      })
+      expect(router.location.query).toEqual({other: 'kept', expanded: expect.any(String)})
     );
     expect(router.historyAction).toBe('REPLACE');
   });

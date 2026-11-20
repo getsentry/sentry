@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {parseAsString, useQueryStates} from 'nuqs';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {getRelativeDate} from '@sentry/scraps/relativeTime';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {EnvironmentPageFilter} from 'sentry/components/pageFilters/environment/environmentPageFilter';
@@ -12,7 +13,6 @@ import {
   TimeRangeSelector,
   TimeRangeSelectTrigger,
 } from 'sentry/components/timeRangeSelector';
-import {getRelativeDate} from 'sentry/components/timeSince';
 import {TourElement} from 'sentry/components/tours/components';
 import {t, tct} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
@@ -83,15 +83,8 @@ export function EventDetailsHeader({
     if (event) {
       // Since detector details are identical across the issue but only provided at the event level,
       // we need to persist the details in state to prevent breakage when an event is unloaded.
-      const detectorDetails = getDetectorDetails({
-        event,
-        organization,
-        project,
-      });
-      dispatch({
-        type: 'UPDATE_DETECTOR_DETAILS',
-        detectorDetails,
-      });
+      const detectorDetails = getDetectorDetails({event, organization, project});
+      dispatch({type: 'UPDATE_DETECTOR_DETAILS', detectorDetails});
     }
   }, [event, organization, project, dispatch]);
 
@@ -115,9 +108,7 @@ export function EventDetailsHeader({
         gap="lg"
         background="secondary"
         paddingTop="lg"
-        style={{
-          paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`,
-        }}
+        style={{paddingInline: `var(--issue-details-inset, ${theme.space['2xl']})`}}
       >
         {issueTypeConfig.header.filterBar.enabled && (
           <TourElement<IssueDetailsTour>
@@ -135,10 +126,7 @@ export function EventDetailsHeader({
                   <Grid
                     width="100%"
                     gap="sm"
-                    columns={{
-                      zero: '1fr',
-                      xl: 'auto minmax(100px, 1fr) auto',
-                    }}
+                    columns={{zero: '1fr', xl: 'auto minmax(100px, 1fr) auto'}}
                     rows={`minmax(${theme.form.md.height}, auto)`}
                   >
                     <Container justifySelf={{zero: 'stretch', sm: 'start'}}>
@@ -166,7 +154,10 @@ export function EventDetailsHeader({
                                 ? {
                                     [defaultStatsPeriod.statsPeriod]: t(
                                       'Last %s (since first seen)',
-                                      getRelativeDate(group.firstSeen)
+                                      getRelativeDate(group.firstSeen, {
+                                        suffix: '',
+                                        prefix: '',
+                                      })
                                         .replace(/^a (?=\w+$)/, '1 ')
                                         .replace(/^an (?=\w+$)/, '1 ')
                                     ),
@@ -196,15 +187,16 @@ export function EventDetailsHeader({
                           trigger={triggerProps => (
                             <TimeRangeSelectTrigger
                               {...triggerProps}
-                              style={{
-                                padding: `${theme.space.md} ${theme.space.lg}`,
-                              }}
+                              style={{padding: `${theme.space.md} ${theme.space.lg}`}}
                             >
                               {period === defaultStatsPeriod &&
                               !defaultStatsPeriod.isMaxRetention &&
                               shouldShowSinceFirstSeenOption
                                 ? tct('Since First Seen ([period])', {
-                                    period: getRelativeDate(group.firstSeen)
+                                    period: getRelativeDate(group.firstSeen, {
+                                      suffix: '',
+                                      prefix: '',
+                                    })
                                       .replace(/^a (?=\w+$)/, '1 ')
                                       .replace(/^an (?=\w+$)/, '1 '),
                                   })
@@ -287,9 +279,7 @@ function EnvironmentSelector({group, event, project}: EventDetailsHeaderProps) {
   const isFixedEnvironment = issueTypeConfig.header.filterBar.fixedEnvironment;
 
   const theme = useTheme();
-  const style = {
-    padding: `${theme.space.md} ${theme.space.lg}`,
-  };
+  const style = {padding: `${theme.space.md} ${theme.space.lg}`};
 
   if (isFixedEnvironment) {
     const detectorEnvironment =

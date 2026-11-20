@@ -28,8 +28,9 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: 1500,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
     ...params,
   };
 }
@@ -58,7 +59,7 @@ describe('SeerWalletCard', () => {
     MockApiClient.clearMockResponses();
   });
 
-  it('shows included credits with auto-load off', async () => {
+  it('shows included credits with auto-reload off', async () => {
     mockWallet();
     render(<SeerWalletCard organization={organization} />);
 
@@ -66,7 +67,7 @@ describe('SeerWalletCard', () => {
     expect(
       screen.getByText('of 500 credits remaining • Resets Nov 1')
     ).toBeInTheDocument();
-    expect(screen.getByText('Auto-load • Off')).toBeInTheDocument();
+    expect(screen.getByText('Auto-reload • Off')).toBeInTheDocument();
     expect(screen.getByText('Buy more credits when you run low')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set up'})).toBeInTheDocument();
     expect(screen.queryByText(/Paused/)).not.toBeInTheDocument();
@@ -86,7 +87,7 @@ describe('SeerWalletCard', () => {
     expect(screen.getByRole('button', {name: 'Set up'})).toBeInTheDocument();
   });
 
-  it('shows paused without a date when auto-load is on', async () => {
+  it('shows paused without a date when auto-reload is on', async () => {
     mockWallet(
       WalletFixture({
         balance: 0,
@@ -100,7 +101,7 @@ describe('SeerWalletCard', () => {
     expect(screen.getByRole('button', {name: 'Manage'})).toBeInTheDocument();
   });
 
-  it('counts purchased credits with auto-load off', async () => {
+  it('counts purchased credits with auto-reload off', async () => {
     mockWallet(
       WalletFixture({
         balance: 1520,
@@ -112,11 +113,11 @@ describe('SeerWalletCard', () => {
     expect(await screen.findByText('1,520')).toBeInTheDocument();
     expect(screen.getByText('credits remaining')).toBeInTheDocument();
     expect(screen.getByLabelText('Credit breakdown')).toBeInTheDocument();
-    expect(screen.getByText('Auto-load • Off')).toBeInTheDocument();
+    expect(screen.getByText('Auto-reload • Off')).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Set up'})).toBeInTheDocument();
   });
 
-  it('shows the reload settings with auto-load on', async () => {
+  it('shows the auto-reload settings with auto-reload on', async () => {
     mockWallet(
       WalletFixture({
         balance: 50_320,
@@ -128,8 +129,10 @@ describe('SeerWalletCard', () => {
 
     expect(await screen.findByText('50,320')).toBeInTheDocument();
     expect(screen.getByText('credits remaining')).toBeInTheDocument();
-    expect(screen.getByText('Auto-load • On')).toBeInTheDocument();
-    expect(screen.getByText('Adds 50,000 credits when below 1,000')).toBeInTheDocument();
+    expect(screen.getByText('Auto-reload • On')).toBeInTheDocument();
+    expect(
+      screen.getByText('Adds 50,000 credits when at or below 1,000')
+    ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Manage'})).toBeInTheDocument();
   });
 
@@ -151,7 +154,7 @@ describe('SeerWalletCard', () => {
     expect(screen.getByText('Expires on Oct 1, 2027')).toBeInTheDocument();
   });
 
-  it('turns on auto-load from the modal', async () => {
+  it('turns on auto-reload from the modal', async () => {
     mockWallet();
     const saveMock = MockApiClient.addMockResponse({
       url: `/customers/${organization.slug}/seer-wallet/auto-top-up/`,
@@ -171,18 +174,35 @@ describe('SeerWalletCard', () => {
     mockWallet(
       WalletFixture({
         balance: 1320,
-        purchased: {total: 1000, remaining: 1000, expiresAt: '2027-11-01'},
+        purchased: {total: 1500, remaining: 1500, expiresAt: '2027-11-01'},
       }),
       AutoTopUpFixture({enabled: true})
     );
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $10.00 + tax'})
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalled();
-    expect(await screen.findByText('Auto-load • On')).toBeInTheDocument();
+    expect(await screen.findByText('Auto-reload • On')).toBeInTheDocument();
     expect(await screen.findByText('1,320')).toBeInTheDocument();
-    expect(screen.getByText('Adds 1,000 credits when below 500')).toBeInTheDocument();
+    expect(
+      screen.getByText('Adds 1,500 credits when at or below 500')
+    ).toBeInTheDocument();
+  });
+
+  it('opens the auto-reload modal from the link hash', async () => {
+    mockWallet();
+    window.location.hash = '#open-seer-auto-reload-modal';
+
+    render(
+      <Fragment>
+        <SeerWalletCard organization={organization} />
+        <GlobalModal />
+      </Fragment>
+    );
+
+    expect(await screen.findByLabelText('Daily usage limit')).toBeInTheDocument();
+    expect(window.location.hash).toBe('');
   });
 
   it('shows an error when the wallet fails to load', async () => {

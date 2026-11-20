@@ -3,11 +3,12 @@ import {IconEdit} from '@sentry/icons/edit';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {DescriptionList} from '@sentry/scraps/descriptionList';
+import {getDuration} from '@sentry/scraps/duration';
 import {Container, Flex} from '@sentry/scraps/layout';
 import {toast} from '@sentry/scraps/toast';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
@@ -23,7 +24,6 @@ import {t} from 'sentry/locale';
 import type {Automation} from 'sentry/types/workflowEngine/automations';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {defined} from 'sentry/utils/defined';
-import {getDuration} from 'sentry/utils/duration/getDuration';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -185,7 +185,13 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
                 <Flex gap="md">
                   <TimeSince date={automation.lastTriggered} />
                   <Flex>
-                    (<DateTime date={automation.lastTriggered} year timeZone />)
+                    (
+                    <DateTime
+                      date={automation.lastTriggered}
+                      year="always"
+                      showTimezone
+                    />
+                    )
                   </Flex>
                 </Flex>
               ) : (
@@ -214,7 +220,7 @@ function AutomationDetailContentInner({automation}: {automation: Automation}) {
                   <DescriptionList striped>
                     <DescriptionList.Term>{t('Date created')}</DescriptionList.Term>
                     <DescriptionList.Details>
-                      <DateTime date={automation.dateCreated} dateOnly year />
+                      <DateTime date={automation.dateCreated} mode="date" year="always" />
                     </DescriptionList.Details>
                     <DescriptionList.Term>{t('Created by')}</DescriptionList.Term>
                     <DescriptionList.Details>
@@ -297,11 +303,7 @@ function Actions({automation, size}: {automation: Automation; size?: 'sm'}) {
   const toggleDisabled = () => {
     const newEnabled = !automation.enabled;
     updateAutomation(
-      {
-        id: automation.id,
-        name: automation.name,
-        enabled: newEnabled,
-      },
+      {id: automation.id, name: automation.name, enabled: newEnabled},
       {
         onSuccess: () => {
           toast.success(newEnabled ? t('Alert enabled') : t('Alert disabled'));

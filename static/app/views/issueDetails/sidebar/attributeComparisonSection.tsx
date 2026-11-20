@@ -54,12 +54,7 @@ export function AttributeComparisonSection({
     aggregateFunction: isOpenPeriodLoading ? '' : snubaQuery.aggregate,
     range: [openPeriodStartMs, openPeriodEndMs],
     pageFilters: {
-      datetime: {
-        start: baselineStart,
-        end: openPeriodEnd,
-        period: null,
-        utc: null,
-      },
+      datetime: {start: baselineStart, end: openPeriodEnd, period: null, utc: null},
       environments: snubaQuery.environment ? [snubaQuery.environment] : [],
       projects: [Number(projectId)],
     },
@@ -91,21 +86,11 @@ export function AttributeComparisonSection({
     return getExploreUrl({
       organization,
       selection: {
-        datetime: {
-          start: baselineStart,
-          end: openPeriodEnd,
-          period: null,
-          utc: null,
-        },
+        datetime: {start: baselineStart, end: openPeriodEnd, period: null, utc: null},
         environments: snubaQuery.environment ? [snubaQuery.environment] : [],
         projects: [Number(projectId)],
       },
-      visualize: [
-        {
-          chartType: ChartType.LINE,
-          yAxes: [snubaQuery.aggregate],
-        },
-      ],
+      visualize: [{chartType: ChartType.LINE, yAxes: [snubaQuery.aggregate]}],
       query: snubaQuery.query,
       mode: Mode.SAMPLES,
       table: 'attribute_breakdowns',

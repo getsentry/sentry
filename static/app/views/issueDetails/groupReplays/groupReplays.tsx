@@ -49,9 +49,7 @@ import {useGroupId} from 'sentry/views/issueDetails/groupIdContext';
 import {GroupReplaysPlayer} from './groupReplaysPlayer';
 import {useReplaysFromIssue} from './useReplaysFromIssue';
 
-type Props = {
-  group: Group;
-};
+type Props = {group: Group};
 
 const VISIBLE_COLUMNS = [
   ReplaySessionColumn,
@@ -113,9 +111,7 @@ function GroupReplaysContent({group}: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const {getReplayCountForIssue} = useReplayCountForIssues({
-    statsPeriod: '90d',
-  });
+  const {getReplayCountForIssue} = useReplayCountForIssues({statsPeriod: '90d'});
 
   if (fetchError) {
     return (

@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, type RefObject} from 'react';
 import {useOutletContext} from 'react-router';
 import {useTheme} from '@emotion/react';
 
@@ -14,7 +14,10 @@ import {MiniBarChart} from 'sentry/components/charts/miniBarChart';
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import {
+  MetricAutomationForm,
+  type MetricAutomationFormHandle,
+} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 import {useAutomationsEnabled} from 'sentry/views/seerWorkflows/utils';
 
@@ -32,8 +35,8 @@ const MOCK_ACTIONS = {
   openPullRequests: true,
 };
 const MOCK_SPEND_PERIOD: SpendPeriod = '30d';
-const MOCK_ESTIMATED_SPEND_TODAY = '$2.50';
-const MOCK_ESTIMATED_SPEND_PER_RUN = '$2.50';
+const MOCK_ESTIMATED_SPEND_TODAY = '$mock';
+const MOCK_ESTIMATED_SPEND_PER_RUN = '$mock';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const MOCK_START = new Date('2026-09-23T00:00:00Z').getTime();
@@ -88,11 +91,34 @@ function ConfigRow({
   );
 }
 
-export default function AutomationConfiguration() {
-  const config = useOutletContext<SeerWorkflowConfigResponse | undefined>();
+export type AutomationDetailOutletContext = {
+  config: SeerWorkflowConfigResponse;
+  formId: string;
+  formRef: RefObject<MetricAutomationFormHandle | null>;
+  isConfiguring: boolean;
+  name: string;
+  onSaved: () => void;
+  setFormHasChanges: (hasChanges: boolean) => void;
+  setMonitorsPending: (pending: boolean) => void;
+};
 
-  if (config?.strategy === 'breached_metric_investigation') {
-    return <MetricAutomationForm mode="edit" config={config} />;
+export default function AutomationConfiguration() {
+  const context = useOutletContext<AutomationDetailOutletContext | undefined>();
+
+  if (context?.config.strategy === 'breached_metric_investigation') {
+    return (
+      <MetricAutomationForm
+        mode="edit"
+        config={context.config}
+        formId={context.formId}
+        formRef={context.formRef}
+        onSaved={context.onSaved}
+        readOnly={!context.isConfiguring}
+        name={context.name}
+        setFormHasChanges={context.setFormHasChanges}
+        setMonitorsPending={context.setMonitorsPending}
+      />
+    );
   }
 
   return <ScheduledAutomationConfiguration />;

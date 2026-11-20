@@ -12,6 +12,14 @@ from sentry.api.serializers import Serializer, register
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.auth.principal import acting_user_id, has_user
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.types import SnubaParams
+from sentry.telemetry_classifiers.datasets import compile_filter
+from sentry.telemetry_classifiers.definitions import (
+    InvalidClassifierDefinition,
+    resolve_classifier_definition,
+    resolve_prebuilt_definition,
+)
 from sentry.telemetry_classifiers.models import TelemetryClassifier
 from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
 from sentry.telemetry_classifiers.types import (
@@ -38,6 +46,7 @@ class TelemetryClassifierResponse(TypedDict):
     prebuiltClassifierKey: str | None
     naturalLanguagePrompt: str | None
     outputType: str | None
+    binaryThreshold: float | None
     createdBy: UserSerializerResponse | None
     dateAdded: datetime
     dateUpdated: datetime
@@ -75,6 +84,7 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
         user: User | RpcUser | AnonymousUser,
         **kwargs: Any,
     ) -> TelemetryClassifierResponse:
+        definition = resolve_classifier_definition(obj)
         return {
             "id": str(obj.id),
             "projectId": str(obj.project_id),
@@ -85,7 +95,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
             "status": obj.status,
             "prebuiltClassifierKey": obj.prebuilt_classifier_key,
             "naturalLanguagePrompt": obj.natural_language_prompt,
-            "outputType": obj.output_type,
+            "outputType": definition.output_type,
+            "binaryThreshold": definition.binary_threshold,
             "createdBy": attrs["createdBy"],
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
@@ -95,6 +106,8 @@ class TelemetryClassifierSerializer(Serializer[TelemetryClassifierResponse]):
 class PrebuiltClassifierResponse(TypedDict):
     key: str
     dataset: str
+    outputType: str
+    binaryThreshold: float | None
     name: str
     description: str
     resultAttribute: str
@@ -111,6 +124,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
         return {
             "key": obj.key,
             "dataset": obj.dataset,
+            "outputType": obj.output_type,
+            "binaryThreshold": obj.binary_threshold,
             "name": obj.name,
             "description": obj.description,
             "resultAttribute": obj.result_attribute,
@@ -119,7 +134,8 @@ class PrebuiltClassifierSerializer(Serializer[PrebuiltClassifierResponse]):
 
 class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassifier]):
     project = ProjectField(
-        scope="project:write",
+        # Any member who can read the project may create a classifier on it for now.
+        scope="project:read",
         id_allowed=True,
         help_text="The ID or slug of the project the classifier runs on.",
     )
@@ -156,12 +172,18 @@ class TelemetryClassifierRequestSerializer(CamelSnakeSerializer[TelemetryClassif
         if {"natural_language_prompt", "output_type"} & self.initial_data.keys():
             raise serializers.ValidationError("Custom classifiers aren't supported yet.")
 
-        if PREBUILT_CLASSIFIERS[attrs["prebuilt_classifier_key"]].dataset != attrs["dataset"]:
-            raise serializers.ValidationError(
-                {
-                    "prebuilt_classifier_key": "This prebuilt classifier doesn't support this dataset."
-                }
-            )
+        try:
+            resolve_prebuilt_definition(attrs["prebuilt_classifier_key"], attrs["dataset"])
+        except InvalidClassifierDefinition as error:
+            raise serializers.ValidationError({"prebuilt_classifier_key": str(error)})
+
+        snuba_params = SnubaParams(
+            projects=[attrs["project"]], organization=self.context["organization"]
+        )
+        try:
+            compile_filter(attrs["dataset"], attrs["filter_query"], snuba_params)
+        except InvalidSearchQuery as error:
+            raise serializers.ValidationError({"filter_query": str(error)})
 
         if TelemetryClassifier.objects.filter(
             project=attrs["project"], result_attribute=attrs["result_attribute"]

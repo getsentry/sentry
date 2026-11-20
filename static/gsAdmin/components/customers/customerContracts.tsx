@@ -29,11 +29,7 @@ type UserConfig = {
 
 type RetentionConfig = {
   organizationDays?: number;
-  overrides?: Array<{
-    category?: string;
-    downsampledDays?: number;
-    standardDays?: number;
-  }>;
+  overrides?: Array<{category?: string; downsampledDays?: number; standardDays?: number}>;
 };
 
 type PlatformContract = {
@@ -71,10 +67,7 @@ type PackageConfig = {
   uid?: string;
 };
 
-type ContractRow = {
-  contract: PlatformContract;
-  package: PackageConfig | null;
-};
+type ContractRow = {contract: PlatformContract; package: PackageConfig | null};
 
 function formatDate(d?: ContractDate): string {
   if (!d?.year || !d?.month || !d?.day) {

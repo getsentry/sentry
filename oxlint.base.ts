@@ -68,24 +68,10 @@ export const restrictedImportPaths = [
     message:
       'Optional chaining `?.` and nullish coalescing operators `??` are available and preferred over using `lodash/get`. See https://github.com/getsentry/frontend-handbook#new-syntax for more information',
   },
-  {
-    name: 'react-router',
-    importNames: ['withRouter'],
-    message:
-      "Use 'useLocation', 'useParams', 'useNavigate', 'useRoutes' from sentry/utils instead.",
-  },
-  {
-    name: 'react-select',
-    message: "Use '@sentry/scraps/select' instead.",
-  },
-  {
-    name: 'qs',
-    message: 'Please use query-string instead of qs',
-  },
-  {
-    name: 'moment',
-    message: 'Please import moment-timezone instead of moment',
-  },
+  {name: 'react-select', message: "Use '@sentry/scraps/select' instead."},
+  {name: 'qs', message: "Use 'sentry/utils/url/qs' instead."},
+  {name: 'query-string', message: "Use 'sentry/utils/url/qs' instead."},
+  {name: 'moment', message: 'Please import moment-timezone instead of moment'},
   {
     name: 'platformicons/build/platformIcon',
     message: "Import {PlatformIcon} from 'platformicons' instead.",
@@ -115,10 +101,7 @@ export const restrictedImportPaths = [
     message:
       'The @figma/code-connect package should only be imported in *.figma.tsx files for Figma Code Connect integration',
   },
-  {
-    name: '@tanstack/react-form',
-    message: 'Use @sentry/scraps/form instead',
-  },
+  {name: '@tanstack/react-form', message: 'Use @sentry/scraps/form instead'},
   {
     name: 'framer-motion',
     importNames: ['Reorder'],
@@ -197,9 +180,7 @@ export const testOverride: OxlintOverride = {
     'jest/no-mocks-import': 'error',
     'jest/no-standalone-expect': [
       'error',
-      {
-        additionalTestBlockFunctions: ['it.isKnownFlake'],
-      },
+      {additionalTestBlockFunctions: ['it.isKnownFlake']},
     ],
     'jest/no-test-prefixes': 'error',
     'jest/valid-describe-callback': 'error',
@@ -212,12 +193,7 @@ export const testOverride: OxlintOverride = {
     'jest/max-nested-describe': 'error',
     'jest/no-duplicate-hooks': 'error',
     // Snapshots are discouraged; keep the remaining ones small.
-    'jest/no-large-snapshots': [
-      'error',
-      {
-        maxSize: 2000,
-      },
-    ],
+    'jest/no-large-snapshots': ['error', {maxSize: 2000}],
     'jest/prefer-hooks-in-order': 'error',
     'jest/prefer-hooks-on-top': 'error',
     'jest/prefer-jest-mocked': 'error',
@@ -232,20 +208,10 @@ export const testOverride: OxlintOverride = {
     'jest-dom/prefer-to-have-style': 'error',
     'jest-dom/prefer-to-have-text-content': 'error',
     'jest-dom/prefer-to-have-value': 'error',
-    'testing-library/await-async-events': [
-      'error',
-      {
-        eventModule: 'userEvent',
-      },
-    ],
+    'testing-library/await-async-events': ['error', {eventModule: 'userEvent'}],
     'testing-library/await-async-queries': 'error',
     'testing-library/await-async-utils': 'error',
-    'testing-library/no-await-sync-events': [
-      'error',
-      {
-        eventModules: ['fire-event'],
-      },
-    ],
+    'testing-library/no-await-sync-events': ['error', {eventModules: ['fire-event']}],
     'testing-library/no-await-sync-queries': 'error',
     'testing-library/no-container': 'error',
     'testing-library/no-debugging-utils': 'warn',
@@ -286,12 +252,8 @@ export const effectOverride: OxlintOverride = {
 
 export const configOverride: OxlintOverride = {
   files: ['**/*.config.*'],
-  rules: {
-    'import/no-nodejs-modules': 'off',
-  },
-  env: {
-    node: true,
-  },
+  rules: {'import/no-nodejs-modules': 'off'},
+  env: {node: true},
 };
 
 export const storyOverride: OxlintOverride = {
@@ -365,43 +327,16 @@ export const restrictedSyntax = [
 
 const base = defineConfig({
   plugins: ['import', 'react', 'typescript', 'unicorn'],
-  categories: {
-    correctness: 'off',
-  },
-  env: {
-    builtin: true,
-    browser: true,
-    jest: true,
-  },
+  categories: {correctness: 'off'},
+  env: {builtin: true, browser: true, jest: true},
   jsPlugins: [
-    {
-      name: 'e18e',
-      specifier: '@e18e/eslint-plugin',
-    },
-    {
-      name: '@sentry',
-      specifier: '@sentry-internal/eslint-plugin-sentry',
-    },
-    {
-      name: '@sentry/scraps',
-      specifier: '@sentry-internal/eslint-plugin-scraps',
-    },
-    {
-      name: 'eslint-js',
-      specifier: 'oxlint-plugin-eslint',
-    },
-    {
-      name: 'import-js',
-      specifier: 'eslint-plugin-import-x',
-    },
-    {
-      name: 'react-js',
-      specifier: 'eslint-plugin-react',
-    },
-    {
-      name: 'unicorn-js',
-      specifier: 'eslint-plugin-unicorn',
-    },
+    {name: 'e18e', specifier: '@e18e/eslint-plugin'},
+    {name: '@sentry', specifier: '@sentry-internal/eslint-plugin-sentry'},
+    {name: '@sentry/scraps', specifier: '@sentry-internal/eslint-plugin-scraps'},
+    {name: 'eslint-js', specifier: 'oxlint-plugin-eslint'},
+    {name: 'import-js', specifier: 'eslint-plugin-import-x'},
+    {name: 'react-js', specifier: 'eslint-plugin-react'},
+    {name: 'unicorn-js', specifier: 'eslint-plugin-unicorn'},
     '@tanstack/eslint-plugin-query',
     'eslint-plugin-jest-dom',
     'eslint-plugin-react-you-might-not-need-an-effect',
@@ -468,9 +403,7 @@ const base = defineConfig({
     'no-unreachable': 'error',
     'no-unsafe-finally': 'error',
     'no-unsafe-negation': 'error',
-    // Oxlint reports TypeScript patterns that ESLint accepts and suggests
-    // replacing optional access with unsafe non-null assertions.
-    'no-unsafe-optional-chaining': 'off',
+    'no-unsafe-optional-chaining': 'error',
     'no-unused-labels': 'error',
     'no-unused-private-class-members': 'error',
     'no-useless-catch': 'error',
@@ -484,12 +417,7 @@ const base = defineConfig({
     'no-alert': 'error',
     'no-caller': 'error',
     'no-console': 'error',
-    'no-else-return': [
-      'error',
-      {
-        allowElseIf: false,
-      },
-    ],
+    'no-else-return': ['error', {allowElseIf: false}],
     'no-eval': 'error',
     'no-extend-native': 'error',
     'no-extra-bind': 'error',
@@ -506,18 +434,12 @@ const base = defineConfig({
     'no-sequences': 'error',
     'no-useless-computed-key': 'error',
     'object-shorthand': ['error', 'properties'],
-    'prefer-arrow-callback': [
-      'error',
-      {
-        allowNamedFunctions: true,
-      },
-    ],
+    'prefer-arrow-callback': ['error', {allowNamedFunctions: true}],
     radix: 'error',
     yoda: 'error',
     'e18e/prefer-includes': 'error',
-    // The ESLint plugin does not report the existing copy-then-mutate forms.
-    'e18e/prefer-array-to-reversed': 'off',
-    'e18e/prefer-array-to-sorted': 'off',
+    'e18e/prefer-array-to-reversed': 'error',
+    'e18e/prefer-array-to-sorted': 'error',
     'e18e/prefer-array-to-spliced': 'error',
     'e18e/prefer-nullish-coalescing': 'error',
     'e18e/prefer-url-canparse': 'error',
@@ -540,10 +462,10 @@ const base = defineConfig({
     '@sentry/no-digits-in-tn': 'error',
     '@sentry/no-dynamic-translations': 'error',
     '@sentry/no-flag-comments': 'error',
-    '@sentry/no-legacy-router-imports': 'error',
     '@sentry/no-query-data-type-parameters': 'error',
     '@sentry/no-raw-css-in-styled': 'error',
     '@sentry/no-redundant-default-argument': 'error',
+    '@sentry/no-shadow-dangerous-globals': 'error',
     '@sentry/no-static-translations': 'error',
     '@sentry/no-styled-shortcut': 'error',
     '@sentry/no-unnecessary-use-callback': 'error',
@@ -559,9 +481,7 @@ const base = defineConfig({
     '@sentry/scraps/require-render-prop-spread': 'error',
     '@sentry/scraps/use-semantic-token': [
       'error',
-      {
-        enabledCategories: ['background', 'border', 'content'],
-      },
+      {enabledCategories: ['background', 'border', 'content']},
     ],
     '@sentry/scraps/restrict-jsx-slot-children': [
       'error',
@@ -610,12 +530,7 @@ const base = defineConfig({
     ],
     '@tanstack/query/exhaustive-deps': [
       'error',
-      {
-        allowlist: {
-          variables: ['api'],
-          types: ['Client'],
-        },
-      },
+      {allowlist: {variables: ['api'], types: ['Client']}},
     ],
     '@tanstack/query/no-rest-destructuring': 'error',
     '@tanstack/query/stable-query-client': 'error',
@@ -654,12 +569,7 @@ const base = defineConfig({
     'react/no-render-return-value': 'error',
     'react/no-string-refs': 'error',
     'react/no-unstable-nested-components': ['error', {allowAsProps: true}],
-    'react/no-unknown-property': [
-      'error',
-      {
-        ignore: ['css'],
-      },
-    ],
+    'react/no-unknown-property': ['error', {ignore: ['css']}],
     'react/memo-dependencies': 'error',
     'react/no-deriving-state-in-effects': 'error',
     'react/preserve-manual-memoization': 'error',
@@ -681,29 +591,16 @@ const base = defineConfig({
     'react/self-closing-comp': 'error',
     'react/jsx-curly-brace-presence': [
       'error',
-      {
-        props: 'never',
-        children: 'ignore',
-        propElementValues: 'always',
-      },
+      {props: 'never', children: 'ignore', propElementValues: 'always'},
     ],
     'no-array-constructor': 'error',
-    'no-unused-expressions': [
-      'error',
-      {
-        allowTernary: true,
-      },
-    ],
+    'no-unused-expressions': ['error', {allowTernary: true}],
     'no-useless-constructor': 'error',
     '@sentry/no-default-exports': 'error',
     '@sentry/sort-interface-keys': [
       'error',
       'asc',
-      {
-        caseSensitive: true,
-        natural: false,
-        requiredFirst: true,
-      },
+      {caseSensitive: true, natural: false, requiredFirst: true},
     ],
     '@sentry/no-vanilla-emotion': 'error',
     '@sentry/emotion-styled-import': 'error',
@@ -791,12 +688,7 @@ const base = defineConfig({
     'unicorn/no-useless-fallback-in-spread': 'error',
     'unicorn/no-useless-iterator-to-array': 'error',
     'unicorn/no-useless-length-check': 'error',
-    'unicorn/no-useless-undefined': [
-      'error',
-      {
-        checkArguments: false,
-      },
-    ],
+    'unicorn/no-useless-undefined': ['error', {checkArguments: false}],
     'unicorn/no-zero-fractions': 'error',
     'unicorn/prefer-array-find': 'error',
     'unicorn/prefer-array-flat-map': 'error',
@@ -810,7 +702,7 @@ const base = defineConfig({
     'unicorn/prefer-includes': 'off',
     'unicorn/prefer-keyboard-event-key': 'error',
     'unicorn/prefer-math-trunc': 'error',
-    'unicorn/prefer-modern-dom-apis': 'off',
+    'unicorn/prefer-modern-dom-apis': 'error',
     'unicorn/prefer-modern-math-apis': 'error',
     'unicorn/prefer-native-coercion-functions': 'error',
     'unicorn/prefer-negative-index': 'error',
@@ -883,28 +775,16 @@ const base = defineConfig({
     'no-loop-func': 'error',
     'react/exhaustive-deps': [
       'error',
-      {
-        additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)',
-      },
+      {additionalHooks: '(useEffectAfterFirstRender|useMemoWithPrevious)'},
     ],
     'react/rules-of-hooks': 'error',
     'typescript/await-thenable': 'error',
-    'typescript/ban-ts-comment': [
-      'error',
-      {
-        minimumDescriptionLength: 10,
-      },
-    ],
+    'typescript/ban-ts-comment': ['error', {minimumDescriptionLength: 10}],
     'typescript/no-array-delete': 'error',
     'typescript/no-base-to-string': 'error',
     'typescript/no-duplicate-enum-values': 'error',
     'typescript/no-duplicate-type-constituents': 'error',
-    'typescript/no-empty-object-type': [
-      'error',
-      {
-        allowInterfaces: 'always',
-      },
-    ],
+    'typescript/no-empty-object-type': ['error', {allowInterfaces: 'always'}],
     'typescript/no-extra-non-null-assertion': 'error',
     'typescript/no-extraneous-class': 'error',
     'typescript/no-for-in-array': 'error',
@@ -938,12 +818,7 @@ const base = defineConfig({
     'typescript/return-await': ['error', 'error-handling-correctness-only'],
     'typescript/triple-slash-reference': 'error',
     'typescript/adjacent-overload-signatures': 'error',
-    'typescript/array-type': [
-      'error',
-      {
-        default: 'array-simple',
-      },
-    ],
+    'typescript/array-type': ['error', {default: 'array-simple'}],
     'typescript/ban-tslint-comment': 'error',
     'typescript/consistent-generic-constructors': 'error',
     'typescript/consistent-indexed-object-style': 'error',
@@ -954,15 +829,11 @@ const base = defineConfig({
     'typescript/non-nullable-type-assertion-style': 'error',
     'typescript/prefer-for-of': 'error',
     'typescript/prefer-function-type': 'error',
-    // Keep explicit guards when optional chaining can change runtime behavior,
-    // especially for undeclared globals such as webpack's `module`.
-    'typescript/prefer-optional-chain': 'off',
+    'typescript/prefer-optional-chain': 'error',
     'typescript/consistent-type-exports': 'error',
     'typescript/switch-exhaustiveness-check': [
       'error',
-      {
-        considerDefaultExhaustiveForUnions: true,
-      },
+      {considerDefaultExhaustiveForUnions: true},
     ],
     'typescript/no-restricted-types': [
       'error',
@@ -997,24 +868,15 @@ const base = defineConfig({
       'error',
       'always',
       {
-        line: {
-          markers: ['/'],
-          exceptions: ['-', '+'],
-        },
-        block: {
-          exceptions: ['*'],
-          balanced: true,
-        },
+        line: {markers: ['/'], exceptions: ['-', '+']},
+        block: {exceptions: ['*'], balanced: true},
       },
     ],
     // https://github.com/un-ts/eslint-plugin-import-x/tree/master/docs/rules
     'import-js/no-relative-packages': 'error',
     'import-js/no-extraneous-dependencies': [
       'error',
-      {
-        includeTypes: true,
-        devDependencies: true,
-      },
+      {includeTypes: true, devDependencies: true},
     ],
     // https://github.com/jsx-eslint/eslint-plugin-react/tree/master/docs/rules
     'react-js/no-deprecated': ['error'],
@@ -1168,10 +1030,7 @@ export function createPackageConfig(
           ],
         },
       },
-      {
-        files: ['**/*.spec.{ts,tsx,js,jsx}'],
-        rules: fakeTimerRules,
-      },
+      {files: ['**/*.spec.{ts,tsx,js,jsx}'], rules: fakeTimerRules},
       ...(config.overrides ?? []),
     ],
   });

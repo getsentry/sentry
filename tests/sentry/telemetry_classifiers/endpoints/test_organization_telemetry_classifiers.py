@@ -1,7 +1,14 @@
 from typing import Any
+from unittest.mock import patch
 
 from sentry.telemetry_classifiers.models import TelemetryClassifier
-from sentry.telemetry_classifiers.types import Dataset, TelemetryClassifierStatus
+from sentry.telemetry_classifiers.prebuilt import PREBUILT_CLASSIFIERS
+from sentry.telemetry_classifiers.types import (
+    Dataset,
+    PrebuiltClassifier,
+    TelemetryClassifierOutputType,
+    TelemetryClassifierStatus,
+)
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import cell_silo_test
 
@@ -20,49 +27,54 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
 
         self.get_error_response(self.organization.slug, status_code=404)
 
-    def test_lists_classifiers_newest_first(self) -> None:
-        custom = self.create_telemetry_classifier(
+    def test_lists_classifiers(self) -> None:
+        enabled = self.create_telemetry_classifier(
             name="Frustration",
             result_attribute="frustration",
             filter_query="gen_ai.agent.name:support",
             created_by_id=self.user.id,
         )
-        prebuilt = self.create_telemetry_classifier(
-            name="Refusals",
-            dataset=Dataset.TRACE_SPANS,
-            status=TelemetryClassifierStatus.DISABLED,
-            prebuilt_classifier_key="refusal",
-            natural_language_prompt=None,
-            compiled_prompt=None,
-            output_type=None,
+        disabled = self.create_telemetry_classifier(
+            name="Refusals", status=TelemetryClassifierStatus.DISABLED
         )
 
         with self.feature(self.features):
             response = self.get_success_response(self.organization.slug)
 
-        assert [c["id"] for c in response.data] == [str(prebuilt.id), str(custom.id)]
-        custom_data, prebuilt_data = response.data[1], response.data[0]
-        assert custom_data.pop("createdBy")["id"] == str(self.user.id)
-        assert custom_data == {
-            "id": str(custom.id),
+        assert [c["id"] for c in response.data] == [str(enabled.id), str(disabled.id)]
+        enabled_data, disabled_data = response.data
+        assert enabled_data.pop("createdBy")["id"] == str(self.user.id)
+        assert enabled_data == {
+            "id": str(enabled.id),
             "projectId": str(self.project.id),
             "name": "Frustration",
             "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": None,
-            "naturalLanguagePrompt": "Is the user frustrated?",
+            "prebuiltClassifierKey": "conversation_user_frustration",
+            "naturalLanguagePrompt": None,
             "outputType": "binary",
-            "dateAdded": custom.date_added,
-            "dateUpdated": custom.date_updated,
+            "binaryThreshold": 0.8,
+            "dateAdded": enabled.date_added,
+            "dateUpdated": enabled.date_updated,
         }
-        assert prebuilt_data["dataset"] == "trace_spans"
-        assert prebuilt_data["status"] == "disabled"
-        assert prebuilt_data["prebuiltClassifierKey"] == "refusal"
-        assert prebuilt_data["naturalLanguagePrompt"] is None
-        assert prebuilt_data["outputType"] is None
-        assert prebuilt_data["createdBy"] is None
+        assert disabled_data["status"] == "disabled"
+        assert disabled_data["createdBy"] is None
+
+    def test_sorts_newest_first_with_disabled_last(self) -> None:
+        oldest = self.create_telemetry_classifier()
+        disabled = self.create_telemetry_classifier(status=TelemetryClassifierStatus.DISABLED)
+        newest = self.create_telemetry_classifier()
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug)
+
+        assert [c["id"] for c in response.data] == [
+            str(newest.id),
+            str(oldest.id),
+            str(disabled.id),
+        ]
 
     def test_filters_by_project(self) -> None:
         other_project = self.create_project(organization=self.organization, teams=[self.team])
@@ -73,6 +85,163 @@ class OrganizationTelemetryClassifiersTest(APITestCase):
             response = self.get_success_response(self.organization.slug, project=[other_project.id])
 
         assert [c["id"] for c in response.data] == [str(other.id)]
+
+    def test_free_text_matches_name_or_result_attribute(self) -> None:
+        by_name = self.create_telemetry_classifier(
+            name="User Frustration", result_attribute="sentiment"
+        )
+        by_attribute = self.create_telemetry_classifier(
+            name="Mood", result_attribute="user.frustrated"
+        )
+        self.create_telemetry_classifier(name="Refusals", result_attribute="refusal")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, query=" FRUSTRAT ")
+
+        assert [c["id"] for c in response.data] == [str(by_attribute.id), str(by_name.id)]
+
+    def test_filters_by_name(self) -> None:
+        exact = self.create_telemetry_classifier(name="Frustration", result_attribute="a")
+        wildcard = self.create_telemetry_classifier(name="User Frustration", result_attribute="b")
+        other = self.create_telemetry_classifier(name="Refusals", result_attribute="c")
+
+        with self.feature(self.features):
+            exact_response = self.get_success_response(
+                self.organization.slug, query="name:frustration"
+            )
+            wildcard_response = self.get_success_response(
+                self.organization.slug, query="name:*frustration"
+            )
+            negated_response = self.get_success_response(
+                self.organization.slug, query="!name:frustration"
+            )
+
+        assert [c["id"] for c in exact_response.data] == [str(exact.id)]
+        assert [c["id"] for c in wildcard_response.data] == [str(wildcard.id), str(exact.id)]
+        assert [c["id"] for c in negated_response.data] == [str(other.id), str(wildcard.id)]
+
+    def test_filters_by_name_with_wildcards(self) -> None:
+        frustration = self.create_telemetry_classifier(
+            name="User Frustration", result_attribute="a"
+        )
+        refusals = self.create_telemetry_classifier(name="Refusals", result_attribute="b")
+        sentiment = self.create_telemetry_classifier(name="Sentiment", result_attribute="c")
+
+        with self.feature(self.features):
+            negated_response = self.get_success_response(
+                self.organization.slug, query="!name:*frustr*"
+            )
+            list_response = self.get_success_response(
+                self.organization.slug, query="name:[*frustr*, refusals]"
+            )
+            middle_response = self.get_success_response(
+                self.organization.slug, query="name:sen*ent"
+            )
+
+        assert [c["id"] for c in negated_response.data] == [str(sentiment.id), str(refusals.id)]
+        assert [c["id"] for c in list_response.data] == [str(refusals.id), str(frustration.id)]
+        assert [c["id"] for c in middle_response.data] == [str(sentiment.id)]
+
+    def test_filters_by_attribute(self) -> None:
+        first = self.create_telemetry_classifier(result_attribute="user.frustrated")
+        second = self.create_telemetry_classifier(result_attribute="refusal")
+        self.create_telemetry_classifier(result_attribute="sentiment")
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug, query="attribute:[user.frustrated, refusal]"
+            )
+
+        assert [c["id"] for c in response.data] == [str(second.id), str(first.id)]
+
+    def test_filters_by_status(self) -> None:
+        enabled = self.create_telemetry_classifier(result_attribute="enabled")
+        disabled = self.create_telemetry_classifier(
+            result_attribute="disabled", status=TelemetryClassifierStatus.DISABLED
+        )
+
+        with self.feature(self.features):
+            enabled_response = self.get_success_response(
+                self.organization.slug, query="status:enabled"
+            )
+            not_enabled_response = self.get_success_response(
+                self.organization.slug, query="!status:enabled"
+            )
+
+        assert [c["id"] for c in enabled_response.data] == [str(enabled.id)]
+        assert [c["id"] for c in not_enabled_response.data] == [str(disabled.id)]
+
+    def test_filters_by_dataset(self) -> None:
+        spans_prebuilt = PrebuiltClassifier(
+            key="spans_classifier",
+            dataset=Dataset.TRACE_SPANS,
+            output_type=TelemetryClassifierOutputType.BINARY,
+            name="Spans",
+            description="Classifies spans.",
+            result_attribute="spans",
+            binary_threshold=0.8,
+        )
+        conversation = self.create_telemetry_classifier(result_attribute="conversation")
+        spans = self.create_telemetry_classifier(
+            result_attribute="spans",
+            dataset=Dataset.TRACE_SPANS,
+            prebuilt_classifier_key=spans_prebuilt.key,
+        )
+
+        with (
+            patch.dict(PREBUILT_CLASSIFIERS, {spans_prebuilt.key: spans_prebuilt}),
+            self.feature(self.features),
+        ):
+            response = self.get_success_response(
+                self.organization.slug, query="dataset:trace_spans"
+            )
+            excluded_response = self.get_success_response(
+                self.organization.slug, query="!dataset:[trace_spans]"
+            )
+
+        assert [c["id"] for c in response.data] == [str(spans.id)]
+        assert [c["id"] for c in excluded_response.data] == [str(conversation.id)]
+
+    def test_combines_filters_and_free_text(self) -> None:
+        match = self.create_telemetry_classifier(name="Frustration", result_attribute="a")
+        self.create_telemetry_classifier(
+            name="Frustration",
+            result_attribute="b",
+            status=TelemetryClassifierStatus.DISABLED,
+        )
+        self.create_telemetry_classifier(name="Refusals", result_attribute="c")
+
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug, query="status:enabled frustr"
+            )
+
+        assert [c["id"] for c in response.data] == [str(match.id)]
+
+    def test_rejects_unknown_key(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, query="prompt:foo", status_code=400
+            )
+
+        assert "query" in response.data
+
+    def test_rejects_unsupported_operator(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug, query="!name:[a, b]", status_code=400
+            )
+
+        assert "query" in response.data
+
+    def test_empty_query_returns_all(self) -> None:
+        first = self.create_telemetry_classifier(result_attribute="first")
+        second = self.create_telemetry_classifier(result_attribute="second")
+
+        with self.feature(self.features):
+            response = self.get_success_response(self.organization.slug, query="")
+
+        assert [c["id"] for c in response.data] == [str(second.id), str(first.id)]
 
     def test_excludes_other_organizations(self) -> None:
         own = self.create_telemetry_classifier()
@@ -135,7 +304,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "resultAttribute": "frustration",
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
-            "prebuiltClassifierKey": "user_frustration",
+            "prebuiltClassifierKey": "conversation_user_frustration",
             **overrides,
         }
 
@@ -162,9 +331,10 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             "dataset": "conversation",
             "filterQuery": "gen_ai.agent.name:support",
             "status": "enabled",
-            "prebuiltClassifierKey": "user_frustration",
+            "prebuiltClassifierKey": "conversation_user_frustration",
             "naturalLanguagePrompt": None,
-            "outputType": None,
+            "outputType": "binary",
+            "binaryThreshold": 0.8,
             "dateAdded": classifier.date_added,
             "dateUpdated": classifier.date_updated,
         }
@@ -192,15 +362,6 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
             assert "prebuiltClassifierKey" in response.data
 
         assert not TelemetryClassifier.objects.exists()
-
-    def test_creates_prebuilt_classifier_for_trace_spans(self) -> None:
-        payload = self.payload(dataset="trace_spans", prebuiltClassifierKey="failed_operation")
-
-        with self.feature(self.features):
-            response = self.get_success_response(self.organization.slug, **payload, status_code=201)
-
-        assert response.data["dataset"] == "trace_spans"
-        assert response.data["prebuiltClassifierKey"] == "failed_operation"
 
     def test_rejects_unknown_prebuilt_classifier_key(self) -> None:
         with self.feature(self.features):
@@ -262,6 +423,27 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
 
         assert response.data["resultAttribute"] == "agent.user_frustration_2"
 
+    def test_accepts_conversation_aggregate_filter(self) -> None:
+        with self.feature(self.features):
+            response = self.get_success_response(
+                self.organization.slug,
+                **self.payload(filterQuery="gen_ai.tool.name:search OR conversation.errors:>0"),
+                status_code=201,
+            )
+
+        assert response.data["filterQuery"] == "gen_ai.tool.name:search OR conversation.errors:>0"
+
+    def test_rejects_invalid_filter_query(self) -> None:
+        with self.feature(self.features):
+            response = self.get_error_response(
+                self.organization.slug,
+                **self.payload(filterQuery="(gen_ai.agent.name:support"),
+                status_code=400,
+            )
+
+        assert "filterQuery" in response.data
+        assert not TelemetryClassifier.objects.exists()
+
     def test_rejects_project_in_other_organization(self) -> None:
         other_project = self.create_project(organization=self.create_organization())
 
@@ -273,7 +455,7 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         assert response.data["project"] == ["Invalid project"]
         assert not TelemetryClassifier.objects.exists()
 
-    def test_requires_project_write(self) -> None:
+    def test_member_can_create(self) -> None:
         member = self.create_user()
         self.create_member(
             organization=self.organization, user=member, role="member", teams=[self.team]
@@ -281,9 +463,23 @@ class OrganizationTelemetryClassifiersCreateTest(APITestCase):
         self.login_as(member)
 
         with self.feature(self.features):
-            response = self.get_error_response(
-                self.organization.slug, **self.payload(), status_code=400
+            response = self.get_success_response(
+                self.organization.slug, **self.payload(), status_code=201
             )
+
+        assert response.data["createdBy"]["id"] == str(member.id)
+
+    def test_requires_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        # Build the payload first: the lazy team fixture adds every existing member to the team.
+        payload = self.payload()
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[])
+        self.login_as(member)
+
+        with self.feature(self.features):
+            response = self.get_error_response(self.organization.slug, **payload, status_code=400)
 
         assert response.data["project"] == ["Insufficient access to project"]
         assert not TelemetryClassifier.objects.exists()

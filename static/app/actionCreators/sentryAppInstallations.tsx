@@ -9,10 +9,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 export function sentryAppInstallationsApiOptions({orgSlug}: {orgSlug: string}) {
   return apiOptions.as<SentryAppInstallation[]>()(
     '/organizations/$organizationIdOrSlug/sentry-app-installations/',
-    {
-      path: {organizationIdOrSlug: orgSlug},
-      staleTime: Infinity,
-    }
+    {path: {organizationIdOrSlug: orgSlug}, staleTime: Infinity}
   );
 }
 
@@ -33,10 +30,7 @@ export function installSentryApp(
     getApiUrl('/organizations/$organizationIdOrSlug/sentry-app-installations/', {
       path: {organizationIdOrSlug: orgId},
     }),
-    {
-      method: 'POST',
-      data: {slug: app.slug},
-    }
+    {method: 'POST', data: {slug: app.slug}}
   );
   promise.then(
     () => toast.dismiss(),

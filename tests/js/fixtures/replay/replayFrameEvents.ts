@@ -13,10 +13,7 @@ type TestableFrameEvent<
   FrameEvent extends BreadcrumbFrameEvent | SpanFrameEvent | ReplayOptionFrameEvent,
 > = Overwrite<
   Omit<FrameEvent, 'type'>,
-  {
-    data: Omit<FrameEvent['data'], 'tag'>;
-    timestamp: Date;
-  }
+  {data: Omit<FrameEvent['data'], 'tag'>; timestamp: Date}
 >;
 
 /**
@@ -37,11 +34,7 @@ export function ReplayBreadcrumbFrameEventFixture(
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
-    data: {
-      tag: 'breadcrumb',
-      payload: fields.data.payload,
-      metric: fields.data.metric,
-    },
+    data: {tag: 'breadcrumb', payload: fields.data.payload, metric: fields.data.metric},
   };
 }
 
@@ -65,10 +58,7 @@ export function ReplaySpanFrameEventFixture(
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
-    data: {
-      tag: 'performanceSpan',
-      payload: fields.data.payload,
-    },
+    data: {tag: 'performanceSpan', payload: fields.data.payload},
   };
 }
 
@@ -78,10 +68,7 @@ export function ReplayOptionFrameEventFixture(
   return {
     type: EventType.Custom,
     timestamp: fields.timestamp.getTime(), // frame timestamps are in ms
-    data: {
-      tag: 'options',
-      payload: fields.data.payload,
-    },
+    data: {tag: 'options', payload: fields.data.payload},
   };
 }
 

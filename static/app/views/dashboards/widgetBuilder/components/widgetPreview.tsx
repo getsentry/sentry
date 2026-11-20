@@ -74,10 +74,7 @@ export function WidgetPreview({
   };
 
   function handleWidgetTableSort(sort: Sort) {
-    dispatch({
-      payload: [sort],
-      type: BuilderStateAction.SET_SORT,
-    });
+    dispatch({payload: [sort], type: BuilderStateAction.SET_SORT});
   }
 
   function handleWidgetTableResizeColumn(columns: TabularColumn[]) {

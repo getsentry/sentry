@@ -310,26 +310,14 @@ For text that may or may not overflow, use the `showOnlyOnOverflow` prop to cond
         title="This text is long and will be truncated with overflow"
         showOnlyOnOverflow
       >
-        <div
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
           This text is long and will be truncated with overflow
         </div>
       </Tooltip>
     </div>
     <div style={{width: 200}}>
       <Tooltip title="Short text" showOnlyOnOverflow>
-        <div
-          style={{
-            whiteSpace: 'nowrap',
-            overflow: 'hidden',
-            textOverflow: 'ellipsis',
-          }}
-        >
+        <div style={{whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'}}>
           Short text
         </div>
       </Tooltip>

@@ -206,10 +206,7 @@ interface LLMContextProviderProps {
   children: ReactNode;
 }
 
-const INITIAL_STATE: LLMContextState = {
-  nodes: new Map(),
-  version: 0,
-};
+const INITIAL_STATE: LLMContextState = {nodes: new Map(), version: 0};
 
 export function LLMContextProvider({children}: LLMContextProviderProps) {
   // All state lives in refs — no re-renders needed. Consumers read

@@ -16,15 +16,10 @@ import {useReorderStarredSavedQueries} from 'sentry/views/explore/hooks/useReord
 import {getSavedQueryTraceItemUrl} from 'sentry/views/explore/utils';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
 
-type Props = {
-  queries: CombinedSavedQuery[];
-};
+type Props = {queries: CombinedSavedQuery[]};
 
 // ReorderableList keys by `item.id`, and ids are only unique within a table.
-type ReorderableItem = {
-  id: string;
-  query: CombinedSavedQuery;
-};
+type ReorderableItem = {id: string; query: CombinedSavedQuery};
 
 export function ExploreSavedQueryNavigationItems({queries}: Props) {
   const organization = useOrganization();

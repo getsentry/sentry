@@ -3,7 +3,6 @@ from collections.abc import Iterable, Mapping, Sequence
 from typing import Annotated, Any, Literal, NamedTuple, TypedDict, cast
 
 import sentry_sdk
-from django.db.models import Exists, OuterRef
 from django.utils.encoding import force_bytes, force_str
 from drf_spectacular.utils import extend_schema
 from packaging.version import Version
@@ -28,10 +27,8 @@ from sentry.models.artifactbundle import (
     ArtifactBundle,
     ArtifactBundleArchive,
     ArtifactBundleIndex,
-    DebugIdArtifactBundle,
     ProjectArtifactBundle,
     ReleaseArtifactBundle,
-    SourceFileType,
 )
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -69,10 +66,6 @@ NO_DEBUG_ID_SDKS = {
 
 # This number will equate to an upper bound of file lookups/downloads
 ARTIFACT_INDEX_LOOKUP_LIMIT = 25
-
-# Upper bound for `sourcemaps.source-map-debug.debug-id-check-max-bundles`, whose bundle ids end
-# up in a single query.
-DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT = 10_000
 
 # Upper bound on the number of bundles whose files `get_release_bundle_urls` reads.
 URL_MATCH_MAX_BUNDLES = 1000
@@ -136,10 +129,16 @@ class SourceMapDebugIdProcessResult(TypedDict):
         ApiDescription("Debug ID of the frame's source file. Null when the frame has none"),
     ]
     uploaded_source_file_with_correct_debug_id: Annotated[
-        bool, ApiDescription("Whether a source file with the frame's debug ID was uploaded")
+        bool,
+        ApiDescription(
+            "Whether a source file with the frame's debug ID was found when the event was processed"
+        ),
     ]
     uploaded_source_map_with_correct_debug_id: Annotated[
-        bool, ApiDescription("Whether a source map with the frame's debug ID was uploaded")
+        bool,
+        ApiDescription(
+            "Whether a source map with the frame's debug ID was found when the event was processed"
+        ),
     ]
 
 
@@ -294,35 +293,6 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
         debug_images = get_path(event_data, "debug_meta", "images")
         debug_images = debug_images if debug_images is not None else []
 
-        # get information about which debug ids on the event have uploaded artifacts
-        debug_ids = [
-            debug_image["debug_id"]
-            for debug_image in debug_images
-            if debug_image["type"] == "sourcemap"
-        ][0:100]
-        debug_id_artifact_bundles = DebugIdArtifactBundle.objects.filter(
-            artifact_bundle__projectartifactbundle__project_id=project.id,
-            debug_id__in=debug_ids,
-        )
-        debug_ids_with_uploaded_source_file = set()
-        debug_ids_with_uploaded_source_map = set()
-        for debug_id_artifact_bundle in debug_id_artifact_bundles:
-            if (
-                SourceFileType(debug_id_artifact_bundle.source_file_type) == SourceFileType.SOURCE
-                or SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.MINIFIED_SOURCE
-            ):
-                debug_ids_with_uploaded_source_file.add(str(debug_id_artifact_bundle.debug_id))
-            elif (
-                SourceFileType(debug_id_artifact_bundle.source_file_type)
-                == SourceFileType.SOURCE_MAP
-            ):
-                debug_ids_with_uploaded_source_map.add(str(debug_id_artifact_bundle.debug_id))
-
-        has_uploaded_some_artifact_with_a_debug_id = bool(
-            debug_ids_with_uploaded_source_file or debug_ids_with_uploaded_source_map
-        ) or project_has_some_artifact_with_a_debug_id(project)
-
         # Get all abs paths and query for their existence so that we can match release artifacts
         release_process_abs_path_data = {}
         if release is not None:
@@ -368,13 +338,9 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                         )
                         processed_frames.append(
                             {
-                                "debug_id_process": {
-                                    "debug_id": debug_id,
-                                    "uploaded_source_file_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_file,
-                                    "uploaded_source_map_with_correct_debug_id": debug_id
-                                    in debug_ids_with_uploaded_source_map,
-                                },
+                                "debug_id_process": get_debug_id_data_for_frame(
+                                    debug_id, frame_index, stacktrace_frames
+                                ),
                                 "release_process": release_process_abs_path_data.get(abs_path),
                                 "scraping_process": get_scraping_data_for_frame(
                                     scraping_attempt_map, frame, frame_index, stacktrace_frames
@@ -382,6 +348,13 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                             }
                         )
                 processed_exceptions.append({"frames": processed_frames})
+
+        has_uploaded_some_artifact_with_a_debug_id = any(
+            frame["debug_id_process"]["uploaded_source_file_with_correct_debug_id"]
+            or frame["debug_id_process"]["uploaded_source_map_with_correct_debug_id"]
+            for exception in processed_exceptions
+            for frame in exception["frames"]
+        ) or project_has_some_artifact_with_a_debug_id(project)
 
         sdk_debug_id_support, min_debug_id_sdk_version = get_sdk_debug_id_support(event_data)
 
@@ -401,6 +374,24 @@ class SourceMapDebugEndpoint(ProjectEndpoint):
                 "has_scraping_data": event_data.get("scraping_attempts") is not None,
             }
         )
+
+
+def get_debug_id_data_for_frame(
+    debug_id: str | None,
+    raw_frame_index: int,
+    stacktrace_frames: Sequence[Any] | None,
+) -> SourceMapDebugIdProcessResult:
+    frame_data = get_path(stacktrace_frames, raw_frame_index, "data", default={})
+
+    # Events processed by an older Symbolicator have no lookup results, so both stay False.
+    # This fallback can go once those events are past the 90 day retention.
+    return {
+        "debug_id": debug_id,
+        "uploaded_source_file_with_correct_debug_id": debug_id is not None
+        and frame_data.get("minified_source_found_by_debug_id") is True,
+        "uploaded_source_map_with_correct_debug_id": debug_id is not None
+        and frame_data.get("sourcemap_found_by_debug_id") is True,
+    }
 
 
 def get_scraping_data_for_frame(
@@ -753,7 +744,7 @@ class ReleaseLookupData:
                 file__type=ARTIFACT_INDEX_TYPE,
             )
             .select_related("file")
-            .first()
+            .get_or_none()
         )
         if self.dist_matched_artifact_index_release_file:
             maybe_renew_releasefiles([self.dist_matched_artifact_index_release_file])
@@ -964,41 +955,9 @@ def event_has_debug_ids(event_data: Mapping[str, Any]) -> bool:
 def project_has_some_artifact_with_a_debug_id(project: Project) -> bool:
     """
     Whether any artifact bundle of the project contains a file with a debug ID.
-
-    Without `sourcemaps.source-map-debug.debug-id-check-max-bundles`, this reads the
-    organization's debug-ID rows until one of them is in a bundle of the project, which for a
-    project without any means all of them. With it, only the project's newest bundles are
-    checked, so a project whose debug IDs are all in older bundles counts as having none.
     """
-    max_bundles = min(
-        options.get("sourcemaps.source-map-debug.debug-id-check-max-bundles"),
-        DEBUG_ID_CHECK_MAX_BUNDLES_LIMIT,
-    )
-    if max_bundles <= 0:
-        return (
-            DebugIdArtifactBundle.objects.filter(
-                organization_id=project.organization_id,
-            )
-            .filter(
-                Exists(
-                    ProjectArtifactBundle.objects.filter(
-                        artifact_bundle_id=OuterRef("artifact_bundle_id"),
-                        project_id=project.id,
-                    )
-                )
-            )
-            .exists()
-        )
-
-    # Bundle ids follow upload order, so this reads the `(project_id, artifact_bundle_id)` index
-    # backwards and stops after `max_bundles` rows.
-    newest_bundle_ids = list(
-        ProjectArtifactBundle.objects.filter(project_id=project.id)
-        .order_by("-artifact_bundle_id")
-        .values_list("artifact_bundle_id", flat=True)[:max_bundles]
-    )
-    # One lookup per bundle in the debug-ID rows' `artifact_bundle_id` index.
-    return DebugIdArtifactBundle.objects.filter(artifact_bundle_id__in=newest_bundle_ids).exists()
+    # One lookup in the partial index of flagged links, which finds nothing for a project without any.
+    return ProjectArtifactBundle.objects.filter(project_id=project.id, has_debug_ids=True).exists()
 
 
 def get_sdk_debug_id_support(

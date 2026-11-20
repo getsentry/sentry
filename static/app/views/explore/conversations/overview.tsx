@@ -156,9 +156,7 @@ function ConversationsOverviewPage() {
   );
 
   useEffect(() => {
-    trackAnalytics('conversations.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.page-view', {organization});
   }, [organization]);
 
   // Without agentic spans, onboarding replaces every tab, so it is tracked
@@ -181,12 +179,10 @@ function ConversationsOverviewPage() {
         organization,
         empty_state: onboardingEmptyState,
       });
-    } else if (isConversationsTab) {
-      trackAnalytics('conversations.table.page-view', {
-        organization,
-      });
+    } else {
+      trackAnalytics('conversations.table.page-view', {organization, tab: activeTab});
     }
-  }, [isConversationsTab, onboardingEmptyState, isOnboardingLoading, organization]);
+  }, [activeTab, onboardingEmptyState, isOnboardingLoading, organization]);
 
   const searchQueryBuilderProps: UseSpanSearchQueryBuilderProps = useMemo(
     () => ({

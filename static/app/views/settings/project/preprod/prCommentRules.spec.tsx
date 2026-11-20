@@ -9,9 +9,7 @@ import {PrCommentRules} from './prCommentRules';
 describe('PrCommentRules', () => {
   const {organization} = initializeOrg();
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/projects/test-project/preprod/`,
-    },
+    location: {pathname: `/settings/projects/test-project/preprod/`},
     route: '/settings/projects/:projectId/preprod/',
   };
 
@@ -44,11 +42,8 @@ describe('PrCommentRules', () => {
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
     expect(
-      screen.getByText('Enable PR comments above to configure rules.')
+      screen.getByRole('button', {name: 'Create PR Comment Rule'})
     ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', {name: 'Create PR Comment Rule'})
-    ).not.toBeInTheDocument();
   });
 
   it('reflects an enabled project from the explicit field', async () => {
@@ -122,19 +117,13 @@ describe('PrCommentRules', () => {
     expect(
       await screen.findByRole('checkbox', {name: 'Toggle PR comments'})
     ).not.toBeChecked();
-    expect(
-      screen.getByText('Enable PR comments above to configure rules.')
-    ).toBeInTheDocument();
   });
 
   it('enables PR comments when toggled on', async () => {
     mockRepositories();
     const project = DetailedProjectFixture({options: {}});
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',
@@ -169,10 +158,7 @@ describe('PrCommentRules', () => {
       preprodSizePrCommentsEnabled: true,
     });
     const projectEndpoint = `/projects/${organization.slug}/${project.slug}/`;
-    MockApiClient.addMockResponse({
-      url: projectEndpoint,
-      body: project,
-    });
+    MockApiClient.addMockResponse({url: projectEndpoint, body: project});
     const mock = MockApiClient.addMockResponse({
       url: projectEndpoint,
       method: 'PUT',

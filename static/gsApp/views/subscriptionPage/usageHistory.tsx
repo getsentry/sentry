@@ -22,6 +22,7 @@ import {t, tct} from 'sentry/locale';
 import {DataCategory} from 'sentry/types/core';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SettingsPageHeader} from 'sentry/views/settings/components/settingsPageHeader';
@@ -117,7 +118,9 @@ function UsageHistory({subscription}: Props) {
               <UsageHistoryRow key={row.id} history={row} subscription={subscription} />
             ))}
           </Container>
-          {usageListPageLinks && <Pagination pageLinks={usageListPageLinks} />}
+          {usageListPageLinks && (
+            <Pagination {...getPaginationProps(usageListPageLinks)} />
+          )}
         </Fragment>
       ) : (
         <ContactBillingMembers />
@@ -126,10 +129,7 @@ function UsageHistory({subscription}: Props) {
   );
 }
 
-type RowProps = {
-  history: BillingHistory;
-  subscription: Subscription;
-};
+type RowProps = {history: BillingHistory; subscription: Subscription};
 
 function OnDemandUsage({
   history,
@@ -174,9 +174,7 @@ function OnDemandUsage({
         <tr>
           <th>
             {tct('[budgetTerm] Spend[suffix]', {
-              budgetTerm: displayBudgetName(history.planDetails, {
-                title: true,
-              }),
+              budgetTerm: displayBudgetName(history.planDetails, {title: true}),
               suffix: history.planDetails?.hasOnDemandModes
                 ? history.onDemandBudgetMode === OnDemandBudgetMode.PER_CATEGORY
                   ? ' (Per-Category)'
@@ -269,10 +267,7 @@ function UsageHistoryRow({history}: RowProps) {
                 {t('Download Project Breakdown')}
               </OverlayTrigger.Button>
             )}
-            search={{
-              placeholder: t('Filter projects'),
-              onChange: onProjectSearch,
-            }}
+            search={{placeholder: t('Filter projects'), onChange: onProjectSearch}}
             options={projects.map(project => ({
               value: project.slug,
               label: project.slug,

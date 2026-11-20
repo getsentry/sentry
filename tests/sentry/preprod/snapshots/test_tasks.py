@@ -24,6 +24,7 @@ from sentry.preprod.snapshots.tasks import (
     _effective_diff_threshold,
     _plan_key,
     _process_chunk,
+    _put_diff_mask,
 )
 
 
@@ -32,6 +33,16 @@ def test_objectstore_key_layout() -> None:
     assert _chunk_result_key(1, 2, 3, 4, 5) == "1/2/3/4/chunks/5.json"
     assert _comparison_key(1, 2, 3, 4) == "1/2/3/4/comparison.json"
     assert _diff_mask_key(1, 2, 3, 4, "foo/bar") == "1/2/3/4/diff/foo/bar.png"
+
+
+def test_put_diff_mask_skips_compression() -> None:
+    session = MagicMock()
+
+    _put_diff_mask(session, "1/2/3/4/diff/foo.png", b"png")
+
+    session.put.assert_called_once_with(
+        b"png", key="1/2/3/4/diff/foo.png", content_type="image/png", compress="none"
+    )
 
 
 def _meta(content_hash: str) -> ImageMetadata:

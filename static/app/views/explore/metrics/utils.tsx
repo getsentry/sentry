@@ -1,7 +1,6 @@
-import qs from 'query-string';
-
 import {Expression} from 'sentry/components/arithmeticBuilder/expression';
 import {isTokenFunction} from 'sentry/components/arithmeticBuilder/token';
+import type {QuerySpeed} from 'sentry/components/querySpeedMenu';
 import {MutableSearch} from 'sentry/components/searchSyntax/mutableSearch';
 import type {PageFilters} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
@@ -10,6 +9,7 @@ import type {EventsMetaType, MetaType} from 'sentry/utils/discover/eventView';
 import {
   DurationUnit,
   FractionUnit,
+  parseFunction,
   RateUnit,
   SizeUnit,
   stripEquationPrefix,
@@ -18,6 +18,7 @@ import {
 } from 'sentry/utils/discover/fields';
 import {decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import type {SavedQuery} from 'sentry/views/explore/hooks/useGetSavedQueries';
 import {isGroupBy, type GroupBy} from 'sentry/views/explore/queryParams/groupBy';
 import {
@@ -165,6 +166,7 @@ type BaseGetMetricsUrlParams = {
   id?: number;
   interval?: string;
   metricQueries?: BaseMetricQuery[];
+  queryPriority?: QuerySpeed;
   referrer?: string;
   selection?: PageFilters;
   title?: string;
@@ -182,6 +184,7 @@ export function getMetricsUrl({
   metricQueries,
   id,
   interval,
+  queryPriority,
   referrer,
   title,
 }: BaseGetMetricsUrlParams & {organization: Organization | string}) {
@@ -199,6 +202,7 @@ export function getMetricsUrl({
     metric: metricQueries?.map(metricQuery => encodeMetricQueryParams(metricQuery)),
     id,
     interval,
+    queryPriority,
     referrer,
     title,
   };
@@ -332,10 +336,7 @@ export function updateVisualizeYAxis(
   traceMetric: TraceMetric
 ): VisualizeFunction {
   return visualize.replace({
-    yAxis: makeMetricsAggregate({
-      aggregate,
-      traceMetric,
-    }),
+    yAxis: makeMetricsAggregate({aggregate, traceMetric}),
     chartType: undefined,
   });
 }
@@ -389,10 +390,30 @@ export function getEquationMetricsTotalFilter(equation: string) {
     .filter(isTokenFunction)
     .map(token => normalizeFunctionToken(token).plainAggregate);
 
-  const traceMetricsUsed = aggregatesUsed.map(aggregate => {
-    const {traceMetric} = parseMetricAggregate(aggregate);
-    return traceMetric;
-  });
+  return getAggregatesMetricsTotalFilter(aggregatesUsed);
+}
 
-  return createTraceMetricEventsFilter(traceMetricsUsed);
+export function getAggregatesMetricsTotalFilter(aggregates: string[]) {
+  const filters = aggregates
+    .map(aggregate => {
+      const {traceMetric} = parseMetricAggregate(aggregate);
+      if (!traceMetric.name || !traceMetric.type) {
+        return null;
+      }
+
+      // The backend reads a '-' unit in an aggregate as any unit, so the total must not filter by unit.
+      if (parseFunction(aggregate)?.arguments.at(-1) === '-') {
+        const search = new MutableSearch('');
+        search.addOp('(');
+        search.addFilterValue('metric.name', traceMetric.name);
+        search.addFilterValue('metric.type', traceMetric.type);
+        search.addOp(')');
+        return search.toString();
+      }
+
+      return createTraceMetricEventsFilter([traceMetric]);
+    })
+    .filter(defined);
+
+  return [...new Set(filters)].join(' OR ');
 }

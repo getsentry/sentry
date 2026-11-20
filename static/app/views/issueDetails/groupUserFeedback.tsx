@@ -12,6 +12,7 @@ import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
 import {selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {FeedbackEmptyState} from 'sentry/views/feedback/feedbackEmptyState';
 
@@ -29,16 +30,12 @@ function GroupUserFeedback() {
     isPending: isPendingGroup,
     isError: isErrorGroup,
     refetch: refetchGroup,
-  } = useGroup({
-    groupId,
-  });
+  } = useGroup({groupId});
 
   const {data, isPending, isError, refetch} = useQuery({
     ...groupUserFeedbackApiOptions(organization, {
       groupId,
-      query: {
-        cursor: cursor ?? undefined,
-      },
+      query: {cursor: cursor ?? undefined},
     }),
     select: selectJsonWithHeaders,
   });
@@ -88,7 +85,7 @@ function GroupUserFeedback() {
                 eventLink={`/organizations/${organization.slug}/issues/${groupId}/events/${item.eventID}/?referrer=user-feedback`}
               />
             ))}
-            <Pagination pageLinks={pageLinks} />
+            <Pagination {...getPaginationProps(pageLinks)} />
           </Stack>
         )}
       </Layout.Main>

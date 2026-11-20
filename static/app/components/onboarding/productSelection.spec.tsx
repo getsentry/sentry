@@ -9,7 +9,7 @@ import {platformProductAvailability, ProductSelection} from './productSelection'
 
 describe('Onboarding Product Selection', () => {
   const organization = OrganizationFixture({
-    features: ['session-replay', 'performance-view', 'profiling-view'],
+    features: ['session-replay', 'profiling-view'],
   });
 
   beforeEach(() => {
@@ -23,11 +23,7 @@ describe('Onboarding Product Selection', () => {
 
     const {router} = render(
       <ProductSelection organization={organization} platform="javascript-react" />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: initialQuery},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
     );
 
     // Error monitoring shall be checked and disabled by default
@@ -55,9 +51,7 @@ describe('Onboarding Product Selection', () => {
 
     // Uncheck tracing
     await userEvent.click(screen.getByRole('presentation', {name: 'Tracing'}));
-    expect(router.location.query).toEqual({
-      product: ProductSolution.SESSION_REPLAY,
-    });
+    expect(router.location.query).toEqual({product: ProductSolution.SESSION_REPLAY});
 
     // Session replay shall be checked and enabled by default
     expect(screen.getByRole('presentation', {name: 'Session Replay'})).toBeChecked();
@@ -89,11 +83,7 @@ describe('Onboarding Product Selection', () => {
         disabledProducts={disabledProducts}
         platform="javascript-react"
       />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: initialQuery},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
     );
 
     // Tracing shall be unchecked and disabled by default
@@ -122,11 +112,7 @@ describe('Onboarding Product Selection', () => {
 
     const {router} = render(
       <ProductSelection organization={organization} platform="javascript-react" />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: initialQuery},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
     );
 
     expect(
@@ -142,11 +128,7 @@ describe('Onboarding Product Selection', () => {
 
     const {router} = render(
       <ProductSelection organization={organization} platform="python-django" />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: initialQuery},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
     );
 
     expect(screen.getByRole('presentation', {name: 'Profiling'})).toBeInTheDocument();
@@ -165,10 +147,7 @@ describe('Onboarding Product Selection', () => {
 
     render(<ProductSelection organization={organization} platform="javascript-react" />, {
       initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {product: [ProductSolution.SESSION_REPLAY]},
-        },
+        location: {pathname: '/', query: {product: [ProductSolution.SESSION_REPLAY]}},
       },
     });
 
@@ -180,11 +159,7 @@ describe('Onboarding Product Selection', () => {
   it('does not select any products by default', () => {
     const {router} = render(
       <ProductSelection organization={organization} platform="python" />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: {}},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: {}}}}
     );
 
     // URL should remain unchanged (no products auto-selected)
@@ -224,11 +199,7 @@ describe('Onboarding Product Selection', () => {
 
     const {router} = render(
       <ProductSelection organization={organization} platform="javascript-react" />,
-      {
-        initialRouterConfig: {
-          location: {pathname: '/', query: initialQuery},
-        },
-      }
+      {initialRouterConfig: {location: {pathname: '/', query: initialQuery}}}
     );
 
     expect(screen.getByRole('presentation', {name: 'Tracing'})).toBeChecked();

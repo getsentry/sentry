@@ -11,10 +11,18 @@ function AutoTopUpFixture(
   return {
     enabled: false,
     thresholdCredits: 500,
-    topUpCredits: 1000,
+    topUpCredits: 1500,
     dailySpendCapCents: 7500,
+    minTopUpCredits: 1500,
     ...params,
   };
+}
+
+function savedSettings({
+  minTopUpCredits: _minTopUpCredits,
+  ...settings
+}: SeerWalletAutoTopUp) {
+  return settings;
 }
 
 describe('openSeerAutoTopUpModal', () => {
@@ -25,9 +33,11 @@ describe('openSeerAutoTopUpModal', () => {
   function mockWallet({
     balance,
     purchasedExpiresAt,
+    purchasedRemaining,
   }: {
     balance: number;
     purchasedExpiresAt: string | null;
+    purchasedRemaining: number;
   }) {
     MockApiClient.addMockResponse({
       url: walletUrl,
@@ -36,7 +46,11 @@ describe('openSeerAutoTopUpModal', () => {
         creditPriceCents: 1,
         percentUsed: 1,
         included: {total: 500, remaining: 0, resetsAt: null},
-        purchased: {total: 0, remaining: 0, expiresAt: purchasedExpiresAt},
+        purchased: {
+          total: purchasedRemaining,
+          remaining: purchasedRemaining,
+          expiresAt: purchasedExpiresAt,
+        },
       },
     });
   }
@@ -45,12 +59,14 @@ describe('openSeerAutoTopUpModal', () => {
     autoTopUp = AutoTopUpFixture(),
     balance = 0,
     purchasedExpiresAt = null,
+    purchasedRemaining = 0,
   }: {
     autoTopUp?: SeerWalletAutoTopUp;
     balance?: number;
     purchasedExpiresAt?: string | null;
+    purchasedRemaining?: number;
   } = {}) {
-    mockWallet({balance, purchasedExpiresAt});
+    mockWallet({balance, purchasedExpiresAt, purchasedRemaining});
     MockApiClient.addMockResponse({url, body: autoTopUp});
     renderGlobalModal({organization});
     act(() => openSeerAutoTopUpModal({organization}));
@@ -69,15 +85,20 @@ describe('openSeerAutoTopUpModal', () => {
     openAutoTopUpModal();
 
     expect(
-      await screen.findByText('Added when your balance drops below $5, plus tax.')
+      await screen.findByText(
+        'Whenever your credits are at or below $5, purchase this amount'
+      )
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', {name: '$10', pressed: true})).toBeInTheDocument();
-    expect(screen.getByText('$10.00 + tax')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$15 1,500 credits'})).toBeChecked();
+    expect(
+      screen.queryByRole('textbox', {name: 'Custom credit amount'})
+    ).not.toBeInTheDocument();
+    expect(screen.getByText('Due now')).toBeInTheDocument();
+    expect(screen.getByText('$15.00')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: '$25'}));
-    expect(screen.getByRole('button', {name: '$25', pressed: true})).toBeInTheDocument();
-    expect(screen.getByRole('textbox', {name: 'Reload amount'})).toHaveValue('25');
-    expect(screen.getByText('2,500 credits')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('radio', {name: '$25 2,500 credits'}));
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(screen.getByText('$25.00')).toBeInTheDocument();
 
     await userEvent.click(
       screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
@@ -96,13 +117,22 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('charges right away when the balance is at the threshold', async () => {
+    openAutoTopUpModal({balance: 500});
+
+    expect(await screen.findByText('Due now')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
   it('turns on without a charge when the balance is above the threshold', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
-      body: AutoTopUpFixture({enabled: true}),
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
     });
-    openAutoTopUpModal({balance: 500});
+    openAutoTopUpModal({balance: 501});
 
     const turnOn = await screen.findByRole('button', {name: 'Turn on'});
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
@@ -110,30 +140,34 @@ describe('openSeerAutoTopUpModal', () => {
     await userEvent.click(turnOn);
     expect(saveMock).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({data: AutoTopUpFixture({enabled: true})})
+      expect.objectContaining({
+        data: savedSettings(AutoTopUpFixture({enabled: true, topUpCredits: 1500})),
+      })
     );
   });
 
-  it('raises the daily limit to cover a larger preset', async () => {
+  it('turns on auto-reload with a custom amount above the daily usage limit', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
-      body: AutoTopUpFixture({enabled: true, topUpCredits: 15_000}),
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 17_500}),
     });
     openAutoTopUpModal();
 
-    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
-    expect(dailyLimit).toHaveValue('75');
+    await userEvent.click(await screen.findByRole('radio', {name: 'Custom'}));
+    const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
+    expect(customAmount).toHaveValue('15');
 
-    await userEvent.click(screen.getByRole('button', {name: '$150'}));
-    expect(dailyLimit).toHaveValue('150');
+    await userEvent.clear(customAmount);
+    await userEvent.type(customAmount, '175');
+    expect(screen.getByText('17,500 credits')).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: '$25'}));
-    expect(dailyLimit).toHaveValue('150');
+    const dailyLimit = screen.getByRole('textbox', {name: 'Daily usage limit'});
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '15');
 
-    await userEvent.click(screen.getByRole('button', {name: '$150'}));
     await userEvent.click(
-      screen.getByRole('button', {name: 'Turn on and pay $150.00 + tax'})
+      screen.getByRole('button', {name: 'Turn on and pay $175.00 + tax'})
     );
 
     expect(saveMock).toHaveBeenCalledWith(
@@ -142,14 +176,14 @@ describe('openSeerAutoTopUpModal', () => {
         data: {
           enabled: true,
           thresholdCredits: 500,
-          topUpCredits: 15_000,
-          dailySpendCapCents: 15_000,
+          topUpCredits: 17_500,
+          dailySpendCapCents: 1500,
         },
       })
     );
   });
 
-  it('saves a custom reload amount and daily limit', async () => {
+  it('edits a saved custom amount', async () => {
     const saveMock = MockApiClient.addMockResponse({
       url,
       method: 'PUT',
@@ -159,17 +193,13 @@ describe('openSeerAutoTopUpModal', () => {
       autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 50_000}),
     });
 
-    const reloadAmount = await screen.findByRole('textbox', {name: 'Reload amount'});
-    expect(reloadAmount).toHaveValue('500');
-    for (const preset of ['$10', '$25', '$50', '$150']) {
-      expect(
-        screen.getByRole('button', {name: preset, pressed: false})
-      ).toBeInTheDocument();
-    }
+    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
+    const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
+    expect(customAmount).toHaveValue('500');
     expect(screen.queryByText('Due now')).not.toBeInTheDocument();
 
-    await userEvent.clear(reloadAmount);
-    await userEvent.type(reloadAmount, '40');
+    await userEvent.clear(customAmount);
+    await userEvent.type(customAmount, '40');
     expect(screen.getByText('4,000 credits')).toBeInTheDocument();
 
     const dailyLimit = screen.getByRole('textbox', {name: 'Daily usage limit'});
@@ -192,6 +222,143 @@ describe('openSeerAutoTopUpModal', () => {
     );
   });
 
+  it('turns back on with the custom amount saved before turning off', async () => {
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: false, topUpCredits: 2000}),
+    });
+
+    expect(await screen.findByRole('radio', {name: 'Custom'})).toBeChecked();
+    expect(screen.getByRole('textbox', {name: 'Custom credit amount'})).toHaveValue('20');
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $20.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
+  it('switches a saved preset to another preset', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 5000}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    expect(await screen.findByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.queryByRole('textbox', {name: 'Custom credit amount'})
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('radio', {name: '$50 5,000 credits'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 5000,
+          dailySpendCapCents: 7500,
+        },
+      })
+    );
+  });
+
+  it('shows an unset daily usage limit as no limit', async () => {
+    openAutoTopUpModal({autoTopUp: AutoTopUpFixture({dailySpendCapCents: null})});
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    expect(dailyLimit).toHaveValue('');
+    expect(dailyLimit).toHaveAttribute('placeholder', 'No limit');
+  });
+
+  it('saves no daily usage limit when the field is cleared', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    await userEvent.clear(dailyLimit);
+    expect(dailyLimit).toHaveValue('');
+    expect(
+      screen.queryByText('A $0 limit turns off all Seer usage.')
+    ).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 2500,
+          dailySpendCapCents: null,
+        },
+      })
+    );
+  });
+
+  it('blocks a credit amount below the minimum', async () => {
+    const saveMock = MockApiClient.addMockResponse({url, method: 'PUT', body: {}});
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    await userEvent.click(await screen.findByRole('radio', {name: 'Custom'}));
+    const customAmount = screen.getByRole('textbox', {name: 'Custom credit amount'});
+    await userEvent.clear(customAmount);
+    await userEvent.type(customAmount, '14');
+
+    expect(
+      screen.getByText('The credit amount must be at least $15.')
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
+
+    await userEvent.type(customAmount, '0');
+    expect(
+      screen.queryByText('The credit amount must be at least $15.')
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Save'})).toBeEnabled();
+    expect(saveMock).not.toHaveBeenCalled();
+  });
+
+  it('warns about a $0 daily usage limit and still saves it', async () => {
+    const saveMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 2500, dailySpendCapCents: 0}),
+    });
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true, topUpCredits: 2500}),
+    });
+
+    const dailyLimit = await screen.findByRole('textbox', {name: 'Daily usage limit'});
+    await userEvent.clear(dailyLimit);
+    await userEvent.type(dailyLimit, '0');
+
+    expect(screen.getByText('A $0 limit turns off all Seer usage.')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Save'}));
+
+    expect(saveMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: {
+          enabled: true,
+          thresholdCredits: 500,
+          topUpCredits: 2500,
+          dailySpendCapCents: 0,
+        },
+      })
+    );
+  });
+
   it('confirms before turning off auto-reload', async () => {
     const autoTopUp = AutoTopUpFixture({enabled: true, topUpCredits: 2500});
     const saveMock = MockApiClient.addMockResponse({
@@ -199,14 +366,18 @@ describe('openSeerAutoTopUpModal', () => {
       method: 'PUT',
       body: {...autoTopUp, enabled: false},
     });
-    openAutoTopUpModal({autoTopUp, purchasedExpiresAt: '2027-10-01'});
+    openAutoTopUpModal({
+      autoTopUp,
+      purchasedExpiresAt: '2027-10-01',
+      purchasedRemaining: 1200,
+    });
 
     await userEvent.click(
       await screen.findByRole('button', {name: 'Turn off auto-reload'})
     );
     expect(
       screen.getByText(
-        'Your balance will remain, and expires on Oct 1, 2027. When it runs out, Seer pauses until your included credits reset.'
+        'Your 1,200 purchased credits will remain, and expire on Oct 1, 2027. When they run out, Seer pauses until your included credits reset.'
       )
     ).toBeInTheDocument();
 
@@ -218,11 +389,28 @@ describe('openSeerAutoTopUpModal', () => {
 
     expect(saveMock).toHaveBeenCalledWith(
       url,
-      expect.objectContaining({data: {...autoTopUp, enabled: false}})
+      expect.objectContaining({data: savedSettings({...autoTopUp, enabled: false})})
     );
   });
 
   it('leaves out the expiry date when there is none', async () => {
+    openAutoTopUpModal({
+      autoTopUp: AutoTopUpFixture({enabled: true}),
+      purchasedRemaining: 1200,
+    });
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn off auto-reload'})
+    );
+
+    expect(
+      screen.getByText(
+        'Your 1,200 purchased credits will remain. When they run out, Seer pauses until your included credits reset.'
+      )
+    ).toBeInTheDocument();
+  });
+
+  it('leaves out purchased credits when none remain', async () => {
     openAutoTopUpModal({autoTopUp: AutoTopUpFixture({enabled: true})});
 
     await userEvent.click(
@@ -231,7 +419,7 @@ describe('openSeerAutoTopUpModal', () => {
 
     expect(
       screen.getByText(
-        'Your balance will remain. When it runs out, Seer pauses until your included credits reset.'
+        'When your included credits run out, Seer pauses until they reset.'
       )
     ).toBeInTheDocument();
   });
@@ -241,18 +429,283 @@ describe('openSeerAutoTopUpModal', () => {
       url,
       method: 'PUT',
       statusCode: 400,
+      body: {topUpCredits: ['Ensure this value is greater than or equal to 1.']},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByText('Ensure this value is greater than or equal to 1.')
+    ).toBeInTheDocument();
+  });
+
+  it('verifies the first auto-reload charge with the bank', async () => {
+    const walletMock = MockApiClient.addMockResponse({
+      url: walletUrl,
       body: {
-        dailySpendCapCents: ['The daily spending cap must cover at least one top-up.'],
+        balance: 0,
+        creditPriceCents: 1,
+        percentUsed: 1,
+        included: {total: 500, remaining: 0, resetsAt: null},
+        purchased: {total: 0, remaining: 0, expiresAt: null},
+      },
+    });
+    const autoTopUpMock = MockApiClient.addMockResponse({url, body: AutoTopUpFixture()});
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    const confirmMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+    renderGlobalModal({organization});
+    act(() => openSeerAutoTopUpModal({organization}));
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    // Auto-reload stays off until the refill is paid, so the settings go again.
+    const resendMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/payments/invoice-guid/confirm/`,
+      expect.objectContaining({data: {paymentIntentId: 'test-payment'}})
+    );
+    expect(await screen.findByText('Auto-reload turned on')).toBeInTheDocument();
+    expect(resendMock).toHaveBeenCalledWith(
+      url,
+      expect.objectContaining({
+        data: expect.objectContaining({enabled: true, topUpCredits: 1500}),
+      })
+    );
+    expect(walletMock).toHaveBeenCalledTimes(3);
+    expect(autoTopUpMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('pays an earlier unpaid refill before turning auto-reload on', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/new/`,
+      body: {
+        amount: '1500',
+        clientSecret: 'pi_secret',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_123',
+        requiresAction: true,
+      },
+    });
+    const confirmMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/confirm/`,
+      method: 'POST',
+      body: {paid: true},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByText('Pay your last Seer credit purchase to turn on auto-load.')
+    ).toBeInTheDocument();
+
+    const resendMock = MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      body: AutoTopUpFixture({enabled: true, topUpCredits: 1500}),
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(confirmMock).toHaveBeenCalledWith(
+      `/organizations/${organization.slug}/payments/pending-guid/confirm/`,
+      expect.objectContaining({data: {paymentIntentId: 'test-payment'}})
+    );
+    expect(await screen.findByText('Auto-reload turned on')).toBeInTheDocument();
+    expect(resendMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('returns to the entered settings when the earlier refill cannot be paid', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    const intentMock = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/payments/pending-guid/new/`,
+      statusCode: 400,
+      body: {detail: 'No payment method on file.'},
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+
+    expect(await screen.findByText('No payment method on file.')).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('requests the payment again after a refetch failed', async () => {
+    const intentUrl = `/organizations/${organization.slug}/payments/pending-guid/new/`;
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        detail: 'Pay your last Seer credit purchase to turn on auto-load.',
+        invoiceId: 3,
+        invoiceGuid: 'pending-guid',
+      },
+    });
+    // The bank check fails, which makes the payment form refetch the intent.
+    MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'ERROR',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_1',
+        requiresAction: true,
       },
     });
     openAutoTopUpModal();
 
     await userEvent.click(
-      await screen.findByRole('button', {name: 'Turn on and pay $10.00 + tax'})
+      await screen.findByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+    const conflictMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      statusCode: 409,
+      body: {detail: 'A payment attempt for this invoice is already in progress.'},
+    });
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
     );
 
     expect(
-      await screen.findByText('The daily spending cap must cover at least one top-up.')
+      await screen.findByText(
+        'A payment attempt for this invoice is already in progress.'
+      )
+    ).toBeInTheDocument();
+    expect(conflictMock).toHaveBeenCalledTimes(1);
+
+    const intentMock = MockApiClient.addMockResponse({
+      url: intentUrl,
+      body: {
+        amount: '1500',
+        clientSecret: 'pi_secret',
+        currency: 'usd',
+        returnUrl: 'https://example.com/',
+        paymentIntentId: 'pi_2',
+        requiresAction: true,
+      },
+    });
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $15.00 + tax'})
+    );
+
+    expect(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    ).toBeInTheDocument();
+    expect(intentMock).toHaveBeenCalledTimes(1);
+    expect(
+      screen.queryByText('A payment attempt for this invoice is already in progress.')
+    ).not.toBeInTheDocument();
+  });
+
+  it('returns to the entered settings when bank verification fails', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {required: true, paymentIntentId: 'pi_123', clientSecret: 'ERROR'},
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Verify with your bank'})
+    );
+
+    expect(await screen.findByText(/authentication failed/)).toBeInTheDocument();
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    ).toBeInTheDocument();
+  });
+
+  it('returns to the entered settings when bank verification is cancelled', async () => {
+    MockApiClient.addMockResponse({
+      url,
+      method: 'PUT',
+      statusCode: 402,
+      body: {
+        invoiceGuid: 'invoice-guid',
+        verification: {
+          required: true,
+          paymentIntentId: 'pi_123',
+          clientSecret: 'pi_secret',
+        },
+      },
+    });
+    openAutoTopUpModal();
+
+    await userEvent.click(await screen.findByRole('radio', {name: '$25 2,500 credits'}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
+    );
+    await userEvent.click(await screen.findByRole('button', {name: 'Cancel'}));
+
+    expect(screen.getByRole('radio', {name: '$25 2,500 credits'})).toBeChecked();
+    expect(
+      screen.getByRole('button', {name: 'Turn on and pay $25.00 + tax'})
     ).toBeInTheDocument();
   });
 

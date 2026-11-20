@@ -28,9 +28,7 @@ describe('OrganizationTeamProjects', () => {
   const organization = OrganizationFixture({slug: 'org-slug'});
 
   const initialRouterConfig = {
-    location: {
-      pathname: `/settings/${organization.slug}/teams/${team.slug}/projects/`,
-    },
+    location: {pathname: `/settings/${organization.slug}/teams/${team.slug}/projects/`},
     route: '/settings/:orgId/teams/:teamId/projects/',
   };
 
@@ -112,9 +110,7 @@ describe('OrganizationTeamProjects', () => {
     expect(putMock).toHaveBeenCalledTimes(1);
     expect(putMock).toHaveBeenCalledWith(
       expect.any(String),
-      expect.objectContaining({
-        data: {isBookmarked: true},
-      })
+      expect.objectContaining({data: {isBookmarked: true}})
     );
   });
 
@@ -163,7 +159,7 @@ describe('OrganizationTeamProjects', () => {
 
     await userEvent.click(await screen.findByText('Add Project'));
 
-    await userEvent.type(screen.getByRole('textbox'), 'a');
+    await userEvent.type(screen.getByRole('searchbox'), 'a');
 
     expect(filteredMock).toHaveBeenCalledTimes(1);
   });

@@ -11,9 +11,7 @@ export function ImageFixture(params: Partial<Image> = {}): Image {
     candidates: [
       {
         location: '',
-        download: {
-          status: CandidateDownloadStatus.NOT_FOUND,
-        },
+        download: {status: CandidateDownloadStatus.NOT_FOUND},
         source: 'sentry:microsoft',
         source_name: 'Microsoft',
       },
@@ -33,25 +31,19 @@ export function ImageFixture(params: Partial<Image> = {}): Image {
         source_name: 'Sentry',
       },
       {
-        download: {
-          status: CandidateDownloadStatus.MALFORMED,
-        },
+        download: {status: CandidateDownloadStatus.MALFORMED},
         location: 'burgenland',
         source_name: 'Austria',
         source: 'sentry://project_debug_file/18',
       },
       {
-        download: {
-          status: CandidateDownloadStatus.MALFORMED,
-        },
+        download: {status: CandidateDownloadStatus.MALFORMED},
         location: 'brussels',
         source: 'sentry://project_debug_file/19',
         source_name: 'Belgium',
       },
       {
-        download: {
-          status: CandidateDownloadStatus.ERROR,
-        },
+        download: {status: CandidateDownloadStatus.ERROR},
         location: 'arizona',
         source: 'sentry://project_debug_file/20',
         source_name: 'America',

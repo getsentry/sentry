@@ -65,10 +65,7 @@ import {titleCase} from 'getsentry/utils/titleCase';
 
 type CustomerUpdateAction = (data: Record<string, unknown>) => Promise<unknown>;
 
-type SubscriptionSummaryProps = {
-  customer: Subscription;
-  onAction: CustomerUpdateAction;
-};
+type SubscriptionSummaryProps = {customer: Subscription; onAction: CustomerUpdateAction};
 
 function SoftCapTypeDetail({
   categories,
@@ -168,9 +165,7 @@ function SubscriptionSummary({customer, onAction}: SubscriptionSummaryProps) {
   );
 }
 
-type ReservedDataProps = {
-  customer: Subscription;
-};
+type ReservedDataProps = {customer: Subscription};
 
 function ReservedData({customer}: ReservedDataProps) {
   const reservedBudgetMetricHistories: Record<string, ReservedBudgetMetricHistory> = {};
@@ -412,9 +407,7 @@ function SeerPlanSummary({customer}: {customer: Subscription}) {
   );
 }
 
-type OnDemandSummaryProps = {
-  customer: Subscription;
-};
+type OnDemandSummaryProps = {customer: Subscription};
 
 function OnDemandSummary({customer}: OnDemandSummaryProps) {
   const onDemandPeriod = `${moment(customer.onDemandPeriodStart).format('ll')} › ${moment(
@@ -440,10 +433,7 @@ function OnDemandSummary({customer}: OnDemandSummaryProps) {
             return (
               <Fragment key={`test-ondemand-${category}`}>
                 <small>
-                  {`${getPlanCategoryName({
-                    plan: customer.planDetails,
-                    category,
-                  })}: `}
+                  {`${getPlanCategoryName({plan: customer.planDetails, category})}: `}
                   {`${displayPriceWithCents({
                     cents: onDemandBudgets.usedSpends[category] ?? 0,
                   })} / ${displayPriceWithCents({
@@ -566,12 +556,10 @@ function DynamicSampling({organization}: {organization: Organization}) {
   const dynamicSamplingEnabled = organization.features?.includes('dynamic-sampling');
 
   const {data, isPending, isError} = useQuery({
-    ...apiOptions.as<{
-      eapEffectiveSampleRate: number | null;
-    }>()('/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/', {
-      path: {organizationIdOrSlug: organization.slug},
-      staleTime: Infinity,
-    }),
+    ...apiOptions.as<{eapEffectiveSampleRate: number | null}>()(
+      '/organizations/$organizationIdOrSlug/sampling/effective-sample-rate/',
+      {path: {organizationIdOrSlug: organization.slug}, staleTime: Infinity}
+    ),
     enabled: dynamicSamplingEnabled,
   });
 
@@ -811,9 +799,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 
   const updateCustomerStatus = (action: string) => {
-    const data = {
-      [action]: true,
-    };
+    const data = {[action]: true};
 
     runAction(data);
   };
@@ -1114,11 +1100,7 @@ export function CustomerOverview({customer, onAction, organization}: Props) {
   );
 }
 
-type ThresholdLabelProps = {
-  children: React.ReactNode;
-  label: string;
-  positive: boolean;
-};
+type ThresholdLabelProps = {children: React.ReactNode; label: string; positive: boolean};
 
 function ThresholdLabel({label, positive, children}: ThresholdLabelProps) {
   return (

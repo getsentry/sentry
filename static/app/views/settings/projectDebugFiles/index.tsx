@@ -17,6 +17,8 @@ import {t} from 'sentry/locale';
 import type {BuiltinSymbolSource, CustomRepo, DebugFile} from 'sentry/types/debugFiles';
 import {apiOptions, selectJsonWithHeaders} from 'sentry/utils/api/apiOptions';
 import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
+import {getPaginationProps} from 'sentry/utils/pagination';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {routeTitleGen} from 'sentry/utils/routeTitle';
 import {useApi} from 'sentry/utils/useApi';
@@ -59,11 +61,7 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingDebugFiles,
     isLoadingError: isLoadingErrorDebugFiles,
     refetch: refetchDebugFiles,
-  } = useQuery({
-    ...debugFilesApiOptions,
-    select: selectJsonWithHeaders,
-    retry: false,
-  });
+  } = useQuery({...debugFilesApiOptions, select: selectJsonWithHeaders, retry: false});
 
   const debugFiles = debugFilesResponse?.json;
 
@@ -81,10 +79,7 @@ export default function ProjectDebugSymbols() {
     isPending: isLoadingSymbolSources,
     isError: isErrorSymbolSources,
     refetch: refetchSymbolSources,
-  } = useQuery({
-    ...symbolSourcesOptions,
-    retry: 0,
-  });
+  } = useQuery({...symbolSourcesOptions, retry: 0});
 
   const handleSearch = useCallback(
     (value: string) => {
@@ -97,14 +92,9 @@ export default function ProjectDebugSymbols() {
     mutationFn: (id: string) => {
       return api.requestPromise(
         `${getApiUrl('/projects/$organizationIdOrSlug/$projectIdOrSlug/files/dsyms/', {
-          path: {
-            organizationIdOrSlug: organization.slug,
-            projectIdOrSlug: project.slug,
-          },
+          path: {organizationIdOrSlug: organization.slug, projectIdOrSlug: project.slug},
         })}?id=${id}`,
-        {
-          method: 'DELETE',
-        }
+        {method: 'DELETE'}
       );
     },
     onMutate: () => {
@@ -114,14 +104,10 @@ export default function ProjectDebugSymbols() {
       toast.success('Successfully deleted debug file');
 
       // invalidate debug files query
-      queryClient.invalidateQueries({
-        queryKey: debugFilesApiOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: debugFilesApiOptions.queryKey});
 
       // invalidate symbol sources query
-      queryClient.invalidateQueries({
-        queryKey: symbolSourcesOptions.queryKey,
-      });
+      queryClient.invalidateQueries({queryKey: symbolSourcesOptions.queryKey});
     },
     onError: () => {
       toast.error('Failed to delete debug file');
@@ -225,7 +211,9 @@ export default function ProjectDebugSymbols() {
             )}
             {debugFiles?.length
               ? debugFiles.map(debugFile => {
-                  const downloadUrl = `${api.baseUrl}/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`;
+                  const downloadUrl = resolveHostname(
+                    `/api/0/projects/${organization.slug}/${project.slug}/files/dsyms/?id=${debugFile.id}`
+                  );
 
                   return (
                     <DebugFileRow
@@ -241,7 +229,7 @@ export default function ProjectDebugSymbols() {
                 })
               : null}
           </StyledSimpleTable>
-          <Pagination pageLinks={debugFilesResponse?.headers.Link} />
+          <Pagination {...getPaginationProps(debugFilesResponse?.headers.Link)} />
         </Fragment>
       )}
     </SentryDocumentTitle>

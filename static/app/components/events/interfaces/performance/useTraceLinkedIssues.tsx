@@ -8,7 +8,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export const TRACE_ISSUES_STATS_PERIOD = '90d';
 export const TRACE_ISSUES_STALE_TIME = 60_000;
 
-export function useTraceLinkedIssues({event}: {event: Event}) {
+export function useTraceLinkedIssues({
+  event,
+  enabled = true,
+}: {
+  event: Event;
+  enabled?: boolean;
+}) {
   const organization = useOrganization();
   const traceId = event.contexts.trace?.trace_id;
   const currentIssueId = event.groupID;
@@ -25,7 +31,7 @@ export function useTraceLinkedIssues({event}: {event: Event}) {
   };
   const {data, isError, isPending} = useQuery({
     ...apiOptions.as<Group[]>()('/organizations/$organizationIdOrSlug/issues/', {
-      path: query ? {organizationIdOrSlug: organization.slug} : skipToken,
+      path: query && enabled ? {organizationIdOrSlug: organization.slug} : skipToken,
       query: queryParams,
       staleTime: TRACE_ISSUES_STALE_TIME,
     }),
@@ -36,7 +42,8 @@ export function useTraceLinkedIssues({event}: {event: Event}) {
   return {
     groups,
     isError,
-    isPending,
+    // A skipped query stays pending forever, but there is nothing to wait for.
+    isPending: isPending && enabled && !!query,
     query,
     queryParams,
     totalHits: data?.headers['X-Hits'] ?? groups.length,
