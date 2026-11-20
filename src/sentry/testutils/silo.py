@@ -11,7 +11,7 @@ import typing
 from collections.abc import Callable, Collection, Generator, Iterable, Mapping, MutableSet, Sequence
 from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
-from typing import Any, Literal, cast, overload
+from typing import Any, Literal, overload
 from unittest import TestCase
 
 import pytest
@@ -267,7 +267,7 @@ class _SiloModeTestModification:
         name = test_class.__name__ + name_suffix
         new_class = type(name, (test_class,), new_methods)
         setattr(new_class, silo_mode_attr, (new_class, silo_mode))
-        return cast(type[TestCase], new_class)
+        return new_class
 
     def _arrange_silo_modes(self) -> tuple[SiloMode, Collection[SiloMode]]:
         """Select which silo modes will be tested by the original and dynamic classes.
@@ -316,10 +316,7 @@ class _SiloModeTestModification:
             new_sig = orig_sig.replace(parameters=new_params)
             new_test_method.__setattr__("__signature__", new_sig)
 
-        return cast(
-            "Callable[..., None]",
-            pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method),
-        )
+        return pytest.mark.parametrize("silo_mode", sorted(self.silo_modes))(new_test_method)
 
     def apply(self, decorated_obj: Any) -> Any:
         is_test_case_class = isinstance(decorated_obj, type) and issubclass(decorated_obj, TestCase)

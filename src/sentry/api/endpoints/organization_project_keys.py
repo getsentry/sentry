@@ -1,5 +1,3 @@
-from typing import cast
-
 from django.db.models import F
 from drf_spectacular.utils import OpenApiExample, extend_schema, inline_serializer
 from rest_framework import serializers
@@ -137,10 +135,7 @@ class OrganizationProjectKeysEndpoint(OrganizationEndpoint):
                 project = projects_by_id[key.project_id]
                 project.set_cached_field_value("organization", organization)
                 key.set_cached_field_value("project", project)
-            return cast(
-                "list[ProjectKeySerializerResponse]",
-                serialize(keys, request.user, request=request),
-            )
+            return serialize(keys, request.user, request=request)
 
         return self.paginate(
             request=request,

@@ -710,9 +710,7 @@ class MonitorDataSourceValidator(BaseDataSourceValidator[Monitor]):
     def update(self, instance: Monitor, validated_data: dict[str, Any]) -> Monitor:
         monitor_validator = validated_data.pop("_monitor_validator")
         with in_test_hide_transaction_boundary():
-            return cast(
-                "Monitor", monitor_validator.update(instance, monitor_validator.validated_data)
-            )
+            return monitor_validator.update(instance, monitor_validator.validated_data)
 
 
 class MonitorDataSourceListField(serializers.ListField):

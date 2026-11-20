@@ -59,7 +59,7 @@ def resolve_project_threshold_config(
     project_threshold_config_keys = []
     project_threshold_config_values = []
     for project_id, metric in project_threshold_configs:
-        project_id = cast(int, project_id)
+        project_id = project_id
         metric = TRANSACTION_METRICS[cast(int, metric)]
         if metric == constants.DEFAULT_PROJECT_THRESHOLD_METRIC:
             # small optimization, if the configuration is equal to the default,

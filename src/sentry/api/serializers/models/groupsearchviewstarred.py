@@ -9,7 +9,6 @@ from sentry.api.serializers.models.groupsearchview import (
     GroupSearchViewSerializerResponse,
 )
 from sentry.models.groupsearchviewstarred import GroupSearchViewStarred
-from sentry.models.organization import Organization
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -19,7 +18,7 @@ GroupSearchViewStarredSerializerResponse = GroupSearchViewSerializerResponse
 @register(GroupSearchViewStarred)
 class GroupSearchViewStarredSerializer(Serializer[GroupSearchViewStarredSerializerResponse]):
     def __init__(self, *args: object, **kwargs: object) -> None:
-        self.organization = cast(Organization | None, kwargs.pop("organization", None))
+        self.organization = kwargs.pop("organization", None)
         super().__init__(*args, **kwargs)
 
     def get_attrs(
