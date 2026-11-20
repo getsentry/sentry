@@ -242,26 +242,6 @@ class BaseTSDB(Service):
 
         return rollup, series[::-1]
 
-    def get_active_series(
-        self,
-        start: datetime | None = None,
-        end: datetime | None = None,
-        timestamp: datetime | None = None,
-    ) -> dict[int, list[datetime]]:
-        rollups: dict[int, list[datetime]] = {}
-        for rollup, samples in self.rollups.items():
-            _, series = self.get_optimal_rollup_series(
-                (
-                    start
-                    if start is not None
-                    else to_datetime(self.get_earliest_timestamp(rollup, timestamp=timestamp))
-                ),
-                end,
-                rollup=rollup,
-            )
-            rollups[rollup] = [to_datetime(item) for item in series]
-        return rollups
-
     def make_series(
         self,
         default: int | Callable[[int], int],
@@ -274,17 +254,6 @@ class BaseTSDB(Service):
             (timestamp, f(timestamp))
             for timestamp in self.get_optimal_rollup_series(start, end, rollup)[1]
         ]
-
-    def calculate_expiry(self, rollup: int, samples: int, timestamp: datetime) -> int:
-        """
-        Calculate the expiration time for a rollup.
-
-        :param rollup: rollup interval (in seconds)
-        :param samples: number of samples to maintain
-        :param timestamp: datetime used to calculate the rollup epoch
-        """
-        epoch = self.normalize_to_epoch(timestamp, rollup)
-        return epoch + (rollup * samples)
 
     def get_earliest_timestamp(self, rollup: int, timestamp: datetime | None = None) -> int:
         """
