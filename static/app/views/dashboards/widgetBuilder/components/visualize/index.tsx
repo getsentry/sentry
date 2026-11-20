@@ -65,6 +65,7 @@ import {
 import {
   getAggregateKey,
   getUnifiedTraceMetricRows,
+  hasDuplicateAggregate,
   isAggregateReferenced,
   replaceAggregateInEquations,
   type HiddenTraceMetricRow as HiddenTraceMetricRowData,
@@ -519,9 +520,12 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
     const currentFields = fields ?? [];
     const previousField = currentFields[index];
     let nextFields = currentFields.map((f, i) => (i === index ? nextField : f));
+    // Equations refer to aggregates by value, so they only need rewriting when
+    // this row was the last visible one with that aggregate.
     if (
       previousField?.kind === FieldValueKind.FUNCTION &&
-      nextField.kind === FieldValueKind.FUNCTION
+      nextField.kind === FieldValueKind.FUNCTION &&
+      !hasDuplicateAggregate(currentFields, index, generateFieldAsString(previousField))
     ) {
       nextFields = replaceAggregateInEquations(
         nextFields,

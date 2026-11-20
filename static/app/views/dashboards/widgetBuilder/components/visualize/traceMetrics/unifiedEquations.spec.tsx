@@ -4,8 +4,10 @@ import {
   getAggregateKey,
   getEquationAggregates,
   getUnifiedTraceMetricRows,
+  hasDuplicateAggregate,
   isAggregateReferenced,
   replaceAggregateInEquations,
+  unresolveEquationWithDuplicates,
 } from './unifiedEquations';
 
 const SUM_FOO = 'sum(value,foo,counter,none)';
@@ -112,6 +114,34 @@ describe('unifiedEquations', () => {
       const rows = getUnifiedTraceMetricRows(fields);
       expect(isAggregateReferenced(rows.referencedKeys, fields[0]!)).toBe(true);
       expect(isAggregateReferenced(rows.referencedKeys, fields[1]!)).toBe(false);
+    });
+  });
+
+  describe('unresolveEquationWithDuplicates', () => {
+    it('gives repeated uses of a shared aggregate distinct letters', () => {
+      const referenceMap = {A: SUM_FOO, B: SUM_FOO, C: SUM_BAR};
+
+      expect(
+        unresolveEquationWithDuplicates(`${SUM_FOO} + ${SUM_FOO}`, referenceMap)
+      ).toBe('A + B');
+      expect(unresolveEquationWithDuplicates(`${SUM_BAR} * 2`, referenceMap)).toBe(
+        'C * 2'
+      );
+    });
+
+    it('leaves functions without a row as text', () => {
+      expect(unresolveEquationWithDuplicates('performance_score() * 100', {})).toBe(
+        'performance_score() * 100'
+      );
+    });
+  });
+
+  describe('hasDuplicateAggregate', () => {
+    it('finds the same aggregate on another row', () => {
+      const fields = [fn(SUM_FOO), fn(SUM_FOO), fn(SUM_BAR)];
+
+      expect(hasDuplicateAggregate(fields, 0, SUM_FOO)).toBe(true);
+      expect(hasDuplicateAggregate(fields, 2, SUM_BAR)).toBe(false);
     });
   });
 
