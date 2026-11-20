@@ -1159,7 +1159,6 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         widget_errors: list[dict[str, Any]] = [{} for _ in widgets]
         for widget_index, widget in enumerate(widgets):
             queries = widget.get("queries", [])
-            queries = queries
             query_errors: list[dict[str, Any] | list[Any]] = [{} for _ in queries]
             for query_index, data in enumerate(queries):
                 if "aggregates" not in data and "transformations" not in data:
