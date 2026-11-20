@@ -1,7 +1,7 @@
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {HydratedReplayRecord} from 'sentry/views/explore/replays/types';
-import type {TracePreferencesState} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
+import type {TraceTreePreferences} from 'sentry/views/performance/traceDetails/traceState/tracePreferences';
 
 import type {BaseNode} from './traceTreeNode/baseNode';
 import {CollapsedNode} from './traceTreeNode/collapsedNode';
@@ -38,7 +38,7 @@ export class IssuesTraceTree extends TraceTree {
     options: {
       organization: Organization;
       replay: HydratedReplayRecord | null;
-      preferences?: Pick<TracePreferencesState, 'autogroup' | 'missing_instrumentation'>;
+      preferences?: TraceTreePreferences;
     }
   ): IssuesTraceTree {
     const baseTree = super.FromTrace(trace, options);

@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import type {Placement} from '@floating-ui/react-dom';
 import {IconSettings} from '@sentry/icons/settings';
 
@@ -11,7 +11,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import type {Project} from 'sentry/types/project';
 import {getAttributeValue} from 'sentry/utils/fields/getAttributeValue';
 import {useOrganization} from 'sentry/utils/useOrganization';
@@ -26,9 +26,15 @@ import {TraceShortcutsModal} from './traceShortcutsModal';
 
 interface TracePreferencesDropdownProps {
   autogroup: boolean;
+  clockDriftCorrection: boolean;
+  /**
+   * How many server spans in the trace are currently shifted.
+   */
+  clockDriftCorrectionCount: number;
   compressedTimeline: boolean;
   missingInstrumentation: boolean;
   onAutogroupChange: () => void;
+  onClockDriftCorrectionChange: () => void;
   onCompressedTimelineChange: () => void;
   onMissingInstrumentationChange: () => void;
   rootEventResults: TraceRootEventQueryResults;
@@ -68,6 +74,29 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
       value: 'compressed-timeline',
       details: t('Collapses long inactive gaps in the waterfall timeline.'),
     },
+    {
+      label: t('Clock Drift Correction'),
+      value: 'clock-drift-correction',
+      details: (
+        <Fragment>
+          {t(
+            'Shifts server spans into the client requests that made them, when the clocks of the client and the server disagree.'
+          )}
+          {props.clockDriftCorrectionCount > 0 && (
+            <Fragment>
+              {' '}
+              <strong>
+                {tn(
+                  'Adjusted %s span in this trace.',
+                  'Adjusted %s spans in this trace.',
+                  props.clockDriftCorrectionCount
+                )}
+              </strong>
+            </Fragment>
+          )}
+        </Fragment>
+      ),
+    },
   ];
 
   const values = useMemo(() => {
@@ -81,8 +110,16 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
     if (props.compressedTimeline) {
       value.push('compressed-timeline');
     }
+    if (props.clockDriftCorrection) {
+      value.push('clock-drift-correction');
+    }
     return value;
-  }, [props.autogroup, props.compressedTimeline, props.missingInstrumentation]);
+  }, [
+    props.autogroup,
+    props.clockDriftCorrection,
+    props.compressedTimeline,
+    props.missingInstrumentation,
+  ]);
 
   const fallbackPlacements = props.fallbackPlacements;
   const flipOptions = useMemo(
@@ -93,6 +130,7 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
   const onAutogroupChange = props.onAutogroupChange;
   const onMissingInstrumentationChange = props.onMissingInstrumentationChange;
   const onCompressedTimelineChange = props.onCompressedTimelineChange;
+  const onClockDriftCorrectionChange = props.onClockDriftCorrectionChange;
 
   const onChange = useCallback(
     (newValues: Array<SelectOption<string>>) => {
@@ -109,6 +147,9 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (newOption === 'compressed-timeline') {
           onCompressedTimelineChange();
         }
+        if (newOption === 'clock-drift-correction') {
+          onClockDriftCorrectionChange();
+        }
       }
 
       if (values.length > newValuesArray.length) {
@@ -122,11 +163,15 @@ export function TracePreferencesDropdown(props: TracePreferencesDropdownProps) {
         if (removedOption === 'compressed-timeline') {
           onCompressedTimelineChange();
         }
+        if (removedOption === 'clock-drift-correction') {
+          onClockDriftCorrectionChange();
+        }
       }
     },
     [
       values,
       onAutogroupChange,
+      onClockDriftCorrectionChange,
       onCompressedTimelineChange,
       onMissingInstrumentationChange,
     ]

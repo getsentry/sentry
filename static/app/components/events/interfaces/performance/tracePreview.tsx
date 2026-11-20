@@ -43,6 +43,7 @@ const DEFAULT_ISSUE_DETAILS_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   missing_instrumentation: true,
   autogroup: {parent: true, sibling: true},
   compressed_timeline: false,
+  clock_drift_correction: true,
   layout: 'drawer bottom',
   list: {width: 0.5},
 };
