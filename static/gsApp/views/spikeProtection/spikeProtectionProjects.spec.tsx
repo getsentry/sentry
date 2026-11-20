@@ -48,10 +48,7 @@ describe('project renders and toggles', () => {
 
     const newData = initializeOrg({
       projects,
-      organization: {
-        openMembership: true,
-        access: ['org:write'],
-      },
+      organization: {openMembership: true, access: ['org:write']},
     });
     organization = newData.organization;
     SubscriptionStore.set(organization.slug, SubscriptionFixture({organization}));
@@ -385,9 +382,7 @@ describe('project renders and toggles', () => {
       expect(ProjectsStore.onUpdateSuccess).toHaveBeenCalledWith(
         expect.objectContaining({
           id: project.id,
-          options: expect.objectContaining({
-            [SPIKE_PROTECTION_OPTION_DISABLED]: false,
-          }),
+          options: expect.objectContaining({[SPIKE_PROTECTION_OPTION_DISABLED]: false}),
         })
       );
     });

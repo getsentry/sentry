@@ -13,6 +13,7 @@ from sentry.api.utils import handle_query_errors
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import is_equation
 from sentry.explore.models import ExploreSavedQueryDataset
+from sentry.search.eap.constants import QueryPriorities
 from sentry.utils.dates import parse_stats_period, validate_interval
 
 MAX_CROSS_EVENT_QUERIES = 2
@@ -70,6 +71,7 @@ class ExploreSavedQueryInput(TypedDict):
     crossEvents: NotRequired[list[CrossEventData] | None]
     agent: NotRequired[list[str] | None]
     errorsOnly: NotRequired[bool | None]
+    queryPriority: NotRequired[int | None]
 
 
 class ExploreSavedQueryValidatedData(TypedDict):
@@ -77,6 +79,7 @@ class ExploreSavedQueryValidatedData(TypedDict):
     project_ids: list[int] | set[int]
     query: dict[str, object]
     dataset: int
+    query_priority: NotRequired[int | None]
 
 
 class VisualizeSerializer(serializers.Serializer):
@@ -315,6 +318,12 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
         min_length=1,
         help_text="The Explore query definitions to save.",
     )
+    queryPriority = serializers.ChoiceField(
+        choices=QueryPriorities.as_text_choices(),
+        required=False,
+        allow_null=True,
+        help_text="The query priority. Supported values: `normal`, `faster`.",
+    )
 
     def validate_projects(self, projects: list[int]) -> set[int]:
         from sentry.api.validators import validate_project_ids
@@ -431,9 +440,20 @@ class ExploreSavedQuerySerializer(serializers.Serializer[object, ExploreSavedQue
 
         dataset = cast(int, ExploreSavedQueryDataset.get_id_for_type_name(data["dataset"]))
 
-        return {
+        validated: ExploreSavedQueryValidatedData = {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
             "dataset": dataset,
         }
+        if "queryPriority" in data:
+            validated["query_priority"] = data["queryPriority"]
+        return validated
+
+    def validate_queryPriority(self, query_priority: str | None) -> int | None:
+        if query_priority is None:
+            return None
+        priority = QueryPriorities.get_id_for_type_name(query_priority)
+        if priority is None:
+            raise ValidationError("Unknown query priority.")
+        return priority

@@ -35,6 +35,7 @@ from sentry.replays.usecases.query import (
     make_full_aggregation_query,
     query_using_optimized_search,
 )
+from sentry.replays.usecases.query.conditions.ip_address import IP_ADDRESS_TEXT
 from sentry.search.events.types import SnubaParams
 from sentry.snuba.utils import get_dataset
 from sentry.types.actor import Actor
@@ -864,8 +865,16 @@ QUERY_ALIAS_COLUMN_MAP = {
     "user_email": anyIf(column_name="user_email"),
     "user_username": anyIf(column_name="user_name", alias="user_username"),
     "user_ip": Function(
-        "IPv4NumToString",
-        parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
+        "coalesce",
+        parameters=[
+            Function(
+                "IPv4NumToString",
+                parameters=[anyIfNonZeroIP(column_name="ip_address_v4", aliased=False)],
+            ),
+            # Not anyIfNonZeroIP: ClickHouse can't compare IPv6 with 0, and any() already skips
+            # the NULLs that ingestion writes when a row has no IPv6 address.
+            Function("IPv6NumToString", parameters=[Function("any", [Column("ip_address_v6")])]),
+        ],
         alias="user_ip",
     ),
     "user_geo_city": anyIf(column_name="user_geo_city"),
@@ -949,10 +958,7 @@ TAG_QUERY_ALIAS_COLUMN_MAP = {
     "user.id": Column("user_id"),
     "user.username": Column("user_name"),
     "user.email": Column("user_email"),
-    "user.ip": Function(
-        "IPv4NumToString",
-        parameters=[Column("ip_address_v4")],
-    ),
+    "user.ip": IP_ADDRESS_TEXT,
     "sdk.name": Column("sdk_name"),
     "sdk.version": Column("sdk_version"),
     "os.name": Column("os_name"),

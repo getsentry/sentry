@@ -7,18 +7,13 @@ import type {SnapshotDetailsApiResponse} from 'sentry/views/preprod/types/snapsh
 
 export const useSnapShotApiOptions = () => {
   const organization = useOrganization();
-  const {snapshotId} = useParams<{
-    snapshotId: string;
-  }>();
+  const {snapshotId} = useParams<{snapshotId: string}>();
 
   return apiOptions.as<SnapshotDetailsApiResponse>()(
     '/organizations/$organizationIdOrSlug/preprodartifacts/snapshots/$snapshotId/',
     {
       path: snapshotId
-        ? {
-            organizationIdOrSlug: organization.slug,
-            snapshotId,
-          }
+        ? {organizationIdOrSlug: organization.slug, snapshotId}
         : skipToken,
       staleTime: 0,
     }

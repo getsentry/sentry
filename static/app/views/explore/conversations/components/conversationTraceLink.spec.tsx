@@ -9,11 +9,11 @@ import type {ConversationTrace} from './conversationTraceLink';
 import {ConversationTraceLink} from './conversationTraceLink';
 
 describe('ConversationTraceLink', () => {
-  const organization = OrganizationFixture();
-
-  afterEach(() => {
+  beforeEach(() => {
     PageFiltersStore.reset();
   });
+
+  const organization = OrganizationFixture();
 
   function makeTraces(count: number): ConversationTrace[] {
     return Array.from({length: count}, (_, index) => ({
@@ -70,9 +70,7 @@ describe('ConversationTraceLink', () => {
 
   it('falls back to the page date range when a trace has no timestamp', () => {
     PageFiltersStore.onInitializeUrlState(
-      PageFiltersFixture({
-        datetime: {period: '30d', start: null, end: null, utc: null},
-      })
+      PageFiltersFixture({datetime: {period: '30d', start: null, end: null, utc: null}})
     );
 
     render(

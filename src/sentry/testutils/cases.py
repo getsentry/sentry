@@ -205,6 +205,7 @@ if TYPE_CHECKING:
     from sentry.models.releaseheadcommit import ReleaseHeadCommit
     from sentry.models.team import Team
     from sentry.replays.lib.event_linking import EventLinkKafkaMessage
+    from sentry.testutils.pytest.savepoints import SavepointUsage
     from sentry.testutils.pytest.stale_database_reads import StaleDatabaseReads
     from sentry.users.services.user import RpcUser
 
@@ -280,6 +281,10 @@ class BaseTestCase(Fixtures):
     @pytest.fixture(autouse=True)
     def expose_stale_database_reads(self, stale_database_reads: StaleDatabaseReads) -> None:
         self.stale_database_reads = stale_database_reads
+
+    @pytest.fixture(autouse=True)
+    def expose_savepoint_usage(self, savepoint_usage: SavepointUsage) -> None:
+        self.savepoint_usage = savepoint_usage
 
     def feature(
         self, names: str | Iterable[str] | dict[str, bool | list[str]]

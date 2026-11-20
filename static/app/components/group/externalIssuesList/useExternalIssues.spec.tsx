@@ -6,6 +6,7 @@ import {act, renderHookWithProviders, waitFor} from 'sentry-test/reactTestingLib
 
 import type {PlatformExternalIssue} from 'sentry/types/integrations';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {parseQueryKey} from 'sentry/utils/api/apiQueryKey';
 
 import {useExternalIssues} from './useExternalIssues';
 
@@ -13,10 +14,7 @@ const group = GroupFixture();
 const organization = OrganizationFixture();
 const options = apiOptions.as<PlatformExternalIssue[]>()(
   '/organizations/$organizationIdOrSlug/issues/$issueId/external-issues/',
-  {
-    path: {organizationIdOrSlug: organization.slug, issueId: group.id},
-    staleTime: 60_000,
-  }
+  {path: {organizationIdOrSlug: organization.slug, issueId: group.id}, staleTime: 60_000}
 );
 const issue: PlatformExternalIssue = {
   id: '1',
@@ -27,16 +25,13 @@ const issue: PlatformExternalIssue = {
 };
 
 function useIssuesWithClient() {
-  return {
-    issues: useExternalIssues({group, organization}),
-    client: useQueryClient(),
-  };
+  return {issues: useExternalIssues({group, organization}), client: useQueryClient()};
 }
 
 afterEach(() => MockApiClient.clearMockResponses());
 
 it('preserves metadata and cached responses when adding and deleting external issues', async () => {
-  MockApiClient.addMockResponse({url: options.queryKey[0], body: []});
+  MockApiClient.addMockResponse({url: parseQueryKey(options.queryKey).url, body: []});
   const {result} = renderHookWithProviders(useIssuesWithClient);
   await waitFor(() => expect(result.current.issues.isLoading).toBe(false));
   const previous = {json: [], headers: {Link: 'next-page'}, status: 200};
@@ -56,7 +51,7 @@ it('preserves metadata and cached responses when adding and deleting external is
 });
 
 it('does not create cache entries for external issue updates on a cache miss', async () => {
-  MockApiClient.addMockResponse({url: options.queryKey[0], body: []});
+  MockApiClient.addMockResponse({url: parseQueryKey(options.queryKey).url, body: []});
   const {result} = renderHookWithProviders(useIssuesWithClient);
   await waitFor(() => expect(result.current.issues.isLoading).toBe(false));
   act(() => {

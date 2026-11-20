@@ -10,10 +10,7 @@ function Boom(): React.ReactNode {
   throw new Error('embed exploded');
 }
 
-const ThrowingEmbed = defineSeerEmbed({
-  name: 'timestamp',
-  render: () => <Boom />,
-});
+const ThrowingEmbed = defineSeerEmbed({name: 'timestamp', render: () => <Boom />});
 
 const WorkingEmbed = defineSeerEmbed({
   name: 'timestamp',

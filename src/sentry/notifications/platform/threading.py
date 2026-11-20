@@ -168,9 +168,14 @@ class ThreadingService:
             return None
 
     @staticmethod
-    def _get_or_create_thread_with_key(
-        threading_config: ThreadingConfig, thread_key: str
-    ) -> NotificationThread:
+    def get_or_create_thread(*, threading_config: ThreadingConfig) -> NotificationThread:
+        """
+        Return the thread for the given config, creating it if it doesn't exist.
+        Unlike store_new_thread, this doesn't store a message record.
+        """
+        thread_key = ThreadingService.compute_thread_key(
+            threading_config["key_type"], threading_config["key_data"]
+        )
         thread, _created = NotificationThread.objects.get_or_create(
             thread_key=thread_key,
             provider_key=threading_config["provider_key"],
@@ -203,11 +208,8 @@ class ThreadingService:
         Returns:
             A tuple of (NotificationThread, NotificationRecord)
         """
-        thread_key = ThreadingService.compute_thread_key(
-            threading_config["key_type"], threading_config["key_data"]
-        )
         with transaction.atomic(router.db_for_write(NotificationThread)):
-            thread = ThreadingService._get_or_create_thread_with_key(threading_config, thread_key)
+            thread = ThreadingService.get_or_create_thread(threading_config=threading_config)
 
             record = NotificationRecord.objects.create(
                 thread=thread,
@@ -217,17 +219,6 @@ class ThreadingService:
             )
 
             return thread, record
-
-    @staticmethod
-    def get_or_create_thread(*, threading_config: ThreadingConfig) -> NotificationThread:
-        """
-        Return the thread for the given config, creating it if it doesn't exist.
-        Unlike store_new_thread, this doesn't store a message record.
-        """
-        thread_key = ThreadingService.compute_thread_key(
-            threading_config["key_type"], threading_config["key_data"]
-        )
-        return ThreadingService._get_or_create_thread_with_key(threading_config, thread_key)
 
     @staticmethod
     def get_threads_for_object(

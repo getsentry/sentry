@@ -31,11 +31,7 @@ export const metricsVerify = (params: DocsParams): ContentBlock => ({
         'Send test metrics from your app to verify metrics are arriving in Sentry.'
       ),
     },
-    {
-      type: 'code',
-      language: 'csharp',
-      code: METRICS_EMIT_SNIPPET,
-    },
+    {type: 'code', language: 'csharp', code: METRICS_EMIT_SNIPPET},
     {
       type: 'text',
       text: tct('For more detailed information, see the [link:metrics documentation].', {
@@ -68,9 +64,7 @@ export const metrics = ({
           type: 'text',
           text: tct(
             'Install our .NET SDK with a minimum version that supports metrics ([code:6.3.0] or higher).',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -102,25 +96,17 @@ export const metrics = ({
                 type: 'text',
                 text: tct(
                   'Metrics are enabled by default. Emit them with the [code:SentrySdk.Metrics] API:',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: METRICS_EMIT_SNIPPET,
-              },
+              {type: 'code', language: 'csharp', code: METRICS_EMIT_SNIPPET},
             ] satisfies ContentBlock[])
           : ([
               {
                 type: 'text',
                 text: tct(
                   'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Metrics] API.',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
               {

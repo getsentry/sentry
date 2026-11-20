@@ -16,7 +16,11 @@ from sentry.seer.autofix.autofix_agent import trigger_push_changes
 from sentry.seer.autofix.commit_author import SeerCommitAuthor, parse_commit_author
 from sentry.seer.autofix.constants import AutofixReferrer
 from sentry.seer.autofix.exceptions import SeerOutOfCreditsException
-from sentry.seer.autofix.feature.dispatch import AutofixFeatureArgs, trigger_autofix_feature
+from sentry.seer.autofix.feature.dispatch import (
+    AutofixFeatureArgs,
+    get_run_billing_feature,
+    trigger_autofix_feature,
+)
 from sentry.seer.autofix.feature.models import PrIterationStepArgs
 from sentry.seer.autofix.pr_iteration.current_iteration import triggered_iteration_id
 from sentry.seer.autofix.pr_iteration.emit import (
@@ -363,14 +367,6 @@ def continue_pr_iteration(
     return False
 
 
-def is_pr_feedback_turn(state: SeerRunState) -> bool:
-    for block in reversed(state.blocks):
-        step = (block.message.metadata or {}).get("step")
-        if step is not None:
-            return step == AutofixStep.PR_ITERATION.value
-    return False
-
-
 def drain_single_run_feedback_queue(
     organization: Organization, group: Group, run_id: int, state: SeerRunState
 ) -> None:
@@ -566,13 +562,14 @@ def _push_iteration_changes(
             # Never overwrite commits on the PR that Seer didn't push.
             allow_force_push=False,
         )
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         log_ctx.info("autofix.pr_iteration.push", outcome="failed", reason="out_of_credits")
         # Record the failed push, so the next drain can try it again.
         mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.PUSH,
+            denial_reason=e.denial_reason,
         )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:
@@ -684,15 +681,17 @@ def _retry_push_on_moved_branch(
                         pr.repo_name: pr.pr_url for pr in state.repo_pr_states.values() if pr.pr_url
                     },
                 ),
+                billing_feature=get_run_billing_feature(state),
             ),
         )
-    except SeerOutOfCreditsException:
+    except SeerOutOfCreditsException as e:
         log_ctx.info("autofix.pr_iteration.push", outcome="not_pushed", reason="out_of_credits")
         # Record the failed retry so the next drain can try it again.
         mark_out_of_credits(
             run_id=run_id,
             organization_id=group.organization.id,
             stranded_action=StrandedAction.BRANCH_MOVED_RETRY,
+            denial_reason=e.denial_reason,
         )
         return PrIterationOutcome.SENTRY_OUT_OF_CREDITS
     except Exception as e:

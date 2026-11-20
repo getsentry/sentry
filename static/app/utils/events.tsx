@@ -3,6 +3,7 @@ import * as Sentry from '@sentry/react';
 import {SymbolicatorStatus} from 'sentry/components/events/interfaces/types';
 import {ConfigStore} from 'sentry/stores/configStore';
 import type {
+  EntryBreadcrumbs,
   EntryException,
   EntryRequest,
   EntryThreads,
@@ -77,10 +78,7 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
   switch (type) {
     case EventOrGroupType.ERROR: {
       if (customTitle && customTitle !== '<unlabeled event>') {
-        return {
-          title: customTitle,
-          subtitle: culprit,
-        };
+        return {title: customTitle, subtitle: culprit};
       }
 
       return {
@@ -99,23 +97,14 @@ export function getTitle(event: Event | BaseGroup | GroupTombstoneHelper | Simpl
         subtitle: metadata.uri ?? '',
       };
     case EventOrGroupType.DEFAULT:
-      return {
-        title: customTitle ?? title,
-        subtitle: '',
-      };
+      return {title: customTitle ?? title, subtitle: ''};
     case EventOrGroupType.TRANSACTION:
     case EventOrGroupType.GENERIC: {
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
-      return {
-        title: customTitle ?? title,
-        subtitle: isIssue ? culprit : '',
-      };
+      return {title: customTitle ?? title, subtitle: isIssue ? culprit : ''};
     }
     default:
-      return {
-        title: customTitle ?? title,
-        subtitle: '',
-      };
+      return {title: customTitle ?? title, subtitle: ''};
   }
 }
 
@@ -358,6 +347,13 @@ function eventExceptionGroupWidth(event: Event) {
   }
 }
 
+function getNumberOfBreadcrumbs(event: Event): number {
+  const breadcrumbsEntry = event.entries?.find(
+    (entry): entry is EntryBreadcrumbs => entry.type === EntryType.BREADCRUMBS
+  );
+  return breadcrumbsEntry?.data?.values?.length ?? 0;
+}
+
 function eventHasGraphQlRequest(event: Event) {
   const requestEntry = event.entries?.find(entry => entry.type === EntryType.REQUEST) as
     | EntryRequest
@@ -391,6 +387,7 @@ export function getAnalyticsDataForEvent(event?: Event | null): BaseEventAnalyti
     event_id: event?.eventID || '-1',
     num_commits: event?.release?.commitCount || 0,
     num_event_tags: event?.tags?.length ?? 0,
+    num_breadcrumbs: event ? getNumberOfBreadcrumbs(event) : 0,
     num_stack_frames: event ? getNumberOfStackFrames(event) : 0,
     num_in_app_stack_frames: event ? getNumberOfInAppStackFrames(event) : 0,
     num_threads_with_names: event ? getNumberOfThreadsWithNames(event) : 0,

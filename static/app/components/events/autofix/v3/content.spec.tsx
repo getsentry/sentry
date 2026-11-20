@@ -7,12 +7,13 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import type {
-  ExplorerAutofixState,
+import {
   useExplorerAutofix,
+  type ExplorerAutofixState,
 } from 'sentry/components/events/autofix/useExplorerAutofix';
 import type {SeerOutOfCreditsCtaProps} from 'sentry/components/seer/outOfCredits/seerOutOfCreditsCta';
 import {registerOverride} from 'sentry/overrideRegistry';
+import type {Group} from 'sentry/types/group';
 import type {useAiConfig} from 'sentry/views/issueDetails/hooks/useAiConfig';
 
 import {SeerDrawerContent} from './content';
@@ -75,6 +76,11 @@ function makeAiConfig(
   };
 }
 
+function AutofixDrawer({group}: {group: Group}) {
+  const autofix = useExplorerAutofix(group);
+  return <SeerDrawerContent aiConfig={makeAiConfig()} autofix={autofix} group={group} />;
+}
+
 describe('SeerDrawerContent', () => {
   it('allows starting Autofix when no run exists', async () => {
     const startStep = jest.fn().mockResolvedValue({runId: 1, isSingleRun: false});
@@ -89,7 +95,7 @@ describe('SeerDrawerContent', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
 
-    expect(startStep).toHaveBeenCalledWith('root_cause');
+    expect(startStep).toHaveBeenCalledWith('root_cause', {userContext: ''});
   });
 
   describe('single runs', () => {
@@ -113,6 +119,21 @@ describe('SeerDrawerContent', () => {
         },
       ],
     };
+
+    beforeEach(() => {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/integrations/coding-agents/',
+        body: {
+          integrations: [
+            {id: '1', name: 'Copilot', provider: 'github', requires_identity: false},
+          ],
+        },
+      });
+      MockApiClient.addMockResponse({
+        url: '/projects/org-slug/project-slug/seer/repos/',
+        body: [{provider: 'github'}],
+      });
+    });
 
     it('shows no next step', () => {
       render(
@@ -180,6 +201,50 @@ describe('SeerDrawerContent', () => {
       mockChatRunId = null;
     });
 
+    it('hands the root cause off to a coding agent', async () => {
+      const triggerCodingAgentHandoff = jest.fn();
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({runState: singleRun, triggerCodingAgentHandoff})}
+          group={GroupFixture()}
+        />
+      );
+
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'More code fix options'})
+      );
+      await userEvent.click(
+        await screen.findByRole('menuitemradio', {name: 'Send to Copilot'})
+      );
+
+      expect(triggerCodingAgentHandoff).toHaveBeenCalledWith(
+        776,
+        expect.objectContaining({id: '1'})
+      );
+    });
+
+    it('offers no hand-off before the root cause is written', () => {
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              status: 'processing',
+              blocks: singleRun.blocks.map(block => ({...block, artifacts: []})),
+            },
+          })}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(screen.getByRole('button', {name: 'Open Autofix'})).toBeInTheDocument();
+      expect(
+        screen.queryByRole('button', {name: 'More code fix options'})
+      ).not.toBeInTheDocument();
+    });
+
     it('hides the root cause reset', () => {
       render(
         <SeerDrawerContent
@@ -196,10 +261,48 @@ describe('SeerDrawerContent', () => {
     });
   });
 
-  describe('out of Seer credits', () => {
-    const organization = OrganizationFixture({
-      features: ['seer-credit-checks', 'token-billed-seer-enabled'],
+  it('hides Add Context without autofix-single-run', () => {
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix()}
+        group={GroupFixture()}
+      />
+    );
+
+    expect(screen.getByText('Have Seer...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Add Context'})).not.toBeInTheDocument();
+  });
+
+  it('starts with the context added through Add context', async () => {
+    const startStep = jest.fn().mockResolvedValue({runId: 1, isSingleRun: false});
+    render(
+      <SeerDrawerContent
+        aiConfig={makeAiConfig()}
+        autofix={makeAutofix({startStep})}
+        group={GroupFixture()}
+      />,
+      {
+        organization: OrganizationFixture({
+          features: ['autofix-single-run', 'seat-based-seer-enabled'],
+        }),
+      }
+    );
+
+    await userEvent.click(screen.getByRole('button', {name: 'Add Context'}));
+    await userEvent.type(
+      screen.getByRole('textbox', {name: 'Context for Seer'}),
+      'Started after the Celery upgrade'
+    );
+    await userEvent.click(screen.getByRole('button', {name: 'Start Analysis'}));
+
+    expect(startStep).toHaveBeenCalledWith('root_cause', {
+      userContext: 'Started after the Celery upgrade',
     });
+  });
+
+  describe('out of Seer credits', () => {
+    const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
     const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
     // getsentry fills in the CTA; this stand-in shows what it was asked for.
@@ -210,10 +313,20 @@ describe('SeerDrawerContent', () => {
       return <div data-test-id="seer-out-of-credits-cta">{`${variant} ${reason}`}</div>;
     }
 
-    function mockCreditCheck(operation: string, hasEnoughCredits = false) {
+    function mockCreditCheck(
+      operation: string,
+      hasEnoughCredits = false,
+      billingFeature?: number
+    ) {
       return MockApiClient.addMockResponse({
         url: creditCheckUrl,
-        match: [MockApiClient.matchQuery({operation})],
+        match: [
+          MockApiClient.matchQuery(
+            billingFeature === undefined
+              ? {operation}
+              : {operation, billing_feature: billingFeature}
+          ),
+        ],
         body: {hasEnoughCredits},
       });
     }
@@ -269,12 +382,15 @@ describe('SeerDrawerContent', () => {
     });
 
     it('shows the continue alert above the root cause and disables the next step', async () => {
-      mockCreditCheck('autofix_solution');
+      const autofixWeb = 1; // SeerBillingFeature.AUTOFIX_WEB
+      const creditCheck = mockCreditCheck('autofix_solution', false, autofixWeb);
 
       render(
         <SeerDrawerContent
           aiConfig={makeAiConfig()}
-          autofix={makeAutofix({runState: ExplorerAutofixStateFixture()})}
+          autofix={makeAutofix({
+            runState: ExplorerAutofixStateFixture({billing_feature: autofixWeb}),
+          })}
           group={GroupFixture()}
         />,
         {organization}
@@ -286,6 +402,44 @@ describe('SeerDrawerContent', () => {
       expectAbove(cta, screen.getByText('The issue was caused by an unexpected value.'));
       expect(screen.getByRole('button', {name: 'Yes, make a plan'})).toBeDisabled();
       expect(screen.getByRole('button', {name: 'No'})).toBeDisabled();
+      expect(creditCheck).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      {label: 'a free agentic-triage run', billingFeature: 4},
+      {label: 'an older unattributed run', billingFeature: null},
+      {label: 'a run with unspecified attribution', billingFeature: 0},
+    ])('can continue $label with an empty wallet', async ({billingFeature}) => {
+      const group = GroupFixture();
+      const url = `/organizations/${organization.slug}/issues/${group.id}/autofix/`;
+      MockApiClient.addMockResponse({
+        url,
+        body: {autofix: ExplorerAutofixStateFixture({billing_feature: billingFeature})},
+      });
+      const continueRun = MockApiClient.addMockResponse({
+        url,
+        method: 'POST',
+        body: {run_id: 42},
+        match: [
+          MockApiClient.matchData({step: 'solution', run_id: 42, referrer: 'api.web'}),
+        ],
+      });
+      const paidCheck = mockCreditCheck('autofix_solution');
+      // SeerBillingFeature.AUTOFIX_AGENTIC_TRIAGE
+      const triageCheck = mockCreditCheck('autofix_solution', true, 4);
+
+      render(<AutofixDrawer group={group} />, {organization});
+
+      const continueButton = await screen.findByRole('button', {
+        name: 'Yes, make a plan',
+      });
+      await waitFor(() => expect(continueButton).toBeEnabled());
+      expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
+      expect(paidCheck).not.toHaveBeenCalled();
+      expect(triageCheck).toHaveBeenCalledTimes(billingFeature === 4 ? 1 : 0);
+
+      await userEvent.click(continueButton);
+      expect(continueRun).toHaveBeenCalledTimes(1);
     });
 
     it('shows the continue alert for a step that stopped, without touching its retry', async () => {
@@ -382,7 +536,7 @@ describe('SeerDrawerContent', () => {
       expect(screen.queryByTestId('seer-out-of-credits-cta')).not.toBeInTheDocument();
     });
 
-    it('starts as before without seer-credit-checks', () => {
+    it('starts as before without token-billed Seer', () => {
       const creditCheck = MockApiClient.addMockResponse({
         url: creditCheckUrl,
         body: {hasEnoughCredits: false},

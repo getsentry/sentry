@@ -1377,6 +1377,14 @@ class GitlabIsBrokenIntegrationErrorTestCase(TestCase):
         exc = ApiError("something")
         assert self.installation.is_broken_integration_error(exc) is None
 
+    def test_api_error_bad_gateway_returns_host_unreachable(self) -> None:
+        exc = ApiError("Bad Gateway", code=502)
+        assert self.installation.is_broken_integration_error(exc) == "host_unreachable"
+
+    def test_api_error_cloudflare_origin_error_returns_host_unreachable(self) -> None:
+        exc = ApiError("error code: 1033", code=530)
+        assert self.installation.is_broken_integration_error(exc) == "host_unreachable"
+
     def test_valueerror_html_response_returns_unsupported_response(self) -> None:
         exc = ValueError("Not a valid response type: <html><head><title>gitlab.support</title>")
         assert self.installation.is_broken_integration_error(exc) == "unsupported_response"
@@ -1429,6 +1437,22 @@ class GitHubIsBrokenIntegrationErrorTestCase(IntegrationTestCase):
         exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
         assert self.installation.is_broken_integration_error(exc) == "rate_limited"
 
+    def test_access_token_not_found_returns_installation_not_found(self, _: MagicMock) -> None:
+        exc = ApiError(
+            '{"message":"Not Found"}',
+            code=404,
+            url="https://api.github.com/app/installations/12345/access_tokens",
+        )
+        assert self.installation.is_broken_integration_error(exc) == "installation_not_found"
+
+    def test_other_not_found_not_terminal(self, _: MagicMock) -> None:
+        exc = ApiError(
+            '{"message":"Not Found"}',
+            code=404,
+            url="https://api.github.com/repos/org/repo",
+        )
+        assert self.installation.is_broken_integration_error(exc) is None
+
     def test_base_class_cases_still_work(self, _: MagicMock) -> None:
         assert (
             self.installation.is_broken_integration_error(ApiUnauthorized("bad token"))
@@ -1471,6 +1495,26 @@ class GHEIsBrokenIntegrationErrorTestCase(TestCase):
     def test_rate_limited_forbidden_returns_rate_limited(self) -> None:
         exc = ApiForbiddenError('{"message":"API rate limit exceeded"}')
         assert self.installation.is_broken_integration_error(exc) == "rate_limited"
+
+    def test_access_token_not_found_returns_installation_not_found(self) -> None:
+        exc = ApiError(
+            '{"message":"Integration not found"}',
+            code=404,
+            url="https://35.232.149.196/api/v3/app/installations/99999/access_tokens",
+        )
+        assert self.installation.is_broken_integration_error(exc) == "installation_not_found"
+
+    def test_access_token_method_not_allowed_returns_configuration_error(self) -> None:
+        exc = ApiError(
+            "<html><head><title>405 Not Allowed</title></head></html>",
+            code=405,
+            url="https://35.232.149.196/api/v3/app/installations/99999/access_tokens",
+        )
+        assert self.installation.is_broken_integration_error(exc) == "configuration_error"
+
+    def test_html_login_page_returns_unsupported_response(self) -> None:
+        exc = ValueError('Not a valid response type: <!doctype html><html lang="en-US">')
+        assert self.installation.is_broken_integration_error(exc) == "unsupported_response"
 
     def test_base_class_cases_still_work(self) -> None:
         assert (

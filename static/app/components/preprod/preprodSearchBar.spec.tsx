@@ -12,15 +12,11 @@ jest.mock('sentry/views/explore/components/traceItemSearchQueryBuilder', () => {
   return {
     ...actual,
     TraceItemSearchQueryBuilder: (props: {
-      arrayAttributes?: Record<string, {predefined?: boolean}>;
+      arrayAttributes?: Record<string, unknown>;
       stringAttributes?: Record<string, unknown>;
     }) => (
       <div
         data-array-attributes={Object.keys(props.arrayAttributes ?? {}).join(',')}
-        data-array-predefined={Object.entries(props.arrayAttributes ?? {})
-          .filter(([, tag]) => tag?.predefined)
-          .map(([key]) => key)
-          .join(',')}
         data-string-attributes={Object.keys(props.stringAttributes ?? {}).join(',')}
         data-test-id="preprod-search"
       />
@@ -38,18 +34,12 @@ describe('PreprodSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
         {key: 'app.name', name: 'app.name', attributeType: 'string'},
-        {
-          key: 'tags[app.features,array]',
-          name: 'app.features',
-          attributeType: 'array',
-        },
+        {key: 'tags[app.features,array]', name: 'app.features', attributeType: 'array'},
       ],
     });
 
     render(<PreprodSearchBar initialQuery="" projects={[1]} />, {
-      organization: OrganizationFixture({
-        features: ['trace-item-array-query-support'],
-      }),
+      organization: OrganizationFixture({features: ['trace-item-array-query-support']}),
     });
 
     await waitFor(() => {
@@ -66,11 +56,7 @@ describe('PreprodSearchBar', () => {
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
         {key: 'app.name', name: 'app.name', attributeType: 'string'},
-        {
-          key: 'tags[app.features,array]',
-          name: 'app.features',
-          attributeType: 'array',
-        },
+        {key: 'tags[app.features,array]', name: 'app.features', attributeType: 'array'},
       ],
     });
 
@@ -109,11 +95,7 @@ describe('PreprodSearchBar', () => {
         projects={[1]}
         allowedKeys={['app_name', 'install_groups']}
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['trace-item-array-query-support'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['trace-item-array-query-support']})}
     );
 
     await waitFor(() => {
@@ -124,10 +106,12 @@ describe('PreprodSearchBar', () => {
     });
   });
 
-  it('marks a freeform array attribute as predefined', async () => {
+  it('drops a string attribute shadowed by an array attribute of the same name', async () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/trace-items/attributes/',
       body: [
+        {key: 'app_name', name: 'app_name', attributeType: 'string'},
+        {key: 'install_groups', name: 'install_groups', attributeType: 'string'},
         {
           key: 'tags[install_groups,array]',
           name: 'install_groups',
@@ -140,21 +124,20 @@ describe('PreprodSearchBar', () => {
       <PreprodSearchBar
         initialQuery=""
         projects={[1]}
-        allowedKeys={['install_groups']}
-        freeformKeys={['install_groups']}
+        allowedKeys={['app_name', 'install_groups']}
       />,
-      {
-        organization: OrganizationFixture({
-          features: ['trace-item-array-query-support'],
-        }),
-      }
+      {organization: OrganizationFixture({features: ['trace-item-array-query-support']})}
     );
 
     await waitFor(() => {
       expect(screen.getByTestId('preprod-search')).toHaveAttribute(
-        'data-array-predefined',
-        expect.stringContaining('tags[install_groups,array]')
+        'data-array-attributes',
+        'tags[install_groups,array]'
       );
     });
+    expect(screen.getByTestId('preprod-search')).toHaveAttribute(
+      'data-string-attributes',
+      'app_name'
+    );
   });
 });

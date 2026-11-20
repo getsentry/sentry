@@ -426,7 +426,10 @@ def test_save_event_start_is_persisted_before_grouping(
     persisted = nodestore.backend.get(saved_events[0].data.id)
     assert persisted is not None
     assert persisted["save_event_start"] == save_started
-    assert persisted["nodestore_insert"] == save_started + 5
+    # nodestore_insert comes from datetime.now(), which has microsecond precision, while
+    # time() returns the float of the frozen nanoseconds. About 7% of start times round
+    # differently, so compare to the microsecond.
+    assert persisted["nodestore_insert"] == pytest.approx(save_started + 5, abs=1e-6)
 
 
 @django_db_all

@@ -186,7 +186,8 @@ class OrganizationNotebookIndexEndpoint(OrganizationNotebooksBaseEndpoint):
         )
 
     @extend_schema(
-        operation_id="Create a Notebook",
+        operation_id="createOrganizationNotebook",
+        summary="Create a Notebook",
         tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=NotebookCreateValidator,

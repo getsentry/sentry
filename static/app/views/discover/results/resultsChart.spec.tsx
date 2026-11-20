@@ -17,16 +17,14 @@ import {ResultsChartContainer} from './resultsChart';
 
 describe('Discover > ResultsChart', () => {
   const features = ['discover-basic'];
-  const location = LocationFixture({
-    query: {query: 'tag:value'},
-    pathname: '/',
-  });
+  const location = LocationFixture({query: {query: 'tag:value'}, pathname: '/'});
 
   const organization = OrganizationFixture({features});
 
   const eventView = EventView.fromSavedQueryOrLocation(undefined, location);
 
   beforeEach(() => {
+    PageFiltersStore.reset();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/releases/stats/',
       body: [],
@@ -133,11 +131,7 @@ describe('Discover > ResultsChart', () => {
   it('uses a low-fidelity interval for bar charts without a selected interval', async () => {
     const barLocation = LocationFixture({
       pathname: '/',
-      query: {
-        display: DisplayModes.BAR,
-        statsPeriod: '30d',
-        yAxis: 'count()',
-      },
+      query: {display: DisplayModes.BAR, statsPeriod: '30d', yAxis: 'count()'},
     });
     const barEventView = EventView.fromSavedQueryOrLocation(undefined, barLocation);
     const dailyRequest = MockApiClient.addMockResponse({
@@ -171,10 +165,6 @@ describe('Discover > ResultsChart', () => {
 
     beforeEach(() => {
       PageFiltersStore.onInitializeUrlState(PageFiltersFixture());
-    });
-
-    afterEach(() => {
-      PageFiltersStore.reset();
     });
 
     function mockDroppedData({

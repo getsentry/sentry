@@ -1,12 +1,12 @@
 import * as Amplitude from '@amplitude/analytics-browser';
 import * as Sentry from '@sentry/react';
-import * as qs from 'query-string';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {setWindowLocation} from 'sentry-test/utils';
 
 import {ConfigStore} from 'sentry/stores/configStore';
 import {sessionStorageWrapper} from 'sentry/utils/sessionStorage';
+import * as qs from 'sentry/utils/url/qs';
 
 import {analyticsInitUser} from 'getsentry/overrides/analyticsInitUser';
 import {trackMarketingEvent} from 'getsentry/utils/trackMarketingEvent';

@@ -58,16 +58,10 @@ export function ReplayOnboardingLayout({
       isPerformanceSelected: false,
       isProfilingSelected: false,
       isReplaySelected: true,
-      sourcePackageRegistries: {
-        isLoading: isLoadingRegistry,
-        data: registryData,
-      },
+      sourcePackageRegistries: {isLoading: isLoadingRegistry, data: registryData},
       platformOptions: selectedOptions,
       docsFlow,
-      replayOptions: {
-        mask,
-        block,
-      },
+      replayOptions: {mask, block},
       isSelfHosted,
       urlPrefix,
     };
@@ -129,16 +123,10 @@ export function ReplayOnboardingLayout({
           content: replayConfigToggle,
         });
       }
-      return {
-        ...step,
-        content: newContent,
-      };
+      return {...step, content: newContent};
     }
 
-    return {
-      ...step,
-      codeHeader: replayConfigToggle,
-    };
+    return {...step, codeHeader: replayConfigToggle};
   });
 
   return (

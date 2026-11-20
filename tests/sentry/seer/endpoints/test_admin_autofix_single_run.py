@@ -3,6 +3,9 @@ from unittest.mock import MagicMock, patch
 
 from django.utils import timezone
 from rest_framework.response import Response
+from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
+    SEER_BILLING_FEATURE_AUTOFIX_HEADLESS,
+)
 
 from sentry.eventstream.base import GroupState
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
@@ -40,10 +43,25 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         self.organization = self.create_organization(slug="sentry")
         self.project = self.create_project(organization=self.organization)
         self.group = self.create_group(project=self.project)
+        tier = patch(
+            "sentry.seer.endpoints.admin_autofix_single_run.is_seer_seat_or_token_billed_enabled",
+            return_value=True,
+        )
+        self.seat_or_token_billed = tier.start()
+        self.addCleanup(tier.stop)
 
     def get_response(self, *args: Any, **params: Any) -> Response:
         with patch("sentry.api.permissions.is_active_staff", return_value=True):
             return super().get_response(*args, **params)
+
+    def test_legacy_org_is_rejected(self, mock_trigger: MagicMock) -> None:
+        self.seat_or_token_billed.return_value = False
+
+        self.get_error_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        )
+
+        mock_trigger.assert_not_called()
 
     def test_starts_single_run_and_returns_link(self, mock_trigger: MagicMock) -> None:
         mock_trigger.return_value = self.create_seer_run(
@@ -58,6 +76,7 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
         assert kwargs["group"] == self.group
         assert kwargs["step"] == AutofixStep.ROOT_CAUSE
         assert kwargs["referrer"] == AutofixReferrer.ADMIN
+        assert kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert kwargs["single_run"] is True
         assert kwargs["user"].id == self.user.id
         assert kwargs.get("stopping_point") is None
@@ -95,22 +114,26 @@ class SeerAdminAutofixSingleRunTest(APITestCase):
 
         kwargs = mock_trigger.call_args.kwargs
         assert kwargs["referrer"] == AutofixReferrer.ADMIN_AUTOMATED
+        assert kwargs["billing_feature"] == SEER_BILLING_FEATURE_AUTOFIX_HEADLESS
         assert kwargs["user"] is None
         assert kwargs["actor_user_id"] is None
         assert actor_types == [ActorType.SYSTEM]
 
-    def test_coding_agent_project_is_rejected(self, mock_trigger: MagicMock) -> None:
+    def test_coding_agent_project_starts_single_run(self, mock_trigger: MagicMock) -> None:
         self.project.update_option("sentry:seer_automation_handoff_point", "root_cause")
         self.project.update_option(
             "sentry:seer_automation_handoff_target", "cursor_background_agent"
         )
         self.project.update_option("sentry:seer_automation_handoff_integration_id", 456)
-
-        self.get_error_response(
-            organization_slug="sentry", short_id=self.group.qualified_short_id, status_code=400
+        mock_trigger.return_value = self.create_seer_run(
+            organization=self.organization, seer_run_state_id=321
         )
 
-        mock_trigger.assert_not_called()
+        self.get_success_response(
+            organization_slug="sentry", short_id=self.group.qualified_short_id
+        )
+
+        assert mock_trigger.call_args.kwargs["single_run"] is True
 
     def test_out_of_quota_returns_reason(self, mock_trigger: MagicMock) -> None:
         mock_trigger.side_effect = NoSeerQuotaException()
@@ -234,7 +257,8 @@ class SeerAdminMetricBreachesTest(BaseMetricIssueTest, APITestCase):
         assert not Group.objects.filter(type=8001).exists()
 
     def test_disabled_automation(self) -> None:
-        self.config.update(enabled=False)
+        assert self.config.backing_workflow is not None
+        self.config.backing_workflow.update(enabled=False)
         response = self.get_error_response(
             organizationId=self.organization.id, monitorId=self.detector.id, status_code=409
         )

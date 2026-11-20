@@ -82,9 +82,7 @@ describe('dotnet logs onboarding docs', () => {
   });
 
   it('does not render logs configuration when logs is not enabled', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: []});
 
     expect(await screen.findByRole('heading', {name: 'Install'})).toBeInTheDocument();
 

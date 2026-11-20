@@ -1,4 +1,4 @@
-import {useMemo, useState} from 'react';
+import {lazy, useMemo, useState} from 'react';
 import {skipToken, useQuery} from '@tanstack/react-query';
 
 import {Alert} from '@sentry/scraps/alert';
@@ -6,6 +6,7 @@ import {Container, Stack} from '@sentry/scraps/layout';
 import {Select} from '@sentry/scraps/select';
 
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
+import {LazyLoad} from 'sentry/components/lazyLoad';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {t} from 'sentry/locale';
@@ -19,7 +20,13 @@ import {SectionKey} from 'sentry/views/issueDetails/context';
 import {FoldSection} from 'sentry/views/issueDetails/foldSection';
 
 import {parseFlamegraphAttachment} from './flamegraphAttachment/utils';
-import {FlamegraphAttachment} from './flamegraphAttachment';
+
+// The renderer only loads once there's an attachment to show
+const FlamegraphAttachment = lazy(() =>
+  import('./flamegraphAttachment').then(module => ({
+    default: module.FlamegraphAttachment,
+  }))
+);
 
 type Props = {event: Event; project: Project};
 
@@ -112,7 +119,11 @@ function EventFlamegraphContent({event, project}: Props) {
           <Alert variant="warning">{parsed.error}</Alert>
         ) : parsed && 'data' in parsed ? (
           <ErrorBoundary mini>
-            <FlamegraphAttachment key={attachment.id} data={parsed.data} />
+            <LazyLoad
+              key={attachment.id}
+              LazyComponent={FlamegraphAttachment}
+              data={parsed.data}
+            />
           </ErrorBoundary>
         ) : null}
       </Stack>

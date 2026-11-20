@@ -10,12 +10,8 @@ describe('aspnet onboarding docs', () => {
   it('renders errors onboarding docs correctly', async () => {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
-        'sentry.dotnet.aspnet': {
-          version: '1.99.9',
-        },
-        'sentry.dotnet.ef': {
-          version: '2.88.8',
-        },
+        'sentry.dotnet.aspnet': {version: '1.99.9'},
+        'sentry.dotnet.ef': {version: '2.88.8'},
       },
       selectedProducts: [
         ProductSolution.PERFORMANCE_MONITORING,
@@ -54,9 +50,7 @@ describe('aspnet onboarding docs', () => {
   });
 
   it('renders logs onboarding docs correctly', async () => {
-    renderWithOnboardingLayout(docs, {
-      selectedProducts: [ProductSolution.LOGS],
-    });
+    renderWithOnboardingLayout(docs, {selectedProducts: [ProductSolution.LOGS]});
 
     expect(
       await screen.findByText(textWithMarkupMatcher(/SentrySdk\.Logger\.LogInfo/))

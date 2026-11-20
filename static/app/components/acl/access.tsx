@@ -5,10 +5,7 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useUser} from 'sentry/utils/useUser';
 
 // Props that function children will get.
-type ChildRenderProps = {
-  hasAccess: boolean;
-  hasSuperuser: boolean;
-};
+type ChildRenderProps = {hasAccess: boolean; hasSuperuser: boolean};
 
 // TODO(TS): This should be ReactNode but conflicts between react 17 & 18
 type ChildFunction = (props: ChildRenderProps) => any;
@@ -61,17 +58,10 @@ export function Access({
   const organization = overrideOrganization || implicitOrganization;
 
   const hasSuperuser = Boolean(user?.isSuperuser);
-  const hasAccess = hasEveryAccess(access, {
-    organization,
-    team,
-    project,
-  });
+  const hasAccess = hasEveryAccess(access, {organization, team, project});
 
   if (typeof children === 'function') {
-    return children({
-      hasAccess,
-      hasSuperuser,
-    });
+    return children({hasAccess, hasSuperuser});
   }
 
   return hasAccess ? children : null;

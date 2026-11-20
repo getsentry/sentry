@@ -68,15 +68,11 @@ export const loggerLogsVerify = (
         logger === 'logger'
           ? tct(
               'Send a test log through an [code:ILogger<T>] that your class takes from dependency injection, then refresh this page to verify it arrived in Sentry.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             )
           : tct(
               'Send a test log through [code:ILogger] from your app, then refresh this page to verify it arrived in Sentry.',
-              {
-                code: <code />,
-              }
+              {code: <code />}
             ),
     },
     {
@@ -118,9 +114,7 @@ export const logs = ({
           type: 'text',
           text: tct(
             'Logs in .NET are supported in Sentry .NET SDK version [code:6.0.0] and above.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -152,15 +146,11 @@ export const logs = ({
                 text: appSettingsOnly
                   ? tct(
                       'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the [code:Sentry] section of [code:appsettings.json]:',
-                      {
-                        code: <code />,
-                      }
+                      {code: <code />}
                     )
                   : tct(
                       'To send the entries your app writes through [code:ILogger] to Sentry as logs, set [code:EnableLogs] to [code:true] in the [code:UseSentry] callback:',
-                      {
-                        code: <code />,
-                      }
+                      {code: <code />}
                     ),
               },
               appSettingsOnly
@@ -185,9 +175,7 @@ export const logs = ({
                 type: 'text',
                 text: tct(
                   'From version [code:7.0.0] on, logs you send with [code:SentrySdk.Logger] need no extra option. [code:EnableLogs], which 6.x needs, is gone from [code:SentryOptions]: remove it when you upgrade. Initialize the SDK:',
-                  {
-                    code: <code />,
-                  }
+                  {code: <code />}
                 ),
               },
               {

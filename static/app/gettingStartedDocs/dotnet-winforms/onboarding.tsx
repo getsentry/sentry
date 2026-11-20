@@ -75,9 +75,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -105,16 +103,10 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Initialize the SDK as early as possible, like in the constructor of the [code:App]:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
-        {
-          type: 'code',
-          language: 'csharp',
-          code: getConfigureSnippet(params),
-        },
+        {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -204,10 +196,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

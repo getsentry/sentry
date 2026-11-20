@@ -1,3 +1,129 @@
+## 2.16.0
+
+- No documented changes.
+
+## 2.15.0
+
+- No documented changes.
+
+## 2.14.2
+
+### Internal Changes 🔧
+
+- (api) Typecheck @sentry/api with TypeScript 7 by @kedarv and @claude in [#131625](https://github.com/getsentry/sentry/pull/131625)
+
+## 2.14.1
+
+### Internal Changes 🔧
+
+- (frontend) Upgrade Oxlint to 1.94.0 by @TkDodo in [#131639](https://github.com/getsentry/sentry/pull/131639)
+
+## 2.14.0
+
+- No documented changes.
+
+## 2.13.0
+
+- No documented changes.
+
+## 2.12.0
+
+- No documented changes.
+
+## 2.11.0
+
+- No documented changes.
+
+## 2.10.1
+
+### Internal Changes 🔧
+
+- (api) Note that matchOperation doesn't support path prefixes by @BYK with @sentry-junior in [#131275](https://github.com/getsentry/sentry/pull/131275)
+
+## 2.10.0
+
+- No documented changes.
+
+## 2.9.0
+
+- No documented changes.
+
+## 2.8.0
+
+### New Features ✨
+
+#### Api
+
+- Make the query-string@7 serializer the default by @BYK with @sentry-junior in [#131247](https://github.com/getsentry/sentry/pull/131247)
+- Report renamed projects with getSentryProjectRename by @BYK with @sentry-junior in [#131258](https://github.com/getsentry/sentry/pull/131258)
+- Know per-operation error codes and read top-level codes by @BYK with @sentry-junior in [#131362](https://github.com/getsentry/sentry/pull/131362)
+- Generate error codes and challenge fields from the spec by @BYK with @sentry-junior in [#131287](https://github.com/getsentry/sentry/pull/131287)
+- Let routeCellOperations look up raw requests that name an organization by @BYK with @sentry-junior in [#131245](https://github.com/getsentry/sentry/pull/131245)
+- Add getSentryApiErrorDetails for mapping SDK errors by @BYK with @sentry-junior in [#131249](https://github.com/getsentry/sentry/pull/131249)
+- Read Sentry's list headers and keep Link targets by @BYK with @sentry-junior in [#131242](https://github.com/getsentry/sentry/pull/131242)
+
+### Bug Fixes 🐛
+
+#### Api
+
+- Send the browser CSRF token only over https from https pages by @BYK with @sentry-junior in [#131274](https://github.com/getsentry/sentry/pull/131274)
+- Send the browser CSRF token only to similar origins by @BYK with @sentry-junior in [#131230](https://github.com/getsentry/sentry/pull/131230)
+
+### Documentation 📚
+
+- (api) Say which entries import p-limit and http-cache-semantics by @BYK with @sentry-junior in [#131250](https://github.com/getsentry/sentry/pull/131250)
+
+### Internal Changes 🔧
+
+#### Api
+
+- Build the API spec in the api client job by @BYK with @sentry-junior in [#131270](https://github.com/getsentry/sentry/pull/131270)
+- Drop the isRecord guard from SentryApiError body reads by @BYK with @sentry-junior in [#131394](https://github.com/getsentry/sentry/pull/131394)
+- Fail when a change drops an export of the latest release by @BYK with @sentry-junior in [#131210](https://github.com/getsentry/sentry/pull/131210)
+- Check the packed package on Node.js 22 and Bun by @BYK with @sentry-junior in [#131208](https://github.com/getsentry/sentry/pull/131208)
+
+## 2.7.0
+
+### New Features ✨
+
+- (api) Match a method and concrete path to a catalog operation by @BYK with @sentry-junior in [#131235](https://github.com/getsentry/sentry/pull/131235)
+
+## 2.6.1
+
+### Internal Changes 🔧
+
+- (api) Share trailing-slash trimming between base URL helpers by @BYK with @sentry-junior in [#131206](https://github.com/getsentry/sentry/pull/131206)
+
+## 2.6.0
+
+### New Features ✨
+
+#### Api
+
+- Pass each operation's routing declaration to resolveBaseUrl by @BYK with @sentry-junior in [#131228](https://github.com/getsentry/sentry/pull/131228)
+- Add a type-only ApiRoutes map by path and method by @BYK with @sentry-junior in [#131221](https://github.com/getsentry/sentry/pull/131221)
+- Add Sentry's routing declarations to the operations catalog by @BYK with @sentry-junior in [#131222](https://github.com/getsentry/sentry/pull/131222)
+
+### Documentation 📚
+
+- (api) Document versioning, upgrades, deprecations and release candidates by @BYK with @sentry-junior in [#131218](https://github.com/getsentry/sentry/pull/131218)
+
+### Internal Changes 🔧
+
+- (api) Typecheck the README examples against the packed package by @BYK with @sentry-junior in [#131217](https://github.com/getsentry/sentry/pull/131217)
+
+## 2.5.3
+
+### Documentation 📚
+
+- (api) Link to Sentry with the URLs the API returns by @BYK with @sentry-junior in [#131219](https://github.com/getsentry/sentry/pull/131219)
+
+## 2.5.2
+
+### Bug Fixes 🐛
+
+- (api) Resolve the root entry's types under NodeNext by @BYK with @sentry-junior in [#131216](https://github.com/getsentry/sentry/pull/131216)
+
 ## 2.5.1
 
 ### Documentation 📚

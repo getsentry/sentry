@@ -3662,6 +3662,7 @@ class InvestigationCompletedInboxTest(InvestigationOrchestrationEventTestBase):
         assert event.actor_id is None
         assert event.data == {
             "seer_run_id": self.seer_run_id,
+            "generation": 1,
         }
 
     def test_replay_and_reconciliation_do_not_duplicate_pruned_events(self) -> None:

@@ -45,7 +45,8 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
     }
 
     @extend_schema(
-        operation_id="Retrieve a Notebook",
+        operation_id="getOrganizationNotebook",
+        summary="Retrieve a Notebook",
         tags=["Notebooks"],
         parameters=[GlobalParams.ORG_ID_OR_SLUG, NotebookParams.NOTEBOOK_ID],
         request=None,

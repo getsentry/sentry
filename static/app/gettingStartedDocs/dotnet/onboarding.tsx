@@ -115,9 +115,7 @@ export const onboarding: OnboardingConfig = {
       content: [
         {
           type: 'text',
-          text: tct('Install the [strong:NuGet] package:', {
-            strong: <strong />,
-          }),
+          text: tct('Install the [strong:NuGet] package:', {strong: <strong />}),
         },
         {
           type: 'code',
@@ -142,9 +140,7 @@ export const onboarding: OnboardingConfig = {
               type: 'text',
               text: tct(
                 'Additionally, for all platforms except iOS/Mac Catalyst, you need to add a dependency on the [sentryProfilingPackage:Sentry.Profiling] NuGet package.',
-                {
-                  sentryProfilingPackage: <code />,
-                }
+                {sentryProfilingPackage: <code />}
               ),
             },
             {
@@ -183,9 +179,7 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Initialize the SDK as early as possible. For example, call [code:SentrySdk.Init] in your [code:Program.cs] file:',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         params.isProfilingSelected
@@ -204,11 +198,7 @@ export const onboarding: OnboardingConfig = {
                 },
               ],
             }
-          : {
-              type: 'code',
-              language: 'csharp',
-              code: getConfigureSnippet(params),
-            },
+          : {type: 'code', language: 'csharp', code: getConfigureSnippet(params)},
       ],
     },
   ],
@@ -240,11 +230,7 @@ export const onboarding: OnboardingConfig = {
                   'You can measure the performance of your code by capturing transactions and spans.'
                 ),
               },
-              {
-                type: 'code',
-                language: 'csharp',
-                code: getPerformanceMonitoringSnippet(),
-              },
+              {type: 'code', language: 'csharp', code: getPerformanceMonitoringSnippet()},
               {
                 type: 'text',
                 text: tct(
@@ -267,10 +253,11 @@ export const onboarding: OnboardingConfig = {
           type: 'text',
           text: [
             tct(
-              'You can find an example ASP.NET MVC 5 app with Sentry integrated [link:on this GitHub repository].',
+              'You can find an example console app with Sentry integrated [link:in the [code:sentry-dotnet] repository].',
               {
+                code: <code />,
                 link: (
-                  <ExternalLink href="https://github.com/getsentry/examples/tree/master/dotnet/AspNetMvc5Ef6" />
+                  <ExternalLink href="https://github.com/getsentry/sentry-dotnet/tree/main/samples/Sentry.Samples.Console.Basic" />
                 ),
               }
             ),
@@ -292,10 +279,6 @@ export const onboarding: OnboardingConfig = {
                 strong: <strong />,
               }
             ),
-            tct('[link:Basic F# sample] [strong:(F#)]', {
-              link: <ExternalLink href="https://github.com/sentry-demos/fsharp" />,
-              strong: <strong />,
-            }),
           ],
         },
       ],

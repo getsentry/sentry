@@ -32,9 +32,7 @@ function DemoSignUpModal({closeModal}: Props) {
         size="xs"
         aria-label={t('Close')}
         onClick={() => {
-          trackAnalytics('growth.demo_modal_clicked_close', {
-            organization: null,
-          });
+          trackAnalytics('growth.demo_modal_clicked_close', {organization: null});
           closeModal();
         }}
       />
@@ -53,9 +51,7 @@ function DemoSignUpModal({closeModal}: Props) {
             variant="primary"
             href={signupUrl}
             onClick={() =>
-              trackAnalytics('growth.demo_modal_clicked_signup', {
-                organization: null,
-              })
+              trackAnalytics('growth.demo_modal_clicked_signup', {organization: null})
             }
           >
             {t('Start free trial')}
@@ -64,9 +60,7 @@ function DemoSignUpModal({closeModal}: Props) {
             variant="secondary"
             href={demoUrl}
             onClick={() =>
-              trackAnalytics('growth.demo_modal_clicked_demo', {
-                organization: null,
-              })
+              trackAnalytics('growth.demo_modal_clicked_demo', {organization: null})
             }
           >
             {t('Request a demo')}

@@ -22,6 +22,21 @@ def generate_channel_id() -> str:
     return str(uuid.uuid4())
 
 
+def _load_private_key_pem(private_key: str) -> str:
+    """
+    Accept the key as plain PEM text, or as base64-encoded PEM for
+    deployments that have not moved to plain-text secrets yet.
+    """
+    if private_key.lstrip().startswith("-----BEGIN"):
+        return private_key
+    try:
+        return base64.b64decode(private_key).decode("utf-8")
+    except (binascii.Error, UnicodeDecodeError) as e:
+        raise ValueError(
+            "CONDUIT_GATEWAY_PRIVATE_KEY must be a PEM private key or base64-encoded PEM"
+        ) from e
+
+
 def generate_conduit_token(
     org_id: int,
     channel_id: str,
@@ -45,10 +60,7 @@ def generate_conduit_token(
         conduit_private_key = settings.CONDUIT_GATEWAY_PRIVATE_KEY
         if conduit_private_key is None:
             raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY not configured")
-    try:
-        conduit_private_key_decoded = base64.b64decode(conduit_private_key).decode("utf-8")
-    except (binascii.Error, UnicodeDecodeError) as e:
-        raise ValueError("CONDUIT_GATEWAY_PRIVATE_KEY is not valid base64") from e
+    conduit_private_key_pem = _load_private_key_pem(conduit_private_key)
 
     now = int(time.time())
     exp = now + TOKEN_TTL_SEC
@@ -61,7 +73,7 @@ def generate_conduit_token(
         "iss": issuer,
         "aud": audience,
     }
-    return jwt.encode(payload, conduit_private_key_decoded, algorithm="RS256")
+    return jwt.encode(payload, conduit_private_key_pem, algorithm="RS256")
 
 
 def get_conduit_credentials(

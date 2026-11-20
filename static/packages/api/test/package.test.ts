@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import packageJson from "../package.json";
-import { installPackedPackage, packageRoot } from "./packed-package.ts";
+import { installPackedPackage, packageRoot, typecheckProject } from "./packed-package.ts";
 
 const readBundle = (name: string) =>
   readFile(new URL(`../dist/${name}.js`, import.meta.url), "utf8");
@@ -31,6 +31,17 @@ describe("package entry points", () => {
     expect(root).not.toMatch(/from ["']typescript["']/);
     expect(root).not.toMatch(/from ["']valibot["']/);
     expect(root).not.toMatch(/from ["']zod["']/);
+  });
+
+  test("imports packages at runtime only from the client entry", async () => {
+    const imports = async (name: string) =>
+      [...(await readBundle(name)).matchAll(/(?:from |import\()["']([^."'/][^"']*)["']/g)].map((match) => match[1]);
+    for (const name of ["index", "browser", "operations", "docs"]) {
+      expect(await imports(name)).toEqual([]);
+    }
+    const client = new Set(await imports("api-client/index"));
+    expect(client).toEqual(new Set(["@sentry/api", "http-cache-semantics", "p-limit"]));
+    expect(Object.keys(packageJson.dependencies).sort()).toEqual(["http-cache-semantics", "p-limit"]);
   });
 
   test("isolates optional tools and validators to their own entry points", async () => {
@@ -143,10 +154,10 @@ describe("package entry points", () => {
         compilerOptions: { module: "NodeNext", strict: true, noEmit: true, types: [], lib: ["ES2022"] },
         files: ["types.ts", "analysis-types.ts"],
       }));
-      execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+      typecheckProject(directory);
 
       writeFileSync(join(directory, "types.ts"), `
-        import { consumePage, type PaginationContinuation, type PagePosition, type SentryClient } from "@sentry/api";
+        import { consumePage, type ApiRoutes, type PaginationContinuation, type PagePosition, type SentryClient } from "@sentry/api";
         declare const sentry: SentryClient;
         const prepared: Promise<Request> = sentry.client.prepareRequest({method: "GET", url: "/custom/"});
         const position: PagePosition = {cursor: "opaque", offset: 2};
@@ -155,6 +166,16 @@ describe("package entry points", () => {
         sentry.paginateUpTo.listOrganizationProjects(
           {path: {organization_id_or_slug: "example"}}, {limit: 5, resume},
         );
+
+        type Projects = ApiRoutes["/organizations/{organization_id_or_slug}/projects/"];
+        const listing: Projects["GET"]["operation"] = "listOrganizationProjects";
+        const slug: Projects["GET"]["data"]["path"]["organization_id_or_slug"] = "example";
+        declare const page: Projects["GET"]["responses"][200];
+        const firstSlug: string | undefined = page[0]?.slug;
+        const forbidden: keyof Projects["GET"]["errors"] = 403;
+        const created: Projects["POST"]["data"]["body"] = {name: "example"};
+        // @ts-expect-error Only documented paths are keys.
+        type Unknown = ApiRoutes["/not-a-route/"];
       `);
       // NodeNext needs an extension on every relative import in the declarations.
       for (const resolution of [{ module: "NodeNext" }, { module: "ESNext", moduleResolution: "bundler" }]) {
@@ -162,7 +183,7 @@ describe("package entry points", () => {
           compilerOptions: { ...resolution, strict: true, noEmit: true, types: [], lib: ["ES2022", "DOM"] },
           files: ["types.ts"],
         }));
-        execFileSync("node", [join(root, "node_modules", "typescript", "bin", "tsc6"), "-p", directory]);
+        typecheckProject(directory);
       }
 
       symlinkSync(join(root, "node_modules", "typescript"), join(directory, "node_modules", "typescript"), "dir");

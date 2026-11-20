@@ -90,6 +90,7 @@ class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
 
 
 class AgentHandoffResponse(TypedDict):
+    handoffId: str
     code: str
     prompt: str
     guideUrl: str
@@ -97,7 +98,7 @@ class AgentHandoffResponse(TypedDict):
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
+    scope_map = {"POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
@@ -168,6 +169,7 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
+            "handoffId": issued.handoff_id,
             "code": issued.code,
             "prompt": (
                 f"Follow the instructions verbatim at {guide_url}. "
@@ -182,10 +184,10 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         analytics.record(
             AgentHandoffPromptCreatedEvent(
+                handoff_id=issued.handoff_id,
                 user_id=user.id,
                 organization_id=organization.id,
                 flow=flow.value,
-                run_id=values["context"].run_id if values["context"] is not None else None,
                 ip_pinning=not values["disable_ip_pinning"],
             )
         )

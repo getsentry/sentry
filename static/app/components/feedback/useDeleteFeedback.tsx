@@ -16,9 +16,7 @@ import {useRefetchFeedbackList} from './list/useRefetchFeedbackList';
 
 export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
   const organization = useOrganization();
-  const api = useApi({
-    persistInFlight: false,
-  });
+  const api = useApi({persistInFlight: false});
   const navigate = useNavigate();
   const {query: locationQuery} = useLocation();
 
@@ -36,10 +34,7 @@ export const useDeleteFeedback = (feedbackIds: any, projectId: any) => {
           });
           navigate(
             normalizeUrl({
-              pathname: makeFeedbackPathname({
-                path: '/',
-                organization,
-              }),
+              pathname: makeFeedbackPathname({path: '/', organization}),
               query: {
                 mailbox: locationQuery.mailbox,
                 project: locationQuery.project,

@@ -4,10 +4,7 @@ import {ActionLink} from 'sentry/components/actions/actionLink';
 import {t} from 'sentry/locale';
 import type {IssueUpdateData} from 'sentry/views/issueList/types';
 
-type Props = {
-  onUpdate: (data: IssueUpdateData) => void;
-  disabled?: boolean;
-};
+type Props = {onUpdate: (data: IssueUpdateData) => void; disabled?: boolean};
 
 export function ReviewAction({disabled, onUpdate}: Props) {
   return (

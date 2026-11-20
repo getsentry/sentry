@@ -18,6 +18,10 @@ const DASHBOARD_WIDGET_BUILDER_PATHNAME =
   '/organizations/org-slug/dashboards/new/widget/new/';
 
 describe('WidgetPreview', () => {
+  beforeEach(() => {
+    PageFiltersStore.reset();
+  });
+
   const dashboard: DashboardDetails = {
     id: 'new',
     title: 'Test Dashboard',
@@ -31,12 +35,8 @@ describe('WidgetPreview', () => {
   const renderOptions = {
     organization: OrganizationFixture(),
     additionalWrapper: WidgetBuilderProvider,
-    initialRouterConfig: {
-      location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME},
-    },
+    initialRouterConfig: {location: {pathname: DASHBOARD_WIDGET_BUILDER_PATHNAME}},
   };
-
-  afterEach(() => PageFiltersStore.reset());
 
   function ExampleWidgetPreview({
     previewStatus,

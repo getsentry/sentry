@@ -1,4 +1,7 @@
 from time import time
+from unittest.mock import patch
+
+from rediscluster.exceptions import RedisClusterException
 
 from sentry.ratelimits.redis import RedisRateLimiter
 from sentry.testutils.cases import TestCase
@@ -71,3 +74,12 @@ class RedisRateLimiterTest(TestCase):
             assert self.backend.is_limited("foo", 1, self.project)
             self.backend.reset("foo", self.project)
             assert not self.backend.is_limited("foo", 1, self.project)
+
+    def test_fails_open_on_cluster_error(self) -> None:
+        error = RedisClusterException("Too many connection")
+        with (
+            patch.object(self.backend.client, "pipeline", side_effect=error),
+            patch.object(self.backend.client, "get", side_effect=error),
+        ):
+            assert self.backend.is_limited("foo", 1) is False
+            assert self.backend.current_value("foo") == 0

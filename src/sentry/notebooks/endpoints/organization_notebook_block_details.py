@@ -45,7 +45,8 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
     idempotent_methods = frozenset()
 
     @extend_schema(
-        operation_id="Update a Notebook Block",
+        operation_id="updateOrganizationNotebookBlock",
+        summary="Update a Notebook Block",
         tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,
@@ -125,7 +126,8 @@ class OrganizationNotebookBlockDetailsEndpoint(OrganizationNotebookBlockEndpoint
         )
 
     @extend_schema(
-        operation_id="Delete a Notebook Block",
+        operation_id="deleteOrganizationNotebookBlock",
+        summary="Delete a Notebook Block",
         tags=["Notebooks"],
         parameters=[
             GlobalParams.ORG_ID_OR_SLUG,

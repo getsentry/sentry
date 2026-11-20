@@ -188,17 +188,13 @@ describe('AssistantBlock', () => {
   });
 
   it('renders nothing for empty content', () => {
-    const block = createBlock({
-      message: {role: 'assistant', content: ''},
-    });
+    const block = createBlock({message: {role: 'assistant', content: ''}});
     const {container} = render(<BlockComponent block={block} blockIndex={0} />);
     expect(container).toHaveTextContent('');
   });
 
   describe('streaming', () => {
-    const streamingOrg = OrganizationFixture({
-      features: ['seer-explorer-stream'],
-    });
+    const streamingOrg = OrganizationFixture({features: ['seer-explorer-stream']});
 
     it('renders streaming markdown for loading block with content', () => {
       const block = createBlock({

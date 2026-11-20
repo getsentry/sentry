@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 import {useQuery} from '@tanstack/react-query';
 
 import type {TableColumnConfig} from '@sentry/scraps/table';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {LinkTabs} from '@sentry/scraps/tabs';
 
 import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {SimpleTable} from 'sentry/components/tables/simpleTable';
@@ -51,16 +51,18 @@ export default function SessionHistory() {
     <SentryDocumentTitle title={t('Session History')}>
       <SettingsPageHeader title={t('Security')} />
       <TabsContainer>
-        <Tabs value={activeTab}>
-          <TabList>
-            <TabList.Item key="settings" to={routePrefix}>
-              {t('Settings')}
-            </TabList.Item>
-            <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
-              {t('Session History')}
-            </TabList.Item>
-          </TabList>
-        </Tabs>
+        <LinkTabs value={activeTab}>
+          {({TabList}) => (
+            <TabList>
+              <TabList.Item key="settings" to={routePrefix}>
+                {t('Settings')}
+              </TabList.Item>
+              <TabList.Item key="sessionHistory" to={`${routePrefix}session-history/`}>
+                {t('Session History')}
+              </TabList.Item>
+            </TabList>
+          )}
+        </LinkTabs>
       </TabsContainer>
 
       <SimpleTable

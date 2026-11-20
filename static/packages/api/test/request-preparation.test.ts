@@ -66,7 +66,7 @@ describe("request preparation", () => {
     const response = Response.json({ data: [], meta: { fields: {} } }, { status: 403 });
     globalThis.fetch = asFetch(async request => { requests.push(request); return response; });
     try {
-      const config = createBrowserSdkConfig({ baseUrl: "https://example.test", getCsrfToken: () => "csrf-example" });
+      const config = createBrowserSdkConfig({ baseUrl: "https://example.test", origin: "https://example.test", getCsrfToken: () => "csrf-example" });
       const sentry = createSentryClient({ ...config, fetch: asFetch(request => config.fetch(request)) });
       const prepared = await sentry.client.prepareRequest({ method: "POST", url: "/custom/", body: { value: 1 } });
       expect(requests).toHaveLength(0);
@@ -108,14 +108,14 @@ describe("request preparation", () => {
     expect(options.url).toContain("cursor=old&cursor=older");
   });
 
-  test("clears a cursor for the first page while leaving unspecified query parameters intact", async () => {
+  test("replaces a cursor with a bare key while leaving unspecified query parameters intact", async () => {
     const sentry = createSentryClient({ baseUrl: "https://example.test" });
     const request = await sentry.client.prepareRequest({
       method: "GET", url: "/items/?cursor=one&cursor=two&per_page=25&field=id&field=name",
       query: { cursor: null, per_page: undefined },
     });
     const query = new URL(request.url).searchParams;
-    expect(query.has("cursor")).toBe(false);
+    expect(query.getAll("cursor")).toEqual([""]);
     expect(query.get("per_page")).toBe("25");
     expect(query.getAll("field")).toEqual(["id", "name"]);
   });

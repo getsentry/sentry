@@ -356,7 +356,7 @@ def post_snapshot_pr_comment_task(
                 pr_number=pr_number,
             )
             .values_list("head_sha", flat=True)
-            .first()
+            .get_or_none()
         )
         if comparison_head_sha is None:
             raise CommitComparison.DoesNotExist

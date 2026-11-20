@@ -121,6 +121,7 @@ class LoadConversationTest(BaseAIConversationsTestCase):
             timestamp=self.start + timedelta(seconds=5),
             client_sample_rate=1.0,
             conversation_id="conversation",
+            copied_attributes={},
         )
 
     def test_keeps_newest_spans_and_cuts_long_messages(self) -> None:
@@ -148,6 +149,37 @@ class LoadConversationTest(BaseAIConversationsTestCase):
         incr.assert_called_once_with(
             "telemetry_classifiers.load.truncated", tags={"dataset": "conversation"}
         )
+
+    def test_copies_attributes_from_newest_span(self) -> None:
+        for index, name in enumerate(["older", "newest"]):
+            span = self.store_ai_span(
+                "conversation",
+                self.start + timedelta(seconds=index),
+                operation_type="ai_client",
+                input_messages=[{"role": "user", "content": name}],
+                user_id=f"{name}-id",
+                user_email=f"{name}@example.com",
+                user_username=f"{name}-username",
+                user_ip="127.0.0.1",
+                store=False,
+            )
+            span["sentry_tags"]["environment"] = f"{name}-environment"
+            span["sentry_tags"]["release"] = f"{name}-release"
+            span["sentry_tags"]["user"] = f"id:{name}-id"
+            self.store_spans([span])
+
+        loaded = DATASET.load(self.project, "conversation")
+
+        assert loaded is not None
+        assert loaded.copied_attributes == {
+            "sentry.environment": "newest-environment",
+            "sentry.release": "newest-release",
+            "sentry.user": "id:newest-id",
+            "sentry.user.id": "newest-id",
+            "sentry.user.email": "newest@example.com",
+            "sentry.user.username": "newest-username",
+            "sentry.user.ip": "127.0.0.1",
+        }
 
     def test_returns_none_without_message_spans(self) -> None:
         self.store_ai_span("conversation", self.start, operation_type="tool")

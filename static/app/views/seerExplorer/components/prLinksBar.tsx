@@ -5,9 +5,10 @@ import {Button, LinkButton} from '@sentry/scraps/button';
 import {Flex} from '@sentry/scraps/layout';
 
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {getOutOfCreditsPRMessage} from 'sentry/components/seer/outOfCredits/messages';
 import {t} from 'sentry/locale';
 import {isValidUrl} from 'sentry/utils/string/isValidUrl';
-import type {RepoPRState} from 'sentry/views/seerExplorer/types';
+import {isOutOfCreditsPRState, type RepoPRState} from 'sentry/views/seerExplorer/types';
 
 interface PRLinksBarProps {
   repoPRStates: Record<string, RepoPRState>;
@@ -31,6 +32,17 @@ export function PRLinksBar({repoPRStates}: PRLinksBarProps) {
   );
 }
 
+function getErrorTooltip(state: RepoPRState): string {
+  if (isOutOfCreditsPRState(state)) {
+    return getOutOfCreditsPRMessage(state);
+  }
+  // A PR number means the PR already exists, so the failure was a push to it.
+  return (
+    state.pr_creation_error ??
+    (state.pr_number ? t('Could not push changes') : t('Could not open PR'))
+  );
+}
+
 /** Styled like the autofix evidence buttons: status icon, then owner/repo#number. */
 function PRButton({state}: {state: RepoPRState}) {
   // The URL comes from session data, so only link http(s) URLs and never e.g. `javascript:`.
@@ -45,9 +57,7 @@ function PRButton({state}: {state: RepoPRState}) {
         disabled
         size="sm"
         icon={<LoadingIndicator size={16} style={{margin: 0}} />}
-        tooltipProps={{
-          title: state.pr_number ? t('Pushing changes…') : t('Opening PR…'),
-        }}
+        tooltipProps={{title: state.pr_number ? t('Pushing changes…') : t('Opening PR…')}}
       >
         {label}
       </Button>
@@ -56,14 +66,7 @@ function PRButton({state}: {state: RepoPRState}) {
 
   const isError = state.pr_creation_status === 'error';
   const icon = isError ? <IconWarning variant="danger" /> : <IconPullRequest />;
-  const tooltipProps = isError
-    ? {
-        // A PR number means the PR already exists, so the failure was a push to it.
-        title:
-          state.pr_creation_error ??
-          (state.pr_number ? t('Could not push changes') : t('Could not open PR')),
-      }
-    : undefined;
+  const tooltipProps = isError ? {title: getErrorTooltip(state)} : undefined;
 
   // A failed push to an existing PR still links to it.
   if (prUrl) {

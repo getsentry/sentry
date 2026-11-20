@@ -87,9 +87,7 @@ describe('AttributeDetailsTooltip', () => {
       <AttributeDetailsTooltip attributeKey="logger.name" fieldDefinitionType="log" />
     );
 
-    expect(screen.getByText('logger.name')).toHaveStyle({
-      textDecorationStyle: 'dotted',
-    });
+    expect(screen.getByText('logger.name')).toHaveStyle({textDecorationStyle: 'dotted'});
   });
 
   it('renders only the children inline when they are given', async () => {

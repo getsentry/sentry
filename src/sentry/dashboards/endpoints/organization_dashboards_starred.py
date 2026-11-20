@@ -43,7 +43,7 @@ class MemberPermission(OrganizationPermission):
 @extend_schema(tags=["Dashboards"])
 @cell_silo_endpoint
 class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
-    publish_status = {"GET": ApiPublishStatus.PRIVATE}
+    publish_status = {"GET": ApiPublishStatus.PUBLIC_EXPERIMENTAL}
     owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 

@@ -291,7 +291,7 @@ def deliver_workflow_result(
     agent_run = (
         SeerAgentRun.objects.select_related("run__organization")
         .filter(run__organization_id=organization_id, source=feature_id, run__uuid=run_uuid)
-        .first()
+        .first()  # noqa: S035
     )
     if agent_run is None:
         logger.warning("seer.workflow.delivery.missing_run", extra=log_extra)
@@ -335,7 +335,7 @@ def finish_workflow_run(
         agent_run = (
             SeerAgentRun.objects.select_for_update(of=("self",))
             .filter(run_id=run_id, run__organization_id=organization_id, source=feature_id)
-            .first()
+            .get_or_none()
         )
         if agent_run is None or agent_run.extras.get("status") in TERMINAL_STATUSES:
             return

@@ -6,12 +6,7 @@ import {useCurrentHoverTime} from 'sentry/utils/replays/playback/providers/useCu
 
 type RecordType = {
   offsetMs: number;
-  data?:
-    | Record<string, any>
-    | {
-        nodeId: number;
-        label?: string;
-      };
+  data?: Record<string, any> | {nodeId: number; label?: string};
 };
 
 function getNodeIdAndLabel(record: RecordType) {
@@ -38,10 +33,7 @@ export function useCrumbHandlers() {
   const mouseEnterCallback = useRef<{
     id: RecordType | null;
     timeoutId: NodeJS.Timeout | null;
-  }>({
-    id: null,
-    timeoutId: null,
-  });
+  }>({id: null, timeoutId: null});
 
   const onMouseEnter = useCallback(
     (record: RecordType, nodeId?: number) => {
@@ -100,9 +92,5 @@ export function useCrumbHandlers() {
     [setCurrentTime]
   );
 
-  return {
-    onMouseEnter,
-    onMouseLeave,
-    onClickTimestamp,
-  };
+  return {onMouseEnter, onMouseLeave, onClickTimestamp};
 }

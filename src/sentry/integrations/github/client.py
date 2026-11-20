@@ -405,7 +405,7 @@ class GithubProxyClient(IntegrationProxyClient):
 
     @control_silo_function
     def _refresh_access_token(self) -> AccessTokenData | None:
-        integration = Integration.objects.filter(id=self.integration.id).first()
+        integration = Integration.objects.get_or_none(id=self.integration.id)
         if not integration:
             return None
 
@@ -536,7 +536,7 @@ class GithubProxyClient(IntegrationProxyClient):
                 organizationintegration__id=self.org_integration_id,
                 provider=EXTERNAL_PROVIDERS[ExternalProviders.GITHUB],
                 status=ObjectStatus.ACTIVE,
-            ).first()
+            ).first()  # noqa: S035
 
         if not integration:
             logger.info("no_integration", extra={"path_url": prepared_request.path_url})

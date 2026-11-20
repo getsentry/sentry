@@ -278,7 +278,9 @@ def get_merged_settings(
     # If feature flag is disabled, always use LEGACY mode because we can't decide check the feature
     # flag without a Project.
     # TODO: WFE config should fall back to DEFAULT_PROJECT_PERFORMANCE_DETECTION_SETTINGS without a Project.
-    if not project or not features.has("projects:workflow-engine-performance-detectors", project):
+    if settings_mode != SettingsMode.LEGACY and (
+        not project or not features.has("projects:workflow-engine-performance-detectors", project)
+    ):
         settings_mode = SettingsMode.LEGACY
 
     if settings_mode == SettingsMode.LEGACY:

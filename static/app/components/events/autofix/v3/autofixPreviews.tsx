@@ -21,9 +21,11 @@ import {
 import {
   collectPatches,
   getAutofixArtifactFromSection,
+  getOutOfCreditsStep,
   getSingleRunStop,
   isCodeChangesArtifact,
   isCodingAgentsArtifact,
+  isOutOfCreditsSection,
   isPullRequestsArtifact,
   isRootCauseArtifact,
   isSolutionArtifact,
@@ -32,6 +34,7 @@ import {
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {Placeholder} from 'sentry/components/placeholder';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
+import {OUT_OF_CREDITS_STEP_MESSAGE} from 'sentry/components/seer/outOfCredits/messages';
 import {t, tn} from 'sentry/locale';
 
 interface ArtifactPreviewProps {
@@ -56,6 +59,8 @@ export function RootCausePreview({section}: ArtifactPreviewProps) {
         <SeerMarkdown raw={artifact.data.one_line_description} />
       ) : stop ? (
         <SeerMarkdown raw={stop.reason} />
+      ) : isOutOfCreditsSection(section) ? (
+        <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE.root_cause}</Text>
       ) : (
         <Text variant="muted">
           {t(
@@ -82,6 +87,8 @@ export function SolutionPreview({section}: ArtifactPreviewProps) {
         </Flex>
       ) : artifact?.data ? (
         <SeerMarkdown raw={artifact.data.one_line_summary} />
+      ) : isOutOfCreditsSection(section) ? (
+        <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE.solution}</Text>
       ) : (
         <Text variant="muted">
           {t('Seer failed to generate a plan. This one is on us. Try running it again.')}
@@ -110,6 +117,12 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
       }
     }
 
+    // PR iterations fold into this section, so it can stop in one of them.
+    const outOfCreditsStep = getOutOfCreditsStep(section);
+    if (outOfCreditsStep) {
+      return <Text variant="muted">{OUT_OF_CREDITS_STEP_MESSAGE[outOfCreditsStep]}</Text>;
+    }
+
     if (reposChanged === 0) {
       return (
         <Text variant="muted">
@@ -135,7 +148,7 @@ export function CodeChangesPreview({section}: ArtifactPreviewProps) {
     return (
       <Text>{t('%s files changed in %s repos', filesChanged.size, reposChanged)}</Text>
     );
-  }, [patchesByRepo]);
+  }, [patchesByRepo, section]);
 
   return (
     <ArtifactCard icon={<IconCode />} title={t('Code Changes')}>

@@ -82,12 +82,7 @@ describe('ReleaseIssues', () => {
   it('shows an empty sttate with stats period', async () => {
     render(<ReleaseIssues version={version} releaseBounds={releaseBounds} />, {
       organization,
-      initialRouterConfig: {
-        location: {
-          pathname: '/',
-          query: {pageStatsPeriod: '24h'},
-        },
-      },
+      initialRouterConfig: {location: {pathname: '/', query: {pageStatsPeriod: '24h'}}},
     });
 
     expect(

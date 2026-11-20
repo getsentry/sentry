@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime
 from unittest.mock import MagicMock, patch
 
@@ -13,6 +14,7 @@ SOURCE = TelemetryInput(
     timestamp=datetime(2020, 1, 1, 12, tzinfo=UTC),
     client_sample_rate=0.5,
     conversation_id="conversation",
+    copied_attributes={"sentry.environment": "production", "sentry.user.id": "user-123"},
 )
 
 
@@ -44,7 +46,11 @@ class WriteResultTest(TestCase):
             trace_id="1" * 32,
             timestamp=SOURCE.timestamp,
             retention_days=45,
-            attributes={"sentry.enrichment.frustration": 0.9},
+            attributes={
+                "sentry.enrichment.frustration": 0.9,
+                "sentry.environment": "production",
+                "sentry.user.id": "user-123",
+            },
             conversation_id="conversation",
             client_sample_rate=0.5,
         )
@@ -57,3 +63,14 @@ class WriteResultTest(TestCase):
             write_result(self.classifier, "conversation", SOURCE, {}, DataCategory.SPAN)
 
         assert produce.call_args.kwargs["retention_days"] == 30
+
+    def test_writes_without_copied_attributes(self, produce: MagicMock) -> None:
+        write_result(
+            self.classifier,
+            "conversation",
+            replace(SOURCE, copied_attributes={}),
+            {"sentry.enrichment.frustration": 0.9},
+            DataCategory.SPAN,
+        )
+
+        assert produce.call_args.kwargs["attributes"] == {"sentry.enrichment.frustration": 0.9}

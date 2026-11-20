@@ -211,8 +211,22 @@ export function parseStoredColumnWidths(value?: unknown): ColumnWidths {
   return widths;
 }
 
+type ConversationsResult = ReturnType<typeof useConversations>;
+
+type ConversationsTableSource = Pick<
+  ConversationsResult,
+  | 'data'
+  | 'error'
+  | 'isFetching'
+  | 'pageLinks'
+  | 'setCursor'
+  | 'setSort'
+  | 'sort'
+  | 'unsetCursor'
+>;
+
 interface ConversationsTableProps {
-  conversations: ReturnType<typeof useConversations>;
+  conversations: ConversationsTableSource;
   hidePagination?: boolean;
 }
 
@@ -232,7 +246,7 @@ export function ConversationsTable({
     parseAsString.withOptions({history: 'replace'})
   );
 
-  const [storedWidths, setStoredWidths] = useLocalStorageState<ColumnWidths>(
+  const [columnWidths, setColumnWidths] = useLocalStorageState<ColumnWidths>(
     COLUMN_WIDTHS_STORAGE_KEY,
     parseStoredColumnWidths
   );
@@ -242,18 +256,18 @@ export function ConversationsTable({
       COLUMN_ORDER.map(key => ({
         key,
         name: COLUMN_DEFAULTS[key].name,
-        width: storedWidths[key] ?? COLUMN_DEFAULTS[key].width,
+        width: columnWidths[key] ?? COLUMN_DEFAULTS[key].width,
       })),
-    [storedWidths]
+    [columnWidths]
   );
 
   const handleResizeColumn = useCallback(
     (_columnIndex: number, nextColumn: GridColumnOrder<ColumnKey>) => {
       // Keyed by column rather than by index so a stored width survives a
       // change to the column order.
-      setStoredWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
+      setColumnWidths(current => ({...current, [nextColumn.key]: nextColumn.width}));
     },
-    [setStoredWidths]
+    [setColumnWidths]
   );
 
   const hasNoTools = useMemo(
@@ -268,11 +282,11 @@ export function ConversationsTable({
   );
   const staticColumnWidths = useMemo(
     () =>
-      storedWidths.conversation === undefined ||
-      storedWidths.conversation === COL_WIDTH_UNDEFINED
+      columnWidths.conversation === undefined ||
+      columnWidths.conversation === COL_WIDTH_UNDEFINED
         ? {conversation: `minmax(${COL_WIDTH_MINIMUM}px, 1fr)`}
         : undefined,
-    [storedWidths.conversation]
+    [columnWidths.conversation]
   );
 
   const handlePaginate: typeof setCursor = (cursor, pageDelta) => {
@@ -332,6 +346,7 @@ export function ConversationsTable({
       if (!field) {
         return undefined;
       }
+      const align = RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined;
 
       let direction: 'asc' | 'desc' | undefined;
       if (sort === field) {
@@ -340,7 +355,7 @@ export function ConversationsTable({
         direction = 'desc';
       }
       return {
-        align: RIGHT_ALIGNED_COLUMNS.has(column.key) ? 'right' : undefined,
+        align,
         direction,
         onSort: () => {
           setSort(direction === 'desc' ? field : `-${field}`);
@@ -353,7 +368,11 @@ export function ConversationsTable({
 
   const renderBodyCell = useCallback(
     (column: GridColumnOrder<ColumnKey>, dataRow: Conversation) => (
-      <BodyCell column={column} conversation={dataRow} onCellAction={handleCellAction} />
+      <BodyCell
+        columnKey={column.key}
+        conversation={dataRow}
+        onCellAction={handleCellAction}
+      />
     ),
     [handleCellAction]
   );
@@ -394,15 +413,15 @@ export function ConversationsTable({
 }
 
 function BodyCell({
-  column,
+  columnKey,
   conversation,
   onCellAction,
 }: {
-  column: GridColumnOrder<ColumnKey>;
+  columnKey: ColumnKey;
   conversation: Conversation;
   onCellAction: CellActionHandler;
 }) {
-  switch (column.key) {
+  switch (columnKey) {
     case 'conversation':
       return <ConversationCell conversation={conversation} />;
     case 'timeSpan':
@@ -482,7 +501,7 @@ function BodyCell({
     case 'age':
       return (
         <Text align="right" variant="muted">
-          <TimeSince unitStyle="extraShort" date={conversation.endTimestamp} />
+          <TimeSince unitStyle="narrow" date={conversation.endTimestamp} />
         </Text>
       );
     default:
@@ -545,7 +564,7 @@ function getConversationTitle(
   return plainText.length > 0 ? plainText : null;
 }
 
-function ConversationCell({conversation}: {conversation: Conversation}) {
+export function ConversationCell({conversation}: {conversation: Conversation}) {
   // Flattening markdown to plain text renders HTML + parses it, so memoize on
   // the inputs to avoid recomputing on unrelated re-renders (hover, resize).
   const title = useMemo(

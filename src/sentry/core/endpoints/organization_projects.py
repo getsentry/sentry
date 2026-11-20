@@ -143,6 +143,7 @@ class OrganizationProjectsEndpoint(OrganizationEndpoint):
             CursorQueryParam,
             VisibilityParams.PER_PAGE,
             OrganizationParams.PROJECT_QUERY,
+            OrganizationParams.PROJECT_COLLAPSE,
         ],
         request=None,
         responses={

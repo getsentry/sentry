@@ -22,9 +22,7 @@ jest.mock('sentry/actionCreators/modal');
 const mockOpenSaveQueryModal = jest.mocked(modal.openSaveQueryModal);
 
 describe('useSaveAsItems', () => {
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
   const project = ProjectFixture({id: '1'});
   const initialLocation = {
     pathname: '/mock-pathname/',
@@ -74,10 +72,6 @@ describe('useSaveAsItems', () => {
       method: 'POST',
       body: {id: 'new-query-id', name: 'Test Query'},
     });
-  });
-
-  afterEach(() => {
-    PageFiltersStore.reset();
   });
 
   it('should open save query modal when save as new query is clicked', () => {

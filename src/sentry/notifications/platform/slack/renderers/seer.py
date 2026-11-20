@@ -361,7 +361,11 @@ class SeerSlackRenderer(NotificationRenderer[SlackRenderable]):
 
     @classmethod
     def _render_investigation_started(cls, data: SeerInvestigationStarted) -> SlackRenderable:
-        text = f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+        text = (
+            f"<@{data.slack_user_id}> started a Seer investigation for this alert."
+            if data.slack_user_id
+            else "Sentry started a Seer investigation for this alert."
+        )
         return SlackRenderable(blocks=[MarkdownBlock(text=text)], text=text)
 
     @classmethod

@@ -1,5 +1,4 @@
 import {useEffect} from 'react';
-import * as qs from 'query-string';
 
 import {AnalyticsArea} from 'sentry/components/analyticsArea';
 import {NotFound} from 'sentry/components/errors/notFound';
@@ -12,6 +11,7 @@ import {SentryDocumentTitle} from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import {useRouteAnalyticsHookSetup} from 'sentry/utils/routeAnalytics/useRouteAnalyticsHookSetup';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
+import * as qs from 'sentry/utils/url/qs';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -22,10 +22,7 @@ import {getIssueViewQueryParams} from './issueViews/getIssueViewQueryParams';
 import {useSelectedGroupSearchView} from './issueViews/useSelectedGroupSeachView';
 import type {GroupSearchView} from './types';
 
-type Props = {
-  children: React.ReactNode;
-  title?: string;
-};
+type Props = {children: React.ReactNode; title?: string};
 
 function useUpdateViewLastVisited({view}: {view: GroupSearchView | undefined}) {
   const {mutate: updateViewLastVisited} = useUpdateGroupSearchViewLastVisited();
@@ -58,10 +55,7 @@ function useHydrateIssueViewQueryParams({view}: {view: GroupSearchView | undefin
       navigate(
         normalizeUrl({
           pathname: `/organizations/${organization.slug}/issues/views/${view.id}/`,
-          query: {
-            ...getIssueViewQueryParams({view}),
-            ...query,
-          },
+          query: {...getIssueViewQueryParams({view}), ...query},
         }),
         {replace: true}
       );

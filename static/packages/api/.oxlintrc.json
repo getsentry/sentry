@@ -16,7 +16,6 @@
         "scripts/generate-base-url-resolver.mjs",
         "scripts/generate-client.mjs",
         "scripts/generate-error-results.mjs",
-        "scripts/generate-operations.mjs",
         "scripts/generate-pagination.mjs",
         "scripts/generate-query-enum-types.mjs",
         "scripts/generate-request-preparation.mjs",

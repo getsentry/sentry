@@ -46,10 +46,7 @@ describe('useRenameDashboard', () => {
     });
 
     const {result} = renderHookWithProviders(
-      () => ({
-        starred: useGetStarredDashboards(),
-        rename: useRenameDashboard(),
-      }),
+      () => ({starred: useGetStarredDashboards(), rename: useRenameDashboard()}),
       {organization}
     );
 

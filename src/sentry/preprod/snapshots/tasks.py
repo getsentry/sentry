@@ -129,7 +129,10 @@ def _put_json(session: SnapshotStorage, key: str, model: BaseModel) -> None:
 
 
 def _put_diff_mask(session: SnapshotStorage, key: str, data: bytes) -> None:
-    _retry_objectstore(lambda: session.put(data, key=key, content_type="image/png"))
+    # PNG data is already compressed, so compressing it again would waste CPU for little gain.
+    _retry_objectstore(
+        lambda: session.put(data, key=key, content_type="image/png", compress="none")
+    )
 
 
 def _errored_result(candidate: ChunkCandidate, reason: str) -> ComparisonImageResult:
@@ -922,10 +925,10 @@ def compare_snapshots(
             defaults={"state": PreprodSnapshotComparison.State.PROCESSING},
         )
     except IntegrityError:
-        comparison = PreprodSnapshotComparison.objects.filter(
+        comparison = PreprodSnapshotComparison.objects.get_or_none(
             head_snapshot_metrics=head_metrics,
             base_snapshot_metrics=base_metrics,
-        ).first()
+        )
         if comparison is None:
             logger.exception(
                 "Snapshot comparison not found after IntegrityError",
@@ -1238,7 +1241,7 @@ def _finalize_if_all_chunks_done(
     head_artifact_id: int,
     base_artifact_id: int,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = PreprodSnapshotComparison.objects.get_or_none(id=comparison_id)
     if comparison is None or comparison.state != PreprodSnapshotComparison.State.PROCESSING:
         return
     if comparison.chunks_total is None:
@@ -1274,7 +1277,7 @@ def finalize_snapshot_comparison(
     base_artifact_id: int,
     **kwargs: Any,
 ) -> None:
-    comparison = PreprodSnapshotComparison.objects.filter(id=comparison_id).first()
+    comparison = PreprodSnapshotComparison.objects.get_or_none(id=comparison_id)
     if comparison is None:
         return
     if comparison.state in (

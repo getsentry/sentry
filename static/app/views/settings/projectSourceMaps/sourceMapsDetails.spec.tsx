@@ -63,13 +63,7 @@ function renderDebugIdBundlesMockRequests({
   const artifactBundlesFiles = MockApiClient.addMockResponse({
     url: `/projects/${orgSlug}/${projectSlug}/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/`,
     body: SourceMapsDebugIDBundlesArtifactsFixture(
-      empty
-        ? {
-            fileCount: 0,
-            associations: [],
-            files: [],
-          }
-        : {}
+      empty ? {fileCount: 0, associations: [], files: []} : {}
     ),
   });
 
@@ -78,10 +72,7 @@ function renderDebugIdBundlesMockRequests({
     method: 'DELETE',
   });
 
-  MockApiClient.addMockResponse({
-    url: `/organizations/${orgSlug}/releases/`,
-    body: [],
-  });
+  MockApiClient.addMockResponse({url: `/organizations/${orgSlug}/releases/`, body: []});
 
   return {artifactBundlesFiles, artifactBundlesDeletion};
 }
@@ -94,15 +85,8 @@ describe('SourceMapsDetails', () => {
   describe('Release Bundles', () => {
     it('renders default state', async () => {
       const {organization, project} = initializeOrg({
-        organization: OrganizationFixture({
-          access: ['org:superuser'],
-        }),
-        router: {
-          location: {
-            query: {},
-          },
-          params: {},
-        },
+        organization: OrganizationFixture({access: ['org:superuser']}),
+        router: {location: {query: {}}, params: {}},
       });
 
       OrganizationStore.onUpdate(organization, {replace: true});
@@ -116,9 +100,7 @@ describe('SourceMapsDetails', () => {
 
       render(
         <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Subtitle
@@ -139,18 +121,13 @@ describe('SourceMapsDetails', () => {
       // Download button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
-        '/projects/org-slug/project-slug/releases/bea7335dfaebc0ca6e65a057/files/5678/?download=1'
+        '/api/0/projects/org-slug/project-slug/releases/bea7335dfaebc0ca6e65a057/files/5678/?download=1'
       );
     });
 
     it('renders empty state', async () => {
       const {organization, project} = initializeOrg({
-        router: {
-          location: {
-            query: {},
-          },
-          params: {},
-        },
+        router: {location: {query: {}}, params: {}},
       });
 
       renderReleaseBundlesMockRequests({
@@ -161,9 +138,7 @@ describe('SourceMapsDetails', () => {
 
       render(
         <SourceMapsDetails project={project} bundleId="bea7335dfaebc0ca6e65a057" />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(
@@ -203,9 +178,7 @@ describe('SourceMapsDetails', () => {
           project={project}
           bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       // Details
@@ -243,7 +216,7 @@ describe('SourceMapsDetails', () => {
       // Download Button
       expect(screen.getByRole('button', {name: 'Download Artifact'})).toHaveAttribute(
         'href',
-        '/projects/org-slug/project-slug/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/ZmlsZXMvXy9fL21haW4uanM=/?download=1'
+        '/api/0/projects/org-slug/project-slug/artifact-bundles/7227e105-744e-4066-8c69-3e5e344723fc/files/ZmlsZXMvXy9fL21haW4uanM=/?download=1'
       );
 
       renderGlobalModal();
@@ -291,9 +264,7 @@ describe('SourceMapsDetails', () => {
           project={project}
           bundleId="7227e105-744e-4066-8c69-3e5e344723fc"
         />,
-        {
-          organization,
-        }
+        {organization}
       );
 
       expect(

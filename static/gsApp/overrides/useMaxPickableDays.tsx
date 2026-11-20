@@ -78,11 +78,7 @@ function getMaxPickableDaysBySubscription(
     }
     case DataCategory.TRACE_METRICS: {
       // TODO: undecided for now, fixed at 30 days
-      return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
-        defaultPeriod: '24h',
-      };
+      return {maxPickableDays: 30, maxUpgradableDays: 30, defaultPeriod: '24h'};
     }
     case DataCategory.LOG_BYTE:
     case DataCategory.LOG_ITEM: {
@@ -106,11 +102,7 @@ function getMaxPickableDaysBySubscription(
     case DataCategory.PROFILE_CHUNKS_UI:
     case DataCategory.PROFILE_DURATION:
     case DataCategory.PROFILE_DURATION_UI:
-      return {
-        maxPickableDays: 30,
-        maxUpgradableDays: 30,
-        defaultPeriod: '24h',
-      };
+      return {maxPickableDays: 30, maxUpgradableDays: 30, defaultPeriod: '24h'};
     case DataCategory.TRANSACTIONS:
     case DataCategory.REPLAYS:
       return {

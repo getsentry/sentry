@@ -35,7 +35,7 @@ jest.mock('@tanstack/react-virtual', () => ({
 describe('AutofixRepositoriesList', () => {
   const project = ProjectFixture();
   const tokenBilledOrganization = OrganizationFixture({
-    features: ['seer-token-based-billing-onboarding', 'token-billed-seer-enabled'],
+    features: ['token-billed-seer-enabled'],
   });
   const seatBilledOrganization = OrganizationFixture();
 

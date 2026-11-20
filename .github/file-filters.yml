@@ -75,6 +75,9 @@ embed_widget_schema:
 embed_widget_codegen:
   - added|modified: 'src/sentry/seer/agent/embed_widgets.generated.json'
 
+nav_snapshot_codegen:
+  - added|modified: 'src/sentry/seer/nav_snapshot.generated.json'
+
 test_utility_only_paths:
   - 'src/sentry/replays/testutils.py'
   - 'fixtures/search-syntax/**/*'

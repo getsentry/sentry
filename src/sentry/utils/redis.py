@@ -31,6 +31,12 @@ _REDIS_DEFAULT_CLIENT_ARGS = {
     "socket_timeout": 3.0
 }
 
+# A cluster's `client_args` can override these
+_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS = {
+    # Per node, because of max_connections_per_node
+    "max_connections": 16,
+}
+
 
 class RedisClusterManager:
     def __init__(self, options_manager: OptionsManager) -> None:
@@ -132,10 +138,9 @@ class RedisClusterManager:
                         startup_nodes=deepcopy(hosts_list),
                         decode_responses=decode_responses,
                         skip_full_coverage_check=True,
-                        max_connections=16,
                         max_connections_per_node=True,
                         readonly_mode=readonly_mode,
-                        **client_args,
+                        **{**_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS, **client_args},
                     )
                 )
                 if key_prefix is not None:
@@ -236,13 +241,6 @@ _REDIS_TRANSACTION_CALLSTACK_ALLOWLIST_RATCHET = frozenset(
             "sentry.models.featureadoption.FeatureAdoptionManager.record",
             "sentry.receivers.features.record_inbound_filter_toggled",
             "sentry.api.helpers.default_inbound_filters.set_default_inbound_filters",
-        ),
-        # INFRENG-932: delete-and-discard feature adoption runs inside the discard transaction
-        # https://linear.app/getsentry/issue/INFRENG-932
-        (
-            "sentry.models.featureadoption.FeatureAdoptionManager.record",
-            "sentry.receivers.features.deleted_and_discarded_issue",
-            "sentry.api.helpers.group_index.update.handle_discard",
         ),
     }
 )

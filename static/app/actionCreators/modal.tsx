@@ -36,10 +36,7 @@ import type {AttributeBreakdownViewerModalOptions} from 'sentry/views/explore/co
 
 type ModalRenderPropKeys = keyof ModalRenderProps;
 
-type EmailVerificationModalOptions = {
-  actionMessage?: string;
-  onClose?: () => void;
-};
+type EmailVerificationModalOptions = {actionMessage?: string; onClose?: () => void};
 
 type InviteMembersModalOptions = {
   initialData?: Array<Partial<InviteRow>>;
@@ -156,16 +153,11 @@ export async function toggleCommandPalette(
     dispatch({type: 'toggle modal'});
     openModal(
       deps => <Modal {...deps} {...options} openSeerExplorer={openSeerExplorer} />,
-      {
-        modalCss,
-        onClose: closeCommandPaletteModal,
-      }
+      {modalCss, onClose: closeCommandPaletteModal}
     );
   }
 }
-type RecoveryModalOptions = {
-  authenticatorName: string;
-};
+type RecoveryModalOptions = {authenticatorName: string};
 
 export async function openRecoveryOptions(options: RecoveryModalOptions) {
   const {default: Modal} = await import('sentry/components/modals/recoveryOptionsModal');
@@ -201,10 +193,7 @@ export async function openDebugFileSourceModal({
   const {default: Modal, modalCss} =
     await import('sentry/components/modals/debugFileCustomRepository');
 
-  openModal(deps => <Modal {...deps} {...restOptions} />, {
-    modalCss,
-    onClose,
-  });
+  openModal(deps => <Modal {...deps} {...restOptions} />, {modalCss, onClose});
 }
 
 export async function openInviteMembersModal({
@@ -272,9 +261,7 @@ export async function demoSignupModal() {
   openModal(deps => <Modal {...deps} />, {modalCss});
 }
 
-type DemoEndModalOptions = {
-  tour: string;
-};
+type DemoEndModalOptions = {tour: string};
 
 export async function demoEndModal(options: DemoEndModalOptions) {
   const {default: Modal, modalCss} =
@@ -336,9 +323,7 @@ export async function openCreateReleaseIntegration(
   openModal(deps => <Modal {...deps} {...options} />);
 }
 
-type NavigateToExternalLinkModalOptions = {
-  linkText: string;
-};
+type NavigateToExternalLinkModalOptions = {linkText: string};
 
 export async function openNavigateToExternalLinkModal(
   options: NavigateToExternalLinkModalOptions
@@ -352,9 +337,7 @@ export async function openNavigateToExternalLinkModal(
 export async function openConsoleModal(options: ConsoleModalProps) {
   const {ConsoleModal: Modal, modalCss} =
     await import('sentry/components/onboarding/consoleModal');
-  openModal(deps => <Modal {...deps} {...options} />, {
-    modalCss,
-  });
+  openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
 export async function openInsightChartModal(options: InsightChartModalOptions) {
@@ -396,10 +379,7 @@ export async function openPrivateGamingSdkAccessModal(
   openModal(deps => <PrivateGamingSdkAccessModal {...deps} {...options} />);
 }
 
-type InsightInfoModalOptions = {
-  children: React.ReactNode;
-  title: string;
-};
+type InsightInfoModalOptions = {children: React.ReactNode; title: string};
 
 export async function openInsightInfoModal(options: InsightInfoModalOptions) {
   const {InsightInfoModal} =

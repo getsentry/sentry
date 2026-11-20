@@ -126,9 +126,7 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
             "projects": [
                 {"slug": project.slug, "platform": project.platform} for project in projects
             ],
-            "code_mode": features.has(
-                "organizations:seer-explorer-code-mode-tools", organization, actor=request.user
-            ),
+            "code_mode": True,
             "actions_enabled": actions_enabled,
         }
         if actions_enabled:
@@ -194,20 +192,20 @@ class OrganizationSeerChatSuggestionsEndpoint(OrganizationEndpoint):
     ) -> str | None:
         """The page's context node type, if the user can edit the item on that page."""
         if dashboard_id := _to_valid_int_id("dashboardId", route_params.get("dashboardId")):
-            dashboard = Dashboard.objects.filter(
+            dashboard = Dashboard.objects.get_or_none(
                 id=dashboard_id, organization_id=organization.id
-            ).first()
+            )
             if dashboard and OrganizationDashboardsPermission().has_object_permission(
                 request, self, dashboard
             ):
                 return "dashboard"
 
         elif workflow_id := _to_valid_int_id("automationId", route_params.get("automationId")):
-            workflow = Workflow.objects.filter(
+            workflow = Workflow.objects.get_or_none(
                 id=workflow_id,
                 organization_id=organization.id,
                 type=Workflow.Type.ALERT,
-            ).first()
+            )
             if workflow:
                 try:
                     enforce_workflow_access(workflow, organization, request)

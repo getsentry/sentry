@@ -273,9 +273,9 @@ class LinearClient:
         except UnableToAcquireLock:
             # The holder's token request can outlast this wait. If it already stored a
             # usable replacement, hand that out instead of failing.
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             if integration is None:
                 return None
             token = _reusable_stored_token(integration, minimum_validity, force_refresh)
@@ -283,9 +283,9 @@ class LinearClient:
                 raise
             return token
         with acquired:
-            integration = Integration.objects.filter(
+            integration = Integration.objects.get_or_none(
                 id=self.integration.id, status=ObjectStatus.ACTIVE
-            ).first()
+            )
             if integration is None:
                 return None
             metadata = integration.metadata
@@ -303,7 +303,7 @@ class LinearClient:
                 # The date_updated filter catches stamped writes atomically; re-reading the
                 # stored refresh token also covers writers that persist new credentials
                 # without bumping date_updated.
-                current = Integration.objects.filter(id=integration.id).first()
+                current = Integration.objects.get_or_none(id=integration.id)
                 if current is not None and current.metadata.get("refresh_token") == refresh_token:
                     Integration.objects.filter(
                         id=integration.id,
@@ -336,7 +336,7 @@ class LinearClient:
                 .exists()
             ):
                 return
-            integration = Integration.objects.filter(id=self.integration.id).first()
+            integration = Integration.objects.get_or_none(id=self.integration.id)
             if integration is None:
                 return
             refresh_token = integration.metadata.get("refresh_token")

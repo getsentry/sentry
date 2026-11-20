@@ -191,10 +191,7 @@ describe('Composer', () => {
 
     act(() => {
       textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
+        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
       );
     });
     expect(onChange).toHaveBeenCalledWith({text: '日本語', mentions: []});
@@ -206,9 +203,7 @@ describe('Composer', () => {
     const textbox = getEditor();
     await userEvent.type(textbox, '@al');
 
-    const aliceOption = await screen.findByRole('option', {
-      name: 'Alice Example',
-    });
+    const aliceOption = await screen.findByRole('option', {name: 'Alice Example'});
     const alexOption = screen.getByRole('option', {name: 'Alex Engineer'});
     expect(textbox).toHaveAttribute('aria-activedescendant', aliceOption.id);
     await userEvent.keyboard('{ArrowDown}');
@@ -471,13 +466,7 @@ describe('Composer', () => {
         sources={[COMMAND_SOURCE]}
         initialValue={text}
         initialMentions={[
-          {
-            id: 'user:1',
-            sourceId: 'members',
-            text: '@Alice Example',
-            start: 5,
-            end: 19,
-          },
+          {id: 'user:1', sourceId: 'members', text: '@Alice Example', start: 5, end: 19},
         ]}
       />
     );
@@ -577,10 +566,7 @@ describe('Composer', () => {
 
     act(() => {
       textbox.dispatchEvent(
-        new CompositionEvent('compositionend', {
-          bubbles: true,
-          data: '日本語',
-        })
+        new CompositionEvent('compositionend', {bubbles: true, data: '日本語'})
       );
     });
 
@@ -600,11 +586,7 @@ describe('Composer', () => {
 
     act(() => {
       textbox.dispatchEvent(
-        new KeyboardEvent('keydown', {
-          key: 'Enter',
-          bubbles: true,
-          cancelable: true,
-        })
+        new KeyboardEvent('keydown', {key: 'Enter', bubbles: true, cancelable: true})
       );
     });
 

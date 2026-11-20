@@ -19,7 +19,7 @@ import {Disclosure} from '@sentry/scraps/disclosure';
 import {EmptyState} from '@sentry/scraps/emptyState';
 import {Flex, Stack} from '@sentry/scraps/layout';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
-import {TabList, Tabs} from '@sentry/scraps/tabs';
+import {Tabs} from '@sentry/scraps/tabs';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -77,9 +77,7 @@ import {useAutofixOverview} from './useAutofixOverview';
 import {useOverviewAnalytics} from './useOverviewAnalytics';
 import {useOverviewSeerDrawer} from './useOverviewSeerDrawer';
 
-const SeerTrialCTA = OverrideOrDefault({
-  overrideName: 'component:seer-trial-cta',
-});
+const SeerTrialCTA = OverrideOrDefault({overrideName: 'component:seer-trial-cta'});
 
 const FilterBar = styled(Flex)`
   @container (width < ${p => p.theme.container.sm}) {
@@ -152,9 +150,7 @@ export default function AutofixOverview() {
       renderDisabled={() => <NoAccess />}
     >
       <PageFiltersContainer
-        defaultSelection={{
-          datetime: {period: '7d', start: null, end: null, utc: null},
-        }}
+        defaultSelection={{datetime: {period: '7d', start: null, end: null, utc: null}}}
       >
         <SentryDocumentTitle title={t('Autofix Overview')} orgSlug={organization.slug}>
           <TopBar.Slot
@@ -484,14 +480,16 @@ function AutofixOverviewContent({organization}: {organization: Organization}) {
                     setQueryParams({view: next === 'all' ? null : next});
                   }}
                 >
-                  <TabList>
-                    <TabList.Item key="all">
-                      {t('All Runs (%s)', assigneeRuns.length)}
-                    </TabList.Item>
-                    <TabList.Item key="in_progress">
-                      {t('In Progress (%s)', inProgressCount)}
-                    </TabList.Item>
-                  </TabList>
+                  {({TabList}) => (
+                    <TabList>
+                      <TabList.Item key="all">
+                        {t('All Runs (%s)', assigneeRuns.length)}
+                      </TabList.Item>
+                      <TabList.Item key="in_progress">
+                        {t('In Progress (%s)', inProgressCount)}
+                      </TabList.Item>
+                    </TabList>
+                  )}
                 </Tabs>
                 <Button
                   size="sm"
