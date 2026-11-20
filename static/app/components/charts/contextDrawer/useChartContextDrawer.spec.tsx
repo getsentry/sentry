@@ -783,6 +783,10 @@ describe('useChartContextDrawer', () => {
           ],
         },
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${organization.slug}/annotations/`,
+        body: [],
+      });
     });
 
     it('shows a tab with a badge for dropped data and annotations', async () => {

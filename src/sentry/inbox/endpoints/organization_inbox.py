@@ -111,7 +111,11 @@ class OrganizationInboxIndexEndpoint(OrganizationInboxEndpoint):
             cursor_cls=StringCursor,
             default_per_page=25,
             max_per_page=100,
-            on_results=lambda page: serialize(page, user, InboxItemSerializer()),
+            # Subject deletion removes its inbox items, so a missing subject is rare and
+            # short-lived. Drop it rather than filter every query.
+            on_results=lambda page: [
+                item for item in serialize(page, user, InboxItemSerializer()) if item is not None
+            ],
         )
 
     @extend_schema(
