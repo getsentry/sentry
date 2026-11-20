@@ -383,10 +383,6 @@ imply Workflow execution order.
 
 ### History and task dispatch
 
-Handlers validate their required event context before dispatch and execution.
-Invocations require a detector from the event's organization; handlers decide
-whether a group or detector project is required.
-
 The processor updates frequency statuses and creates
 [`WorkflowFireHistory`](../models/workflow_fire_history.py) rows before `fire_actions`
 removes inactive actions and deduplicates by key. It then schedules
@@ -401,8 +397,6 @@ The action task:
 3. Loads the action and preferred detector.
 4. Validates handler compatibility and detector/event organization consistency.
 5. Creates an [`ActionInvocation`](../types.py) and calls the registered handler.
-
-`UnsupportedActionEvent` is logged without retries.
 
 External integration calls therefore run outside the workflow evaluation task. Action
 handlers must handle deleted integrations and other expected external-state changes.
