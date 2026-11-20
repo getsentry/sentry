@@ -60,8 +60,8 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
-  const SubjectIcon = INBOX_SUBJECT_CONFIG[item.subjectType].icon;
-  const title = item.title ?? t('Unavailable');
+  const {type, title} = item.subject;
+  const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
   const {pathname, search, hash} = new URL(item.url);
   const queryClient = useQueryClient();
   const {mutate: updateInboxItems, isPending: isUpdating} = useMutation(
