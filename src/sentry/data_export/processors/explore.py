@@ -1,6 +1,6 @@
 import logging
 from dataclasses import dataclass
-from typing import Any, Protocol, cast
+from typing import Any, Protocol
 
 from sentry_protos.snuba.v1.downsampled_storage_pb2 import DownsampledStorageConfig
 from sentry_protos.snuba.v1.endpoint_trace_items_pb2 import (
@@ -191,9 +191,9 @@ class ExploreProcessor:
     @staticmethod
     def get_sampling_mode(organization_id: int, query: dict[str, Any]) -> SAMPLING_MODES | None:
         sampling_mode = query.get("sampling", None)
-        if sampling_mode is not None:
-            sampling_mode = cast(SAMPLING_MODES, sampling_mode.upper())
-        return sampling_mode
+        if sampling_mode is None:
+            return None
+        return sampling_mode.upper()
 
     def run_query(self, offset: int, limit: int) -> list[dict[str, Any]]:
         query: str = self.explore_query.get("query", "")

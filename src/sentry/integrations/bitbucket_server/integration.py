@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 from cryptography.hazmat.backends import default_backend
@@ -246,21 +246,6 @@ class OAuthApiStep:
         return PipelineStepResult.advance()
 
 
-class BitbucketServerProjectPayload(TypedDict, total=False):
-    key: str
-    name: str
-
-
-class BitbucketServerRepoPayload(TypedDict, total=False):
-    slug: str
-    name: str
-    project: BitbucketServerProjectPayload
-
-
-class BitbucketServerReposResponse(TypedDict, total=False):
-    values: list[BitbucketServerRepoPayload]
-
-
 class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
     """
     IntegrationInstallation implementation for Bitbucket Server
@@ -306,8 +291,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
         parallel: bool = False,
     ) -> list[RepositoryInfo]:
         if not query:
-            resp = self.get_client().get_repos()
-            repos = cast(BitbucketServerReposResponse, resp)
+            repos = self.get_client().get_repos()
 
             return [
                 {
@@ -320,8 +304,7 @@ class BitbucketServerIntegration(RepositoryIntegration[BitbucketServerClient]):
                 for repo in repos.get("values", [])
             ]
 
-        resp = self.get_client().search_repositories(query)
-        repos = cast(BitbucketServerReposResponse, resp)
+        repos = self.get_client().search_repositories(query)
 
         return [
             {

@@ -16,9 +16,23 @@ from sentry.integrations.source_code_management.repository import RepositoryClie
 from sentry.integrations.types import IntegrationProviderSlug
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.response import MappingApiResponse
 
 logger = logging.getLogger("sentry.integrations.bitbucket_server")
+
+
+class BitbucketServerProjectPayload(TypedDict, total=False):
+    key: str
+    name: str
+
+
+class BitbucketServerRepoPayload(TypedDict, total=False):
+    slug: str
+    name: str
+    project: BitbucketServerProjectPayload
+
+
+class BitbucketServerReposResponse(TypedDict, total=False):
+    values: list[BitbucketServerRepoPayload]
 
 
 class _ValuesResponse(TypedDict):
@@ -172,14 +186,14 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
         prepared_request.prepare_auth(auth=auth_scheme)
         return prepared_request
 
-    def get_repos(self) -> MappingApiResponse:
-        return self.get_mapping(
+    def get_repos(self) -> BitbucketServerReposResponse:
+        return self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN"},
         )
 
-    def search_repositories(self, query_string: str) -> MappingApiResponse:
-        return self.get_mapping(
+    def search_repositories(self, query_string: str) -> BitbucketServerReposResponse:
+        return self.get(
             BitbucketServerAPIPath.repositories,
             params={"limit": 250, "permission": "REPO_ADMIN", "name": query_string},
         )
@@ -257,12 +271,9 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
     def get_last_commits(
         self, project: str, repo: str, limit: int = 10
     ) -> Sequence[Mapping[str, object]]:
-        data = cast(
-            "_ValuesResponse",
-            self.get_mapping(
-                BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
-                params={"merges": "exclude", "limit": limit},
-            ),
+        data = self._get_values_page(
+            BitbucketServerAPIPath.repository_commits.format(project=project, repo=repo),
+            {"merges": "exclude", "limit": limit},
         )
         return data["values"]
 
@@ -282,6 +293,9 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
             BitbucketServerAPIPath.commit_changes.format(project=project, repo=repo, commit=commit),
             {"limit": limit},
         )
+
+    def _get_values_page(self, uri: str, params: Mapping[str, object]) -> _ValuesResponse:
+        return self.get(uri, params=params)
 
     def _get_values(
         self, uri: str, params: Mapping[str, object], max_pages: int = 1000000
@@ -306,7 +320,7 @@ class BitbucketServerClient(ApiClient, RepositoryClient):
                 start,
                 extra={"uri": uri, "params": new_params},
             )
-            data = cast("_ValuesResponse", self.get_mapping(uri, params=new_params))
+            data = self._get_values_page(uri, new_params)
             logger.debug(
                 "%s values loaded", len(data["values"]), extra={"uri": uri, "params": new_params}
             )

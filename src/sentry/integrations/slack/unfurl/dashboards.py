@@ -5,7 +5,7 @@ import logging
 import re
 from collections.abc import Mapping
 from dataclasses import dataclass
-from typing import Any, Literal, TypedDict, cast
+from typing import Any, Literal, TypedDict
 from urllib.parse import urlparse
 
 from django.db.models import Prefetch
@@ -130,15 +130,17 @@ def _unfurl_dashboards(
     unfurls = {}
 
     for link in links:
-        args = cast(DashboardsUnfurlArgs, link.args)
-        org_slug = args["org_slug"]
+        org_slug: str = link.args["org_slug"]
+        dashboard_id: int = link.args["dashboard_id"]
+        widget_index: int = link.args["widget_index"]
+        query: QueryDict = link.args["query"]
         org = orgs_by_slug.get(org_slug)
 
         if not org:
             continue
 
         assert org.id is not None
-        widget = _get_widget(org.id, args["dashboard_id"], args["widget_index"])
+        widget = _get_widget(org.id, dashboard_id, widget_index)
         if widget is None:
             continue
 
@@ -150,7 +152,7 @@ def _unfurl_dashboards(
         if widget.display_type not in _TIMESERIES_DISPLAY_TYPES:
             continue
 
-        per_query_params = build_widget_timeseries_params(widget, args["query"])
+        per_query_params = build_widget_timeseries_params(widget, query)
         if not per_query_params:
             continue
 
