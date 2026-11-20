@@ -705,7 +705,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
         grant: SeerServiceAccountGrant | None = serializer.validated_data.get("serviceAccount")
         if grant is not None:
             check_can_grant_service_account(grant, request, organization, self)
-        channel_supplied = "slackChannel" in serializer.validated_data
+        channel = serializer.validated_data.get("slackChannel")
         applied_grant: SeerServiceAccountGrant | None = None
 
         # Updates are done in one txn. Error cases must raise instead of early return,
@@ -717,7 +717,7 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                     update.config.filters
                 ).all_projects
 
-                if enabled is not None or channel_supplied:
+                if enabled is not None or channel:
                     denied = _check_project_access(
                         (
                             [ALL_ACCESS_PROJECT_ID]
@@ -734,8 +734,8 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
                 if enabled is not None:
                     update.set_enabled(enabled)
 
-                if channel_supplied:
-                    update.set_slack_channel(serializer.validated_data["slackChannel"])
+                if channel:
+                    update.set_slack_channel(channel)
 
                 if project_ids is not None:
                     # Narrowing an all-projects config drops future projects the caller may
