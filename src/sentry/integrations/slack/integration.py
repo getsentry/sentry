@@ -24,7 +24,7 @@ from sentry.integrations.models.integration import Integration
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.integrations.slack import workspace
 from sentry.integrations.slack.metrics import translate_slack_api_error
-from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.sdk_client import SlackSdkClient, slack_api_base_url
 from sentry.integrations.slack.tasks.link_slack_user_identities import link_slack_user_identities
 from sentry.integrations.slack.utils.constants import SlackScope
 from sentry.integrations.slack.utils.errors import SLACK_SDK_MESSAGE_GONE_ERROR_CATEGORIES
@@ -388,7 +388,7 @@ class SlackIntegrationProvider(IntegrationProvider):
 
         # first try with new SDK client (not attached to integration)
         try:
-            client = WebClient(token=access_token)
+            client = WebClient(token=access_token, base_url=slack_api_base_url())
             sdk_response = client.team_info()
 
             return sdk_response.get("team")
