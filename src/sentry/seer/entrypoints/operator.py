@@ -41,7 +41,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_issue_category_eligible,
 )
-from sentry.seer.credits import SeerOperation
+from sentry.seer.credits import SeerOperation, get_run_denial_reason
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -357,12 +357,14 @@ class SeerAutofixOperator[CachePayloadT]:
                     self.entrypoint.on_trigger_autofix_error(error=error)
                 lifecycle.record_failure(failure_reason=error)
                 return
-            except SeerOutOfCreditsException:
+            except SeerOutOfCreditsException as e:
                 with SeerOperatorEventLifecycleMetric(
                     interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_TRIGGER_AUTOFIX_OUT_OF_CREDITS,
                     entrypoint_key=self.entrypoint.key,
                 ).capture():
-                    self.entrypoint.on_trigger_autofix_out_of_credits(started=run_id is not None)
+                    self.entrypoint.on_trigger_autofix_out_of_credits(
+                        started=run_id is not None, denial_reason=e.denial_reason
+                    )
                 lifecycle.record_halt(halt_reason="not_enough_seer_credits")
                 return
             except Exception as e:
@@ -1220,6 +1222,7 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                         cache_payload=cache_payload,
                         run_id=run_id,
                         state=state,
+                        denial_reason=get_run_denial_reason(state),
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.

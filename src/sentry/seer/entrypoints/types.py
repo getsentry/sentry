@@ -7,6 +7,7 @@ from sentry.notebooks.models import Notebook
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.seer.agent.client_models import SeerRunState
 from sentry.seer.autofix.utils import CodingAgentProviderType
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.sentry_apps.event_types import SentryAppEventType
 
 
@@ -48,10 +49,13 @@ class SeerAutofixEntrypoint[CachePayloadT](Protocol):
         """
         ...
 
-    def on_trigger_autofix_out_of_credits(self, *, started: bool) -> None:
+    def on_trigger_autofix_out_of_credits(
+        self, *, started: bool, denial_reason: SeerCreditDenialReason | None
+    ) -> None:
         """
         Called when the organization doesn't have enough Seer credits for the requested step.
         `started` is False when the run itself was refused, True when a later step of a run was.
+        `denial_reason` tells a daily usage limit apart from running out of credits.
 
         Example Usage: Sending a message with a link to add credits, etc.
         """
@@ -150,11 +154,14 @@ class SeerAgentEntrypoint[CachePayloadT](Protocol):
         cache_payload: CachePayloadT,
         run_id: int,
         state: SeerRunState,
+        denial_reason: SeerCreditDenialReason | None = None,
     ) -> None:
         """
         Called whenever Seer runs the AgentOnCompletionHook: when an invocation yields or fails,
         and when a PR push the Agent queued finishes. Treat it as a refresh: make the external
         service match ``state``, whichever of those caused the call.
+
+        `denial_reason` is why billing refuses credit, set when the run is out of credits.
 
         The shape of the cached payload is determined by `create_agent_cache_payload`.
 

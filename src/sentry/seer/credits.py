@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import StrEnum
-from typing import Literal
 
 from sentry_protos.billing.v1.common.v1.seer_billing_feature_pb2 import (
     SEER_BILLING_FEATURE_UNSPECIFIED,
@@ -15,12 +14,12 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 
 from sentry import features, seer_credit
 from sentry.models.organization import Organization
+from sentry.seer.agent.client_models import SeerCreditDenialReason as SeerCreditDenialReason
+from sentry.seer.agent.client_models import SeerRunState
 
 # Seer's failure_reason and pr_creation_error_code when the org ran out of credits.
 OUT_OF_CREDITS = "out_of_credits"
 
-
-SeerCreditDenialReason = Literal["not_enough_credits", "daily_cap_exceeded"]
 
 # Unspecified and unknown reasons map to None, so a reason added to the proto
 # before this mapping doesn't leak an enum name into the API.
@@ -92,11 +91,12 @@ def check_seer_operation(
     return _check_seer_credits(organization, feature, operation)
 
 
-def can_run_seer_operation(
-    organization: Organization, feature: int, operation: SeerOperation
-) -> bool:
-    return check_seer_operation(organization, feature, operation).has_enough_credits
-
-
 def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialReason | None:
     return _DENIAL_REASONS.get(response.denial_reason)
+
+
+def get_run_denial_reason(state: SeerRunState) -> SeerCreditDenialReason | None:
+    """Why billing refused credit for the run or, failing that, for one of its PR pushes."""
+    reasons = [state.credit_denial_reason]
+    reasons += [pr.credit_denial_reason for pr in state.repo_pr_states.values()]
+    return next((reason for reason in reasons if reason), None)
