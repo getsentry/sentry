@@ -2,7 +2,7 @@ from typing import override
 
 from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.notifications.notification_action.action_handler_registry.base import (
-    NotificationActionHandler,
+    IssueNotificationActionHandler,
 )
 from sentry.notifications.notification_action.utils import execute_via_group_type_registry
 from sentry.workflow_engine.models import Action
@@ -12,7 +12,7 @@ from sentry.workflow_engine.types import ActionHandler, ActionInvocation, Config
 
 
 @action_handler_registry.register(Action.Type.SENTRY_APP)
-class SentryAppActionHandler(NotificationActionHandler):
+class SentryAppActionHandler(IssueNotificationActionHandler):
     group = ActionHandler.Group.OTHER
 
     config_schema = {
