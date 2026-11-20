@@ -7,6 +7,7 @@ import type {EntityHeaderMetadataItemProps} from './items/entityHeaderMetadataIt
 import {
   EntityHeaderMetadataItem,
   EntityHeaderMetadataItemSkeleton,
+  hasMetadataContent,
   MetadataDivider,
 } from './items/entityHeaderMetadataItem';
 import type {EntityHeaderPeopleProps} from './items/entityHeaderPeople';
@@ -124,10 +125,8 @@ export function EntityHeader({
     .map((item, index) => ({item, index}))
     .filter(
       (entry): entry is {index: number; item: EntityHeaderMetadataItemProps} =>
-        Boolean(entry.item) &&
-        // An empty list renders nothing, so it must not count as the row's
-        // last item.
-        (entry.item?.type !== 'list' || entry.item.items.length > 0)
+        // An item that draws nothing must not count as the row's last item.
+        entry.item !== null && hasMetadataContent(entry.item)
     );
 
   const peopleLoading = Boolean(people) && (isLoading || Boolean(people?.isLoading));

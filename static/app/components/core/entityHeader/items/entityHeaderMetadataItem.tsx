@@ -132,6 +132,13 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataListProps;
 
 /**
+ * Whether the item draws anything. An empty list draws nothing.
+ */
+export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
+  return item.type !== 'list' || item.items.length > 0;
+}
+
+/**
  * The pipe that ends a property in the metadata row, drawn inside its item so
  * it wraps with it.
  */
