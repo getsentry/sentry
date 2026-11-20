@@ -15,16 +15,17 @@ import {Text} from '@sentry/scraps/text';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
-import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOrganizations} from 'sentry/utils/useOrganizations';
 import {useParams} from 'sentry/utils/useParams';
 import {useProjects} from 'sentry/utils/useProjects';
 import {SecondaryNavigation} from 'sentry/views/navigation/secondary/components';
@@ -198,7 +199,7 @@ function SettingsHeaderSelectTrigger({
 
 function SettingsOrganizationHeader() {
   const organization = useOrganization();
-  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organizations = useOrganizations();
   const singleOrganization = useStore(ConfigStore, state => state.singleOrganization);
 
   if (singleOrganization || isDemoModeActive() || organizations.length <= 1) {
@@ -232,7 +233,7 @@ function SettingsOrganizationSelector() {
   const navigate = useNavigate();
   const location = useLocation();
   const organization = useOrganization();
-  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organizations = useOrganizations();
   const canCreateOrganization = ConfigStore.get('features').has('organizations:create');
 
   const section = getOrganizationSettingsSection(location.pathname, organization.slug);
@@ -260,7 +261,7 @@ function SettingsOrganizationSelector() {
             canCreateOrganization ? (
               <MenuComponents.CTALinkButton
                 icon={<IconAdd />}
-                {...getCreateOrganizationLinkProps()}
+                {...getCreateOrganizationLink()}
               >
                 {t('Create Organization')}
               </MenuComponents.CTALinkButton>
@@ -297,14 +298,4 @@ function SettingsOrganizationSelector() {
       )}
     </Container>
   );
-}
-
-/**
- * Organizations are created on the main Sentry domain, outside of any
- * organization's customer domain.
- */
-function getCreateOrganizationLinkProps() {
-  return ConfigStore.get('features').has('system:multi-region')
-    ? {href: `${localizeDomain(ConfigStore.get('links').sentryUrl)}/organizations/new/`}
-    : {to: '/organizations/new/'};
 }

@@ -31,16 +31,17 @@ import {useUpdateProjectBookmark} from 'sentry/components/projects/useUpdateProj
 import {CUSTOM_REFERRER_KEY} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
 import {ConfigStore} from 'sentry/stores/configStore';
-import {OrganizationsStore} from 'sentry/stores/organizationsStore';
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoModeActive} from 'sentry/utils/demoMode';
+import {getCreateOrganizationLink} from 'sentry/utils/organization/getCreateOrganizationLink';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
-import {localizeDomain, resolveRoute} from 'sentry/utils/resolveRoute';
+import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useOrganizations} from 'sentry/utils/useOrganizations';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useSessionStorage} from 'sentry/utils/useSessionStorage';
 import {
@@ -83,7 +84,7 @@ export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const settingsTour = useSettingsNavigationTour();
   const [isMenuOpen, setMenuOpen] = useState(false);
   const isProjectTourActive = settingsTour?.currentStepId === 'projects';
-  const organizations = useStore(OrganizationsStore, state => state.organizations);
+  const organizations = useOrganizations();
 
   const [activeOrgs, inactiveOrgs] = partition(
     organizations.filter(org => org.slug !== organization.slug),
@@ -485,21 +486,13 @@ function makeInactiveOrganizationMenuItem(org: OrganizationSummary): MenuItemPro
 }
 
 function makeCreateOrganizationMenuItem(): MenuItemProps {
-  const configFeatures = ConfigStore.get('features');
+  const link = getCreateOrganizationLink();
 
-  const menuItemProps: MenuItemProps = {
+  return {
     key: 'create-organization',
     leadingItems: <IconAdd />,
     label: t('Create Organization'),
-    hidden: !configFeatures.has('organizations:create'),
+    hidden: !ConfigStore.get('features').has('organizations:create'),
+    ...('href' in link ? {externalHref: link.href} : {to: link.to}),
   };
-
-  if (configFeatures.has('system:multi-region')) {
-    menuItemProps.externalHref =
-      localizeDomain(ConfigStore.get('links').sentryUrl) + '/organizations/new/';
-  } else {
-    menuItemProps.to = '/organizations/new/';
-  }
-
-  return menuItemProps;
 }
