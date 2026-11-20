@@ -1,7 +1,7 @@
 import logging
 import random
 from collections.abc import Callable
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal, TypeVar
 
 from sentry import options
 from sentry.options import register
@@ -338,9 +338,7 @@ class SafeRolloutComparator:
         should instead use `check_and_choose` (which has this check built in and has better
         logging).
         """
-        allowlist = cast(
-            list[str], options.get(cls._callsite_use_experimental_data_allowlist_option())
-        )
+        allowlist: list[str] = options.get(cls._callsite_use_experimental_data_allowlist_option())
         use_experimental_data = "*" in allowlist or callsite in allowlist
         tags: dict[str, str] = {
             "rollout_name": cls.ROLLOUT_NAME,

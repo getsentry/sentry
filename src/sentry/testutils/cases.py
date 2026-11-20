@@ -325,9 +325,7 @@ class BaseTestCase(Fixtures):
         *,
         GET: dict[str, str] | None = None,
     ) -> HttpRequest:
-        request = cast(
-            "HttpRequest", getattr(RequestFactory(), method.lower())(path, query_params=GET)
-        )
+        request: HttpRequest = getattr(RequestFactory(), method.lower())(path, query_params=GET)
         if subdomain:
             setattr(request, "subdomain", subdomain)
         request.META["REMOTE_ADDR"] = "127.0.0.1"

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Generator, Sequence
-from typing import Any, TypedDict, cast
+from typing import Any, TypedDict
 
 import sentry_sdk
 
@@ -85,8 +85,8 @@ class PagerDutyNotifyServiceAction(IntegrationEventAction):
             logger.info("pagerduty.service_missing", extra=log_context)
             return
 
-        severity = cast(
-            PagerdutySeverity, self.get_option("severity", default=PAGERDUTY_DEFAULT_SEVERITY)
+        severity: PagerdutySeverity = self.get_option(
+            "severity", default=PAGERDUTY_DEFAULT_SEVERITY
         )
 
         def send_notification(event: GroupEvent, futures: Sequence[RuleFuture]) -> None:

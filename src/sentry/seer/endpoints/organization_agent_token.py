@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping
 from datetime import datetime
 from datetime import timezone as datetime_timezone
-from typing import Any, cast
+from typing import Any
 
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema
@@ -89,7 +89,7 @@ class OrganizationAgentTokenEndpoint(OrganizationEndpoint):
         serializer = AgentTokenRequestSerializer(data=data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        validated_data = cast(AgentTokenRequestData, serializer.validated_data)
+        validated_data: AgentTokenRequestData = serializer.validated_data
         session_id = validated_data["sessionId"]
         requested_scopes = validated_data.get("requestedScopes")
 

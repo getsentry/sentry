@@ -3,9 +3,8 @@ from __future__ import annotations
 import logging
 from collections.abc import Collection, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Optional, TypedDict, cast
+from typing import TYPE_CHECKING, Any, TypedDict, cast
 
-from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.tasks.post_process import post_process_group
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.services import Service
@@ -16,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 
 if TYPE_CHECKING:
+    from sentry.issues.issue_occurrence import IssueOccurrence
     from sentry.services.eventstore.models import Event, GroupEvent
 
 
@@ -93,7 +93,7 @@ class EventStream(Service):
             )
 
     def _get_occurrence_data(self, event: Event | GroupEvent) -> MutableMapping[str, Any]:
-        occurrence = cast(Optional[IssueOccurrence], getattr(event, "occurrence", None))
+        occurrence: IssueOccurrence | None = getattr(event, "occurrence", None)
         occurrence_data: MutableMapping[str, Any] = {}
         if occurrence:
             occurrence_data = cast(MutableMapping[str, Any], occurrence.to_dict())

@@ -74,7 +74,7 @@ class GitlabRepositoryProvider(IntegrationRepositoryProvider["GitlabIntegration"
         client = installation.get_client()
 
         repo_id = setup_config["identifier"]
-        instance = cast(str, installation.model.metadata["instance"])
+        instance: str = installation.model.metadata["instance"]
 
         try:
             project = cast(GitLabProject, client.get_project(repo_id))

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import cast
 from urllib.error import URLError
 
 from rest_framework.response import Response
@@ -198,7 +197,7 @@ def handle_seer_agent_write_approval(
     if not approval.is_valid():
         return _respond_ephemeral(AGENT_WRITE_APPROVAL_UNAVAILABLE_MESSAGE)
 
-    validated_data = cast(AgentApprovalRequestData, approval.validated_data)
+    validated_data: AgentApprovalRequestData = approval.validated_data
     session_id = validated_data["sessionId"]
     requested_scopes = validated_data["scopes"]
     if not requested_scopes:

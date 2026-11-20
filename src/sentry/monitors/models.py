@@ -6,7 +6,7 @@ import zoneinfo
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
 from functools import cache
-from typing import TYPE_CHECKING, Any, ClassVar, Self, cast, override
+from typing import TYPE_CHECKING, Any, ClassVar, Self, override
 from uuid import uuid4
 
 import jsonschema
@@ -72,8 +72,8 @@ MONITOR_CONFIG = {
 
 @cache
 def get_monitor_config_validator() -> jsonschema.protocols.Validator:
-    validator_cls = cast(
-        "type[jsonschema.protocols.Validator]", jsonschema.validators.validator_for(MONITOR_CONFIG)
+    validator_cls: type[jsonschema.protocols.Validator] = jsonschema.validators.validator_for(
+        MONITOR_CONFIG
     )
     validator_cls.check_schema(MONITOR_CONFIG)
     return validator_cls(MONITOR_CONFIG)

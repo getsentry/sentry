@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from typing import Any, cast
+from typing import Any
 
 from drf_spectacular.utils import extend_schema
 from rest_framework import serializers
@@ -97,7 +97,7 @@ class OrganizationAgentApproveEndpoint(OrganizationEndpoint):
         serializer = AgentApprovalRequestSerializer(data=data)
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        validated_data = cast(AgentApprovalRequestData, serializer.validated_data)
+        validated_data: AgentApprovalRequestData = serializer.validated_data
         session_id = validated_data["sessionId"]
         requested = validated_data["scopes"]
 

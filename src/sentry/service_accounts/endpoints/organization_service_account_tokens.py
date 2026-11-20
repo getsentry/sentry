@@ -9,7 +9,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Mapping
 from datetime import datetime, timedelta
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.db import router, transaction
 from django.utils import timezone
@@ -237,7 +237,7 @@ class OrganizationServiceAccountTokenIndexEndpoint(ServiceAccountTokenEndpointBa
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountTokenCreateRequestData, serializer.validated_data)
+        data: ServiceAccountTokenCreateRequestData = serializer.validated_data
 
         cell_name = OrganizationMapping.objects.get(organization_id=organization.id).cell_name
         try:

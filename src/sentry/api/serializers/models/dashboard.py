@@ -890,16 +890,13 @@ class DashboardDetailsModelSerializer(Serializer, DashboardFiltersMixin):
     ) -> dict[Dashboard, dict[str, object]]:
         result: dict[Dashboard, dict[str, object]] = {}
 
-        widgets = cast(
-            "list[DashboardWidgetResponse]",
-            serialize(
-                list(
-                    DashboardWidget.objects.filter(
-                        dashboard_id__in=[i.id for i in item_list]
-                    ).order_by("id")
-                ),
-                user=user,
+        widgets: list[DashboardWidgetResponse] = serialize(
+            list(
+                DashboardWidget.objects.filter(dashboard_id__in=[i.id for i in item_list]).order_by(
+                    "id"
+                )
             ),
+            user=user,
         )
 
         creator_ids = [d.created_by_id for d in item_list if d.created_by_id is not None]

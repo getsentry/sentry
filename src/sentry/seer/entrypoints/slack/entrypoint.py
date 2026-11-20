@@ -3,7 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Mapping, Sequence
-from typing import TYPE_CHECKING, Any, NotRequired, TypedDict, cast
+from typing import TYPE_CHECKING, Any, NotRequired, TypedDict
 
 import orjson
 
@@ -146,7 +146,7 @@ def _agent_write_approval(
     )
     if not pending_user_input.id or not approval.is_valid():
         return None
-    validated_data = cast(AgentApprovalRequestData, approval.validated_data)
+    validated_data: AgentApprovalRequestData = approval.validated_data
     scopes = validated_data["scopes"]
     if not scopes:
         return None
