@@ -69,7 +69,7 @@ from sentry.seer.autofix.utils import (
     clear_preference_automation_handoff,
     get_automation_handoff,
 )
-from sentry.seer.credits import OUT_OF_CREDITS, SeerOperation, get_current_denial_reason
+from sentry.seer.credits import OUT_OF_CREDITS, get_run_denial_reason
 from sentry.seer.entrypoints.operator import (
     SeerActivityAttribution,
     SeerAutofixOperator,
@@ -535,12 +535,8 @@ class AutofixOnCompletionHook(AgentOnCompletionHook):
         failure_reason: str | None,
     ) -> None:
         entrypoint_payload: dict[str, object] = {}
-        if failure_reason == OUT_OF_CREDITS and SeerAutofixOperator.has_access(
-            organization=organization
-        ):
-            entrypoint_payload["denial_reason"] = get_current_denial_reason(
-                organization, get_run_billing_feature(state), SeerOperation.AUTOFIX_OPEN_PR
-            )
+        if failure_reason == OUT_OF_CREDITS:
+            entrypoint_payload["denial_reason"] = get_run_denial_reason(state)
         cls._announce_run_end(
             organization,
             SeerActionType.ERRORED,

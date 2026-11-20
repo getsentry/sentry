@@ -12,12 +12,13 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
+from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.credits import (
     SEER_OPERATION_ESTIMATES,
     SeerOperation,
     check_seer_operation,
-    get_current_denial_reason,
     get_denial_reason,
+    get_run_denial_reason,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.features import with_feature
@@ -72,34 +73,6 @@ class SeerCreditsTest(TestCase):
             self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
         ).has_enough_credits
 
-    @with_feature("organizations:token-billed-seer-enabled")
-    @patch(
-        "sentry.seer_credit.backend.check_seer_credits",
-        return_value=CheckSeerCreditsResponse(
-            has_enough_credits=False,
-            denial_reason=CheckSeerCreditsResponse.DENIAL_REASON_DAILY_CAP_EXCEEDED,
-        ),
-    )
-    def test_get_current_denial_reason(self, _mock_check_seer_credits: MagicMock) -> None:
-        assert (
-            get_current_denial_reason(
-                self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
-            )
-            == "daily_cap_exceeded"
-        )
-
-    @with_feature("organizations:token-billed-seer-enabled")
-    @patch("sentry.seer_credit.backend.check_seer_credits", side_effect=RuntimeError("down"))
-    def test_get_current_denial_reason_is_none_when_the_check_fails(
-        self, _mock_check_seer_credits: MagicMock
-    ) -> None:
-        assert (
-            get_current_denial_reason(
-                self.organization, SEER_BILLING_FEATURE_SEER_AGENT, SeerOperation.AGENT_CHAT_MESSAGE
-            )
-            is None
-        )
-
 
 @pytest.mark.parametrize(
     ("denial_reason", "expected"),
@@ -114,3 +87,28 @@ def test_get_denial_reason(denial_reason: int, expected: str | None) -> None:
     response = CheckSeerCreditsResponse(has_enough_credits=False)
     response.denial_reason = denial_reason  # type: ignore[assignment]
     assert get_denial_reason(response) == expected
+
+
+@pytest.mark.parametrize(
+    ("run_reason", "pr_reason", "expected"),
+    [
+        ("daily_cap_exceeded", None, "daily_cap_exceeded"),
+        (None, "not_enough_credits", "not_enough_credits"),
+        ("a_future_reason", None, None),
+        (None, None, None),
+    ],
+)
+def test_get_run_denial_reason(
+    run_reason: str | None, pr_reason: str | None, expected: str | None
+) -> None:
+    state = SeerRunState(
+        run_id=1,
+        blocks=[],
+        status="error",
+        updated_at="2026-01-01T00:00:00",
+        credit_denial_reason=run_reason,
+        repo_pr_states={
+            "owner/repo": RepoPRState(repo_name="owner/repo", credit_denial_reason=pr_reason)
+        },
+    )
+    assert get_run_denial_reason(state) == expected

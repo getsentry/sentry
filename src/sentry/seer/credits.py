@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from collections.abc import Callable
 from enum import StrEnum
 from typing import Literal
@@ -16,8 +15,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 
 from sentry import features, seer_credit
 from sentry.models.organization import Organization
-
-logger = logging.getLogger(__name__)
+from sentry.seer.agent.client_models import SeerRunState
 
 # Seer's failure_reason and pr_creation_error_code when the org ran out of credits.
 OUT_OF_CREDITS = "out_of_credits"
@@ -99,14 +97,14 @@ def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialRea
     return _DENIAL_REASONS.get(response.denial_reason)
 
 
-def get_current_denial_reason(
-    organization: Organization, feature: int, operation: SeerOperation
-) -> SeerCreditDenialReason | None:
-    """Asks billing why it refuses credit now, which Seer doesn't report. None if the check fails."""
-    try:
-        return get_denial_reason(check_seer_operation(organization, feature, operation))
-    except Exception:
-        logger.exception(
-            "seer.credits.denial_reason_check_failed", extra={"organization_id": organization.id}
-        )
-        return None
+_SEER_DENIAL_REASONS: dict[str | None, SeerCreditDenialReason] = {
+    "not_enough_credits": "not_enough_credits",
+    "daily_cap_exceeded": "daily_cap_exceeded",
+}
+
+
+def get_run_denial_reason(state: SeerRunState) -> SeerCreditDenialReason | None:
+    """Why billing refused credit for the run or, failing that, for one of its PR pushes."""
+    reasons = [state.credit_denial_reason]
+    reasons += [pr.credit_denial_reason for pr in state.repo_pr_states.values()]
+    return next((_SEER_DENIAL_REASONS[r] for r in reasons if r in _SEER_DENIAL_REASONS), None)

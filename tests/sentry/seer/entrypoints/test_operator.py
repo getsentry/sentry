@@ -44,7 +44,7 @@ from sentry.seer.autofix.utils import (
     AutofixStoppingPoint,
     CodingAgentProviderType,
 )
-from sentry.seer.credits import SeerCreditDenialReason, SeerOperation
+from sentry.seer.credits import SeerCreditDenialReason
 from sentry.seer.entrypoints.cache import SeerOperatorInvestigationCache
 from sentry.seer.entrypoints.metrics import (
     SeerOperatorEventLifecycleMetric,
@@ -1431,24 +1431,15 @@ class TestRefreshAgentRun(TestCase):
             denial_reason=None,
         )
 
-    @patch(
-        "sentry.seer.entrypoints.operator.get_current_denial_reason",
-        return_value="daily_cap_exceeded",
-    )
     @patch("sentry.seer.entrypoints.operator.fetch_run_status")
     def test_execute_passes_why_an_out_of_credits_run_was_refused(
-        self, mock_fetch: MagicMock, mock_denial_reason: MagicMock
+        self, mock_fetch: MagicMock
     ) -> None:
         state = self._make_state(blocks=[], status="error")
         state.failure_reason = "out_of_credits"
-        state.billing_feature = SEER_BILLING_FEATURE_SEER_AGENT_SLACK
+        state.credit_denial_reason = "daily_cap_exceeded"
         mock_entrypoint_cls = self._execute_with_mock_entrypoint(mock_fetch, state)
 
-        mock_denial_reason.assert_called_once_with(
-            self.organization,
-            SEER_BILLING_FEATURE_SEER_AGENT_SLACK,
-            SeerOperation.AGENT_CHAT_MESSAGE,
-        )
         mock_entrypoint_cls.on_agent_update.assert_called_once_with(
             cache_payload={"thread_id": "abc", "organization_id": self.organization.id},
             run_id=MOCK_RUN_ID,

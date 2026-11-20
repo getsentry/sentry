@@ -41,7 +41,7 @@ from sentry.seer.autofix.utils import (
     get_automation_handoff,
     is_issue_category_eligible,
 )
-from sentry.seer.credits import OUT_OF_CREDITS, SeerOperation, get_current_denial_reason
+from sentry.seer.credits import SeerOperation, get_run_denial_reason
 from sentry.seer.entrypoints.cache import (
     SeerOperatorAgentCache,
     SeerOperatorAutofixCache,
@@ -1213,14 +1213,6 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                 lifecycle.record_failure(failure_reason="org_mismatch")
                 return
 
-            denial_reason = (
-                get_current_denial_reason(
-                    organization, get_run_billing_feature(state), SeerOperation.AGENT_CHAT_MESSAGE
-                )
-                if _is_out_of_credits(state)
-                else None
-            )
-
             with SeerOperatorEventLifecycleMetric(
                 interaction_type=SeerOperatorInteractionType.ENTRYPOINT_ON_AGENT_UPDATE,
                 entrypoint_key=str(entrypoint_key),
@@ -1230,19 +1222,13 @@ def _refresh_agent_run(organization: Organization, run_id: int) -> None:
                         cache_payload=cache_payload,
                         run_id=run_id,
                         state=state,
-                        denial_reason=denial_reason,
+                        denial_reason=get_run_denial_reason(state),
                     )
                 except IntegrationError:
                     # The refresh task retries integration errors.
                     raise
                 except Exception as e:
                     ept_lifecycle.record_failure(failure_reason=e)
-
-
-def _is_out_of_credits(state: SeerRunState) -> bool:
-    return state.failure_reason == OUT_OF_CREDITS or any(
-        pr.pr_creation_error_code == OUT_OF_CREDITS for pr in state.repo_pr_states.values()
-    )
 
 
 class SeerOperatorCompletionHook(AgentOnCompletionHook):
