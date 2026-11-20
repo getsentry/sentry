@@ -6,13 +6,20 @@ import orjson
 from django.conf import settings
 from django.core.mail.message import make_msgid
 
-from sentry import features
+from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.notifications.models.notificationthread import NotificationThreadObjectType
+from sentry.notifications.platform.threading import (
+    ThreadingConfig,
+    ThreadingOptions,
+    ThreadingService,
+    ThreadKey,
+)
 from sentry.notifications.platform.types import (
     CodeSection,
     CodeTextBlock,
@@ -75,6 +82,7 @@ ACTIVITY_TYPE_TO_LEGACY_EMAIL_CATEGORY: dict[int, str] = {
 }
 
 ACTIVITY_NOTIFICATION_REFERRER = "activity_notification"
+EMAIL_THREADING_OPTION = "notifications.platform.email-threading"
 EXAMPLE_PROJECT_URL = "https://sentry.io/organizations/acme/issues/?project=123"
 EXAMPLE_ISSUE_URL = "https://sentry.io/organizations/acme/issues/1/"
 EXAMPLE_ALERT_URL = "https://sentry.io/organizations/acme/monitors/alerts/1/"
@@ -245,8 +253,25 @@ def build_activity_email_headers(
             defaults={"project": project, "msgid": message_id},
         )
         if not created:
-            headers["In-Reply-To"] = thread.msgid
-            headers["References"] = thread.msgid
+            if options.get(EMAIL_THREADING_OPTION):
+                # Legacy issue alert emails still thread on GroupEmailThread, so the platform
+                # thread continues from the same root instead of starting a second thread.
+                thread_key = _activity_email_thread_key(group.id)
+                ThreadingService.get_or_create_thread(
+                    threading_config=ThreadingConfig(
+                        key_type=thread_key.key_type,
+                        key_data=thread_key.key_data,
+                        provider_key=NotificationProviderKey.EMAIL,
+                        target_id=email,
+                        thread_identifier=thread.msgid,
+                        provider_data=None,
+                        object_type=thread_key.object_type,
+                        object_id=thread_key.object_id,
+                    )
+                )
+            else:
+                headers["In-Reply-To"] = thread.msgid
+                headers["References"] = thread.msgid
     else:
         # Email is too long for GroupEmailThread.email; send without threading.
         metrics.incr(
@@ -259,6 +284,31 @@ def build_activity_email_headers(
             extra={"group_id": group.id, "email_length": len(email)},
         )
     return headers
+
+
+def get_activity_email_threading_options(
+    *, activity: Activity, target: NotificationTarget
+) -> ThreadingOptions | None:
+    """
+    Returns the options that thread an activity email with every other email about its group sent
+    to the same address, or None when the target isn't an email or email threading is off.
+    """
+    if (
+        activity.group_id is None
+        or target.provider_key != NotificationProviderKey.EMAIL
+        or not options.get(EMAIL_THREADING_OPTION)
+    ):
+        return None
+    return ThreadingOptions(thread_key=_activity_email_thread_key(activity.group_id))
+
+
+def _activity_email_thread_key(group_id: int) -> ThreadKey:
+    return ThreadKey(
+        key_type=NotificationSource.ISSUE,
+        key_data={"group_id": group_id},
+        object_type=NotificationThreadObjectType.GROUP,
+        object_id=group_id,
+    )
 
 
 def build_activity_notification_data(

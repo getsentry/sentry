@@ -7,6 +7,7 @@ from sentry.notifications.platform.templates.activity.base import (
     ACTIVITY_TYPE_TO_SOURCE,
     ActivityNotificationData,
     build_activity_notification_data,
+    get_activity_email_threading_options,
 )
 from sentry.notifications.platform.types import NotificationTarget
 from sentry.types.activity import ActivityType
@@ -41,7 +42,10 @@ def send_activity_notification(
     data = build_activity_notification_data(
         activity=activity, target=target, workflow_id=invocation.workflow_id
     )
-    NotificationService[ActivityNotificationData](data=data).notify_target(target=target)
+    NotificationService[ActivityNotificationData](data=data).notify_target(
+        target=target,
+        threading_options=get_activity_email_threading_options(activity=activity, target=target),
+    )
 
 
 def require_config(action: Action, key: str) -> str:
