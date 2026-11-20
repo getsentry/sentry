@@ -34,8 +34,9 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
 import {
   type CreateOrganizationLink,
-  useOrganizationSwitcher,
-} from 'sentry/utils/organization/useOrganizationSwitcher';
+  useCreateOrganizationLink,
+} from 'sentry/utils/organization/useCreateOrganizationLink';
+import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {sortProjectsByBookmarkAndMembership} from 'sentry/utils/project/sortProjects';
 import {resolveRoute} from 'sentry/utils/resolveRoute';
 import {useCanCreateProject} from 'sentry/utils/useCanCreateProject';
@@ -72,7 +73,8 @@ interface OrganizationDropdownProps {
 export function OrganizationDropdown(props: OrganizationDropdownProps) {
   const navigate = useNavigate();
   const organizations = useOrganizations();
-  const {canSwitch, createOrganizationLink} = useOrganizationSwitcher();
+  const {canSwitch} = useOrganizationSwitcher();
+  const createOrganizationLink = useCreateOrganizationLink();
   const theme = useTheme();
   const portalContainerRef = useRef<HTMLElement | null>(null);
 

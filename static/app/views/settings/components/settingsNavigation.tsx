@@ -14,6 +14,7 @@ import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getOrganizationItemProps} from 'sentry/utils/organization/getOrganizationItemProps';
+import {useCreateOrganizationLink} from 'sentry/utils/organization/useCreateOrganizationLink';
 import {useOrganizationSwitcher} from 'sentry/utils/organization/useOrganizationSwitcher';
 import {replaceRouterParams} from 'sentry/utils/replaceRouterParams';
 import {unreachable} from 'sentry/utils/unreachable';
@@ -254,7 +255,8 @@ function useOrganizationSettingsSection(): string | undefined {
 function SettingsOrganizationSelector() {
   const organization = useOrganization();
   const organizations = useOrganizations();
-  const {createOrganizationLink, switchTo} = useOrganizationSwitcher();
+  const {switchTo} = useOrganizationSwitcher();
+  const createOrganizationLink = useCreateOrganizationLink();
   const section = useOrganizationSettingsSection();
 
   return (
