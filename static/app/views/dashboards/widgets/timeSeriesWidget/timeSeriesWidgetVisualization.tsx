@@ -48,7 +48,6 @@ import {RangeMap, type Range} from 'sentry/utils/number/rangeMap';
 import type {TimeSeriesSegmentField} from 'sentry/utils/timeSeries/segmentTimeSeriesByDisplayStyle';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {useOrganization} from 'sentry/utils/useOrganization';
 import {useWidgetSyncContext} from 'sentry/views/dashboards/contexts/widgetSyncContext';
 import {getAxisRange, type AxisRange} from 'sentry/views/dashboards/utils/axisRange';
 import {NO_PLOTTABLE_VALUES} from 'sentry/views/dashboards/widgets/common/settings';
@@ -160,6 +159,13 @@ export interface TimeSeriesWidgetVisualizationProps extends Partial<LoadableChar
   renderTooltipSeriesDetails?: (seriesNames: string[], timestamp: number) => string;
 
   /**
+   * Marks low-confidence buckets on the plot and in the tooltip.
+   *
+   * Default: `false`
+   */
+  showConfidence?: boolean;
+
+  /**
    * Defines the legend's visibility.
    *
    * - `auto`: Show the legend if there are multiple series.
@@ -219,10 +225,7 @@ export function TimeSeriesWidgetVisualization(props: TimeSeriesWidgetVisualizati
   // have the same difference in `timestamp`s) even though this is rare, since
   // the backend zerofills the data
 
-  const organization = useOrganization({allowNull: true});
-  const segmentBy: readonly TimeSeriesSegmentField[] = organization?.features.includes(
-    'data-browsing-time-series-confidence'
-  )
+  const segmentBy: readonly TimeSeriesSegmentField[] = props.showConfidence
     ? ['completeness', 'confidence']
     : ['completeness'];
 
