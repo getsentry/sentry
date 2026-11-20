@@ -877,53 +877,53 @@ export default Storybook.story('TimeSeriesWidgetVisualization', story => {
           <Heading as="h3" size="md">
             Single series, one low-confidence interval
           </Heading>
-          <Storybook.SideBySide>
-            <MediumWidget>
+          <Storybook.Grid columns={3}>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[new Line(lowConfidenceDuration)]}
               />
-            </MediumWidget>
-            <MediumWidget>
+            </GridWidget>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[new Area(lowConfidenceDuration)]}
               />
-            </MediumWidget>
-            <MediumWidget>
+            </GridWidget>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[new Bars(lowConfidenceDuration)]}
               />
-            </MediumWidget>
-          </Storybook.SideBySide>
+            </GridWidget>
+          </Storybook.Grid>
 
           <Heading as="h3" size="md">
             Multiple series, two low-confidence intervals
           </Heading>
-          <Storybook.SideBySide>
-            <MediumWidget>
+          <Storybook.Grid columns={3}>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
                   new Line(twoIntervalsDuration),
                   new Line(twoIntervalsDurationP50),
                 ]}
               />
-            </MediumWidget>
-            <MediumWidget>
+            </GridWidget>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
                   new Area(twoIntervalsDuration),
                   new Area(twoIntervalsDurationP50),
                 ]}
               />
-            </MediumWidget>
-            <MediumWidget>
+            </GridWidget>
+            <GridWidget>
               <TimeSeriesWidgetVisualization
                 plottables={[
                   new Bars(twoIntervalsDuration, {stack: 'all'}),
                   new Bars(twoIntervalsDurationP50, {stack: 'all'}),
                 ]}
               />
-            </MediumWidget>
-          </Storybook.SideBySide>
+            </GridWidget>
+          </Storybook.Grid>
 
           <Heading as="h3" size="md">
             Multiple lines, five low-confidence intervals
@@ -1475,6 +1475,12 @@ const LargeWidget = styled('div')`
 const MediumWidget = styled('div')`
   position: relative;
   width: 420px;
+  height: 250px;
+`;
+
+const GridWidget = styled('div')`
+  position: relative;
+  min-width: 0;
   height: 250px;
 `;
 
