@@ -1259,11 +1259,21 @@ class UnfurlTest(TestCase):
 
     @patch("sentry.integrations.slack.unfurl.explore.client.get")
     @patch("sentry.charts.backend.generate_chart", return_value="chart-url")
-    def test_unfurl_explore_heatmap_skips_malformed_response(
+    def test_unfurl_explore_heatmap_skips_empty_response(
         self, mock_generate_chart: MagicMock, mock_client_get: MagicMock
     ) -> None:
-        # {"heatmap": []} is the no-projects/no-results shape, not a HeatMapSeries.
-        mock_client_get.return_value = MagicMock(data={"heatmap": []})
+        # The no-projects shape: values are empty and the bounds are null.
+        mock_client_get.return_value = MagicMock(
+            data={
+                "meta": {
+                    "dataset": "tracemetrics",
+                    "xAxis": {"name": "time", "start": None, "end": None},
+                    "yAxis": {"name": "value", "start": None, "end": None},
+                    "zAxis": {"name": "count()", "start": None, "end": None},
+                },
+                "values": [],
+            }
+        )
         metric = (
             "%7B%22metric%22%3A%7B%22name%22%3A%22my.metric%22%2C%22type%22%3A%22distribution"
             "%22%2C%22unit%22%3A%22millisecond%22%7D%2C%22query%22%3A%22%22%2C%22aggregateFields"

@@ -612,10 +612,10 @@ def _unfurl_explore(
                 _logger.warning("Failed to load events-heatmap for explore unfurl")
                 continue
 
-            # The endpoint returns a non-HeatMapSeries shape ({"heatmap": []}) when
-            # there are no projects/results; skip rather than render it.
+            # The endpoint returns no values when there are no projects; skip rather
+            # than render an empty chart.
             heatmap_data = resp.data
-            if not isinstance(heatmap_data, dict) or "meta" not in heatmap_data:
+            if not isinstance(heatmap_data, dict) or not heatmap_data.get("values"):
                 continue
 
             # Patch the unit-less `value` Y axis with the metric's unit (mergeMetricUnit).
