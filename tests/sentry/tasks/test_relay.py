@@ -195,8 +195,9 @@ def test_project_update_option(
     # anything.
     redis_cache.set_many({cast(str, default_projectkey.public_key): {"dummy": "dummy"}})
 
-    # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=2):
+    # Creation reloads from both post_save and set_value. Each reload schedules
+    # an invalidation callback when the simulated commit executes it.
+    with emulate_transactions(assert_num_callbacks=4):
         default_project.update_option(
             "sentry:relay_pii_config", '{"applications": {"$string": ["@creditcard:mask"]}}'
         )
@@ -232,8 +233,8 @@ def test_project_delete_option(
     # anything.
     redis_cache.set_many({cast(str, default_projectkey.public_key): {"dummy": "dummy"}})
 
-    # XXX: there should only be one hook triggered, regardless of debouncing
-    with emulate_transactions(assert_num_callbacks=1):
+    # Reload the option cache, then schedule Relay invalidation.
+    with emulate_transactions(assert_num_callbacks=2):
         default_project.delete_option("sentry:relay_pii_config")
 
     assert redis_cache.get(cast(str, default_projectkey.public_key))["config"]["piiConfig"] == {}
@@ -258,7 +259,7 @@ def test_project_get_option_does_not_reload(
     assert not build_project_config.called
 
 
-@django_db_all
+@django_db_all(transaction=True)
 def test_compute_projectkey_config_sees_options_saved_by_another_process(
     default_project: Project,
     default_projectkey: ProjectKey,
@@ -315,8 +316,9 @@ def test_invalidation_project_deleted(
 
     # Delete the project normally, this will delete it from the cache.
     # Callbacks: OutboxBase.save, _delete_project_key_mapping, 2x detector cache invalidation
-    # (cascade delete), 2x schedule_invalidate_project_config, process_resource_change
-    with emulate_transactions(assert_num_callbacks=7):
+    # (cascade delete), project option cache reload, 2x schedule_invalidate_project_config,
+    # process_resource_change
+    with emulate_transactions(assert_num_callbacks=8):
         default_project.delete()
     assert redis_cache.get(project_key)["disabled"]
 
@@ -407,6 +409,10 @@ def test_db_transaction(
     assert redis_cache.get(cast(str, default_projectkey.public_key))["config"]["piiConfig"] == {
         "applications": {"$string": ["@creditcard:mask"]}
     }
+    ProjectOption.objects.clear_local_cache()
+    assert default_project.get_option("sentry:relay_pii_config") == (
+        '{"applications": {"$string": ["@creditcard:mask"]}}'
+    )
 
 
 @django_db_all(transaction=True)
