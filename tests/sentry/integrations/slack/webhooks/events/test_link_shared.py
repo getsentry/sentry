@@ -1,5 +1,6 @@
 import re
 from collections.abc import Iterator
+from typing import Any
 from unittest.mock import MagicMock, Mock, patch
 
 import pytest
@@ -31,6 +32,34 @@ class LinkSharedEventTest(BaseEventTest):
             ),
         ) as self.mock_unfurl:
             yield
+
+    def issue_link_event(self) -> dict[str, Any]:
+        group = self.create_group(project=self.project)
+        url = f"http://testserver/organizations/{self.organization.slug}/issues/{group.id}/"
+        return {**LINK_SHARED_EVENT, "links": [{"domain": "testserver", "url": url}]}
+
+    def test_share_issue_link_unlinked_user(self, mock_record: MagicMock) -> None:
+        resp = self.post_webhook(event_data=self.issue_link_event())
+
+        assert resp.status_code == 200, resp.content
+        assert not self.mock_unfurl.called
+
+    @patch(
+        "sentry.integrations.slack.unfurl.issues.SlackIssuesMessageBuilder.build",
+        return_value={"blocks": []},
+    )
+    def test_share_issue_link_linked_user(
+        self, mock_build: MagicMock, mock_record: MagicMock
+    ) -> None:
+        self.link_identity(slack_user_id=LINK_SHARED_EVENT["user"])
+        event = self.issue_link_event()
+
+        resp = self.post_webhook(event_data=event)
+
+        assert resp.status_code == 200, resp.content
+        assert self.mock_unfurl.call_args[1]["unfurls"] == {
+            event["links"][0]["url"]: {"blocks": []}
+        }
 
     @responses.activate
     @patch(
