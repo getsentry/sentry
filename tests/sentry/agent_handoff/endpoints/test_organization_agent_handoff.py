@@ -3,6 +3,7 @@ from urllib.parse import urlsplit
 
 from django.conf import settings
 from django.test import override_settings
+from django.urls import reverse
 from rest_framework.test import APIClient
 
 from sentry.agent_handoff.codes import (
@@ -16,6 +17,7 @@ from sentry.agent_handoff.endpoints.organization_agent_handoff import HANDOFF_SC
 from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.models.apiapplication import ApiApplicationStatus
 from sentry.models.apisetupcode import ApiSetupCode
+from sentry.models.apitoken import ApiToken
 from sentry.projects.services.project.model import RpcProject
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_last_analytics_event
@@ -262,6 +264,20 @@ class OrganizationAgentHandoffTest(APITestCase):
         self.get_error_response(self.organization.slug, status_code=503)
         self.application.update(scopes=list(HANDOFF_SCOPES))
         self.get_success_response(self.organization.slug, status_code=201)
+
+    def test_handoff_scopes_can_create_org_auth_token(self) -> None:
+        token = ApiToken.objects.create(
+            user=self.user, application=self.application, scope_list=list(HANDOFF_SCOPES)
+        )
+        self.client.logout()
+        response = self.client.post(
+            reverse("sentry-api-0-org-auth-tokens", args=[self.organization.slug]),
+            {"name": "agent token"},
+            format="json",
+            HTTP_AUTHORIZATION=f"Bearer {token.token}",
+        )
+        assert response.status_code == 201, response.content
+        assert response.data["scopes"] == ["org:ci"]
 
     def test_get_does_not_mint(self) -> None:
         with patch(
