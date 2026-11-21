@@ -1,4 +1,4 @@
-import {Container} from '@sentry/scraps/layout';
+import {Container, Stack} from '@sentry/scraps/layout';
 
 import * as Storybook from 'sentry/stories';
 import {
@@ -20,6 +20,49 @@ const uncommentedInvestigation = InvestigationDetailFixture({
   dateCreated: '2026-08-27T14:08:00Z',
   blocks: [],
 });
+const startedInvestigations = {
+  person: InvestigationDetailFixture({
+    id: 'started-by-person',
+    dateCreated: '2026-08-27T14:08:00Z',
+    blocks: [],
+    trigger: {type: 'user', user: commentStoryAuthors.GRACE},
+  }),
+  automation: InvestigationDetailFixture({
+    id: 'started-by-automation',
+    dateCreated: '2026-08-27T14:08:00Z',
+    blocks: [],
+    createdBy: null,
+    trigger: {
+      type: 'automation',
+      automation: {id: '5', name: null, strategy: 'breached_metric_investigation'},
+      runId: '42',
+    },
+  }),
+  issue: InvestigationDetailFixture({
+    id: 'started-from-issue',
+    dateCreated: '2026-08-27T14:08:00Z',
+    blocks: [],
+    createdBy: null,
+    sourceType: 'metric_open_period',
+    source: {
+      type: 'metric_open_period',
+      ref: {groupId: '123', openPeriodId: '456'},
+      revision: 1,
+      snapshot: {
+        project: {slug: 'checkout'},
+        monitor: {
+          id: '789',
+          name: 'Checkout p95 latency',
+          aggregate: 'p95(span.duration)',
+          query: '',
+          environment: null,
+          comparisonDeltaSeconds: null,
+          conditions: [],
+        },
+      },
+    },
+  }),
+};
 const appliedInvestigation = {
   ...commentedInvestigation,
   actionRequests: [
@@ -84,6 +127,19 @@ export default Storybook.story('Investigations — Activity', story => {
       <Container maxWidth="960px">
         <InvestigationActivity investigation={uncommentedInvestigation} />
       </Container>
+    </InvestigationFixtureApi>
+  ));
+
+  story('What started the investigation', () => (
+    <InvestigationFixtureApi
+      organizationSlug="storybook-investigation-activity-started"
+      details={Object.values(startedInvestigations)}
+    >
+      <Stack maxWidth="960px" gap="2xl">
+        {Object.values(startedInvestigations).map(investigation => (
+          <InvestigationActivity key={investigation.id} investigation={investigation} />
+        ))}
+      </Stack>
     </InvestigationFixtureApi>
   ));
 
