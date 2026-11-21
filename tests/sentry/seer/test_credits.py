@@ -12,11 +12,7 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
     CheckSeerCreditsResponse,
 )
 
-from sentry.seer.agent.client_models import (
-    RepoPRState,
-    SeerCreditDenialReason,
-    SeerRunState,
-)
+from sentry.seer.agent.client_models import RepoPRState, SeerRunState
 from sentry.seer.credits import (
     SEER_OPERATION_ESTIMATES,
     SeerOperation,
@@ -98,13 +94,13 @@ def test_get_denial_reason(denial_reason: int, expected: str | None) -> None:
     [
         ("daily_cap_exceeded", None, "daily_cap_exceeded"),
         (None, "not_enough_credits", "not_enough_credits"),
+        ("not_enough_credits", "daily_cap_exceeded", "not_enough_credits"),
+        ("a_future_reason", None, None),
         (None, None, None),
     ],
 )
 def test_get_run_denial_reason(
-    run_reason: SeerCreditDenialReason | None,
-    pr_reason: SeerCreditDenialReason | None,
-    expected: SeerCreditDenialReason | None,
+    run_reason: str | None, pr_reason: str | None, expected: str | None
 ) -> None:
     state = SeerRunState(
         run_id=1,

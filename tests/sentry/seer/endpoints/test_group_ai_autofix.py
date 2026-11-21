@@ -314,6 +314,38 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         assert response.data["autofix"]["failure_reason"] == "timeout"
 
     @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
+    def test_get_returns_credit_denial_reason_when_out_of_credits(
+        self, mock_get_explorer_state: MagicMock
+    ) -> None:
+        group = self.create_group()
+        mock_get_explorer_state.return_value = SeerRunState(
+            run_id=888,
+            blocks=[],
+            status="error",
+            failure_reason="out_of_credits",
+            credit_denial_reason="daily_cap_exceeded",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo",
+                    pr_creation_status="error",
+                    pr_creation_error_code="out_of_credits",
+                    credit_denial_reason="daily_cap_exceeded",
+                )
+            },
+            updated_at="2023-07-18T12:00:00Z",
+        )
+
+        self.login_as(user=self.user)
+        response = self.client.get(self._get_url(group.id), format="json")
+
+        assert response.status_code == 200, response.data
+        autofix = response.data["autofix"]
+        assert autofix["credit_denial_reason"] == "daily_cap_exceeded"
+        assert autofix["repo_pr_states"]["owner/repo"]["credit_denial_reason"] == (
+            "daily_cap_exceeded"
+        )
+
+    @patch("sentry.seer.endpoints.group_ai_autofix.get_autofix_agent_state")
     def test_get_reports_pr_iteration_paused(self, mock_get_explorer_state: MagicMock) -> None:
         group = self.create_group()
         run = self.create_seer_run(organization=self.organization, seer_run_state_id=888)
