@@ -1,21 +1,15 @@
+import styled from '@emotion/styled';
 import {IconCopy} from '@sentry/icons/copy';
-import {IconOpen} from '@sentry/icons/open';
-import {useStore} from 'zustand';
 
 import {Button} from '@sentry/scraps/button';
-import {Flex, Stack} from '@sentry/scraps/layout';
-import {ExternalLink} from '@sentry/scraps/link';
-import {Text} from '@sentry/scraps/text';
+import {Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {FeedbackButton} from 'sentry/components/feedbackButton/feedbackButton';
-import {List} from 'sentry/components/list';
-import {ListItem} from 'sentry/components/list/listItem';
 import {t} from 'sentry/locale';
-import {ConfigStore} from 'sentry/stores/configStore';
 
 import {
-  getHandoffPreviewUrl,
-  HandoffAdvancedMenu,
+  HandoffIpPinningCheckbox,
   HandoffPromptAlerts,
   HandoffPromptBox,
 } from './handoffPromptParts';
@@ -24,8 +18,8 @@ import {useHandoffPromptCopy} from './useHandoffPromptCopy';
 
 interface AgentHandoffProductPromptProps {
   /**
-   * Short phrases describing what the agent will do, shown as checkmark bullets above
-   * "View all instructions". Keep to 3–5 items.
+   * Short phrases describing what the agent will do, shown as bullets under the prompt.
+   * Keep to 3–5 items.
    */
   agentSteps: string[];
   context: AddFeatureContext | null;
@@ -41,78 +35,78 @@ export function AgentHandoffProductPrompt({
   onCopySuccess,
   onSelect,
 }: AgentHandoffProductPromptProps) {
-  const sentryUrl = useStore(ConfigStore, state => state.links.sentryUrl);
-  const previewUrl = getHandoffPreviewUrl(sentryUrl);
-
   const {copyPrompt, copyDisabled, handoff, useIpPinning, toggleIpPinning} =
     useHandoffPromptCopy({flow: AgentHandoffFlow.ADD_FEATURE, context, onCopySuccess});
 
   return (
-    <Stack gap="xl">
-      <Stack gap="md">
-        <Text size="sm" variant="secondary">
-          {t('Paste this prompt into your coding agent')}
-        </Text>
-
-        <HandoffPromptBox
-          flow={AgentHandoffFlow.ADD_FEATURE}
-          context={context}
-          onCopyPrompt={copyPrompt}
-          onSelect={onSelect}
-        />
-
-        <Flex align="center" gap="md">
-          <Button
-            disabled={copyDisabled}
-            icon={<IconCopy />}
-            variant="primary"
-            onClick={copyPrompt}
-          >
-            {t('Copy prompt')}
-          </Button>
-
-          <FeedbackButton
-            size="md"
-            variant="secondary"
-            feedbackOptions={{tags: {'feedback.source': feedbackSource}}}
+    <Stack gap="2xl">
+      {/* The steps sit beside the prompt once the card is wide enough for both. */}
+      <Grid
+        columns={{zero: 'minmax(0, 1fr)', '3xl': 'minmax(0, 1fr) minmax(0, 340px)'}}
+        gap="2xl"
+        align="start"
+      >
+        <Stack gap="md">
+          <HandoffPromptBox
+            flow={AgentHandoffFlow.ADD_FEATURE}
+            context={context}
+            onCopyPrompt={copyPrompt}
+            onSelect={onSelect}
           />
 
-          <Flex flex={1} align="center" justify="end">
-            <HandoffAdvancedMenu
+          <Flex align="center" justify="between" gap="xl" paddingTop="xs">
+            <HandoffIpPinningCheckbox
               disabled={copyDisabled}
               useIpPinning={useIpPinning}
               onToggle={toggleIpPinning}
             />
+            <Button
+              aria-label={t('Copy prompt')}
+              disabled={copyDisabled}
+              icon={<IconCopy />}
+              variant="primary"
+              onClick={copyPrompt}
+            >
+              {t('Copy')}
+            </Button>
           </Flex>
-        </Flex>
 
-        <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
-      </Stack>
+          <HandoffPromptAlerts useIpPinning={useIpPinning} error={handoff.error} />
+        </Stack>
 
-      <Stack gap="xs">
-        <Text size="sm" variant="secondary">
-          {t('Your agent will:')}
-        </Text>
-        <List symbol="bullet">
-          {[
-            ...agentSteps.map(step => (
-              <ListItem key={step}>
-                <Text size="sm">{step}</Text>
-              </ListItem>
-            )),
-            <ListItem key="view-all-instructions">
-              <Text size="sm">
-                <ExternalLink href={previewUrl}>
-                  <Flex as="span" align="center" gap="xs">
-                    {t('View all instructions')}
-                    <IconOpen size="xs" />
-                  </Flex>
-                </ExternalLink>
-              </Text>
-            </ListItem>,
-          ]}
-        </List>
-      </Stack>
+        <Stack gap="lg">
+          <Heading as="h3" size="md">
+            {t('Your agent will')}
+          </Heading>
+          <Stack as="ul" role="list" gap="md" margin="0" padding="0">
+            {agentSteps.map(step => (
+              <Flex as="li" key={step} align="center" gap="md">
+                <StepBullet aria-hidden />
+                <Text size="md" density="comfortable">
+                  {step}
+                </Text>
+              </Flex>
+            ))}
+          </Stack>
+        </Stack>
+      </Grid>
+
+      <Flex justify="end">
+        <FeedbackButton
+          size="xs"
+          feedbackOptions={{tags: {'feedback.source': feedbackSource}}}
+        >
+          {t('Give feedback')}
+        </FeedbackButton>
+      </Flex>
     </Stack>
   );
 }
+
+const StepBullet = styled('span')`
+  flex-shrink: 0;
+  width: 4px;
+  height: 4px;
+  border-radius: ${p => p.theme.radius.full};
+  background: ${p => p.theme.tokens.graphics.neutral.moderate};
+`;
