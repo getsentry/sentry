@@ -18,6 +18,7 @@ import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
 import {NotebookEmbed} from 'sentry/views/investigations/detail/notebookEmbed';
 import {WorkflowInvestigationReport} from 'sentry/views/investigations/hypotheses/workflowInvestigationReport';
 import type {WorkflowReport} from 'sentry/views/investigations/types';
+import {LLMContextProvider} from 'sentry/views/seerExplorer/contexts/llmContext';
 import type {Block as ExplorerBlock} from 'sentry/views/seerExplorer/types';
 
 type Block = {
@@ -217,7 +218,9 @@ const router = createBrowserRouter([
     path: '*',
     element: (
       <NuqsAdapter>
-        <NotebookView />
+        <LLMContextProvider>
+          <NotebookView />
+        </LLMContextProvider>
       </NuqsAdapter>
     ),
   },
