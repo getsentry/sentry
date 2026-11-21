@@ -139,6 +139,7 @@ export function ActivitySection({
 
   const noteInput = (
     <ActivityNoteInput
+      attachmentIssueId={group.id}
       storageKey="groupinput:latest"
       itemKey={group.id}
       minHeight={minHeight}
