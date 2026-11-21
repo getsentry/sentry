@@ -20,10 +20,11 @@ from sentry.models.groupredirect import GroupRedirect
 COMMENT_ATTACHMENT_FILE_TYPE = "issue.comment.attachment"
 FEATURE_NAME = "organizations:issue-comment-attachments"
 
-# Only video formats browsers can play inline are accepted. The content type
-# the client sends is checked against this list and served back as-is, so
-# nothing else (HTML, SVG, ...) can be uploaded and rendered from our origin.
-ALLOWED_CONTENT_TYPES = frozenset(
+# Any file can be attached. Only video formats browsers can play inline keep
+# the content type the client sent and are served inline; everything else is
+# stored as a generic binary and served as a download, so nothing (HTML, SVG,
+# ...) can be uploaded and rendered from our origin.
+INLINE_CONTENT_TYPES = frozenset(
     {
         "video/mp4",
         "video/quicktime",
@@ -31,6 +32,7 @@ ALLOWED_CONTENT_TYPES = frozenset(
         "video/ogg",
     }
 )
+DOWNLOAD_CONTENT_TYPE = "application/octet-stream"
 
 # The file row has no foreign key to the issue, so the issue it was uploaded to
 # is kept in the file headers and checked on every read. Merging moves comments
@@ -118,7 +120,7 @@ class GroupCommentAttachmentsEndpoint(GroupEndpoint):
 
     def post(self, request: Request, group: Group) -> Response:
         """
-        Upload a video to reference from an issue comment. The response holds
+        Upload a file to reference from an issue comment. The response holds
         the URL the comment text links to.
         """
         if not features.has(FEATURE_NAME, group.organization, actor=request.user):
@@ -129,11 +131,8 @@ class GroupCommentAttachmentsEndpoint(GroupEndpoint):
             return Response({"detail": "Missing uploaded file"}, status=400)
 
         content_type = (fileobj.content_type or "").split(";")[0].strip().lower()
-        if content_type not in ALLOWED_CONTENT_TYPES:
-            return Response(
-                {"detail": "Only MP4, MOV, WebM and Ogg videos can be attached."},
-                status=400,
-            )
+        if content_type not in INLINE_CONTENT_TYPES:
+            content_type = DOWNLOAD_CONTENT_TYPE
 
         max_size = options.get("issues.comment-attachments.max-size")
         if fileobj.size > max_size:
@@ -145,7 +144,7 @@ class GroupCommentAttachmentsEndpoint(GroupEndpoint):
                 status=413,
             )
 
-        name = posixpath.basename(" ".join((fileobj.name or "video").split())) or "video"
+        name = posixpath.basename(" ".join((fileobj.name or "file").split())) or "file"
         file = File.objects.create(
             name=name,
             type=COMMENT_ATTACHMENT_FILE_TYPE,
@@ -166,8 +165,9 @@ class GroupCommentAttachmentDetailsEndpoint(GroupEndpoint):
         self, request: Request, group: Group, attachment_id: str
     ) -> Response | HttpResponse | StreamingHttpResponse:
         """
-        Stream an issue comment video inline. Single byte ranges are supported
-        so browsers can seek (Safari will not play video without them).
+        Stream an issue comment attachment: videos inline, other files as a
+        download. Single byte ranges are supported so browsers can seek
+        (Safari will not play video without them).
         """
         if not features.has(FEATURE_NAME, group.organization, actor=request.user):
             return Response(status=404)
@@ -203,15 +203,19 @@ class GroupCommentAttachmentDetailsEndpoint(GroupEndpoint):
                     remaining -= len(chunk)
                     yield chunk
 
+        content_type = file.headers.get("Content-Type")
+        inline = content_type in INLINE_CONTENT_TYPES
         response = StreamingHttpResponse(
             stream() if size else iter(()),
             status=status,
-            content_type=file.headers.get("Content-Type", "application/octet-stream"),
+            content_type=content_type if inline else DOWNLOAD_CONTENT_TYPE,
         )
         response["Content-Length"] = str(end - start + 1 if size else 0)
         response["Accept-Ranges"] = "bytes"
         response["X-Content-Type-Options"] = "nosniff"
-        response["Content-Disposition"] = content_disposition_header(False, file.name) or "inline"
+        response["Content-Disposition"] = content_disposition_header(not inline, file.name) or (
+            "inline" if inline else "attachment"
+        )
         if status == 206:
             response["Content-Range"] = f"bytes {start}-{end}/{size}"
         return response

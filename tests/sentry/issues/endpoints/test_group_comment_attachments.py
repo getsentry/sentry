@@ -71,12 +71,22 @@ class GroupCommentAttachmentsTest(APITestCase):
         assert response.status_code == 400
         assert response.data["detail"] == "Missing uploaded file"
 
-    def test_rejects_non_video(self) -> None:
-        with self.feature(FEATURE):
-            response = self.post(upload("page.html", b"<script></script>", "text/html"))
+    def test_upload_any_file_as_binary(self) -> None:
+        for name, content, content_type in (
+            ("trace.zip", b"PK", "application/zip"),
+            ("page.html", b"<script></script>", "text/html"),
+            ("logo.svg", b"<svg onload=alert(1)></svg>", "image/svg+xml"),
+            ("notes", b"x", ""),
+        ):
+            with self.feature(FEATURE):
+                response = self.post(upload(name, content, content_type))
 
-        assert response.status_code == 400
-        assert not File.objects.filter(type=COMMENT_ATTACHMENT_FILE_TYPE).exists()
+            assert response.status_code == 201, response.content
+            assert response.data["name"] == name
+            assert response.data["contentType"] == "application/octet-stream"
+            file = File.objects.get(id=int(response.data["id"]))
+            assert file.headers["Content-Type"] == "application/octet-stream"
+            assert file.getfile().read() == content
 
     def test_accepts_content_type_with_parameters(self) -> None:
         with self.feature(FEATURE):
@@ -170,6 +180,37 @@ class GroupCommentAttachmentDetailsTest(APITestCase):
         assert response["Content-Disposition"] == 'inline; filename="video_1.mp4"'
         assert response["Accept-Ranges"] == "bytes"
         assert response["X-Content-Type-Options"] == "nosniff"
+
+    def test_serves_other_files_as_download(self) -> None:
+        with self.feature(FEATURE):
+            response = self.client.post(
+                f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/comment-attachments/",
+                {"file": upload("page.html", b"<script></script>", "text/html")},
+                format="multipart",
+            )
+
+        response = self.get(response.data["url"])
+
+        assert response.status_code == 200
+        assert b"".join(response.streaming_content) == b"<script></script>"
+        assert response["Content-Type"] == "application/octet-stream"
+        assert response["Content-Disposition"] == 'attachment; filename="page.html"'
+        assert response["X-Content-Type-Options"] == "nosniff"
+
+    def test_never_serves_a_stored_unsafe_type(self) -> None:
+        file = File.objects.create(
+            name="page.html",
+            type=COMMENT_ATTACHMENT_FILE_TYPE,
+            headers={"Content-Type": "text/html", "Sentry-Group-Id": str(self.group.id)},
+        )
+        file.putfile(BytesIO(b"<script></script>"))
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{self.group.id}/comment-attachments/{file.id}/"
+
+        response = self.get(url)
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "application/octet-stream"
+        assert response["Content-Disposition"] == 'attachment; filename="page.html"'
 
     def test_byte_range(self) -> None:
         response = self.get(HTTP_RANGE="bytes=2-5")
