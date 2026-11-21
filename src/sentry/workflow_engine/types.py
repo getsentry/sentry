@@ -234,6 +234,10 @@ class ConfigTransformer(ABC):
         raise NotImplementedError
 
 
+class UnsupportedActionEvent(ValueError):
+    """The action handler cannot execute with the supplied event context."""
+
+
 class ActionHandler:
     config_schema: ClassVar[dict[str, Any]]
     data_schema: ClassVar[dict[str, Any]]
@@ -278,6 +282,14 @@ class ActionHandler:
         )
 
         return convert_dict_key_case(data, snake_to_camel_case)
+
+    @staticmethod
+    def validate_event_data(event_data: WorkflowEventData) -> None:
+        """Raise UnsupportedActionEvent for missing context, before dispatch or execution."""
+
+    @staticmethod
+    def validate_invocation(invocation: ActionInvocation) -> None:
+        """Validate context available only after detector resolution, before execution."""
 
     @staticmethod
     def execute(invocation: ActionInvocation) -> None:
