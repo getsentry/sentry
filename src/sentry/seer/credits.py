@@ -97,6 +97,10 @@ def get_denial_reason(response: CheckSeerCreditsResponse) -> SeerCreditDenialRea
 
 def get_run_denial_reason(state: SeerRunState) -> SeerCreditDenialReason | None:
     """Why billing refused credit for the run or, failing that, for one of its PR pushes."""
-    reasons = [state.credit_denial_reason]
-    reasons += [pr.credit_denial_reason for pr in state.repo_pr_states.values()]
-    return next((reason for reason in reasons if reason), None)
+    reasons = {state.credit_denial_reason}
+    reasons |= {pr.credit_denial_reason for pr in state.repo_pr_states.values()}
+    if "daily_cap_exceeded" in reasons:
+        return "daily_cap_exceeded"
+    if "not_enough_credits" in reasons:
+        return "not_enough_credits"
+    return None
