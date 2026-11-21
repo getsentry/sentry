@@ -23,7 +23,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.client import ApiClient, client
 from sentry.api.helpers.group_index import update_groups
-from sentry.auth.access import from_member, from_user
+from sentry.auth.access import from_member, from_user, has_member_scope
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.messaging.metrics import (
     MessageInteractionFailureReason,
@@ -978,7 +978,7 @@ class SlackActionEndpoint(Endpoint):
             user_id=identity_user.id, organization=organization
         )
         access = from_member(member_of_approver)
-        if not access.has_scope("member:admin"):
+        if not has_member_scope(access, "member:admin"):
             webhook_client.send(
                 text=NO_PERMISSION_MESSAGE, replace_original=False, response_type="in_channel"
             )
