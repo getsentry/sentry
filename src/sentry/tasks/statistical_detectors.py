@@ -677,7 +677,7 @@ def query_functions_timeseries(
         key = f"{project.id},{fingerprint}"
         if key not in results:
             logger.warning(
-                "Missing timeseries for project: {} function: {}",
+                "Missing timeseries for project: %s function: %s",
                 project.id,
                 fingerprint,
             )
