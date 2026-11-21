@@ -87,10 +87,13 @@ function RequestBodySection({data, event, meta}: RequestBodyProps) {
     return (
       <KeyValueTableCard
         title={t('Body')}
-        contentItems={getTransformedData(data.data, meta?.data).map(d => {
-          const [key, value] = d.data;
-          return {item: {key, subject: key, value}, meta: d.meta};
-        })}
+        contentItems={getTransformedData(data.data, meta?.data)
+          // Event payloads are untrusted; drop entries that aren't [key, value] tuples
+          .filter(d => Array.isArray(d.data) && defined(d.data[0]))
+          .map(d => {
+            const [key, value] = d.data;
+            return {item: {key: String(key), subject: String(key), value}, meta: d.meta};
+          })}
         sortAlphabetically
       />
     );
