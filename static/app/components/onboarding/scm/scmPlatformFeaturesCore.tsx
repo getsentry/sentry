@@ -1,12 +1,22 @@
-import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentProps,
+} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
-import styled from '@emotion/styled';
+import {ariaHideOutside} from '@react-aria/overlays';
 import {IconBroadcast} from '@sentry/icons/broadcast';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
 
+import {Backdrop} from '@sentry/scraps/backdrop';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -109,6 +119,16 @@ export function ScmPlatformFeaturesCore({
   const [frameworkBaseSdk, setFrameworkBaseSdk] = useState<OnboardingSelectedSDK | null>(
     null
   );
+  const frameworkSheetRef = useRef<HTMLDivElement>(null);
+  const closeFrameworkSheet = useCallback(() => setFrameworkBaseSdk(null), []);
+
+  useEffect(() => {
+    const sheet = frameworkSheetRef.current;
+    if (!frameworkBaseSdk || !sheet) {
+      return;
+    }
+    return bindFrameworkSheet(sheet, closeFrameworkSheet);
+  }, [frameworkBaseSdk, closeFrameworkSheet]);
 
   const [showManualPicker, setShowManualPicker] = useState(false);
   const [manualPickerFilter, setManualPickerFilter] = useState('');
@@ -235,6 +255,11 @@ export function ScmPlatformFeaturesCore({
   };
 
   const handleManualPlatformSelect = (option: {value: string}) => {
+    // The prompt covers the picker. A second selection must not commit
+    // underneath it and then get overwritten by Configure SDK.
+    if (frameworkBaseSdk) {
+      return;
+    }
     const platformKey = option.value as PlatformKey;
     if (platformKey === selectedPlatform?.key) {
       return;
@@ -275,7 +300,7 @@ export function ScmPlatformFeaturesCore({
   };
 
   const handleSelectDetectedPlatform = (platformKey: PlatformKey) => {
-    if (platformKey === selectedPlatform?.key) {
+    if (frameworkBaseSdk || platformKey === selectedPlatform?.key) {
       return;
     }
     setPlatform(platformKey);
@@ -584,37 +609,97 @@ export function ScmPlatformFeaturesCore({
       </ScmPickerSection>
       {frameworkBaseSdk &&
         createPortal(
-          <FrameworkSheet
-            role="dialog"
-            aria-modal="true"
-            aria-label={t('Do you use a framework?')}
-            onSubmit={event => {
-              // The prompt is portaled out of the page form, but React still
-              // bubbles this submit through that form and would create the project.
-              event.stopPropagation();
-            }}
-          >
-            <FrameworkSuggestionModal
-              Body={ModalBody}
-              Footer={ModalFooter}
-              CloseButton={FrameworkSheetCloseButton}
-              Header={FrameworkSheetHeader}
-              closeModal={() => setFrameworkBaseSdk(null)}
-              onConfigure={selectedFramework => {
-                applyPlatformSelection(selectedFramework);
-                setFrameworkBaseSdk(null);
-              }}
-              onSkip={() => {
-                applyPlatformSelection(frameworkBaseSdk);
-                setFrameworkBaseSdk(null);
-              }}
-              organization={organization}
-              selectedPlatform={frameworkBaseSdk}
-              newOrg={isOnboarding}
-              isScmFlow
-              analyticsFlow={analyticsFlow}
+          <Fragment>
+            <Backdrop
+              zIndex="modal"
+              data-test-id="framework-sheet-backdrop"
+              onClick={closeFrameworkSheet}
             />
-          </FrameworkSheet>,
+            <Stack
+              ref={frameworkSheetRef}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Do you use a framework?')}
+              tabIndex={-1}
+              position="fixed"
+              bottom="0"
+              left="0"
+              right="0"
+              maxHeight="85dvh"
+              overflow="hidden"
+              background="primary"
+              borderTop="primary"
+              padding="3xl"
+              containerType="inline-size"
+              onSubmit={event => {
+                // The prompt is portaled out of the page form, but React still
+                // bubbles this submit through that form and would create the project.
+                event.stopPropagation();
+              }}
+              css={css`
+                z-index: ${theme.zIndex.modal};
+                /* Same inset as the real modal document. The framework modal
+                   pulls its close button and footer back with negative
+                   margins; these rules keep that chrome inside the sheet and
+                   let the framework list scroll above Configure SDK. */
+                [novalidate] {
+                  display: flex;
+                  flex-direction: column;
+                  flex: 1 1 auto;
+                  min-height: 0;
+                  overflow: hidden;
+                }
+
+                [data-framework-sheet-body] {
+                  display: flex;
+                  flex-direction: column;
+                  flex: 1 1 auto;
+                  min-height: 0;
+                  overflow: hidden;
+                }
+
+                [data-framework-sheet-footer] {
+                  flex-shrink: 0;
+                }
+
+                [role='radiogroup'] {
+                  flex: 1 1 auto;
+                  min-height: 0;
+                  overflow: hidden;
+                }
+
+                /* The list is rendered by the shared framework modal, which
+                   has no attribute to target. It has to be the scrollport. */
+                /* oxlint-disable-next-line @sentry/scraps/no-dom-coupling */
+                [role='radiogroup'] > ul {
+                  flex: 1 1 auto;
+                  min-height: 0;
+                  overscroll-behavior: contain;
+                }
+              `}
+            >
+              <FrameworkSuggestionModal
+                Body={FrameworkSheetBody}
+                Footer={FrameworkSheetFooter}
+                CloseButton={FrameworkSheetCloseButton}
+                Header={FrameworkSheetHeader}
+                closeModal={closeFrameworkSheet}
+                onConfigure={selectedFramework => {
+                  applyPlatformSelection(selectedFramework);
+                  closeFrameworkSheet();
+                }}
+                onSkip={() => {
+                  applyPlatformSelection(frameworkBaseSdk);
+                  closeFrameworkSheet();
+                }}
+                organization={organization}
+                selectedPlatform={frameworkBaseSdk}
+                newOrg={isOnboarding}
+                isScmFlow
+                analyticsFlow={analyticsFlow}
+              />
+            </Stack>
+          </Fragment>,
           document.body
         )}
     </Fragment>
@@ -624,24 +709,72 @@ export function ScmPlatformFeaturesCore({
 const FrameworkSheetCloseButton = makeCloseButton(() => {});
 const FrameworkSheetHeader = makeClosableHeader(() => {});
 
-const FrameworkSheet = styled('div')`
-  position: fixed;
-  z-index: ${p => p.theme.zIndex.modal};
-  left: 0;
-  right: 0;
-  bottom: 0;
-  max-height: 85dvh;
-  overflow-y: auto;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-  background: ${p => p.theme.tokens.background.primary};
-  border-top: 1px solid ${p => p.theme.tokens.border.primary};
-  /* Same inset as the real modal document. The framework modal pulls its
-     close button and footer back with negative margins; a tighter padding
-     clips those outside this scrollport. */
-  padding: ${p => p.theme.space['3xl']};
-  container-type: inline-size;
-`;
+const FRAMEWORK_SHEET_TABBABLE =
+  'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])';
+
+function tabbablesIn(container: HTMLElement) {
+  return Array.from(
+    container.querySelectorAll<HTMLElement>(FRAMEWORK_SHEET_TABBABLE)
+  ).filter(element => element.tabIndex >= 0 && !element.hasAttribute('disabled'));
+}
+
+// Keeps keyboard focus in the sheet and closes it on Escape. The page is not
+// scroll-locked: that lock is what froze mobile Chrome.
+function bindFrameworkSheet(container: HTMLElement, onClose: () => void) {
+  const restoreHidden = ariaHideOutside([container]);
+
+  if (!container.contains(document.activeElement)) {
+    const [first] = tabbablesIn(container);
+    (first ?? container).focus();
+  }
+
+  const onKeyDown = (event: KeyboardEvent) => {
+    if (event.key === 'Escape') {
+      if (!event.defaultPrevented) {
+        event.preventDefault();
+        event.stopPropagation();
+        onClose();
+      }
+      return;
+    }
+    if (event.key !== 'Tab') {
+      return;
+    }
+
+    const tabbables = tabbablesIn(container);
+    const first = tabbables[0];
+    const last = tabbables[tabbables.length - 1];
+    if (!first || !last) {
+      event.preventDefault();
+      container.focus();
+      return;
+    }
+
+    const active = document.activeElement;
+    const outside = !(active instanceof Node) || !container.contains(active);
+    if (event.shiftKey && (outside || active === first)) {
+      event.preventDefault();
+      last.focus();
+    } else if (!event.shiftKey && (outside || active === last)) {
+      event.preventDefault();
+      first.focus();
+    }
+  };
+
+  document.addEventListener('keydown', onKeyDown, true);
+  return () => {
+    document.removeEventListener('keydown', onKeyDown, true);
+    restoreHidden();
+  };
+}
+
+function FrameworkSheetBody(props: ComponentProps<typeof ModalBody>) {
+  return <ModalBody {...props} data-framework-sheet-body="" />;
+}
+
+function FrameworkSheetFooter(props: ComponentProps<typeof ModalFooter>) {
+  return <ModalFooter {...props} data-framework-sheet-footer="" />;
+}
 
 const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);

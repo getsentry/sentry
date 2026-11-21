@@ -343,6 +343,40 @@ describe('ScmPlatformFeatures', () => {
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
   });
 
+  it('closes the framework prompt from the backdrop and escape', async () => {
+    render(<ScmPlatformFeatures {...defaultProps()} />, {organization});
+    renderGlobalModal();
+
+    await screen.findByText('Search');
+    await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
+    await userEvent.click(await screen.findByText('Browser JavaScript'));
+
+    expect(
+      await screen.findByRole('dialog', {name: 'Do you use a framework?'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeInTheDocument();
+
+    await userEvent.click(screen.getByTestId('framework-sheet-backdrop'));
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', {name: 'Do you use a framework?'})
+      ).not.toBeInTheDocument();
+    });
+
+    await userEvent.type(screen.getByRole('textbox'), 'JavaScript');
+    await userEvent.click(await screen.findByText('Browser JavaScript'));
+    expect(
+      await screen.findByRole('dialog', {name: 'Do you use a framework?'})
+    ).toBeInTheDocument();
+
+    await userEvent.keyboard('{Escape}');
+    await waitFor(() => {
+      expect(
+        screen.queryByRole('dialog', {name: 'Do you use a framework?'})
+      ).not.toBeInTheDocument();
+    });
+  });
+
   it('opens console modal when selecting a disabled gaming platform', async () => {
     render(<ScmPlatformFeatures {...defaultProps()} />, {
       // No enabledConsolePlatforms — all console platforms are blocked
