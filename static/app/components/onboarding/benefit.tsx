@@ -11,9 +11,15 @@ interface BenefitProps {
 
 export function Benefit({children, size = 'md'}: BenefitProps) {
   return (
-    <Flex as="li" align="center" gap="sm">
-      <IconCheckmark size="sm" variant="success" />
-      <Text size={size}>{children}</Text>
+    <Flex as="li" align="center" gap={size === 'lg' ? 'md' : 'sm'}>
+      <IconCheckmark size={size === 'lg' ? 'md' : 'sm'} variant="success" />
+      <Text
+        size={size}
+        density={size === 'lg' ? 'default' : undefined}
+        trim={size === 'lg' ? false : undefined}
+      >
+        {children}
+      </Text>
     </Flex>
   );
 }
