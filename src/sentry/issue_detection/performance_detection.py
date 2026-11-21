@@ -540,7 +540,6 @@ def update_performance_settings(
         Dict of DetectorType -> bool indicating which detectors were updated
         (empty if sync_detectors is False)
     """
-    # TODO: Fix potential cache inconsistency here. See ISWF-2156.
     project.update_option(SETTINGS_PROJECT_OPTION_KEY, settings)
 
     if sync_detectors:
