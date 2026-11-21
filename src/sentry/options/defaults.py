@@ -3104,16 +3104,6 @@ register(
     flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Temporary killswitch for the system incident dual-write to
-# SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER (INFRENG-1051). Turn off to stop the
-# secondary writes at once. Has no effect when the setting is unset.
-# To be removed as part of INFRENG-1053
-register(
-    "crons.system_incidents.secondary_redis_writes",
-    default=True,
-    flags=FLAG_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Enables the the crons incident occurrence consumer to consider the clock-tick
 # decision made based on volume metrics to determine if a incident occurrence
 # should be processed, delayed, or dropped entirely.
