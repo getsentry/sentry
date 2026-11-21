@@ -21,7 +21,7 @@ hybridcloud: 0045_drop_scopes_bitfield_columns
 
 insights: 0001_squashed_0002_backfill_team_starred
 
-investigations: 0018_add_orchestration_run_notebook_fk
+investigations: 0019_workflow_runtime
 
 monitors: 0033_drop_checkin_config_fk
 
