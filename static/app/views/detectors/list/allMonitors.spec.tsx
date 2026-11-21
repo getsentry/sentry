@@ -15,6 +15,8 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {toast} from '@sentry/scraps/toast';
+
 import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {
@@ -524,6 +526,35 @@ describe('DetectorsList', () => {
             data: {enabled: true},
             query: {id: ['2'], query: undefined, project: undefined},
           })
+        );
+      });
+    });
+
+    it('shows the error from the API when enabling fails', async () => {
+      jest.spyOn(toast, 'error');
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/detectors/',
+        method: 'PUT',
+        statusCode: 400,
+        body: {detail: "You've reached your plan's limit on metric monitors."},
+      });
+
+      render(<AllMonitors />, {organization});
+      renderGlobalModal();
+
+      await screen.findByText('Disabled Detector');
+
+      const rows = screen.getAllByTestId('detector-list-row');
+      const disabledRow = rows.find(row => within(row).queryByText('Disabled Detector'));
+      await userEvent.click(within(disabledRow!).getByRole('checkbox'));
+      await userEvent.click(screen.getByRole('button', {name: 'Enable'}));
+      await userEvent.click(
+        within(screen.getByRole('dialog')).getByRole('button', {name: 'Enable'})
+      );
+
+      await waitFor(() => {
+        expect(toast.error).toHaveBeenCalledWith(
+          "You've reached your plan's limit on metric monitors."
         );
       });
     });
