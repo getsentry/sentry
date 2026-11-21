@@ -4400,6 +4400,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Largest video, in bytes, that can be uploaded to an issue comment. Keep it
+# below the web tier's request body limit with room for the multipart framing:
+# self-hosted nginx rejects bodies over 100 MB before Sentry sees them.
+register(
+    "issues.comment-attachments.max-size",
+    type=Int,
+    default=95 * 1024 * 1024,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "issues.client_error_sampling.project_allowlist",
     type=Sequence,

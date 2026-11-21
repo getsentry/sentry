@@ -220,6 +220,8 @@ export type KnownSentryApiUrls =
   | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/repos/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/autofix/setup/'
+  | '/organizations/$organizationIdOrSlug/issues/$issueId/comment-attachments/'
+  | '/organizations/$organizationIdOrSlug/issues/$issueId/comment-attachments/$attachmentId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/comments/$noteId/'
   | '/organizations/$organizationIdOrSlug/issues/$issueId/current-release/'

@@ -323,6 +323,8 @@ from sentry.issues.endpoints import (
     EventIdLookupEndpoint,
     EventJsonEndpoint,
     GroupActivitiesEndpoint,
+    GroupCommentAttachmentDetailsEndpoint,
+    GroupCommentAttachmentsEndpoint,
     GroupDetailsEndpoint,
     GroupEventDetailsEndpoint,
     GroupEventsEndpoint,
@@ -1083,6 +1085,16 @@ def create_group_urls(
 
     # Served only under `/organizations/{org}/issues/`.
     org_scoped_only: list[URLPattern | URLResolver] = [
+        re_path(
+            r"^(?P<issue_id>[^/]+)/comment-attachments/$",
+            GroupCommentAttachmentsEndpoint.as_view(),
+            name=f"{name_prefix}-group-comment-attachments",
+        ),
+        re_path(
+            r"^(?P<issue_id>[^/]+)/comment-attachments/(?P<attachment_id>[^/]+)/$",
+            GroupCommentAttachmentDetailsEndpoint.as_view(),
+            name=f"{name_prefix}-group-comment-attachment-details",
+        ),
         re_path(
             r"^(?P<issue_id>[^/]+)/impact/assess/$",
             GroupImpactAssessmentEndpoint.as_view(),
