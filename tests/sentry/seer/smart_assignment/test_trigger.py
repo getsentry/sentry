@@ -16,10 +16,9 @@ from sentry.types.activity import ActivityType
 CLIENT_PATH = "sentry.seer.smart_assignment.trigger.SeerAgentClient"
 SCORING_METRICS_PATH = "sentry.seer.smart_assignment.scoring.metrics"
 
-RUN_FLAG = "organizations:seer-smart-assignment-run"
 SEER_ADDED = "organizations:seer-added"
 SEAT_BASED_SEER = "organizations:seat-based-seer-enabled"
-RUN_FEATURES = [RUN_FLAG, SEER_ADDED]
+RUN_FEATURES = [SEER_ADDED]
 
 SEER_START_ACTIVITY_TYPES = (
     ActivityType.SEER_RCA_STARTED,
@@ -134,28 +133,16 @@ class TriggerSmartAssignmentTest(TestCase):
         assert "actual_assignee_user_id" not in mirrors[0].extras
 
     @patch(CLIENT_PATH)
-    def test_flag_disabled_is_noop(self, mock_client_cls: MagicMock) -> None:
-        with self.feature(SEER_ADDED):
-            trigger_smart_assignment(
-                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
-            )
-        assert self._mirrors() == []
-        mock_client_cls.return_value.start_feature_run.assert_not_called()
-
-    @patch(CLIENT_PATH)
     def test_no_seer_customer_flag_is_noop(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature(RUN_FLAG):
-            trigger_smart_assignment(
-                self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
-            )
+        trigger_smart_assignment(self.group, ActivityType.SEER_RCA_STARTED, self._seer_started())
         assert self._mirrors() == []
         mock_client_cls.return_value.start_feature_run.assert_not_called()
 
     @patch(CLIENT_PATH)
     def test_dispatches_with_seat_based_seer(self, mock_client_cls: MagicMock) -> None:
         self._wire_client(mock_client_cls)
-        with self.feature([RUN_FLAG, SEAT_BASED_SEER]):
+        with self.feature(SEAT_BASED_SEER):
             trigger_smart_assignment(
                 self.group, ActivityType.SEER_RCA_STARTED, self._seer_started()
             )
