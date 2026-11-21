@@ -7,7 +7,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {allDetectorListsQueryKey} from 'sentry/views/detectors/hooks';
+import {invalidateDetectorQueries} from 'sentry/views/detectors/hooks';
 
 /** Bulk update detectors. Currently supports enabling/disabling detectors. */
 export function useUpdateDetectorsMutation() {
@@ -30,13 +30,16 @@ export function useUpdateDetectorsMutation() {
       });
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
+      invalidateDetectorQueries(queryClient, org);
       toast.success(variables.enabled ? t('Monitors enabled') : t('Monitors disabled'));
     },
-    onError: (_, variables) => {
-      toast.error(
-        t('Unable to %s monitors', variables.enabled ? t('enable') : t('disable'))
+    onError: (error, variables) => {
+      const detail = error.responseJSON?.detail;
+      const fallback = t(
+        'Unable to %s monitors',
+        variables.enabled ? t('enable') : t('disable')
       );
+      toast.error(typeof detail === 'string' ? detail : fallback);
     },
   });
 }

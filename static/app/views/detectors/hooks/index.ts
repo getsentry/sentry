@@ -1,3 +1,4 @@
+import type {QueryClient} from '@tanstack/react-query';
 import {queryOptions, useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 
 import {toast} from '@sentry/scraps/toast';
@@ -99,6 +100,22 @@ export function detectorListApiOptions<
   });
 }
 
+type MetricDetectorQuota = {
+  count: number;
+  hasReachedLimit: boolean;
+  limit: number;
+};
+
+export function metricDetectorQuotaApiOptions(organization: Organization) {
+  return apiOptions.as<MetricDetectorQuota>()(
+    '/organizations/$organizationIdOrSlug/detectors/metric-quota/',
+    {
+      path: {organizationIdOrSlug: organization.slug},
+      staleTime: 5 * 1000,
+    }
+  );
+}
+
 /**
  * Returns a query key prefix that matches all detector list queries
  * regardless of filters. Use with `invalidateQueries` after mutations.
@@ -106,6 +123,17 @@ export function detectorListApiOptions<
 export function allDetectorListsQueryKey(organization: Organization) {
   return detectorListApiOptions(organization, {includeIssueStreamDetectors: true})
     .queryKey;
+}
+
+/** Call after any detector mutation so lists and the metric detector quota refetch. */
+export function invalidateDetectorQueries(
+  queryClient: QueryClient,
+  organization: Organization
+) {
+  queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(organization)});
+  queryClient.invalidateQueries({
+    queryKey: metricDetectorQuotaApiOptions(organization).queryKey,
+  });
 }
 
 export function useCreateDetector<T extends Detector = Detector>() {
@@ -123,7 +151,7 @@ export function useCreateDetector<T extends Detector = Detector>() {
         {method: 'POST', data}
       ),
     onSuccess: _ => {
-      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
+      invalidateDetectorQueries(queryClient, org);
     },
     onError: _ => {
       toast.error(t('Unable to create monitor'));
@@ -147,7 +175,7 @@ export function useUpdateDetector<T extends Detector = Detector>() {
         {method: 'PUT', data}
       ),
     onSuccess: (_, data) => {
-      queryClient.invalidateQueries({queryKey: allDetectorListsQueryKey(org)});
+      invalidateDetectorQueries(queryClient, org);
       queryClient.invalidateQueries({
         queryKey: detectorDetailsApiOptions({
           orgSlug: org.slug,
