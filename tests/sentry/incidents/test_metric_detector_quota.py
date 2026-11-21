@@ -1,3 +1,4 @@
+from typing import Any
 from unittest import mock
 
 from sentry.constants import ObjectStatus
@@ -15,7 +16,7 @@ from sentry.workflow_engine.models import Detector
 @with_feature("organizations:workflow-engine-metric-detector-limit")
 @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=2)
 class MetricDetectorQuotaTest(TestCase):
-    def _metric_detector(self, **kwargs) -> Detector:
+    def _metric_detector(self, **kwargs: Any) -> Detector:
         return self.create_detector(project=self.project, type=MetricIssue.slug, **kwargs)
 
     def test_counts_only_enabled_active_metric_detectors(self, _limit: mock.MagicMock) -> None:
