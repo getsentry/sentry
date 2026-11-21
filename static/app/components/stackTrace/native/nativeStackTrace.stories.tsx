@@ -215,7 +215,7 @@ export default Storybook.story('Native StackTrace', story => {
     );
     return (
       <Stack gap="xl">
-        {[360, 700].map(width => (
+        {[300, 480, 700].map(width => (
           <Stack key={width} gap="sm" width={`${width}px`} maxWidth="100%">
             <Text>{width}px container</Text>
             <Container border="primary" radius="md" padding="md">

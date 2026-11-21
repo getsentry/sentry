@@ -7,6 +7,7 @@ import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {getLeadHint, trimPackage} from 'sentry/components/events/interfaces/frame/utils';
+import {getImageName} from 'sentry/components/events/interfaces/utils';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {useNativeDisplayOptionsContext} from 'sentry/components/stackTrace/displayOptionsContext';
 import {ChevronAction} from 'sentry/components/stackTrace/frame/actions/chevron';
@@ -42,32 +43,34 @@ function getFunctionLabel({
     frame.function !== frame.rawFunction;
 
   if (verboseFunctionNames && functionNameHiddenDetails && frame.rawFunction) {
-    return {
-      value: frame.rawFunction,
-      meta: frameMeta?.rawFunction?.[''],
-    };
+    return {value: frame.rawFunction, meta: frameMeta?.rawFunction?.['']};
   }
 
   if (frame.function) {
-    return {
-      value: frame.function,
-      meta: frameMeta?.function?.[''],
-    };
+    return {value: frame.function, meta: frameMeta?.function?.['']};
   }
 
   return null;
 }
 
 /**
- * Narrow containers stack the frame so the function name gets the full width,
- * with package, address and actions on a secondary line and the chevron
- * centered beside both. Wide containers use one row of aligned columns.
+ * Sized by the row's own container, in three steps:
+ * - under `3xs` the function, the package with its address, and the actions
+ *   each get a line, so the package is never squeezed out by the actions;
+ * - under `xl` the function gets the full width, with package, address and
+ *   actions on a secondary line;
+ * - from `xl` one row of aligned columns, which widen as the container grows
+ *   so the function keeps most of the space in the narrower rows.
+ *
+ * The chevron stays centered beside every line.
  */
 function getHeaderLayout({
+  hasAbsoluteAddresses,
   hasChevron,
   hasLeadHint,
   hasStatusIcons,
 }: {
+  hasAbsoluteAddresses: boolean;
   hasChevron: boolean;
   hasLeadHint: boolean;
   hasStatusIcons: boolean;
@@ -78,24 +81,38 @@ function getHeaderLayout({
   const statusColumn = hasStatusIcons ? '16px ' : '';
   const chevronColumn = hasChevron ? ' auto' : '';
 
-  const narrowAreas = [
+  const compactAreas = [
+    hasLeadHint ? `"${gutter}hint hint hint${hasChevron ? ' .' : ''}"` : null,
+    `"${status}function function function${chevron}"`,
+    `"${gutter}package address .${chevron}"`,
+    `"${gutter}actions actions actions${chevron}"`,
+  ];
+  const stackedAreas = [
     hasLeadHint ? `"${gutter}hint hint hint${hasChevron ? ' .' : ''}"` : null,
     `"${status}function function function${chevron}"`,
     `"${gutter}package address actions${chevron}"`,
   ];
-  const wideAreas = [
+  const columnAreas = [
     hasLeadHint ? `"${status}hint address function actions${chevron}"` : null,
     `"${status}package address function actions${chevron}"`,
   ];
+  const getColumns = (packageWidth: number, addressWidth: number, actionsWidth: number) =>
+    `${statusColumn}${packageWidth}px ${addressWidth}px minmax(0, 1fr) minmax(${actionsWidth}px, auto)${chevronColumn}`;
 
   return {
     areas: {
-      zero: narrowAreas.filter(defined).join(' '),
-      xl: wideAreas.filter(defined).join(' '),
+      zero: compactAreas.filter(defined).join(' '),
+      '3xs': stackedAreas.filter(defined).join(' '),
+      xl: columnAreas.filter(defined).join(' '),
     },
     columns: {
-      zero: `${statusColumn}minmax(0, max-content) max-content minmax(min-content, 1fr)${chevronColumn}`,
-      xl: `${statusColumn}150px 120px minmax(0, 1fr) minmax(140px, auto)${chevronColumn}`,
+      // The last column only takes up the slack, so the lines that span it can wrap.
+      zero: `${statusColumn}minmax(0, max-content) max-content minmax(0, 1fr)${chevronColumn}`,
+      '3xs': `${statusColumn}minmax(0, max-content) max-content minmax(min-content, 1fr)${chevronColumn}`,
+      // Absolute addresses need the full address column at every width.
+      xl: getColumns(124, hasAbsoluteAddresses ? 120 : 100, 124),
+      '2xl': getColumns(136, hasAbsoluteAddresses ? 120 : 110, 132),
+      '3xl': getColumns(150, 120, 140),
     },
   };
 }
@@ -113,14 +130,17 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
   } = useStackTraceFrameContext();
   const {hasAnyExpandableFrames, meta} = useStackTraceContext();
   const {view} = useStackTraceViewState();
-  const {absoluteFilePaths, verboseFunctionNames} = useNativeDisplayOptionsContext();
-  const {hasAnyStatusIcons} = useNativeStackTraceContext();
+  const {absoluteAddresses, absoluteFilePaths, verboseFunctionNames} =
+    useNativeDisplayOptionsContext();
+  const {hasAnyStatusIcons, imageByFrameIndex} = useNativeStackTraceContext();
   const [isHovering, setIsHovering] = useState(false);
 
   const isDartAsync = isDartAsyncSuspension(frame);
   const frameMeta = meta?.frames?.[frameIndex];
   const functionLabel = getFunctionLabel({frame, frameMeta, verboseFunctionNames});
-  const packageLabel = frame.package ? trimPackage(frame.package) : null;
+  // Frames without a package fall back to the name of their debug image
+  const packageName = frame.package ?? getImageName(imageByFrameIndex.get(frameIndex));
+  const packageLabel = packageName ? trimPackage(packageName) : null;
   const leadsToApp = !frame.inApp && (nextFrame?.inApp || !nextFrame);
   const showLeadHint = view === 'app' && !isExpanded && leadsToApp;
 
@@ -130,6 +150,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
     <Container containerType="inline-size">
       <HeaderGrid
         {...getHeaderLayout({
+          hasAbsoluteAddresses: absoluteAddresses,
           hasChevron: hasAnyExpandableFrames,
           hasLeadHint: showLeadHint,
           hasStatusIcons: hasAnyStatusIcons,
@@ -178,7 +199,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
         >
           <InfoText
             title={
-              frame.package ??
+              packageName ??
               (isDartAsync ? t('Dart async operation') : t('Go to images loaded'))
             }
             maxWidth={400}
@@ -238,7 +259,7 @@ export function NativeFrameHeader({actions}: StackTraceFrameHeaderProps) {
         <Flex
           area="actions"
           align="center"
-          justify="end"
+          justify={{zero: 'start', '3xs': 'end'}}
           gap="xs"
           minWidth={0}
           data-test-id="native-stack-trace-frame-actions"

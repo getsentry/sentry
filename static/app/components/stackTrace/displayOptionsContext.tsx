@@ -33,6 +33,8 @@ interface NativeDisplayOptionsContextValue {
 }
 
 interface StackTraceDisplayOptionsProviderProps extends StackTraceViewStateProviderProps {
+  /** Show the full trace instead of the most relevant frames, whatever was selected. */
+  forceFullView?: boolean;
   /** Saves display options to localStorage under this key when set. */
   storageKey?: string;
 }
@@ -110,6 +112,7 @@ function LocalStackTraceDisplayOptionsProvider(
 function StackTraceDisplayOptionsRoot({
   children,
   defaultView = 'app',
+  forceFullView = false,
   hasMinifiedStacktrace = false,
   persistedOptions,
   setPersistedOptions,
@@ -122,9 +125,11 @@ function StackTraceDisplayOptionsRoot({
   // Preferences survive thread changes; effective settings depend on available data.
   const [selectedView, setSelectedView] = useState<StackTraceView | null>(null);
   const [isNewestFirst, setIsNewestFirst] = useState(defaultIsNewestFirst);
-  const view =
+  const preferredView =
     selectedView ??
     (persistedOptions.includes(DISPLAY_OPTION.RAW_STACK_TRACE) ? 'raw' : defaultView);
+  // The selection is kept so it applies again on a trace that can be filtered.
+  const view = forceFullView && preferredView === 'app' ? 'full' : preferredView;
   const isMinified =
     hasMinifiedStacktrace && persistedOptions.includes(DISPLAY_OPTION.MINIFIED);
   const setOption = useCallback(
@@ -150,9 +155,18 @@ function StackTraceDisplayOptionsRoot({
       isNewestFirst,
       setIsNewestFirst,
       hasMinifiedStacktrace,
+      isFullViewForced: forceFullView,
       platform,
     }),
-    [view, isMinified, isNewestFirst, hasMinifiedStacktrace, platform, setOption]
+    [
+      view,
+      isMinified,
+      isNewestFirst,
+      hasMinifiedStacktrace,
+      forceFullView,
+      platform,
+      setOption,
+    ]
   );
   const displayOptions = useMemo<NativeDisplayOptionsContextValue>(
     () => ({

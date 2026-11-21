@@ -667,7 +667,8 @@ describe('IssueThreadStackTrace', () => {
     expect(await screen.findByText('InnerError')).toBeInTheDocument();
     expect(screen.getByText('inner failure')).toBeInTheDocument();
     expect(screen.getByText('Inner.frame')).toBeInTheDocument();
-    expect(screen.queryByText('No stack trace available')).not.toBeInTheDocument();
+    // The crashed thread's own fallback does not replace the exception chain.
+    expect(screen.queryByText('Thread Errored')).not.toBeInTheDocument();
   });
 
   it('copies unsymbolicated thread frames with the matching exception', async () => {
@@ -986,6 +987,37 @@ EOF`,
     await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
     await userEvent.click(screen.getByRole('button', {name: 'Previous Thread'}));
     await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Full Stack Trace'})).toHaveAttribute(
+      'aria-selected',
+      'true'
+    );
+  });
+
+  it('keeps system-only threads in full after most relevant is selected', async () => {
+    const worker = makeStacktrace('Worker.run');
+    worker.hasSystemFrames = false;
+    worker.frames = worker.frames!.map(frame => ({...frame, inApp: false}));
+    const event = makeEvent([
+      makeThread({crashed: true, id: 7}),
+      makeThread({id: 8, name: 'worker', stacktrace: worker}),
+    ]);
+
+    renderThreadStackTrace(event);
+
+    await screen.findByText('ViewController.causeCrash');
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Full Stack Trace'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Most Relevant'}));
+    await userEvent.keyboard('{Escape}');
+    await userEvent.click(screen.getByRole('button', {name: 'Next Thread'}));
+
+    expect(await screen.findByText('Worker.run')).toBeInTheDocument();
+    expect(screen.getByText('system_start')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Display options'}));
+    expect(screen.getByRole('option', {name: 'Most Relevant'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
+    );
     expect(screen.getByRole('option', {name: 'Full Stack Trace'})).toHaveAttribute(
       'aria-selected',
       'true'

@@ -248,6 +248,19 @@ describe('NativeFrameRow', () => {
     expect(screen.getByText('libSystem.B')).toBeInTheDocument();
   });
 
+  it.each([
+    {name: 'code file', image: {}},
+    {name: 'debug file', image: {code_file: null, debug_file: 'CrashyApp'}},
+  ])('falls back to the debug image $name when the frame has no package', ({image}) => {
+    const stacktrace = makeStacktrace([
+      makeFrame({package: null, instructionAddr: '0x100012abc'}),
+    ]);
+    renderFrames(stacktrace, makeEvent([makeImage(image)]));
+
+    expect(screen.getByText('CrashyApp')).toBeInTheDocument();
+    expect(screen.queryByText('<unknown>')).not.toBeInTheDocument();
+  });
+
   it.each([null, 'CrashyAppDelegate.m'])(
     'shows the filename tooltip when absPath is %s',
     async absPath => {

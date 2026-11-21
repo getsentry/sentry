@@ -234,7 +234,7 @@ describe('IssueStackTrace', () => {
     expect(await screen.findByText('Stack Trace')).toBeInTheDocument();
     expect(screen.getByText('ValueError')).toBeInTheDocument();
     expect(screen.getByText('bad value')).toBeInTheDocument();
-    expect(screen.getByText('No stacktrace found.')).toBeInTheDocument();
+    expect(screen.getByText('No stack trace available')).toBeInTheDocument();
   });
 
   it('persists raw and minified display selections per project', async () => {

@@ -35,6 +35,7 @@ export function DisplayOptions({frameDetails}: DisplayOptionsProps) {
     setIsMinified,
     isNewestFirst,
     setIsNewestFirst,
+    isFullViewForced,
     platform,
   } = useStackTraceViewState();
 
@@ -81,7 +82,7 @@ export function DisplayOptions({frameDetails}: DisplayOptionsProps) {
           }
         }}
         options={[
-          {label: t('Most Relevant'), value: 'most-relevant'},
+          {label: t('Most Relevant'), value: 'most-relevant', disabled: isFullViewForced},
           {label: t('Full Stack Trace'), value: 'full-stack-trace'},
           {label: t('Raw Stack Trace'), value: 'raw-stack-trace'},
         ]}

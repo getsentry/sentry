@@ -3,6 +3,7 @@ import {useCallback, useMemo, useState} from 'react';
 import {isExpandable as frameHasExpandableDetails} from 'sentry/components/events/interfaces/frame/utils';
 import {NoStackTraceMessage} from 'sentry/components/events/interfaces/noStackTraceMessage';
 import {getLastFrameIndex} from 'sentry/components/events/interfaces/utils';
+import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {PlatformKey} from 'sentry/types/platform';
 import type {StacktraceType} from 'sentry/types/stacktrace';
@@ -198,7 +199,7 @@ export function StackTraceProvider({
   );
 
   if (!stacktrace) {
-    return <NoStackTraceMessage />;
+    return <NoStackTraceMessage message={t('No stack trace available')} />;
   }
 
   return <StackTraceContext value={value}>{children}</StackTraceContext>;

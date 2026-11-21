@@ -135,7 +135,7 @@ export function IssueThreadStackTraceProviders({
       <StackTraceDisplayOptionsProvider
         platform={activeThreadModel.platform}
         hasMinifiedStacktrace={activeThreadModel.hasMinifiedStacktrace}
-        defaultView={activeThreadModel.defaultView}
+        forceFullView={activeThreadModel.forceFullView}
         defaultIsNewestFirst={activeThreadModel.defaultIsNewestFirst}
         storageKey={storageKey}
       >

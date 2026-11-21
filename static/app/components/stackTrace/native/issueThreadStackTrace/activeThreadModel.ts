@@ -3,7 +3,7 @@ import {
   inferPlatform,
   isStacktraceNewestFirst,
 } from 'sentry/components/events/interfaces/utils';
-import type {StackTraceMeta, StackTraceView} from 'sentry/components/stackTrace/types';
+import type {StackTraceMeta} from 'sentry/components/stackTrace/types';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils/defined';
@@ -87,13 +87,14 @@ export function getActiveThreadStackTraceModel({
   const hasSystemFrames = exception
     ? exception.values.some(value => !!value.stacktrace?.hasSystemFrames)
     : !!activeThread?.stacktrace?.hasSystemFrames;
-  const defaultView: StackTraceView = hasSystemFrames ? 'app' : 'full';
 
   return {
     activeException,
     activeThread,
     defaultIsNewestFirst: isStacktraceNewestFirst(),
-    defaultView,
+    // Matches the legacy threads section, which locks traces without both
+    // app and system frames to the full view.
+    forceFullView: !hasSystemFrames,
     exception,
     hasMinifiedStacktrace,
     minifiedStacktrace:

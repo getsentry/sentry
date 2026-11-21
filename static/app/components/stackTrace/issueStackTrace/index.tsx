@@ -105,11 +105,9 @@ export function IssueStackTrace(props: IssueStackTraceProps) {
       platform={platform}
       storageKey={storageKey}
       hasMinifiedStacktrace={hasMinifiedStacktrace}
-      defaultView={
-        isNative && !values.some(value => value.stacktrace?.hasSystemFrames)
-          ? 'full'
-          : 'app'
-      }
+      // Matches the legacy native sections, which lock traces without both
+      // app and system frames to the full view.
+      forceFullView={isNative && !values.some(value => value.stacktrace?.hasSystemFrames)}
     >
       <IssueStackTraceContent
         initialCollapse={initialCollapse}

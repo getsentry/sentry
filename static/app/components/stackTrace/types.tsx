@@ -18,6 +18,8 @@ export interface StackTraceViewState {
   setIsNewestFirst: (isNewestFirst: boolean) => void;
   setView: (view: StackTraceView) => void;
   view: StackTraceView;
+  /** The trace has no mix of app and system frames, so only the full view applies. */
+  isFullViewForced?: boolean;
   platform?: PlatformKey;
 }
 
