@@ -25,7 +25,7 @@ import {
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
 import {
   getStoppedPRIterationMessage,
-  STOPPED_STEP_MESSAGE,
+  getStoppedStepMessage,
 } from 'sentry/components/seer/outOfCredits/messages';
 import {useOutOfCreditsRetry} from 'sentry/components/seer/outOfCredits/useOutOfCreditsRetry';
 import {t, tn} from 'sentry/locale';
@@ -385,7 +385,9 @@ export function CodeChangesCard({autofix, groupId, section}: CodeChangesCardProp
       <Fragment>
         <ArtifactPartialDetails blocks={currentStepBlocks} />
         {patchesByRepo.size > 0 && diffDetails}
-        <OutOfCreditsStatus message={STOPPED_STEP_MESSAGE[stoppedStep]}>
+        <OutOfCreditsStatus
+          message={getStoppedStepMessage(stoppedStep, section.creditDenialReason)}
+        >
           {retry}
         </OutOfCreditsStatus>
       </Fragment>
