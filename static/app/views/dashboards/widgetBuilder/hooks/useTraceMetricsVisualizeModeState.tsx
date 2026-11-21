@@ -71,12 +71,7 @@ export interface TraceMetricsVisualizeModeState {
  */
 export function useTraceMetricsVisualizeModeState({
   disabled = false,
-}: {
-  /**
-   * The unified list has no equation mode; toggles are ignored.
-   */
-  disabled?: boolean;
-} = {}): TraceMetricsVisualizeModeState {
+}: {disabled?: boolean} = {}): TraceMetricsVisualizeModeState {
   const {state, dispatch} = useWidgetBuilderContext();
 
   const [isEquationModeState, setIsEquationMode] = useState(() => {
