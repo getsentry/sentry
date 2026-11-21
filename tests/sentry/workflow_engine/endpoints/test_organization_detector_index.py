@@ -29,6 +29,7 @@ from sentry.testutils.asserts import assert_org_audit_log_exists
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import cell_silo_test
@@ -1324,6 +1325,55 @@ class OrganizationDetectorIndexPutTest(OrganizationDetectorIndexBaseTest):
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(self.detector_three.id)
         assert response.data[0]["enabled"] is True
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_rejected_over_metric_limit(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        response = self.get_error_response(
+            self.organization.slug,
+            qs_params={"id": [str(self.detector_two.id), str(self.detector_three.id)]},
+            enabled=True,
+            status_code=400,
+        )
+
+        assert response.data["detail"] == "Used 2/3 of allowed metric_issue monitors."
+        self.detector_two.refresh_from_db()
+        self.detector_three.refresh_from_db()
+        assert self.detector_two.enabled is False
+        assert self.detector_three.enabled is False
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=3)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_within_metric_limit(self, mock_get_limit: MagicMock) -> None:
+        self.detector_two.update(enabled=False)
+        self.detector_three.update(enabled=False)
+
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector_three.id)},
+            enabled=True,
+            status_code=200,
+        )
+
+        self.detector_three.refresh_from_db()
+        assert self.detector_three.enabled is True
+
+    @patch("sentry.quotas.backend.get_metric_detector_limit", return_value=1)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_update_detectors_enable_already_enabled_not_counted(
+        self, mock_get_limit: MagicMock
+    ) -> None:
+        self.get_success_response(
+            self.organization.slug,
+            qs_params={"id": str(self.detector.id)},
+            enabled=True,
+            status_code=200,
+        )
 
     def test_update_detectors_no_parameters_error(self) -> None:
         response = self.get_error_response(
