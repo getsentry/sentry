@@ -3,7 +3,7 @@ import hmac
 import logging
 from dataclasses import replace
 from typing import Any, Literal, NotRequired, TypedDict
-from urllib.parse import urlparse
+from urllib.parse import quote, urlencode, urlparse
 
 import orjson
 from django.conf import settings
@@ -650,6 +650,38 @@ def make_delete_grouping_records_by_project_request(
         method="GET",
         timeout=timeout,
         viewer_context=viewer_context,
+    )
+
+
+def make_agent_conversations_request(
+    method: Literal["GET", "POST"],
+    agent: str,
+    conversation_id: str | None = None,
+    *,
+    messages: bool = False,
+    query: dict[str, str] | None = None,
+    body: dict[str, Any] | None = None,
+    timeout: int | float | None = None,
+    viewer_context: SeerViewerContext | None = None,
+) -> BaseHTTPResponse:
+    path = f"/v1/agents/{quote(agent, safe='')}/conversations/"
+    metrics_endpoint = "/v1/agents/:agent/conversations/"
+    if conversation_id is not None:
+        path += f"{quote(conversation_id, safe='')}/"
+        metrics_endpoint += ":conversation_id/"
+    if messages:
+        path += "messages/"
+        metrics_endpoint += "messages/"
+    if query:
+        path += f"?{urlencode(query)}"
+    return make_signed_seer_api_request(
+        seer_autofix_default_connection_pool,
+        path,
+        body=orjson.dumps(body) if body is not None else b"",
+        method=method,
+        timeout=timeout,
+        viewer_context=viewer_context,
+        metrics_endpoint=metrics_endpoint,
     )
 
 

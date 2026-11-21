@@ -10,6 +10,7 @@ from sentry.seer.signed_seer_api import (
     MissingViewerContextError,
     SeerViewerContext,
     _resolve_viewer_context,
+    make_agent_conversations_request,
     make_delete_grouping_records_by_project_request,
     make_signed_seer_api_request,
 )
@@ -232,6 +233,35 @@ def test_delete_grouping_records_uses_generic_metrics_endpoint(
     assert (
         mock_seer_request.call_args.kwargs["metrics_endpoint"]
         == "/v0/issues/similar-issues/grouping-record/delete/:project_id"
+    )
+
+
+@patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
+def test_agent_conversations_request_messages_path(mock_seer_request: MagicMock) -> None:
+    make_agent_conversations_request(
+        "POST", "mini_assisted_query", "conv_1", messages=True, body={"a": 1}
+    )
+
+    assert mock_seer_request.call_args.args[1] == (
+        "/v1/agents/mini_assisted_query/conversations/conv_1/messages/"
+    )
+    assert mock_seer_request.call_args.kwargs["body"] == b'{"a":1}'
+    assert mock_seer_request.call_args.kwargs["method"] == "POST"
+    assert mock_seer_request.call_args.kwargs["metrics_endpoint"] == (
+        "/v1/agents/:agent/conversations/:conversation_id/messages/"
+    )
+
+
+@patch("sentry.seer.signed_seer_api.make_signed_seer_api_request")
+def test_agent_conversations_request_list_path(mock_seer_request: MagicMock) -> None:
+    make_agent_conversations_request("GET", "mini_assisted_query", query={"mine": "true"})
+
+    assert mock_seer_request.call_args.args[1] == (
+        "/v1/agents/mini_assisted_query/conversations/?mine=true"
+    )
+    assert mock_seer_request.call_args.kwargs["body"] == b""
+    assert mock_seer_request.call_args.kwargs["metrics_endpoint"] == (
+        "/v1/agents/:agent/conversations/"
     )
 
 
