@@ -10,8 +10,6 @@ import {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
-const ACCEPTED_VIDEO_TYPES = 'video/mp4,video/quicktime,video/webm,video/ogg';
-
 /**
  * Headers for the upload client. The default client sends a JSON Content-Type
  * on every request, which would make the server parse the multipart body as
@@ -24,11 +22,21 @@ export const COMMENT_ATTACHMENT_UPLOAD_HEADERS = {
 
 /**
  * Matches the URL the comment attachment endpoint returns, so notes can render
- * those links as an inline video player. Segments are limited to slugs and IDs
+ * video links among them as an inline player. Segments are limited to slugs and IDs
  * so a hand-written link with `..` never becomes a player for another route.
  */
 export const COMMENT_ATTACHMENT_URL_PATTERN =
   /^\/api\/0\/organizations\/[\w-]+\/issues\/[\w-]+\/comment-attachments\/\d+\/$/;
+
+/**
+ * File names the server plays inline (its INLINE_CONTENT_TYPES). Other
+ * attachments are served as downloads, so they get a link without a player.
+ */
+const VIDEO_FILE_NAME_PATTERN = /\.(mp4|m4v|mov|webm|ogg|ogv)$/i;
+
+export function isCommentAttachmentVideo(name: string): boolean {
+  return VIDEO_FILE_NAME_PATTERN.test(name.trim());
+}
 
 export interface CommentAttachment {
   contentType: string;
@@ -56,9 +64,9 @@ function uploadErrorMessage(error: unknown): string {
     return detail;
   }
   if (error instanceof RequestError && error.status === 413) {
-    return t('This video is too large to upload.');
+    return t('This file is too large to upload.');
   }
-  return t('Unable to upload video');
+  return t('Unable to upload file');
 }
 
 interface CommentAttachmentButtonProps {
@@ -112,8 +120,7 @@ export function CommentAttachmentButton({
       <input
         ref={fileInputRef}
         type="file"
-        accept={ACCEPTED_VIDEO_TYPES}
-        aria-label={t('Video file')}
+        aria-label={t('Attachment file')}
         style={{display: 'none'}}
         onChange={handleSelectFile}
       />
@@ -122,8 +129,8 @@ export function CommentAttachmentButton({
         icon={<IconUpload />}
         busy={isUploading}
         disabled={isUploading}
-        aria-label={t('Attach video')}
-        tooltipProps={{title: t('Attach video')}}
+        aria-label={t('Attach file')}
+        tooltipProps={{title: t('Attach file')}}
         onClick={() => fileInputRef.current?.click()}
       />
     </Fragment>

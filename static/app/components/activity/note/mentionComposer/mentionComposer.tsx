@@ -20,7 +20,7 @@ import {useOrgMentionPlugins} from 'sentry/utils/mentions/useOrgMentionPlugins';
 interface CreateComposerProps {
   onSubmit: (data: NoteType) => Promise<void>;
   /**
-   * Issue that videos are uploaded to. Without it the composer has no attach
+   * Issue that files are uploaded to. Without it the composer has no attach
    * button.
    */
   attachmentIssueId?: string;

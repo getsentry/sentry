@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {ExternalLink} from '@sentry/scraps/link';
@@ -6,7 +6,10 @@ import {Markdown, type MarkdownProps} from '@sentry/scraps/markdown';
 
 import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 
-import {COMMENT_ATTACHMENT_URL_PATTERN} from './commentAttachmentButton';
+import {
+  COMMENT_ATTACHMENT_URL_PATTERN,
+  isCommentAttachmentVideo,
+} from './commentAttachmentButton';
 
 type Props = {
   text: string;
@@ -16,8 +19,27 @@ type MarkdownComponents = NonNullable<MarkdownProps['components']>;
 type NoteLinkProps = React.ComponentProps<NonNullable<MarkdownComponents['Link']>>;
 
 /**
+ * Plain text of a link's label, which names the uploaded file. Markdown hands
+ * the label over as one Token element per inline token (text, escape, ...).
+ */
+function textOf(node: React.ReactNode): string {
+  if (typeof node === 'string' || typeof node === 'number') {
+    return String(node);
+  }
+  if (Array.isArray(node)) {
+    return node.map(textOf).join('');
+  }
+  if (isValidElement<{children?: React.ReactNode; token?: {text?: string}}>(node)) {
+    const {token, children} = node.props;
+    return typeof token?.text === 'string' ? token.text : textOf(children);
+  }
+  return '';
+}
+
+/**
  * Links to videos uploaded to the comment play inline, with the link kept
- * below the player so the file can still be opened directly.
+ * below the player so the file can still be opened directly. Other uploaded
+ * files are a link that downloads them.
  *
  * Both go to the region's host like other API requests: the browser loads
  * them itself, so they skip the API client, and the default link would treat
@@ -31,13 +53,19 @@ function NoteLink({Default, href, title, children}: NoteLinkProps) {
       </Default>
     );
   }
-  const videoUrl = resolveHostname(href);
+  const fileUrl = resolveHostname(href);
+  const link = (
+    <ExternalLink href={fileUrl} title={title ?? undefined}>
+      {children}
+    </ExternalLink>
+  );
+  if (!isCommentAttachmentVideo(textOf(children))) {
+    return link;
+  }
   return (
     <Fragment>
-      <Video controls preload="metadata" src={videoUrl} data-test-id="note-video" />
-      <ExternalLink href={videoUrl} title={title ?? undefined}>
-        {children}
-      </ExternalLink>
+      <Video controls preload="metadata" src={fileUrl} data-test-id="note-video" />
+      {link}
     </Fragment>
   );
 }

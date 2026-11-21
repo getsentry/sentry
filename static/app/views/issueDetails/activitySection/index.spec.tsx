@@ -344,6 +344,35 @@ describe('ActivitySection', () => {
     expect(screen.getByRole('link', {name: 'docs'})).toBeInTheDocument();
   });
 
+  it('links other uploaded files as downloads without a player', async () => {
+    const fileUrl = '/api/0/organizations/org-slug/issues/1341/comment-attachments/6/';
+    const fileGroup = GroupFixture({
+      id: '1341',
+      activity: [
+        {
+          type: GroupActivityType.NOTE,
+          id: 'note-1',
+          commentId: 'note-1',
+          data: {text: `[trace.zip](${fileUrl})`},
+          dateCreated: tenMinutesAgo(),
+          user,
+        },
+      ],
+      project,
+    });
+
+    render(
+      <GroupDataContextProvider group={fileGroup} project={fileGroup.project}>
+        <ActivitySection group={fileGroup} />
+      </GroupDataContextProvider>
+    );
+
+    const fileLink = await screen.findByRole('link', {name: 'trace.zip'});
+    expect(fileLink).toHaveAttribute('href', fileUrl);
+    expect(fileLink).toHaveAttribute('target', '_blank');
+    expect(screen.queryByTestId('note-video')).not.toBeInTheDocument();
+  });
+
   it('loads comment videos from the region host', async () => {
     const originalFeatures = ConfigStore.get('features');
     const originalLinks = ConfigStore.get('links');
@@ -420,7 +449,7 @@ describe('ActivitySection', () => {
 
     await userEvent.click(getCommentEditor());
     await userEvent.upload(
-      screen.getByLabelText('Video file'),
+      screen.getByLabelText('Attachment file'),
       new File(['data'], 'video_1.mp4', {type: 'video/mp4'})
     );
 
@@ -434,6 +463,63 @@ describe('ActivitySection', () => {
       expect.objectContaining({
         method: 'POST',
         data: {text: `[video_1.mp4](${videoUrl})`, mentions: []},
+      })
+    );
+  });
+
+  it('uploads any file and links it in the comment', async () => {
+    const organization = OrganizationFixture({features: ['issue-comment-attachments']});
+    const fileUrl = '/api/0/organizations/org-slug/issues/1337/comment-attachments/6/';
+    const uploadMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comment-attachments/',
+      method: 'POST',
+      statusCode: 201,
+      body: {
+        id: '6',
+        name: 'trace.zip',
+        size: 4,
+        contentType: 'application/octet-stream',
+        url: fileUrl,
+      },
+    });
+    const postMock = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1337/comments/',
+      method: 'POST',
+      body: {
+        id: 'note-5',
+        commentId: 'note-5',
+        user,
+        type: 'note',
+        data: {text: `[trace.zip](${fileUrl})`},
+        dateCreated: '2024-10-31T00:00:00.000000Z',
+      },
+    });
+
+    render(
+      <GroupDataContextProvider group={group} project={group.project}>
+        <ActivitySection group={group} />
+      </GroupDataContextProvider>,
+      {organization}
+    );
+
+    await userEvent.click(getCommentEditor());
+    const fileInput = screen.getByLabelText('Attachment file');
+    expect(fileInput).not.toHaveAttribute('accept');
+    await userEvent.upload(
+      fileInput,
+      new File(['data'], 'trace.zip', {type: 'application/zip'})
+    );
+
+    await waitFor(() => expect(uploadMock).toHaveBeenCalled());
+    const submitButton = screen.getByRole('button', {name: 'Submit comment'});
+    await waitFor(() => expect(submitButton).toBeEnabled());
+    await userEvent.click(submitButton);
+
+    expect(postMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/1337/comments/',
+      expect.objectContaining({
+        method: 'POST',
+        data: {text: `[trace.zip](${fileUrl})`, mentions: []},
       })
     );
   });
@@ -457,7 +543,7 @@ describe('ActivitySection', () => {
 
     await userEvent.click(getCommentEditor());
     await userEvent.upload(
-      screen.getByLabelText('Video file'),
+      screen.getByLabelText('Attachment file'),
       new File(['data'], 'big.mp4', {type: 'video/mp4'})
     );
 
@@ -479,7 +565,7 @@ describe('ActivitySection', () => {
     await userEvent.click(getCommentEditor());
 
     expect(screen.getByRole('button', {name: 'Submit comment'})).toBeInTheDocument();
-    expect(screen.queryByRole('button', {name: 'Attach video'})).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', {name: 'Attach file'})).not.toBeInTheDocument();
   });
 
   it('renders activity actor markers', async () => {
