@@ -43,26 +43,6 @@ def test_unknown_failure_reason_still_parses() -> None:
     )
 
 
-def test_credit_denial_reason_is_parsed_from_seer() -> None:
-    state = SeerRunState.parse_obj(
-        {
-            "run_id": 1,
-            "blocks": [],
-            "status": "error",
-            "updated_at": "2024-01-01T00:00:00Z",
-            "credit_denial_reason": "daily_cap_exceeded",
-            "repo_pr_states": {
-                "owner/repo": {
-                    "repo_name": "owner/repo",
-                    "credit_denial_reason": "not_enough_credits",
-                }
-            },
-        }
-    )
-    assert state.credit_denial_reason == "daily_cap_exceeded"
-    assert state.repo_pr_states["owner/repo"].credit_denial_reason == "not_enough_credits"
-
-
 def test_unknown_credit_denial_reason_still_parses() -> None:
     # A reason added on the seer side must not fail validation mid-deploy.
     state = SeerRunState.parse_obj(

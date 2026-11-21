@@ -94,6 +94,7 @@ def test_get_denial_reason(denial_reason: int, expected: str | None) -> None:
     [
         ("daily_cap_exceeded", None, "daily_cap_exceeded"),
         (None, "not_enough_credits", "not_enough_credits"),
+        ("not_enough_credits", "daily_cap_exceeded", "not_enough_credits"),
         ("a_future_reason", None, None),
         (None, None, None),
     ],

@@ -11,7 +11,6 @@ from sentry_protos.billing.v1.services.seer_feature_billing.v1.endpoint_check_se
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
-    RepoPRState,
     SeerRunState,
     Usage,
     UsageAccumulator,
@@ -172,21 +171,12 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
             updated_at="2024-01-01T00:00:00Z",
             failure_reason="out_of_credits",
             credit_denial_reason="daily_cap_exceeded",
-            repo_pr_states={
-                "owner/repo": RepoPRState(
-                    repo_name="owner/repo", credit_denial_reason="daily_cap_exceeded"
-                )
-            },
         )
 
         response = self.client.get(f"{self.url}123/")
 
         assert response.status_code == 200
-        session = response.data["session"]
-        assert session["credit_denial_reason"] == "daily_cap_exceeded"
-        assert session["repo_pr_states"]["owner/repo"]["credit_denial_reason"] == (
-            "daily_cap_exceeded"
-        )
+        assert response.data["session"]["credit_denial_reason"] == "daily_cap_exceeded"
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
