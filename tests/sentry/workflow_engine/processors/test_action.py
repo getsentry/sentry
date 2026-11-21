@@ -1,27 +1,42 @@
 from datetime import timedelta
 from unittest.mock import MagicMock, patch
+from uuid import uuid4
 
 from django.db import connection
 from django.utils import timezone
 
 from sentry.integrations.base import IntegrationFeatures
+from sentry.models.activity import Activity
+from sentry.notifications.models.notificationaction import ActionTarget
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.types.activity import ActivityType
+from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient
 from sentry.workflow_engine.models import (
     Action,
     DataConditionGroup,
     Workflow,
     WorkflowActionGroupStatus,
+    WorkflowFireHistory,
 )
 from sentry.workflow_engine.processors.action import (
     StatusUpdateResult,
     filter_recently_fired_workflow_actions,
+    fire_actions,
     get_workflow_action_group_statuses,
     is_action_permitted,
     process_workflow_action_group_statuses,
     update_workflow_action_group_statuses,
 )
-from sentry.workflow_engine.types import ActionHandler, FeatureGate, WorkflowEventData
-from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
+from sentry.workflow_engine.processors.workflow import process_workflows
+from sentry.workflow_engine.processors.workflow_fire_history import create_workflow_fire_histories
+from sentry.workflow_engine.registry import action_handler_registry
+from sentry.workflow_engine.types import (
+    ActionHandler,
+    FeatureGate,
+    UnsupportedActionEvent,
+    WorkflowEventData,
+)
+from tests.sentry.workflow_engine.test_base import BaseWorkflowTest, OrganizationEvent
 
 
 @freeze_time("2024-01-09")
@@ -41,6 +56,28 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         self.event_data = WorkflowEventData(event=self.group_event, group=self.group)
 
+    def test_unsupported_event_does_not_consume_frequency(self) -> None:
+        self.workflow.update(config={"frequency": 30})
+        with patch.object(
+            self.action.get_handler(),
+            "validate_event_data",
+            side_effect=UnsupportedActionEvent("Unsupported event"),
+        ):
+            actions, attribution, workflows = filter_recently_fired_workflow_actions(
+                {self.action_group}, self.event_data
+            )
+        assert list(actions) == []
+        assert attribution == {}
+        assert workflows == set()
+        assert not WorkflowActionGroupStatus.objects.exists()
+
+        actions, attribution, workflows = filter_recently_fired_workflow_actions(
+            {self.action_group}, self.event_data
+        )
+        assert list(actions) == [self.action]
+        assert attribution == {self.action.id: self.workflow.id}
+        assert workflows == {self.workflow.id}
+
     def test(self) -> None:
         status_1 = WorkflowActionGroupStatus.objects.create(
             workflow=self.workflow, action=self.action, group=self.group
@@ -52,7 +89,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             workflow=self.workflow, action=action, group=self.group
         )
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action}
@@ -83,7 +120,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status_3.update(date_updated=timezone.now() - timedelta(days=2))
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         assert set(triggered_actions) == {self.action, action_3}
@@ -101,7 +138,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )  # shared action
         self.create_workflow_data_condition_group(workflow, action_group)
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # dedupes action if both workflows will fire it
@@ -125,7 +162,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         status.update(date_updated=timezone.now() - timedelta(hours=1))
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
         # fires one action for the workflow that can fire it
@@ -276,7 +313,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
@@ -296,7 +333,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
             updated=0, created=0, not_created=[(self.workflow.id, self.action.id)]
         )
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             set(DataConditionGroup.objects.all()), self.event_data
         )
 
@@ -312,7 +349,7 @@ class TestFilterRecentlyFiredWorkflowActions(BaseWorkflowTest):
         )
         # No WorkflowDataConditionGroup links orphan_group to any workflow
 
-        triggered_actions, action_to_workflow_id = filter_recently_fired_workflow_actions(
+        triggered_actions, action_to_workflow_id, _ = filter_recently_fired_workflow_actions(
             {self.action_group, orphan_group}, self.event_data
         )
 
@@ -410,3 +447,158 @@ class TestIsActionPermitted(BaseWorkflowTest):
             }
         ):
             assert is_action_permitted(Action.Type.JIRA, org)
+
+
+@freeze_time("2024-01-09")
+class TestInboxActionFrequency(BaseWorkflowTest):
+    def setUp(self) -> None:
+        self.inbox = self.create_workflow(type=Workflow.Type.INBOX, config={"frequency": 1440})
+        self.inbox_group, self.inbox_action = self.create_workflow_action(
+            self.inbox,
+            action=self.create_action(
+                type=Action.Type.EMAIL,
+                config={"target_type": ActionTarget.USER, "target_identifier": str(self.user.id)},
+            ),
+        )
+        self.alert = self.create_workflow(config={"frequency": 30})
+        self.alert_group, _ = self.create_workflow_action(self.alert)
+        self.activity = Activity(
+            project=self.project,
+            group=self.group,
+            type=ActivityType.ASSIGNED.value,
+            data={"assignee": str(self.user.id)},
+        )
+        self.activity.save()
+        self.event_data = WorkflowEventData(event=self.activity, group=self.group)
+
+    def test_group_less_event_excludes_alerts_and_unsupported_actions(self) -> None:
+        self._assert_group_less_event_excludes_non_inbox_workflow(Workflow.Type.ALERT)
+
+    def test_group_less_event_excludes_seer_and_unsupported_actions(self) -> None:
+        self._assert_group_less_event_excludes_non_inbox_workflow(Workflow.Type.SEER_INVESTIGATION)
+
+    def _assert_group_less_event_excludes_non_inbox_workflow(
+        self, workflow_type: Workflow.Type
+    ) -> None:
+        self.alert.update(type=workflow_type)
+        event_data = WorkflowEventData(
+            event=OrganizationEvent(organization_id=self.organization.id, event_id=uuid4()),
+            organization=self.organization,
+        )
+        shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
+        unsupported_group, _ = self.create_workflow_action(self.inbox)
+        with patch.dict(action_handler_registry.registrations, {Action.Type.EMAIL: ActionHandler}):
+            actions, attribution, workflows = filter_recently_fired_workflow_actions(
+                {self.inbox_group, shared_group, unsupported_group}, event_data
+            )
+        assert list(actions) == [self.inbox_action]
+        assert attribution == {self.inbox_action.id: self.inbox.id}
+        assert workflows == {self.inbox.id}
+        assert not WorkflowActionGroupStatus.objects.exists()
+
+    def test_shared_action_records_only_eligible_workflows(self) -> None:
+        self._assert_shared_action_records_only_eligible_workflows(Workflow.Type.ALERT)
+
+    def test_shared_action_records_only_eligible_seer_workflows(self) -> None:
+        self._assert_shared_action_records_only_eligible_workflows(Workflow.Type.SEER_INVESTIGATION)
+
+    def _assert_shared_action_records_only_eligible_workflows(
+        self, workflow_type: Workflow.Type
+    ) -> None:
+        self.alert.update(type=workflow_type)
+        shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
+        groups = {self.inbox_group, shared_group}
+        actions, _, workflows = filter_recently_fired_workflow_actions(groups, self.event_data)
+        histories = create_workflow_fire_histories(
+            actions, self.event_data, eligible_workflow_ids=workflows
+        )
+        assert {history.workflow_id for history in histories} == {self.inbox.id, self.alert.id}
+
+        # On the next evaluation only Inbox remains eligible for the shared action.
+        actions, attribution, workflows = filter_recently_fired_workflow_actions(
+            groups, self.event_data
+        )
+        assert attribution == {self.inbox_action.id: self.inbox.id}
+        histories = create_workflow_fire_histories(
+            actions, self.event_data, eligible_workflow_ids=workflows
+        )
+        assert {history.workflow_id for history in histories} == {self.inbox.id}
+
+    def test_alert_insert_conflict_does_not_drop_shared_inbox_action(self) -> None:
+        shared_group, _ = self.create_workflow_action(self.alert, action=self.inbox_action)
+        with patch(
+            "sentry.workflow_engine.processors.action.update_workflow_action_group_statuses",
+            return_value=StatusUpdateResult(
+                updated=0,
+                created=0,
+                not_created=[(self.alert.id, self.inbox_action.id)],
+            ),
+        ):
+            actions, attribution, workflows = filter_recently_fired_workflow_actions(
+                {self.inbox_group, shared_group}, self.event_data
+            )
+        assert list(actions) == [self.inbox_action]
+        assert attribution == {self.inbox_action.id: self.inbox.id}
+        assert workflows == {self.inbox.id}
+
+    def test_equivalent_inbox_actions_dispatch_once_per_evaluation(self) -> None:
+        duplicate = self.create_action(type=Action.Type.EMAIL, config=self.inbox_action.config)
+        duplicate_group, _ = self.create_workflow_action(self.inbox, action=duplicate)
+        groups = {self.inbox_group, duplicate_group}
+        with patch(
+            "sentry.workflow_engine.processors.action.trigger_action.apply_async"
+        ) as enqueue:
+            actions, attribution, _ = filter_recently_fired_workflow_actions(
+                groups, self.event_data
+            )
+            fire_actions(actions, self.event_data, {}, attribution)
+            assert enqueue.call_count == 1
+            actions, attribution, _ = filter_recently_fired_workflow_actions(
+                groups, self.event_data
+            )
+            fire_actions(actions, self.event_data, {}, attribution)
+            assert enqueue.call_count == 2
+        assert not WorkflowActionGroupStatus.objects.exists()
+
+    def test_excludes_other_organizations(self) -> None:
+        foreign = self.create_workflow(
+            type=Workflow.Type.INBOX, organization=self.create_organization()
+        )
+        foreign_group, _ = self.create_workflow_action(foreign)
+        actions, attribution, workflows = filter_recently_fired_workflow_actions(
+            {foreign_group}, self.event_data
+        )
+        assert list(actions) == []
+        assert attribution == {}
+        assert workflows == set()
+        assert not WorkflowActionGroupStatus.objects.exists()
+
+    def test_mixed_activity_processing_preserves_throttle_and_notification_uuid(self) -> None:
+        # Prime only the alert's throttle, then evaluate both workflows normally.
+        filter_recently_fired_workflow_actions({self.alert_group}, self.event_data)
+        status = WorkflowActionGroupStatus.objects.get()
+        status.update(date_updated=timezone.now() - timedelta(minutes=1))
+        previous_date = status.date_updated
+        detector = self.create_detector(project=self.project)
+        with (
+            patch(
+                "sentry.workflow_engine.processors.workflow.get_workflows_by_detectors",
+                return_value={self.inbox, self.alert},
+            ),
+            patch("sentry.workflow_engine.processors.action.trigger_action.apply_async") as enqueue,
+        ):
+            result = process_workflows(
+                DelayedWorkflowClient(), self.event_data, timezone.now(), detector=detector
+            )
+        assert result.has_triggered_actions()
+        enqueue.assert_called_once()
+        params = enqueue.call_args.kwargs["kwargs"]
+        assert params["action_id"] == self.inbox_action.id
+        assert params["workflow_id"] == self.inbox.id
+        assert params["activity_id"] == self.activity.id
+        history = WorkflowFireHistory.objects.get()
+        assert history.workflow_id == self.inbox.id
+        assert params["notification_uuid"] == str(history.notification_uuid)
+        status.refresh_from_db()
+        assert status.date_updated == previous_date
+        assert WorkflowActionGroupStatus.objects.count() == 1
