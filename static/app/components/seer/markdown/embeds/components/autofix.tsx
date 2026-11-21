@@ -364,7 +364,7 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
           section={section}
           step={step}
           iterationOutOfCredits={iterationOutOfCredits}
-          iterationDenialReason={codeChangesSection?.creditDenialReason}
+          iterationCreditDenialReason={codeChangesSection?.creditDenialReason}
         />
         {section?.status === 'error' && (
           <Flex>
@@ -424,14 +424,14 @@ function AutofixRefContent({id, shortId, step}: AutofixRefContentProps) {
 interface AutofixRefBodyProps {
   isLoading: boolean;
   step: AutofixExplorerStep;
-  iterationDenialReason?: SeerCreditDenialReason | null;
+  iterationCreditDenialReason?: SeerCreditDenialReason | null;
   iterationOutOfCredits?: boolean;
   section?: AutofixSection;
 }
 
 function AutofixRefBody({
   isLoading,
-  iterationDenialReason,
+  iterationCreditDenialReason,
   iterationOutOfCredits,
   section,
   step,
@@ -469,7 +469,7 @@ function AutofixRefBody({
     } else if (iterationOutOfCredits) {
       outOfCreditsStatus = (
         <Text variant="danger">
-          {getStoppedStepMessage('pr_iteration', iterationDenialReason)}
+          {getStoppedStepMessage('pr_iteration', iterationCreditDenialReason)}
         </Text>
       );
     }

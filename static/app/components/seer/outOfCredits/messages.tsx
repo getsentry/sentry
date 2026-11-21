@@ -7,13 +7,12 @@ import type {RepoPRState} from 'sentry/views/seerExplorer/types';
  * A reason the UI doesn't know, such as one Seer added first, reads as running
  * out of credits.
  */
-function forReason<T>(
-  messages: Record<SeerCreditDenialReason, T>,
+function normalizeDenialReason(
   denialReason: string | null | undefined
-): T {
+): SeerCreditDenialReason {
   return denialReason === 'daily_cap_exceeded'
-    ? messages.daily_cap_exceeded
-    : messages.not_enough_credits;
+    ? 'daily_cap_exceeded'
+    : 'not_enough_credits';
 }
 
 const STOPPED_STEP_MESSAGE: Record<
@@ -59,7 +58,7 @@ export function getStoppedStepMessage(
   step: AutofixExplorerStep,
   denialReason: string | null | undefined
 ): string {
-  return forReason(STOPPED_STEP_MESSAGE, denialReason)[step];
+  return STOPPED_STEP_MESSAGE[normalizeDenialReason(denialReason)][step];
 }
 
 const REFUSED_STEP_MESSAGE: Record<
@@ -104,7 +103,7 @@ export function getRefusedStepMessage(
   step: AutofixExplorerStep,
   denialReason: SeerCreditDenialReason | null
 ): string {
-  return forReason(REFUSED_STEP_MESSAGE, denialReason)[step];
+  return REFUSED_STEP_MESSAGE[normalizeDenialReason(denialReason)][step];
 }
 
 // TODO(CW-3102): Point at the Retry button instead of the next iteration.
@@ -150,7 +149,7 @@ export function getStoppedPRIterationMessage(
   queuedCount: number,
   denialReason: SeerCreditDenialReason | null
 ): string | null {
-  const messages = forReason(STOPPED_PR_ITERATION_MESSAGE, denialReason);
+  const messages = STOPPED_PR_ITERATION_MESSAGE[normalizeDenialReason(denialReason)];
   if (waitingAction) {
     return messages[waitingAction];
   }
@@ -167,7 +166,7 @@ const STOPPED_CHAT_MESSAGE: Record<SeerCreditDenialReason, string> = {
 };
 
 export function getStoppedChatMessage(denialReason: string | null | undefined): string {
-  return forReason(STOPPED_CHAT_MESSAGE, denialReason);
+  return STOPPED_CHAT_MESSAGE[normalizeDenialReason(denialReason)];
 }
 
 /**
@@ -230,7 +229,7 @@ const STOPPED_PR_MESSAGE: Record<
 export function getStoppedPRMessage(
   state: Pick<RepoPRState, 'credit_denial_reason' | 'pr_number' | 'repo_name'>
 ): string {
-  const messages = forReason(STOPPED_PR_MESSAGE, state.credit_denial_reason);
+  const messages = STOPPED_PR_MESSAGE[normalizeDenialReason(state.credit_denial_reason)];
   return state.pr_number
     ? messages.push(state.repo_name, state.pr_number)
     : messages.open(state.repo_name);
@@ -287,7 +286,7 @@ export function getRefusedPRMessage(
   state: Pick<RepoPRState, 'pr_number' | 'repo_name'> | undefined,
   denialReason: SeerCreditDenialReason | null
 ): string {
-  const messages = forReason(REFUSED_PR_MESSAGE, denialReason);
+  const messages = REFUSED_PR_MESSAGE[normalizeDenialReason(denialReason)];
   if (!state) {
     return messages.anyRepo;
   }
@@ -307,5 +306,5 @@ export function getStoppedPRsMessage(states: RepoPRState[]): string {
   const denialReason = states.find(
     state => state.credit_denial_reason
   )?.credit_denial_reason;
-  return forReason(STOPPED_PR_MESSAGE, denialReason).many(states.length);
+  return STOPPED_PR_MESSAGE[normalizeDenialReason(denialReason)].many(states.length);
 }
