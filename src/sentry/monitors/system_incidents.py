@@ -11,21 +11,16 @@ from __future__ import annotations
 import logging
 import statistics
 from collections import Counter
-from collections.abc import Callable, Generator, Iterable
+from collections.abc import Generator, Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from itertools import batched, chain
-from typing import TYPE_CHECKING
 
 from django.conf import settings
 
 from sentry import options
 from sentry.utils import metrics, redis
-
-if TYPE_CHECKING:
-    from redis.client import StrictRedis
-    from sentry_redis_tools.clients import RedisCluster
 
 logger = logging.getLogger(__name__)
 
@@ -69,53 +64,21 @@ BACKFILL_CUTOFF = 1440
 BACKFILL_CHUNKS = 10
 
 
-def _write_monitors_redis(
-    operation: str,
-    write: Callable[[RedisCluster[str] | StrictRedis[str]], object],
-) -> None:
-    """
-    Run one write on the monitors Redis cluster, then on the secondary cluster
-    when SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER is set and the
-    crons.system_incidents.secondary_redis_writes killswitch is on.
-    """
-    write(redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER))
-
-    secondary_cluster = settings.SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER
-    if not secondary_cluster:
-        return
-    if not options.get("crons.system_incidents.secondary_redis_writes"):
-        return
-
-    try:
-        write(redis.redis_clusters.get(secondary_cluster))
-    except Exception:
-        logger.exception(
-            "monitors.system_incidents.secondary_redis_write_error",
-            extra={"operation": operation, "cluster": secondary_cluster},
-        )
-        metrics.incr(
-            "monitors.system_incidents.secondary_redis_write_error",
-            tags={"operation": operation},
-            sample_rate=1.0,
-        )
-
-
 def update_check_in_volume(ts_iter: Iterable[datetime]) -> None:
     """
     Increment counters for a list of check-in timestamps. Each timestamp will be
     trimmed to the minute and grouped appropriately
     """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
     # Group timestamps down to the minute
     for reference_ts, count in Counter(_make_reference_ts(ts) for ts in ts_iter).items():
         key = MONITOR_VOLUME_HISTORY.format(ts=reference_ts)
 
-        def write(client: RedisCluster[str] | StrictRedis[str]) -> None:
-            pipeline = client.pipeline()
-            pipeline.incr(key, amount=count)
-            pipeline.expire(key, MONITOR_VOLUME_RETENTION)
-            pipeline.execute()
-
-        _write_monitors_redis("update_check_in_volume", write)
+        pipeline = redis_client.pipeline()
+        pipeline.incr(key, amount=count)
+        pipeline.expire(key, MONITOR_VOLUME_RETENTION)
+        pipeline.execute()
 
 
 def process_clock_tick_for_system_incidents(tick: datetime) -> DecisionResult:
@@ -162,13 +125,11 @@ def record_last_incident_ts(ts: datetime) -> None:
     """
     Records the timestamp of the first clock tick of the most recent incident
     """
-    _write_monitors_redis(
-        "record_last_incident_ts",
-        lambda client: client.set(
-            MONITOR_LAST_SYSTEM_INCIDENT_TS,
-            int(ts.timestamp()),
-            ex=MONITOR_VOLUME_RETENTION,
-        ),
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+    redis_client.set(
+        MONITOR_LAST_SYSTEM_INCIDENT_TS,
+        int(ts.timestamp()),
+        ex=MONITOR_VOLUME_RETENTION,
     )
 
 
@@ -187,6 +148,8 @@ def prune_incident_check_in_volume(start: datetime, end: datetime) -> None:
     to avoid skewing future computations. Note that the start time is inclusive
     and the end time is exclusive.
     """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
     # Length of the incident in minutes
     length = int((end - start).total_seconds()) // 60
 
@@ -200,15 +163,10 @@ def prune_incident_check_in_volume(start: datetime, end: datetime) -> None:
 
     # Batch deletes
     for timestamp_batch in batched(dates, 30):
-        keys = [MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)) for ts in timestamp_batch]
-
-        def write(client: RedisCluster[str] | StrictRedis[str]) -> None:
-            pipeline = client.pipeline()
-            for key in keys:
-                pipeline.delete(key)
-            pipeline.execute()
-
-        _write_monitors_redis("prune_incident_check_in_volume", write)
+        pipeline = redis_client.pipeline()
+        for ts in timestamp_batch:
+            pipeline.delete(MONITOR_VOLUME_HISTORY.format(ts=_make_reference_ts(ts)))
+        pipeline.execute()
 
 
 def record_clock_tick_volume_metric(tick: datetime) -> None:
@@ -303,12 +261,8 @@ def record_clock_tick_volume_metric(tick: datetime) -> None:
     )
 
     key = MONITOR_TICK_METRIC.format(ts=_make_reference_ts(past_ts))
-
-    def write(client: RedisCluster[str] | StrictRedis[str]) -> None:
-        client.set(key, pct_deviation)
-        client.expire(key, MONITOR_VOLUME_RETENTION)
-
-    _write_monitors_redis("record_clock_tick_volume_metric", write)
+    redis_client.set(key, pct_deviation)
+    redis_client.expire(key, MONITOR_VOLUME_RETENTION)
 
 
 def get_clock_tick_volume_metric(tick: datetime) -> float | None:
@@ -557,14 +511,10 @@ def make_clock_tick_decision(tick: datetime) -> DecisionResult:
         ts: datetime | None = None,
     ) -> DecisionResult:
         decision_key = MONITOR_TICK_DECISION.format(ts=_make_reference_ts(tick))
-
-        def write(client: RedisCluster[str] | StrictRedis[str]) -> None:
-            pipeline = client.pipeline()
-            pipeline.set(decision_key, decision)
-            pipeline.expire(decision_key, MONITOR_VOLUME_RETENTION)
-            pipeline.execute()
-
-        _write_monitors_redis("make_clock_tick_decision", write)
+        pipeline = redis_client.pipeline()
+        pipeline.set(decision_key, decision)
+        pipeline.expire(decision_key, MONITOR_VOLUME_RETENTION)
+        pipeline.execute()
 
         logger.info(
             "clock_tick_decision",
@@ -701,15 +651,14 @@ def _backfill_decisions(
 
     If a backfill occurred, returns the timestamp just before
     """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
+
+    pipeline = redis_client.pipeline()
     backfill_items = list(_make_backfill(start, until_not))
 
-    def write(client: RedisCluster[str] | StrictRedis[str]) -> None:
-        pipeline = client.pipeline()
-        for item in backfill_items:
-            pipeline.set(item.key, decision.value, ex=MONITOR_VOLUME_RETENTION)
-        pipeline.execute()
-
-    _write_monitors_redis("backfill_decisions", write)
+    for item in backfill_items:
+        pipeline.set(item.key, decision.value, ex=MONITOR_VOLUME_RETENTION)
+    pipeline.execute()
 
     # Return the timestamp just before we reached until_not. Note
     # backfill_items is in reverse chronological order here.
