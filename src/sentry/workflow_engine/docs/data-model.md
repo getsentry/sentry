@@ -304,6 +304,12 @@ invalidate cached processing graphs. Receivers in [`receivers/`](../receivers) g
 schedule invalidation with `transaction.on_commit()` so a cache cannot be repopulated
 from uncommitted data.
 
+The organization activity-workflow cache stores enabled `inbox` workflows across
+environments for 60 seconds. Workflow creation, updates, and deletion invalidate it
+after commit, including cached empty results. Bulk writers that bypass model signals
+must call `invalidate_activity_workflows()` for each affected organization after commit;
+organization transfers must invalidate both the source and destination.
+
 Bypassing validators or relationship models can skip schema validation, audit logging,
 or cache invalidation. Prefer the existing validator and service paths.
 
