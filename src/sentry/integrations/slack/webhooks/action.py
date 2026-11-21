@@ -410,7 +410,8 @@ class SlackActionEndpoint(Endpoint):
         if not identity or not identity_user:
             return self._respond_link_identity(slack_request)
 
-        # Non-members get each action's own reply, such as the Seer invite prompt.
+        # Org membership is enforced per action (update_group, Seer's not-member prompt);
+        # this only rejects members who can't act on the issue's project.
         access = from_user(identity_user, group.organization)
         if group.organization.has_access(identity_user) and not access.has_any_project_scope(
             group.project, ("event:write", "event:admin")

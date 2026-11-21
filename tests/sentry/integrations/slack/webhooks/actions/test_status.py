@@ -433,6 +433,26 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert response.data["response_type"] == "ephemeral"
         assert response.data["text"] == "You do not have access to this project."
 
+    def test_archive_dialog_without_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        identity = self.create_identity(
+            user=member, identity_provider=self.idp, external_id="slack-limited-user"
+        )
+
+        response = self.post_webhook_block_kit(
+            action_data=[self.get_archive_status_action()],
+            original_message=self.get_original_message(self.group.id),
+            slack_user={"id": identity.external_id},
+        )
+
+        assert response.status_code == 200
+        assert response.data["response_type"] == "ephemeral"
+        assert response.data["text"] == "You do not have access to this project."
+        assert not self._mock_view_update.called
+
     @patch("sentry.integrations.slack.message_builder.issues.get_tags", return_value=[])
     def test_archive_issue_forever_through_unfurl(self, mock_tags: MagicMock) -> None:
         original_message = self.get_original_message(self.group.id)
