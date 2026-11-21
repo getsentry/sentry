@@ -1,5 +1,5 @@
 /* eslint-disable boundaries/no-unknown-files, import-js/no-extraneous-dependencies -- This standalone entrypoint consumes the Sentry frontend workspace dependencies. */
-import {createElement, useState} from 'react';
+import {useState} from 'react';
 import {createRoot} from 'react-dom/client';
 import {createBrowserRouter, RouterProvider} from 'react-router';
 import {QueryClient, QueryClientProvider, useQuery} from '@tanstack/react-query';
@@ -9,13 +9,13 @@ import {Heading} from '@sentry/scraps/text';
 import {commonInitialization} from 'sentry/bootstrap/commonInitialization';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {SeerMarkdown} from 'sentry/components/seer/markdown';
-import {SeerEmbedRegistry} from 'sentry/components/seer/markdown/embeds';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
 import {NuqsAdapter} from 'sentry/router/nuqsAdapter';
 import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
+import {NotebookEmbed} from 'sentry/views/investigations/detail/notebookEmbed';
 import {WorkflowInvestigationReport} from 'sentry/views/investigations/hypotheses/workflowInvestigationReport';
 import type {WorkflowReport} from 'sentry/views/investigations/types';
 import type {Block as ExplorerBlock} from 'sentry/views/seerExplorer/types';
@@ -165,7 +165,6 @@ function NotebookView() {
                 )
             )
             .map(block => {
-              const widget = block.embed && SeerEmbedRegistry.get(block.embed.name);
               return (
                 <section key={block.id} style={{marginBottom: 16}}>
                   {block === firstHypothesis && (
@@ -178,17 +177,12 @@ function NotebookView() {
                       {block.title}
                     </Heading>
                   )}
-                  <ErrorBoundary mini>
-                    {widget && block.embed
-                      ? createElement(widget, {
-                          name: block.embed.name,
-                          data: block.embed.body,
-                          level: 'block',
-                        })
-                      : block.content && <SeerMarkdown raw={block.content} />}
-                  </ErrorBoundary>
-                  {(block.embedSummary || block.embedSource) && (
-                    <p>{block.embedSummary || block.embedSource}</p>
+                  {block.embed ? (
+                    <NotebookEmbed block={block} />
+                  ) : (
+                    <ErrorBoundary mini>
+                      {block.content && <SeerMarkdown raw={block.content} />}
+                    </ErrorBoundary>
                   )}
                 </section>
               );

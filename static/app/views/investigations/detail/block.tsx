@@ -61,6 +61,7 @@ import {usePendingUserInput} from 'sentry/views/seerExplorer/hooks/usePendingUse
 import type {Block} from 'sentry/views/seerExplorer/types';
 
 import {InvestigationBlockPlaceholder} from './blockPlaceholder';
+import {NotebookEmbed} from './notebookEmbed';
 
 type InvestigationNotebookBlockProps = {
   block: InvestigationBlock;
@@ -231,7 +232,12 @@ function InvestigationNotebookBlockInner({
       padding="0"
       data-test-id={`investigation-block-${block.id}`}
     >
-      {block.kind === 'query' ? (
+      {block.kind === 'embed' ? (
+        <Fragment>
+          <BlockActionButtons {...actionButtonProps} size="xs" />
+          <NotebookEmbed block={block} />
+        </Fragment>
+      ) : block.kind === 'query' ? (
         <Fragment>
           <QueryResult
             actions={<BlockActionButtons {...actionButtonProps} size="zero" />}
@@ -584,6 +590,9 @@ export function shouldDisplayInvestigationBlock(block: InvestigationBlock) {
   // Seer names a block before it fills it, so a block it has started can be shown
   // right away. A block that is only queued stays hidden — it may never produce
   // anything.
+  if (block.kind === 'embed') {
+    return Boolean(block.embed || block.embedSummary || block.embedSource);
+  }
   if (isBlockWorking(block) && block.title.trim()) {
     return true;
   }

@@ -76,10 +76,13 @@ export type InvestigationBlock = {
   staleAt: string | null;
   title: string;
   version: number;
+  embed?: {body: Record<string, unknown>; name: string} | null;
+  embedSource?: string | null;
+  embedSummary?: string | null;
   producerKey?: string | null;
 };
 
-export type InvestigationBlockKind = 'query' | 'text';
+export type InvestigationBlockKind = 'embed' | 'query' | 'text';
 
 export type InvestigationViewer = {
   active: boolean;

@@ -2486,6 +2486,36 @@ describe('Investigation detail', () => {
     });
   });
 
+  it('shows a saved embed and gives Seer its summary when there is no block execution', async () => {
+    const block = InvestigationBlockFixture({
+      title: 'Fixture chart',
+      kind: 'embed',
+      content: '',
+      output: null,
+      embed: {
+        name: 'chart',
+        body: {
+          title: 'Sample volumes',
+          visualization: 'bar',
+          x_axis: 'category',
+          series: [{label: 'Samples', data: [{x: 'Release', y: 3}]}],
+        },
+      },
+      embedSummary: 'Three samples from the release.',
+    });
+    MockApiClient.addMockResponse({
+      url: detailUrl,
+      body: InvestigationDetailFixture({blocks: [block]}),
+    });
+    const openChatPrompt = jest.fn();
+    renderView(askSeerOrganization, makeTestQueryClient(), openChatPrompt);
+    expect(
+      await screen.findByText('Three samples from the release.')
+    ).toBeInTheDocument();
+    await chooseBlockAction('Fixture chart', 'Ask Seer');
+    expect(openChatPrompt.mock.calls[0][0].context.block.output).toBe(block.embedSummary);
+  });
+
   it('renders block output instead of block content', async () => {
     const investigation = investigationWithQueryResult();
     const firstBlock = investigation.blocks[0];
