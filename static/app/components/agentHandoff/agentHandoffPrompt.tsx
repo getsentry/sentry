@@ -52,7 +52,6 @@ export function AgentHandoffPrompt<Flow extends AgentHandoffFlow>({
         topRightAction={
           <Button
             aria-label={t('Copy agent prompt')}
-            busy={handoff.isPending}
             disabled={copyDisabled}
             icon={<IconCopy />}
             size="zero"
