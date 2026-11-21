@@ -12,6 +12,7 @@ from .organization_detector_types import OrganizationDetectorTypeIndexEndpoint
 from .organization_incident_groupopenperiod_index import (
     OrganizationIncidentGroupOpenPeriodIndexEndpoint,
 )
+from .organization_metric_detector_quota import OrganizationMetricDetectorQuotaEndpoint
 from .organization_open_periods import OrganizationOpenPeriodsEndpoint
 from .organization_project_detector_index import OrganizationProjectDetectorIndexEndpoint
 from .organization_test_fire_action import OrganizationTestFireActionsEndpoint
@@ -57,6 +58,11 @@ organization_urlpatterns = [
         r"^(?P<organization_id_or_slug>[^/]+)/detectors/count/$",
         OrganizationDetectorCountEndpoint.as_view(),
         name="sentry-api-0-organization-detector-count",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/detectors/metric-quota/$",
+        OrganizationMetricDetectorQuotaEndpoint.as_view(),
+        name="sentry-api-0-organization-metric-detector-quota",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/workflows/(?P<workflow_id>\d+)/$",
