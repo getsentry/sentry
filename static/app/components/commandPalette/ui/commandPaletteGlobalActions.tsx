@@ -145,7 +145,7 @@ const DSN_ICONS: React.ReactElement[] = [
 const helpSearch = new SentryGlobalSearch(['docs', 'develop']);
 const EVENT_ID_PATTERN =
   /^(?:[A-Fa-f0-9]{32}|[A-Fa-f0-9]{8}(?:-[A-Fa-f0-9]{4}){3}-[A-Fa-f0-9]{12})$/;
-const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-\w{3,}$/;
+const SHORT_ID_PATTERN = /^[A-Za-z][\w-]*-[A-Za-z0-9]+$/;
 
 function renderAsyncResult(item: CommandPaletteAction, index: number) {
   if ('to' in item) {
