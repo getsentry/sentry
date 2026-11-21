@@ -5,10 +5,15 @@ _CONTROL_CHAR_TABLE = str.maketrans(
 )
 
 
+def strip_control_chars(value: str) -> str:
+    """Remove control characters other than tab, line feed, and carriage return."""
+    return value.translate(_CONTROL_CHAR_TABLE)
+
+
 def sanitize_outbound_name(value: str) -> str:
     """Prevent mail-client auto-linking of user-controlled display names
     by breaking periods, URL schemes, and stripping control characters."""
-    value = value.translate(_CONTROL_CHAR_TABLE)
+    value = strip_control_chars(value)
     value = value.replace("://", ":" + WORD_JOINER + "//")
     value = value.replace(".", WORD_JOINER + ".")
     return value
