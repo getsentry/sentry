@@ -1,4 +1,4 @@
-minVersion: '3.9.0'
+minVersion: '3.13.0'
 workspaces:
   sentry:
     preReleaseCommand: bash scripts/bump-version.sh
@@ -45,6 +45,11 @@ workspaces:
     releaseBranchPrefix: '{{workspaceName}}/release'
     changelog:
       policy: auto
+      # A backend change can change what a package ships, such as the spec in
+      # @sentry/api, without touching the package directory. openapi-diff.yml
+      # labels those pull requests.
+      includeLabels:
+        - 'changelog: {{packageName}}'
     statusProvider:
       name: github
       config:

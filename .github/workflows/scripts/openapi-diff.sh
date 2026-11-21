@@ -18,9 +18,19 @@
 #       or an oasdiff error becomes a note in the summary.
 #   openapi-diff.sh rpc-breaking BASE_SCHEMA PR_SCHEMA
 #       Fail on RPC method schema changes that break callers.
+#   openapi-diff.sh label-api-changelog BASE_DIR PR_SPEC PR_SCHEMA
+#       Give pull request PR_NUMBER the `changelog: @sentry/api` label when
+#       PR_SPEC or PR_SCHEMA differs from its copy in BASE_DIR, and take it
+#       away when neither does. Craft puts labelled pull requests in the
+#       @sentry/api changelog, which otherwise only sees commits to
+#       static/packages/api (see .craft.yml).
+#   openapi-diff.sh unlabel-api-changelog
+#       Take that label away from pull request PR_NUMBER, for a pull request
+#       that no longer touches the files the schemas are built from.
 #
 # Environment: GH_TOKEN (or a logged-in gh), GITHUB_REPOSITORY (defaults to
-# getsentry/sentry), BASE_SHA and HEAD_SHA (optional).
+# getsentry/sentry), BASE_SHA and HEAD_SHA (optional). The label commands also
+# need PR_NUMBER, and HEAD_REPO, the repository the pull request comes from.
 set -eu
 
 repo=${GITHUB_REPOSITORY:-getsentry/sentry}
@@ -31,6 +41,9 @@ oasdiff_image=ghcr.io/getsentry/image-mirror-tufin-oasdiff:v1.33.0
 max_commits=30
 # GitHub rejects step summaries over 1 MiB.
 max_summary_bytes=900000
+# Craft's `changelog: {{packageName}}` in .craft.yml. A maintainer creates the
+# label; gh refuses to add one that does not exist.
+api_changelog_label='changelog: @sentry/api'
 
 merge_base() {
   if [ -n "${BASE_SHA:-}" ] && [ -n "${HEAD_SHA:-}" ]; then
@@ -152,13 +165,74 @@ rpc_breaking() {
   oasdiff breaking "$1" "$2" --fail-on WARN --format githubactions
 }
 
+# Add the label when $1 is true and remove it otherwise.
+set_api_changelog_label() {
+  want=$1
+  pr=${PR_NUMBER:?}
+  # Pull requests from forks get a read-only token.
+  if [ "${HEAD_REPO:?}" != "$repo" ]; then
+    printf '::notice::Cannot label a pull request from %s. A maintainer sets "%s" by hand.\n' \
+      "$HEAD_REPO" "$api_changelog_label"
+    return 0
+  fi
+  labels=$(timeout 60 gh pr view "$pr" --repo "$repo" --json labels --jq '.labels[].name')
+  # grep exits 1 for no match and 2 for an error.
+  if printf '%s\n' "$labels" | grep -Fqx -e "$api_changelog_label"; then
+    has=true
+  else
+    status=$?
+    if [ "$status" -ne 1 ]; then
+      return "$status"
+    fi
+    has=false
+  fi
+  if [ "$want" = "$has" ]; then
+    echo "The label \"$api_changelog_label\" is already right ($has)."
+  elif [ "$want" = true ]; then
+    timeout 60 gh pr edit "$pr" --repo "$repo" --add-label "$api_changelog_label"
+  else
+    timeout 60 gh pr edit "$pr" --repo "$repo" --remove-label "$api_changelog_label"
+  fi
+}
+
+# Print true when two schema files differ and false when they match.
+schema_changed() {
+  # cmp exits 1 when the files differ and 2 when one is missing.
+  if cmp -s "$1" "$2"; then
+    echo false
+  else
+    status=$?
+    if [ "$status" -ne 1 ]; then
+      printf '::error::Could not compare %s with %s.\n' "$2" "$1" >&2
+      return "$status"
+    fi
+    echo true
+  fi
+}
+
+# The same comparison api-package-release-preflight.sh makes against the last
+# release, so the label marks the pull requests that change the next release.
+label_api_changelog() {
+  spec_changed=$(schema_changed "$1/openapi-derefed.json" "$2")
+  rpc_changed=$(schema_changed "$1/rpc_method_schema.json" "$3")
+  echo "Public spec changed: $spec_changed. RPC schema changed: $rpc_changed."
+  if [ "$spec_changed" = true ] || [ "$rpc_changed" = true ]; then
+    set_api_changelog_label true
+  else
+    set_api_changelog_label false
+  fi
+}
+
 command=${1:-}
 case $command in
   baseline) baseline "$2" ;;
   changelog) changelog "$2" "$3" ;;
   rpc-breaking) rpc_breaking "$2" "$3" ;;
+  label-api-changelog) label_api_changelog "$2" "$3" "$4" ;;
+  unlabel-api-changelog) set_api_changelog_label false ;;
   *)
-    echo "usage: $0 baseline DIR | changelog BASE_SPEC PR_SPEC | rpc-breaking BASE_SCHEMA PR_SCHEMA" >&2
+    echo "usage: $0 baseline DIR | changelog BASE_SPEC PR_SPEC | rpc-breaking BASE_SCHEMA PR_SCHEMA" \
+      "| label-api-changelog BASE_DIR PR_SPEC PR_SCHEMA | unlabel-api-changelog" >&2
     exit 2
     ;;
 esac
