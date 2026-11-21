@@ -1,13 +1,14 @@
-import {Fragment, useState, type PointerEventHandler} from 'react';
+import {Fragment, useId, useState, type PointerEventHandler} from 'react';
 import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
+import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
-import {InfoText} from '@sentry/scraps/info';
-import {Container} from '@sentry/scraps/layout';
+import {InfoText, InfoTip} from '@sentry/scraps/info';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
 import {Text} from '@sentry/scraps/text';
@@ -69,6 +70,52 @@ export function HandoffAdvancedMenu({
     />
   );
 }
+
+interface HandoffIpPinningCheckboxProps {
+  disabled: boolean;
+  onToggle: () => void;
+  useIpPinning: boolean;
+}
+
+export function HandoffIpPinningCheckbox({
+  disabled,
+  useIpPinning,
+  onToggle,
+}: HandoffIpPinningCheckboxProps) {
+  const checkboxId = useId();
+  const descriptionId = useId();
+
+  return (
+    <Flex align="start" gap="md">
+      <Checkbox
+        id={checkboxId}
+        aria-describedby={descriptionId}
+        checked={useIpPinning}
+        disabled={disabled}
+        onChange={onToggle}
+      />
+      <Stack gap="sm">
+        <Flex align="center" gap="xs">
+          <Text as="label" htmlFor={checkboxId} size="md">
+            {t('Only allow this network')}
+          </Text>
+          <InfoTip
+            size="xs"
+            title={t('Keeps your secret token safe if the prompt leaks.')}
+          />
+        </Flex>
+        <IpPinningDescription id={descriptionId} size="sm" variant="muted">
+          {t('Uncheck if your agent runs in the cloud, or you use iCloud Private Relay.')}
+        </IpPinningDescription>
+      </Stack>
+    </Flex>
+  );
+}
+
+// Help text reads best a little looser than the largest density token (1.4).
+const IpPinningDescription = styled(Text)`
+  line-height: 1.5;
+`;
 
 interface HandoffPromptAlertsProps {
   error: Error | null;
