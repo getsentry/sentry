@@ -383,7 +383,7 @@ before event-level deduplication and task execution. A tuple is suppressed when 
 passed within `Workflow.config.frequency` minutes, even if a later equivalent action was
 deduplicated or an external handler failed.
 
-Inbox workflows bypass group-frequency suppression; all other workflows retain it.
+Inbox workflows bypass group-frequency suppression.
 
 ### Event-level deduplication
 
