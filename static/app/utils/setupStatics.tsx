@@ -1,3 +1,6 @@
+// Must run before any app code that relies on ES2023 built-ins.
+import './polyfills';
+
 declare global {
   var __zod_globalConfig: {jitless?: boolean} | undefined;
 }
