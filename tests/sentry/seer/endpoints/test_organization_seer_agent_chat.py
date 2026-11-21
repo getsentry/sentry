@@ -16,6 +16,7 @@ from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
     PendingUserInput,
+    RepoPRState,
     SeerRunState,
     Usage,
     UsageAccumulator,
@@ -167,6 +168,31 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert response.status_code == 200
         assert response.data["session"]["failure_reason"] == "provider_unavailable"
+
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_get_includes_credit_denial_reason(self, mock_client_class: MagicMock) -> None:
+        mock_client_class.return_value.get_run.return_value = SeerRunState(
+            run_id=123,
+            blocks=[],
+            status="error",
+            updated_at="2024-01-01T00:00:00Z",
+            failure_reason="out_of_credits",
+            credit_denial_reason="daily_cap_exceeded",
+            repo_pr_states={
+                "owner/repo": RepoPRState(
+                    repo_name="owner/repo", credit_denial_reason="daily_cap_exceeded"
+                )
+            },
+        )
+
+        response = self.client.get(f"{self.url}123/")
+
+        assert response.status_code == 200
+        session = response.data["session"]
+        assert session["credit_denial_reason"] == "daily_cap_exceeded"
+        assert session["repo_pr_states"]["owner/repo"]["credit_denial_reason"] == (
+            "daily_cap_exceeded"
+        )
 
     @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
     def test_get_excludes_private_fields(self, mock_client_class: MagicMock) -> None:
