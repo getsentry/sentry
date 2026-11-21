@@ -589,8 +589,8 @@ export function Visualize({error, setError, traceMetricsVisualizeMode}: Visualiz
                       fields.some(
                         fieldItem => fieldItem.kind === FieldValueKind.EQUATION
                       ) &&
-                      // Spans and trace metrics can have a single equation, so this rule
-                      // does not apply. The errors dataset requires one series to be
+                      // The spans and metrics datasets can have a single equation, so isOnlyFieldOrAggregate
+                      // is not applicable. The errors dataset requires one series to be
                       // selected for equations to work.
                       state.dataset !== WidgetType.SPANS &&
                       state.dataset !== WidgetType.TRACEMETRICS;

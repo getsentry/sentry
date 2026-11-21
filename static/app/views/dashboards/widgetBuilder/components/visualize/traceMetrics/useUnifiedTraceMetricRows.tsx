@@ -38,13 +38,7 @@ interface Options {
 export interface UnifiedTraceMetricRows {
   getExpression: (index: number) => string;
   getLabel: (index: number) => string | undefined;
-  /**
-   * So a new row does not default to a hidden aggregate.
-   */
   hiddenAggregates: string[];
-  /**
-   * Keyed by the field index they render above; the field count means last.
-   */
   hiddenRowsByAnchor: Map<number, MetricRow[]>;
   hide: (index: number) => void;
   isReferenced: (index: number) => boolean;
@@ -107,7 +101,6 @@ export function useUnifiedTraceMetricRows({
       type: updateAction,
       payload: nextFields,
       ...(usesYAxisState && {
-        // Newly plotted rows have no transformations to carry over.
         sourceIndices: nextVisible.map(row =>
           previousVisible.findIndex(previous => previous.id === row.id)
         ),

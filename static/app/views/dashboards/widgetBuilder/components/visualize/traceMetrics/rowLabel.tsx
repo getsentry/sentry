@@ -8,7 +8,6 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {t} from 'sentry/locale';
 
-// Same look as Explore's VisualizeLabelBadge, so the two can be shared later.
 function rowLabelBadgeCss(theme: Theme, muted?: boolean) {
   return css`
     flex-shrink: 0;

@@ -100,9 +100,6 @@ interface HiddenTraceMetricRowProps {
   onShow: () => void;
   row: MetricRow;
   disabled?: boolean;
-  /**
-   * Leave room for the drag handle.
-   */
   indent?: boolean;
 }
 
@@ -143,7 +140,7 @@ export function HiddenTraceMetricRow({
             <DeleteFieldButton
               disabled
               disabledReason={t(
-                'This series is only used in an equation. Remove it from the equation to delete it.'
+                'This series is used in an equation. Remove it from the equation to delete it.'
               )}
             />
           </Flex>
