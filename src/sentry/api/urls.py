@@ -324,6 +324,7 @@ from sentry.investigations.endpoints.workflow_runs import (
     OrganizationWorkflowRunEndpoint,
     OrganizationWorkflowRunsEndpoint,
 )
+from sentry.investigations.endpoints.workflow_storage import WorkflowStorageEndpoint
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     EventIdLookupEndpoint,
@@ -2493,6 +2494,11 @@ ORGANIZATION_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^/]+)/investigations/(?P<notebook_id>[^/]+)/orchestration/commands/$",
         OrganizationInvestigationOrchestrationCommandsEndpoint.as_view(),
         name="sentry-api-0-organization-investigation-orchestration-commands",
+    ),
+    re_path(
+        rf"^(?P<organization_id_or_slug>[^/]+)/investigation-workflows/storage/(?P<key>{UUIDConverter.regex})/$",
+        WorkflowStorageEndpoint.as_view(),
+        name="sentry-api-0-workflow-storage",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^/]+)/investigation-workflows/runs/$",

@@ -38,6 +38,7 @@ export function useInvestigationDetail(investigationId: string) {
         data?.orchestration && shouldPollInvestigationRun(data.orchestration.status);
       return isSeerWorking ||
         orchestrationActive ||
+        data?.workflowReport?.active ||
         data?.actionRequests?.some(isFollowUpPending) ||
         shouldPollInvestigationBlocks(data?.blocks ?? []) ||
         isTitleGenerationActive(data?.titleGeneration?.status)

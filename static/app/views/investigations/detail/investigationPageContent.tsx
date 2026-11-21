@@ -40,6 +40,7 @@ import {
   InvestigationHypotheses,
   shouldPollInvestigationRun,
 } from 'sentry/views/investigations/hypotheses/investigationHypotheses';
+import {WorkflowInvestigationReport} from 'sentry/views/investigations/hypotheses/workflowInvestigationReport';
 import {
   getHypothesisLLMContext,
   getInvestigationLLMContext,
@@ -273,8 +274,14 @@ export function InvestigationPageContent({
       ? getSeerStatusBlock(orchestration)
       : null;
 
-  const visibleBlocks = (investigation.blocks ?? []).filter(block =>
-    shouldDisplayInvestigationBlock(block)
+  const visibleBlocks = (investigation.blocks ?? []).filter(
+    block =>
+      shouldDisplayInvestigationBlock(block) &&
+      !(
+        block.version === 1 &&
+        block.producerKey &&
+        investigation.workflowReport?.hypothesisBlockKeys.includes(block.producerKey)
+      )
   );
   const awaitingReportBlock = isAwaitingReportBlock(investigation);
   const runProcessing = isRunWorking(orchestration) || recheckRunWait.waiting;
@@ -477,6 +484,9 @@ export function InvestigationPageContent({
                 source={investigation.source}
               />
 
+              {investigation.workflowReport && (
+                <WorkflowInvestigationReport report={investigation.workflowReport} />
+              )}
               {showDetailsHeading ? <Separator orientation="horizontal" /> : null}
 
               {hasDetails ? (

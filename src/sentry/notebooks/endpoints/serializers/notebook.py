@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Annotated, Any, TypedDict, override
+from typing import Annotated, Any, NotRequired, TypedDict, override
 
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import Count, Q
@@ -156,6 +156,7 @@ class NotebookDetailsSerializerResponse(NotebookSerializerResponse):
     re-checks them, newest report first, with that report's primary at the top.
     """
 
+    workflowReport: NotRequired[dict[str, JsonValue]]
     contentRevision: Annotated[str, ApiDescription("Revision of the ordered block contents")]
 
     template: Annotated[

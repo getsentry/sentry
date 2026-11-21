@@ -16,6 +16,8 @@ import {ScrapsProviders} from 'sentry/scrapsProviders';
 import type {Organization} from 'sentry/types/organization';
 import {OrganizationContext} from 'sentry/utils/organizationContext';
 import {DEFAULT_QUERY_CLIENT_CONFIG} from 'sentry/utils/queryClientConfig';
+import {WorkflowInvestigationReport} from 'sentry/views/investigations/hypotheses/workflowInvestigationReport';
+import type {WorkflowReport} from 'sentry/views/investigations/types';
 import type {Block as ExplorerBlock} from 'sentry/views/seerExplorer/types';
 
 type Block = {
@@ -26,6 +28,7 @@ type Block = {
   id: string;
   producerKey: string | null;
   title: string;
+  version: number;
 };
 
 interface Notebook {
@@ -34,6 +37,7 @@ interface Notebook {
   summary: string | null;
   summaryDescription: string | null;
   title: string;
+  workflowReport?: WorkflowReport;
 }
 
 async function read<T>(url: string): Promise<T> {
@@ -148,35 +152,47 @@ function NotebookView() {
           </Heading>
           {doc.summary && <p>{doc.summary}</p>}
           {doc.summaryDescription && <SeerMarkdown raw={doc.summaryDescription} />}
-          {doc.blocks.map(block => {
-            const widget = block.embed && SeerEmbedRegistry.get(block.embed.name);
-            return (
-              <section key={block.id} style={{marginBottom: 16}}>
-                {block === firstHypothesis && (
-                  <Heading as="h3" size="lg">
-                    Hypotheses
-                  </Heading>
-                )}
-                {block.title && (
-                  <Heading as="h3" size="lg">
-                    {block.title}
-                  </Heading>
-                )}
-                <ErrorBoundary mini>
-                  {widget && block.embed
-                    ? createElement(widget, {
-                        name: block.embed.name,
-                        data: block.embed.body,
-                        level: 'block',
-                      })
-                    : block.content && <SeerMarkdown raw={block.content} />}
-                </ErrorBoundary>
-                {(block.embedSummary || block.embedSource) && (
-                  <p>{block.embedSummary || block.embedSource}</p>
-                )}
-              </section>
-            );
-          })}
+          {doc.workflowReport && (
+            <WorkflowInvestigationReport report={doc.workflowReport} />
+          )}
+          {doc.blocks
+            .filter(
+              block =>
+                !(
+                  block.version === 1 &&
+                  block.producerKey &&
+                  doc.workflowReport?.hypothesisBlockKeys.includes(block.producerKey)
+                )
+            )
+            .map(block => {
+              const widget = block.embed && SeerEmbedRegistry.get(block.embed.name);
+              return (
+                <section key={block.id} style={{marginBottom: 16}}>
+                  {block === firstHypothesis && (
+                    <Heading as="h3" size="lg">
+                      Hypotheses
+                    </Heading>
+                  )}
+                  {block.title && (
+                    <Heading as="h3" size="lg">
+                      {block.title}
+                    </Heading>
+                  )}
+                  <ErrorBoundary mini>
+                    {widget && block.embed
+                      ? createElement(widget, {
+                          name: block.embed.name,
+                          data: block.embed.body,
+                          level: 'block',
+                        })
+                      : block.content && <SeerMarkdown raw={block.content} />}
+                  </ErrorBoundary>
+                  {(block.embedSummary || block.embedSource) && (
+                    <p>{block.embedSummary || block.embedSource}</p>
+                  )}
+                </section>
+              );
+            })}
           {runId && params.get('live') === '0' && (
             <NotebookActivity runId={runId} notebookId={id} />
           )}

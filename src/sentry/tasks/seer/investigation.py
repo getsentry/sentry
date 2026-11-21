@@ -630,3 +630,59 @@ def mark_investigation_telemetry_connected(
         applied_by=user_id,
         details=ConnectTelemetryAppliedDetails(provider=provider),
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.recover_workflow_nodes",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def recover_workflow_nodes() -> None:
+    """Redeliver missed dispatches independently of the workers and connected browsers."""
+    from collections import defaultdict
+
+    import orjson
+    from urllib3.exceptions import HTTPError
+
+    from sentry.investigations.models import WorkflowNodeRun
+    from sentry.seer.signed_seer_api import (
+        make_signed_seer_api_request,
+        seer_autofix_default_connection_pool,
+    )
+
+    now = timezone.now()
+    batches = defaultdict(list)
+    with transaction.atomic(using=router.db_for_write(WorkflowNodeRun)):
+        rows = list(
+            WorkflowNodeRun.objects.select_for_update(skip_locked=True, of=("self",))
+            .filter(next_check_at__lte=now)
+            .order_by("next_check_at", "id")
+            .values_list("id", "run__organization_id", "uuid")[:100]
+        )
+        WorkflowNodeRun.objects.filter(pk__in=[pk for pk, _, _ in rows]).update(
+            next_check_at=now + timedelta(minutes=1)
+        )
+        for _, org, node in rows:
+            batches[org].append(str(node))
+    for org, nodes in batches.items():
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=org)
+        ):
+            try:
+                response = make_signed_seer_api_request(
+                    seer_autofix_default_connection_pool,
+                    "/v1/automation/investigation-workflows/recover",
+                    body=orjson.dumps({"nodes": nodes}),
+                    timeout=5,
+                    retries=False,
+                )
+            except HTTPError:
+                logger.exception(
+                    "workflow.node_recovery_unavailable", extra={"organization_id": org}
+                )
+            else:
+                if response.status >= 400:
+                    logger.error(
+                        "workflow.node_recovery_rejected",
+                        extra={"organization_id": org, "status": response.status},
+                    )

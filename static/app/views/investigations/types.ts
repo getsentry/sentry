@@ -76,6 +76,7 @@ export type InvestigationBlock = {
   staleAt: string | null;
   title: string;
   version: number;
+  producerKey?: string | null;
 };
 
 export type InvestigationBlockKind = 'query' | 'text';
@@ -177,6 +178,15 @@ export type InvestigationQueryOutput = {
   tableMarkdown: string;
 };
 
+export type WorkflowReport = {
+  active: boolean;
+  activity: string[];
+  hypotheses: InvestigationHypothesis[];
+  hypothesisBlockKeys: string[];
+  runId: string;
+  summary: string | null;
+};
+
 export type InvestigationDetail = InvestigationListItem & {
   actionRequests?: InvestigationActionRequest[];
   blocks?: InvestigationBlock[];
@@ -189,6 +199,7 @@ export type InvestigationDetail = InvestigationListItem & {
     type: string;
     snapshot?: Record<string, unknown>;
   };
+  workflowReport?: WorkflowReport;
 };
 
 export type InvestigationTitleGeneration = {

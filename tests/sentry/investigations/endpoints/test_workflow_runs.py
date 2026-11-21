@@ -38,7 +38,7 @@ class OrganizationWorkflowRunsTest(APITestCase):
             )
             assert viewer.organization_id == self.organization.id
             assert viewer.actor.actor_id == self.user.id
-            assert orjson.loads(kwargs["body"]) == draft
+            assert orjson.loads(kwargs["body"]) == {**draft, "sentryStorage": True}
             url = reverse(
                 "sentry-api-0-organization-investigation-workflow-run",
                 args=[self.organization.slug, run_id],
