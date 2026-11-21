@@ -356,7 +356,9 @@ describe('ScmPlatformFeatures', () => {
     ).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Configure SDK'})).toBeInTheDocument();
 
-    await userEvent.click(screen.getByTestId('framework-sheet-backdrop'));
+    const backdrop = screen.getByTestId('framework-sheet-backdrop');
+    expect(backdrop).not.toHaveAttribute('inert');
+    await userEvent.click(backdrop);
     await waitFor(() => {
       expect(
         screen.queryByRole('dialog', {name: 'Do you use a framework?'})

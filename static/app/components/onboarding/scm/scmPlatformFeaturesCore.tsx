@@ -110,15 +110,17 @@ export function ScmPlatformFeaturesCore({
   const [frameworkBaseSdk, setFrameworkBaseSdk] = useState<OnboardingSelectedSDK | null>(
     null
   );
+  const frameworkPromptRef = useRef<HTMLDivElement>(null);
   const frameworkSheetRef = useRef<HTMLDivElement>(null);
   const closeFrameworkSheet = useCallback(() => setFrameworkBaseSdk(null), []);
 
   useEffect(() => {
+    const prompt = frameworkPromptRef.current;
     const sheet = frameworkSheetRef.current;
-    if (!frameworkBaseSdk || !sheet) {
+    if (!frameworkBaseSdk || !prompt || !sheet) {
       return;
     }
-    return bindFrameworkSheet(sheet, closeFrameworkSheet);
+    return bindFrameworkSheet(prompt, sheet, closeFrameworkSheet);
   }, [frameworkBaseSdk, closeFrameworkSheet]);
 
   const [showManualPicker, setShowManualPicker] = useState(false);
@@ -600,7 +602,7 @@ export function ScmPlatformFeaturesCore({
       </ScmPickerSection>
       {frameworkBaseSdk &&
         createPortal(
-          <Fragment>
+          <div ref={frameworkPromptRef}>
             <Backdrop
               zIndex="modal"
               data-test-id="framework-sheet-backdrop"
@@ -692,7 +694,7 @@ export function ScmPlatformFeaturesCore({
                 analyticsFlow={analyticsFlow}
               />
             </Stack>
-          </Fragment>,
+          </div>,
           document.body
         )}
     </Fragment>
@@ -713,12 +715,18 @@ function tabbablesIn(container: HTMLElement) {
 
 // Keeps keyboard focus in the sheet and closes it on Escape. The page is not
 // scroll-locked: that lock is what froze mobile Chrome.
-function bindFrameworkSheet(container: HTMLElement, onClose: () => void) {
-  const restoreHidden = ariaHideOutside([container]);
+function bindFrameworkSheet(
+  prompt: HTMLElement,
+  sheet: HTMLElement,
+  onClose: () => void
+) {
+  // Hide the page, and keep the backdrop inside the prompt. Hiding only the
+  // sheet marks the backdrop inert, so a tap on it never closes the prompt.
+  const restoreHidden = ariaHideOutside([prompt]);
 
-  if (!container.contains(document.activeElement)) {
-    const [first] = tabbablesIn(container);
-    (first ?? container).focus();
+  if (!sheet.contains(document.activeElement)) {
+    const [first] = tabbablesIn(sheet);
+    (first ?? sheet).focus();
   }
 
   const onKeyDown = (event: KeyboardEvent) => {
@@ -734,17 +742,17 @@ function bindFrameworkSheet(container: HTMLElement, onClose: () => void) {
       return;
     }
 
-    const tabbables = tabbablesIn(container);
+    const tabbables = tabbablesIn(sheet);
     const first = tabbables[0];
     const last = tabbables[tabbables.length - 1];
     if (!first || !last) {
       event.preventDefault();
-      container.focus();
+      sheet.focus();
       return;
     }
 
     const active = document.activeElement;
-    const outside = !(active instanceof Node) || !container.contains(active);
+    const outside = !(active instanceof Node) || !sheet.contains(active);
     if (event.shiftKey && (outside || active === first)) {
       event.preventDefault();
       last.focus();
