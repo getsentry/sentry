@@ -1,6 +1,18 @@
-import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
+import {
+  Fragment,
+  useCallback,
+  useEffect,
+  useId,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
+import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
+import styled from '@emotion/styled';
 import {IconBroadcast} from '@sentry/icons/broadcast';
+import {IconClose} from '@sentry/icons/close';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
@@ -8,13 +20,14 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import {useModal, closeModal} from '@sentry/scraps/modal';
+import type {ModalRenderProps} from '@sentry/scraps/modal';
 import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
 import {openConsoleModal} from 'sentry/actionCreators/modal';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
+import {FrameworkSuggestionModal} from 'sentry/components/onboarding/frameworkSuggestionModal';
 import type {ProductSolution} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {DEFAULT_DEBOUNCE_DURATION} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
@@ -94,8 +107,13 @@ export function ScmPlatformFeaturesCore({
 }: ScmPlatformFeaturesCoreProps) {
   const isOnboarding = analyticsFlow === 'onboarding';
   const theme = useTheme();
-  const {openModal} = useModal();
   const organization = useOrganization();
+  // Rendered as a bottom sheet instead of the global modal. The modal scroll-locks
+  // the page and, in mobile Chrome, the dialog is not in the visible viewport, so
+  // the screen looks frozen and the prompt never appears.
+  const [frameworkBaseSdk, setFrameworkBaseSdk] = useState<OnboardingSelectedSDK | null>(
+    null
+  );
 
   const [showManualPicker, setShowManualPicker] = useState(false);
   const [manualPickerFilter, setManualPickerFilter] = useState('');
@@ -221,7 +239,7 @@ export function ScmPlatformFeaturesCore({
     onFeaturesChange(undefined);
   };
 
-  const handleManualPlatformSelect = async (option: {value: string}) => {
+  const handleManualPlatformSelect = (option: {value: string}) => {
     const platformKey = option.value as PlatformKey;
     if (platformKey === selectedPlatform?.key) {
       return;
@@ -248,32 +266,10 @@ export function ScmPlatformFeaturesCore({
     // specific frameworks — matching the legacy onboarding behavior.
     if (platformInfo && shouldSuggestFramework(platformKey)) {
       const baseSdk = toSelectedSdk(platformInfo);
-
-      const {FrameworkSuggestionModal, modalCss} =
-        // oxlint-disable-next-line react/todo
-        await import('sentry/components/onboarding/frameworkSuggestionModal');
-
-      openModal(
-        deps => (
-          <FrameworkSuggestionModal
-            {...deps}
-            organization={organization}
-            selectedPlatform={baseSdk}
-            onConfigure={selectedFramework => {
-              applyPlatformSelection(selectedFramework);
-              closeModal();
-            }}
-            onSkip={() => {
-              applyPlatformSelection(baseSdk);
-              closeModal();
-            }}
-            newOrg={isOnboarding}
-            isScmFlow
-            analyticsFlow={analyticsFlow}
-          />
-        ),
-        {modalCss}
-      );
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      setFrameworkBaseSdk(baseSdk);
       return;
     }
 
@@ -457,99 +453,100 @@ export function ScmPlatformFeaturesCore({
     : {'aria-label': t('Platform')};
 
   return (
-    <ScmPickerSection
-      title={showDetectedPlatforms ? detectedTitle : manualTitle}
-      action={
-        showDetectedPlatforms ? (
-          <Button
-            size="sm"
-            variant="link"
-            onClick={handleChangePlatformClick}
-            autoFocus={focusTarget === 'changePlatformButton'}
-          >
-            {isDetecting
-              ? t('Skip detection and select manually')
-              : t("Not what you're building? Pick another")}
-          </Button>
-        ) : canReturnToDetected ? (
-          <Button size="sm" variant="link" onClick={handleBackToRecommended}>
-            {t('Back to what we found')}
-          </Button>
-        ) : null
-      }
-    >
-      {showDetectedPlatforms ? (
-        isDetecting ? (
-          <MotionFlex
-            key="detecting"
-            justify="center"
-            role="status"
-            aria-label={t('Detecting platforms from your repository')}
+    <Fragment>
+      <ScmPickerSection
+        title={showDetectedPlatforms ? detectedTitle : manualTitle}
+        action={
+          showDetectedPlatforms ? (
+            <Button
+              size="sm"
+              variant="link"
+              onClick={handleChangePlatformClick}
+              autoFocus={focusTarget === 'changePlatformButton'}
+            >
+              {isDetecting
+                ? t('Skip detection and select manually')
+                : t("Not what you're building? Pick another")}
+            </Button>
+          ) : canReturnToDetected ? (
+            <Button size="sm" variant="link" onClick={handleBackToRecommended}>
+              {t('Back to what we found')}
+            </Button>
+          ) : null
+        }
+      >
+        {showDetectedPlatforms ? (
+          isDetecting ? (
+            <MotionFlex
+              key="detecting"
+              justify="center"
+              role="status"
+              aria-label={t('Detecting platforms from your repository')}
+              {...ONBOARDING_ENTER}
+              initial="initial"
+              animate="animate"
+            >
+              <LoadingIndicator mini />
+            </MotionFlex>
+          ) : (
+            <MotionGrid
+              key="detected"
+              width="100%"
+              columns={{zero: '1fr', md: 'repeat(2, minmax(0, 1fr))'}}
+              gap="lg"
+              role="radiogroup"
+              aria-labelledby={headingId}
+              {...ONBOARDING_STAGGER_CHILDREN}
+              initial="initial"
+              animate="animate"
+            >
+              {resolvedPlatforms.map(({platform, info}) => (
+                <MotionToggleCard
+                  key={platform}
+                  variant="radio"
+                  name={platformGroupName}
+                  value={platform}
+                  checked={currentPlatformKey === platform}
+                  onChange={() => handleSelectDetectedPlatform(platform)}
+                  aria-label={info.name}
+                  autoFocus={
+                    focusTarget === 'selectedCard' && platform === focusedDetectedPlatform
+                  }
+                  {...ONBOARDING_ENTER}
+                >
+                  <Flex gap="lg" align="center">
+                    <Flex flexShrink={0}>
+                      <PlatformIcon platform={platform} size={20} format="lg" alt="" />
+                    </Flex>
+                    <Flex flexGrow={1} minWidth={0}>
+                      <InfoText
+                        css={css`
+                          position: relative;
+                        `}
+                        title={info.name}
+                        mode="overflowOnly"
+                        bold
+                        size="md"
+                        textWrap="nowrap"
+                      >
+                        {info.name}
+                      </InfoText>
+                    </Flex>
+                    <ToggleCard.Indicator />
+                  </Flex>
+                </MotionToggleCard>
+              ))}
+            </MotionGrid>
+          )
+        ) : (
+          <MotionStack
+            key="manual"
+            width="100%"
             {...ONBOARDING_ENTER}
             initial="initial"
             animate="animate"
           >
-            <LoadingIndicator mini />
-          </MotionFlex>
-        ) : (
-          <MotionGrid
-            key="detected"
-            width="100%"
-            columns={{zero: '1fr', md: 'repeat(2, minmax(0, 1fr))'}}
-            gap="lg"
-            role="radiogroup"
-            aria-labelledby={headingId}
-            {...ONBOARDING_STAGGER_CHILDREN}
-            initial="initial"
-            animate="animate"
-          >
-            {resolvedPlatforms.map(({platform, info}) => (
-              <MotionToggleCard
-                key={platform}
-                variant="radio"
-                name={platformGroupName}
-                value={platform}
-                checked={currentPlatformKey === platform}
-                onChange={() => handleSelectDetectedPlatform(platform)}
-                aria-label={info.name}
-                autoFocus={
-                  focusTarget === 'selectedCard' && platform === focusedDetectedPlatform
-                }
-                {...ONBOARDING_ENTER}
-              >
-                <Flex gap="lg" align="center">
-                  <Flex flexShrink={0}>
-                    <PlatformIcon platform={platform} size={20} format="lg" alt="" />
-                  </Flex>
-                  <Flex flexGrow={1} minWidth={0}>
-                    <InfoText
-                      css={css`
-                        position: relative;
-                      `}
-                      title={info.name}
-                      mode="overflowOnly"
-                      bold
-                      size="md"
-                      textWrap="nowrap"
-                    >
-                      {info.name}
-                    </InfoText>
-                  </Flex>
-                  <ToggleCard.Indicator />
-                </Flex>
-              </MotionToggleCard>
-            ))}
-          </MotionGrid>
-        )
-      ) : (
-        <MotionStack
-          key="manual"
-          width="100%"
-          {...ONBOARDING_ENTER}
-          initial="initial"
-          animate="animate"
-        >
-          {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
+            {/* Two literal variants instead of clearable={!detectedPlatformKey}: the
               core Select types `clearable` as a discriminated-union literal (`?: false`
               vs `: true`, which also selects the onChange signature), so a dynamic
               boolean is not assignable and will not typecheck. Each branch passes a
@@ -557,41 +554,111 @@ export function ScmPlatformFeaturesCore({
               one re-resolves into currentPlatformKey, so clearing would leave the
               picker (and the feature panel) showing it while the committed selection
               is empty. "Back to what we found" covers reverting. */}
-          {detectedPlatformKey ? (
-            <Select<string, (typeof platformOptions)[number]>
-              {...manualPickerLabel}
-              autoFocus={focusTarget === 'manualPicker'}
-              placeholder={t('Search')}
-              options={platformOptionGroups}
-              value={currentPlatformKey ?? null}
-              onChange={handleManualPickerChange}
-              onInputChange={handleManualPickerSearch}
-              searchable
-              controlLeadingItems={<ScmSearchIcon />}
-              virtualized
-              styles={manualPickerStyles}
+            {detectedPlatformKey ? (
+              <Select<string, (typeof platformOptions)[number]>
+                {...manualPickerLabel}
+                autoFocus={focusTarget === 'manualPicker'}
+                placeholder={t('Search')}
+                options={platformOptionGroups}
+                value={currentPlatformKey ?? null}
+                onChange={handleManualPickerChange}
+                onInputChange={handleManualPickerSearch}
+                searchable
+                controlLeadingItems={<ScmSearchIcon />}
+                virtualized
+                styles={manualPickerStyles}
+              />
+            ) : (
+              <Select<string, (typeof platformOptions)[number]>
+                {...manualPickerLabel}
+                autoFocus={focusTarget === 'manualPicker'}
+                placeholder={t('Search')}
+                options={platformOptionGroups}
+                value={currentPlatformKey ?? null}
+                onChange={handleManualPickerChange}
+                onInputChange={handleManualPickerSearch}
+                clearable
+                searchable
+                controlLeadingItems={<ScmSearchIcon />}
+                virtualized
+                styles={manualPickerStyles}
+              />
+            )}
+          </MotionStack>
+        )}
+      </ScmPickerSection>
+      {frameworkBaseSdk &&
+        createPortal(
+          <FrameworkSheet>
+            <FrameworkSuggestionModal
+              Body={SheetBody as ModalRenderProps['Body']}
+              Footer={SheetFooter as ModalRenderProps['Footer']}
+              CloseButton={SheetCloseButton as ModalRenderProps['CloseButton']}
+              Header={SheetHeader as ModalRenderProps['Header']}
+              closeModal={() => setFrameworkBaseSdk(null)}
+              onConfigure={selectedFramework => {
+                applyPlatformSelection(selectedFramework);
+                setFrameworkBaseSdk(null);
+              }}
+              onSkip={() => {
+                applyPlatformSelection(frameworkBaseSdk);
+                setFrameworkBaseSdk(null);
+              }}
+              organization={organization}
+              selectedPlatform={frameworkBaseSdk}
+              newOrg={isOnboarding}
+              isScmFlow
+              analyticsFlow={analyticsFlow}
             />
-          ) : (
-            <Select<string, (typeof platformOptions)[number]>
-              {...manualPickerLabel}
-              autoFocus={focusTarget === 'manualPicker'}
-              placeholder={t('Search')}
-              options={platformOptionGroups}
-              value={currentPlatformKey ?? null}
-              onChange={handleManualPickerChange}
-              onInputChange={handleManualPickerSearch}
-              clearable
-              searchable
-              controlLeadingItems={<ScmSearchIcon />}
-              virtualized
-              styles={manualPickerStyles}
-            />
-          )}
-        </MotionStack>
-      )}
-    </ScmPickerSection>
+          </FrameworkSheet>,
+          document.body
+        )}
+    </Fragment>
   );
 }
+
+function SheetBody({children}: {children?: ReactNode}) {
+  return <section>{children}</section>;
+}
+
+function SheetFooter({children}: {children?: ReactNode}) {
+  return <footer>{children}</footer>;
+}
+
+function SheetHeader({children}: {children?: ReactNode}) {
+  return <header>{children}</header>;
+}
+
+function SheetCloseButton({onClick}: {onClick?: () => void}) {
+  return (
+    <Button
+      aria-label={t('Close Modal')}
+      size="xs"
+      icon={<IconClose size="xs" />}
+      variant="transparent"
+      onClick={onClick}
+    />
+  );
+}
+
+const FrameworkSheet = styled('div')`
+  position: fixed;
+  z-index: ${p => p.theme.zIndex.modal};
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 85dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  background: ${p => p.theme.tokens.background.primary};
+  border-top: 1px solid ${p => p.theme.tokens.border.primary};
+  /* Same inset as the real modal document. The framework modal pulls its
+     close button and footer back with negative margins; a tighter padding
+     clips those outside this scrollport. */
+  padding: ${p => p.theme.space['3xl']};
+  container-type: inline-size;
+`;
 
 const MotionFlex = motion.create(Flex);
 const MotionGrid = motion.create(Grid);
