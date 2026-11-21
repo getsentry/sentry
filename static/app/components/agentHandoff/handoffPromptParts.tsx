@@ -1,7 +1,8 @@
 import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'react';
-import {css, ThemeProvider, type Theme} from '@emotion/react';
+import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
+import {AnimatePresence, motion} from 'framer-motion';
 
 import {Alert} from '@sentry/scraps/alert';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
@@ -75,15 +76,30 @@ interface HandoffPromptAlertsProps {
 }
 
 export function HandoffPromptAlerts({useIpPinning, error}: HandoffPromptAlertsProps) {
+  const theme = useTheme();
+  // Both prompts render the alerts in a Stack with an md gap. Pulling the warning
+  // up by that gap while collapsed lets the gap animate with it instead of popping.
+  const collapsedOffset = `-${theme.space.md}`;
+
   return (
     <Fragment>
-      {!useIpPinning && (
-        <Alert variant="warning">
-          {t(
-            'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
-          )}
-        </Alert>
-      )}
+      <AnimatePresence initial={false}>
+        {!useIpPinning && (
+          <motion.div
+            initial={{height: 0, opacity: 0, marginTop: collapsedOffset}}
+            animate={{height: 'auto', opacity: 1, marginTop: '0px'}}
+            exit={{height: 0, opacity: 0, marginTop: collapsedOffset}}
+            transition={{duration: 0.12, ease: 'easeOut'}}
+            style={{overflow: 'hidden'}}
+          >
+            <Alert variant="warning">
+              {t(
+                'Without IP pinning, anyone with this prompt can use its handoff code from any IP address to authorize an agent on your behalf. Avoid pasting your prompt when streaming or screen sharing.'
+              )}
+            </Alert>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {error && <Alert variant="danger">{error.message}</Alert>}
     </Fragment>
   );
