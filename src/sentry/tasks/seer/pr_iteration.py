@@ -137,6 +137,7 @@ from sentry.seer.autofix.pr_iteration.queue import (
     enqueue_autofix_feedback,
     pop_queued_autofix_feedback,
     record_skipped_autofix_feedback,
+    release_in_flight_autofix_feedback,
     requeue_autofix_feedback,
 )
 from sentry.seer.autofix.pr_iteration.sweep import sweep_stale_pr_iterations
@@ -854,6 +855,11 @@ def _drain_queued_autofix_feedback(
             if run_decision.reason == "hard_cap_reached":
                 _hand_off_exhausted_cap(log_ctx, blocked_items)
     feedback_items = [item.feedback for item in consumable_items]
+    # Dropped items never reach a Seer block, so the UI would keep showing them.
+    consumable_ids = {id(item) for item in consumable_items}
+    release_in_flight_autofix_feedback(
+        run_id, [item for item in queued_items if id(item) not in consumable_ids]
+    )
 
     if not feedback_items:
         log_ctx.info(
@@ -988,6 +994,7 @@ def _drain_queued_autofix_feedback(
         # This iteration never started, so drop its row.
         _discard_iteration(log_ctx, run_id, organization_id, iteration_id)
         if isinstance(error, SeerOutOfCreditsException):
+            # Moves the batch from the in-flight list back to the queue.
             _hold_for_credits(
                 log_ctx=log_ctx,
                 run_id=run_id,
@@ -997,8 +1004,14 @@ def _drain_queued_autofix_feedback(
                 items=consumable_items,
                 denial_reason=error.denial_reason,
             )
+        else:
+            release_in_flight_autofix_feedback(run_id, consumable_items)
         return
     except Exception as error:
+        # Pausing clears the list too, but not for a legacy run with no SeerRun
+        # or when the pause fails. If Seer stored the block before failing, the
+        # UI already hides the item, so releasing it is safe either way.
+        release_in_flight_autofix_feedback(run_id, consumable_items)
         _stop_after_drain_failure(
             log_ctx=log_ctx,
             run_id=run_id,
