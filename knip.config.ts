@@ -79,8 +79,9 @@ const config: KnipConfig = {
     'static/app': {
       ...frontendWorkspace,
       // Locale modules are loaded with a template-string import.
+      // core-js is imported explicitly by utils/polyfills.ts, so it is no longer
+      // only an SWC-injected dependency in this workspace.
       ignoreDependencies: [
-        ...frontendWorkspace.ignoreDependencies,
         'moment',
         '@figma/code-connect', // Figma mappings are parsed by the CLI via pnpm dlx.
       ],

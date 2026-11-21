@@ -3,6 +3,7 @@ describe('polyfills', () => {
   const originals = Object.fromEntries(
     methods.map(name => [name, Object.getOwnPropertyDescriptor(Array.prototype, name)])
   );
+  const originalMapGroupBy = Object.getOwnPropertyDescriptor(Map, 'groupBy');
 
   afterEach(() => {
     for (const name of methods) {
@@ -11,6 +12,9 @@ describe('polyfills', () => {
         // eslint-disable-next-line no-extend-native -- restore the native method
         Object.defineProperty(Array.prototype, name, descriptor);
       }
+    }
+    if (originalMapGroupBy) {
+      Object.defineProperty(Map, 'groupBy', originalMapGroupBy);
     }
   });
 
@@ -32,5 +36,18 @@ describe('polyfills', () => {
     expect(input.toSpliced(0, 1)).toEqual([1, 2]);
     expect(input.with(0, 9)).toEqual([9, 1, 2]);
     expect(input.findLast(n => n > 1)).toBe(2);
+  });
+
+  it('installs Map.groupBy when the engine lacks it', () => {
+    delete (Map as any).groupBy;
+    expect((Map as any).groupBy).toBeUndefined();
+
+    jest.isolateModules(() => {
+      require('sentry/utils/polyfills');
+    });
+
+    const groups = Map.groupBy([1, 2, 3, 4], n => (n % 2 === 0 ? 'even' : 'odd'));
+    expect(groups.get('even')).toEqual([2, 4]);
+    expect(groups.get('odd')).toEqual([1, 3]);
   });
 });
