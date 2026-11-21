@@ -94,6 +94,13 @@ register(
     default={"default": {"hosts": {0: {"host": "127.0.0.1", "port": 6379}}}},
     flags=FLAG_NOSTORE | FLAG_IMMUTABLE,
 )
+# Kill switch for retrying Redis Cluster client creation when no startup node is reachable.
+register(
+    "redis.cluster.create-retry.enabled",
+    type=Bool,
+    default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # Processing worker caches
 register(

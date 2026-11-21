@@ -3,8 +3,6 @@ from __future__ import annotations
 import importlib.resources
 import inspect
 import logging
-import random
-import time
 from collections.abc import Callable, Generator
 from copy import deepcopy
 from typing import Any, Literal, TypeVar, cast, overload
@@ -42,7 +40,6 @@ _REDIS_CLUSTER_DEFAULT_CLIENT_ARGS = {
 
 # Short network blips can leave every startup node briefly unreachable.
 # Building a client only reads cluster topology, so retrying it cannot double-apply a write.
-_CLUSTER_CREATE_RETRY_DELAYS = (0.5, 1.0)
 _UNREACHABLE_CLUSTER_MESSAGE = "Redis Cluster cannot be connected"
 
 
@@ -50,20 +47,23 @@ def _create_cluster_with_retry(
     create: Callable[[], RetryingRedisCluster],
 ) -> RetryingRedisCluster:
     """
-    Call `create`, retrying with a short jittered backoff when no startup node
-    is reachable. Other cluster errors raise immediately.
-    """
-    for attempt, delay in enumerate(_CLUSTER_CREATE_RETRY_DELAYS, start=1):
-        try:
-            return create()
-        except RedisClusterException as e:
-            if not str(e).startswith(_UNREACHABLE_CLUSTER_MESSAGE):
-                raise
-        # Deferred: this module is imported before Django settings, which metrics reads.
-        from sentry.utils import metrics
+    Call `create`, retrying once when no startup node is reachable. Other
+    cluster errors raise immediately.
 
-        metrics.incr("redis.cluster.create.retry", tags={"attempt": attempt})
-        time.sleep(delay * random.uniform(0.5, 1.5))
+    There is no sleep between attempts: a failed attempt has usually already
+    waited out the socket timeout on each unreachable startup node.
+    """
+    try:
+        return create()
+    except RedisClusterException as e:
+        if not str(e).startswith(_UNREACHABLE_CLUSTER_MESSAGE):
+            raise
+        if not options.get("redis.cluster.create-retry.enabled"):
+            raise
+    # Deferred: this module is imported before Django settings, which metrics reads.
+    from sentry.utils import metrics
+
+    metrics.incr("redis.cluster.create.retry")
     return create()
 
 
