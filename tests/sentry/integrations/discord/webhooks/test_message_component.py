@@ -19,6 +19,7 @@ from sentry.integrations.discord.webhooks.message_component import (
     INVALID_GROUP_ID,
     MARKED_ONGOING,
     NO_IDENTITY,
+    NO_PROJECT_ACCESS,
     NOT_IN_ORG,
     RESOLVE_DIALOG_OPTIONS,
     RESOLVED,
@@ -27,6 +28,7 @@ from sentry.integrations.discord.webhooks.message_component import (
     UNRESOLVED,
 )
 from sentry.integrations.types import EventLifecycleOutcome
+from sentry.models.group import Group, GroupStatus
 from sentry.models.release import Release
 from sentry.silo.base import SiloMode
 from sentry.testutils.asserts import assert_slo_metric
@@ -147,6 +149,26 @@ class DiscordMessageComponentInteractionTest(APITestCase):
 
         assert response.status_code == 200
         assert self.get_message_content(response) == NOT_IN_ORG
+
+    def test_no_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        group = self.group
+        member = self.create_user()
+        self.create_member(user=member, organization=self.organization)
+        self.create_identity(user=member, identity_provider=self.provider, external_id="member1234")
+
+        response = self.send_interaction(
+            {
+                "component_type": DiscordMessageComponentTypes.BUTTON,
+                "custom_id": f"{CustomIds.ARCHIVE}:{group.id}",
+            },
+            member={"user": {"id": "member1234"}},
+        )
+
+        assert response.status_code == 200
+        assert self.get_message_content(response) == NO_PROJECT_ACCESS
+        assert Group.objects.get(id=group.id).status == GroupStatus.UNRESOLVED
 
     def test_assign_dialog(self) -> None:
         response = self.send_interaction(

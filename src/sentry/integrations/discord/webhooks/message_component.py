@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 from sentry import analytics
 from sentry.api.helpers.group_index.update import update_groups
+from sentry.auth.access import from_user
 from sentry.integrations.discord.analytics import DiscordIntegrationAssign, DiscordIntegrationStatus
 from sentry.integrations.discord.message_builder.base.base import DiscordMessageBuilder
 from sentry.integrations.discord.message_builder.base.component import (
@@ -37,6 +38,7 @@ from ..utils import logger
 
 NO_IDENTITY = "You need to link your Discord account to your Sentry account to do that. You can do this with `/link`."
 NOT_IN_ORG = "You must be a member of the org this issue belongs to in order to act on it."
+NO_PROJECT_ACCESS = "You do not have access to this project."
 ASSIGNEE_UPDATED = "Assignee has been updated."
 RESOLVE_DIALOG_OPTIONS = [
     DiscordSelectMenuOption("Immediately", "immediately"),
@@ -92,6 +94,15 @@ class DiscordMessageComponentHandler(DiscordInteractionHandler):
                 extra={"org_slug": self.group.organization.slug, **logging_data},
             )
             return self.send_message(NOT_IN_ORG)
+
+        if not from_user(self.user, self.group.organization).has_any_project_scope(
+            self.group.project, ("event:write", "event:admin")
+        ):
+            logger.warning(
+                "discord.interaction.component.no_project_access",
+                extra={"org_slug": self.group.organization.slug, **logging_data},
+            )
+            return self.send_message(NO_PROJECT_ACCESS)
 
         def record_event(interaction_type: MessagingInteractionType) -> MessagingInteractionEvent:
             return MessagingInteractionEvent(
