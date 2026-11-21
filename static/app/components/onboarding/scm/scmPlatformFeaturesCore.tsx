@@ -1,13 +1,4 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type ComponentProps,
-} from 'react';
+import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
 import {ariaHideOutside} from '@react-aria/overlays';
@@ -650,7 +641,8 @@ export function ScmPlatformFeaturesCore({
                   overflow: hidden;
                 }
 
-                [data-framework-sheet-body] {
+                /* oxlint-disable @sentry/scraps/no-dom-coupling -- The shared modal body and footer have no attribute to target. */
+                section {
                   display: flex;
                   flex-direction: column;
                   flex: 1 1 auto;
@@ -658,9 +650,10 @@ export function ScmPlatformFeaturesCore({
                   overflow: hidden;
                 }
 
-                [data-framework-sheet-footer] {
+                footer {
                   flex-shrink: 0;
                 }
+                /* oxlint-enable @sentry/scraps/no-dom-coupling */
 
                 [role='radiogroup'] {
                   flex: 1 1 auto;
@@ -679,8 +672,8 @@ export function ScmPlatformFeaturesCore({
               `}
             >
               <FrameworkSuggestionModal
-                Body={FrameworkSheetBody}
-                Footer={FrameworkSheetFooter}
+                Body={ModalBody}
+                Footer={ModalFooter}
                 CloseButton={FrameworkSheetCloseButton}
                 Header={FrameworkSheetHeader}
                 closeModal={closeFrameworkSheet}
@@ -766,14 +759,6 @@ function bindFrameworkSheet(container: HTMLElement, onClose: () => void) {
     document.removeEventListener('keydown', onKeyDown, true);
     restoreHidden();
   };
-}
-
-function FrameworkSheetBody(props: ComponentProps<typeof ModalBody>) {
-  return <ModalBody {...props} data-framework-sheet-body="" />;
-}
-
-function FrameworkSheetFooter(props: ComponentProps<typeof ModalFooter>) {
-  return <ModalFooter {...props} data-framework-sheet-footer="" />;
 }
 
 const MotionFlex = motion.create(Flex);
