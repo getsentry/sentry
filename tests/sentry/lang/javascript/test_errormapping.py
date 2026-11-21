@@ -6,7 +6,11 @@ import responses
 from sentry_relay.processing import StoreNormalizer
 
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
-from sentry.lang.javascript.errormapping import REACT_MAPPING_URL, rewrite_exception
+from sentry.lang.javascript.errormapping import (
+    REACT_LEGACY_MAPPING_URL,
+    REACT_MAPPING_URL,
+    rewrite_exception,
+)
 
 
 class ErrorMappingTest(unittest.TestCase):
@@ -14,7 +18,7 @@ class ErrorMappingTest(unittest.TestCase):
     def test_react_error_mapping_resolving(self) -> None:
         responses.add(
             responses.GET,
-            REACT_MAPPING_URL,
+            REACT_LEGACY_MAPPING_URL,
             body=r"""
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes.",
@@ -105,10 +109,102 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
     @responses.activate
-    def test_react_error_mapping_empty_args(self) -> None:
+    def test_react_18_error_uses_legacy_mapping(self) -> None:
+        responses.add(
+            responses.GET,
+            REACT_LEGACY_MAPPING_URL,
+            body=r"""
+        {
+            "418": "Hydration failed because the initial UI does not match what was rendered on the server."
+        }
+        """,
+            content_type="application/json",
+        )
         responses.add(
             responses.GET,
             REACT_MAPPING_URL,
+            body=r"""
+        {
+            "418": "Hydration failed because the server rendered %s didn't match the client.%s"
+        }
+        """,
+            content_type="application/json",
+        )
+
+        data: dict[str, Any] = {
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "value": (
+                            "Minified React error #418; visit "
+                            "https://reactjs.org/docs/error-decoder.html?invariant=418 "
+                            "for the full message or use the non-minified dev environment "
+                            "for full errors and additional helpful warnings."
+                        ),
+                    }
+                ]
+            },
+        }
+
+        assert rewrite_exception(data)
+
+        assert data["exception"]["values"][0]["value"] == (
+            "Hydration failed because the initial UI does not match what was rendered on the server."
+        )
+
+    @responses.activate
+    def test_react_19_error_uses_current_mapping(self) -> None:
+        responses.add(
+            responses.GET,
+            REACT_LEGACY_MAPPING_URL,
+            body=r"""
+        {
+            "418": "Hydration failed because the initial UI does not match what was rendered on the server."
+        }
+        """,
+            content_type="application/json",
+        )
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r"""
+        {
+            "418": "Hydration failed because the server rendered %s didn't match the client.%s"
+        }
+        """,
+            content_type="application/json",
+        )
+
+        data: dict[str, Any] = {
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "value": (
+                            "Minified React error #418; visit "
+                            "https://react.dev/errors/418?args[]=text&args[]= "
+                            "for the full message or use the non-minified dev environment "
+                            "for full errors and additional helpful warnings."
+                        ),
+                    }
+                ]
+            },
+        }
+
+        assert rewrite_exception(data)
+
+        assert data["exception"]["values"][0]["value"] == (
+            "Hydration failed because the server rendered text didn't match the client."
+        )
+
+    @responses.activate
+    def test_react_error_mapping_empty_args(self) -> None:
+        responses.add(
+            responses.GET,
+            REACT_LEGACY_MAPPING_URL,
             body=r"""
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
@@ -155,7 +251,7 @@ class ErrorMappingTest(unittest.TestCase):
     def test_react_error_mapping_truncated(self) -> None:
         responses.add(
             responses.GET,
-            REACT_MAPPING_URL,
+            REACT_LEGACY_MAPPING_URL,
             body=r"""
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes."
@@ -199,7 +295,7 @@ class ErrorMappingTest(unittest.TestCase):
     def test_react_error_adds_meta(self) -> None:
         responses.add(
             responses.GET,
-            REACT_MAPPING_URL,
+            REACT_LEGACY_MAPPING_URL,
             body=r"""
         {
           "108": "%s.getChildContext(): key \"%s\" is not defined in childContextTypes.",
@@ -301,8 +397,16 @@ class ErrorMappingTest(unittest.TestCase):
         assert data["_meta"] == {
             "exception": {
                 "values": {
-                    "1": {"value": {"": {"rem": [["@processing:react", "s"]], "val": value_109}}},
-                    "3": {"value": {"": {"rem": [["@processing:react", "s"]], "val": value_108}}},
+                    "1": {
+                        "value": {
+                            "": {"rem": [["@processing:react-legacy", "s"]], "val": value_109}
+                        }
+                    },
+                    "3": {
+                        "value": {
+                            "": {"rem": [["@processing:react-legacy", "s"]], "val": value_108}
+                        }
+                    },
                 }
             },
             "transaction": {

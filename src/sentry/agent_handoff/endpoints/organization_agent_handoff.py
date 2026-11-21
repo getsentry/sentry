@@ -9,9 +9,11 @@ from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.agent_handoff.applications import get_handoff_application
 from sentry.agent_handoff.codes import HandoffContext, HandoffFlow, issue_handoff
 from sentry.agent_handoff.flows import get_flow
+from sentry.analytics.events.agent_handoff import AgentHandoffPromptCreatedEvent
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
@@ -19,6 +21,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import ControlSiloOrganizationEndpoint, OrganizationPermission
 from sentry.api.permissions import DisallowImpersonatedTokenCreation, SentryIsAuthenticated
 from sentry.api.serializers.rest_framework import CamelSnakeSerializer
+from sentry.apidocs.constants import RESPONSE_FORBIDDEN
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import require_user
 from sentry.organizations.services.organization.model import (
@@ -87,13 +90,15 @@ class AgentHandoffRequestSerializer(CamelSnakeSerializer[AgentHandoffRequest]):
 
 
 class AgentHandoffResponse(TypedDict):
+    handoffId: str
+    code: str
     prompt: str
     guideUrl: str
     expiresAt: str
 
 
 class AgentHandoffPermission(OrganizationPermission):
-    scope_map = {"GET": ["org:read"], "POST": ["org:read"]}
+    scope_map = {"POST": ["org:read"]}
 
 
 @extend_schema(tags=["Organizations"])
@@ -125,7 +130,10 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
     @extend_schema(
         operation_id="Create a private agent onboarding prompt",
         request=AgentHandoffRequestSerializer,
-        responses={201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse)},
+        responses={
+            201: inline_sentry_response_serializer("AgentHandoff", AgentHandoffResponse),
+            403: RESPONSE_FORBIDDEN,
+        },
     )
     def post(
         self,
@@ -161,6 +169,8 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         )
         guide_url = absolute_uri(reverse("sentry-agent-handoff"))
         data: AgentHandoffResponse = {
+            "handoffId": issued.handoff_id,
+            "code": issued.code,
             "prompt": (
                 f"Follow the instructions verbatim at {guide_url}. "
                 f"Your handoff code is `{issued.code}`."
@@ -171,5 +181,14 @@ class OrganizationAgentHandoffEndpoint(ControlSiloOrganizationEndpoint):
         logger.info(
             "agent-handoff.generated",
             extra={"user_id": user.id, "organization_id": organization.id},
+        )
+        analytics.record(
+            AgentHandoffPromptCreatedEvent(
+                handoff_id=issued.handoff_id,
+                user_id=user.id,
+                organization_id=organization.id,
+                flow=flow.value,
+                ip_pinning=not values["disable_ip_pinning"],
+            )
         )
         return Response(data, status=201)

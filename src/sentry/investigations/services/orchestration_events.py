@@ -13,7 +13,8 @@ from rest_framework import serializers
 from rest_framework.exceptions import APIException
 
 from sentry.db.models.fields.bounded import I32_MAX, I64_MAX
-from sentry.inbox.notebook import record_notebook_completed
+from sentry.inbox.notebook import NOTEBOOK_COMPLETED, NotebookCompletedData
+from sentry.inbox.types import SYSTEM_ACTOR
 from sentry.investigations.contracts import (
     EVENT_PAYLOAD_SERIALIZERS,
     OrchestrationProjectionSerializer,
@@ -62,6 +63,7 @@ from sentry.notebooks.services.producer_writes import (
     remove_blocks,
     upsert_block,
 )
+from sentry.notifications.platform.inbox import create_inbox_items
 from sentry.seer.models.run import SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.utils import json
 
@@ -306,7 +308,20 @@ def _record_completed_inbox_event(run: InvestigationOrchestrationRun) -> None:
     # Remember skipped completions too: enabling recording or restoring access must
     # not backfill old notifications when Seer replays a completed projection.
     control["inboxCompletedGeneration"] = run.generation
-    record_notebook_completed(notebook=run.investigation, seer_run_id=seer_run.seer_run_state_id)
+
+    notebook = run.investigation
+    if notebook.created_by_id is None:
+        return
+    create_inbox_items(
+        event_type=NOTEBOOK_COMPLETED,
+        subject=notebook,
+        data=NotebookCompletedData(
+            seer_run_id=seer_run.seer_run_state_id,
+            generation=run.generation,
+        ),
+        user_ids=[notebook.created_by_id],
+        actor=SYSTEM_ACTOR,
+    )
 
 
 def _schedule_issue_links(run: InvestigationOrchestrationRun) -> None:
@@ -1088,10 +1103,10 @@ def _apply_available_events(
             projection_applied = True
         else:
             while True:
-                next_event = InvestigationOrchestrationEvent.objects.filter(
+                next_event = InvestigationOrchestrationEvent.objects.get_or_none(
                     orchestration_run=run,
                     sequence=run.last_event_sequence + 1,
-                ).first()
+                )
                 if next_event is None:
                     break
                 if next_event.application_status != InvestigationOrchestrationEventStatus.PENDING:
@@ -1228,9 +1243,9 @@ def deliver_orchestration_event(
                     "Run ID is already in use."
                 ) from error
 
-        existing = InvestigationOrchestrationEvent.objects.filter(
+        existing = InvestigationOrchestrationEvent.objects.get_or_none(
             orchestration_run=run, event_id=event["event_id"]
-        ).first()
+        )
         if existing is not None:
             if (
                 existing.sequence != event["sequence"]

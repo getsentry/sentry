@@ -16,7 +16,7 @@ import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary
 import {ConfigStore} from 'sentry/stores/configStore';
 import {useLoadReplayReader} from 'sentry/utils/replays/hooks/useLoadReplayReader';
 import {ReplayReader} from 'sentry/utils/replays/replayReader';
-import {IncrementalSource} from 'sentry/utils/replays/types';
+import {IncrementalSource, type RecordingFrame} from 'sentry/utils/replays/types';
 import {SecondaryNavigationContextProvider} from 'sentry/views/navigation/secondaryNavigationContext';
 import {TopBar} from 'sentry/views/navigation/topBar';
 
@@ -37,9 +37,7 @@ const defaultReaderResult = {
   projectSlug: ProjectFixture().slug,
   replay: null,
   replayId: 'test-replay-id',
-  replayRecord: ReplayRecordFixture({
-    id: 'test-replay-id',
-  }),
+  replayRecord: ReplayRecordFixture({id: 'test-replay-id'}),
   status: 'success' as const,
 };
 
@@ -61,10 +59,7 @@ describe('ReplayDetails', () => {
   const user = UserFixture({id: '1'});
 
   const initialRouterConfig = {
-    location: {
-      pathname: '/organizations/org-slug/replays/test-replay-id/',
-      query: {},
-    },
+    location: {pathname: '/organizations/org-slug/replays/test-replay-id/', query: {}},
     route: '/organizations/:orgId/replays/:replaySlug/',
   };
 
@@ -122,9 +117,7 @@ describe('ReplayDetails', () => {
   });
 
   it('should render replay details when user has access', () => {
-    const organization = OrganizationFixture({
-      features: ['session-replay'],
-    });
+    const organization = OrganizationFixture({features: ['session-replay']});
 
     render(<ReplayDetails />, {
       organization,
@@ -162,10 +155,11 @@ describe('ReplayDetails', () => {
       'Share',
       'Download JSON',
       'Delete',
-      'Configure Replay',
     ]) {
       expect(within(menu).getByRole('menuitemradio', {name})).toBeVisible();
     }
+    // Opens a submenu
+    expect(within(menu).getByRole('menuitem', {name: 'Configure Replay'})).toBeVisible();
 
     expect(
       screen.queryByRole('button', {name: 'Copy link to replay at current timestamp'})
@@ -183,9 +177,14 @@ describe('ReplayDetails', () => {
     renderDetails();
     await openReplayActions();
 
-    expect(
-      screen.getAllByRole('menuitemradio').map(el => el.textContent?.trim())
-    ).toEqual([
+    // Submenu triggers are `menuitem`s, the others `menuitemradio`s.
+    const items = [
+      ...screen.getAllByRole('menuitemradio'),
+      ...screen.getAllByRole('menuitem'),
+    ].sort((a, b) =>
+      a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+    );
+    expect(items.map(el => el.textContent?.trim())).toEqual([
       'Copy replay ID to clipboard',
       'Share',
       'Download JSON',
@@ -235,7 +234,7 @@ describe('ReplayDetails', () => {
 
     await userEvent.click(screen.getByRole('button', {name: 'Replay Actions'}));
     await userEvent.hover(
-      await screen.findByRole('menuitemradio', {name: 'Configure Replay'})
+      await screen.findByRole('menuitem', {name: 'Configure Replay'})
     );
 
     expect(
@@ -310,6 +309,86 @@ describe('ReplayDetails', () => {
     expect(await screen.findByRole('button', {name: 'Play'})).toBeInTheDocument();
   });
 
+  function mockProcessingErrorReplay(attachments: RecordingFrame[]) {
+    const startedAt = new Date('2023-12-25T00:00:00');
+    const replayRecord = ReplayRecordFixture({
+      id: 'test-replay-id',
+      duration: duration(60_000),
+      finished_at: new Date(startedAt.getTime() + 60_000),
+      has_viewed: true,
+      started_at: startedAt,
+    });
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      fetching: false,
+      replayRecord,
+    });
+    mockUseLoadReplayReader.mockReturnValue({
+      ...defaultReaderResult,
+      replay,
+      replayRecord,
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/seer/setup-check/',
+      body: AutofixSetupFixture({}),
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/sdk-updates/',
+      body: [],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replays/',
+      body: {data: []},
+    });
+
+    // jsdom gives every element a zero size, and the player area only renders
+    // once the layout has measured some space for it
+    jest.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockReturnValue(1000);
+    jest.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(800);
+  }
+
+  it.each([
+    {
+      name: 'no full snapshot',
+      attachments: () =>
+        RRWebInitFrameEventsFixture({timestamp: new Date('2023-12-25T00:00:00')}),
+      heading: 'No Screen Recording',
+    },
+    {
+      name: 'no meta frame',
+      attachments: () => [
+        RRWebFullSnapshotFrameEventFixture({timestamp: new Date('2023-12-25T00:00:00')}),
+      ],
+      heading: 'Recording Cannot Be Played',
+    },
+  ])(
+    'keeps the replay tabs when the recording has $name',
+    async ({attachments, heading}) => {
+      mockProcessingErrorReplay(attachments());
+
+      renderDetails();
+
+      expect(await screen.findByText(heading)).toBeInTheDocument();
+      expect(
+        screen.getByRole('link', {name: 'Session Replay troubleshooting docs'})
+      ).toHaveAttribute(
+        'href',
+        'https://docs.sentry.io/platforms/javascript/session-replay/troubleshooting/'
+      );
+      expect(screen.getByRole('tab', {name: 'Console'})).toBeInTheDocument();
+      expect(screen.getByRole('tab', {name: 'Network'})).toBeInTheDocument();
+    }
+  );
+
+  it('shows replay not found when the replay has nothing to show', async () => {
+    mockProcessingErrorReplay([]);
+
+    renderDetails();
+
+    expect(await screen.findByText('Replay Not Found')).toBeInTheDocument();
+  });
+
   it('should show access denied and not fetch data when user does not have granular replay permissions', () => {
     const organization = OrganizationFixture({
       features: ['session-replay'],
@@ -317,10 +396,7 @@ describe('ReplayDetails', () => {
       replayAccessMembers: [999], // User ID 1 is not in this list
     });
 
-    render(<ReplayDetails />, {
-      organization,
-      initialRouterConfig,
-    });
+    render(<ReplayDetails />, {organization, initialRouterConfig});
 
     expect(screen.getByText("You don't have access to this feature")).toBeInTheDocument();
     // Should not fetch replay data when user doesn't have access

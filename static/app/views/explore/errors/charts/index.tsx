@@ -39,7 +39,7 @@ export function ErrorsCharts() {
 
 function Chart() {
   const [chartVisible, setChartVisible] = useState(true);
-  const [interval, setInterval, intervalOptions] = useChartInterval();
+  const [chartInterval, setChartInterval, intervalOptions] = useChartInterval();
 
   const chartRef = useRef<ReactEchartsRef>(null);
 
@@ -73,8 +73,8 @@ function Chart() {
       </Tooltip>
       <Tooltip title={t('Time interval displayed in this visualization (ex. 5m)')}>
         <CompactSelect
-          value={interval}
-          onChange={option => setInterval(option.value)}
+          value={chartInterval}
+          onChange={option => setChartInterval(option.value)}
           trigger={triggerProps => (
             <OverlayTrigger.Button
               {...triggerProps}

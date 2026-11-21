@@ -87,6 +87,24 @@ describe('parseAggregateExpression', () => {
     expect(result.metricQueries.map(q => q.label)).toEqual(['A', 'B', 'C']);
   });
 
+  it('keeps formulas that name no metric inline in the equation', () => {
+    const result = parseAggregateExpression(
+      'equation|performance_score() * sum(value,foo,counter,none)'
+    );
+
+    expect(result.metricQueries).toHaveLength(1);
+    expect(result.metricQueries[0]).toEqual(
+      expect.objectContaining({
+        label: 'A',
+        metric: {name: 'foo', type: 'counter', unit: 'none'},
+      })
+    );
+    expect(result.compactExpression).toBe('performance_score() * A');
+    expect(result.equationRow?.queryParams.aggregateFields).toEqual([
+      new VisualizeEquation('equation|performance_score() * sum(value,foo,counter,none)'),
+    ]);
+  });
+
   it('returns empty rows for an equation with no function calls', () => {
     const result = parseAggregateExpression('equation|1 + 2');
 

@@ -72,10 +72,7 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(document.body).toHaveStyle({
-      position: 'fixed',
-      width: '100%',
-    });
+    expect(document.body).toHaveStyle({position: 'fixed', width: '100%'});
   });
 
   it('locks document scroll on mobile when opening the drawer', async () => {
@@ -95,10 +92,7 @@ describe('GlobalDrawer', () => {
     await userEvent.click(screen.getByTestId('drawer-test-open'));
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
-    expect(document.body).toHaveStyle({
-      position: 'fixed',
-      width: '100%',
-    });
+    expect(document.body).toHaveStyle({position: 'fixed', width: '100%'});
   });
 
   it('useDrawer hook can open and close the Drawer', async () => {
@@ -255,11 +249,7 @@ describe('GlobalDrawer', () => {
               <DrawerBody data-test-id="drawer-test-content">passive mode</DrawerBody>
             </Fragment>
           ),
-          options: {
-            onClose: closeSpy,
-            mode: 'passive',
-            ariaLabel,
-          },
+          options: {onClose: closeSpy, mode: 'passive', ariaLabel},
         }}
       />
     );

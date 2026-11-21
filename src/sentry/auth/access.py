@@ -831,8 +831,8 @@ class ServiceAccountAccess(DbAccess):
     A service account's access to its organization. It has no membership, so its
     scopes are the account's own. With `all_projects` it reaches every active project
     in the org. Without it, it reaches only the active projects linked to the
-    account. It never reaches teams. Open membership is a setting for people, so
-    it doesn't apply.
+    account. It never reaches teams, and it can't create projects for now. Open
+    membership is a setting for people, so it doesn't apply.
 
     `has_global_access` stays False even with `all_projects`: callers read it as
     org-wide access, including team and member actions, not only projects.
@@ -1567,7 +1567,7 @@ def from_service_account_auth(auth: AuthenticatedToken, organization_id: int) ->
                 service_account_id=auth.entity_id, organization_id=organization_id, is_active=True
             )
             .values_list("all_projects", flat=True)
-            .first()
+            .get_or_none()
         )
     if all_projects is None:
         return DEFAULT

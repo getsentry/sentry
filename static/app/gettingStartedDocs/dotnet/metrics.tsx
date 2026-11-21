@@ -49,9 +49,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Install our .NET SDK with a minimum version that supports metrics ([code:6.3.0] or higher).',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {
@@ -81,9 +79,7 @@ export const metrics: OnboardingConfig = {
           type: 'text',
           text: tct(
             'Metrics are automatically enabled in your [code:SentrySdk.Init] configuration. You can emit metrics using the [code:SentrySdk.Metrics] API.',
-            {
-              code: <code />,
-            }
+            {code: <code />}
           ),
         },
         {

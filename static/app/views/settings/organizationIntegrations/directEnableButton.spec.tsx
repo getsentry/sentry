@@ -10,10 +10,7 @@ describe('DirectEnableButton', () => {
   const defaultProps = {
     providerSlug: 'github_copilot',
     userHasAccess: true,
-    buttonProps: {
-      size: 'sm' as const,
-      priority: 'primary' as const,
-    },
+    buttonProps: {size: 'sm' as const, priority: 'primary' as const},
   };
 
   it('renders Enable Integration button', () => {

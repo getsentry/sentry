@@ -34,4 +34,7 @@ class ExistingHighPriorityIssueConditionHandler(WorkflowTriggerDataConditionHand
         if state is None or state["is_new"]:
             return False
 
-        return bool(event_data.has_escalated) and event_data.group.priority == PriorityLevel.HIGH
+        return (
+            bool(event_data.has_escalated)
+            and event_data.require_group().priority == PriorityLevel.HIGH
+        )

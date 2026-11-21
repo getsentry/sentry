@@ -14,16 +14,13 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 export function FeatureFlagCTAContent({
   handleSetupButtonClick,
 }: {
-  handleSetupButtonClick: (e: any) => void;
+  handleSetupButtonClick: (e: React.MouseEvent) => void;
 }) {
   const organization = useOrganization();
   const analyticsArea = useAnalyticsArea();
 
   useEffect(() => {
-    trackAnalytics('flags.cta_rendered', {
-      organization,
-      surface: analyticsArea,
-    });
+    trackAnalytics('flags.cta_rendered', {organization, surface: analyticsArea});
   }, [organization, analyticsArea]);
 
   return (
@@ -41,7 +38,7 @@ export function FeatureFlagCTAContent({
           </Button>
           <LinkButton
             variant="secondary"
-            href="https://docs.sentry.io/product/explore/feature-flags/"
+            href="https://docs.sentry.io/product/issues/issue-details/feature-flags/"
             external
             onClick={() => {
               trackAnalytics('flags.cta_read_more_clicked', {

@@ -32,20 +32,13 @@ describe('findConflictingConditions', () => {
         id: 'actionFilter1',
         logicType: DataConditionGroupLogicType.ALL,
         conditions: [
-          {
-            id: '3',
-            type: DataConditionType.ISSUE_OCCURRENCES,
-            comparison: {value: 5},
-          },
+          {id: '3', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 5}},
         ],
       },
     ];
 
     const result = findConflictingConditions(triggers, actionFilters);
-    expect(result).toEqual({
-      conflictingConditionGroups: {},
-      conflictReason: null,
-    });
+    expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
   });
 
   it('returns conflict when only trigger condition is FIRST_SEEN_EVENT', () => {
@@ -65,11 +58,7 @@ describe('findConflictingConditions', () => {
         id: 'actionFilter1',
         logicType: DataConditionGroupLogicType.ALL,
         conditions: [
-          {
-            id: '2',
-            type: DataConditionType.ISSUE_OCCURRENCES,
-            comparison: {value: 5},
-          },
+          {id: '2', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 5}},
         ],
       },
     ];
@@ -121,20 +110,14 @@ describe('findConflictingConditions', () => {
         id: 'actionFilter1',
         logicType: DataConditionGroupLogicType.ALL,
         conditions: [
-          {
-            id: '3',
-            type: DataConditionType.ISSUE_OCCURRENCES,
-            comparison: {value: 5},
-          },
+          {id: '3', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 5}},
         ],
       },
     ];
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingConditionGroups: {
-        triggers: new Set(['1', '2']),
-      },
+      conflictingConditionGroups: {triggers: new Set(['1', '2'])},
       conflictReason:
         'The triggers highlighted in red are mutually exclusive and cannot be used together with "All" logic.',
     });
@@ -153,16 +136,8 @@ describe('findConflictingConditions', () => {
       ],
     };
     const actionFiltersConditions = [
-      {
-        id: '2',
-        type: DataConditionType.EVENT_FREQUENCY_COUNT,
-        comparison: {value: 10},
-      },
-      {
-        id: '3',
-        type: DataConditionType.EVENT_FREQUENCY_PERCENT,
-        comparison: {value: 10},
-      },
+      {id: '2', type: DataConditionType.EVENT_FREQUENCY_COUNT, comparison: {value: 10}},
+      {id: '3', type: DataConditionType.EVENT_FREQUENCY_PERCENT, comparison: {value: 10}},
       {
         id: '4',
         type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_COUNT,
@@ -173,26 +148,14 @@ describe('findConflictingConditions', () => {
         type: DataConditionType.EVENT_UNIQUE_USER_FREQUENCY_PERCENT,
         comparison: {value: 10},
       },
-      {
-        id: '6',
-        type: DataConditionType.ISSUE_OCCURRENCES,
-        comparison: {value: 5},
-      },
+      {id: '6', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 5}},
       {
         id: '7',
         type: DataConditionType.AGE_COMPARISON,
         comparison: {comparison_type: AgeComparison.OLDER, value: 10},
       },
-      {
-        id: '8',
-        type: DataConditionType.PERCENT_SESSIONS_COUNT,
-        comparison: {value: 0},
-      },
-      {
-        id: '9',
-        type: DataConditionType.PERCENT_SESSIONS_PERCENT,
-        comparison: {value: 0},
-      },
+      {id: '8', type: DataConditionType.PERCENT_SESSIONS_COUNT, comparison: {value: 0}},
+      {id: '9', type: DataConditionType.PERCENT_SESSIONS_PERCENT, comparison: {value: 0}},
     ];
 
     const anyShortCircuitActionFilters = [
@@ -247,16 +210,8 @@ describe('findConflictingConditions', () => {
     };
 
     const actionFilterConditions = [
-      {
-        id: '2',
-        type: DataConditionType.ISSUE_OCCURRENCES,
-        comparison: {value: 5},
-      },
-      {
-        id: '3',
-        type: DataConditionType.LATEST_RELEASE,
-        comparison: true,
-      },
+      {id: '2', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 5}},
+      {id: '3', type: DataConditionType.LATEST_RELEASE, comparison: true},
     ];
 
     // Test with ANY_SHORT_CIRCUIT logic type
@@ -269,10 +224,7 @@ describe('findConflictingConditions', () => {
       },
     ];
     const result = findConflictingConditions(triggers, anyShortCircuitActionFilters);
-    expect(result).toEqual({
-      conflictingConditionGroups: {},
-      conflictReason: null,
-    });
+    expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
 
     // Test with ALL logic type
     // Since all conditions must be valid, it should return the conflicting condition
@@ -323,11 +275,7 @@ describe('findConflictingConditions', () => {
         id: 'actionFilter2',
         logicType: DataConditionGroupLogicType.NONE,
         conditions: [
-          {
-            id: '3',
-            type: DataConditionType.ISSUE_OCCURRENCES,
-            comparison: {value: 0},
-          },
+          {id: '3', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 0}},
         ],
       },
       // All conditions must be valid for NONE logic type, so this action filter is invalid
@@ -335,16 +283,8 @@ describe('findConflictingConditions', () => {
         id: 'actionFilter3',
         logicType: DataConditionGroupLogicType.NONE,
         conditions: [
-          {
-            id: '4',
-            type: DataConditionType.ISSUE_OCCURRENCES,
-            comparison: {value: 0},
-          },
-          {
-            id: '5',
-            type: DataConditionType.LATEST_RELEASE,
-            comparison: true,
-          },
+          {id: '4', type: DataConditionType.ISSUE_OCCURRENCES, comparison: {value: 0}},
+          {id: '5', type: DataConditionType.LATEST_RELEASE, comparison: true},
         ],
       },
     ];
@@ -395,9 +335,7 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, actionFilters);
     expect(result).toEqual({
-      conflictingConditionGroups: {
-        actionFilter1: new Set(['3', '4']),
-      },
+      conflictingConditionGroups: {actionFilter1: new Set(['3', '4'])},
       conflictReason: 'The issue priority conditions highlighted in red are in conflict.',
     });
   });
@@ -417,9 +355,7 @@ describe('findConflictingConditions', () => {
 
     const result = findConflictingConditions(triggers, []);
     expect(result).toEqual({
-      conflictingConditionGroups: {
-        triggers: new Set(['1', '2', '3', '4', '5']),
-      },
+      conflictingConditionGroups: {triggers: new Set(['1', '2', '3', '4', '5'])},
       conflictReason: 'Delete duplicate triggers to continue.',
     });
   });
@@ -450,9 +386,7 @@ describe('findConflictingConditions', () => {
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -467,20 +401,14 @@ describe('findConflictingConditions', () => {
             {id: '2', type: DataConditionType.TAGGED_EVENT, comparison: {}},
             {id: '3', type: DataConditionType.LEVEL, comparison: {}},
             {id: '4', type: DataConditionType.LATEST_RELEASE, comparison: true},
-            {
-              id: '5',
-              type: DataConditionType.LATEST_ADOPTED_RELEASE,
-              comparison: {},
-            },
+            {id: '5', type: DataConditionType.LATEST_ADOPTED_RELEASE, comparison: {}},
           ],
         },
       ];
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2', '3', '4', '5']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2', '3', '4', '5'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -508,9 +436,7 @@ describe('findConflictingConditions', () => {
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2', '3']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2', '3'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -537,10 +463,7 @@ describe('findConflictingConditions', () => {
       ];
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {},
-        conflictReason: null,
-      });
+      expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
     });
 
     it('clears conflicts with ANY logic when at least one condition is compatible', () => {
@@ -560,10 +483,7 @@ describe('findConflictingConditions', () => {
       ];
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {},
-        conflictReason: null,
-      });
+      expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
     });
 
     it('flags conflicts with ANY logic when all conditions are incompatible', () => {
@@ -580,9 +500,7 @@ describe('findConflictingConditions', () => {
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2', '3']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2', '3'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -605,10 +523,7 @@ describe('findConflictingConditions', () => {
       ];
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {},
-        conflictReason: null,
-      });
+      expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
     });
 
     it('flags conflicts with legacy ANY logic when all conditions are incompatible', () => {
@@ -625,9 +540,7 @@ describe('findConflictingConditions', () => {
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2', '3']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2', '3'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -646,10 +559,7 @@ describe('findConflictingConditions', () => {
       ];
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {},
-        conflictReason: null,
-      });
+      expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
     });
 
     it('still flags slow conditions with NONE logic since they are silently skipped', () => {
@@ -669,9 +579,7 @@ describe('findConflictingConditions', () => {
 
       const result = findConflictingConditions(seerTriggers, actionFilters);
       expect(result).toEqual({
-        conflictingConditionGroups: {
-          actionFilter1: new Set(['2']),
-        },
+        conflictingConditionGroups: {actionFilter1: new Set(['2'])},
         conflictReason:
           'The conditions highlighted in red are not compatible with Seer activity triggers.',
       });
@@ -681,13 +589,7 @@ describe('findConflictingConditions', () => {
       const triggers: DataConditionGroup = {
         id: 'triggers',
         logicType: DataConditionGroupLogicType.ANY_SHORT_CIRCUIT,
-        conditions: [
-          {
-            id: '1',
-            type: DataConditionType.FIRST_SEEN_EVENT,
-            comparison: {},
-          },
-        ],
+        conditions: [{id: '1', type: DataConditionType.FIRST_SEEN_EVENT, comparison: {}}],
       };
       const actionFilters = [
         {
@@ -700,10 +602,7 @@ describe('findConflictingConditions', () => {
       ];
 
       const result = findConflictingConditions(triggers, actionFilters);
-      expect(result).toEqual({
-        conflictingConditionGroups: {},
-        conflictReason: null,
-      });
+      expect(result).toEqual({conflictingConditionGroups: {}, conflictReason: null});
     });
   });
 });

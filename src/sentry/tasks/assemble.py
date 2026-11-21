@@ -619,6 +619,10 @@ class ArtifactBundlePostAssembler:
                         **release_link, defaults=new_date_added
                     )
 
+            # From the archive even for an existing bundle, whose upload writes no debug-ID rows, so that linking
+            # never reads them.
+            has_debug_ids = self.archive.has_debug_ids()
+            project_link_defaults = {**new_date_added, "has_debug_ids": has_debug_ids}
             for project_id in self.project_ids:
                 project_link: dict[str, Any] = {
                     "organization_id": self.organization.id,
@@ -626,35 +630,33 @@ class ArtifactBundlePostAssembler:
                     "artifact_bundle": artifact_bundle,
                 }
                 if date_only_on_bundle:
-                    ProjectArtifactBundle.objects.get_or_create(
-                        **project_link, defaults=new_date_added
+                    link, link_created = ProjectArtifactBundle.objects.get_or_create(
+                        **project_link, defaults=project_link_defaults
                     )
+                    # The source map debugger reads `has_debug_ids`, so an existing link still takes the archive's
+                    # value. It is written only when it differs, so most re-uploads still skip the write.
+                    if not link_created and link.has_debug_ids != has_debug_ids:
+                        ProjectArtifactBundle.objects.filter(id=link.id).update(
+                            has_debug_ids=has_debug_ids
+                        )
                 else:
                     ProjectArtifactBundle.objects.update_or_create(
-                        **project_link, defaults=new_date_added
+                        **project_link, defaults=project_link_defaults
                     )
 
-            # Instead of doing a `create_or_update` one-by-one, we will instead:
-            # - Use a `bulk_create` with `ignore_conflicts` to insert new rows efficiently
-            #   if the artifact bundle was newly inserted. This is based on the assumption
-            #   that the `bundle_id` is deterministic and the `created` flag signals that
-            #   this identical bundle was already inserted.
-            # - Otherwise, update all the affected/conflicting rows with a single query, unless only the
-            #   `ArtifactBundle` row carries the date.
+            # Instead of doing a `create_or_update` one-by-one, we update all the affected rows of an existing
+            # bundle with a single query, unless only the `ArtifactBundle` row carries the date.
             if created:
                 debug_id_to_insert = [
                     DebugIdArtifactBundle(
                         organization_id=self.organization.id,
                         debug_id=debug_id,
                         artifact_bundle=artifact_bundle,
-                        source_file_type=source_file_type.value,
                         date_added=date_snapshot,
                     )
-                    for debug_id, source_file_type in self.archive.get_all_debug_ids()
+                    for debug_id in self.archive.get_all_debug_ids()
                 ]
-                DebugIdArtifactBundle.objects.bulk_create(
-                    debug_id_to_insert, batch_size=50, ignore_conflicts=True
-                )
+                DebugIdArtifactBundle.objects.bulk_create(debug_id_to_insert, batch_size=50)
             elif not date_only_on_bundle:
                 self._redate_debug_ids(artifact_bundle, date_snapshot)
 

@@ -9,12 +9,13 @@ from __future__ import annotations
 from collections import defaultdict
 from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, NotRequired, TypedDict
 
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import serializers
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import BasePermission
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -49,6 +50,7 @@ from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     MAX_NAME_LENGTH,
     ServiceAccount,
+    ServiceAccountOwnerKind,
     ServiceAccountProject,
 )
 
@@ -80,6 +82,8 @@ class ServiceAccountResponse(TypedDict):
     scopes: list[str]
     projectIds: list[str]
     allProjects: bool
+    # A `ServiceAccountOwnerKind`. Null when the owner is unknown.
+    ownerKind: str | None
     dateCreated: datetime
 
 
@@ -117,6 +121,7 @@ class ServiceAccountSerializer(Serializer[ServiceAccountResponse]):
             "scopes": sorted(obj.scope_list),
             "projectIds": [str(project_id) for project_id in attrs["project_ids"]],
             "allProjects": obj.all_projects,
+            "ownerKind": obj.owner_kind,
             "dateCreated": obj.date_added,
         }
 
@@ -231,7 +236,7 @@ class ServiceAccountPermission(OrganizationPermission):
 
 class OrganizationServiceAccountEndpointBase(ControlSiloOrganizationEndpoint):
     owner = ApiOwner.COMMUNITY
-    permission_classes = (ServiceAccountPermission,)
+    permission_classes: tuple[type[BasePermission], ...] = (ServiceAccountPermission,)
 
     def convert_args(
         self, request: Request, *args: Any, **kwargs: Any
@@ -302,7 +307,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountCreateRequestData, serializer.validated_data)
+        data = serializer.validated_data
         all_projects = data.get("allProjects", False)
         if all_projects:
             _check_can_grant_all_projects(request)
@@ -315,6 +320,7 @@ class OrganizationServiceAccountIndexEndpoint(OrganizationServiceAccountEndpoint
                 project_ids=data.get("projectIds") or (),
                 all_projects=all_projects,
                 created_by_id=acting_user_id(request.user),
+                owner_kind=ServiceAccountOwnerKind.ORGANIZATION,
             )
         except IntegrityError:
             # The (organization_id, name) unique constraint is the duplicate name check.
@@ -412,7 +418,7 @@ class OrganizationServiceAccountDetailsEndpoint(ServiceAccountScopedEndpointBase
         )
         if not serializer.is_valid():
             return Response({"detail": serializer.errors}, status=400)
-        data = cast(ServiceAccountUpdateRequestData, serializer.validated_data)
+        data = serializer.validated_data
 
         try:
             with outbox_context(transaction.atomic(using=router.db_for_write(ServiceAccount))):

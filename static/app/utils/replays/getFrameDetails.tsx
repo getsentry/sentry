@@ -310,28 +310,28 @@ const MAPPER_FOR_FRAME: Record<string, (frame: any) => Details> = {
   }),
   'navigation.navigate': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Page Load',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.reload': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Reload',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.back_forward': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Navigate Back/Forward',
     icon: <IconLocation size="xs" />,
   }),
   'navigation.push': (frame: NavigationFrame) => ({
     colorGraphicsToken: 'success',
-    description: stripURLOrigin(frame.description),
+    description: getNavigationDescription(frame),
     tabKey: TabKey.NETWORK,
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
@@ -554,6 +554,12 @@ function stringifyNodeAttributes(node: ClickFrameNode | undefined) {
   return selector || t('an unknown element');
 }
 
+function getNavigationDescription(frame: NavigationFrame) {
+  return frame.description === undefined
+    ? t('Unknown URL')
+    : stripURLOrigin(frame.description);
+}
+
 function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   const vitalDefinition = function () {
     switch (frame.description) {
@@ -569,7 +575,9 @@ function WebVitalTitle({frame}: {frame: WebVitalFrame}) {
   };
   return (
     <Flex align="center" gap="xs">
-      {t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
+      {frame.description === undefined
+        ? t('Web Vital')
+        : t('Web Vital: ') + toTitleCase(explodeSlug(frame.description))}
       <InfoTip
         size="xs"
         title={

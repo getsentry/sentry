@@ -30,13 +30,7 @@ const ATTRIBUTES: TraceItemResponseAttribute[] = [
 function mockLogDetails(attributes = ATTRIBUTES) {
   return MockApiClient.addMockResponse({
     url: `/projects/org-slug/${PROJECT_SLUG}/trace-items/${LOG_ID}/`,
-    body: {
-      itemId: LOG_ID,
-      links: null,
-      meta: {},
-      timestamp: TIMESTAMP,
-      attributes,
-    },
+    body: {itemId: LOG_ID, links: null, meta: {}, timestamp: TIMESTAMP, attributes},
   });
 }
 

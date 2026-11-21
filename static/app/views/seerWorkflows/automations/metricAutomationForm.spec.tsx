@@ -125,7 +125,7 @@ describe('MetricAutomationForm', () => {
       url: `/organizations/${organization.slug}/detectors/`,
       body: [
         MetricDetectorFixture({id: '1', name: 'Checkout error rate'}),
-        MetricDetectorFixture({id: '2', name: 'Payment failures'}),
+        MetricDetectorFixture({id: '2', name: 'Payment failures', projectId: '2'}),
       ],
     });
   });
@@ -157,13 +157,22 @@ describe('MetricAutomationForm', () => {
     expect(await screen.findAllByText('#checkout-alerts')).not.toHaveLength(0);
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
     await userEvent.click(
-      screen.getByRole('textbox', {name: 'Service account projects'})
+      screen.getByRole('button', {name: /1 project · 5 permissions/})
     );
-    await userEvent.click(
-      screen.getByRole('menuitemcheckbox', {name: 'payments-worker'})
+    expect(screen.getByText('1 connected monitor')).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', {name: 'Remove checkout-api'})
+    ).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', {name: 'Add projects'}));
+    await userEvent.click(screen.getByRole('option', {name: 'payments-worker'}));
+    await userEvent.keyboard('{Escape}');
+    expect(screen.getByRole('button', {name: 'Remove payments-worker'})).toBeEnabled();
+    await userEvent.click(screen.getByRole('button', {name: 'Issue & Event permission'}));
+    expect(screen.getByRole('option', {name: 'Admin'})).toHaveAttribute(
+      'aria-disabled',
+      'true'
     );
-    await userEvent.click(screen.getByRole('textbox', {name: 'Permission scopes'}));
-    await userEvent.click(screen.getByRole('menuitemcheckbox', {name: 'event:write'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Read & Write'}));
     await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
 
     await waitFor(() =>
@@ -180,7 +189,7 @@ describe('MetricAutomationForm', () => {
           enabled: false,
           monitorIds: [1],
           serviceAccount: {
-            scopes: [...serviceAccount.scopes, 'event:write'],
+            scopes: [...serviceAccount.scopes, 'event:write'].sort(),
             projectIds: [1, 2],
             allProjects: false,
           },
@@ -253,7 +262,7 @@ describe('MetricAutomationForm', () => {
     );
   });
 
-  it('saves monitors without changing service account access', async () => {
+  it('drops a project from the service account with its last monitor', async () => {
     const update = MockApiClient.addMockResponse({
       url: `${configsUrl}42/`,
       method: 'PUT',
@@ -268,7 +277,7 @@ describe('MetricAutomationForm', () => {
       },
     });
 
-    await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+    await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
     await userEvent.click(
       await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
     );
@@ -286,7 +295,7 @@ describe('MetricAutomationForm', () => {
           data: {
             monitorIds: [2],
             name: 'Checkout errors',
-            serviceAccount,
+            serviceAccount: {...serviceAccount, projectIds: [2]},
           },
         })
       )
@@ -340,12 +349,12 @@ describe('MetricAutomationForm', () => {
       ).toBeDisabled();
       expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeDisabled();
 
-      await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Edit'}));
 
       // The default actions are swapped for Cancel and Save
       expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Configure'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Delete'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeEnabled();
 
@@ -355,7 +364,7 @@ describe('MetricAutomationForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
 
       await waitFor(() => expect(update).toHaveBeenCalled());
-      expect(await screen.findByRole('button', {name: 'Configure'})).toBeInTheDocument();
+      expect(await screen.findByRole('button', {name: 'Edit'})).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Connect monitors'})).toBeDisabled();
     });
@@ -363,7 +372,7 @@ describe('MetricAutomationForm', () => {
     it('enables save only while there are changes', async () => {
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
       expect(screen.getByRole('button', {name: 'Save'})).toBeDisabled();
 
       // Renaming enables save, and restoring the name disables it again
@@ -398,7 +407,7 @@ describe('MetricAutomationForm', () => {
       });
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
       await userEvent.click(
         await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
       );
@@ -407,7 +416,7 @@ describe('MetricAutomationForm', () => {
       await userEvent.click(screen.getByRole('button', {name: 'Cancel'}));
 
       expect(await screen.findByText('Checkout error rate')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Configure'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
       expect(update).not.toHaveBeenCalled();
     });
 
@@ -419,14 +428,14 @@ describe('MetricAutomationForm', () => {
       });
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
       await userEvent.click(
         await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
       );
       await userEvent.click(screen.getByRole('tab', {name: 'Runs'}));
 
       expect(await screen.findByText('Runs tab')).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Configure'})).toBeInTheDocument();
+      expect(screen.getByRole('button', {name: 'Edit'})).toBeInTheDocument();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
       // Returning shows the saved values, still locked
@@ -445,7 +454,7 @@ describe('MetricAutomationForm', () => {
       });
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
       await userEvent.click(screen.getByTestId('editable-text-label'));
       const nameInput = screen.getByRole('textbox', {name: 'Automation Name'});
       await userEvent.clear(nameInput);
@@ -471,7 +480,7 @@ describe('MetricAutomationForm', () => {
       });
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
       await userEvent.click(
         await screen.findByRole('button', {name: 'Disconnect Checkout error rate'})
       );
@@ -480,7 +489,7 @@ describe('MetricAutomationForm', () => {
       await expectSaveErrorShown('Selected monitors must be active metric monitors.');
       expect(screen.getByRole('button', {name: 'Cancel'})).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Save'})).toBeInTheDocument();
-      expect(screen.queryByRole('button', {name: 'Configure'})).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', {name: 'Edit'})).not.toBeInTheDocument();
     });
 
     it('disables pausing and configuring while an update is in flight', async () => {
@@ -503,12 +512,12 @@ describe('MetricAutomationForm', () => {
         'aria-disabled',
         'true'
       );
-      expect(screen.getByRole('button', {name: 'Configure'})).toBeDisabled();
+      expect(screen.getByRole('button', {name: 'Edit'})).toBeDisabled();
 
       finishRequest();
 
       await waitFor(() =>
-        expect(screen.getByRole('button', {name: 'Configure'})).toBeEnabled()
+        expect(screen.getByRole('button', {name: 'Edit'})).toBeEnabled()
       );
     });
 
@@ -521,7 +530,7 @@ describe('MetricAutomationForm', () => {
       });
       renderDetailPage();
 
-      await userEvent.click(await screen.findByRole('button', {name: 'Configure'}));
+      await userEvent.click(await screen.findByRole('button', {name: 'Edit'}));
 
       // Renaming would normally enable save
       await userEvent.click(screen.getByTestId('editable-text-label'));

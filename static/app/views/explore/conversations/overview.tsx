@@ -156,9 +156,7 @@ function ConversationsOverviewPage() {
   );
 
   useEffect(() => {
-    trackAnalytics('conversations.page-view', {
-      organization,
-    });
+    trackAnalytics('conversations.page-view', {organization});
   }, [organization]);
 
   // Without agentic spans, onboarding replaces every tab, so it is tracked
@@ -182,10 +180,7 @@ function ConversationsOverviewPage() {
         empty_state: onboardingEmptyState,
       });
     } else {
-      trackAnalytics('conversations.table.page-view', {
-        organization,
-        tab: activeTab,
-      });
+      trackAnalytics('conversations.table.page-view', {organization, tab: activeTab});
     }
   }, [activeTab, onboardingEmptyState, isOnboardingLoading, organization]);
 

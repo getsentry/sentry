@@ -52,8 +52,8 @@ describe('hasUnresolvedTraceMetric', () => {
         WidgetQueryFixture({
           aggregates: [
             'count(value,browser.web_vital.ttfb,distribution,millisecond)',
-            'performance_score(measurements.score.total)',
-            'opportunity_score(measurements.score.total)',
+            'performance_score()',
+            'opportunity_score()',
           ],
         }),
       ],

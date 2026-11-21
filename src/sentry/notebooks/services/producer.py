@@ -10,6 +10,7 @@ from django.db.models import Q, QuerySet
 from sentry.notebooks.models import Notebook, NotebookActionRequest
 from sentry.notebooks.services.action_kinds.base import FollowUpCommand
 from sentry.notebooks.services.notebooks import archive_notebook_row, update_notebook_row
+from sentry.viewer_context import ActorId
 
 if TYPE_CHECKING:
     from sentry.notebooks.endpoints.serializers.action_request import (
@@ -87,7 +88,7 @@ class NotebookProducer(abc.ABC):
 
     @abc.abstractmethod
     def archive_notebook(
-        self, *, notebook: Notebook, expected_version: int, actor_id: int | None
+        self, *, notebook: Notebook, expected_version: int, actor: ActorId
     ) -> Notebook:
         """Archive the notebook and stop the producer's work on it."""
 
@@ -147,14 +148,12 @@ def follow_ups(
     return result
 
 
-def archive_notebook(
-    *, notebook: Notebook, expected_version: int, actor_id: int | None
-) -> Notebook:
+def archive_notebook(*, notebook: Notebook, expected_version: int, actor: ActorId) -> Notebook:
     producer = get_producer(notebook.source_type)
     if producer is None:
         return archive_notebook_row(notebook=notebook, expected_version=expected_version)
     return producer.archive_notebook(
-        notebook=notebook, expected_version=expected_version, actor_id=actor_id
+        notebook=notebook, expected_version=expected_version, actor=actor
     )
 
 

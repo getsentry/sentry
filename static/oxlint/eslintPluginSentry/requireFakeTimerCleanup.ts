@@ -3,6 +3,8 @@ import {defineRule, type ESTree} from '@oxlint/plugins';
 const SETUP_HOOKS = new Set(['beforeEach', 'beforeAll']);
 const CLEANUP_HOOKS = new Set(['afterEach', 'afterAll']);
 const TEST_FUNCTIONS = new Set(['it', 'test']);
+// `@testing-library/react` is left out: its no-manual-cleanup rule bans importing cleanup from it.
+const RENDER_MODULE = 'sentry-test/reactTestingLibrary';
 type Callback = ESTree.ArrowFunctionExpression | ESTree.Function;
 
 function isJestMethod(node: ESTree.CallExpression, method: string): boolean {
@@ -14,6 +16,18 @@ function isJestMethod(node: ESTree.CallExpression, method: string): boolean {
     node.callee.property.type === 'Identifier' &&
     node.callee.property.name === method
   );
+}
+
+function isUnmountAll(node: ESTree.CallExpression): boolean {
+  return (
+    node.callee.type === 'Identifier' &&
+    node.callee.name === 'cleanup' &&
+    node.arguments.length === 0
+  );
+}
+
+function isFlush(node: ESTree.CallExpression): boolean {
+  return !isJestMethod(node, 'useRealTimers') && !isUnmountAll(node);
 }
 
 function callName(node: ESTree.CallExpression): string | null {
@@ -134,6 +148,7 @@ function cleanupCalls(
     return [];
   }
   if (
+    isUnmountAll(node) ||
     isJestMethod(node, 'useRealTimers') ||
     isJestMethod(node, 'runOnlyPendingTimers') ||
     (awaited && isJestMethod(node, 'runOnlyPendingTimersAsync'))
@@ -173,7 +188,7 @@ function hasProtectedCleanup(callback: Callback): boolean {
     restore?.type === 'ExpressionStatement' &&
     restore.expression.type === 'CallExpression' &&
     isJestMethod(restore.expression, 'useRealTimers') &&
-    cleanupCalls(first.block).some(call => !isJestMethod(call, 'useRealTimers')) &&
+    cleanupCalls(first.block).some(isFlush) &&
     cleanupCalls(callback.body).filter(call => isJestMethod(call, 'useRealTimers'))
       .length === 1
   );
@@ -184,7 +199,7 @@ export const requireFakeTimerCleanup = defineRule({
     type: 'problem',
     docs: {
       description:
-        'Require fake timers in setup hooks or tests to have matching teardown that flushes pending timers in try and restores real timers first in finally.',
+        'Require fake timers in setup hooks or tests to have matching teardown that unmounts rendered components, flushes pending timers in try, and restores real timers first in finally.',
     },
     schema: [],
     messages: {
@@ -196,12 +211,29 @@ export const requireFakeTimerCleanup = defineRule({
         'Fake timers require a matching teardown in this suite or an ancestor: afterEach for tests/beforeEach, afterAll for beforeAll, calling jest.useRealTimers().',
       missingRunOnlyPendingTimers:
         'Flush pending timers with jest.runOnlyPendingTimers() or await jest.runOnlyPendingTimersAsync() before jest.useRealTimers() in the matching teardown.',
+      missingUnmount:
+        'Call cleanup() before flushing pending timers. Flushing with components still mounted keeps their polls and intervals running, which can run past the hook timeout.',
     },
   },
   create(context) {
     const fakeCalls: ESTree.CallExpression[] = [];
     const hooks: Array<{callback: Callback; name: string; scope: ESTree.Node}> = [];
+    const unmountReported = new Set<ESTree.Node>();
+    let rendersComponents = false;
     return {
+      ImportDeclaration(node) {
+        if (
+          node.source.value === RENDER_MODULE &&
+          node.specifiers.some(
+            specifier =>
+              specifier.type === 'ImportSpecifier' &&
+              specifier.imported.type === 'Identifier' &&
+              specifier.imported.name.startsWith('render')
+          )
+        ) {
+          rendersComponents = true;
+        }
+      },
       CallExpression(node) {
         if (isJestMethod(node, 'useFakeTimers')) {
           fakeCalls.push(node);
@@ -241,7 +273,9 @@ export const requireFakeTimerCleanup = defineRule({
                 flushed = false;
                 return [result];
               }
-              flushed = true;
+              if (isFlush(cleanup)) {
+                flushed = true;
+              }
               return [];
             });
           });
@@ -260,6 +294,21 @@ export const requireFakeTimerCleanup = defineRule({
             )
           ) {
             context.report({node: call, messageId: 'missingFinally'});
+          }
+          if (!rendersComponents) {
+            continue;
+          }
+          for (const hook of applicable) {
+            const calls = cleanupCalls(hook.callback.body);
+            const flush = calls.find(isFlush);
+            if (
+              flush &&
+              !calls.slice(0, calls.indexOf(flush)).some(isUnmountAll) &&
+              !unmountReported.has(flush)
+            ) {
+              unmountReported.add(flush);
+              context.report({node: flush, messageId: 'missingUnmount'});
+            }
           }
         }
       },

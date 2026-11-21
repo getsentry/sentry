@@ -12,7 +12,6 @@ from zlib import crc32
 
 from django.utils.encoding import force_bytes, force_str
 
-from sentry import options
 from sentry.buffer.base import Buffer, BufferField
 from sentry.db import models
 from sentry.tasks.process_buffer import process_incr
@@ -250,8 +249,6 @@ class RedisBuffer(Buffer):
             return None
 
     def _pending_key_for(self, key: str) -> str:
-        if not options.get("buffer.split-pending-set"):
-            return self.pending_key
         return f"{self.pending_key}:{crc32(key.encode()) % PENDING_SLICES}"
 
     def _make_lock_key(self, key: str) -> str:

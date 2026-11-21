@@ -27,13 +27,7 @@ export function ActivityLine({
   const {issueCategory, project} = group;
   const {activity} = item;
   const activityItem = useMemo(
-    () =>
-      getActivityItem({
-        item,
-        organization,
-        project,
-        issueCategory,
-      }),
+    () => getActivityItem({item, organization, project, issueCategory}),
     [item, issueCategory, organization, project]
   );
   const timestamp = (

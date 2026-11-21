@@ -13,7 +13,6 @@ from sentry.monitors.logic.mark_ok import mark_ok
 from sentry.monitors.models import (
     CheckInStatus,
     Monitor,
-    MonitorCheckIn,
     MonitorEnvBrokenDetection,
     MonitorEnvironment,
     MonitorIncident,
@@ -437,7 +436,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
         monitor = self._create_monitor()
         monitor_environment = self._create_monitor_environment(monitor=monitor)
 
-        check_in = MonitorCheckIn.objects.create(
+        check_in = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added,
             status=CheckInStatus.OK,
@@ -497,7 +496,7 @@ class BaseUpdateMonitorTest(MonitorTestCase):
 
         status = getattr(CheckInStatus, "IN_PROGRESS")
 
-        check_in = MonitorCheckIn.objects.create(
+        check_in = self.create_monitor_checkin(
             monitor_environment=monitor_environment,
             date_added=monitor.date_added,
             status=status,

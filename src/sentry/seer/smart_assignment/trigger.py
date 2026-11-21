@@ -200,7 +200,9 @@ def _dispatch(group: Group, activity_type: ActivityType, activity: Activity) -> 
         "triggering_activity_id": activity.id,
     }
 
-    preferences = bulk_read_preferences_from_sentry_db(organization.id, [group.project_id])
+    preferences = bulk_read_preferences_from_sentry_db(
+        organization.id, [group.project_id], limit_repos=True
+    )
     preference = preferences.get(group.project_id)
     connected_repos = (
         [f"{repo.owner}/{repo.name}" for repo in preference.repositories] if preference else []

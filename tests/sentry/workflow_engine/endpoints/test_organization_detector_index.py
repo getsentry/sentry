@@ -1076,11 +1076,11 @@ class OrganizationDetectorIndexGetAllProjectsTest(OrganizationDetectorIndexBaseT
 @cell_silo_test
 @pytest.mark.snuba_ci
 class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexBaseTest):
-    """Tests that metric detectors are excluded from lists when their subscription is not allowed."""
+    """Tests that detectors are included when their subscriptions are allowed."""
 
     @requires_snuba
     @requires_kafka
-    def test_list_excludes_disallowed_metric_detectors(self) -> None:
+    def test_list_includes_transaction_metric_detectors(self) -> None:
         with self.tasks():
             snuba_query = create_snuba_query(
                 query_type=SnubaQuery.Type.PERFORMANCE,
@@ -1105,32 +1105,21 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         )
         self.create_data_source_detector(data_source=data_source, detector=metric_detector)
 
-        # With performance-view, the metric detector appears in the list
-        with self.feature({"organizations:performance-view": True}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) in detector_ids
-
-        # Without performance-view, the metric detector is excluded
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(metric_detector.id) not in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(metric_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
     def test_non_metric_detectors_never_excluded(self) -> None:
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(self.error_detector.id) in detector_ids
-            assert str(self.issue_stream_detector.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(self.error_detector.id) in detector_ids
+        assert str(self.issue_stream_detector.id) in detector_ids
 
     @requires_snuba
     @requires_kafka
@@ -1138,12 +1127,11 @@ class OrganizationDetectorIndexSubscriptionFilterTest(OrganizationDetectorIndexB
         orphan = self.create_detector(
             project=self.project, name="No DataSource", type=MetricIssue.slug
         )
-        with self.feature({"organizations:performance-view": False}):
-            response = self.get_success_response(
-                self.organization.slug, qs_params={"project": self.project.id}
-            )
-            detector_ids = {d["id"] for d in response.data}
-            assert str(orphan.id) in detector_ids
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"project": self.project.id}
+        )
+        detector_ids = {d["id"] for d in response.data}
+        assert str(orphan.id) in detector_ids
 
 
 @cell_silo_test

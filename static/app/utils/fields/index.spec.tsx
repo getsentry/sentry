@@ -105,6 +105,12 @@ describe('getFieldDefinition attribute search metadata', () => {
     });
   });
 
+  it('treats preprod array attributes as arrays', () => {
+    expect(
+      getFieldDefinition('tags[install_groups,array]', 'preprod', FieldKind.ARRAY)
+    ).toEqual({kind: FieldKind.ARRAY, valueType: FieldValueType.STRING});
+  });
+
   it('maps deprecation chains onto preferred field definitions', () => {
     const preferred = getFieldDefinition('gen_ai.usage.output_tokens', 'span');
 

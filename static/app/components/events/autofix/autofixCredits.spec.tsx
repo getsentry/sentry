@@ -6,9 +6,7 @@ import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {useAutofixCreditsDisabled} from './autofixCredits';
 
-const organization = OrganizationFixture({
-  features: ['seer-credit-checks', 'token-billed-seer-enabled'],
-});
+const organization = OrganizationFixture({features: ['token-billed-seer-enabled']});
 const creditCheckUrl = `/organizations/${organization.slug}/seer/credit-check/`;
 
 function ContinueButton() {
@@ -26,10 +24,7 @@ describe('useAutofixCreditsDisabled', () => {
       </QueryClientProvider>
     );
 
-    MockApiClient.addMockResponse({
-      url: creditCheckUrl,
-      body: {hasEnoughCredits: true},
-    });
+    MockApiClient.addMockResponse({url: creditCheckUrl, body: {hasEnoughCredits: true}});
     const {unmount} = render(tree, {organization});
     await waitFor(() => expect(screen.getByRole('button')).toBeEnabled());
     unmount();

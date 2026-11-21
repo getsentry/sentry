@@ -14,6 +14,7 @@ import type {Mirror} from '@sentry/rrweb-snapshot';
 import isEqual from 'lodash/isEqual';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {resolveHostname} from 'sentry/utils/api/resolveHostname';
 import {clamp} from 'sentry/utils/number/clamp';
 import type {useInitialTimeOffsetMs} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import {useTouchEventsCheck} from 'sentry/utils/replays/playback/hooks/useTouchEventsCheck';
@@ -405,6 +406,7 @@ export function Provider({
       const inst = new Replayer(events, {
         root,
         blockClass: 'sentry-block',
+        showWarning: false,
         mouseTail: {
           duration: 0.75 * 1000,
           lineCap: 'round',
@@ -464,9 +466,9 @@ export function Provider({
       const inst = new VideoReplayerWithInteractions({
         // video specific
         videoEvents,
-        videoApiPrefix: `/api/0/projects/${
-          organization.slug
-        }/${projectSlug}/replays/${replay?.getReplay().id}/videos/`,
+        videoApiPrefix: resolveHostname(
+          `/api/0/projects/${organization.slug}/${projectSlug}/replays/${replay?.getReplay().id}/videos/`
+        ),
         start: startTimestampMs,
         onFinished: setReplayFinished,
         onLoaded: event => {
@@ -474,10 +476,7 @@ export function Provider({
           if (!videoHeight || !videoWidth) {
             return;
           }
-          setDimensions({
-            height: videoHeight,
-            width: videoWidth,
-          });
+          setDimensions({height: videoHeight, width: videoWidth});
         },
         onBuffer: buffering => {
           setVideoBuffering(buffering);
@@ -535,14 +534,9 @@ export function Provider({
   const projectId = replay?.getReplay().project_id;
 
   const onLoadAllEvents = useEffectEvent(() => {
-    const attributes = {
-      projectId: String(projectId),
-      replayId,
-    };
+    const attributes = {projectId: String(projectId), replayId};
 
-    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {
-      attributes,
-    });
+    Sentry.metrics.distribution('replay.eventCount', events?.length ?? 0, {attributes});
 
     Sentry.metrics.distribution('replay.videoEventCount', videoEvents?.length ?? 0, {
       attributes,

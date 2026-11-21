@@ -57,10 +57,7 @@ export function OverlayArrow({placement, ref, size = 16, ...props}: OverlayArrow
   );
 }
 
-const OverlayArrowWrap = styled('div')<{
-  dimensions: number;
-  placement?: Placement;
-}>`
+const OverlayArrowWrap = styled('div')<{dimensions: number; placement?: Placement}>`
   width: ${p => p.dimensions}px;
   height: ${p =>
     p.placement?.startsWith('left') || p.placement?.startsWith('right')

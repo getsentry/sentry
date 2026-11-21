@@ -26,6 +26,7 @@ import {
   SettingsNavigationBackButton,
   SettingsPrimaryNavigationItems,
 } from './navigation';
+import {hasSecondaryNavigation, usePrimaryNavigation} from './primaryNavigationContext';
 import {SearchButton} from './searchButton';
 import {useSecondaryNavigation} from './secondaryNavigationContext';
 import {useSettingsNavigation} from './useSettingsNavigation';
@@ -66,6 +67,7 @@ function MobilePrimaryNavigation() {
   const organization = useOrganization({allowNull: true});
   const isSettingsNavigation = useSettingsNavigation();
   const {view} = useSecondaryNavigation();
+  const {activeGroup} = usePrimaryNavigation();
 
   return (
     <SizeProvider size="sm">
@@ -86,7 +88,7 @@ function MobilePrimaryNavigation() {
           )}
         </PrimaryNavigation.List>
       </PrimaryNavigation.Sidebar>
-      {view === 'expanded' && (
+      {view === 'expanded' && hasSecondaryNavigation(activeGroup) && (
         <SecondaryNavigation.Sidebar>
           <SecondaryNavigationContent />
         </SecondaryNavigation.Sidebar>

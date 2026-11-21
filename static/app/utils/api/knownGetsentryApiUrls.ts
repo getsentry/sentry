@@ -38,6 +38,7 @@ export type KnownGetsentryApiUrls =
   | '/_admin/customers/$organizationIdOrSlug/contract/package/'
   | '/_admin/customers/$organizationIdOrSlug/contracts/'
   | '/_admin/customers/$organizationIdOrSlug/ledger-grants/'
+  | '/_admin/customers/$organizationIdOrSlug/members/enable-restricted/'
   | '/_admin/customers/$organizationIdOrSlug/simulated-llm-usage/'
   | '/customers/$organizationIdOrSlug/'
   | '/customers/$organizationIdOrSlug/billing-config/'

@@ -54,9 +54,6 @@ export function IssueDetailsJumpTo() {
   const excludedSectionKeys = useMemo(() => {
     const features = organization.features ?? [];
     const excluded: SectionKey[] = [];
-    if (!features.includes('performance-view')) {
-      excluded.push(SectionKey.TRACE);
-    }
     if (!features.includes('ourlogs-enabled')) {
       excluded.push(SectionKey.LOGS);
     }
@@ -119,10 +116,7 @@ function JumpToLink({config}: {config: JumpToSectionConfig}) {
   );
   return (
     <LinkButton
-      to={{
-        ...location,
-        hash: `#${config.key}`,
-      }}
+      to={{...location, hash: `#${config.key}`}}
       onClick={event => {
         // If command click do nothing, assume user wants to open in new tab
         if (event.metaKey || event.ctrlKey) {

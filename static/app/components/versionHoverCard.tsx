@@ -6,6 +6,7 @@ import {AvatarList} from '@sentry/scraps/avatar';
 import {Tag} from '@sentry/scraps/badge';
 import {LinkButton} from '@sentry/scraps/button';
 import {CopyToClipboardButton} from '@sentry/scraps/clipboard';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex, Stack} from '@sentry/scraps/layout';
 
 import {t} from 'sentry/locale';
@@ -20,7 +21,6 @@ import {releaseApiOptions} from 'sentry/utils/releaseApiOptions';
 import {useRepositories} from 'sentry/utils/useRepositories';
 import {parseVersion} from 'sentry/utils/versions/parseVersion';
 
-import {DateTime} from './dateTime';
 import {Hovercard} from './hovercard';
 import {LastCommit} from './lastCommit';
 import {LoadingError} from './loadingError';
@@ -126,22 +126,13 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     isPending: isReleaseLoading,
     isError: isReleaseError,
   } = useQuery(
-    releaseApiOptions({
-      orgSlug: organization.slug,
-      projectSlug,
-      releaseVersion,
-    })
+    releaseApiOptions({orgSlug: organization.slug, projectSlug, releaseVersion})
   );
   const {
     data: deploys,
     isPending: isDeploysLoading,
     isError: isDeploysError,
-  } = useQuery(
-    deploysApiOptions({
-      orgSlug: organization.slug,
-      releaseVersion,
-    })
-  );
+  } = useQuery(deploysApiOptions({orgSlug: organization.slug, releaseVersion}));
 
   const repoLink = (
     <ConnectRepo>
@@ -161,11 +152,7 @@ function VersionHoverCardBody({organization, releaseVersion, projectSlug}: BodyP
     () =>
       release?.authors.map<Actor | User>(author =>
         // Add a unique id if missing
-        ({
-          ...author,
-          type: 'user',
-          id: 'id' in author ? author.id : uniqueId(),
-        })
+        ({...author, type: 'user', id: 'id' in author ? author.id : uniqueId()})
       ),
     [release?.authors]
   );

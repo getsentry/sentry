@@ -10,6 +10,7 @@ import {ExternalLink} from '@sentry/scraps/link';
 import {useModal} from '@sentry/scraps/modal';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
+import {ProjectsBadge} from 'sentry/components/core/badge/projectsBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import {ShortId} from 'sentry/components/shortId';
 import {t, tct} from 'sentry/locale';
@@ -50,12 +51,8 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
     type: 'page-title',
     label: group.shortId,
     leadingGraphic: (
-      <ProjectBadge
-        disableLink
-        project={project}
-        avatarSize={16}
-        hideName
-        avatarProps={{hasTooltip: true, tooltip: project.slug}}
+      <ProjectsBadge
+        projectPlatforms={project.platform ? [project.platform] : ['default']}
       />
     ),
     labelTooltip: t(
@@ -92,9 +89,7 @@ export function useIssueIdBreadcrumbItem({project, group}: ShortIdBreadcrumbProp
                       projectSlug={group.project.slug}
                       groupId={group.id}
                       onToggle={() =>
-                        trackAnalytics('issue.shared_publicly', {
-                          organization,
-                        })
+                        trackAnalytics('issue.shared_publicly', {organization})
                       }
                       event={null}
                       hasIssueShare
@@ -124,9 +119,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
   const {copy} = useCopyToClipboard();
 
   const handleCopyShortId = useCallback(() => {
-    copy(group.shortId, {
-      successMessage: t('Copied Short-ID to clipboard'),
-    }).then(() => {
+    copy(group.shortId, {successMessage: t('Copied Short-ID to clipboard')}).then(() => {
       trackAnalytics('issue_details.copy_issue_short_id_clicked', {
         organization,
         ...getAnalyticsDataForGroup(group),
@@ -191,11 +184,7 @@ export function IssueIdBreadcrumb({project, group}: ShortIdBreadcrumbProps) {
                 organization={organization}
                 projectSlug={group.project.slug}
                 groupId={group.id}
-                onToggle={() =>
-                  trackAnalytics('issue.shared_publicly', {
-                    organization,
-                  })
-                }
+                onToggle={() => trackAnalytics('issue.shared_publicly', {organization})}
                 event={null}
                 hasIssueShare
               />

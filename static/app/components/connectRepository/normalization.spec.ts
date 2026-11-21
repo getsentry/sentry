@@ -61,25 +61,13 @@ describe('sanitizeBranch', () => {
 
 describe('normalizePathMapping', () => {
   it('treats src and src/ as the same root', () => {
-    const a = normalizePathMapping({
-      stackRoot: 'src',
-      sourceRoot: '',
-      branch: 'main',
-    });
-    const b = normalizePathMapping({
-      stackRoot: 'src/',
-      sourceRoot: '',
-      branch: 'main',
-    });
+    const a = normalizePathMapping({stackRoot: 'src', sourceRoot: '', branch: 'main'});
+    const b = normalizePathMapping({stackRoot: 'src/', sourceRoot: '', branch: 'main'});
     expect(a.stackRoot).toBe(b.stackRoot);
   });
 
   it('treats an empty branch as the default', () => {
-    const result = normalizePathMapping({
-      stackRoot: '',
-      sourceRoot: '',
-      branch: '',
-    });
+    const result = normalizePathMapping({stackRoot: '', sourceRoot: '', branch: ''});
     expect(result.branch).toBe('main');
   });
 });

@@ -93,10 +93,7 @@ const baseImage = image({
   key: 'base-button-light',
 });
 
-const headImage = image({
-  group: 'components',
-  key: 'head-button-light',
-});
+const headImage = image({group: 'components', key: 'head-button-light'});
 
 const changedPair: SnapshotDiffPair = {
   base_image: baseImage,

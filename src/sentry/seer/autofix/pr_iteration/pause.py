@@ -14,7 +14,11 @@ from typing import Any
 from django.utils import timezone
 
 from sentry.seer.autofix.pr_iteration.queue import clear_queued_autofix_feedback
-from sentry.seer.autofix.pr_iteration.run_markers import get_run_extra, record_run_extras
+from sentry.seer.autofix.pr_iteration.run_markers import (
+    get_run_extra,
+    get_seer_run,
+    record_run_extras,
+)
 from sentry.seer.models.run import SeerRun
 from sentry.utils import metrics
 
@@ -31,16 +35,12 @@ class PauseReason(StrEnum):
     DRAIN_FAILED = "drain_failed"
 
 
-def _get_seer_run(run_id: int, organization_id: int) -> SeerRun | None:
-    return SeerRun.objects.filter(seer_run_state_id=run_id, organization_id=organization_id).first()
-
-
 def record_pause_blocked(gate: str) -> None:
     metrics.incr("autofix.pr_iteration.paused.blocked", tags={"gate": gate})
 
 
 def is_pr_iteration_paused(*, run_id: int, organization_id: int) -> bool:
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         # Legacy runs from before SeerRun mirroring have no row for the marker.
         return False
@@ -62,7 +62,7 @@ def pause_reason_from_marker(marker: Any | None) -> PauseReason | None:
 
 
 def get_pause_reason(*, run_id: int, organization_id: int) -> PauseReason | None:
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         return None
 
@@ -76,7 +76,7 @@ def pause_pr_iteration(
     reason: PauseReason,
     actor_user_id: int | None = None,
 ) -> bool:
-    seer_run = _get_seer_run(run_id, organization_id)
+    seer_run = get_seer_run(run_id=run_id, organization_id=organization_id)
     if seer_run is None:
         return False
 

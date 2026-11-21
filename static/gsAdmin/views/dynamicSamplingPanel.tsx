@@ -8,6 +8,7 @@ import startCase from 'lodash/startCase';
 import {Alert} from '@sentry/scraps/alert';
 import {Button} from '@sentry/scraps/button';
 import {CompactSelect} from '@sentry/scraps/compactSelect';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {Flex} from '@sentry/scraps/layout';
 import {ExternalLink} from '@sentry/scraps/link';
 import {OverlayTrigger} from '@sentry/scraps/overlayTrigger';
@@ -15,7 +16,6 @@ import type {TableColumnConfig} from '@sentry/scraps/table';
 import {toast} from '@sentry/scraps/toast';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
-import {DateTime} from 'sentry/components/dateTime';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
@@ -28,42 +28,21 @@ import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useApi} from 'sentry/utils/useApi';
 
-type Props = {
-  organization?: Organization;
-  projectId?: string;
-};
+type Props = {organization?: Organization; projectId?: string};
 
-type ProjectConfig = {
-  configs: Record<string, DSNConfig | null>;
-};
+type ProjectConfig = {configs: Record<string, DSNConfig | null>};
 
-type DSNConfig = {
-  config?: {
-    sampling?: {
-      rules: RuleV2[];
-    };
-  };
-};
+type DSNConfig = {config?: {sampling?: {rules: RuleV2[]}}};
 
 type RuleV2 = {
-  condition: {
-    inner: InnerElement[] | InnerElement;
-  };
+  condition: {inner: InnerElement[] | InnerElement};
   id: number;
-  samplingValue: {
-    type: 'factor' | 'sampleRate' | 'minimumSampleRate';
-    value: number;
-  };
+  samplingValue: {type: 'factor' | 'sampleRate' | 'minimumSampleRate'; value: number};
   type: 'trace' | 'transaction' | 'project';
-  timeRange?: {
-    end: string;
-    start: string;
-  };
+  timeRange?: {end: string; start: string};
 };
 
-type InnerElement = {
-  value: unknown;
-};
+type InnerElement = {value: unknown};
 
 enum RuleType {
   BOOST_LOW_VOLUME_PROJECTS = 'Boost Low Volume Projects',

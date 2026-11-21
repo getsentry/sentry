@@ -1,7 +1,13 @@
-import {MetricDetectorFixture} from 'sentry-fixture/detectors';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {act, render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {
+  act,
+  cleanup,
+  render,
+  screen,
+  userEvent,
+  waitFor,
+} from 'sentry-test/reactTestingLibrary';
 
 import {makeMonitorDetailsPathname} from 'sentry/views/detectors/pathnames';
 import type {SeerAutomationRun} from 'sentry/views/seerWorkflows/types';
@@ -12,6 +18,7 @@ function makeRun(overrides: Partial<SeerAutomationRun> = {}): SeerAutomationRun 
   return {
     id: '1',
     configId: '1',
+    configName: null,
     strategy: 'agentic_triage_v2',
     dateAdded: '2026-04-20T00:00:00Z',
     dateUpdated: '2026-04-20T00:01:00Z',
@@ -59,8 +66,10 @@ type MonitorTrigger = Extract<SeerAutomationRun['trigger'], {type: 'monitor'}>;
 function makeMonitorTrigger(overrides: Partial<MonitorTrigger> = {}): MonitorTrigger {
   return {
     detectorId: '5',
+    detectorName: 'Checkout latency',
     environment: 'production',
     eventId: 'abc',
+    groupExists: true,
     groupId: '4388',
     observedAt: '2026-04-20T00:00:00Z',
     occurrenceId: 'def',
@@ -73,26 +82,23 @@ function makeMonitorTrigger(overrides: Partial<MonitorTrigger> = {}): MonitorTri
 describe('RunsTable', () => {
   const organization = OrganizationFixture({features: ['seer-automations']});
   const runsUrl = `/organizations/${organization.slug}/seer/workflows/runs/`;
-  const configsUrl = `/organizations/${organization.slug}/seer/workflows/configs/`;
-  const monitorsUrl = `/organizations/${organization.slug}/detectors/`;
   const runsPath = `/organizations/${organization.slug}/seer/automations/runs/`;
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
-    MockApiClient.addMockResponse({url: configsUrl, body: {configs: []}});
-    MockApiClient.addMockResponse({url: monitorsUrl, body: []});
   });
 
   it('renders a row per run', async () => {
     MockApiClient.addMockResponse({
-      url: configsUrl,
-      body: {configs: [{id: '7', name: 'Checkout health'}]},
-    });
-    MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
         runs: [
-          makeRun({id: '12', configId: '7', strategy: 'breached_metric_investigation'}),
+          makeRun({
+            id: '12',
+            configId: '7',
+            configName: 'Checkout health',
+            strategy: 'breached_metric_investigation',
+          }),
           makeFailedRun('Boom', {id: '11', configId: '8'}),
         ],
       },
@@ -122,9 +128,7 @@ describe('RunsTable', () => {
         runs: [
           makeRun({
             executions: [
-              makeExecution({
-                outputs: [makeInvestigation('2307', 'Latency spike')],
-              }),
+              makeExecution({outputs: [makeInvestigation('2307', 'Latency spike')]}),
             ],
           }),
         ],
@@ -225,10 +229,6 @@ describe('RunsTable', () => {
 
   it('links to the monitor and issue that triggered a run', async () => {
     MockApiClient.addMockResponse({
-      url: monitorsUrl,
-      body: [MetricDetectorFixture({id: '5', name: 'Checkout latency'})],
-    });
-    MockApiClient.addMockResponse({
       url: runsUrl,
       body: {
         runs: [
@@ -238,6 +238,7 @@ describe('RunsTable', () => {
             id: '2',
             trigger: makeMonitorTrigger({
               detectorId: '6',
+              detectorName: null,
               environment: null,
               groupId: '4389',
               groupShortId: 'CHECKOUT-2',
@@ -258,7 +259,7 @@ describe('RunsTable', () => {
       `/organizations/${organization.slug}/issues/4388/`
     );
     expect(screen.getByText('production')).toBeInTheDocument();
-    expect(screen.getByText('Metric monitor breach')).toBeInTheDocument();
+    expect(screen.getByText('Monitor 6')).toBeInTheDocument();
     expect(screen.getByRole('link', {name: 'CHECKOUT-2'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/issues/4389/`
@@ -386,6 +387,7 @@ describe('RunsTable', () => {
 
     afterEach(() => {
       try {
+        cleanup();
         act(() => {
           jest.runOnlyPendingTimers();
         });
@@ -401,7 +403,6 @@ describe('RunsTable', () => {
       expect(await screen.findByText('Investigating…')).toBeInTheDocument();
 
       MockApiClient.clearMockResponses();
-      MockApiClient.addMockResponse({url: configsUrl, body: {configs: []}});
       const pollRequest = MockApiClient.addMockResponse({url: runsUrl, statusCode: 500});
       act(() => jest.advanceTimersByTime(5000));
 

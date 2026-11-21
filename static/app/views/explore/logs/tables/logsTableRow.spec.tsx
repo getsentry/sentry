@@ -1,4 +1,3 @@
-import qs from 'query-string';
 import {LogFixture, LogFixtureMeta} from 'sentry-fixture/log';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
@@ -18,6 +17,7 @@ import {PageFiltersStore} from 'sentry/components/pageFilters/store';
 import {ConfigStore} from 'sentry/stores/configStore';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 import {LogsAnalyticsPageSource} from 'sentry/utils/analytics/logsAnalyticsEvent';
+import * as qs from 'sentry/utils/url/qs';
 import {LOGS_CURSOR_KEY} from 'sentry/views/explore/contexts/logs/constants';
 import {LOGS_AUTO_REFRESH_KEY} from 'sentry/views/explore/contexts/logs/logsAutoRefreshContext';
 import {
@@ -69,9 +69,7 @@ describe('logsTableRow', () => {
   let stacktraceLinkMock: jest.Mock;
   let releaseMock: jest.Mock;
   let rowDetailsMock: jest.Mock;
-  const organization = OrganizationFixture({
-    features: ['ourlogs-enabled'],
-  });
+  const organization = OrganizationFixture({features: ['ourlogs-enabled']});
   const project = ProjectFixture();
   const projects = [project];
   const release = ReleaseFixture({authors: [UserFixture()]});
@@ -186,12 +184,7 @@ describe('logsTableRow', () => {
     PageFiltersStore.onInitializeUrlState({
       projects: [parseInt(project.id, 10)],
       environments: [],
-      datetime: {
-        period: '14d',
-        start: null,
-        end: null,
-        utc: null,
-      },
+      datetime: {period: '14d', start: null, end: null, utc: null},
     });
 
     stacktraceLinkMock = MockApiClient.addMockResponse({
@@ -269,9 +262,7 @@ describe('logsTableRow', () => {
       body: {
         ...project,
         relayPiiConfig: JSON.stringify({
-          rules: {
-            0: {type: 'mac', redaction: {method: 'replace', text: 'ITS_GONE'}},
-          },
+          rules: {0: {type: 'mac', redaction: {method: 'replace', text: 'ITS_GONE'}}},
           applications: {not_zzz_not_exact_match: ['0']},
         }),
       },
@@ -385,9 +376,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -568,9 +557,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithQuotedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithQuotedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -608,10 +595,7 @@ describe('logsTableRow', () => {
       })
     );
     expect(JSON.parse(parsedQuery.crossEvents as string)).toEqual([
-      {
-        type: 'logs',
-        query: 'message:"test \\"quoted\\" log body"',
-      },
+      {type: 'logs', query: 'message:"test \\"quoted\\" log body"'},
     ]);
   });
 
@@ -621,9 +605,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -680,9 +662,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -717,9 +697,7 @@ describe('logsTableRow', () => {
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
         onExpand={onExpand}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
         showExploreConnectedSpansLink
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
@@ -741,10 +719,7 @@ describe('logsTableRow', () => {
 
   it('does not show string filter actions for numeric fields', async () => {
     const numericField = 'custom.duration';
-    const numericRowData = LogFixture({
-      ...rowData,
-      [numericField]: 123,
-    });
+    const numericRowData = LogFixture({...rowData, [numericField]: 123});
     const numericFieldRouterConfig = structuredClone(initialRouterConfig);
     numericFieldRouterConfig.location.query[LOGS_FIELDS_KEY] = [numericField];
 
@@ -865,9 +840,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithCodeFilePath}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithCodeFilePath)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -912,10 +885,7 @@ describe('logsTableRow', () => {
       expect(stacktraceLinkMock).toHaveBeenCalledWith(
         `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
         expect.objectContaining({
-          query: expect.objectContaining({
-            lineNo: 10,
-            file: 'herp/merp/derp.py',
-          }),
+          query: expect.objectContaining({lineNo: 10, file: 'herp/merp/derp.py'}),
         })
       );
     });
@@ -1012,9 +982,7 @@ describe('logsTableRow', () => {
   it('copies log as JSON when Copy as JSON button is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1023,9 +991,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1077,9 +1043,7 @@ describe('logsTableRow', () => {
   it('copies link to log when Copy link menu item is clicked', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1088,9 +1052,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1115,9 +1077,7 @@ describe('logsTableRow', () => {
   it('clears a stale logsRowId when copying a non-frozen link', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1126,9 +1086,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1136,10 +1094,7 @@ describe('logsTableRow', () => {
           ...initialRouterConfig,
           location: {
             ...initialRouterConfig.location,
-            query: {
-              ...initialRouterConfig.location.query,
-              logsRowId: '999',
-            },
+            query: {...initialRouterConfig.location.query, logsRowId: '999'},
           },
         },
         additionalWrapper: ProviderWrapper,
@@ -1167,9 +1122,7 @@ describe('logsTableRow', () => {
   it('copies a row link with logsRowId in a frozen view', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1178,9 +1131,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: FrozenProviderWrapper}
     );
@@ -1209,9 +1160,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1259,9 +1208,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1297,9 +1244,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1337,9 +1282,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1358,9 +1301,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1403,9 +1344,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1453,9 +1392,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: SidebarWrapper}
     );
@@ -1494,9 +1431,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
@@ -1540,9 +1475,7 @@ describe('logsTableRow', () => {
   it('does not toggle row when clicking cell action menu items', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1551,9 +1484,7 @@ describe('logsTableRow', () => {
         dataRow={rowData}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowData)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1590,9 +1521,7 @@ describe('logsTableRow', () => {
     });
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1601,9 +1530,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1628,9 +1555,7 @@ describe('logsTableRow', () => {
   it('copies the untruncated value when the table value was truncated', async () => {
     const mockWriteText = jest.fn().mockResolvedValue(undefined);
     Object.defineProperty(window.navigator, 'clipboard', {
-      value: {
-        writeText: mockWriteText,
-      },
+      value: {writeText: mockWriteText},
       writable: true,
     });
 
@@ -1639,9 +1564,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithTruncatedMessage}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithTruncatedMessage)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {organization, initialRouterConfig, additionalWrapper: ProviderWrapper}
     );
@@ -1681,24 +1604,10 @@ describe('logsTableRow', () => {
         ),
         meta: {
           password: {
-            meta: {
-              value: {
-                '': {
-                  rem: [['@password:filter', 's', 0, 10]],
-                  len: 9,
-                },
-              },
-            },
+            meta: {value: {'': {rem: [['@password:filter', 's', 0, 10]], len: 9}}},
           },
           not_zzz_not_exact_match: {
-            meta: {
-              value: {
-                '': {
-                  rem: [['project:0', 's', 0, 10]],
-                  len: 15,
-                },
-              },
-            },
+            meta: {value: {'': {rem: [['project:0', 's', 0, 10]], len: 15}}},
           },
         },
       },
@@ -1709,9 +1618,7 @@ describe('logsTableRow', () => {
         dataRow={rowDataWithScrubbedFields}
         highlightTerms={[]}
         meta={LogFixtureMeta(rowDataWithScrubbedFields)}
-        sharedHoverTimeoutRef={{
-          current: null,
-        }}
+        sharedHoverTimeoutRef={{current: null}}
       />,
       {
         organization,
