@@ -7,7 +7,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import {fetchMutation} from 'sentry/utils/queryClient';
 import type {RequestError} from 'sentry/utils/requestError/requestError';
 import {useOrganization} from 'sentry/utils/useOrganization';
-import {allDetectorListsQueryKey} from 'sentry/views/detectors/hooks';
+import {invalidateDetectorQueries} from 'sentry/views/detectors/hooks';
 
 /** Bulk delete detectors */
 export function useDeleteDetectorsMutation() {
@@ -35,9 +35,7 @@ export function useDeleteDetectorsMutation() {
       });
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({
-        queryKey: allDetectorListsQueryKey(org),
-      });
+      invalidateDetectorQueries(queryClient, org);
       toast.success(t('Monitors deleted'));
     },
     onError: () => {
