@@ -11,6 +11,7 @@ from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
 from django.db import connection
+from django.db.models.fields.related_descriptors import ForwardManyToOneDescriptor
 from django.db.utils import OperationalError
 from django.test import override_settings
 from django.test.utils import CaptureQueriesContext
@@ -994,6 +995,30 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         self.login_as(user=user)
         response = self.get_response(group=[group.id])
         assert response.status_code == 403
+
+    def test_lookup_by_group_id_does_not_query_projects_per_group(self) -> None:
+        self.login_as(user=self.user)
+        groups = [
+            self.create_group(project=self.create_project(organization=self.organization))
+            for _ in range(3)
+        ]
+        original_get_object = ForwardManyToOneDescriptor.get_object
+
+        with patch.object(
+            ForwardManyToOneDescriptor,
+            "get_object",
+            autospec=True,
+            side_effect=original_get_object,
+        ) as get_object:
+            response = self.get_success_response(group=[g.id for g in groups])
+
+        assert {r["id"] for r in response.data} == {str(g.id) for g in groups}
+        lazy_project_loads = [
+            c
+            for c in get_object.call_args_list
+            if c.args[0].field.name == "project" and isinstance(c.args[1], Group)
+        ]
+        assert lazy_project_loads == []
 
     def test_lookup_by_first_release(self) -> None:
         self.login_as(self.user)
