@@ -72,6 +72,44 @@ describe('useAgentHandoff', () => {
     expect(mint).toHaveBeenCalledTimes(2);
   });
 
+  it('mints a new code for every successful copy', async () => {
+    let mintCount = 0;
+    const mint = MockApiClient.addMockResponse({
+      url,
+      method: 'POST',
+      body: () => {
+        mintCount++;
+        return {
+          code: `sntryh_code${mintCount}`,
+          handoffId: String(mintCount).repeat(32),
+          expiresAt: new Date(Date.now() + 300_000).toISOString(),
+        };
+      },
+    });
+    const {result} = renderHookWithProviders(
+      () => useAgentHandoff(AgentHandoffFlow.ONBOARDING, context),
+      {organization}
+    );
+
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe('1'.repeat(32));
+    });
+    await act(async () => {
+      await expect(result.current.copyPrompt(options)).resolves.toBe('2'.repeat(32));
+    });
+
+    expect(mint).toHaveBeenCalledTimes(2);
+    const copied = await Promise.all(
+      write.mock.calls.map(([[item]]) =>
+        (item as {data: Record<string, Promise<Blob>>}).data['text/plain']!.then(blob =>
+          blob.text()
+        )
+      )
+    );
+    expect(copied[0]).toContain('`sntryh_code1`');
+    expect(copied[1]).toContain('`sntryh_code2`');
+  });
+
   it('reports a safe error when minting fails', async () => {
     MockApiClient.addMockResponse({
       url,
@@ -166,6 +204,9 @@ describe('useAgentHandoff', () => {
       method: 'POST',
       body: {code, handoffId, expiresAt: new Date(Date.now() + 300_000).toISOString()},
     });
+    // A failed clipboard write keeps the code cached, so only the context change can
+    // cause the second mint.
+    write.mockRejectedValueOnce(new Error('Clipboard unavailable'));
     const contextA = {product: 'tracing' as const, projectId: 'proj-aaa'};
     const contextB = {product: 'tracing' as const, projectId: 'proj-bbb'};
 
@@ -176,7 +217,7 @@ describe('useAgentHandoff', () => {
     );
 
     await act(async () => {
-      await result.current.copyPrompt(options);
+      await expect(result.current.copyPrompt(options)).rejects.toThrow('Unable to copy');
     });
     expect(mint).toHaveBeenCalledTimes(1);
     expect(mint).toHaveBeenCalledWith(

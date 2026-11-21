@@ -63,9 +63,12 @@ function clipboardError() {
 
 /**
  * Mints short-lived handoff codes and copies a prompt containing them without exposing
- * the code in the UI. Valid codes are cached until their context changes or they approach
- * expiration, and concurrent copy requests share the same operation. Call copyPrompt
+ * the code in the UI. Concurrent copy requests share the same operation. Call copyPrompt
  * directly from the user gesture that authorizes clipboard access.
+ *
+ * Codes are single-use, and once one reaches the clipboard an agent may already have
+ * claimed it, so every successful copy mints a fresh code next time. A code is only
+ * reused when the clipboard write failed, because then nobody could have received it.
  */
 export function useAgentHandoff<Flow extends AgentHandoffFlow>(
   flow: Flow,
@@ -148,6 +151,9 @@ export function useAgentHandoff<Flow extends AgentHandoffFlow>(
           throw clipboardResult.reason;
         }
 
+        if (handoff.current?.handoffId === promptResult.value.handoffId) {
+          handoff.current = null;
+        }
         return promptResult.value.handoffId;
       }
     );
