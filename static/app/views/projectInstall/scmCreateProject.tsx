@@ -282,6 +282,11 @@ function ScmCreateProjectWizard({
   // while canSubmit is false.
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    // A portaled framework prompt submits its own form. React bubbles that
+    // submit through this form; only a submit of this form should create a project.
+    if (event.target !== event.currentTarget) {
+      return;
+    }
     form.submit();
   };
 

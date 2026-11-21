@@ -1,18 +1,8 @@
-import {
-  Fragment,
-  useCallback,
-  useEffect,
-  useId,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from 'react';
+import {Fragment, useCallback, useEffect, useId, useMemo, useRef, useState} from 'react';
 import {createPortal} from 'react-dom';
 import {useTheme, css} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconBroadcast} from '@sentry/icons/broadcast';
-import {IconClose} from '@sentry/icons/close';
 import {useDebouncedCallback} from '@tanstack/react-pacer';
 import {motion} from 'framer-motion';
 import {PlatformIcon} from 'platformicons';
@@ -20,7 +10,12 @@ import {PlatformIcon} from 'platformicons';
 import {Button} from '@sentry/scraps/button';
 import {InfoText} from '@sentry/scraps/info';
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
-import type {ModalRenderProps} from '@sentry/scraps/modal';
+import {
+  makeClosableHeader,
+  makeCloseButton,
+  ModalBody,
+  ModalFooter,
+} from '@sentry/scraps/modal';
 import {Select, type StylesConfig, createFilter} from '@sentry/scraps/select';
 import {Heading, Text} from '@sentry/scraps/text';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
@@ -589,12 +584,21 @@ export function ScmPlatformFeaturesCore({
       </ScmPickerSection>
       {frameworkBaseSdk &&
         createPortal(
-          <FrameworkSheet>
+          <FrameworkSheet
+            role="dialog"
+            aria-modal="true"
+            aria-label={t('Do you use a framework?')}
+            onSubmit={event => {
+              // The prompt is portaled out of the page form, but React still
+              // bubbles this submit through that form and would create the project.
+              event.stopPropagation();
+            }}
+          >
             <FrameworkSuggestionModal
-              Body={SheetBody as ModalRenderProps['Body']}
-              Footer={SheetFooter as ModalRenderProps['Footer']}
-              CloseButton={SheetCloseButton as ModalRenderProps['CloseButton']}
-              Header={SheetHeader as ModalRenderProps['Header']}
+              Body={ModalBody}
+              Footer={ModalFooter}
+              CloseButton={FrameworkSheetCloseButton}
+              Header={FrameworkSheetHeader}
               closeModal={() => setFrameworkBaseSdk(null)}
               onConfigure={selectedFramework => {
                 applyPlatformSelection(selectedFramework);
@@ -617,29 +621,8 @@ export function ScmPlatformFeaturesCore({
   );
 }
 
-function SheetBody({children}: {children?: ReactNode}) {
-  return <section>{children}</section>;
-}
-
-function SheetFooter({children}: {children?: ReactNode}) {
-  return <footer>{children}</footer>;
-}
-
-function SheetHeader({children}: {children?: ReactNode}) {
-  return <header>{children}</header>;
-}
-
-function SheetCloseButton({onClick}: {onClick?: () => void}) {
-  return (
-    <Button
-      aria-label={t('Close Modal')}
-      size="xs"
-      icon={<IconClose size="xs" />}
-      variant="transparent"
-      onClick={onClick}
-    />
-  );
-}
+const FrameworkSheetCloseButton = makeCloseButton(() => {});
+const FrameworkSheetHeader = makeClosableHeader(() => {});
 
 const FrameworkSheet = styled('div')`
   position: fixed;
