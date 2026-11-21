@@ -163,12 +163,13 @@ describe('Inbox', () => {
     });
   });
 
-  it('shows subject titles and latest event summaries', async () => {
+  it('shows subject titles and event summaries with short IDs for issues', async () => {
     render(<Inbox />, {organization, initialRouterConfig: INBOX_ROUTER_CONFIG});
 
     expect(
       await screen.findByRole('link', {name: issueItem.subject.title})
     ).toHaveAttribute('href', '/organizations/org-slug/inbox/issue/7656018581/');
+    expect(screen.getByText('PROJECT-42')).toBeInTheDocument();
     expect(screen.getByText('Assigned to you')).toBeInTheDocument();
     expect(
       screen.getByRole('link', {name: notebookItem.subject.title})
