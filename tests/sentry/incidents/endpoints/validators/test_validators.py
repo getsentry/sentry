@@ -640,6 +640,13 @@ class TestMetricAlertsCreateDetectorValidator(TestMetricAlertsDetectorValidator)
                 type=MetricIssue.slug,
                 status=status,
             )
+        self.create_detector(
+            project_id=self.project.id,
+            name="Disabled Detector",
+            type=MetricIssue.slug,
+            status=ObjectStatus.ACTIVE,
+            enabled=False,
+        )
 
         validator = MetricIssueDetectorValidator(data=self.valid_data, context=self.context)
         assert validator.is_valid()
@@ -1102,6 +1109,58 @@ class TestMetricAlertsUpdateDetectorValidator(TestMetricAlertsDetectorValidator)
 
         other_subscription.refresh_from_db()
         assert other_subscription.status == original_status
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=2)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enable_rejected_at_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        self.create_static_detector()
+        disabled = self.create_static_detector()
+        disabled.update(enabled=False)
+        mock_get_limit.return_value = 1
+
+        validator = MetricIssueDetectorValidator(
+            instance=disabled, data={"enabled": True}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        with self.assertRaisesMessage(
+            ValidationError, expected_message="Used 1/1 of allowed metric_issue monitors."
+        ):
+            validator.save()
+
+        disabled.refresh_from_db()
+        assert disabled.enabled is False
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=2)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_enable_allowed_under_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        self.create_static_detector()
+        disabled = self.create_static_detector()
+        disabled.update(enabled=False)
+
+        validator = MetricIssueDetectorValidator(
+            instance=disabled, data={"enabled": True}, context=self.context, partial=True
+        )
+        assert validator.is_valid(), validator.errors
+        assert validator.save().enabled is True
+
+    @mock.patch("sentry.quotas.backend.get_metric_detector_limit", return_value=2)
+    @with_feature("organizations:workflow-engine-metric-detector-limit")
+    def test_disable_and_edit_allowed_over_limit(self, mock_get_limit: mock.MagicMock) -> None:
+        first = self.create_static_detector()
+        second = self.create_static_detector()
+        mock_get_limit.return_value = 1
+
+        disable = MetricIssueDetectorValidator(
+            instance=first, data={"enabled": False}, context=self.context, partial=True
+        )
+        assert disable.is_valid(), disable.errors
+        assert disable.save().enabled is False
+
+        rename = MetricIssueDetectorValidator(
+            instance=second, data={"name": "Renamed"}, context=self.context, partial=True
+        )
+        assert rename.is_valid(), rename.errors
+        assert rename.save().name == "Renamed"
 
     def test_update_data_source_ignores_subscription_outside_detector_project(self) -> None:
         detector = self.create_static_detector()
