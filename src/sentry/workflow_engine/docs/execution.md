@@ -458,6 +458,13 @@ The sanitized `trigger_evaluation`, `filter_evaluations`, and `delayed` attribut
 JSON strings because EAP ingestion discards nested protobuf key/value lists. Scalar
 attributes and primitive arrays, such as `triggered_action_ids`, retain their native types.
 
+The experimental
+[`OrganizationEvaluationArtifactsEndpoint`](../endpoints/organization_evaluation_artifacts.py)
+(`GET /api/0/organizations/{organization_id_or_slug}/evaluation-artifacts/`) reads these
+artifacts behind the same flag, so clients such as Seer can see why a detector or workflow
+did or did not trigger. Results cover the seven-day retention window; because delivery is
+best-effort, an empty result does not prove an evaluation never ran.
+
 When tracing a missing action, check the boundaries in order:
 
 1. Was the source mapped to an enabled detector?
