@@ -10,6 +10,7 @@ import pytest
 from django.db import transaction
 from redis.client import Script, StrictRedis
 from redis.exceptions import ResponseError
+from rediscluster.exceptions import RedisClusterException
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 
@@ -49,6 +50,11 @@ def _options_manager() -> OptionsManager:
             }
         },
     )
+
+
+_UNREACHABLE = RedisClusterException(
+    "Redis Cluster cannot be connected. Please provide at least one reachable node."
+)
 
 
 class ClusterManagerTestCase(TestCase):
@@ -106,6 +112,59 @@ class ClusterManagerTestCase(TestCase):
 
         manager.get("raised")._setupfunc()  # type: ignore[union-attr]
         assert RetryingRedisCluster.call_args.kwargs["max_connections"] == 24
+
+    @mock.patch("sentry.utils.redis._add_transaction_checks", side_effect=lambda client: client)
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_creation_retries_once_when_unreachable(
+        self,
+        RetryingRedisCluster: mock.MagicMock,
+        _add_transaction_checks: mock.MagicMock,
+    ) -> None:
+        RetryingRedisCluster.side_effect = [_UNREACHABLE, mock.sentinel.cluster]
+
+        manager = RedisClusterManager(_options_manager())
+
+        with override_options({"redis.cluster.create-retry.enabled": True}):
+            assert manager.get("baz")._setupfunc() is mock.sentinel.cluster  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_count == 2
+
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_creation_gives_up_when_still_unreachable(
+        self, RetryingRedisCluster: mock.MagicMock
+    ) -> None:
+        RetryingRedisCluster.side_effect = _UNREACHABLE
+
+        manager = RedisClusterManager(_options_manager())
+
+        with override_options({"redis.cluster.create-retry.enabled": True}):
+            with pytest.raises(RedisClusterException, match="cannot be connected"):
+                manager.get("baz")._setupfunc()  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_count == 2
+
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_creation_does_not_retry_other_errors(
+        self, RetryingRedisCluster: mock.MagicMock
+    ) -> None:
+        RetryingRedisCluster.side_effect = RedisClusterException(
+            "startup_nodes could not agree on a valid slots cache."
+        )
+
+        manager = RedisClusterManager(_options_manager())
+
+        with pytest.raises(RedisClusterException, match="could not agree"):
+            manager.get("baz")._setupfunc()  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_count == 1
+
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_creation_retry_kill_switch(self, RetryingRedisCluster: mock.MagicMock) -> None:
+        RetryingRedisCluster.side_effect = _UNREACHABLE
+
+        manager = RedisClusterManager(_options_manager())
+
+        with override_options({"redis.cluster.create-retry.enabled": False}):
+            with pytest.raises(RedisClusterException, match="cannot be connected"):
+                manager.get("baz")._setupfunc()  # type: ignore[union-attr]
+        assert RetryingRedisCluster.call_count == 1
 
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     def test_multiple_retrieval_do_not_setup_lazy_object(

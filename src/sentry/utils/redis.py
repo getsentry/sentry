@@ -3,12 +3,13 @@ from __future__ import annotations
 import importlib.resources
 import inspect
 import logging
-from collections.abc import Generator
+from collections.abc import Callable, Generator
 from copy import deepcopy
 from typing import Any, Literal, TypeVar, cast, overload
 
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script, StrictRedis
+from rediscluster.exceptions import RedisClusterException
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -36,6 +37,34 @@ _REDIS_CLUSTER_DEFAULT_CLIENT_ARGS = {
     # Per node, because of max_connections_per_node
     "max_connections": 16,
 }
+
+# Short network blips can leave every startup node briefly unreachable.
+# Building a client only reads cluster topology, so retrying it cannot double-apply a write.
+_UNREACHABLE_CLUSTER_MESSAGE = "Redis Cluster cannot be connected"
+
+
+def _create_cluster_with_retry(
+    create: Callable[[], RetryingRedisCluster],
+) -> RetryingRedisCluster:
+    """
+    Call `create`, retrying once when no startup node is reachable. Other
+    cluster errors raise immediately.
+
+    There is no sleep between attempts: a failed attempt has usually already
+    waited out the socket timeout on each unreachable startup node.
+    """
+    try:
+        return create()
+    except RedisClusterException as e:
+        if not str(e).startswith(_UNREACHABLE_CLUSTER_MESSAGE):
+            raise
+        if not options.get("redis.cluster.create-retry.enabled"):
+            raise
+    # Deferred: this module is imported before Django settings, which metrics reads.
+    from sentry.utils import metrics
+
+    metrics.incr("redis.cluster.create.retry")
+    return create()
 
 
 class RedisClusterManager:
@@ -126,8 +155,9 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                cluster = _add_transaction_checks(
-                    RetryingRedisCluster(
+
+                def create() -> RetryingRedisCluster:
+                    return RetryingRedisCluster(
                         # Intentionally copy hosts here because redis-cluster-py
                         # mutates the inner dicts and this closure can be run
                         # concurrently, as SimpleLazyObject is not threadsafe. This
@@ -142,7 +172,8 @@ class RedisClusterManager:
                         readonly_mode=readonly_mode,
                         **{**_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS, **client_args},
                     )
-                )
+
+                cluster = _add_transaction_checks(_create_cluster_with_retry(create))
                 if key_prefix is not None:
                     return _add_key_prefix(cluster, key_prefix)
                 return cluster
