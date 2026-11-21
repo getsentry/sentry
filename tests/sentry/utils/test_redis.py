@@ -10,6 +10,7 @@ import pytest
 from django.db import transaction
 from redis.client import Script, StrictRedis
 from redis.exceptions import ResponseError
+from rediscluster.exceptions import RedisClusterException
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 
@@ -29,6 +30,7 @@ from sentry.utils.redis import (
     _matches_redis_transaction_lock_ratchet,
     _matches_redis_transaction_ratchet,
     _redis_transaction_callers,
+    _retry_slots_init_when_unreachable,
     _to_str,
     get_dynamic_cluster_from_options,
     pop_redis_transaction_violations,
@@ -107,6 +109,23 @@ class ClusterManagerTestCase(TestCase):
         manager.get("raised")._setupfunc()  # type: ignore[union-attr]
         assert RetryingRedisCluster.call_args.kwargs["max_connections"] == 24
 
+    @mock.patch("sentry.utils.redis._add_transaction_checks", side_effect=lambda client: client)
+    @mock.patch("sentry.utils.redis.RetryingRedisCluster")
+    def test_cluster_installs_slots_init_retry(
+        self,
+        RetryingRedisCluster: mock.MagicMock,
+        _add_transaction_checks: mock.MagicMock,
+    ) -> None:
+        nodes = RetryingRedisCluster.return_value.connection_pool.nodes
+        original_initialize = nodes.initialize
+
+        manager = RedisClusterManager(_options_manager())
+        manager.get("baz")._setupfunc()  # type: ignore[union-attr]
+
+        assert RetryingRedisCluster.call_args.kwargs["init_slot_cache"] is False
+        assert nodes.initialize is not original_initialize
+        original_initialize.assert_called_once_with()
+
     @mock.patch("sentry.utils.redis.RetryingRedisCluster")
     def test_multiple_retrieval_do_not_setup_lazy_object(
         self, RetryingRedisCluster: mock.MagicMock
@@ -129,6 +148,48 @@ class ClusterManagerTestCase(TestCase):
         assert _add_transaction_checks(client) is client
         assert client.execute_command is execute_command
         assert client.pipeline is pipeline
+
+
+_UNREACHABLE = RedisClusterException(
+    "Redis Cluster cannot be connected. Please provide at least one reachable node."
+)
+
+
+@mock.patch("sentry.utils.redis.time.sleep")
+class RetrySlotsInitWhenUnreachableTest(TestCase):
+    def _wrap(self, *side_effect: Exception | None) -> tuple[mock.Mock, mock.Mock]:
+        initialize = mock.Mock(side_effect=side_effect)
+        nodes = mock.Mock(initialize=initialize)
+        _retry_slots_init_when_unreachable(nodes)
+        return nodes, initialize
+
+    def test_retries_until_reachable(self, sleep: mock.MagicMock) -> None:
+        nodes, initialize = self._wrap(_UNREACHABLE, _UNREACHABLE, None)
+
+        nodes.initialize()
+
+        assert initialize.call_count == 3
+        assert sleep.call_count == 2
+
+    def test_raises_when_still_unreachable(self, sleep: mock.MagicMock) -> None:
+        nodes, initialize = self._wrap(_UNREACHABLE, _UNREACHABLE, _UNREACHABLE)
+
+        with pytest.raises(RedisClusterException, match="cannot be connected"):
+            nodes.initialize()
+
+        assert initialize.call_count == 3
+        assert sleep.call_count == 2
+
+    def test_does_not_retry_other_cluster_errors(self, sleep: mock.MagicMock) -> None:
+        nodes, initialize = self._wrap(
+            RedisClusterException("startup_nodes could not agree on a valid slots cache.")
+        )
+
+        with pytest.raises(RedisClusterException, match="could not agree"):
+            nodes.initialize()
+
+        assert initialize.call_count == 1
+        sleep.assert_not_called()
 
 
 class TransactionCheckingRedisTest(SentryTestCase):

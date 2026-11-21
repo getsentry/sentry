@@ -3,12 +3,15 @@ from __future__ import annotations
 import importlib.resources
 import inspect
 import logging
+import random
+import time
 from collections.abc import Generator
 from copy import deepcopy
 from typing import Any, Literal, TypeVar, cast, overload
 
 from django.utils.functional import SimpleLazyObject
 from redis.client import Script, StrictRedis
+from rediscluster.exceptions import RedisClusterException
 from sentry_redis_tools.clients import RedisCluster
 from sentry_redis_tools.failover_redis import FailoverRedis
 from sentry_redis_tools.retrying_cluster import RetryingRedisCluster
@@ -36,6 +39,38 @@ _REDIS_CLUSTER_DEFAULT_CLIENT_ARGS = {
     # Per node, because of max_connections_per_node
     "max_connections": 16,
 }
+
+# Short network blips can leave every startup node briefly unreachable.
+# CLUSTER SLOTS is read-only, so retrying it cannot double-apply a caller's write.
+_SLOTS_INIT_RETRY_DELAYS = (0.5, 1.0)
+_UNREACHABLE_CLUSTER_MESSAGE = "Redis Cluster cannot be connected"
+
+
+def _retry_slots_init_when_unreachable(nodes: Any) -> None:
+    """
+    Wrap a redis-py-cluster NodeManager so `initialize` retries with a short,
+    jittered backoff when no startup node is reachable. Every slots refresh goes
+    through `initialize`: client creation, `reset()` after connection errors,
+    and reinitialization from commands and pipelines.
+    """
+    initialize = nodes.initialize
+
+    def initialize_with_retry() -> None:
+        for attempt, delay in enumerate(_SLOTS_INIT_RETRY_DELAYS, start=1):
+            try:
+                initialize()
+                return
+            except RedisClusterException as e:
+                if not str(e).startswith(_UNREACHABLE_CLUSTER_MESSAGE):
+                    raise
+            # Deferred: this module is imported before Django settings, which metrics reads.
+            from sentry.utils import metrics
+
+            metrics.incr("redis.cluster.slots_init.retry", tags={"attempt": attempt})
+            time.sleep(delay * random.uniform(0.5, 1.5))
+        initialize()
+
+    nodes.initialize = initialize_with_retry
 
 
 class RedisClusterManager:
@@ -126,23 +161,27 @@ class RedisClusterManager:
             RedisCluster[bytes] | StrictRedis[bytes] | RedisCluster[str] | StrictRedis[str]
         ):
             if is_redis_cluster:
-                cluster = _add_transaction_checks(
-                    RetryingRedisCluster(
-                        # Intentionally copy hosts here because redis-cluster-py
-                        # mutates the inner dicts and this closure can be run
-                        # concurrently, as SimpleLazyObject is not threadsafe. This
-                        # is likely triggered by RetryingRedisCluster running
-                        # reset() after startup
-                        #
-                        # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
-                        startup_nodes=deepcopy(hosts_list),
-                        decode_responses=decode_responses,
-                        skip_full_coverage_check=True,
-                        max_connections_per_node=True,
-                        readonly_mode=readonly_mode,
-                        **{**_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS, **client_args},
-                    )
+                retrying_cluster = RetryingRedisCluster(
+                    # Intentionally copy hosts here because redis-cluster-py
+                    # mutates the inner dicts and this closure can be run
+                    # concurrently, as SimpleLazyObject is not threadsafe. This
+                    # is likely triggered by RetryingRedisCluster running
+                    # reset() after startup
+                    #
+                    # https://github.com/Grokzen/redis-py-cluster/blob/73f27edf7ceb4a408b3008ef7d82dac570ab9c6a/rediscluster/nodemanager.py#L385
+                    startup_nodes=deepcopy(hosts_list),
+                    decode_responses=decode_responses,
+                    skip_full_coverage_check=True,
+                    max_connections_per_node=True,
+                    readonly_mode=readonly_mode,
+                    # Initialized below, once the retry wrapper is installed.
+                    init_slot_cache=False,
+                    **{**_REDIS_CLUSTER_DEFAULT_CLIENT_ARGS, **client_args},
                 )
+                nodes = retrying_cluster.connection_pool.nodes
+                _retry_slots_init_when_unreachable(nodes)
+                nodes.initialize()
+                cluster = _add_transaction_checks(retrying_cluster)
                 if key_prefix is not None:
                     return _add_key_prefix(cluster, key_prefix)
                 return cluster
