@@ -77,6 +77,10 @@ class Notebook(DefaultFieldsModel):
     )
 
     title = models.CharField(max_length=255)
+    # The scope of evidence published here. An empty list represents organization-wide evidence.
+    workflow_project_ids: models.Field[list[int] | None, list[int] | None] = models.JSONField(
+        null=True
+    )
     status = models.CharField(
         max_length=32,
         choices=NotebookStatus.choices,
@@ -169,3 +173,28 @@ class Notebook(DefaultFieldsModel):
         return organization.absolute_url(
             f"/organizations/{organization.slug}/seer/investigations/{self.id}/"
         )
+
+
+@cell_silo_model
+class NotebookWorkflowRun(DefaultFieldsModel):
+    """One durable notebook destination per workflow execution within an organization."""
+
+    __relocation_scope__ = RelocationScope.Excluded
+
+    organization = FlexibleForeignKey("sentry.Organization", on_delete=models.CASCADE)
+    run_id = models.UUIDField()
+    notebook = FlexibleForeignKey(Notebook, on_delete=models.CASCADE)
+    writer_run = FlexibleForeignKey("seer.SeerRun", null=True, on_delete=models.SET_NULL)
+    preserve_title = models.BooleanField(default=False, db_default=False)
+    # Each finalizer acknowledges the same snapshot independently.
+    delivered: models.Field[dict[str, str], dict[str, str]] = models.JSONField(
+        default=dict, db_default={}
+    )
+
+    class Meta:
+        app_label = "notebooks"
+        constraints = [
+            models.UniqueConstraint(
+                fields=("organization", "run_id"), name="notebook_unique_workflow_run"
+            )
+        ]
