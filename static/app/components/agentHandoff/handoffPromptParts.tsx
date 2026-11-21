@@ -1,4 +1,4 @@
-import {Fragment, useState, type PointerEventHandler, type ReactNode} from 'react';
+import {Fragment, useState, type PointerEventHandler} from 'react';
 import {css, ThemeProvider, useTheme, type Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {IconSettings} from '@sentry/icons/settings';
@@ -110,7 +110,8 @@ interface HandoffPromptBoxProps<Flow extends AgentHandoffFlow> {
   flow: Flow;
   onCopyPrompt: () => void;
   onSelect?: () => void;
-  topRightAction?: ReactNode;
+  /** `md` sets the prompt in larger, looser monospace text with roomier vertical padding. */
+  size?: 'sm' | 'md';
 }
 
 export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
@@ -118,7 +119,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
   flow,
   onCopyPrompt,
   onSelect,
-  topRightAction,
+  size = 'sm',
 }: HandoffPromptBoxProps<Flow>) {
   const [isPromptSelected, setIsPromptSelected] = useState(false);
   const guideUrl = getHandoffGuideUrl();
@@ -141,9 +142,7 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
         background="primary"
         border="primary"
         radius="md"
-        padding="md xl"
-        paddingRight={topRightAction ? '3xl' : 'xl'}
-        position="relative"
+        padding={size === 'md' ? 'lg xl' : 'md xl'}
       >
         {promptBoxProps => (
           <PromptBox {...promptBoxProps} onCopy={onCopy}>
@@ -151,7 +150,8 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
               ref={promptRef}
               as="div"
               monospace
-              size="sm"
+              size={size}
+              density={size === 'md' ? 'comfortable' : undefined}
               tabIndex={tabIndex}
               textWrap="wrap"
               onBlur={() => setIsPromptSelected(false)}
@@ -179,11 +179,6 @@ export function HandoffPromptBox<Flow extends AgentHandoffFlow>({
                 ),
               })}
             </PromptText>
-            {topRightAction && (
-              <Container position="absolute" top="8px" right="8px">
-                {topRightAction}
-              </Container>
-            )}
           </PromptBox>
         )}
       </Container>
