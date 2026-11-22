@@ -77,6 +77,10 @@ function setupMocks() {
     body: [],
   });
   MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
+  MockApiClient.addMockResponse({
+    url: '/organizations/org-slug/dashboards/starred/',
+    body: [],
+  });
 
   // Simulate a mobile viewport — matchMedia returns true for the mobile breakpoint query
   mockMatchMedia(true);

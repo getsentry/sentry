@@ -22,12 +22,11 @@ describe('DashboardsSecondaryNavigation', () => {
     });
 
     MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/dashboards/`,
+      url: `/organizations/${organization.slug}/dashboards/starred/`,
       body: [
         DashboardListItemFixture({id: '9999', title: 'Dashboard 9999'}),
         DashboardListItemFixture({id: '1', title: 'Dashboard 1'}),
       ],
-      match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });
   });
 
@@ -79,24 +78,12 @@ describe('DashboardsSecondaryNavigation', () => {
     expect(screen.queryByRole('link', {name: 'Sentry Built'})).not.toBeInTheDocument();
   });
 
-  it('renders a reorderable starred list when dashboards-starred is enabled', async () => {
-    const starredOrganization = OrganizationFixture({
-      features: ['dashboards-prebuilt-insights-dashboards', 'dashboards-starred'],
-    });
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/${starredOrganization.slug}/dashboards/starred/`,
-      body: [
-        DashboardListItemFixture({id: '9999', title: 'Dashboard 9999'}),
-        DashboardListItemFixture({id: '1', title: 'Dashboard 1'}),
-      ],
-    });
-
+  it('renders a reorderable starred list', async () => {
     render(
       <SecondaryNavigationContextProvider>
         <DashboardsSecondaryNavigation />
       </SecondaryNavigationContextProvider>,
-      {organization: starredOrganization}
+      {organization}
     );
 
     expect(await screen.findByText('Dashboard 9999')).toBeInTheDocument();

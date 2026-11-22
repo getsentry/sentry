@@ -40,9 +40,8 @@ describe('useRenameDashboard', () => {
       body: {id: '1', title: 'Renamed Dashboard'},
     });
     const starredMock = MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/dashboards/',
+      url: '/organizations/org-slug/dashboards/starred/',
       body: [],
-      match: [MockApiClient.matchQuery({filter: 'onlyFavorites'})],
     });
 
     const {result} = renderHookWithProviders(

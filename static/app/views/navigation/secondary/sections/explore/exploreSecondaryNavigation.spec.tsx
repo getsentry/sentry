@@ -16,6 +16,10 @@ describe('ExploreSecondaryNavigation', () => {
       body: [],
     });
     MockApiClient.addMockResponse({url: '/organizations/org-slug/dashboards/', body: []});
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/dashboards/starred/',
+      body: [],
+    });
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/explore/all-queries/',

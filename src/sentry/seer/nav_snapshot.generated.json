@@ -969,7 +969,6 @@
     ],
     "flags": [
       "dashboards-prebuilt-insights-dashboards",
-      "dashboards-starred",
       "dashboards-user-last-visited",
       "discover-basic",
       "explore-errors",
