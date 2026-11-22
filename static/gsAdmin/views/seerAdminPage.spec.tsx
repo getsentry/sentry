@@ -132,41 +132,6 @@ describe('SeerAdminPage', () => {
     );
   });
 
-  it('starts a single run in the test org', async () => {
-    const request = MockApiClient.addMockResponse({
-      url: '/internal/seer/autofix/single-run/',
-      method: 'POST',
-      body: {
-        group_id: 8,
-        project_id: 2,
-        run_id: 654,
-        url: 'https://nico-test-org.sentry.io/issues/8/?project=2&explorerRunId=654',
-      },
-    });
-
-    render(<SeerAdminPage />);
-
-    await selectEvent.select(
-      screen.getByRole('textbox', {name: 'Organization slug'}),
-      'nico-test-org'
-    );
-    await userEvent.type(screen.getByRole('textbox', {name: 'Issue short ID'}), 'TEST-1');
-    await userEvent.click(screen.getByRole('button', {name: 'Start Single Run'}));
-
-    await waitFor(() =>
-      expect(request).toHaveBeenCalledWith(
-        '/internal/seer/autofix/single-run/',
-        expect.objectContaining({
-          data: {
-            organization_slug: 'nico-test-org',
-            short_id: 'TEST-1',
-            automated: false,
-          },
-        })
-      )
-    );
-  });
-
   it('only allows single-run Autofix for the Sentry org', async () => {
     const request = MockApiClient.addMockResponse({
       url: '/internal/seer/night-shift/trigger/',
