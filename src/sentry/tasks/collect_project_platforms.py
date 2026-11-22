@@ -10,6 +10,9 @@ from sentry.models.projectplatform import ProjectPlatform
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.taskworker.namespaces import issues_tasks
+from sentry.utils.query import bulk_delete_objects
+
+STALE_PLATFORM_DELETE_BATCH_SIZE = 1000
 
 
 def paginate_project_ids(paginate: int) -> Iterator[list[int]]:
@@ -56,5 +59,10 @@ def collect_project_platforms(paginate: int = 1000, **kwargs: object) -> None:
                 project_id=project_id, platform=platform, defaults={"last_seen": now}
             )
 
-    # remove (likely) unused platform associations
-    ProjectPlatform.objects.filter(last_seen__lte=now - timedelta(days=90)).delete()
+    # Remove (likely) unused platform associations in small batches. A single unbounded
+    # delete holds row locks and churns the table while request paths read from it.
+    cutoff = now - timedelta(days=90)
+    while bulk_delete_objects(
+        ProjectPlatform, limit=STALE_PLATFORM_DELETE_BATCH_SIZE, last_seen__lte=cutoff
+    ):
+        pass
