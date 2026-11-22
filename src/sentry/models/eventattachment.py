@@ -213,6 +213,7 @@ class EventAttachment(EventAttachmentBase):
         indexes = (
             models.Index(fields=("project_id", "date_added")),
             models.Index(fields=("project_id", "event_id")),
+            models.Index(fields=("group_id", "type")),
         )
 
     __repr__ = sane_repr("event_id", "name")

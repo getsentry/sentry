@@ -2426,8 +2426,11 @@ def filter_attachments_for_group(attachments: list[Attachment], job: Job) -> lis
     # Check if we have exceeded the stored crash reports count. If so, we
     # persist the current maximum (not the actual number!) into the cache. Next
     # time when loading from the cache, we will validate that this number has
-    # not changed, or otherwise re-fetch from the database.
-    if crashreports_exceeded(stored_reports, max_crashreports) and stored_reports > cached_reports:
+    # not changed, or otherwise re-fetch from the database. The cache is written
+    # every time the limit is reached, not only when it is first crossed, so that
+    # it is refilled after it expires instead of querying the database for every
+    # subsequent crash report.
+    if max_crashreports > 0 and crashreports_exceeded(stored_reports, max_crashreports):
         cache.set(crashreports_key, max_crashreports, CRASH_REPORT_TIMEOUT)
 
     if refund_quantity:

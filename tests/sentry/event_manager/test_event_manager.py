@@ -61,7 +61,11 @@ from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
-from sentry.models.eventattachment import EventAttachment, PendingEventAttachment
+from sentry.models.eventattachment import (
+    EventAttachment,
+    PendingEventAttachment,
+    get_crashreport_key,
+)
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.grouphash import GroupHash
@@ -2633,6 +2637,34 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         for o in mock_track_outcome.mock_calls[1:]:
             assert o.kwargs["outcome"] == Outcome.ACCEPTED
+
+    def test_crash_report_limit_cache_is_rewritten_after_expiry(self) -> None:
+        # Allow exactly one crash report
+        self.project.update_option("sentry:store_crash_reports", 1)
+        attachment = CachedAttachment(name="a1", data=b"hello", type="event.minidump")
+
+        def save_event(event_id: str) -> Event:
+            manager = EventManager(
+                make_event(message="foo", event_id=event_id, fingerprint=["a" * 32]),
+                project=self.project,
+            )
+            manager.normalize()
+            cache_key = cache_key_for_event(manager.get_data())
+            attachment_cache.set(cache_key, attachments=[attachment], timeout=300)
+            with self.feature("organizations:event-attachments"), self.tasks():
+                return manager.save(self.project.id, cache_key=cache_key, attachments=[attachment])
+
+        event = save_event("a" * 32)
+        crashreports_key = get_crashreport_key(event.group_id)
+        assert cache.get(crashreports_key) == 1
+
+        # Simulate the cache entry expiring while the group is already at the limit.
+        cache.delete(crashreports_key)
+
+        # The limit is reached again on the next crash report, so the cache must be
+        # refilled instead of hitting the database for every following crash report.
+        save_event("b" * 32)
+        assert cache.get(crashreports_key) == 1
 
     def test_event_accepted_outcome(self) -> None:
         manager = EventManager(make_event(message="foo"))
