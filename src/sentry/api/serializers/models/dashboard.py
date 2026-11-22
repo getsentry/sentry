@@ -10,7 +10,6 @@ import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 from django.db.models import prefetch_related_objects
 
-from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.apidocs.descriptions import ApiDescription
 from sentry.discover.arithmetic import get_equation_alias_index, is_equation, is_equation_alias
@@ -684,20 +683,13 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
         item_dict = {i.id: i for i in item_list}
         prefetch_related_objects(item_list, "projects__organization")
 
-        context = cast("Mapping[str, Any]", kwargs.get("context") or {})
-        organization = context.get("organization")
-        use_user_last_visited = organization is not None and features.has(
-            "organizations:dashboards-user-last-visited", organization, actor=user
-        )
-        user_last_visited_map: dict[int, datetime] = {}
-        if use_user_last_visited:
-            user_last_visited_map = {
-                dlv.dashboard_id: dlv.last_visited
-                for dlv in DashboardLastVisited.objects.filter(
-                    user_id=cast("str | int", user.id),
-                    dashboard_id__in=item_dict.keys(),
-                )
-            }
+        user_last_visited_map: dict[int, datetime] = {
+            dlv.dashboard_id: dlv.last_visited
+            for dlv in DashboardLastVisited.objects.filter(
+                user_id=cast("str | int", user.id),
+                dashboard_id__in=item_dict.keys(),
+            )
+        }
 
         widgets = DashboardWidget.objects.filter(dashboard_id__in=item_dict.keys()).order_by("id")
 
@@ -762,12 +754,7 @@ class DashboardListSerializer(Serializer, DashboardFiltersMixin):
             result[dashboard]["permissions"] = serialize(permission)
 
         for dashboard in item_dict.values():
-            # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
-            if use_user_last_visited:
-                result[dashboard]["last_visited"] = user_last_visited_map.get(dashboard.id)
-            else:
-                result[dashboard]["last_visited"] = dashboard.last_visited
-
+            result[dashboard]["last_visited"] = user_last_visited_map.get(dashboard.id)
             result[dashboard]["created_by"] = serialized_users.get(str(dashboard.created_by_id))
             result[dashboard]["is_favorited"] = dashboard.id in favorited_dashboard_ids
 

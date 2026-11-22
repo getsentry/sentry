@@ -283,14 +283,8 @@ class OrganizationDashboardVisitEndpoint(OrganizationDashboardBase):
         dashboard.last_visited = timezone.now()
         dashboard.save(update_fields=["visits", "last_visited"])
 
-        # TODO: Only keep the last_visited per user logic once `dashboards-user-last-visited` is fully rolled out
         user_id = acting_user_id(request.user)
-        if (
-            features.has(
-                "organizations:dashboards-user-last-visited", organization, actor=request.user
-            )
-            and user_id is not None
-        ):
+        if user_id is not None:
             DashboardLastVisited.objects.update_or_create(
                 user_id=user_id,
                 dashboard=dashboard,
