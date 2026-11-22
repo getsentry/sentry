@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -26,7 +25,6 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -80,9 +78,6 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         """
         Returns the values and aggregate details of a given tag key related to an issue.
         """
-        if not TAG_KEY_RE.match(key):
-            raise ParseError(detail=f'Invalid tag key format for "{key}"')
-
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
         try:

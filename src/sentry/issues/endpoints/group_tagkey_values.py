@@ -1,5 +1,4 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -27,7 +26,6 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
-from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -92,9 +90,6 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
                 endpoint="sentry.api.endpoints.group_tagkey_values.get",
             )
         )
-        if not TAG_KEY_RE.match(key):
-            raise ParseError(detail=f'Invalid tag key format for "{key}"')
-
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
