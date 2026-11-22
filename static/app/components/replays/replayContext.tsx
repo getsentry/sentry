@@ -278,6 +278,16 @@ export function Provider({
     setIsPlaying(false);
   }, [getCurrentPlayerTime]);
 
+  // Cancel a pending deferred seek. Must be called whenever the replayer is
+  // replaced or destroyed, otherwise the queued `play(time)`/`pause(time)`
+  // makes rrweb rebuild a full snapshot into a document that is being torn down.
+  const clearPlayTimer = useCallback(() => {
+    if (playTimer.current) {
+      window.clearTimeout(playTimer.current);
+      playTimer.current = undefined;
+    }
+  }, []);
+
   const privateSetCurrentTime = useCallback(
     (requestedTimeMs: number) => {
       const replayer = replayerRef.current;
@@ -302,21 +312,33 @@ export function Provider({
 
       // Clear previous timers. Without this (but with the setTimeout) multiple
       // requests to set the currentTime could finish out of order and cause jumping.
-      if (playTimer.current) {
-        window.clearTimeout(playTimer.current);
-      }
+      clearPlayTimer();
 
       replayer.setConfig({skipInactive});
 
+      // Only seek if this replayer is still the active one. A replayer that has
+      // since been replaced or destroyed may no longer own a live iframe.
+      const isCurrentReplayer = () => replayerRef.current === replayer;
+
       if (isPlaying) {
-        playTimer.current = window.setTimeout(() => replayer.play(time), 0);
+        playTimer.current = window.setTimeout(() => {
+          playTimer.current = undefined;
+          if (isCurrentReplayer()) {
+            replayer.play(time);
+          }
+        }, 0);
         setIsPlaying(true);
       } else {
-        playTimer.current = window.setTimeout(() => replayer.pause(time), 0);
+        playTimer.current = window.setTimeout(() => {
+          playTimer.current = undefined;
+          if (isCurrentReplayer()) {
+            replayer.pause(time);
+          }
+        }, 0);
         setIsPlaying(false);
       }
     },
-    [startTimeOffsetMs, durationMs, getCurrentPlayerTime, isPlaying]
+    [startTimeOffsetMs, durationMs, getCurrentPlayerTime, isPlaying, clearPlayTimer]
   );
 
   const setCurrentTime = useCallback(
@@ -381,6 +403,7 @@ export function Provider({
       // ReplayLoadingState sits above ReplayContext and its error handling
       // gates player initialization, would make this guard unnecessary.
       if (events.length < 2) {
+        clearPlayTimer();
         replayerRef.current?.destroy();
         replayerRef.current = null;
         return;
@@ -397,7 +420,11 @@ export function Provider({
         }
 
         // We have new events, need to clear out the old iframe because a new
-        // `Replayer` instance is about to be created
+        // `Replayer` instance is about to be created. Destroy the old instance
+        // too, so its timer and any pending seek can't touch the removed iframe.
+        clearPlayTimer();
+        replayerRef.current.destroy();
+        replayerRef.current = null;
         while (root.firstChild) {
           root.removeChild(root.firstChild);
         }
@@ -440,6 +467,7 @@ export function Provider({
     },
     [
       applyInitialOffset,
+      clearPlayTimer,
       events,
       hasNewEvents,
       isFetching,
@@ -634,11 +662,12 @@ export function Provider({
   useEffect(() => {
     return () => {
       if (rootEl && replayerRef.current) {
+        clearPlayTimer();
         replayerRef.current.destroy();
         replayerRef.current = null;
       }
     };
-  }, [rootEl]);
+  }, [rootEl, clearPlayTimer]);
 
   const restart = useCallback(() => {
     if (replayerRef.current) {
