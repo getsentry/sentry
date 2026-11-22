@@ -68,7 +68,6 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
             autoReloadEnabled={false}
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -91,7 +90,6 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.75}
             remaining={250}
-            total={1000}
             autoReloadEnabled
             hasEnoughCredits
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -116,7 +114,6 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
             autoReloadEnabled
             hasEnoughCredits={false}
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -140,7 +137,6 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
           <SeerCreditUsageMeterView
             percentUsed={0.95}
             remaining={50}
-            total={1000}
             autoReloadEnabled={false}
             hasEnoughCredits={false}
             configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/`}
@@ -173,7 +169,6 @@ export default Storybook.story('SeerCreditUsageMeter', story => {
                 <SeerCreditUsageMeterView
                   percentUsed={percentUsed}
                   remaining={Math.round((1 - percentUsed) * 1000)}
-                  total={1000}
                   autoReloadEnabled={false}
                   hasEnoughCredits={hasEnoughCredits}
                   configureAutoReloadTo={configureAutoReloadTo}

@@ -165,6 +165,10 @@ describe('useChartLayers', () => {
         url: `/organizations/${annotationsOrganization.slug}/releases/stats/`,
         body: releases,
       });
+      MockApiClient.addMockResponse({
+        url: `/organizations/${annotationsOrganization.slug}/releases/`,
+        body: [],
+      });
       flagLogRequest = MockApiClient.addMockResponse({
         url: `/organizations/${annotationsOrganization.slug}/flags/logs/`,
         body: {data: flags},

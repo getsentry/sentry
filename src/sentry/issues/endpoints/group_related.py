@@ -26,6 +26,10 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.related.combine import combine
 from sentry.issues.related.contributing import CONTRIBUTING_DESCRIPTION, contributing_issues
+from sentry.issues.related.same_supergroup import (
+    SAME_SUPERGROUP_DESCRIPTION,
+    same_supergroup_issues,
+)
 from sentry.issues.related.same_title import SAME_TITLE_DESCRIPTION, same_title_issues
 from sentry.issues.related.same_trace import SAME_TRACE_DESCRIPTION, same_trace_issues
 from sentry.issues.related.similar_stacktrace import (
@@ -59,6 +63,7 @@ TYPE_DESCRIPTIONS = [
     (RelationType.SAME_TRACE.value, SAME_TRACE_DESCRIPTION),
     (RelationType.CONTRIBUTING.value, CONTRIBUTING_DESCRIPTION),
     (RelationType.SAME_TITLE.value, SAME_TITLE_DESCRIPTION),
+    (RelationType.SAME_SUPERGROUP.value, SAME_SUPERGROUP_DESCRIPTION),
 ]
 
 
@@ -160,6 +165,10 @@ class GroupRelatedEndpoint(GroupEndpoint):
             results[RelationType.CONTRIBUTING] = contributing_issues(ctx)
         if not requested_types or RelationType.SAME_TITLE in requested_types:
             results[RelationType.SAME_TITLE] = same_title_issues(ctx)
+        if not requested_types or RelationType.SAME_SUPERGROUP in requested_types:
+            results[RelationType.SAME_SUPERGROUP] = same_supergroup_issues(
+                ctx, _readable_projects(request, group.project.organization_id)
+            )
 
         if all(
             result.meta["status"] == RelationTypeStatus.UNAVAILABLE for result in results.values()

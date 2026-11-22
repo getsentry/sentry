@@ -1705,11 +1705,22 @@ describe('desktop navigation', () => {
       });
 
       it('updates the unread count after reading, removing, and restoring inbox items', async () => {
-        const firstItem = InboxItemFixture({title: 'First issue'});
+        const firstItem = InboxItemFixture({
+          subject: {
+            id: '1',
+            type: 'issue',
+            title: 'First issue',
+            metadata: {shortId: 'PROJECT-1', project: {id: '1', slug: 'project'}},
+          },
+        });
         const secondItem = InboxItemFixture({
           id: '2',
-          subjectId: '2',
-          title: 'Second issue',
+          subject: {
+            id: '2',
+            type: 'issue',
+            title: 'Second issue',
+            metadata: {shortId: 'PROJECT-2', project: {id: '1', slug: 'project'}},
+          },
         });
         MockApiClient.addMockResponse({
           url: '/organizations/org-slug/inbox/',

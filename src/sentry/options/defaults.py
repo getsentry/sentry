@@ -1384,6 +1384,13 @@ register(
     default=True,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 
 # Enable sending the flag to the microservice to tell it to purposefully take longer than our
@@ -4103,13 +4110,6 @@ register(
     "workflow_engine.max_workflows_per_org",
     type=Int,
     default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,

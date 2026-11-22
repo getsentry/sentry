@@ -14,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {sampleDurationTimeSeries} from './fixtures/sampleDurationTimeSeries';
 import {sampleThroughputTimeSeries} from './fixtures/sampleThroughputTimeSeries';
 import {Line} from './plottables/line';
+import {LOW_CONFIDENCE_OPACITY} from './settings';
 import {TimeSeriesWidgetVisualization} from './timeSeriesWidgetVisualization';
 
 jest.mock('sentry/components/charts/baseChart', () => {
@@ -161,17 +162,17 @@ describe('TimeSeriesWidgetVisualization', () => {
       ),
     ];
 
-    function plottedLineStyles() {
+    function plottedLineOpacities() {
       const {series} = jest.mocked(BaseChart).mock.calls.at(-1)![0];
       return series?.map(item =>
-        'lineStyle' in item ? item.lineStyle?.type : undefined
+        'lineStyle' in item ? item.lineStyle?.opacity : undefined
       );
     }
 
     it('does not mark low-confidence buckets by default', () => {
       render(<TimeSeriesWidgetVisualization plottables={lowConfidencePlottables} />);
 
-      expect(plottedLineStyles()).not.toContain('dashed');
+      expect(plottedLineOpacities()).not.toContain(LOW_CONFIDENCE_OPACITY);
     });
 
     it('marks low-confidence buckets with showConfidence', () => {
@@ -182,7 +183,7 @@ describe('TimeSeriesWidgetVisualization', () => {
         />
       );
 
-      expect(plottedLineStyles()).toContain('dashed');
+      expect(plottedLineOpacities()).toContain(LOW_CONFIDENCE_OPACITY);
     });
   });
 });
