@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,6 +11,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environment_id
 from sentry.api.serializers import serialize
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -24,6 +26,7 @@ from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.types import TagKeySerializer, TagKeySerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -77,6 +80,9 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
         """
         Returns the values and aggregate details of a given tag key related to an issue.
         """
+        if not TAG_KEY_RE.match(key):
+            raise ParseError(detail=f'Invalid tag key format for "{key}"')
+
         lookup_key = tagstore.backend.prefix_reserved_key(key)
         tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
         try:
@@ -85,30 +91,31 @@ class GroupTagKeyDetailsEndpoint(GroupEndpoint):
             # if the environment doesn't exist then the tag can't possibly exist
             raise ResourceDoesNotExist
 
-        try:
-            group_tag_key = tagstore.backend.get_group_tag_key(
-                group,
-                environment_id,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
-        except tagstore.GroupTagKeyNotFound:
-            raise ResourceDoesNotExist
+        with handle_query_errors():
+            try:
+                group_tag_key = tagstore.backend.get_group_tag_key(
+                    group,
+                    environment_id,
+                    lookup_key,
+                    tenant_ids=tenant_ids,
+                )
+            except tagstore.GroupTagKeyNotFound:
+                raise ResourceDoesNotExist
 
-        if group_tag_key.count is None:
-            group_tag_key.count = tagstore.backend.get_group_tag_value_count(
-                group,
-                environment_id,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
+            if group_tag_key.count is None:
+                group_tag_key.count = tagstore.backend.get_group_tag_value_count(
+                    group,
+                    environment_id,
+                    lookup_key,
+                    tenant_ids=tenant_ids,
+                )
 
-        if group_tag_key.top_values is None:
-            group_tag_key.top_values = tagstore.backend.get_top_group_tag_values(
-                group,
-                environment_id,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
+            if group_tag_key.top_values is None:
+                group_tag_key.top_values = tagstore.backend.get_top_group_tag_values(
+                    group,
+                    environment_id,
+                    lookup_key,
+                    tenant_ids=tenant_ids,
+                )
 
         return Response(serialize(group_tag_key, request.user, serializer=TagKeySerializer()))

@@ -1,4 +1,5 @@
 from drf_spectacular.utils import extend_schema
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -12,6 +13,7 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.tagvalue import UserTagValueSerializer
+from sentry.api.utils import handle_query_errors
 from sentry.apidocs.constants import (
     RESPONSE_BAD_REQUEST,
     RESPONSE_FORBIDDEN,
@@ -25,6 +27,7 @@ from sentry.constants import CELL_API_DEPRECATION_DATE
 from sentry.issues.endpoints.bases.group import GroupEndpoint
 from sentry.models.group import Group
 from sentry.ratelimits.config import RateLimitConfig
+from sentry.tagstore.base import TAG_KEY_RE
 from sentry.tagstore.types import TagValueSerializerResponse
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 
@@ -89,19 +92,23 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
                 endpoint="sentry.api.endpoints.group_tagkey_values.get",
             )
         )
+        if not TAG_KEY_RE.match(key):
+            raise ParseError(detail=f'Invalid tag key format for "{key}"')
+
         lookup_key = tagstore.backend.prefix_reserved_key(key)
 
         environment_ids = [e.id for e in get_environments(request, group.project.organization)]
         tenant_ids: dict[str, int | str] = {"organization_id": group.project.organization_id}
-        try:
-            tagstore.backend.get_group_tag_key(
-                group,
-                None,
-                lookup_key,
-                tenant_ids=tenant_ids,
-            )
-        except tagstore.GroupTagKeyNotFound:
-            raise ResourceDoesNotExist
+        with handle_query_errors():
+            try:
+                tagstore.backend.get_group_tag_key(
+                    group,
+                    None,
+                    lookup_key,
+                    tenant_ids=tenant_ids,
+                )
+            except tagstore.GroupTagKeyNotFound:
+                raise ResourceDoesNotExist
         sort = request.GET.get("sort")
         if sort == "date":
             order_by = "-last_seen"
@@ -125,8 +132,9 @@ class GroupTagKeyValuesEndpoint(GroupEndpoint):
             tenant_ids=tenant_ids,
         )
 
-        return self.paginate(
-            request=request,
-            paginator=paginator,
-            on_results=lambda results: serialize(results, request.user, serializer_cls),
-        )
+        with handle_query_errors():
+            return self.paginate(
+                request=request,
+                paginator=paginator,
+                on_results=lambda results: serialize(results, request.user, serializer_cls),
+            )

@@ -354,3 +354,12 @@ class GroupTagKeyValuesTest(APITestCase, SnubaTestCase, PerformanceIssueTestCase
                 endpoint="sentry.api.endpoints.group_tagkey_values.get",
             ),
         )
+
+    def test_invalid_tag_key(self) -> None:
+        group = self.create_group(project=self.project)
+        self.login_as(user=self.user)
+
+        url = f"/api/0/organizations/{self.organization.slug}/issues/{group.id}/tags/mac%20catalyst%20app.name/values/"
+        response = self.client.get(url, format="json")
+        assert response.status_code == 400, response.content
+        assert "Invalid tag key format" in response.data["detail"]
