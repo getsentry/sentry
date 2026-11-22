@@ -51,6 +51,8 @@ import type {
 import {PREBUILT_DASHBOARD_LABEL} from 'sentry/views/dashboards/types';
 import {checkUserHasEditAccess} from 'sentry/views/dashboards/utils/checkUserHasEditAccess';
 
+import {DEFAULT_SORT} from './settings';
+
 type Props = {
   dashboards: DashboardListItem[] | undefined;
   isOnlyPrebuilt: boolean;
@@ -242,47 +244,26 @@ export function DashboardTable({
 
       updateEditAccess(dashboardCopy);
     };
-  const hasUserLastVisited = organization.features.includes(
-    'dashboards-user-last-visited'
-  );
-
-  // TODO: When `dashboards-user-last-visited` is fully rolled out, delete the
-  // flag-off `columnOrder` branch below, the `createdBy` SortKeys entry and its
-  // special case in `getColumnSort`, and the `mydashboards` default/fallback.
-  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = hasUserLastVisited
-    ? [
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        ...(isOnlyPrebuilt
-          ? [
-              {
-                key: ResponseKeys.DESCRIPTION,
-                name: t('Description'),
-                width: COL_WIDTH_UNDEFINED,
-              },
-            ]
-          : []),
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        ...(isOnlyPrebuilt
-          ? []
-          : [{key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED}]),
-        ...(isOnlyPrebuilt
-          ? []
-          : [
-              {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-            ]),
-        {
-          key: ResponseKeys.LAST_VISITED,
-          name: t('Last Visited'),
-          width: COL_WIDTH_UNDEFINED,
-        },
-      ]
-    : [
-        // Legacy layout; delete this when hasUserLastVisited is cleaned up
-        {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
-        {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
-      ];
+  const columnOrder: Array<GridColumnOrder<ResponseKeys>> = [
+    {key: ResponseKeys.NAME, name: t('Name'), width: COL_WIDTH_UNDEFINED},
+    ...(isOnlyPrebuilt
+      ? [
+          {
+            key: ResponseKeys.DESCRIPTION,
+            name: t('Description'),
+            width: COL_WIDTH_UNDEFINED,
+          },
+        ]
+      : []),
+    {key: ResponseKeys.WIDGETS, name: t('Widgets'), width: COL_WIDTH_UNDEFINED},
+    ...(isOnlyPrebuilt
+      ? []
+      : [
+          {key: ResponseKeys.OWNER, name: t('Owner'), width: COL_WIDTH_UNDEFINED},
+          {key: ResponseKeys.CREATED, name: t('Created'), width: COL_WIDTH_UNDEFINED},
+        ]),
+    {key: ResponseKeys.LAST_VISITED, name: t('Last Visited'), width: COL_WIDTH_UNDEFINED},
+  ];
 
   function getColumnSort(column: GridColumnOrder<string>): GridColumnSort | undefined {
     if (!(column.key in SortKeys)) {
@@ -290,10 +271,7 @@ export function DashboardTable({
     }
 
     const sortKey = SortKeys[column.key as keyof typeof SortKeys];
-    const urlSort = decodeScalar(
-      location.query.sort,
-      hasUserLastVisited ? 'recentlyViewed' : 'mydashboards'
-    );
+    const urlSort = decodeScalar(location.query.sort, DEFAULT_SORT);
     const currentDirection =
       urlSort === sortKey.asc ? 'asc' : urlSort === sortKey.desc ? 'desc' : undefined;
     const isCurrentSort = currentDirection !== undefined;
@@ -354,8 +332,6 @@ export function DashboardTable({
       );
     }
 
-    // TODO: only last visited will show renderActions. Delete ternary below
-    // when hasUserLastVisited is cleaned up.
     if (column.key === ResponseKeys.CREATED) {
       return (
         <Flex justify="between" align="center" gap="3xl">
@@ -368,21 +344,11 @@ export function DashboardTable({
               <DateStatus />
             )}
           </DateSelected>
-          {hasUserLastVisited ? undefined : (
-            <DashboardRowActions
-              dashboard={dataRow}
-              onChangeEditAccess={handleChangeEditAccess(dataRow)}
-              onDelete={handleDeleteDashboard}
-              onDuplicate={handleDuplicateDashboard}
-              onRename={onDashboardsChange}
-              organization={organization}
-            />
-          )}
         </Flex>
       );
     }
 
-    if (column.key === ResponseKeys.LAST_VISITED && hasUserLastVisited) {
+    if (column.key === ResponseKeys.LAST_VISITED) {
       return (
         <Flex justify="between" align="center" gap="3xl">
           <DateSelected>
@@ -406,7 +372,7 @@ export function DashboardTable({
       );
     }
 
-    if (column.key === ResponseKeys.DESCRIPTION && hasUserLastVisited) {
+    if (column.key === ResponseKeys.DESCRIPTION) {
       return <Text ellipsis>{dataRow.description}</Text>;
     }
 

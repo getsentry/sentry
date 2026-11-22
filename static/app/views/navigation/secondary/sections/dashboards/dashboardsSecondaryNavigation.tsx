@@ -11,7 +11,6 @@ import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
 import {useUser} from 'sentry/utils/useUser';
 import {useGetStarredDashboards} from 'sentry/views/dashboards/hooks/useGetStarredDashboards';
-import {DEFAULT_PREBUILT_SORT} from 'sentry/views/dashboards/manage/settings';
 import {getIsOnlyPrebuilt} from 'sentry/views/dashboards/manage/utils/getIsOnlyPrebuilt';
 import {
   CUSTOM_DASHBOARD_LABEL,
@@ -36,9 +35,6 @@ function DashboardsSecondaryNavigationImpl() {
   const {data: starredDashboards = []} = useGetStarredDashboards();
   const hasPrebuiltDashboards = organization.features.includes(
     'dashboards-prebuilt-insights-dashboards'
-  );
-  const hasUserLastVisited = organization.features.includes(
-    'dashboards-user-last-visited'
   );
   const [urlFilter] = useQueryState(
     'filter',
@@ -86,11 +82,7 @@ function DashboardsSecondaryNavigationImpl() {
             {hasPrebuiltDashboards ? (
               <SecondaryNavigation.ListItem>
                 <SecondaryNavigation.Link
-                  to={
-                    hasUserLastVisited
-                      ? `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}`
-                      : `${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}&sort=${DEFAULT_PREBUILT_SORT}`
-                  }
+                  to={`${baseUrl}/?filter=${DashboardFilter.ONLY_PREBUILT}`}
                   isActive={isOnDashboardsList && isOnlyPrebuilt}
                   analyticsItemName="dashboards_sentry_built"
                 >
