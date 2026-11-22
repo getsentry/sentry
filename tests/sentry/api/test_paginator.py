@@ -620,6 +620,16 @@ class SequencePaginatorTestCase(SimpleTestCase):
         paginator = SequencePaginator([(i, i) for i in range(n)])
         assert paginator.get_result(5, count_hits=True).hits == n
 
+    def test_negative_offset(self) -> None:
+        paginator = SequencePaginator([(i, i) for i in range(10)])
+        for is_prev in (False, True):
+            with pytest.raises(BadPaginationError, match="offset cannot be negative"):
+                paginator.get_result(5, cursor=Cursor(0, -1, is_prev))
+
+    def test_zero_offset(self) -> None:
+        paginator = SequencePaginator([(i, i) for i in range(10)])
+        assert list(paginator.get_result(5, cursor=Cursor(0, 0, False))) == [0, 1, 2, 3, 4]
+
 
 class GenericOffsetPaginatorTest(SimpleTestCase):
     def test_simple(self) -> None:

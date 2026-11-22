@@ -511,7 +511,8 @@ class SequencePaginator[T]:
         if cursor is None:
             cursor = Cursor(0, 0, False)
 
-        assert cursor.offset > -1
+        if cursor.offset < 0:
+            raise BadPaginationError("Pagination offset cannot be negative")
 
         if cursor.value == 0:
             position = len(self.scores) if cursor.is_prev else 0
