@@ -6,7 +6,6 @@ from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
@@ -47,9 +46,6 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has("organizations:dashboards-starred", organization, actor=request.user)
-
     @extend_schema(
         operation_id="listOrganizationStarredDashboards",
         summary="List an Organization's Starred Custom Dashboards",
@@ -74,9 +70,6 @@ class OrganizationDashboardsStarredEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         user_id = require_user(request).id
         favorites = DashboardFavoriteUser.objects.get_favorite_dashboards(
@@ -115,9 +108,6 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
     owner = ApiOwner.DASHBOARDS
     permission_classes = (MemberPermission,)
 
-    def has_feature(self, organization: Organization, request: Request) -> bool:
-        return features.has("organizations:dashboards-starred", organization, actor=request.user)
-
     @extend_schema(
         operation_id="reorderOrganizationStarredDashboards",
         summary="Reorder an Organization's Starred Custom Dashboards",
@@ -141,9 +131,6 @@ class OrganizationDashboardsStarredOrderEndpoint(OrganizationEndpoint):
         """
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_400_BAD_REQUEST)
-
-        if not self.has_feature(organization, request):
-            return self.respond(status=status.HTTP_404_NOT_FOUND)
 
         serializer = DashboardStarredOrderSerializer(
             data=request.data, context={"organization": organization, "user": request.user}

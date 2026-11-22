@@ -459,10 +459,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         if not request.user.is_authenticated:
             return Response(status=status.HTTP_401_UNAUTHORIZED)
 
-        has_dashboards_starred = features.has(
-            "organizations:dashboards-starred", organization, actor=request.user
-        )
-
         if features.has(
             "organizations:dashboards-prebuilt-insights-dashboards",
             organization,
@@ -483,7 +479,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 sentry_sdk.capture_exception(err)
 
             user_id = acting_user_id(request.user)
-            if has_dashboards_starred and user_id is not None:
+            if user_id is not None:
                 try:
                     favorite_lock = locks.get(
                         f"dashboards:sync_prebuilt_dashboards_favorited:{organization.id}:{user_id}",
@@ -643,7 +639,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
                 if use_user_last_visited
                 else "-last_visited",
             ]
-        elif "onlyFavorites" in filters and has_dashboards_starred:
+        elif "onlyFavorites" in filters:
             favorite_dashboards = DashboardFavoriteUser.objects.get_favorite_dashboards(
                 organization, require_user(request).id
             ).filter(dashboard_id=OuterRef("id"))
