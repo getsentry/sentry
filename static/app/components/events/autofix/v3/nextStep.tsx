@@ -599,6 +599,11 @@ interface SingleRunHandoffDropdownProps {
   autofix: ReturnType<typeof useExplorerAutofix>;
   group: Group;
   runId: SeerExplorerRunId;
+  /**
+   * Shows the trigger as a labeled button instead of the chevron half of a
+   * split button.
+   */
+  label?: string;
 }
 
 /**
@@ -609,6 +614,7 @@ export function SingleRunHandoffDropdown({
   autofix,
   group,
   runId,
+  label,
 }: SingleRunHandoffDropdownProps) {
   const {codingAgentIntegrations, codingAgentDisabledReason, handleCodingAgentHandoff} =
     useCodingAgents({
@@ -629,6 +635,7 @@ export function SingleRunHandoffDropdown({
       disabledReason={codingAgentDisabledReason}
       isProcessing={autofix.isPolling}
       onHandoff={handleCodingAgentHandoff}
+      label={label}
     />
   );
 }
@@ -638,6 +645,7 @@ interface CodingAgentDropdownProps {
   isProcessing: boolean;
   onHandoff: (integration: CodingAgentIntegration) => void;
   disabledReason?: string;
+  label?: string;
 }
 
 function CodingAgentDropdown({
@@ -645,6 +653,7 @@ function CodingAgentDropdown({
   disabledReason,
   isProcessing,
   onHandoff,
+  label,
 }: CodingAgentDropdownProps) {
   const organization = useOrganization();
 
@@ -675,16 +684,23 @@ function CodingAgentDropdown({
     <DropdownMenu
       items={options}
       isDisabled={defined(disabledReason)}
-      trigger={(triggerProps, isOpen) => (
-        <OverlayTrigger.IconButton
-          {...triggerProps}
-          disabled={isProcessing || defined(disabledReason)}
-          tooltipProps={{title: disabledReason}}
-          variant="primary"
-          icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
-          aria-label={t('More code fix options')}
-        />
-      )}
+      trigger={(triggerProps, isOpen) => {
+        const buttonProps = {
+          ...triggerProps,
+          disabled: isProcessing || defined(disabledReason),
+          tooltipProps: {title: disabledReason},
+          variant: 'primary' as const,
+        };
+        return label ? (
+          <OverlayTrigger.Button {...buttonProps}>{label}</OverlayTrigger.Button>
+        ) : (
+          <OverlayTrigger.IconButton
+            {...buttonProps}
+            icon={<IconChevron direction={isOpen ? 'up' : 'down'} size="xs" />}
+            aria-label={t('More code fix options')}
+          />
+        );
+      }}
       position="bottom-end"
       shouldCloseOnBlur={false}
       menuFooter={

@@ -164,13 +164,40 @@ describe('SeerDrawerContent', () => {
       expect(mockOpenSeerExplorer).toHaveBeenCalledWith({runId: 776});
     });
 
-    it('disables Open Autofix while the chat is open on this run', () => {
+    it('shows only the hand-off while the chat is open on this run', async () => {
       mockIsOpen = true;
       mockChatRunId = 776;
       render(
         <SeerDrawerContent
           aiConfig={makeAiConfig()}
           autofix={makeAutofix({runState: singleRun})}
+          group={GroupFixture()}
+        />
+      );
+
+      expect(
+        await screen.findByRole('button', {name: 'Send to coding agent'})
+      ).toBeEnabled();
+      expect(
+        screen.queryByRole('button', {name: 'Open Autofix'})
+      ).not.toBeInTheDocument();
+      mockIsOpen = false;
+      mockChatRunId = null;
+    });
+
+    it('disables Open Autofix while the chat is open and there is no root cause yet', () => {
+      mockIsOpen = true;
+      mockChatRunId = 776;
+      render(
+        <SeerDrawerContent
+          aiConfig={makeAiConfig()}
+          autofix={makeAutofix({
+            runState: {
+              ...singleRun,
+              status: 'processing',
+              blocks: singleRun.blocks.map(block => ({...block, artifacts: []})),
+            },
+          })}
           group={GroupFixture()}
         />
       );
