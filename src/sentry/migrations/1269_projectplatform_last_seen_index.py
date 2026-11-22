@@ -27,6 +27,6 @@ class Migration(CheckedMigration):
     operations = [
         migrations.AddIndex(
             model_name="projectplatform",
-            index=models.Index(fields=["last_seen"], name="sentry_projectplatform_last_seen"),
+            index=models.Index(fields=["last_seen"], name="sentry_projplatform_last_seen"),
         ),
     ]

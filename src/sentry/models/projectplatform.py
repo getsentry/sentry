@@ -26,7 +26,7 @@ class ProjectPlatform(Model):
         unique_together = (("project_id", "platform"),)
         indexes = [
             # Used by the stale row cleanup in `collect_project_platforms`.
-            models.Index(fields=["last_seen"], name="sentry_projectplatform_last_seen"),
+            models.Index(fields=["last_seen"], name="sentry_projplatform_last_seen"),
         ]
 
     __repr__ = sane_repr("project_id", "platform")
