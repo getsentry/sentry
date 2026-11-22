@@ -2655,6 +2655,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 return manager.save(self.project.id, cache_key=cache_key, attachments=[attachment])
 
         event = save_event("a" * 32)
+        assert event.group_id is not None
         crashreports_key = get_crashreport_key(event.group_id)
         assert cache.get(crashreports_key) == 1
 
