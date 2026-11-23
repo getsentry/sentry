@@ -194,11 +194,6 @@ SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
-
-# Temp: INFRENG-1051, migrating monitors state between self-hosted and valkey Redis clusters
-# When set, system incident writes also go to this cluster.
-# This will get cleaned up as part of INFRENG-1053
-SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER: str | None = None
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
@@ -1986,6 +1981,9 @@ SENTRY_SCOPES = {
     "dashboard:read",
     "dashboard:write",
     "membership:read",
+    "membership:write",
+    "membership:invite",
+    "membership:admin",
     "saved_query:read",
     "saved_query:write",
     "seer:read",
@@ -2045,6 +2043,9 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     # and writes needs both scopes.
     "dashboard:write": {"dashboard:write"},
     "membership:read": {"membership:read"},
+    "membership:write": {"membership:write"},
+    "membership:invite": {"membership:invite"},
+    "membership:admin": {"membership:admin"},
     "saved_query:read": {"saved_query:read"},
     "saved_query:write": {"saved_query:write"},
     "seer:read": {"seer:read"},
@@ -2084,6 +2085,9 @@ GRANULAR_SCOPES = frozenset(
         "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
+        "membership:write",
+        "membership:invite",
+        "membership:admin",
     ]
 )
 
@@ -2113,6 +2117,30 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "membership:read",
             "user_preference:read",
             "user_preference:write",
+        ]
+    ),
+    # Membership scopes don't imply each other, and each endpoint method accepts only the one
+    # it needs. So each member scope translates to the membership scope of every method that
+    # accepts that member scope today, e.g. member:write can read and invite as well as write.
+    "member:invite": frozenset(["member:invite", "membership:invite"]),
+    # Starring and starred order accept member:write too, like member:read.
+    "member:write": frozenset(
+        [
+            "member:write",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "user_preference:read",
+            "user_preference:write",
+        ]
+    ),
+    "member:admin": frozenset(
+        [
+            "member:admin",
+            "membership:read",
+            "membership:invite",
+            "membership:write",
+            "membership:admin",
         ]
     ),
     # No granular replacements yet.
@@ -2181,7 +2209,12 @@ SENTRY_SCOPE_SETS = (
         ("dashboard:write", "Write access to dashboards."),
         ("dashboard:read", "Read access to dashboards."),
     ),
-    (("membership:read", "Read access to organization and team membership."),),
+    (
+        ("membership:admin", "Admin access to organization and team membership."),
+        ("membership:write", "Write access to organization and team membership."),
+        ("membership:read", "Read access to organization and team membership."),
+        ("membership:invite", "Invite access to organization membership."),
+    ),
     (
         ("saved_query:write", "Write access to saved queries."),
         ("saved_query:read", "Read access to saved queries."),

@@ -1,109 +1,185 @@
-import type {ESTree, Context, Visitor} from '@oxlint/plugins';
+import type {Context, ESTree, Visitor} from '@oxlint/plugins';
 
 import {createImportTracker} from '../tracker/imports.ts';
-import {createThemeTracker} from '../tracker/theme.ts';
+import {normalizePropertyName} from '../utils/normalizePropertyName.ts';
+import {getStyledCallInfo} from '../utils/styled.ts';
 
-import {createCssPropExtractor} from './cssProp.ts';
-import {createStyledExtractor} from './styled.ts';
-import {createStylePropExtractor} from './styleProp.ts';
-import type {ExtractorContext, StyleCollector, StyleDeclaration} from './types.ts';
+import {isDisabledByCssDirective, parseCssTemplate} from './css.ts';
 
-/**
- * @file Aggregates all style extractors and provides the collector factory.
- */
-
-/**
- * Lightweight regex pre-scan to detect if file needs style analysis.
- * Returns false if file has no emotion/styled patterns.
- * False positives are acceptable; we just want to skip clearly unrelated files.
- */
-export function shouldAnalyze(context: Readonly<Context>) {
-  const text = context.sourceCode.getText();
-
-  // Check for emotion imports OR usage patterns
-  // We check both because:
-  // - Files with imports but no usage are rare but possible (re-exports)
-  // - Files with usage but no direct import may get styled/css from elsewhere
-  const hasEmotionImport =
-    text.includes('@emotion/styled') || text.includes('@emotion/react');
-
-  const hasUsagePattern =
-    /\buseTheme\b/.test(text) || // useTheme hook
-    /\bstyled[.(`]/.test(text) || // styled.div, styled(, styled`
-    /\bcss[`({]/.test(text) || // css`, css(, css{
-    /\b(?:css|style)\s*=/.test(text); // css= or style= JSX attrs
-
-  return hasEmotionImport || hasUsagePattern;
+export interface TokenReference {
+  node: ESTree.MemberExpression;
+  tokenPath: string;
 }
 
-/**
- * Merge multiple visitor objects, combining handlers for same node types.
- */
-function mergeVisitors(...visitorObjects: Visitor[]) {
-  const merged: Visitor = {};
+const THEME_NAMES = new Set(['p', 't']);
 
-  for (const visitors of visitorObjects) {
-    for (const [nodeType, handler] of Object.entries(visitors)) {
-      if (!handler) {
+export function shouldAnalyze(context: Readonly<Context>) {
+  const text = context.sourceCode.getText();
+  return (
+    text.includes('@emotion/styled') ||
+    text.includes('@emotion/react') ||
+    /\b(?:css|style)\s*=/.test(text)
+  );
+}
+
+export function createStyleVisitors(
+  context: Context,
+  check: (property: string, token: TokenReference) => void
+): Visitor {
+  const importTracker = createImportTracker(context);
+  const themeCallbacks = new Set<ESTree.ArrowFunctionExpression>();
+
+  function isThemeBinding(node: ESTree.Node): boolean {
+    const definition = importTracker.resolveVariable(node)?.defs[0];
+    const declaration = definition?.node;
+    if (declaration?.type === 'ArrowFunctionExpression') {
+      return (
+        themeCallbacks.has(declaration) && declaration.params[0] === definition?.name
+      );
+    }
+    return (
+      declaration?.type === 'VariableDeclarator' &&
+      declaration.init?.type === 'CallExpression' &&
+      importTracker.is(declaration.init.callee, '@emotion/react', 'useTheme')
+    );
+  }
+
+  function findTokenReference(node: ESTree.MemberExpression): TokenReference | null {
+    const path: string[] = [];
+    let current: ESTree.Node = node;
+    while (
+      current.type === 'MemberExpression' &&
+      current.property.type === 'Identifier'
+    ) {
+      path.unshift(current.property.name);
+      current = current.object;
+    }
+    if (current.type === 'Identifier') {
+      path.unshift(current.name);
+    }
+    const tokensIndex = path.indexOf('tokens');
+    if (
+      tokensIndex === -1 ||
+      tokensIndex === path.length - 1 ||
+      !(
+        THEME_NAMES.has(path[0] ?? '') ||
+        path.includes('theme') ||
+        (current.type === 'Identifier' && isThemeBinding(current))
+      )
+    ) {
+      return null;
+    }
+    return {node, tokenPath: path.slice(tokensIndex + 1).join('.')};
+  }
+
+  function checkValue(property: string, node: ESTree.Node): void {
+    switch (node.type) {
+      case 'ConditionalExpression':
+        checkValue(property, node.consequent);
+        checkValue(property, node.alternate);
+        break;
+      case 'LogicalExpression':
+        checkValue(property, node.left);
+        checkValue(property, node.right);
+        break;
+      case 'TemplateLiteral':
+        for (const expression of node.expressions) {
+          checkValue(property, expression);
+        }
+        break;
+      case 'ArrowFunctionExpression':
+        if (node.expression) {
+          themeCallbacks.add(node);
+          checkValue(property, node.body);
+        }
+        break;
+      case 'MemberExpression': {
+        const token = findTokenReference(node);
+        if (token) {
+          check(property, token);
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }
+
+  function checkObject(node: ESTree.ObjectExpression) {
+    for (const property of node.properties) {
+      if (
+        property.type !== 'Property' ||
+        (property.computed && property.key.type !== 'Literal')
+      ) {
         continue;
       }
-      const existing = merged[nodeType] as ((node: ESTree.Node) => void) | undefined;
-      if (existing) {
-        merged[nodeType] = (node: ESTree.Node) => {
-          existing(node);
-          (handler as (node: ESTree.Node) => void)(node);
-        };
-      } else {
-        merged[nodeType] = handler;
+      const name =
+        property.key.type === 'Identifier'
+          ? property.key.name
+          : property.key.type === 'Literal'
+            ? String(property.key.value)
+            : '';
+      if (name) {
+        checkValue(normalizePropertyName(name), property.value);
       }
     }
   }
 
-  return merged;
-}
-
-/**
- * Creates a style collector that aggregates declarations from all extractors.
- */
-export function createStyleCollector(context: Context) {
-  const declarations: StyleDeclaration[] = [];
-
-  const collector: StyleCollector = {
-    add(decl) {
-      declarations.push(decl);
+  return {
+    TaggedTemplateExpression(node) {
+      if (!getStyledCallInfo(node, importTracker)) {
+        return;
+      }
+      const declarations =
+        parseCssTemplate(node.quasi, context.sourceCode.getText(node.quasi)) ?? [];
+      for (const declaration of declarations) {
+        if (isDisabledByCssDirective(declaration, context.id)) {
+          continue;
+        }
+        for (const {expression} of declaration.interpolations) {
+          checkValue(declaration.name, expression);
+        }
+      }
     },
-    getAll() {
-      return declarations;
+
+    CallExpression(node) {
+      const [argument] = node.arguments;
+      if (
+        argument?.type === 'ObjectExpression' &&
+        getStyledCallInfo(node, importTracker)
+      ) {
+        checkObject(argument);
+      }
     },
-    clear() {
-      declarations.length = 0;
+
+    JSXAttribute(node) {
+      if (node.value?.type !== 'JSXExpressionContainer') {
+        return;
+      }
+      const {expression} = node.value;
+      if (node.name.name === 'style') {
+        if (expression.type === 'ObjectExpression') {
+          checkObject(expression);
+        }
+        return;
+      }
+      if (node.name.name !== 'css') {
+        return;
+      }
+      if (expression.type === 'ObjectExpression') {
+        checkObject(expression);
+      } else if (expression.type === 'ArrayExpression') {
+        for (const element of expression.elements) {
+          if (element?.type === 'ObjectExpression') {
+            checkObject(element);
+          }
+        }
+      } else if (expression.type === 'ArrowFunctionExpression') {
+        themeCallbacks.add(expression);
+        if (expression.body.type === 'ObjectExpression') {
+          checkObject(expression.body);
+        }
+      }
     },
   };
-
-  // Create theme tracker first (extractors depend on it)
-  const themeTracker = createThemeTracker();
-  const importTracker = createImportTracker(context);
-
-  // Create extractors with access to collector and theme tracker
-  const extractorContext: ExtractorContext = {
-    collector,
-    themeTracker,
-    ruleContext: context,
-    importTracker,
-  };
-
-  const styledVisitors = createStyledExtractor(extractorContext);
-  const cssPropVisitors = createCssPropExtractor(extractorContext);
-  const stylePropVisitors = createStylePropExtractor(extractorContext);
-
-  // Merge all visitors
-  const visitors = mergeVisitors(
-    importTracker.visitors,
-    themeTracker.visitors,
-    styledVisitors,
-    cssPropVisitors,
-    stylePropVisitors
-  );
-
-  return {collector, visitors, themeTracker};
 }

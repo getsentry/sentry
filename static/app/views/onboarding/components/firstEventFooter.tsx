@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {apiOptions} from 'sentry/utils/api/apiOptions';
+import {findFirstIssue} from 'sentry/utils/useEventWaiter';
 import {ONBOARDING_ENTER, ONBOARDING_STAGGER} from 'sentry/views/onboarding/animations';
 
 import {GridFooter} from './genericFooter';
@@ -47,9 +48,7 @@ export function FirstEventFooter({
   });
 
   const firstIssue =
-    !!project.firstEvent && issues
-      ? issues.find((issue: Group) => issue.firstSeen === project.firstEvent)
-      : undefined;
+    project.firstEvent && issues ? findFirstIssue(issues, project.firstEvent) : undefined;
 
   return (
     <GridFooter>
@@ -91,9 +90,11 @@ export function FirstEventFooter({
                 platform: project.platform,
               });
             }}
-            to={`/organizations/${organization.slug}/issues/${
-              firstIssue && 'id' in firstIssue ? `${firstIssue.id}/` : ''
-            }?referrer=onboarding-first-event-footer`}
+            to={
+              firstIssue
+                ? `/organizations/${organization.slug}/issues/${firstIssue.id}/?referrer=onboarding-first-event-footer`
+                : `/organizations/${organization.slug}/issues/?project=${project.id}&referrer=onboarding-first-event-footer`
+            }
             variant="primary"
           >
             {t('Take me to my error')}
