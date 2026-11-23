@@ -1,6 +1,5 @@
 import {IconStar} from '@sentry/icons/star';
 import {useQueryClient} from '@tanstack/react-query';
-import type {Simplify} from 'type-fest';
 
 import {Button} from '@sentry/scraps/button';
 
@@ -23,8 +22,8 @@ interface Props {
   projectSlug?: string;
 }
 
-type TableRow = Simplify<Partial<SpanResponse> & Pick<SpanResponse, 'transaction'>>;
-
+type TableRow = Pick<SpanResponse, 'transaction'> &
+  Partial<Pick<SpanResponse, 'is_starred_transaction' | 'project' | 'project.id'>>;
 type TableData = {data: TableRow[]};
 
 export function StarredSegmentCell({
