@@ -20,7 +20,7 @@ from sentry.apidocs.constants import (
 )
 from sentry.apidocs.parameters import DetectorParams, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.models.organization import Organization
 from sentry.seer.anomaly_detection.get_anomaly_data import get_anomaly_threshold_data_from_seer
 from sentry.seer.anomaly_detection.types import AnomalyThresholdDataPoint

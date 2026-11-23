@@ -9,8 +9,10 @@ from rest_framework import status
 from sentry import features, options
 from sentry.api.exceptions import SentryAPIException
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+)
 from sentry.issue_detection.performance_detection import PERFORMANCE_DETECTOR_CONFIG_MAPPINGS
 from sentry.locks import locks
 from sentry.models.organization import Organization

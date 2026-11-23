@@ -8,8 +8,10 @@ from sentry.explore.translation.am1_metrics_to_transactions import (
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.subscriptions import create_snuba_query

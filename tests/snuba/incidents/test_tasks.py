@@ -3,11 +3,11 @@ from functools import cached_property
 
 from arroyo.utils import metrics
 
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import (
+from sentry.incidents.utils.constants import (
     DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
-    QuerySubscriptionUpdate,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
 )
+from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.snuba.query_subscriptions.consumer import subscriber_registry

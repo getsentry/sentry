@@ -2,6 +2,12 @@ from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, TypedDict
 
+# TODO: Remove this re-export once getsentry imports the constant from
+# `sentry.incidents.utils.constants`.
+from sentry.incidents.utils.constants import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION as DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+)
+
 
 class QuerySubscriptionUpdateValues(TypedDict):
     data: list[dict[str, Any]]
@@ -39,6 +45,3 @@ class AnomalyDetectionUpdate:
     subscription_id: str
     values: AnomalyDetectionValues
     timestamp: datetime
-
-
-DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION = "snuba_query_subscription"

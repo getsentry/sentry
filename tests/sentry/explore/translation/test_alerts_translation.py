@@ -12,8 +12,10 @@ from sentry.explore.translation.alerts_translation import (
 )
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
-from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
-from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
+from sentry.incidents.utils.constants import (
+    DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION,
+    INCIDENTS_SNUBA_SUBSCRIPTION_TYPE,
+)
 from sentry.seer.anomaly_detection.store_data import SeerMethod
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
