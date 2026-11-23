@@ -212,7 +212,7 @@ class SeerWorkflowCreateTest(TestCase):
         with pytest.raises(WorkflowUpdateError, match="timezone: Unknown timezone"):
             SeerWorkflow.create(
                 organization_id=self.organization.id,
-                strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+                strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
                 scope=AllProjects(),
                 extras=SeerWorkflowConfigExtras(
                     trigger_settings={"cron": "0 9 * * 1", "timezone": "Mars/Olympus_Mons"}

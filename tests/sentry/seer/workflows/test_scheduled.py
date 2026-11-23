@@ -244,7 +244,7 @@ class ScheduleForTest(TestCase):
     def test_config_cron_runs_in_its_timezone(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=True,
             extras={"trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"}},
         )
