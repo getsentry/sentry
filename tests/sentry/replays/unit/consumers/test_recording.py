@@ -160,7 +160,7 @@ def test_parse_headers_success() -> None:
     """Test successful parsing of headers"""
     recording = json.dumps({"segment_id": 42}).encode() + b"\n" + b"hello, world"
 
-    segment_id, payload = parse_headers(recording, "1")
+    segment_id, payload = parse_headers(recording)
     assert segment_id == 42
     assert payload == b"hello, world"
 
@@ -169,31 +169,47 @@ def test_parse_headers_success_invalid_type() -> None:
     """Test parsing headers with invalid segment-id value"""
     recording = json.dumps({"segment_id": None}).encode() + b"\n" + b"hello, world"
     with pytest.raises(DropSilently):
-        parse_headers(recording, "1")
+        parse_headers(recording)
 
 
 def test_parse_headers_no_newline() -> None:
     """Test parsing headers without newline separator"""
     with pytest.raises(DropSilently):
-        parse_headers(b'{"segment_id": 42}', "1")
+        parse_headers(b'{"segment_id": 42}')
 
 
 def test_parse_headers_invalid_json() -> None:
     """Test parsing headers with invalid JSON"""
     with pytest.raises(DropSilently):
-        parse_headers(b"hello\nworld", "1")
+        parse_headers(b"hello\nworld")
+
+
+def test_parse_headers_compressed_header() -> None:
+    """A compressed segment in the header slot is dropped and counted, not reported as an error."""
+    recording = b"x\x9c\xed]\x8f\xe38v" + b"\n" + zlib.compress(b"[]")
+    with (
+        mock.patch("sentry.replays.consumers.recording.metrics.incr") as incr,
+        mock.patch("sentry.replays.consumers.recording.logger") as logger,
+    ):
+        with pytest.raises(DropSilently):
+            parse_headers(recording)
+
+    incr.assert_called_once_with(
+        "replays.consumer.recording.invalid", tags={"reason": "invalid_headers_json"}
+    )
+    logger.exception.assert_not_called()
 
 
 def test_parse_headers_missing_segment_id() -> None:
     """Test parsing headers missing segment_id field"""
     with pytest.raises(DropSilently):
-        parse_headers(b'{"other_field": "value"}\nworld', "1")
+        parse_headers(b'{"other_field": "value"}\nworld')
 
 
 def test_parse_headers_empty_recording() -> None:
     """Test parsing empty recording"""
     with pytest.raises(DropSilently):
-        parse_headers(b"", "1")
+        parse_headers(b"")
 
 
 def test_parse_request_message_success() -> None:

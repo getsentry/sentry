@@ -55,7 +55,7 @@ def process_message(message: bytes) -> ProcessedEvent | None:
 @traces.trace
 def parse_recording_event(message: bytes) -> Event:
     recording = parse_request_message(message)
-    segment_id, payload = parse_headers(cast(bytes, recording["payload"]), recording["replay_id"])
+    segment_id, payload = parse_headers(cast(bytes, recording["payload"]))
     compressed, decompressed = decompress_segment(
         payload, max_size=options.get("replay.consumer.max-segment-decompressed-size")
     )
@@ -135,8 +135,7 @@ def decompress_segment(segment: bytes, max_size: int) -> tuple[bytes, bytes]:
                 _drop_oversized_segment(len(segment), max_size)
             return (zlib.compress(segment), segment)
         else:
-            logger.exception("Invalid recording body.")
-            raise DropSilently()
+            _drop_invalid_recording("invalid_body")
 
     if len(decompressed) > max_size:
         _drop_oversized_segment(len(segment), max_size)
@@ -154,13 +153,29 @@ def _drop_oversized_segment(compressed_size: int, max_size: int) -> NoReturn:
 
 
 @traces.trace
-def parse_headers(recording: bytes, replay_id: str) -> tuple[int, bytes]:
+def parse_headers(recording: bytes) -> tuple[int, bytes]:
+    # Malformed headers are client data we can't recover, not a bug in this consumer, so
+    # they're counted and dropped rather than reported as errors.
     try:
         recording_headers_json, recording_segment = recording.split(b"\n", 1)
-        return int(json.loads(recording_headers_json)["segment_id"]), recording_segment
-    except Exception:
-        logger.exception("Recording headers could not be extracted %s", replay_id)
-        raise DropSilently()
+    except ValueError:
+        _drop_invalid_recording("missing_headers")
+
+    try:
+        headers = json.loads(recording_headers_json)
+    except ValueError:  # Includes UnicodeDecodeError, e.g. compressed bytes in the header.
+        _drop_invalid_recording("invalid_headers_json")
+
+    try:
+        return int(headers["segment_id"]), recording_segment
+    except (KeyError, TypeError, ValueError):
+        _drop_invalid_recording("invalid_segment_id")
+
+
+def _drop_invalid_recording(reason: str) -> NoReturn:
+    metrics.incr("replays.consumer.recording.invalid", tags={"reason": reason})
+    logger.warning("Dropped an invalid recording segment.", extra={"reason": reason})
+    raise DropSilently()
 
 
 # I/O Task
