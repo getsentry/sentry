@@ -50,7 +50,6 @@ from sentry.issues.priority import (
     PriorityChangeReason,
     get_priority_for_ongoing_group,
 )
-from sentry.models.commit import Commit
 from sentry.models.grouphistory import record_group_history, record_group_history_from_activity_type
 from sentry.models.organization import Organization
 from sentry.search.eap.occurrences.query_utils import build_event_id_in_filter
@@ -1200,30 +1199,6 @@ class Group(Model):
                 Condition(Column("environment"), Op.IN, [e.name for e in environments])
             )
         return self.get_recommended_event(conditions=all_conditions)
-
-    def get_suspect_commit(self) -> Commit | None:
-        from sentry.models.groupowner import GroupOwner, GroupOwnerType
-
-        suspect_commit_owner = (
-            GroupOwner.objects.filter(
-                group_id=self.id,
-                project_id=self.project_id,
-                type=GroupOwnerType.SUSPECT_COMMIT.value,
-                context__isnull=False,
-            )
-            .order_by("-date_added")
-            .first()
-        )
-
-        if not suspect_commit_owner:
-            return None
-
-        commit_id = suspect_commit_owner.context.get("commitId")
-        if not commit_id:
-            return None
-
-        commit = Commit.objects.filter(id=commit_id)
-        return commit.first()
 
     def get_first_release(self, environment_names: list[str] | None = None) -> str | None:
         from sentry.models.release import Release
