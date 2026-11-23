@@ -438,7 +438,7 @@ def register_temporary_features(manager: FeatureManager) -> None:
     # Collect inbox events independently of the inbox UI.
     manager.add("organizations:universal-inbox-recording", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Pilot a new primary navigation hover behavior, rolled out separately from the universal inbox.
-    manager.add("organizations:navigation-hover-pilot", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
+    manager.add("organizations:nav-peek", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     # Serve Autofix on its own /issues/<id>/autofix/ page instead of the issue details drawer.
     # Not for self-hosted yet. Roll this out to specific organizations; do not change the
     # default here and do not add it to SENTRY_FEATURES, either of which would turn it on
