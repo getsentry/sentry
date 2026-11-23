@@ -1,21 +1,28 @@
 import {useId, useState} from 'react';
 import styled from '@emotion/styled';
+import {useMutation} from '@tanstack/react-query';
 
 import {Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Heading, Text} from '@sentry/scraps/text';
 import {themeVariables} from '@sentry/scraps/theme';
+import {toast} from '@sentry/scraps/toast';
 import {ToggleCard} from '@sentry/scraps/toggleCard';
 
+import {updateUser} from 'sentry/actionCreators/account';
 import {t} from 'sentry/locale';
+import type {User} from 'sentry/types/user';
+import {getApiUrl} from 'sentry/utils/api/getApiUrl';
+import {fetchMutation} from 'sentry/utils/queryClient';
+import {useUser} from 'sentry/utils/useUser';
 
 type ColorScheme = 'light' | 'dark';
 
-type ThemeVariant = {
-  label: string;
-  value: string;
-};
+type ThemeVariantOption = 'themeVariantLight' | 'themeVariantDark';
+
+type ThemeVariant = {label: string; value: string};
 
 type ThemeVariantSection = {
+  option: ThemeVariantOption;
   scheme: ColorScheme;
   title: string;
   variants: ThemeVariant[];
@@ -26,11 +33,13 @@ const DEFAULT_VARIANT = 'default';
 // Each section is one radio group. Adding a theme is a new entry in `variants`.
 const THEME_VARIANT_SECTIONS: ThemeVariantSection[] = [
   {
+    option: 'themeVariantLight',
     scheme: 'light',
     title: t('Light'),
     variants: [{value: DEFAULT_VARIANT, label: t('Default')}],
   },
   {
+    option: 'themeVariantDark',
     scheme: 'dark',
     title: t('Dark'),
     variants: [
@@ -41,20 +50,42 @@ const THEME_VARIANT_SECTIONS: ThemeVariantSection[] = [
   },
 ];
 
-type SelectedVariants = Record<ColorScheme, string>;
+type SelectedVariants = Record<ThemeVariantOption, string>;
+
+function savedVariants(user: User): SelectedVariants {
+  return {
+    themeVariantLight: user.options.themeVariantLight ?? DEFAULT_VARIANT,
+    themeVariantDark: user.options.themeVariantDark ?? DEFAULT_VARIANT,
+  };
+}
 
 /**
- * Holds the selected theme per color scheme. Selections only live in component
- * state for now: persistence plugs in here once we decide where to store it.
+ * Reads each scheme's theme from the user's options and saves changes the
+ * same way the Theme select does. The selection updates right away and goes
+ * back to the saved value if the save fails.
  */
 function useThemeVariants() {
-  const [selected, setSelected] = useState<SelectedVariants>({
-    light: DEFAULT_VARIANT,
-    dark: DEFAULT_VARIANT,
+  const user = useUser();
+  const [selected, setSelected] = useState(() => savedVariants(user));
+
+  const {mutate} = useMutation({
+    mutationFn: (options: Partial<SelectedVariants>) =>
+      fetchMutation<User>({
+        method: 'PUT',
+        url: getApiUrl('/users/$userId/', {path: {userId: 'me'}}),
+        data: {options},
+      }),
+    onSuccess: updateUser,
+    onError: () => {
+      setSelected(savedVariants(user));
+      toast.error(t('Unable to save your theme.'));
+    },
   });
 
-  const selectVariant = (scheme: ColorScheme, value: string) =>
-    setSelected(previous => ({...previous, [scheme]: value}));
+  const selectVariant = (option: ThemeVariantOption, value: string) => {
+    setSelected(previous => ({...previous, [option]: value}));
+    mutate({[option]: value});
+  };
 
   return {selected, selectVariant};
 }
@@ -68,8 +99,8 @@ export function ThemeVariantPicker() {
         <ThemeVariantGroup
           key={section.scheme}
           section={section}
-          value={selected[section.scheme]}
-          onChange={value => selectVariant(section.scheme, value)}
+          value={selected[section.option]}
+          onChange={value => selectVariant(section.option, value)}
         />
       ))}
     </Stack>

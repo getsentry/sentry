@@ -50,6 +50,8 @@ export interface User extends Omit<AvatarUser, 'options'> {
     stacktraceOrder: StacktraceOrder;
     theme: 'system' | 'light' | 'dark';
     timezone: string;
+    themeVariantDark?: 'default' | 'ash' | 'midnight';
+    themeVariantLight?: 'default';
   };
   permissions: Set<string>;
   authenticators?: UserEnrolledAuthenticator[];
