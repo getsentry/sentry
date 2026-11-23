@@ -351,9 +351,11 @@ export function GroupActions({
     openReprocessEventModal({organization, groupId: group.id});
   };
 
-  // Custom inbound filters read the fields of an error event, so the action only
-  // makes sense while one is shown. The first two flags gate the settings table
-  // too; the third rolls out the entry points outside of settings on their own.
+  // The "Add Inbound Filter" menu item drafts a filter from the fields of the
+  // error event on screen, so it needs one. `inbound-filters-v2` and
+  // `inbound-filters-v2-ui` also gate the filters table in project settings.
+  // `inbound-filters-in-product-flows` gates the places outside project settings
+  // that open the filter modal, like this menu item.
   const canAddInboundFilter =
     organization.features.includes('inbound-filters-v2') &&
     organization.features.includes('inbound-filters-v2-ui') &&
@@ -361,14 +363,17 @@ export function GroupActions({
     (event?.type === EventOrGroupType.ERROR || event?.type === EventOrGroupType.DEFAULT);
   const hasFilterWriteAccess = hasEveryAccess(['project:write'], {organization, project});
   // The API refuses writes without the plan feature, so say so up front instead
-  // of letting the modal fail on save. Same plan family as discard.
+  // of letting the modal fail on save. The "Delete and discard future events"
+  // menu item shows its plan limit the same way.
   let addInboundFilterDisabledReason: string | undefined;
   if (!project.features.includes('custom-inbound-filters')) {
     addInboundFilterDisabledReason = t(
       'Your plan does not include custom inbound filters'
     );
   } else if (!hasFilterWriteAccess) {
-    addInboundFilterDisabledReason = t('You need project write access to add filters');
+    addInboundFilterDisabledReason = t(
+      'You need project write access to add custom inbound filters'
+    );
   }
 
   const onAddInboundFilter = () => {

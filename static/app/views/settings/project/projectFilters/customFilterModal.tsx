@@ -804,9 +804,10 @@ function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   return [...new Set(values.map(value => value?.trim()).filter(Boolean))] as string[];
 }
 
-// A value copied from an event matches as itself. The query keeps a value on one
-// line, so a value with line breaks turns into a glob pattern instead: each glob
-// character escaped, each line break a wildcard.
+// Use an exact match for values copied from the event. Filter values can't
+// contain newlines, so for multi-line values (e.g. a long error message) fall
+// back to a glob: escape glob metacharacters, then replace each line break
+// and its surrounding whitespace with `*`.
 function conditionFromLiterals(
   type: ConditionType,
   literals: string[]
