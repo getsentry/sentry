@@ -26,6 +26,6 @@ class Migration(CheckedMigration):
         migrations.AddField(
             model_name="seerworkflowrun",
             name="source",
-            field=models.CharField(max_length=32, null=True),
+            field=models.CharField(max_length=256, null=True),
         ),
     ]
