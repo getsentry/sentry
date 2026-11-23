@@ -396,10 +396,12 @@ def test_files_reports_new_and_fixed_findings(
     # a new finding gets this run's date and the defaults
     assert new["first_seen"] == "2026-11-16"
     assert new["status"] == "debt-breaking"
-    # the entries that didn't change keep the first run's date
+    assert new["reason"] == "new since the baseline"
+    # the entries that didn't change keep the first run's date and reason
     old = _find(entries, "ExampleEndpoint.get", "query:id")
     assert old is not None
     assert old["first_seen"] == TODAY
+    assert old["reason"] == "legacy: predates S026"
 
     out = capsys.readouterr().out
     assert "1 new, 1 fixed, 0 with a changed count" in out
