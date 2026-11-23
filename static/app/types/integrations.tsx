@@ -223,11 +223,10 @@ type SentryAppSchemaAlertRuleAction = {
 
 type SentryAppSchemaAlertRuleActionSettings = {
   description: string;
-  // a list of FormFields
-  required_fields: any[];
   type: 'alert-rule-settings';
   uri: string;
   optional_fields?: any[];
+  required_fields?: any[];
 };
 
 export interface StacktraceLinkResult {

@@ -1010,7 +1010,14 @@ export function SentryAppExternalForm({
   const handleSubmit = useCallback(
     async (values: Record<string, unknown>) => {
       if (element === 'alert-rule-action') {
-        const settings = Object.entries(values).map(([name, value]) => {
+        // With an optional-only schema, a blank field leaves the integration's default in effect.
+        const submittedValues = config.required_fields?.length
+          ? values
+          : omitBy(
+              values,
+              value => !hasValue(value) || (Array.isArray(value) && !value.length)
+            );
+        const settings = Object.entries(submittedValues).map(([name, value]) => {
           const field = findSchemaField(fieldGroups, name);
           const savedSetting: SentryAppSetting = {name, value};
 
@@ -1040,6 +1047,7 @@ export function SentryAppExternalForm({
     },
     [
       choicesByField,
+      config.required_fields,
       createExternalIssue,
       element,
       fieldGroups,

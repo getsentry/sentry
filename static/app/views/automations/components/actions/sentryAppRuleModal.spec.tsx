@@ -110,6 +110,51 @@ describe('SentryAppRuleModal', () => {
       });
     });
 
+    it.each([
+      {initial: '', input: '', settings: []},
+      {
+        initial: '',
+        input: 'on-call',
+        settings: [{name: 'destination', value: 'on-call'}],
+      },
+      {initial: 'on-call', input: '', settings: []},
+    ])(
+      'submits optional overrides from "$initial" to "$input"',
+      async ({initial, input, settings}) => {
+        const onSubmitSuccess = jest.fn();
+        createWrapper({
+          config: {
+            uri: '/validate-alert',
+            optional_fields: [
+              {type: 'text', name: 'destination', label: 'Destination'},
+              {
+                type: 'select',
+                name: 'system',
+                label: 'System',
+                choices: [['infra', 'Infrastructure']],
+              },
+            ],
+          },
+          resetValues: {settings: initial ? [{name: 'destination', value: initial}] : []},
+          onSubmitSuccess,
+        });
+        const destination = await screen.findByRole('textbox', {name: 'Destination'});
+        expect(destination).toHaveValue(initial);
+        if (initial) {
+          await userEvent.clear(destination);
+        }
+        if (input) {
+          await userEvent.type(destination, input);
+        }
+        await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+        await waitFor(() =>
+          expect(onSubmitSuccess).toHaveBeenCalledWith(
+            expect.objectContaining({settings})
+          )
+        );
+      }
+    );
+
     it('surfaces validation errors when required fields are empty on submit', async () => {
       createWrapper();
       await screen.findByRole('textbox', {name: 'Alert Title'});
