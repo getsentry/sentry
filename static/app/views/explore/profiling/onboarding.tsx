@@ -29,6 +29,7 @@ import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStarted
 import {usePageFilters} from 'sentry/components/pageFilters/usePageFilters';
 import {Panel} from 'sentry/components/panels/panel';
 import {PanelBody} from 'sentry/components/panels/panelBody';
+import {PeekingBug} from 'sentry/components/peekingBug/peekingBug';
 import {ContinuousProfilingBillingRequirementBanner} from 'sentry/components/profiling/billing/alerts';
 import {BodyTitle, SetupTitle} from 'sentry/components/updatedEmptyState';
 import {profiling as profilingPlatforms} from 'sentry/data/platformCategories';
@@ -75,16 +76,18 @@ function WaitingIndicator({
   const profileId = data?.data[0]?.['profile.id']?.toString();
 
   return profileId ? (
-    <LinkButton
-      variant="primary"
-      to={generateProfileFlamechartRoute({
-        organization,
-        projectSlug: project.slug,
-        profileId,
-      })}
-    >
-      {t('Take me to my profile')}
-    </LinkButton>
+    <PeekingBug>
+      <LinkButton
+        variant="primary"
+        to={generateProfileFlamechartRoute({
+          organization,
+          projectSlug: project.slug,
+          profileId,
+        })}
+      >
+        {t('Take me to my profile')}
+      </LinkButton>
+    </PeekingBug>
   ) : (
     <EventWaitingIndicator />
   );
