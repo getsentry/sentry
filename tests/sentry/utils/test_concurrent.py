@@ -333,3 +333,24 @@ def test_context_propagating_executor_sentry_scope() -> None:
         result = executor.submit(read_scope_tag).result(timeout=2)
 
     assert result == "test_value"
+
+
+def test_context_propagating_executor_forks_sentry_scopes() -> None:
+    """Scope mutations in a task don't leak to the caller or to other tasks."""
+    caller_scope = sentry_sdk.get_current_scope()
+    caller_isolation_scope = sentry_sdk.get_isolation_scope()
+
+    def mutate_scopes(value: str) -> tuple[object | None, object | None]:
+        current = sentry_sdk.get_current_scope()
+        isolation = sentry_sdk.get_isolation_scope()
+        seen = (current._tags.get("task_key"), isolation._tags.get("task_key"))
+        current.set_tag("task_key", value)
+        isolation.set_tag("task_key", value)
+        return seen
+
+    with ContextPropagatingThreadPoolExecutor(max_workers=1) as executor:
+        assert executor.submit(mutate_scopes, "first").result(timeout=2) == (None, None)
+        assert executor.submit(mutate_scopes, "second").result(timeout=2) == (None, None)
+
+    assert "task_key" not in caller_scope._tags
+    assert "task_key" not in caller_isolation_scope._tags
