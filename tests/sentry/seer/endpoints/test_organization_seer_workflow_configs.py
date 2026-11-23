@@ -733,6 +733,48 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
         config.refresh_from_db()
         assert config.filters["environments"] == ["production"]
 
+    def test_member_can_put_unchanged_environments_with_partial_project_access(self) -> None:
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        team = self.create_team(organization=self.organization)
+        member = self.create_user()
+        self.create_member(organization=self.organization, user=member, role="member", teams=[team])
+        accessible = self.create_project(teams=[team])
+        hidden = self.create_project(teams=[self.create_team(organization=self.organization)])
+        config = self.create_config(version=3, filters={"environments": ["production"]})
+        for project in (accessible, hidden):
+            Factories.create_seer_workflow_config_project(config, project)
+        self.login_as(member)
+
+        # Resending the stored environments is not a change, so it needs no extra access.
+        response = self.get_success_response(
+            self.organization.slug, config.id, method="put", environments=["production"]
+        )
+
+        assert response.data["version"] == 3
+
+        response = self.get_success_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["production"],
+            name="After",
+        )
+
+        assert response.data["name"] == "After"
+        assert response.data["environments"] == ["production"]
+
+        self.get_error_response(
+            self.organization.slug,
+            config.id,
+            method="put",
+            environments=["staging"],
+            status_code=403,
+        )
+
+        config.refresh_from_db()
+        assert config.filters["environments"] == ["production"]
+
     def test_put_breached_metric_member_keeps_inaccessible_monitors(self) -> None:
         member, accessible_project = self.create_member_with_project(open_membership=False)
         accessible = self.create_metric_monitor(accessible_project)
