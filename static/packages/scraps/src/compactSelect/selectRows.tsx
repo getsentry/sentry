@@ -1,7 +1,9 @@
 import type * as React from 'react';
 import {useMemo} from 'react';
+import type {ListState} from '@react-stately/list';
 import type {Key, Node, SelectionMode} from '@react-types/shared';
 
+import {SectionHeader, SectionLabel} from '@sentry/scraps/menu';
 import type {FormSize} from '@sentry/scraps/theme';
 import {
   estimateRowHeight,
@@ -12,18 +14,18 @@ import {
   type VirtualRowProps,
 } from '@sentry/scraps/useVirtualCollection';
 
-import {SECTION_SEPARATOR_HEIGHT} from './styles';
+import {SECTION_SEPARATOR_HEIGHT, SectionSeparator} from './styles';
 import type {ListItemBase} from './types';
-import {getVisibleOptionPositions, type OptionPosition} from './utils';
+import {getVisibleOptionPositions, SectionToggle, type OptionPosition} from './utils';
 
 /** What a section's own row holds, above the section's options. */
-export interface SectionRowLayout {
-  header: boolean;
+interface SectionRowLayout {
+  /** Set when the section shows a header. */
+  header: {toggleAllButton: boolean} | null;
   separator: boolean;
-  toggleAllButton: boolean;
 }
 
-interface SelectSectionRow<T extends ListItemBase> {
+export interface SelectSectionRow<T extends ListItemBase> {
   layout: SectionRowLayout;
   node: Node<T>;
   /** Measurement props for the section's own row, when virtualized. */
@@ -111,8 +113,10 @@ export function SelectRows<T extends ListItemBase>({
     return {
       // Only the sections below the first are separated from the rows above.
       separator: showSectionHeaders && section.key !== listItems[0]?.key,
-      header: showSectionHeaders && (Boolean(section.rendered) || toggleAllButton),
-      toggleAllButton,
+      header:
+        showSectionHeaders && (Boolean(section.rendered) || toggleAllButton)
+          ? {toggleAllButton}
+          : null,
     };
   };
 
@@ -153,5 +157,39 @@ export function SelectRows<T extends ListItemBase>({
         )
       }
     />
+  );
+}
+
+interface SectionRowProps<T extends ListItemBase> {
+  /** Props for the section's label, which names the section's group. */
+  labelProps: React.HTMLAttributes<HTMLElement>;
+  listState: ListState<T>;
+  section: SelectSectionRow<T>;
+}
+
+/**
+ * The row above a section's options: its separator and header. Rendered even
+ * when empty, so a virtualized row has an element to measure.
+ */
+export function SectionRow<T extends ListItemBase>({
+  labelProps,
+  listState,
+  section: {layout, node, rowProps},
+}: SectionRowProps<T>) {
+  return (
+    <div {...rowProps}>
+      {layout.separator && <SectionSeparator />}
+      {layout.header && (
+        <SectionHeader
+          trailingAction={
+            layout.header.toggleAllButton ? (
+              <SectionToggle item={node} listState={listState} />
+            ) : null
+          }
+        >
+          {node.rendered && <SectionLabel {...labelProps}>{node.rendered}</SectionLabel>}
+        </SectionHeader>
+      )}
+    </div>
   );
 }

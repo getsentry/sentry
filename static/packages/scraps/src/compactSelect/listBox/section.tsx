@@ -1,31 +1,16 @@
 import type * as React from 'react';
 import {useListBoxSection} from '@react-aria/listbox';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
 
-import type {SectionRowLayout} from '@sentry/scraps/compactSelect/selectRows';
-import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import {SectionRow, type SelectSectionRow} from '@sentry/scraps/compactSelect/selectRows';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {
-  SectionGroup,
-  SectionHeader,
-  SectionLabel,
-  SectionList,
-} from '@sentry/scraps/menu';
-import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
+import {SectionGroup, SectionList} from '@sentry/scraps/menu';
 
 interface ListBoxSectionProps<T extends ListItemBase> {
   /** The section's options, rendered inside its group. */
   children: React.ReactNode;
-  item: Node<T>;
-  layout: SectionRowLayout;
   listState: ListState<T>;
-  /**
-   * Measurement props for the section's own row when the list is virtualized.
-   * The row holds the separator and header above the section's options.
-   */
-  rowProps?: VirtualRowProps;
+  section: SelectSectionRow<T>;
 }
 
 /**
@@ -34,36 +19,17 @@ interface ListBoxSectionProps<T extends ListItemBase> {
  */
 export function ListBoxSection<T extends ListItemBase>({
   children,
-  item,
-  layout,
   listState,
-  rowProps,
+  section,
 }: ListBoxSectionProps<T>) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
-    heading: item.rendered,
-    'aria-label': item['aria-label'],
+    heading: section.node.rendered,
+    'aria-label': section.node['aria-label'],
   });
 
   return (
     <SectionGroup {...itemProps}>
-      {/* Rendered even without headers, so a virtualized row has an element
-          to measure. */}
-      <div {...rowProps}>
-        {layout.separator && <SectionSeparator />}
-        {layout.header && (
-          <SectionHeader
-            trailingAction={
-              layout.toggleAllButton ? (
-                <SectionToggle item={item} listState={listState} />
-              ) : null
-            }
-          >
-            {item.rendered && (
-              <SectionLabel {...headingProps}>{item.rendered}</SectionLabel>
-            )}
-          </SectionHeader>
-        )}
-      </div>
+      <SectionRow section={section} listState={listState} labelProps={headingProps} />
       <SectionList {...groupProps}>{children}</SectionList>
     </SectionGroup>
   );

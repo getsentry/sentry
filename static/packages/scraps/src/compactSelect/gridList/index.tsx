@@ -158,13 +158,8 @@ function GridList<T extends ListItemBase>({
                   ref={rowProps?.ref}
                 />
               )}
-              renderSection={({layout, node, rowProps}, options) => (
-                <GridListSection
-                  node={node}
-                  layout={layout}
-                  listState={listState}
-                  rowProps={rowProps}
-                >
+              renderSection={(section, options) => (
+                <GridListSection section={section} listState={listState}>
                   {options}
                 </GridListSection>
               )}

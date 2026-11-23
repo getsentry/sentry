@@ -1,31 +1,16 @@
 import type * as React from 'react';
 import {useId} from 'react';
 import type {ListState} from '@react-stately/list';
-import type {Node} from '@react-types/shared';
 
-import type {SectionRowLayout} from '@sentry/scraps/compactSelect/selectRows';
-import {SectionSeparator} from '@sentry/scraps/compactSelect/styles';
+import {SectionRow, type SelectSectionRow} from '@sentry/scraps/compactSelect/selectRows';
 import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
-import {SectionToggle} from '@sentry/scraps/compactSelect/utils';
-import {
-  SectionGroup,
-  SectionHeader,
-  SectionLabel,
-  SectionList,
-} from '@sentry/scraps/menu';
-import type {VirtualRowProps} from '@sentry/scraps/useVirtualCollection';
+import {SectionGroup, SectionList} from '@sentry/scraps/menu';
 
 interface GridListSectionProps<T extends ListItemBase> {
   /** The section's options, rendered inside its group. */
   children: React.ReactNode;
-  layout: SectionRowLayout;
   listState: ListState<T>;
-  node: Node<T>;
-  /**
-   * Measurement props for the section's own row when the list is virtualized.
-   * The row holds the separator and header above the section's options.
-   */
-  rowProps?: VirtualRowProps;
+  section: SelectSectionRow<T>;
 }
 
 /**
@@ -34,38 +19,22 @@ interface GridListSectionProps<T extends ListItemBase> {
  */
 export function GridListSection<T extends ListItemBase>({
   children,
-  layout,
-  node,
   listState,
-  rowProps,
+  section,
 }: GridListSectionProps<T>) {
   const titleId = useId();
+  const ariaLabel = section.node['aria-label'];
 
   return (
     <SectionGroup
       role="rowgroup"
-      {...(node['aria-label']
-        ? {'aria-label': node['aria-label']}
-        : {'aria-labelledby': titleId})}
+      {...(ariaLabel ? {'aria-label': ariaLabel} : {'aria-labelledby': titleId})}
     >
-      <div {...rowProps}>
-        {layout.separator && <SectionSeparator />}
-        {layout.header && (
-          <SectionHeader
-            trailingAction={
-              layout.toggleAllButton ? (
-                <SectionToggle item={node} listState={listState} />
-              ) : null
-            }
-          >
-            {node.rendered && (
-              <SectionLabel id={titleId} aria-hidden>
-                {node.rendered}
-              </SectionLabel>
-            )}
-          </SectionHeader>
-        )}
-      </div>
+      <SectionRow
+        section={section}
+        listState={listState}
+        labelProps={{id: titleId, 'aria-hidden': true}}
+      />
       <SectionList>{children}</SectionList>
     </SectionGroup>
   );

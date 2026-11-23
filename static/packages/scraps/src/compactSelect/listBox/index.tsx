@@ -305,13 +305,8 @@ export function ListBox<T extends ListItemBase>({
                     ref={rowProps?.ref}
                   />
                 )}
-                renderSection={({layout, node, rowProps}, options) => (
-                  <ListBoxSection
-                    item={node}
-                    layout={layout}
-                    listState={listState}
-                    rowProps={rowProps}
-                  >
+                renderSection={(section, options) => (
+                  <ListBoxSection section={section} listState={listState}>
                     {options}
                   </ListBoxSection>
                 )}
