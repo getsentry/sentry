@@ -6547,10 +6547,7 @@ class OrganizationEventsSpansEndpointTest(OrganizationEventsEndpointTestBase):
             }
         )
         assert response.status_code == 400, response.content
-        assert (
-            response.data["detail"]
-            == "`test%` must be a valid UUID hex (32-36 characters long, containing only digits, dashes, or a-f characters)"
-        )
+        assert response.data["detail"] == "Wildcard conditions are not permitted on `trace` field"
 
     def test_invalid_span_id(self) -> None:
         response = self.do_request(
