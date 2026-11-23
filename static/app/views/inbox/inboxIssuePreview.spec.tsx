@@ -90,7 +90,7 @@ describe('InboxIssuePreview', () => {
     ).toBeInTheDocument();
     expect(within(sidebar).getByText('First seen')).toBeInTheDocument();
     expect(within(sidebar).getByText('Last seen')).toBeInTheDocument();
-    expect(await within(sidebar).findByText('No related issues')).toBeInTheDocument();
+    expect(await within(sidebar).findByText('No related resources')).toBeInTheDocument();
     expect(
       await within(sidebar).findByRole('heading', {name: 'External links', level: 3})
     ).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('InboxIssuePreview', () => {
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
     expect(
-      await within(sidebar).findByText('Unable to load related issues')
+      await within(sidebar).findByText('Unable to load related resources')
     ).toBeInTheDocument();
   });
 

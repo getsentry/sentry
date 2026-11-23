@@ -266,7 +266,7 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
     return <Placeholder height="60px" />;
   }
   if (isError) {
-    return <Text variant="muted">{t('Unable to load related issues')}</Text>;
+    return <Text variant="muted">{t('Unable to load related resources')}</Text>;
   }
 
   // Investigations come before issues
@@ -298,7 +298,9 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
       issueTypes.length > 0 && issueTypes.every(meta => meta.status === 'unavailable');
     return (
       <Text variant="muted">
-        {issueTypesFailed ? t('Unable to load related issues') : t('No related issues')}
+        {issueTypesFailed
+          ? t('Unable to load related resources')
+          : t('No related resources')}
       </Text>
     );
   }
