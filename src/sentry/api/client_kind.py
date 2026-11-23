@@ -22,14 +22,15 @@ from sentry_conventions.attributes import ATTRIBUTE_NAMES
 from sentry_sdk import traces
 
 from sentry.api.caller_scopes import has_deprecated_scopes, has_granular_scopes
+from sentry.auth.principal import resolve_actor
 from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import is_system_auth
 from sentry.middleware import is_frontend_request
 from sentry.seer.agent_token import is_agent_auth
-from sentry.service_accounts.auth import is_service_account_auth
 from sentry.utils import metrics
 from sentry.utils.http import SEER_REFERRER_HEADER, get_mcp_client_family, is_mcp_request
 from sentry.utils.sdk import get_transaction_name_from_request
+from sentry.viewer_context import ActorType
 
 ATTRIBUTION_SPAN_OP = "api.attribution"
 
@@ -40,7 +41,6 @@ class ClientKind(StrEnum):
     INTERNAL_SERVICE = "internal_service"
     MCP = "mcp"
     INTEGRATION = "integration"
-    SERVICE_ACCOUNT = "service_account"
     CLI = "cli"
     SDK = "sdk"
     SCRIPT = "script"
@@ -154,11 +154,6 @@ def get_client_kind(request: Request) -> ClientKind:
             return ClientKind.FRONTEND
         return ClientKind.UNKNOWN
 
-    # Checked after Seer: a Seer workflow acting as a service account carries a
-    # service-account credential, but Seer is the caller.
-    if is_service_account_auth(auth):
-        return ClientKind.SERVICE_ACCOUNT
-
     # A SentryApp installation token authenticates as the app's proxy user.
     if getattr(user, "is_sentry_app", False):
         return ClientKind.INTEGRATION
@@ -184,6 +179,18 @@ def get_client_kind(request: Request) -> ClientKind:
     return ClientKind.UNKNOWN
 
 
+def get_actor_type(request: Request) -> ActorType:
+    """Classify who the request acts as: a user, a service account, an agent acting
+    for a user, ...
+
+    A separate axis from ``client_kind``, which names the software that sent the
+    request: a service account token sent by sentry-cli is a ``service_account``
+    actor and a ``cli`` client.
+    """
+    actor = resolve_actor(getattr(request, "user", None), getattr(request, "auth", None))
+    return actor.type if actor is not None else ActorType.UNKNOWN
+
+
 def set_client_kind_attributes(request: Request) -> None:
     """Record who called the endpoint, on a span and on the enclosing transaction.
 
@@ -192,6 +199,7 @@ def set_client_kind_attributes(request: Request) -> None:
     hand-wiring them per handler.
     """
     client_kind = get_client_kind(request)
+    actor_type = get_actor_type(request)
 
     client_host = get_client_host(request)
     user_agent = get_user_agent(request)
@@ -200,10 +208,12 @@ def set_client_kind_attributes(request: Request) -> None:
     request._request.client_kind = client_kind
     request._request.client_host = client_host
 
-    _record_attribution_span(request, client_kind, client_host, user_agent)
+    _record_attribution_span(request, client_kind, actor_type, client_host, user_agent)
 
     sentry_sdk.set_tag("client_kind", client_kind.value)
     sentry_sdk.set_attribute("client_kind", client_kind.value)
+    sentry_sdk.set_tag("actor_type", actor_type.value)
+    sentry_sdk.set_attribute("actor_type", actor_type.value)
 
     if client_host is not None:
         sentry_sdk.set_tag("client_host", client_host)
@@ -216,6 +226,7 @@ def set_client_kind_attributes(request: Request) -> None:
 def _record_attribution_span(
     request: Request,
     client_kind: ClientKind,
+    actor_type: ActorType,
     client_host: str | None,
     user_agent: str | None,
 ) -> None:
@@ -233,6 +244,7 @@ def _record_attribution_span(
                 "sentry.op": ATTRIBUTION_SPAN_OP,
                 ATTRIBUTE_NAMES.HTTP_ROUTE: route,
                 "client_kind": client_kind.value,
+                "actor_type": actor_type.value,
             }
         ),
     ) as span:

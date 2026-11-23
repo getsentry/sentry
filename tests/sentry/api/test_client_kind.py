@@ -13,6 +13,7 @@ from sentry.api.client_kind import (
     ATTRIBUTION_SPAN_OP,
     ClientKind,
     client_kind_scope,
+    get_actor_type,
     get_client_host,
     get_client_kind,
     get_user_agent,
@@ -26,6 +27,7 @@ from sentry.seer.endpoints.seer_rpc import SeerRpcSignatureAuthentication
 from sentry.service_accounts.auth import SERVICE_ACCOUNT_TOKEN_KIND
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.utils.sdk import get_transaction_name_from_request
+from sentry.viewer_context import ActorType
 
 EVENTS_PATH = "/api/0/organizations/my-org/events/"
 EVENTS_ROUTE = "/api/0/organizations/{organization_id_or_slug}/events/"
@@ -136,20 +138,6 @@ class GetClientKindTest(TestCase):
         request = make_request(auth=api_token(application_id=42))
         assert self.classify(request) == ClientKind.INTEGRATION
 
-    def test_service_account_token_is_service_account(self) -> None:
-        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
-        assert self.classify(make_request(auth=auth)) == ClientKind.SERVICE_ACCOUNT
-
-    def test_service_account_wins_over_the_user_agent(self) -> None:
-        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
-        request = make_request(auth=auth, user_agent="sentry-cli/2.42.1")
-        assert self.classify(request) == ClientKind.SERVICE_ACCOUNT
-
-    def test_seer_acting_as_a_service_account_is_seer(self) -> None:
-        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
-        request = make_request(auth=auth, headers={"X-Viewer-Context": "a.b.c"})
-        assert self.classify(request) == ClientKind.SEER
-
     def test_token_auth_falls_back_to_user_agent(self) -> None:
         cases = [
             ("sentry-cli/2.42.1", ClientKind.CLI),
@@ -244,6 +232,29 @@ class GetClientKindTest(TestCase):
         assert self.classify(request) == ClientKind.UNKNOWN
 
 
+class GetActorTypeTest(TestCase):
+    def test_user(self) -> None:
+        request = make_request(user=self.create_user(), auth=api_token())
+        assert get_actor_type(request) == ActorType.USER
+
+    def test_service_account(self) -> None:
+        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        assert get_actor_type(make_request(auth=auth)) == ActorType.SERVICE_ACCOUNT
+
+    def test_service_account_is_independent_of_client_kind(self) -> None:
+        auth = AuthenticatedToken(kind=SERVICE_ACCOUNT_TOKEN_KIND, entity_id=1, organization_id=1)
+        request = make_request(auth=auth, user_agent="sentry-cli/2.42.1")
+        assert get_actor_type(request) == ActorType.SERVICE_ACCOUNT
+        assert get_client_kind(request) == ClientKind.CLI
+
+    def test_agent(self) -> None:
+        auth = AuthenticatedToken(kind=AGENT_TOKEN_KIND, user_id=1, organization_id=1)
+        assert get_actor_type(make_request(auth=auth)) == ActorType.AGENT
+
+    def test_anonymous_is_unknown(self) -> None:
+        assert get_actor_type(make_request()) == ActorType.UNKNOWN
+
+
 class GetUserAgentTest(TestCase):
     def test_returns_the_raw_user_agent(self) -> None:
         assert get_user_agent(make_request(user_agent="curl/8.7.1")) == "curl/8.7.1"
@@ -276,9 +287,13 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "script")]
+        assert sdk.set_tag.call_args_list == [
+            mock.call("client_kind", "script"),
+            mock.call("actor_type", "unknown"),
+        ]
         assert sdk.set_attribute.call_args_list == [
             mock.call("client_kind", "script"),
+            mock.call("actor_type", "unknown"),
             mock.call(ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
         ]
 
@@ -318,7 +333,10 @@ class SetClientKindAttributesTest(TestCase):
             mock.patch("sentry.api.client_kind.traces.start_span"),
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "script")]
+        assert sdk.set_tag.call_args_list == [
+            mock.call("client_kind", "script"),
+            mock.call("actor_type", "unknown"),
+        ]
 
 
 class AccessLogAttributesTest(TestCase):
@@ -373,12 +391,14 @@ class AttributionSpanTest(TestCase):
                 "sentry.op": ATTRIBUTION_SPAN_OP,
                 ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
                 "client_kind": "script",
+                "actor_type": "unknown",
             },
         )
         assert attributes == [
             ("sentry.op", ATTRIBUTION_SPAN_OP),
             (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE),
             ("client_kind", "script"),
+            ("actor_type", "unknown"),
             (ATTRIBUTE_NAMES.USER_AGENT_ORIGINAL, "curl/8.7.1"),
         ]
 
@@ -392,6 +412,7 @@ class AttributionSpanTest(TestCase):
                 "sentry.op": ATTRIBUTION_SPAN_OP,
                 ATTRIBUTE_NAMES.HTTP_ROUTE: EVENTS_ROUTE,
                 "client_kind": "script",
+                "actor_type": "unknown",
             },
         )
         assert (ATTRIBUTE_NAMES.HTTP_ROUTE, EVENTS_ROUTE) in attributes
@@ -415,6 +436,7 @@ class AttributionSpanTest(TestCase):
             "sentry.op",
             ATTRIBUTE_NAMES.HTTP_ROUTE,
             "client_kind",
+            "actor_type",
         ]
 
 
@@ -509,7 +531,7 @@ class ClientKindScopeTest(TestCase):
             mock.patch("sentry.api.client_kind.sentry_sdk") as sdk,
         ):
             set_client_kind_attributes(request)
-        assert sdk.set_tag.call_args_list == [mock.call("client_kind", "seer")]
+        assert mock.call("client_kind", "seer") in sdk.set_tag.call_args_list
         assert mock.call("client_kind", "seer") in sdk.set_attribute.call_args_list
 
 
@@ -532,7 +554,9 @@ class DispatchWiringTest(APITestCase):
 
     def test_an_organization_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/organizations/{self.organization.slug}/"
-        assert mock.call("client_kind", "frontend") in self.tags_for(url)
+        tags = self.tags_for(url)
+        assert mock.call("client_kind", "frontend") in tags
+        assert mock.call("actor_type", "user") in tags
 
     def test_a_project_endpoint_records_the_caller(self) -> None:
         url = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/"
