@@ -668,15 +668,7 @@ class Factories:
         om = OrganizationMember.objects.create(**kwargs)
 
         if user_id is not None:
-            # The member's user_email and user_is_active reach the cell through this drain
-            with assume_test_silo_mode(SiloMode.CONTROL):
-                pending_user_outboxes = list(
-                    ControlOutbox.objects.filter(
-                        shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
-                    )
-                )
-                for outbox in pending_user_outboxes:
-                    outbox.drain_shard()
+            Factories._drain_user_outboxes(user_id)
 
         if team_roles:
             for team, role in team_roles:
@@ -716,10 +708,24 @@ class Factories:
                 organization=team.organization,
                 defaults={"role": "member"},
             )
+            if created and member.user_id is not None:
+                Factories._drain_user_outboxes(member.user_id)
 
         return OrganizationMemberTeam.objects.create(
             team=team, organizationmember=member, is_active=True, role=role
         )
+
+    @staticmethod
+    def _drain_user_outboxes(user_id: int) -> None:
+        # A new member's user_email and user_is_active reach the cell through this drain
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            pending_user_outboxes = list(
+                ControlOutbox.objects.filter(
+                    shard_scope=OutboxScope.USER_SCOPE, shard_identifier=user_id
+                )
+            )
+            for outbox in pending_user_outboxes:
+                outbox.drain_shard()
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
