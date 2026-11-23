@@ -189,7 +189,6 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
     # What a firing hands to the automation's action; recorded in the run's snapshot.
     inputs_type: type[Inputs]
     settings_type: type[BaseModel]
-    action_settings_type: type[BaseModel] = NoSettings
     scoped_by: Literal["projects", "monitors"]
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:
@@ -238,7 +237,7 @@ class AutomationDefinition[Inputs: BaseModel](Protocol):
         try:
             return (
                 self.settings_type.parse_obj(extras.trigger_settings or {}),
-                self.action_settings_type.parse_obj(extras.action_settings or {}),
+                NoSettings.parse_obj(extras.action_settings or {}),
             )
         except ValidationError as e:
             raise WorkflowUpdateError(
@@ -390,16 +389,6 @@ class ConfigUpdate:
         if workflow is None:
             raise WorkflowUpdateError("The automation has no backing workflow")
         return workflow
-
-    def set_trigger_settings(self, trigger_settings: dict[str, Any]) -> None:
-        extras = SeerWorkflowConfigExtras.parse_obj(self.config.extras)
-        extras.trigger_settings = trigger_settings
-        self.set_extras(extras)
-
-    def set_action_settings(self, action_settings: dict[str, Any]) -> None:
-        extras = SeerWorkflowConfigExtras.parse_obj(self.config.extras)
-        extras.action_settings = action_settings
-        self.set_extras(extras)
 
     def set_extras(self, extras: SeerWorkflowConfigExtras) -> None:
         self.definition.validate_settings(extras)
