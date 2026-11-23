@@ -808,3 +808,27 @@ default_manager.add(
         template="revoked token {name} of service account {service_account_name}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=228,
+        name="FORMULA_ADD",
+        api_name="formula.create",
+        template="created formula {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=229,
+        name="FORMULA_EDIT",
+        api_name="formula.edit",
+        template="edited formula {name}",
+    )
+)
+default_manager.add(
+    AuditLogEvent(
+        event_id=230,
+        name="FORMULA_REMOVE",
+        api_name="formula.remove",
+        template="removed formula {name}",
+    )
+)
