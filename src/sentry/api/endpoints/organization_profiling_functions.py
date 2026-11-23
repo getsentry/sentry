@@ -15,6 +15,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.auth.principal import acting_user_id
@@ -70,6 +71,7 @@ class FunctionTrendsSerializer(serializers.Serializer):
 
 @cell_silo_endpoint
 class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationTelemetryPermission,)
     owner = ApiOwner.PROFILING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

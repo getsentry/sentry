@@ -16,6 +16,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.profilechunkattachment import (
@@ -45,6 +46,7 @@ from sentry.utils.snuba import raw_snql_query
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationTelemetryPermission,)
     owner = ApiOwner.PROFILING
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,

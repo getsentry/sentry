@@ -1992,6 +1992,7 @@ SENTRY_SCOPES = {
     "seer:write",
     "service_account:read",
     "service_account:write",
+    "telemetry:read",
     "user_preference:read",
     "user_preference:write",
     # openid, profile, and email aren't prefixed to maintain compliance with the OIDC spec.
@@ -2013,6 +2014,7 @@ SENTRY_READONLY_SCOPES = {
     "saved_query:read",
     "seer:read",
     "service_account:read",
+    "telemetry:read",
     "user_preference:read",
 }
 
@@ -2052,6 +2054,7 @@ SENTRY_SCOPE_HIERARCHY_MAPPING = {
     "service_account:read": {"service_account:read"},
     # Explicit by design: holding write does not grant read.
     "service_account:write": {"service_account:write"},
+    "telemetry:read": {"telemetry:read"},
     "user_preference:read": {"user_preference:read"},
     "user_preference:write": {"user_preference:write"},
     "openid": {"openid"},
@@ -2084,6 +2087,7 @@ GRANULAR_SCOPES = frozenset(
         "user_preference:write",
         # Accepted by endpoints, but not granted by any role yet.
         "membership:read",
+        "telemetry:read",
     ]
 )
 
@@ -2099,6 +2103,8 @@ DEPRECATED_SCOPE_TRANSLATIONS: dict[str, frozenset[str]] = {
             "dashboard:write",
             "saved_query:read",
             "saved_query:write",
+            # Spans, logs, trace metrics and profiles.
+            "telemetry:read",
             # Recent searches and prompt activity accept org:read today, including writes.
             "user_preference:read",
             "user_preference:write",
@@ -2197,6 +2203,7 @@ SENTRY_SCOPE_SETS = (
         ("service_account:write", "Write access to service accounts."),
         ("service_account:read", "Read access to service accounts."),
     ),
+    (("telemetry:read", "Read access to spans, logs, trace metrics, and profiles."),),
     (
         (
             "user_preference:write",

@@ -242,6 +242,7 @@ class DeprecatedScopeTranslationTest(DRFPermissionTestCase):
                 "dashboard:write",
                 "saved_query:read",
                 "saved_query:write",
+                "telemetry:read",
                 "user_preference:read",
                 "user_preference:write",
             ]

@@ -10,6 +10,7 @@ from sentry_sdk import traces
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
+from sentry.api.bases.organization import OrganizationTelemetryPermission
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.apidocs.constants import (
@@ -117,6 +118,7 @@ SORTABLE_COLUMNS = [
 @extend_schema(tags=["Explore"])
 @cell_silo_endpoint
 class OrganizationTraceLogsEndpoint(OrganizationEventsEndpointBase):
+    permission_classes = (OrganizationTelemetryPermission,)
     """Replaces a call to events that isn't possible for team plans because of projects restrictions"""
 
     publish_status = {
