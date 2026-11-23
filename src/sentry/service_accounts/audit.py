@@ -3,15 +3,11 @@ from __future__ import annotations
 from typing import Any
 
 from sentry.service_accounts.models import ServiceAccount, ServiceAccountToken
-from sentry.service_accounts.services.service_account.model import (
-    RpcDeactivatedServiceAccountToken,
-    RpcServiceAccount,
-)
 
 
 def token_audit_log_data(
-    service_account: ServiceAccount | RpcServiceAccount,
-    token: ServiceAccountToken | RpcDeactivatedServiceAccountToken,
+    service_account: ServiceAccount,
+    token: ServiceAccountToken,
     *,
     account_deleted: bool = False,
 ) -> dict[str, Any]:

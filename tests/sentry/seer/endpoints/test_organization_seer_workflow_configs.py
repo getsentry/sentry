@@ -39,12 +39,7 @@ from sentry.seer.workflows.base import (
 )
 from sentry.seer.workflows.breached_metrics import ConnectedMonitor
 from sentry.seer.workflows.workflow import SeerWorkflow
-from sentry.service_accounts.models import (
-    ServiceAccount,
-    ServiceAccountProject,
-    ServiceAccountToken,
-)
-from sentry.service_accounts.tokens import stored_token_fields
+from sentry.service_accounts.models import ServiceAccount, ServiceAccountProject
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.testutils.factories import Factories
@@ -1151,42 +1146,6 @@ class OrganizationSeerWorkflowConfigDetailsTest(APITestCase):
             assert AuditLogEntry.objects.filter(
                 event=audit_log.get_event_id("SERVICE_ACCOUNT_REMOVE"), target_object=account.id
             ).exists()
-
-    def test_delete_audits_deactivated_tokens_as_the_requester(self) -> None:
-        with outbox_runner():
-            account = Factories.create_service_account(self.organization)
-        stored = stored_token_fields("plaintext-deploys")
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ServiceAccountToken.objects.create(
-                service_account=account,
-                organization_id=self.organization.id,
-                name="deploys",
-                token_hashed=stored.token_hashed,
-                token_last_characters=stored.token_last_characters,
-                scope_list=["event:read"],
-            )
-        config = self.create_config(service_account_id=account.id)
-
-        with outbox_runner():
-            self.get_success_response(
-                self.organization.slug, config.id, method="delete", status_code=204
-            )
-
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            token.refresh_from_db()
-            assert token.date_deactivated is not None
-            entry = AuditLogEntry.objects.get(
-                event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE")
-            )
-        assert entry.target_object == token.id
-        assert entry.actor_id == self.user.id
-        assert entry.data == {
-            "name": "deploys",
-            "scopes": ["event:read"],
-            "service_account_id": account.id,
-            "service_account_name": account.name,
-            "reason": "service_account_deleted",
-        }
 
     def test_open_membership_member_can_delete(self) -> None:
         member, _ = self.create_member_with_project(open_membership=True)

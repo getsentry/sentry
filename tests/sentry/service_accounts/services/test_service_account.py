@@ -306,7 +306,7 @@ class ServiceAccountServiceTest(TestCase):
         with assume_test_silo_mode(SiloMode.CONTROL):
             assert not ServiceAccount.objects.get(id=account_id).is_active
 
-    def test_delete_service_account_deactivates_tokens(self) -> None:
+    def test_deactivate_service_account_returns_deactivated_tokens(self) -> None:
         account_id = self.create()
         stored = stored_token_fields("plaintext-deploys")
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -319,7 +319,7 @@ class ServiceAccountServiceTest(TestCase):
                 scope_list=["event:read"],
             )
 
-        deactivated = service_account_service.delete_service_account(
+        deactivated = service_account_service.deactivate_service_account(
             organization_id=self.organization.id, service_account_id=account_id
         )
 
@@ -333,11 +333,32 @@ class ServiceAccountServiceTest(TestCase):
 
         # A second delete deactivates nothing.
         assert (
-            service_account_service.delete_service_account(
+            service_account_service.deactivate_service_account(
                 organization_id=self.organization.id, service_account_id=account_id
             )
             is None
         )
+
+    def test_delete_service_account_deactivates_tokens(self) -> None:
+        account_id = self.create()
+        stored = stored_token_fields("plaintext-deploys")
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ServiceAccountToken.objects.create(
+                service_account_id=account_id,
+                organization_id=self.organization.id,
+                name="deploys",
+                token_hashed=stored.token_hashed,
+                token_last_characters=stored.token_last_characters,
+                scope_list=["event:read"],
+            )
+
+        service_account_service.delete_service_account(
+            organization_id=self.organization.id, service_account_id=account_id
+        )
+
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token.refresh_from_db()
+            assert token.date_deactivated is not None
 
     def test_deleted_service_account_is_hidden(self) -> None:
         account_id = self.create()

@@ -151,7 +151,12 @@ class DatabaseBackedServiceAccountService(ServiceAccountService):
             service_account, set() if all_projects else set(project_ids)
         )
 
-    def delete_service_account(
+    def delete_service_account(self, *, organization_id: int, service_account_id: int) -> None:
+        self.deactivate_service_account(
+            organization_id=organization_id, service_account_id=service_account_id
+        )
+
+    def deactivate_service_account(
         self, *, organization_id: int, service_account_id: int
     ) -> list[RpcDeactivatedServiceAccountToken] | None:
         service_account = ServiceAccount.objects.get_or_none(

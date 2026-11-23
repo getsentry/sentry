@@ -44,7 +44,6 @@ from sentry.service_accounts.models import (
 )
 from sentry.service_accounts.outbox import service_account_create_outbox
 from sentry.service_accounts.services.service_account import (
-    RpcDeactivatedServiceAccountToken,
     RpcServiceAccount,
     service_account_service,
 )
@@ -275,12 +274,9 @@ class SeerWorkflow:
         )
         return counts["selected"] > 0 and counts["selected"] == counts["total"]
 
-    def delete(self) -> list[RpcDeactivatedServiceAccountToken]:
-        """
-        Delete the config with its project links, runs, and service account. Returns the
-        account's tokens that the delete deactivated, so the caller can audit them.
-        """
-        tokens = self._delete_service_account()
+    def delete(self) -> None:
+        """Delete the config with its project links, runs, and service account."""
+        self._delete_service_account()
         with lock_config(self.organization_id, self.config_id) as config:
             get_definition(config.strategy).teardown(config)
             workflow = config.backing_workflow
@@ -288,18 +284,13 @@ class SeerWorkflow:
                 CellScheduledDeletion.schedule(workflow, days=0)
                 workflow.update(status=ObjectStatus.PENDING_DELETION)
             config.delete()
-        return tokens
 
-    def _delete_service_account(self) -> list[RpcDeactivatedServiceAccountToken]:
+    def _delete_service_account(self) -> None:
         service_account_id = self.get_config().service_account_id
-        if service_account_id is None:
-            return []
-        return (
+        if service_account_id is not None:
             service_account_service.delete_service_account(
                 organization_id=self.organization_id, service_account_id=service_account_id
             )
-            or []
-        )
 
     def get_service_account(self) -> RpcServiceAccount | None:
         """Read the automation's service account from control, which the replica may lag."""
