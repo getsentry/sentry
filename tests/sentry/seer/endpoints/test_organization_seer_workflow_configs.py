@@ -286,7 +286,7 @@ class OrganizationSeerWorkflowConfigsTest(APITestCase):
                 configs, accessible_project_ids=[project_id], has_global_access=True
             )
 
-        assert len(queries) == 3
+        assert len(queries) == 4
         assert [config["dateLastRun"] for config in result["configs"]] == [
             run.date_added for run in runs
         ]
