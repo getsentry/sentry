@@ -33,6 +33,7 @@ from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.objectstore import UsecaseId, get_session
 from sentry.tasks.assemble import (
     ArtifactBundlePostAssembler,
+    AssembleResult,
     AssembleTask,
     ChunkFileState,
     assemble_artifacts,
@@ -167,6 +168,7 @@ class AssembleDifTest(BaseAssembleTest):
         assert rv is not None
         f, tmp = rv
         tmp.close()
+        assert f is not None
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
 
@@ -187,6 +189,7 @@ class AssembleDifTest(BaseAssembleTest):
         assert rv is not None
         f, tmp = rv
         tmp.close()
+        assert f is not None
         assert f.checksum == file_checksum.hexdigest()
 
     def test_assemble_duplicate_blobs(self) -> None:
@@ -221,6 +224,7 @@ class AssembleDifTest(BaseAssembleTest):
         assert rv is not None
         f, tmp = rv
         tmp.close()
+        assert f is not None
         assert f.checksum == file_checksum.hexdigest()
         assert f.type == "dummy.type"
 
@@ -1656,8 +1660,7 @@ class ArtifactBundleIndexingTest(TestCase):
     def post_assembler(self, release: str, dist: str) -> ArtifactBundlePostAssembler:
         payload = self.create_artifact_bundle_zip(fixture_path="artifact_bundle_debug_ids")
         return ArtifactBundlePostAssembler(
-            file=None,
-            temp_file=io.BytesIO(payload),
+            assemble_result=AssembleResult(bundle=None, bundle_temp_file=io.BytesIO(payload)),
             checksum=sha1(payload).hexdigest(),
             organization=self.organization,
             release=release,

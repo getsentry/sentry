@@ -226,6 +226,7 @@ class DifAssembleEndpoint(APITestCase):
         assert assemble_result is not None
 
         file = assemble_result.bundle
+        assert file is not None
         status, _ = get_assemble_status(AssembleTask.DIF, self.project.id, total_checksum)
         assert status != ChunkFileState.ERROR
         assert file.checksum == total_checksum
