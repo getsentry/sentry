@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import {IconStar} from '@sentry/icons/star';
+import {expectTypeOf} from 'expect-type';
 import {UserFixture} from 'sentry-fixture/user';
 import type {DistributedOmit} from 'type-fest';
 
@@ -1411,35 +1412,25 @@ describe('EntityHeader', () => {
         expect(document.body).toHaveFocus();
       });
 
+      // Type-only: typecheck is the assertion. These calls check nothing at runtime.
       it('takes no tooltip or value on a date', () => {
-        renderItems([
-          {label: 'Browser', type: 'text', value: 'Chrome', tooltip: 'Desktop'},
-          {
-            label: 'Started at',
-            type: 'date',
-            date,
-            // @ts-expect-error: a date explains itself, so it takes no tooltip.
-            tooltip: 'When the session began',
-          },
-          {
-            label: 'Last seen',
-            type: 'date',
-            date,
-            // @ts-expect-error: a date takes `date`, not a formatted `value`.
-            value: 'yesterday',
-          },
-          {
-            label: 'Deploys',
-            type: 'list',
-            items: [
-              {key: 'a', type: 'text', value: 'staging', tooltip: 'Pre-release'},
-              // @ts-expect-error: a date entry takes no tooltip either.
-              {key: 'b', type: 'date', date, tooltip: 'When it shipped'},
-            ],
-          },
-        ]);
+        type DateItem = {date: Date; label: string; type: 'date'};
+        expectTypeOf<DateItem>().toExtend<EntityHeaderMetadataItemProps>();
+        // A date explains itself, so it takes no tooltip.
+        expectTypeOf<
+          DateItem & {tooltip: string}
+        >().not.toExtend<EntityHeaderMetadataItemProps>();
+        // A date takes `date`, not a formatted `value`.
+        expectTypeOf<
+          DateItem & {value: string}
+        >().not.toExtend<EntityHeaderMetadataItemProps>();
 
-        expect(screen.getByText('Chrome')).toBeInTheDocument();
+        type DateEntry = {date: Date; key: string; type: 'date'};
+        expectTypeOf<DateEntry>().toExtend<EntityHeaderMetadataListEntry>();
+        // A date entry takes no tooltip either.
+        expectTypeOf<
+          DateEntry & {tooltip: string}
+        >().not.toExtend<EntityHeaderMetadataListEntry>();
       });
 
       it('takes no tooltip on a date through a spread or a declared object', () => {

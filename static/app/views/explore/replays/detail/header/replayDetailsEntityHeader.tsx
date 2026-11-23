@@ -159,7 +159,7 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
                 label: t('Started at'),
                 type: 'date',
                 date: replayRecord.started_at,
-                format: prefs.timestampType === 'absolute' ? 'absolute' : 'relative',
+                format: prefs.timestampType,
               }
             : null,
           replayRecord?.browser.name

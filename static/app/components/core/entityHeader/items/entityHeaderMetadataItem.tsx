@@ -159,74 +159,88 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataValueProps
   | EntityHeaderMetadataListProps;
 
-function isNonBlankString(value: unknown): value is string {
+/**
+ * A value that draws: its text is not blank, its qualifier is text or gone,
+ * and a date is already parsed, so renderers neither check it nor parse a
+ * string again.
+ */
+type ResolvedMetadataValue =
+  | Exclude<MetadataValueData, {type: 'date'}>
+  | (Omit<Extract<MetadataValueData, {type: 'date'}>, 'date'> & {date: Date});
+
+type ResolvedMetadataListProps = Omit<EntityHeaderMetadataListProps, 'items'> & {
+  items: Array<ResolvedMetadataValue & {key: string}>;
+};
+
+export type ResolvedMetadataItem = ResolvedMetadataValue | ResolvedMetadataListProps;
+
+// The types say `string`, but data mapped from an API can still put a node or
+// `null` here, and `.trim()` would throw on it.
+function isDrawableValue(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
-}
-
-/**
- * Whether the value draws nothing, so it is left out like a `null` item. A
- * date is checked with the parser that draws it, so one it cannot read is
- * left out rather than drawn as "Invalid date".
- */
-function isEmptyValue(entry: MetadataValueData) {
-  if (entry.type === 'date') {
-    return parseDate(entry.date, 'UTC') === null;
-  }
-  return !isNonBlankString(entry.value);
-}
-
-/**
- * The qualifier, if it is text to draw. One that is not is left out on its
- * own, and the value still renders.
- */
-function getSecondary(entry: MetadataValueData) {
-  return isNonBlankString(entry.secondary?.value) ? entry.secondary : undefined;
-}
-
-/**
- * Whether the item draws anything. A list with no non-empty entries draws
- * nothing.
- */
-export function hasMetadataContent(item: EntityHeaderMetadataItemProps) {
-  return item.type === 'list'
-    ? item.items.some(entry => !isEmptyValue(entry))
-    : !isEmptyValue(item);
 }
 
 const warnedMessages = new Set<string>();
 
-/**
- * An empty value usually comes from mapping over data with a missing name. It
- * is left out, but the caller should not rely on that.
- */
-export function warnOnEmptyMetadataValues(item: EntityHeaderMetadataItemProps): void {
-  if (process.env.NODE_ENV === 'production') {
+function warnOnce(message: string) {
+  if (process.env.NODE_ENV === 'production' || warnedMessages.has(message)) {
     return;
   }
-  const named: Array<[MetadataValueData, string]> =
-    item.type === 'list'
-      ? item.items.map(entry => [
-          entry,
-          entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`,
-        ])
-      : [[item, `item "${item.label}"`]];
-  const messages = named.flatMap(([entry, name]) =>
-    isEmptyValue(entry)
-      ? [`EntityHeader metadata ${name} has an empty value and was left out.`]
-      : entry.secondary && !getSecondary(entry)
-        ? [
-            `EntityHeader metadata ${name} has an empty or invalid secondary value and it was left out.`,
-          ]
-        : []
-  );
-  for (const message of messages) {
-    if (warnedMessages.has(message)) {
-      continue;
+  warnedMessages.add(message);
+  // eslint-disable-next-line no-console
+  console.warn(message);
+}
+
+/**
+ * A value that draws nothing usually comes from mapping over data with a
+ * missing name. It is left out like a `null` item, with a warning, since the
+ * caller should not rely on that. A date is parsed with the parser that both
+ * renderers use, so one it cannot read is left out rather than drawn as
+ * "Invalid date", and the parsed instant is what they draw.
+ */
+function resolveMetadataValue(
+  entry: MetadataValueData,
+  name: string
+): ResolvedMetadataValue | null {
+  if (entry.type === 'date') {
+    const parsed = parseDate(entry.date, 'UTC');
+    if (parsed === null) {
+      warnOnce(`EntityHeader metadata ${name} has an empty value and was left out.`);
+      return null;
     }
-    warnedMessages.add(message);
-    // eslint-disable-next-line no-console
-    console.warn(message);
+    return {...entry, date: new Date(parsed.epochMilliseconds)};
   }
+  if (!isDrawableValue(entry.value)) {
+    warnOnce(`EntityHeader metadata ${name} has an empty value and was left out.`);
+    return null;
+  }
+  if (entry.secondary && !isDrawableValue(entry.secondary.value)) {
+    warnOnce(
+      `EntityHeader metadata ${name} has an empty or invalid secondary value and it was left out.`
+    );
+    return {...entry, secondary: undefined};
+  }
+  return entry;
+}
+
+/**
+ * The item as it draws, or `null` if it draws nothing. A list keeps only the
+ * entries that draw, and draws nothing without one.
+ */
+export function resolveMetadataItem(
+  item: EntityHeaderMetadataItemProps
+): ResolvedMetadataItem | null {
+  if (item.type !== 'list') {
+    return resolveMetadataValue(item, `item "${item.label}"`);
+  }
+  const items = item.items.flatMap(entry => {
+    const resolved = resolveMetadataValue(
+      entry,
+      entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
+    );
+    return resolved ? [{...resolved, key: entry.key}] : [];
+  });
+  return items.length > 0 ? {...item, items} : null;
 }
 
 /**
@@ -322,7 +336,7 @@ const VALUE_STYLES = {
 } as const satisfies EntityHeaderTextTypography;
 
 interface MetadataRelativeDateProps {
-  date: string | Date;
+  date: Date;
   label?: string;
 }
 
@@ -344,7 +358,7 @@ function MetadataRelativeDate({date, label}: MetadataRelativeDateProps) {
   );
 }
 
-function MetadataDisplayValue({value: props}: {value: MetadataValueData}) {
+function MetadataDisplayValue({value: props}: {value: ResolvedMetadataValue}) {
   if (props.type === 'date') {
     return props.format === 'relative' ? (
       <MetadataRelativeDate date={props.date} label={props.label} />
@@ -370,9 +384,8 @@ function MetadataDisplayValue({value: props}: {value: MetadataValueData}) {
   );
 }
 
-function MetadataValue({value: props}: {value: MetadataValueData}) {
-  const {label, mode = 'compact'} = props;
-  const secondary = getSecondary(props);
+function MetadataValue({value: props}: {value: ResolvedMetadataValue}) {
+  const {label, mode = 'compact', secondary} = props;
   // A link names itself from `label`; text and dates need the label beside it.
   const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
   const secondaryLabel = secondary
@@ -422,7 +435,7 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
 }
 
 interface MetadataEntryProps {
-  entry: MetadataValueData;
+  entry: ResolvedMetadataValue;
   /**
    * Set on a list's first visible entry, which starts the property: it
    * carries the list's graphic and label. The graphic keeps its fixed box,
@@ -467,16 +480,14 @@ function MetadataEntry({
 }
 
 function MetadataList({
-  items: allItems,
+  items,
   maxVisible,
   label,
   leadingGraphic,
   trailing,
   mode = 'compact',
-}: EntityHeaderMetadataListProps & {trailing: React.ReactNode}) {
+}: ResolvedMetadataListProps & {trailing: React.ReactNode}) {
   const {t} = useTranslation();
-  // Before the cut, so "+N more" counts only entries that draw something.
-  const items = allItems.filter(entry => !isEmptyValue(entry));
   const cut = useResponsivePropValue(maxVisible) ?? items.length;
   // Where the list was cut when "+N more" was pressed; null while collapsed.
   // Kept rather than re-read from `cut`, so a later resize neither collapses
@@ -562,18 +573,8 @@ function MetadataList({
 
 export function EntityHeaderMetadataItem({
   trailing,
-  isLoading = false,
   ...props
-}: EntityHeaderMetadataItemProps & {trailing: React.ReactNode; isLoading?: boolean}) {
-  if (isLoading) {
-    return (
-      <EntityHeaderMetadataItemSkeleton
-        hasGraphic={Boolean(props.leadingGraphic)}
-        trailing={trailing}
-      />
-    );
-  }
-
+}: ResolvedMetadataItem & {trailing: React.ReactNode}) {
   if (props.type === 'list') {
     return <MetadataList {...props} trailing={trailing} />;
   }
