@@ -131,6 +131,7 @@ class ExploreProcessor:
             end=self.end,
             sampling_mode=self.sampling_mode,
             query_string=explore_query.get("query"),
+            case_insensitive=explore_query.get("caseInsensitive") == "1",
         )
         if self.environments:
             self.snuba_params.environments = self.environments

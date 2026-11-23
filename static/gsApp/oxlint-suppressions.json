@@ -5,7 +5,10 @@
   "components/billingDetails/form.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },
-  "components/billingDetails/form.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 1}},
+  "components/billingDetails/form.tsx": {
+    "@sentry/scraps/no-dom-coupling": {"count": 1},
+    "@sentry/scraps/prefer-primitives": {"count": 1}
+  },
   "components/creditCardEdit/intentForms/innerIntentForm.spec.tsx": {
     "@sentry/require-fake-timer-cleanup": {"count": 1}
   },
@@ -14,10 +17,20 @@
     "@sentry/scraps/prefer-primitives": {"count": 4}
   },
   "components/dataConsentPriorityLearnMore.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 1}
+    "@sentry/scraps/no-dom-coupling": {"count": 1},
+    "@sentry/scraps/prefer-primitives": {"count": 1}
+  },
+  "components/features/disabledAlertWizard.tsx": {
+    "@sentry/scraps/prefer-primitives": {"count": 1}
+  },
+  "components/features/disabledDiscardGroup.tsx": {
+    "@sentry/scraps/prefer-primitives": {"count": 1}
+  },
+  "components/features/disabledRateLimits.tsx": {
+    "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "components/features/disabledSelectorItems.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 1}
+    "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "components/features/illustrations/alertsBackground.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1}
@@ -36,6 +49,7 @@
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/prefer-primitives": {"count": 2}
   },
+  "components/profiling/alerts.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/profiling/profilingUpgradeModal.tsx": {
     "@sentry/scraps/prefer-primitives": {"count": 3}
   },
@@ -79,6 +93,9 @@
   },
   "components/upsellModal/index.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "components/upsellProvider.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
+  "overrides/disabledCustomSymbolSources.tsx": {
+    "@sentry/scraps/prefer-primitives": {"count": 2}
+  },
   "overrides/disabledMemberView.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "overrides/integrationFeatures.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
   "overrides/orgStatsBanner.tsx": {"@sentry/scraps/prefer-primitives": {"count": 1}},
@@ -118,10 +135,10 @@
   "views/invoiceDetails/index.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 7},
     "@sentry/scraps/no-manual-table": {"count": 12},
-    "@sentry/scraps/prefer-primitives": {"count": 2}
+    "@sentry/scraps/prefer-primitives": {"count": 3}
   },
   "views/legalAndCompliance/policyRow.tsx": {
-    "@sentry/scraps/prefer-primitives": {"count": 2}
+    "@sentry/scraps/prefer-primitives": {"count": 3}
   },
   "views/seerAutomation/onboarding/onboardingLegacy.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
@@ -129,7 +146,8 @@
   },
   "views/spendAllocations/components/allocationForm.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
-    "@sentry/scraps/prefer-container-responsive-props": {"count": 1}
+    "@sentry/scraps/prefer-container-responsive-props": {"count": 1},
+    "@sentry/scraps/prefer-primitives": {"count": 2}
   },
   "views/spendAllocations/index.tsx": {"@sentry/scraps/no-dom-coupling": {"count": 1}},
   "views/spendAllocations/rootAllocationCard.tsx": {
@@ -146,7 +164,8 @@
     "@sentry/scraps/no-dom-coupling": {"count": 2}
   },
   "views/spikeProtection/spikeProtectionTimeDetails.tsx": {
-    "@sentry/scraps/no-dom-coupling": {"count": 2}
+    "@sentry/scraps/no-dom-coupling": {"count": 2},
+    "@sentry/scraps/prefer-primitives": {"count": 1}
   },
   "views/subscriptionPage/pendingChanges.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1}
@@ -154,7 +173,7 @@
   "views/subscriptionPage/recurringCredits.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 1},
     "@sentry/scraps/no-manual-table": {"count": 5},
-    "@sentry/scraps/prefer-primitives": {"count": 2}
+    "@sentry/scraps/prefer-primitives": {"count": 3}
   },
   "views/subscriptionPage/styles.tsx": {
     "@sentry/scraps/no-dom-coupling": {"count": 7},

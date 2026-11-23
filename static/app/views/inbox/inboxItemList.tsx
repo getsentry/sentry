@@ -1,4 +1,4 @@
-import {Fragment, useId} from 'react';
+import {useId, type ReactNode} from 'react';
 import styled from '@emotion/styled';
 import {IconCheckmark} from '@sentry/icons/checkmark';
 import {IconDelete} from '@sentry/icons/delete';
@@ -6,6 +6,7 @@ import {IconEllipsis} from '@sentry/icons/ellipsis';
 import {IconMail} from '@sentry/icons/mail';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {ProjectAvatar} from '@sentry/scraps/avatar';
 import {Checkbox} from '@sentry/scraps/checkbox';
 import {DropdownMenu} from '@sentry/scraps/dropdownMenu';
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -21,12 +22,13 @@ import {t} from 'sentry/locale';
 import {useListItemCheckboxContext} from 'sentry/utils/list/useListItemCheckboxState';
 import * as qs from 'sentry/utils/url/qs';
 import {useOrganization} from 'sentry/utils/useOrganization';
+import {useProjectFromId} from 'sentry/utils/useProjectFromId';
 
 import {
   removeInboxItemsMutationOptions,
   updateInboxItemsMutationOptions,
 } from './inboxApiOptions';
-import type {InboxFilters, InboxItem} from './types';
+import type {InboxFilters, InboxIssueMetadata, InboxItem} from './types';
 import {INBOX_SUBJECT_CONFIG} from './utils';
 
 interface InboxItemListProps {
@@ -42,25 +44,75 @@ export function InboxItemList({items, selectedItemId, filters}: InboxItemListPro
         <InboxItemListItem
           key={item.id}
           item={item}
-          isSelected={item.id === selectedItemId}
           filters={filters}
+          isSelected={item.id === selectedItemId}
         />
       ))}
     </Stack>
   );
 }
 
-interface InboxItemListItemProps {
+interface InboxItemRowProps {
   filters: InboxFilters;
   isSelected: boolean;
   item: InboxItem;
 }
 
-function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) {
+function InboxItemListItem(props: InboxItemRowProps) {
+  const {subject} = props.item;
+  switch (subject.type) {
+    case 'issue':
+      return <InboxIssueItem {...props} metadata={subject.metadata} />;
+    default:
+      return <DefaultInboxItem {...props} />;
+  }
+}
+
+function InboxIssueItem({
+  metadata,
+  ...props
+}: InboxItemRowProps & {metadata: InboxIssueMetadata}) {
+  const project = useProjectFromId({project_id: metadata.project.id});
+
+  return (
+    <InboxItemRow {...props}>
+      <Flex align="center" gap="2xs" minWidth={0}>
+        <ProjectAvatar project={project ?? metadata.project} size={12} />
+        <Text size="sm" variant="muted" ellipsis>
+          {metadata.shortId}
+        </Text>
+      </Flex>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function DefaultInboxItem(props: InboxItemRowProps) {
+  return (
+    <InboxItemRow {...props}>
+      <InboxItemSummary summary={props.item.latestEvent.summary} />
+    </InboxItemRow>
+  );
+}
+
+function InboxItemSummary({summary}: {summary: string}) {
+  return (
+    <Text size="sm" ellipsis>
+      {summary}
+    </Text>
+  );
+}
+
+function InboxItemRow({
+  item,
+  isSelected,
+  filters,
+  children,
+}: InboxItemRowProps & {children: ReactNode}) {
   const organization = useOrganization();
   const checkboxState = useListItemCheckboxContext();
   const checkboxId = useId();
-  const {type, title, metadata} = item.subject;
+  const {type, title} = item.subject;
   const SubjectIcon = INBOX_SUBJECT_CONFIG[type].icon;
   const {pathname, search, hash} = new URL(item.url);
   const queryClient = useQueryClient();
@@ -69,11 +121,12 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
   );
   const {mutate: removeInboxItems, isPending: isRemoving} = useMutation({
     ...removeInboxItemsMutationOptions({organization, queryClient}),
-    onSuccess: (_data, {ids}) =>
+    onSuccess: () =>
       toast.success(t('Removed 1 item'), {
         action: {
           label: t('Undo'),
-          onClick: () => updateInboxItems({selection: ids, update: {undoRemoval: true}}),
+          onClick: () =>
+            updateInboxItems({selection: [item.id], update: {undoRemoval: true}}),
         },
       }),
     onError: () => toast.error(t('Unable to remove item')),
@@ -84,7 +137,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
       {props => (
         <ItemRow {...props} data-inbox-item data-selected={isSelected}>
           <InteractionStateLayer />
-          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs" align="center">
+          <Grid columns="max-content 8px minmax(0, 1fr)" gap="xs md" align="center">
             <Container
               column="1 / 2"
               row="1 / span 2"
@@ -194,16 +247,7 @@ function InboxItemListItem({item, isSelected, filters}: InboxItemListItemProps) 
               </Grid>
             </Flex>
             <Stack column="3" row="2" gap="xs" minWidth={0}>
-              {type === 'issue' && (
-                <Fragment>
-                  <Text size="sm" variant="muted" ellipsis>
-                    {metadata.shortId}
-                  </Text>
-                </Fragment>
-              )}
-              <Text size="sm" ellipsis>
-                {item.latestEvent.summary}
-              </Text>
+              {children}
             </Stack>
           </Grid>
         </ItemRow>

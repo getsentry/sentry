@@ -761,15 +761,7 @@ class DashboardWidgetSerializer(CamelSnakeSerializer[Dashboard]):
             "organizations:on-demand-metrics-extraction-widgets", organization
         )
 
-        if (
-            features.has(
-                "organizations:discover-saved-queries-deprecation",
-                self.context["organization"],
-                actor=self.context["request"].user,
-            )
-            and not data.get("id")
-            and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE
-        ):
+        if not data.get("id") and data.get("widget_type") == DashboardWidgetTypes.TRANSACTION_LIKE:
             raise serializers.ValidationError(
                 {
                     "widget_type": "The transactions dataset is being deprecated. Please use the spans dataset with the `is_transaction:true` filter instead."

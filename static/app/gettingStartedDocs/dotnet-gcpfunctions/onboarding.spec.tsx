@@ -42,5 +42,48 @@ describe('gcpfunctions onboarding docs', () => {
     expect(
       await screen.findByText(textWithMarkupMatcher(/EnableLogs/))
     ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders the logs onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.logsOnboarding!},
+      {
+        releaseRegistry: {'sentry.dotnet.google-cloud-function': {version: '1.99.9'}},
+        selectedProducts: [ProductSolution.LOGS],
+      }
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(
+          /Install-Package Sentry\.Google\.Cloud\.Functions -Version 1\.99\.9/
+        )
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/logger\.LogInformation/))
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(textWithMarkupMatcher(/"EnableLogs": true/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders the metrics onboarding for this platform', async () => {
+    renderWithOnboardingLayout(
+      {onboarding: docs.metricsOnboarding!},
+      {selectedProducts: [ProductSolution.METRICS]}
+    );
+
+    expect(
+      await screen.findByText(
+        textWithMarkupMatcher(/Install-Package Sentry\.Google\.Cloud\.Functions -Version/)
+      )
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/SentrySdk\.Init\(/))
+    ).not.toBeInTheDocument();
   });
 });

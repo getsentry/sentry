@@ -42,16 +42,14 @@ import {traceAnalytics} from './traceDetails/traceAnalytics';
 
 const TRACING_BENEFITS = [
   t('See related errors, logs, replays, and metrics alongside each trace'),
-  t(
-    'Find slow services and operations in the trace view and spot where a problem originated'
-  ),
+  t('Find slow services and operations, and where problems start'),
   t('Inspect model calls and tool calls in AI agents'),
 ];
 
 const TRACING_AGENT_STEPS = [
-  t('Install or update the Sentry SDK with tracing support'),
-  t('Configure the tracing sample rate and SDK options'),
-  t('Send a test request and verify traces appear in Sentry'),
+  t('Install or update the Sentry SDK with tracing'),
+  t('Set the sample rate and SDK options'),
+  t('Send a test request and check traces in Sentry'),
 ];
 
 const PLATFORM_DOCS_URL = 'https://docs.sentry.io/platforms/';

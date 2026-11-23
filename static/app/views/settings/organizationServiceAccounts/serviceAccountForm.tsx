@@ -25,7 +25,7 @@ import {
 import type {ServiceAccount, ServiceAccountInput} from './types';
 import {useServiceAccountAccess} from './useServiceAccountAccess';
 
-const MAX_NAME_LENGTH = 64;
+export const MAX_NAME_LENGTH = 64;
 
 const schema = z.object({
   name: z.string().trim().min(1, t('Name is required')).max(MAX_NAME_LENGTH),
@@ -41,13 +41,13 @@ type FormValues = z.infer<typeof schema>;
 const FORM_FIELDS = ['name', 'projectIds', 'scopes'] as const;
 
 /** Service account errors are nested under `detail`, keyed by request field. */
-function getFieldErrors(error: RequestError) {
+export function getDetailFieldErrors(error: RequestError, fields: readonly string[]) {
   const detail = error.responseJSON?.detail;
   if (!detail || typeof detail !== 'object') {
     return {};
   }
   return Object.fromEntries(
-    FORM_FIELDS.flatMap(field => {
+    fields.flatMap(field => {
       const messages = (detail as Record<string, unknown>)[field];
       return Array.isArray(messages) && typeof messages[0] === 'string'
         ? [[field, {message: messages[0]}]]
@@ -135,7 +135,7 @@ export function ServiceAccountForm({
           getRequestErrorUserMessage(error, t('Unable to save service account.'))
         );
         if (error instanceof RequestError) {
-          setFieldErrors(formApi, getFieldErrors(error));
+          setFieldErrors(formApi, getDetailFieldErrors(error, FORM_FIELDS));
         }
       }
     },
