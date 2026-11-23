@@ -194,6 +194,11 @@ SENTRY_WEBHOOK_LOG_REDIS_CLUSTER = "default"
 SENTRY_ARTIFACT_BUNDLES_INDEXING_REDIS_CLUSTER = "default"
 SENTRY_DEBUG_FILES_REDIS_CLUSTER = "default"
 SENTRY_MONITORS_REDIS_CLUSTER = "default"
+
+# Temp: INFRENG-1051, migrating monitors state between self-hosted and valkey Redis clusters
+# When set, system incident writes also go to this cluster.
+# This will get cleaned up as part of INFRENG-1053
+SENTRY_MONITORS_SECONDARY_REDIS_CLUSTER: str | None = None
 SENTRY_STATISTICAL_DETECTORS_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 # Redis cluster for span buffer data and flush locks. Flush locks must remain
@@ -1500,7 +1505,10 @@ def custom_parameter_sort(parameter: _OperationParameter) -> tuple[str, int]:
 
 
 if os.environ.get("OPENAPIGENERATE", False):
-    OLD_OPENAPI_JSON_PATH = "tests/apidocs/openapi-deprecated.json"
+    # The test response check bundles the deprecated docs itself, so it passes its own path.
+    OLD_OPENAPI_JSON_PATH = os.environ.get(
+        "SENTRY_OPENAPI_DEPRECATED_JSON", "tests/apidocs/openapi-deprecated.json"
+    )
     from sentry.apidocs.build import OPENAPI_TAGS, get_old_json_components, get_old_json_paths
 
     SPECTACULAR_SETTINGS = {

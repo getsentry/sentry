@@ -550,7 +550,7 @@ class MonitorCheckInSerializer(Serializer[MonitorCheckInSerializerResponse]):
             "dateClock": obj.date_clock,
             "dateInProgress": obj.date_in_progress,
             "expectedTime": obj.expected_time,
-            "monitorConfig": cast(MonitorConfigSerializerResponse, config),
+            "monitorConfig": config,
         }
 
         if self._expand("groups"):

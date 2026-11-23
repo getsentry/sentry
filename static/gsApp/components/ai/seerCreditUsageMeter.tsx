@@ -8,7 +8,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 
 import {ProgressBar} from 'sentry/components/progressBar';
 import type {SeerCreditUsageMeterProps} from 'sentry/components/seer/outOfCredits/seerCreditUsageMeter';
-import {t, tct} from 'sentry/locale';
+import {t, tct, tn} from 'sentry/locale';
 import {useOrganization} from 'sentry/utils/useOrganization';
 
 import {
@@ -56,7 +56,6 @@ export function SeerCreditUsageMeter({hasEnoughCredits}: SeerCreditUsageMeterPro
     <SeerCreditUsageMeterView
       percentUsed={wallet.percentUsed}
       remaining={wallet.balance}
-      total={wallet.included.total + wallet.purchased.total}
       autoReloadEnabled={autoTopUp?.enabled ?? null}
       hasEnoughCredits={hasEnoughCredits}
       configureAutoReloadTo={`/settings/${organization.slug}/billing/overview/${SEER_AUTO_RELOAD_MODAL_HASH}`}
@@ -84,7 +83,6 @@ interface SeerCreditUsageMeterViewProps {
    */
   percentUsed: number;
   remaining: number;
-  total: number;
   /**
    * Keeps the tooltip open, for stories and screenshots.
    */
@@ -101,7 +99,6 @@ export function SeerCreditUsageMeterView({
   hasEnoughCredits,
   percentUsed,
   remaining,
-  total,
   forceTooltipVisible,
 }: SeerCreditUsageMeterViewProps) {
   // The balance can go negative, which would put the share used past 100%.
@@ -126,10 +123,9 @@ export function SeerCreditUsageMeterView({
                 })}
           </Text>
           <Text>
-            {tct('[remaining]/[total] credits remaining.', {
-              remaining: Math.max(remaining, 0).toLocaleString(),
-              total: total.toLocaleString(),
-            })}
+            {/* No total: the wallet only knows what's left of the purchased credits,
+                so a total would shrink as they're used, down to the included credits. */}
+            {tn('%s credit remaining.', '%s credits remaining.', Math.max(remaining, 0))}
           </Text>
           <AutoReloadStatus
             autoReloadEnabled={autoReloadEnabled}

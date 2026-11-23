@@ -90,11 +90,7 @@ export function InstalledIntegration({
         {body}
       </Fragment>
     );
-    return {
-      message,
-      confirmText: actionText,
-      onConfirm: handleRemove,
-    };
+    return {message, confirmText: actionText, onConfirm: handleRemove};
   };
 
   const getDisableConfirmProps = () => {
@@ -109,11 +105,7 @@ export function InstalledIntegration({
         {body}
       </Fragment>
     );
-    return {
-      message,
-      confirmText: actionText,
-      onConfirm: () => onDisable(integration),
-    };
+    return {message, confirmText: actionText, onConfirm: () => onDisable(integration)};
   };
 
   const removeConfirmProps =

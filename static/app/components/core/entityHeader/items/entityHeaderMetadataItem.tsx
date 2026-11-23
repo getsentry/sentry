@@ -303,10 +303,7 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
         ) : (
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
-      <EntityHeaderText
-        behavior={behavior}
-        styles={{size: 'md', density: 'comfortable', ellipsis: true}}
-      >
+      <EntityHeaderText behavior={behavior} size="md" density="comfortable" ellipsis>
         {props.value}
       </EntityHeaderText>
       {secondary && (

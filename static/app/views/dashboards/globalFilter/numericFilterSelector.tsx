@@ -24,7 +24,10 @@ import type {GlobalFilter} from 'sentry/views/dashboards/types';
 
 import {getDatasetLabel} from './datasetLabels';
 import {MenuTitleWrapper} from './filterSelector';
-import {FilterSelectorTriggerButton} from './filterSelectorTrigger';
+import {
+  FilterSelectorTriggerButton,
+  type FilterSelectorDescription,
+} from './filterSelectorTrigger';
 import type {GenericFilterSelectorProps} from './genericFilterSelector';
 import {
   BetweenFilterSelectorTrigger,
@@ -49,6 +52,10 @@ interface NumericFilterState {
   renderInputField: () => React.ReactNode;
   renderSelectorTrigger: () => React.JSX.Element;
   resetValues: () => void;
+  /**
+   * Untruncated version of the selector trigger, for its tooltip.
+   */
+  selectorDescription: FilterSelectorDescription;
   setStagedOperator: (operator: TermOperator) => void;
   setStagedValue: (value: string) => void;
   stagedOperator: Operator;
@@ -137,6 +144,10 @@ function useNativeOperatorFilter(
     hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: {
+      operator: getOperatorLabel(stagedFilterOperator),
+      values: [stagedFilterValue],
+    },
     isValidValue,
     buildFilterQuery,
   };
@@ -186,6 +197,10 @@ function useBetweenOperatorFilter(
     hasStagedChanges: lowerBound.hasStagedChanges || upperBound.hasStagedChanges,
     renderInputField,
     renderSelectorTrigger,
+    selectorDescription: {
+      operator: getOperatorLabel(CustomOperator.BETWEEN),
+      values: [t('%s and %s', lowerBound.stagedValue, upperBound.stagedValue)],
+    },
     isValidValue,
     buildFilterQuery: () =>
       lowerBound.buildFilterQuery() +
@@ -320,6 +335,7 @@ export function NumericFilterSelector({
           <FilterSelectorTriggerButton
             {...triggerProps}
             globalFilter={globalFilter}
+            description={filter.selectorDescription}
             showDatasetLabel={showDatasetLabel}
           >
             {filter.renderSelectorTrigger()}

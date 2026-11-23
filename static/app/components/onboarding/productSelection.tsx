@@ -706,7 +706,7 @@ export function ProductSelection({
           description={t(
             'Structured application logs for debugging and troubleshooting. Automatically gets associated with errors and traces.'
           )}
-          docLink="https://docs.sentry.io/product/explore/logs/"
+          docLink="https://docs.sentry.io/product/logs/"
           onClick={() => handleClickProduct(ProductSolution.LOGS)}
           disabled={disabledProducts[ProductSolution.LOGS]}
           checked={urlProducts.includes(ProductSolution.LOGS)}
@@ -718,7 +718,7 @@ export function ProductSelection({
           description={t(
             'Custom metrics for tracking application performance and usage, automatically trace-connected.'
           )}
-          docLink="https://docs.sentry.io/product/explore/metrics/"
+          docLink="https://docs.sentry.io/product/metrics/"
           onClick={() => handleClickProduct(ProductSolution.METRICS)}
           disabled={disabledProducts[ProductSolution.METRICS]}
           checked={urlProducts.includes(ProductSolution.METRICS)}
@@ -730,7 +730,7 @@ export function ProductSelection({
           description={t(
             'Video-like reproductions of user sessions with debugging context to help you confirm issue impact and troubleshoot faster.'
           )}
-          docLink="https://docs.sentry.io/product/explore/session-replay/"
+          docLink="https://docs.sentry.io/product/session-replay/"
           onClick={() => handleClickProduct(ProductSolution.SESSION_REPLAY)}
           disabled={disabledProducts[ProductSolution.SESSION_REPLAY]}
           checked={urlProducts.includes(ProductSolution.SESSION_REPLAY)}
@@ -755,7 +755,7 @@ export function ProductSelection({
             '[strong:Requires Tracing]\nSee the exact lines of code causing your performance bottlenecks, for faster troubleshooting and resource optimization.',
             {strong: <strong />}
           )}
-          docLink="https://docs.sentry.io/product/explore/profiling/getting-started/#continuous-profiling"
+          docLink="https://docs.sentry.io/product/profiling/getting-started/#continuous-profiling"
           onClick={() => handleClickProduct(ProductSolution.PROFILING)}
           disabled={disabledProducts[ProductSolution.PROFILING]}
           checked={urlProducts.includes(ProductSolution.PROFILING)}

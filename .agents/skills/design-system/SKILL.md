@@ -41,7 +41,7 @@ Base layout component that supports all common layout properties. Flex, Grid, an
 - `border`, `borderTop`, `borderBottom`, `borderLeft`, `borderRight`: BorderVariant tokens
 - `radius`: RadiusSize tokens
 - `overflow`, `overflowX`, `overflowY`: "visible" | "hidden" | "scroll" | "auto"
-- `background`: SurfaceVariant ("primary" | "secondary" | "tertiary")
+- `background`: BackgroundToken (a path into `tokens.background`)
 - `display`: Various display types
 - Flex item props: `flex`, `flexGrow`, `flexShrink`, `flexBasis`, `alignSelf`, `order`
 - Grid item props: `area`, `row`, `column`
@@ -478,9 +478,13 @@ Use these for `gap`, `padding`:
 
 ### Border Tokens (BorderVariant)
 
-Use these for `border` prop:
+Use these for the `border` props. A value is a path into `tokens.border`, matching the theme's token names:
 
-- `"primary"`, `"muted"`, `"accent"`, `"danger"`, `"promotion"`, `"success"`, `"warning"`
+- `"primary"`, `"secondary"`
+- `"<color>.muted"`, `"<color>.moderate"`, `"<color>.vibrant"`, where `<color>` is `neutral`, `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"accent.moderate"`)
+- `"transparent.<color>.<step>"` with the same colors and steps (e.g. `"transparent.neutral.muted"`)
+- `"onVibrant.light"`, `"onVibrant.dark"`
+- `"none"` removes a border, e.g. at a breakpoint or on one side
 
 ### Radius Tokens (RadiusSize)
 
@@ -493,11 +497,13 @@ Use these for `radius` prop:
 - **TextSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl"
 - **HeadingSize**: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "4xl"
 
-### Surface Variant Tokens (SurfaceVariant)
+### Background Tokens (BackgroundToken)
 
-Use these for `background` prop on layout components:
+Use these for the `background` prop on layout components. A value is a path into `tokens.background`, matching the theme's token names:
 
-- `"primary"`, `"secondary"`, `"tertiary"`
+- `"primary"`, `"secondary"`, `"tertiary"`, `"overlay"`
+- `"<color>.vibrant"`, where `<color>` is `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"accent.vibrant"`)
+- `"transparent.<color>.muted"`, where `<color>` is `neutral`, `accent`, `promotion`, `danger`, `warning` or `success` (e.g. `"transparent.neutral.muted"`)
 
 ### Content Variant Tokens (ContentVariant)
 

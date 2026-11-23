@@ -1,6 +1,8 @@
 from datetime import datetime
 from typing import Any
 
+from .table import Table
+
 class Cell:
     timestamp: datetime
     value: bytes
@@ -10,6 +12,9 @@ class PartialRowData:
     cells: dict[str, dict[bytes, list[Cell]]]
 
 class Row:
+    @property
+    def table(self) -> Table: ...
+    def clear(self) -> None: ...
     def delete(self) -> None: ...
     def set_cell(
         self,
