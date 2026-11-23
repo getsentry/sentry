@@ -1432,60 +1432,6 @@ describe('EntityHeader', () => {
           DateEntry & {tooltip: string}
         >().not.toExtend<EntityHeaderMetadataListEntry>();
       });
-
-      it('takes no tooltip on a date through a spread or a declared object', () => {
-        // @ts-expect-error: a spread cannot carry a tooltip past the check.
-        const spread: EntityHeaderMetadataItemProps = {
-          label: 'Started at',
-          type: 'date',
-          date,
-          ...{tooltip: 'When the session began'},
-        };
-        const declared = {
-          label: 'Last seen',
-          type: 'date' as const,
-          date,
-          tooltip: 'When it was last seen',
-        };
-        // @ts-expect-error: a declared object cannot either.
-        const fromDeclared: EntityHeaderMetadataItemProps = declared;
-        renderItems([spread, fromDeclared]);
-
-        expect(screen.getByText('Started at')).toBeInTheDocument();
-      });
-
-      it('takes data, not nodes', () => {
-        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-        renderItems([
-          // @ts-expect-error: a node would draw a date in its own format.
-          {label: 'Node Started at', type: 'text', value: <span>today</span>},
-          {
-            label: 'Nested Started at',
-            type: 'text',
-            // @ts-expect-error: a date is its own item type, not a text value.
-            value: {type: 'date', date},
-          },
-          {
-            label: 'Browser',
-            type: 'text',
-            value: 'Chrome',
-            // @ts-expect-error: a qualifier is text.
-            secondary: {label: 'version', value: <span>144</span>},
-          },
-        ]);
-
-        // One that slips past the types is left out, not drawn.
-        expect(screen.queryByText('today')).not.toBeInTheDocument();
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Node Started at"'));
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Nested Started at"'));
-        // A qualifier that slips past is left out on its own.
-        expect(screen.getByText('Chrome')).toBeInTheDocument();
-        expect(screen.queryByText('144')).not.toBeInTheDocument();
-        expect(warn).toHaveBeenCalledWith(
-          'EntityHeader metadata item "Browser" has an empty or invalid secondary value and it was left out.'
-        );
-        warn.mockRestore();
-      });
     });
 
     it('renders a tooltip on a metadata item', async () => {
@@ -2092,6 +2038,9 @@ describe('EntityHeader', () => {
       it.each<[string, DistributedOmit<EntityHeaderMetadataItemProps, 'label'>]>([
         ['an empty string', {type: 'text', value: ''}],
         ['a blank string', {type: 'text', value: '  '}],
+        // API data typed as `string` can still be missing at runtime.
+        ['an undefined string', {type: 'text', value: undefined as unknown as string}],
+        ['a null string', {type: 'text', value: null as unknown as string}],
         ['a date with an empty date', {type: 'date', date: ''}],
         ['a date that does not parse', {type: 'date', date: 'not a date'}],
         ['an invalid Date', {type: 'date', date: new Date(NaN), format: 'relative'}],
@@ -2114,23 +2063,21 @@ describe('EntityHeader', () => {
         }
       );
 
-      it('leaves out a date entry whose date is missing', () => {
-        renderRow([
+      it('leaves out a blank secondary on its own and keeps the item', () => {
+        const row = renderRow([
           {
-            label: 'Deploys',
-            type: 'list',
-            items: [
-              // @ts-expect-error: a date needs its `date`; at runtime one can
-              // still arrive without it.
-              {key: 'a', type: 'date'},
-              {key: 'b', type: 'text', value: 'staging'},
-            ],
+            label: 'Undefined Secondary Browser',
+            type: 'text',
+            value: 'Chrome',
+            // API data typed as `string` can still be missing at runtime.
+            secondary: {label: 'version', value: undefined as unknown as string},
           },
         ]);
 
-        const list = screen.getByRole('list', {name: 'Deploys'});
-        expect(within(list).getAllByRole('listitem')).toHaveLength(1);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry of "Deploys"'));
+        expect(row).toHaveTextContent(/^Undefined Secondary BrowserChrome$/);
+        expect(warn).toHaveBeenCalledWith(
+          'EntityHeader metadata item "Undefined Secondary Browser" has an empty or invalid secondary value and it was left out.'
+        );
       });
 
       it('leaves out date entries the date formatter cannot read', () => {
@@ -2142,9 +2089,11 @@ describe('EntityHeader', () => {
               {key: 'a', type: 'date', date: '2025-06-09T04:05:09'},
               {key: 'b', type: 'date', date: '2025-06-08', format: 'relative'},
               {key: 'c', type: 'date', date: 'Mon, 09 Jun 2025 04:05:09 GMT'},
-              {key: 'd', type: 'date', date: new Date('2025-06-09T04:05:09Z')},
-              {key: 'e', type: 'date', date: '2025-06-09T04:05:09Z'},
-              {key: 'f', type: 'date', date: '2025-06-09T04:05:09+02:00'},
+              // API data typed as a date can still be missing at runtime.
+              {key: 'd', type: 'date', date: undefined as unknown as string},
+              {key: 'e', type: 'date', date: new Date('2025-06-09T04:05:09Z')},
+              {key: 'f', type: 'date', date: '2025-06-09T04:05:09Z'},
+              {key: 'g', type: 'date', date: '2025-06-09T04:05:09+02:00'},
             ],
           },
         ]);

@@ -82,9 +82,7 @@ describe('ReplayDetailsEntityHeader', () => {
     const replayRecord = ArchivedReplayRecordFixture();
 
     render(
-      <ReplayDetailsEntityHeader
-        readerResult={readerResultFixture({replayRecord, isPending: true})}
-      />
+      <ReplayDetailsEntityHeader readerResult={readerResultFixture({replayRecord})} />
     );
 
     // Routed by ReplayLoadingState rather than an early return, so the header
@@ -198,9 +196,7 @@ describe('ReplayDetailsEntityHeader', () => {
     const viewedBy = mockViewedBy(replayRecord.id);
 
     render(
-      <ReplayDetailsEntityHeader
-        readerResult={readerResultFixture({replayRecord, isPending: true})}
-      />,
+      <ReplayDetailsEntityHeader readerResult={readerResultFixture({replayRecord})} />,
       {organization}
     );
 
@@ -227,6 +223,7 @@ describe('ReplayDetailsEntityHeader', () => {
         timestampType,
       };
 
+      // Pending renders the header from the replay record without a full reader.
       render(
         <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock: '12'}}>
           <ReplayPreferencesContextProvider

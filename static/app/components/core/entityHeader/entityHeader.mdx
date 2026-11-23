@@ -724,7 +724,7 @@ People related to the entity, such as who viewed a replay or who is involved in 
 
 ## Metadata
 
-The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts (label, value or `secondary`) share the space equally and truncate with an ellipsis, while short ones keep their width, so the pipe follows the text that shows. Screen readers still read the whole text. An item is `text`, `link`, [`date`](#dates) or [`list`](#lists). Each has a `label` saying what it is; a text or link item has a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry whose value is empty is left out, with a warning in development.
+The metadata row is a list of properties that wraps onto as many lines as it needs, with a small (`md`) gap between boxes. Every property but the last ends with a pipe, drawn inside it after the value, so the pipe wraps with its property. When the row wraps, a line can end on a pipe. When a property is wider than the header, its long parts (label, value or `secondary`) share the space equally and truncate with an ellipsis, while short ones keep their width, so the pipe follows the text that shows. Screen readers still read the whole text. An item is `text`, `link`, [`date`](#dates) or [`list`](#lists). Each has a `label` saying what it is; a text or link item has a `value`. Add `secondary` for a qualifier such as a browser's version rather than joining both into one string; its `label` composes with the parent's, so "version" under "Browser" is read "Browser version". A property needing a third value is two properties. An item or list entry whose value is empty is left out, with a warning in development. A blank `secondary` is dropped on its own, and the item still renders.
 
 `type: 'link'` makes the value a link, with `to` or `externalHref` as on the title. Its name includes the key ("Release 8.42.0"), because the key is usually hidden. `tooltip` explains the value on hover or focus, with an underline. `mode: 'full'` draws the key beside the value; the default, `compact`, keeps it for screen readers only.
 
@@ -902,7 +902,7 @@ Each header below varies one thing: the first shows how mode and a leadingGraphi
 
 ### Dates
 
-`type: 'date'` takes a `date` rather than a formatted `value`, so every header draws dates the same way. `format: 'absolute'`, the default, draws "Jun 8, 2025 9:05:09 PM PDT" in the viewer's 12 or 24 hour clock. `format: 'relative'` draws "5min ago", with the absolute time in its tooltip, headed by the item's `label`. A date that is missing or does not parse is an empty value.
+`type: 'date'` takes a `date` rather than a formatted `value`, so every header draws dates the same way. `format: 'absolute'`, the default, draws "Jun 8, 2025 9:05:09 PM PDT" in the viewer's 12 or 24 hour clock. `format: 'relative'` draws "5min ago" as a tab stop, with the absolute time in its tooltip, headed by the item's `label`. A date takes no `tooltip`, `secondary` or `variant`. A date the date formatter can't read (missing, a date-only string, or one without a timezone offset) is left out like an empty value.
 
 <Storybook.Demo resizable direction="column" align="stretch">
   <EntityHeader
@@ -989,7 +989,9 @@ A metadata `leadingGraphic` takes an icon from `@sentry/icons`, a `PlatformIcon`
         label: t('Browser'),
         type: 'text',
         value: browser.name,
-        secondary: {label: t('version'), value: browser.version},
+        secondary: browser.version
+          ? {label: t('version'), value: browser.version}
+          : undefined,
         leadingGraphic: <PlatformIcon platform={browser.platform} size="16px" />,
       },
       {
@@ -1186,7 +1188,7 @@ export const tools = [
 
 - Always pass a `label` for `stats`, `people` and `metadata`. Without one, a screen reader meets a run of values with nothing saying what they belong to.
 - Give a title's `leadingGraphic` a `label` when it adds information the title does not have.
-- Use `value: null` for no data, never a placeholder string.
+- Use `value: null` for a stat with no data, never a placeholder string. Pass a metadata item as `null` instead.
 - Don't put anything a user needs only in a tooltip. Nothing inside a tooltip can be reached by keyboard, and screen readers may not announce it.
 - Add your own live region if the end of loading needs to be announced.
 
