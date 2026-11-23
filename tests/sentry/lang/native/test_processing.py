@@ -206,8 +206,19 @@ def test_process_native_flamegraph(cached_flamegraph: CachedFlamegraph) -> None:
             {"frames": [{"status": "missing", "instruction_addr": "0x1000011ff"}]},
         ],
     }
-    with Feature({"organizations:flamegraph-attachments": True}):
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch("sentry.utils.metrics.incr") as incr,
+        mock.patch("sentry.utils.metrics.distribution") as distribution,
+    ):
         result = process_native_stacktraces(symbolicator, data)
+    incr.assert_any_call("process.native.flamegraph.received")
+    incr.assert_any_call("process.native.flamegraph.processed")
+    distribution.assert_any_call(
+        "process.native.flamegraph.size", len(orjson.dumps(payload)), unit="byte"
+    )
+    distribution.assert_any_call("process.native.flamegraph.frames", 2)
+    distribution.assert_any_call("process.native.flamegraph.nodes", 3)
     symbolicator.process_payload.assert_called_once()
     request = symbolicator.process_payload.call_args.kwargs
     assert request["platform"] == "cocoa"
@@ -921,6 +932,7 @@ def test_flamegraph_oversized_rewrite_preserves_original(
     ):
         assert process_native_stacktraces(symbolicator, data) is None
     incr.assert_any_call("process.native.flamegraph.skipped", tags={"reason": "rewrite_size"})
+    assert mock.call("process.native.flamegraph.processed") not in incr.call_args_list
     symbolicator.process_payload.assert_called_once()
     assert next(get_attachments_for_event(data)).load_data(symbolicator.project) == raw
 

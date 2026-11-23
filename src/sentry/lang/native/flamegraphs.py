@@ -153,6 +153,8 @@ class Flamegraphs:
         for index, attachment in enumerate(self._attachments):
             if attachment.type != "event.flamegraph":
                 continue
+            # Lets dashboards compare received against processed plus skipped to spot dropped attachments.
+            metrics.incr("process.native.flamegraph.received")
             reason = "load_error"
             try:
                 try:
@@ -196,6 +198,9 @@ class Flamegraphs:
                 sentry_sdk.capture_exception(error)
                 metrics.incr("process.native.flamegraph.skipped", tags={"reason": reason})
                 continue
+            metrics.distribution("process.native.flamegraph.size", len(raw), unit="byte")
+            metrics.distribution("process.native.flamegraph.frames", len(payload["frames"]))
+            metrics.distribution("process.native.flamegraph.nodes", len(payload["nodes"]))
             yield index, payload
 
     def save(self, attachment_index: int, payload: dict[str, Any]) -> bool:
