@@ -44,5 +44,13 @@ class AddToInboxActionHandler(ActionHandler):
     @staticmethod
     @override
     def execute(invocation: ActionInvocation) -> None:
+        first_error: Exception | None = None
         for record in _inbox_calls(invocation.event_data):
-            record()
+            try:
+                record()
+            except Exception as error:
+                # Give each mention type a chance to record before the task retries.
+                if first_error is None:
+                    first_error = error
+        if first_error is not None:
+            raise first_error
