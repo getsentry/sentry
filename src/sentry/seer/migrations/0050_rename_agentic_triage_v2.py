@@ -40,7 +40,7 @@ class Migration(CheckedMigration):
     is_post_deployment = False
 
     dependencies = [
-        ("seer", "0049_workflow_config_versions"),
+        ("seer", "0049_add_seerworkflowrun_source"),
     ]
 
     operations = [

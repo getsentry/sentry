@@ -1034,9 +1034,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             "seer.seerworkflowconfigproject": [
                 DateUpdatedComparator("date_updated", "date_added"),
             ],
-            "seer.seerworkflowconfigversion": [
-                DateUpdatedComparator("date_updated", "date_added"),
-            ],
         },
     )
 
