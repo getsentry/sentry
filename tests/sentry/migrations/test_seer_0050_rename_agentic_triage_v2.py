@@ -19,7 +19,7 @@ class RenameAgenticTriageV2Test(TestMigrations):
             strategy="agentic_triage_v2",
             extras={
                 "seeded_default": "agentic_triage_v2",
-                "trigger_settings": {"cron": "0 9 * * *"},
+                "updated_by": "bot",
             },
         )
         self.custom = SeerWorkflowConfig.objects.create(
@@ -36,7 +36,7 @@ class RenameAgenticTriageV2Test(TestMigrations):
         assert seeded.strategy == "scheduled_investigation"
         assert seeded.extras == {
             "seeded_default": "scheduled_investigation",
-            "trigger_settings": {"cron": "0 9 * * *"},
+            "updated_by": "bot",
         }
 
         custom = SeerWorkflowConfig.objects.get(id=self.custom.id)
