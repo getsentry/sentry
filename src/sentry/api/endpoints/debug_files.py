@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Annotated, NotRequired, TypedDict, TypeGuard, 
 import jsonschema
 import orjson
 from django.db import IntegrityError, router
-from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, Value, When
+from django.db.models import Case, Exists, F, IntegerField, Q, QuerySet, TextField, Value, When
 from django.http import Http404, HttpResponse, HttpResponseRedirect, StreamingHttpResponse
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -77,6 +77,7 @@ from sentry.tasks.assemble import (
     get_assemble_status,
     set_assemble_status,
 )
+from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 
 logger = logging.getLogger("sentry.api")
@@ -446,20 +447,29 @@ class DebugFilesEndpoint(ProjectEndpoint):
             debug_id_qs = (
                 ProjectDebugFile.objects.none()
                 .select_related("file")
-                .annotate(lookup_method=Value(None))
+                .annotate(
+                    lookup_method=Value(None, output_field=TextField()),
+                    lookup_id=Value(None, output_field=TextField()),
+                )
             )
             if debug_id:
                 for debug_id_q, method in debug_id_queries(debug_id):
                     debug_id_qs = debug_id_qs.union(
                         ProjectDebugFile.objects.filter(debug_id_q & q)
                         .select_related("file")
-                        .annotate(lookup_method=Value(method))
+                        .annotate(
+                            lookup_method=Value(method, output_field=TextField()),
+                            lookup_id=Value("debug_id", output_field=TextField()),
+                        )
                     )
 
             code_id_qs = (
                 ProjectDebugFile.objects.none()
                 .select_related("file")
-                .annotate(lookup_method=Value(None))
+                .annotate(
+                    lookup_method=Value(None, output_field=TextField()),
+                    lookup_id=Value(None, output_field=TextField()),
+                )
             )
             if code_id:
                 for code_id_q, method in code_id_queries(code_id):
@@ -474,7 +484,10 @@ class DebugFilesEndpoint(ProjectEndpoint):
                             & ~Exists(debug_id_qs)
                         )
                         .select_related("file")
-                        .annotate(lookup_method=Value(method))
+                        .annotate(
+                            lookup_method=Value(method, output_field=TextField()),
+                            lookup_id=Value("code_id", output_field=TextField()),
+                        )
                     )
 
             queryset = debug_id_qs.union(code_id_qs)
@@ -506,6 +519,19 @@ class DebugFilesEndpoint(ProjectEndpoint):
             # NOTE: we are only refreshing files if there is direct query for specific files
             if debug_id and not query and not file_formats:
                 maybe_renew_debug_files(difs)
+
+            # Count how many debug files were found using which ID ("debug_id" or "code_id")
+            # and method ("default", "stored_legacy", or "computed_legacy"; see `debug_id_ueries`).
+            for d in difs:
+                try:
+                    metrics.incr(
+                        "debug_files.lookup.success",
+                        tags={"method": d.lookup_method, "id": d.lookup_id},
+                    )
+                except AttributeError:
+                    # A file not having these fields is not a problem. This happens if no explicit debug/code ID
+                    # was passed in the query. In such cases we simply don't emit a metric.
+                    pass
 
             serialized: list[DebugFileSerializerResponse] = serialize(difs, request.user)
             return serialized
