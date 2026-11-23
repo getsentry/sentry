@@ -1,7 +1,8 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useMemo, useState, type ReactNode} from 'react';
 import {useParams} from 'react-router';
 import styled from '@emotion/styled';
 import {IconIssues} from '@sentry/icons/issues';
+import {IconSeer} from '@sentry/icons/seer';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
@@ -25,6 +26,7 @@ import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useOrganization} from 'sentry/utils/useOrganization';
 import {useProjects} from 'sentry/utils/useProjects';
+import {getInvestigationPath} from 'sentry/views/investigations/utils';
 import {GroupActions} from 'sentry/views/issueDetails/actions/index';
 import {ActivitySection} from 'sentry/views/issueDetails/activitySection';
 import {IssueDetailsContextProvider} from 'sentry/views/issueDetails/context';
@@ -251,17 +253,13 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
   );
 }
 
-const RELATED_ISSUES_SHOWN = 3;
+const RELATED_SHOWN = 3;
 
 function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
   const organization = useOrganization();
   // The limit applies to each type. The endpoint lists issues matched by more types first.
   const {data, isPending, isError} = useQuery(
-    relatedIssuesApiOptions({
-      organization,
-      groupId: group.id,
-      limit: RELATED_ISSUES_SHOWN,
-    })
+    relatedIssuesApiOptions({organization, groupId: group.id, limit: RELATED_SHOWN})
   );
 
   if (isPending) {
@@ -270,33 +268,59 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
   if (isError) {
     return <Text variant="muted">{t('Unable to load related issues')}</Text>;
   }
-  if (data.data.length === 0) {
-    return <Text variant="muted">{t('No related issues')}</Text>;
+
+  // Investigations come before issues
+  const rows = [
+    ...data.investigations.map(({investigation}) => (
+      <InboxIssueRelatedRow
+        key={`investigation-${investigation.id}`}
+        icon={<IconSeer size="sm" />}
+        to={getInvestigationPath(organization.slug, investigation.id)}
+      >
+        {investigation.title}
+      </InboxIssueRelatedRow>
+    )),
+    ...data.data.map(({issue}) => (
+      <InboxIssueRelatedRow
+        key={`issue-${issue.id}`}
+        icon={<IconIssues size="sm" />}
+        to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
+      >
+        {issue.shortId} – {issue.title}
+      </InboxIssueRelatedRow>
+    )),
+  ].slice(0, RELATED_SHOWN);
+
+  if (rows.length === 0) {
+    // The request still succeeds when every issue type failed
+    const issueTypes = data.meta.types.filter(meta => meta.type !== 'investigations');
+    const issueTypesFailed =
+      issueTypes.length > 0 && issueTypes.every(meta => meta.status === 'unavailable');
+    return (
+      <Text variant="muted">
+        {issueTypesFailed ? t('Unable to load related issues') : t('No related issues')}
+      </Text>
+    );
   }
 
-  return (
-    <Stack gap="md">
-      {data.data.slice(0, RELATED_ISSUES_SHOWN).map(({issue}) => (
-        <InboxIssueRelatedRow key={issue.id} issue={issue} />
-      ))}
-    </Stack>
-  );
+  return <Stack gap="md">{rows}</Stack>;
 }
 
-function InboxIssueRelatedRow({issue}: {issue: Group}) {
-  const organization = useOrganization();
-
+function InboxIssueRelatedRow({
+  icon,
+  to,
+  children,
+}: {
+  children: ReactNode;
+  icon: ReactNode;
+  to: string;
+}) {
   return (
     <Flex gap="sm" align="center" minWidth={0}>
       {linkProps => (
-        <IssueTitleLink
-          {...linkProps}
-          to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
-        >
-          <IconIssues size="sm" />
-          <Text ellipsis>
-            {issue.shortId} – {issue.title}
-          </Text>
+        <IssueTitleLink {...linkProps} to={to}>
+          {icon}
+          <Text ellipsis>{children}</Text>
         </IssueTitleLink>
       )}
     </Flex>

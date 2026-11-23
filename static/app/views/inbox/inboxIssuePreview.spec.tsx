@@ -61,7 +61,7 @@ describe('InboxIssuePreview', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
-      body: {data: [], meta: {types: []}},
+      body: {data: [], investigations: [], meta: {types: []}},
     });
   });
 
@@ -99,31 +99,74 @@ describe('InboxIssuePreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('links to the top three related issues', async () => {
-    const relatedIssues = ['11', '12', '13', '14'].map(id => ({
+  it('links to the linked investigation and the top related issues', async () => {
+    const relatedIssues = ['11', '12', '13'].map(id => ({
       issue: GroupFixture({id, shortId: `CHECKOUT-${id}`, title: `Checkout error ${id}`}),
       relations: [{type: 'same_trace'}],
     }));
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
-      body: {data: relatedIssues, meta: {types: [{type: 'same_trace', status: 'ok'}]}},
+      body: {
+        data: relatedIssues,
+        investigations: [
+          {
+            investigation: {id: '5172', title: 'Payment timeouts'},
+            hypothesisStatement: 'Payment retries exhaust the connection pool',
+            reason: 'Its timeouts start with the deploy.',
+          },
+        ],
+        meta: {
+          types: [
+            {type: 'same_trace', status: 'ok'},
+            {type: 'investigations', status: 'ok'},
+          ],
+        },
+      },
     });
 
     render(<InboxIssuePreview groupId={group.id} />, {organization});
 
     const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
     expect(
-      await within(sidebar).findByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
+      await within(sidebar).findByRole('link', {name: 'Payment timeouts'})
+    ).toHaveAttribute(
+      'href',
+      `/organizations/${organization.slug}/seer/investigations/5172/`
+    );
+    expect(
+      within(sidebar).getByRole('link', {name: 'CHECKOUT-11 – Checkout error 11'})
     ).toHaveAttribute('href', `/organizations/${organization.slug}/issues/11/`);
     expect(
       within(sidebar).getByRole('link', {name: 'CHECKOUT-12 – Checkout error 12'})
     ).toBeInTheDocument();
+    // The investigation takes one of the three rows
     expect(
-      within(sidebar).getByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
-    ).toBeInTheDocument();
-    expect(
-      within(sidebar).queryByRole('link', {name: 'CHECKOUT-14 – Checkout error 14'})
+      within(sidebar).queryByRole('link', {name: 'CHECKOUT-13 – Checkout error 13'})
     ).not.toBeInTheDocument();
+  });
+
+  it('shows an error when every related issue type failed', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
+      body: {
+        data: [],
+        investigations: [],
+        meta: {
+          types: [
+            {type: 'similar_stacktrace', status: 'unavailable'},
+            {type: 'same_trace', status: 'unavailable'},
+            {type: 'investigations', status: 'ok'},
+          ],
+        },
+      },
+    });
+
+    render(<InboxIssuePreview groupId={group.id} />, {organization});
+
+    const sidebar = await screen.findByRole('complementary', {name: 'Issue overview'});
+    expect(
+      await within(sidebar).findByText('Unable to load related issues')
+    ).toBeInTheDocument();
   });
 
   it('resolves the issue from the header actions', async () => {
