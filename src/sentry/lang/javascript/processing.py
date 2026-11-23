@@ -3,6 +3,8 @@ import re
 from collections.abc import Mapping, Sequence
 from typing import Any
 
+from sentry_sdk import traces
+
 from sentry.lang.javascript.utils import JAVASCRIPT_PLATFORMS
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.flamegraphs import (
@@ -244,15 +246,32 @@ def _normalize_frame(raw_frame: Any) -> dict[str, Any]:
 
 def get_flamegraph_stacktraces(payload: dict[str, Any]) -> FlamegraphSymbolicationInput:
     # Apply the same eligibility rules and request normalization as event stacks.
-    modules = sourcemap_images_from_data(payload)
+    modules = [
+        image
+        for image in sourcemap_images_from_data(payload)
+        if isinstance(image["code_file"], str) and image["code_file"]
+    ]
     frame_ids = []
     stacktraces: list[Stacktrace] = []
     if not modules:
         return FlamegraphSymbolicationInput(modules=[], frame_ids=[], stacktraces=[])
     for frame_id, frame in enumerate(payload["frames"][:MAX_SYMBOLICATION_FRAMES]):
+        # Unlike event frames, attachment frames have not been normalized by Relay.
+        if not isinstance(frame.get("abs_path"), str):
+            continue
+        if frame.get("function") is not None and not isinstance(frame["function"], str):
+            continue
+        if any(
+            type(frame[field]) is not int or not 0 <= frame[field] < 2**32
+            for field in ("lineno", "colno")
+            if frame.get(field) is not None
+        ):
+            continue
         if _handles_frame(frame, payload):
             frame_ids.append(frame_id)
             stacktraces.append({"frames": [_normalize_frame(frame)]})
+    if span := traces.get_current_span():
+        span.set_attribute("flamegraph.symbolication.frames_submitted", len(frame_ids))
     return FlamegraphSymbolicationInput(
         modules=modules, frame_ids=frame_ids, stacktraces=stacktraces
     )
@@ -262,6 +281,7 @@ def merge_flamegraph_frames(
     payload: dict[str, Any], frame_ids: list[int], stacktraces: list[dict[str, Any]]
 ) -> dict[str, Any]:
     output = {**payload, "frames": list(payload["frames"])}
+    symbolicated_frames = 0
     for frame_id, stacktrace in zip(frame_ids, stacktraces):
         resolved = stacktrace.get("frames", [])
         if len(resolved) != 1:
@@ -270,11 +290,15 @@ def merge_flamegraph_frames(
         if "data" in original:
             original["data"] = dict(original["data"])
         merged = _merge_frame(original, resolved[0])
-        if resolved[0].get("data", {}).get("symbolicated") is not False:
+        symbolicated = resolved[0].get("data", {}).get("symbolicated")
+        symbolicated_frames += symbolicated is True
+        if symbolicated is not False:
             in_app = is_in_app(merged)
             if in_app is not None:
                 merged["in_app"] = in_app
         output["frames"][frame_id] = merged
+    if span := traces.get_current_span():
+        span.set_attribute("flamegraph.symbolication.frames_symbolicated", symbolicated_frames)
     output["_symbolication"] = {"status": "completed"}
     return output
 

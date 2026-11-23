@@ -34,6 +34,9 @@ from sentry.attachments import (
 from sentry.lang.javascript.processing import (
     get_flamegraph_stacktraces as get_js_flamegraph_stacktraces,
 )
+from sentry.lang.javascript.processing import (
+    merge_flamegraph_frames as merge_js_flamegraph_frames,
+)
 from sentry.lang.native.flamegraphs import (
     FlamegraphExpansionLimitExceeded,
     Flamegraphs,
@@ -60,7 +63,6 @@ from sentry.stacktraces.processing import find_stacktraces_in_data
 from sentry.tasks import store
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.tasks.symbolication import SymbolicationTimeout, symbolicate_event
-from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_objectstore, requires_symbolicator
@@ -577,24 +579,100 @@ def cached_flamegraph(
     return data, payload, symbolicator
 
 
-def test_javascript_flamegraph_frame_selection() -> None:
-    image = {
-        "type": "sourcemap",
-        "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
-        "code_file": "app:///index.bundle",
-    }
-    frame = {"function": "a", "abs_path": "app:///index.bundle", "lineno": 1}
-    payload = {
+@pytest.fixture
+def javascript_flamegraph_payload() -> dict[str, Any]:
+    return {
+        "version": "1",
         "platform": "javascript",
-        "debug_meta": {"images": [{"type": "macho"}, image]},
-        "frames": [
-            {"function": "native", "abs_path": "[native code]", "lineno": 1},
-            {"function": "unknown", "abs_path": "app:///index.bundle"},
-            {"function": "native", "platform": "native", "instruction_addr": "0x1000"},
-            frame,
-            frame,
-        ],
+        "debug_meta": {
+            "images": [
+                {
+                    "type": "sourcemap",
+                    "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
+                    "code_file": "app:///index.bundle",
+                }
+            ]
+        },
+        "frames": [{"function": "a", "abs_path": "app:///index.bundle", "lineno": 1}],
+        "nodes": [{"frame_id": 0, "sample_count": 1}],
+        "trees": [{"roots": [0]}],
     }
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("abs_path", ["invalid"]),
+        ("lineno", "invalid"),
+        ("lineno", True),
+        ("lineno", -1),
+        ("lineno", 2**32),
+        ("colno", -1),
+        ("colno", False),
+        ("colno", 2**32),
+        ("function", {}),
+    ],
+)
+def test_javascript_flamegraph_skips_invalid_frames(
+    javascript_flamegraph_payload: dict[str, Any], field: str, value: object
+) -> None:
+    payload = javascript_flamegraph_payload
+    frame = {**payload["frames"][0], "colno": 0}
+    payload["frames"] = [{**frame, field: value}, frame]
+    symbolication_input = get_js_flamegraph_stacktraces(payload)
+    assert symbolication_input.frame_ids == [1]
+    assert symbolication_input.stacktraces == [{"frames": [frame]}]
+
+
+@pytest.mark.parametrize("code_file", [[], {}, 42, True, ""])
+def test_javascript_flamegraph_skips_invalid_images(
+    javascript_flamegraph_payload: dict[str, Any], code_file: object
+) -> None:
+    payload = javascript_flamegraph_payload
+    image = payload["debug_meta"]["images"][0]
+    payload["debug_meta"]["images"] = [{**image, "code_file": code_file}, image]
+    assert get_js_flamegraph_stacktraces(payload).modules == [image]
+
+
+@pytest.mark.parametrize("symbolicated", [(True, True), (True, False), (False, False)])
+def test_javascript_flamegraph_symbolication_span_counts(
+    javascript_flamegraph_payload: dict[str, Any], symbolicated: tuple[bool, bool]
+) -> None:
+    payload = javascript_flamegraph_payload
+    frame = payload["frames"][0]
+    payload["frames"] = [frame, frame]
+    with mock.patch("sentry.lang.javascript.processing.traces.get_current_span") as get_span:
+        symbolication_input = get_js_flamegraph_stacktraces(payload)
+        merge_js_flamegraph_frames(
+            payload,
+            symbolication_input.frame_ids,
+            [
+                {"frames": [{**frame, "data": {"symbolicated": symbolicated[0]}}]},
+                {"frames": [{**frame, "data": {"symbolicated": symbolicated[1]}}]},
+            ],
+        )
+    get_span.return_value.set_attribute.assert_any_call(
+        "flamegraph.symbolication.frames_submitted", 2
+    )
+    get_span.return_value.set_attribute.assert_any_call(
+        "flamegraph.symbolication.frames_symbolicated", sum(symbolicated)
+    )
+
+
+def test_javascript_flamegraph_frame_selection(
+    javascript_flamegraph_payload: dict[str, Any],
+) -> None:
+    payload = javascript_flamegraph_payload
+    image = payload["debug_meta"]["images"][0]
+    frame = payload["frames"][0]
+    payload["debug_meta"]["images"] = [{"type": "macho"}, image]
+    payload["frames"] = [
+        {"function": "native", "abs_path": "[native code]", "lineno": 1},
+        {"function": "unknown", "abs_path": "app:///index.bundle"},
+        {"function": "native", "platform": "native", "instruction_addr": "0x1000"},
+        frame,
+        frame,
+    ]
     with mock.patch("sentry.lang.javascript.processing.MAX_SYMBOLICATION_FRAMES", 4):
         symbolication_input = get_js_flamegraph_stacktraces(payload)
         assert symbolication_input.modules == [image]
@@ -617,19 +695,15 @@ def test_javascript_flamegraph_frame_selection() -> None:
     ],
 )
 def test_process_javascript_flamegraph(
-    cached_flamegraph: CachedFlamegraph, abs_path: str, filename: str, expected_in_app: bool
+    cached_flamegraph: CachedFlamegraph,
+    javascript_flamegraph_payload: dict[str, Any],
+    abs_path: str,
+    filename: str,
+    expected_in_app: bool,
 ) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["platform"] = "javascript"
-    payload["debug_meta"] = {
-        "images": [
-            {
-                "type": "sourcemap",
-                "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
-                "code_file": "app:///index.bundle",
-            }
-        ]
-    }
+    payload["debug_meta"] = javascript_flamegraph_payload["debug_meta"]
     original_frame = {
         "function": "a",
         "abs_path": "app:///index.bundle",
@@ -641,6 +715,7 @@ def test_process_javascript_flamegraph(
     payload["frames"] = [
         original_frame,
         {"function": "native", "platform": "native", "instruction_addr": "0x1000"},
+        {"function": "invalid", "abs_path": ["invalid"], "lineno": 1},
     ]
     original = deepcopy(payload)
     data.update(release="1.0", dist="42")
@@ -683,6 +758,7 @@ def test_process_javascript_flamegraph(
             "data": {"custom": "preserved", "symbolicated": True},
         }
         assert output["frames"][1] == original["frames"][1]
+        assert output["frames"][2] == original["frames"][2]
         assert output["nodes"] == original["nodes"]
         assert output["trees"] == original["trees"]
         assert output["debug_meta"] == original["debug_meta"]
@@ -714,17 +790,16 @@ def test_process_javascript_flamegraph(
 @django_db_all
 @pytest.mark.parametrize("parent_platform", ["javascript", "cocoa"])
 def test_javascript_flamegraph_mixed_frame_table(
-    cached_flamegraph: CachedFlamegraph, parent_platform: str
+    cached_flamegraph: CachedFlamegraph,
+    javascript_flamegraph_payload: dict[str, Any],
+    parent_platform: str,
 ) -> None:
     data, payload, symbolicator = cached_flamegraph
     data["platform"] = parent_platform
     payload["platform"] = "javascript"
-    image = {
-        "type": "sourcemap",
-        "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
-        "code_file": "app:///main.jsbundle",
-    }
-    payload["debug_meta"] = {"images": [image]}
+    payload["debug_meta"] = javascript_flamegraph_payload["debug_meta"]
+    image = payload["debug_meta"]["images"][0]
+    image["code_file"] = "app:///main.jsbundle"
     # The parent event's images must not replace the attachment's captured image table.
     data["debug_meta"] = {"images": [{**image, "debug_id": "dfb0df83-9405-4a84-98cf-d0a392433bdd"}]}
     payload["frames"] = [
@@ -876,7 +951,6 @@ def test_javascript_flamegraph_mixed_frame_table(
 @django_db_all(transaction=True)
 def test_javascript_flamegraph_debug_id_source_map(
     default_project: Project,
-    factories: type[Factories],
     live_server: LiveServer,
     set_sentry_option: Callable[[str, object], AbstractContextManager[None]],
 ) -> None:
@@ -1013,22 +1087,14 @@ def test_javascript_flamegraph_debug_id_source_map(
     [None, {"status": "failed"}, {"status": "completed", "stacktraces": []}],
 )
 def test_javascript_flamegraph_failed_response_preserves_attachment(
-    cached_flamegraph: CachedFlamegraph, response: dict[str, Any] | None
+    cached_flamegraph: CachedFlamegraph,
+    javascript_flamegraph_payload: dict[str, Any],
+    response: dict[str, Any] | None,
 ) -> None:
     data, payload, symbolicator = cached_flamegraph
     payload["platform"] = "javascript"
-    payload["debug_meta"] = {
-        "images": [
-            {
-                "type": "sourcemap",
-                "debug_id": "924e9c52-9cd6-4f52-9aca-e1d6968e23f2",
-                "code_file": "app:///index.bundle",
-            }
-        ]
-    }
-    payload["frames"] = [
-        {"function": "a", "abs_path": "app:///index.bundle", "lineno": 1, "colno": 100}
-    ]
+    payload["debug_meta"] = javascript_flamegraph_payload["debug_meta"]
+    payload["frames"] = [{**javascript_flamegraph_payload["frames"][0], "colno": 100}]
     raw = orjson.dumps(payload)
     store_attachments_for_event(
         symbolicator.project,
@@ -1748,6 +1814,72 @@ def test_flamegraph_checkpoint_survives_later_timeout(
     assert first_processed["_symbolication"]["status"] == "completed"
     assert other_attachment.load_data(symbolicator.project) == b"unchanged"
     assert second_attachment.load_data(symbolicator.project) == orjson.dumps(second)
+
+
+@django_db_all
+@override_settings(
+    SYMBOLICATOR_POOL_URLS={"default": "http://native.invalid", "js": "http://js.invalid"}
+)
+def test_mixed_flamegraph_checkpoint_survives_js_timeout(
+    cached_flamegraph: CachedFlamegraph, javascript_flamegraph_payload: dict[str, Any]
+) -> None:
+    data, native_payload, native = cached_flamegraph
+    js_payload = {**native_payload, **javascript_flamegraph_payload}
+    js_response = {
+        "status": "completed",
+        "stacktraces": [
+            {
+                "frames": [
+                    {
+                        "function": "render",
+                        "abs_path": "app:///src/App.js",
+                        "filename": "src/App.js",
+                        "data": {"symbolicated": True},
+                    }
+                ]
+            }
+        ],
+    }
+    native_response = native.process_payload.return_value
+    client = Symbolicator(
+        SymbolicatorTaskKind(SymbolicatorFunction.native),
+        lambda: None,
+        native.project,
+        data["event_id"],
+    )
+    store_attachments_for_event(
+        native.project,
+        data,
+        [
+            CachedAttachment(type="event.flamegraph", data=orjson.dumps(native_payload)),
+            CachedAttachment(type="event.flamegraph", data=orjson.dumps(js_payload)),
+        ],
+        timeout=60,
+    )
+    with (
+        Feature({"organizations:flamegraph-attachments": True}),
+        mock.patch.object(
+            Symbolicator,
+            "_process",
+            autospec=True,
+            side_effect=[native_response, SymbolicationTimeout(), js_response],
+        ) as process,
+    ):
+        assert process_native_stacktraces(client, data) is data
+        first, second = get_attachments_for_event(data)
+        checkpoint = first.load_data(native.project)
+        assert orjson.loads(checkpoint)["_symbolication"]["status"] == "completed"
+        assert second.load_data(native.project) == orjson.dumps(js_payload)
+        assert process_native_stacktraces(client, data) is data
+    first, second = get_attachments_for_event(data)
+    assert first.load_data(native.project) == checkpoint
+    assert orjson.loads(second.load_data(native.project))["frames"][0]["function"] == "render"
+    assert [call.args[0].base_url for call in process.call_args_list] == [
+        "http://native.invalid",
+        "http://js.invalid",
+        "http://js.invalid",
+    ]
+    assert process.call_args.kwargs["json"]["modules"] == js_payload["debug_meta"]["images"]
 
 
 def test_merge_symbolicator_image_empty() -> None:
