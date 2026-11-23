@@ -21,6 +21,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
+from sentry.auth.access import Access, SystemAccess
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.auth.principal import acting_user, acting_user_id
 from sentry.constants import ENABLE_SEER_CODING_DEFAULT
@@ -214,6 +215,12 @@ class SeerAgentChatSerializer(serializers.Serializer):
     )
 
 
+def _can_install_integrations(access: Access) -> bool:
+    # Same result as `access.has_scope("org:integrations")`, without the permission scope
+    # audit: the value only feeds analytics, so it isn't an authorization check to declare.
+    return isinstance(access, SystemAccess) or "org:integrations" in access.scopes
+
+
 class OrganizationSeerAgentChatPermission(OrganizationPermission):
     scope_map = {
         "GET": ["org:read"],
@@ -370,7 +377,7 @@ class OrganizationSeerAgentChatEndpoint(OrganizationEndpoint):
                 acting_user_id(request.user),
                 resolved.seer_run_state_id,
                 state,
-                can_install_integrations=request.access.has_scope("org:integrations"),
+                can_install_integrations=_can_install_integrations(request.access),
             )
             session = state if has_elevated_mode(request) else redact_autofix_prompts(state)
             return Response(

@@ -12,6 +12,7 @@ from sentry.analytics.events.seer_scm_connect_events import (
     SeerScmConnectResolvedEvent,
     SeerScmConnectShownEvent,
 )
+from sentry.auth.access import SystemAccess
 from sentry.seer.agent.client_models import (
     MemoryBlock,
     Message,
@@ -23,7 +24,10 @@ from sentry.seer.agent.client_models import (
 from sentry.seer.agent.client_utils import snapshot_to_markdown
 from sentry.seer.autofix.feature.models import SINGLE_RUN_FEATURE_ID
 from sentry.seer.autofix.prompt_redaction import AUTOFIX_PROMPT_PLACEHOLDER
-from sentry.seer.endpoints.organization_seer_agent_chat import SeerAgentChatSerializer
+from sentry.seer.endpoints.organization_seer_agent_chat import (
+    SeerAgentChatSerializer,
+    _can_install_integrations,
+)
 from sentry.seer.models import SeerApiError
 from sentry.seer.models.run import SeerAgentRun, SeerRun, SeerRunMirrorStatus, SeerRunType
 from sentry.service_accounts.models import ServiceAccountToken
@@ -33,6 +37,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.analytics import assert_analytics_events
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json
@@ -1402,6 +1407,55 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
 
         assert get_response.status_code == 200
         assert post_response.status_code == 200
+
+    @override_options({"api.permission-scope-audit.enabled": True})
+    @patch("sentry.auth.scope_declaration.capture_message")
+    @patch("sentry.seer.endpoints.organization_seer_agent_chat.SeerAgentClient")
+    def test_scm_connect_shown_reports_integration_scope_without_scope_audit(
+        self, mock_client_class: MagicMock, capture_message: MagicMock
+    ) -> None:
+        for role, can_install_integrations in (("owner", True), ("member", False)):
+            user = self.create_user()
+            self.create_member(user=user, organization=self.organization, role=role)
+            self.login_as(user=user)
+            run_id = 790 if can_install_integrations else 791
+            self.create_seer_run(
+                organization=self.organization, seer_run_state_id=run_id, user_id=user.id
+            )
+            mock_client_class.return_value.get_run.return_value = SeerRunState(
+                run_id=run_id,
+                blocks=[],
+                status="awaiting_user_input",
+                updated_at="2024-01-01T00:00:00Z",
+                owner_user_id=user.id,
+                pending_user_input=PendingUserInput(
+                    id=f"input-{run_id}",
+                    input_type="connect_scm",
+                    data={"repo_name": "acme-labs/app", "failure_reason": "no_scm_integration"},
+                ),
+            )
+
+            with assert_analytics_events(
+                [
+                    SeerScmConnectShownEvent(
+                        organization_id=self.organization.id,
+                        user_id=user.id,
+                        run_id=run_id,
+                        input_id=f"input-{run_id}",
+                        failure_reason="no_scm_integration",
+                        can_install_integrations=can_install_integrations,
+                    ),
+                ]
+            ):
+                response = self.client.get(f"{self.url}{run_id}/")
+
+            assert response.status_code == 200
+
+        capture_message.assert_not_called()
+
+    def test_can_install_integrations_matches_has_scope_for_system_access(self) -> None:
+        access = SystemAccess()
+        assert _can_install_integrations(access) is access.has_scope("org:integrations") is True
 
 
 @with_feature("organizations:seer-explorer")
