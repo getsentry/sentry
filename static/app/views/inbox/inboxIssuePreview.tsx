@@ -35,15 +35,17 @@ import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
 import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
+import {issueFirstLastReleaseQueryOptions} from 'sentry/views/issueDetails/issueFirstLastReleaseQueryOptions';
 import {
   ExternalIssueListContent,
   ExternalIssueListLinkButton,
   useExternalIssueList,
 } from 'sentry/views/issueDetails/sidebar/externalIssueList';
-import {FirstLastSeenSection} from 'sentry/views/issueDetails/sidebar/firstLastSeenSection';
 import {ParticipantList} from 'sentry/views/issueDetails/sidebar/participantList';
 import {groupApiOptions} from 'sentry/views/issueDetails/useGroup';
 import {useGroupEvent} from 'sentry/views/issueDetails/useGroupEvent';
+
+import {InboxIssueSeen} from './inboxIssueSeen';
 
 type InboxIssueTab = 'overview' | 'telemetry';
 
@@ -237,7 +239,7 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <GroupPriority group={group} />
       </SidebarField>
       <ErrorBoundary mini>
-        <FirstLastSeenSection group={group} event={event} />
+        <InboxIssueSeenFields group={group} />
       </ErrorBoundary>
       <ErrorBoundary mini>
         <SidebarField label={t('Related')}>
@@ -248,6 +250,37 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <InboxIssueExternalLinks group={group} event={event} />
       </ErrorBoundary>
     </Stack>
+  );
+}
+
+function InboxIssueSeenFields({group}: {group: Group}) {
+  const organization = useOrganization();
+  const {data: releases} = useQuery(
+    issueFirstLastReleaseQueryOptions({
+      groupId: group.id,
+      organizationSlug: organization.slug,
+    })
+  );
+
+  return (
+    <Fragment>
+      <SidebarField label={t('Last seen')}>
+        <InboxIssueSeen
+          date={group.lastSeen}
+          label={t('Last seen')}
+          project={group.project}
+          releaseVersion={releases?.lastRelease?.version}
+        />
+      </SidebarField>
+      <SidebarField label={t('First seen')}>
+        <InboxIssueSeen
+          date={group.firstSeen}
+          label={t('First seen')}
+          project={group.project}
+          releaseVersion={releases?.firstRelease?.version}
+        />
+      </SidebarField>
+    </Fragment>
   );
 }
 
