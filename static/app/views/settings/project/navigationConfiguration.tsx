@@ -110,7 +110,11 @@ export function getNavigationConfiguration({
         {
           path: `${pathPrefix}/security-and-privacy/`,
           title: t('Security & Privacy'),
-          keywords: [t('prevent storing of ip addresses'), t('ip address')],
+          keywords: [
+            t('prevent storing of ip addresses'),
+            t('ip address'),
+            t('store native crash reports'),
+          ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing) for a project'
           ),

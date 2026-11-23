@@ -96,7 +96,14 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
         {
           path: `${organizationSettingsPathPrefix}/`,
           title: t('General Settings'),
-          keywords: [t('slug'), t('org slug'), t('organization slug'), 'SENTRY_ORG'],
+          keywords: [
+            t('slug'),
+            t('org slug'),
+            t('organization slug'),
+            t('data storage location'),
+            t('data region'),
+            'SENTRY_ORG',
+          ],
           index: true,
           description: t('Configure general settings for an organization'),
           id: 'general',
@@ -137,6 +144,7 @@ function getOrganizationNavigationConfiguration(): NavigationSection[] {
             t('advanced data scrubbing'),
             t('prevent storing of ip addresses'),
             t('ip address'),
+            t('store native crash reports'),
           ],
           description: t(
             'Configuration related to dealing with sensitive data and other security settings. (Data Scrubbing, Data Privacy, Data Scrubbing)'
@@ -346,8 +354,10 @@ function getDeveloperNavigationConfiguration(
         t('credentials'),
         t('user auth tokens'),
         t('create new token'),
+        t('new token'),
         t('access token'),
         t('sentry auth token'),
+        t('auth-tokens'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t(
@@ -376,9 +386,12 @@ function getDeveloperNavigationConfiguration(
         t('credentials'),
         t('user auth tokens'),
         t('create new token'),
+        t('new token'),
         t('access token'),
         t('sentry auth token'),
         t('organization auth token'),
+        t('organisation token'),
+        t('auth-tokens'),
         'SENTRY_AUTH_TOKEN',
       ],
       description: t('Manage organization tokens'),

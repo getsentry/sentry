@@ -610,7 +610,7 @@ export function GlobalCommandPaletteActions() {
           {organization.features.includes('uptime') && (
             <CMDKAction
               display={{label: t('Uptime')}}
-              keywords={[t('uptime monitors'), t('monitors')]}
+              keywords={[t('uptime monitors'), t('uptime monitoring'), t('monitors')]}
               to={`${prefix}/monitors/uptime/`}
             />
           )}
