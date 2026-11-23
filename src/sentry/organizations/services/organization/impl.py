@@ -581,8 +581,13 @@ class DatabaseBackedOrganizationService(OrganizationService):
         with outbox_context(transaction.atomic(router.db_for_write(OrganizationMember))):
             if len(attrs):
                 for k, v in attrs.items():
-                    setattr(member, k, v)
-                member.save()
+                    if k != "role":
+                        setattr(member, k, v)
+                # save_role replicates owner changes right away.
+                if "role" in attrs:
+                    member.save_role(attrs["role"])
+                else:
+                    member.save()
 
         return serialize_member(member)
 

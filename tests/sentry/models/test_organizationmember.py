@@ -733,6 +733,24 @@ class OrganizationMemberAsyncReplicationTest(TestCase):
                 )
             )
 
+    def test_update_organization_member_rpc_owner_change_is_sync(self) -> None:
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
+
+        service = DatabaseBackedOrganizationService()
+
+        def update(role: str) -> None:
+            service.update_organization_member(
+                organization_id=self.org.id, member_id=self.member.id, attrs={"role": role}
+            )
+
+        with self.options({self.OPTION: True}):
+            assert not self._drains(lambda: update("manager"))
+            assert self._drains(lambda: update("owner"))
+        self.member.refresh_from_db()
+        assert self.member.role == "owner"
+
     def test_sync_write_drains_async_rows_in_the_same_shard(self) -> None:
         from sentry.hybridcloud.models.outbox import CellOutbox
 
