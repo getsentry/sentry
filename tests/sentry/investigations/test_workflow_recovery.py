@@ -4,7 +4,11 @@ from uuid import uuid4
 from django.utils import timezone
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
-from sentry.investigations.services.workflow_runtime import reserve_due_nodes
+from sentry.investigations.services.workflow_runtime import (
+    PAUSED_RECOVERY_INTERVAL,
+    reserve_due_nodes,
+    save_nodes,
+)
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook
 from sentry.tasks.seer.investigation import expire_workflow_runs
@@ -34,6 +38,44 @@ class WorkflowRecoveryTest(TestCase):
             batches[org.id] = [str(due.uuid)]
         assert reserve_due_nodes() == batches
         assert reserve_due_nodes() == {}
+
+    def test_missed_resume_is_recovered_behind_a_full_batch(self) -> None:
+        run = self.make_run(self.organization, None)
+        now = timezone.now()
+        paused = uuid4()
+        checkpoint = {
+            "id": str(paused),
+            "node_id": "scan",
+            "workflow_run_id": str(run.uuid),
+            "organization_id": self.organization.id,
+            "status": "awaiting_input",
+            "state": {},
+            "attempt": 1,
+            "item_index": None,
+            "explorer_run_id": 42,
+            "next_check_at": None,
+        }
+        save_nodes(run, [checkpoint])
+        node = WorkflowNodeRun.objects.get(uuid=paused)
+        assert node.next_check_at is not None
+        assert node.next_check_at >= now + PAUSED_RECOVERY_INTERVAL
+        WorkflowNodeRun.objects.bulk_create(
+            [
+                WorkflowNodeRun(
+                    run=run, uuid=uuid4(), checkpoint={}, next_check_at=now - timedelta(minutes=1)
+                )
+                for _ in range(100)
+            ]
+        )
+        WorkflowNodeRun.objects.filter(pk=node.pk).update(next_check_at=now)
+        assert str(paused) not in reserve_due_nodes()[self.organization.id]
+        assert reserve_due_nodes() == {self.organization.id: [str(paused)]}
+        node.refresh_from_db()
+        assert node.next_check_at is not None
+        assert node.next_check_at >= now + PAUSED_RECOVERY_INTERVAL
+        assert reserve_due_nodes() == {}
+        save_nodes(run, [{**checkpoint, "next_check_at": now.isoformat()}])
+        assert reserve_due_nodes() == {self.organization.id: [str(paused)]}
 
     def test_retention_uses_creation_date_and_preserves_notebook(self) -> None:
         notebook = Notebook.objects.create(

@@ -67,7 +67,9 @@ class NotebookProducer(abc.ABC):
     run_statuses: ClassVar[Sequence[str]] = ()
 
     @abc.abstractmethod
-    def lock_run(self, notebook: Notebook, *, lock: bool) -> NotebookProducerRun:
+    def lock_run(
+        self, notebook: Notebook, *, lock: bool, workflow_binding_id: int | None = None
+    ) -> NotebookProducerRun:
         """Read the notebook's run, locking it if asked. Callers hold the notebook lock."""
 
     @abc.abstractmethod

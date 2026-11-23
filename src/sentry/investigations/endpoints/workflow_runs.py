@@ -10,12 +10,15 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
+from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.investigations.models import WorkflowRun
+from sentry.investigations.services.orchestration import rebuild_orchestration_source
 from sentry.investigations.services.workflow_client import forward_workflow_request
 from sentry.investigations.services.workflow_runtime import public_snapshot
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import OrganizationNotebooksBaseEndpoint, user_id
+from sentry.notebooks.models import NotebookWorkflowRun
 
 RUN_ID = OpenApiParameter(
     name="run_id",
@@ -35,7 +38,17 @@ class StartWorkflowRequest(serializers.Serializer):
 
 
 class WorkflowCommandRequest(serializers.Serializer):
-    command = serializers.ChoiceField(choices=["cancel"], help_text="The command to deliver.")
+    requestId = serializers.UUIDField(required=False)
+    nodeId = serializers.UUIDField(required=False)
+    inputId = serializers.CharField(required=False)
+    answers = serializers.ListField(
+        child=serializers.CharField(max_length=4000), max_length=4, required=False
+    )
+    note = serializers.CharField(max_length=2000, required=False)
+    command = serializers.ChoiceField(
+        choices=["cancel", "provide_input", "steer", "retry", "recheck"],
+        help_text="The command to deliver.",
+    )
 
 
 @extend_schema(tags=["Investigations"], parameters=[GlobalParams.ORG_ID_OR_SLUG])
@@ -47,7 +60,10 @@ class WorkflowEndpoint(OrganizationNotebooksBaseEndpoint):
 class OrganizationWorkflowRunsEndpoint(WorkflowEndpoint):
     publish_status = {"POST": ApiPublishStatus.PRIVATE}
 
-    @extend_schema(request=StartWorkflowRequest, responses={200: OpenApiTypes.OBJECT})
+    @extend_schema(
+        request=StartWorkflowRequest,
+        responses={200: OpenApiTypes.OBJECT, 400: constants.RESPONSE_BAD_REQUEST},
+    )
     def post(self, request: Request, organization: Organization) -> Response:
         """Start an investigation workflow and retrieve its run ID and notebook flag."""
         payload: object = request.data
@@ -92,6 +108,23 @@ class OrganizationWorkflowCommandsEndpoint(WorkflowEndpoint):
     )
     def post(self, request: Request, organization: Organization, run_id: str) -> Response:
         """Send a command to a workflow run owned by the current user."""
+        validator = WorkflowCommandRequest(data=request.data)
+        validator.is_valid(raise_exception=True)
+        payload = dict(validator.data)
+        if payload["command"] == "recheck":
+            owned = WorkflowRun.objects.filter(
+                organization=organization,
+                uuid=run_id,
+                user_id=user_id(request),
+                definition__name="breached_metrics",
+            )
+            binding = (
+                NotebookWorkflowRun.objects.select_related("notebook")
+                .filter(organization=organization, run_id__in=owned.values("uuid"))
+                .get_or_none()
+            )
+            if binding and (source := rebuild_orchestration_source(binding.notebook)):
+                payload["source"] = source
         return forward_workflow_request(
-            "POST", f"/runs/{UUID(str(run_id))}/commands", operation="commands", data=request.data
+            "POST", f"/runs/{UUID(str(run_id))}/commands", operation="commands", data=payload
         )

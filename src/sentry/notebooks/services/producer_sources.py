@@ -3,11 +3,27 @@ from __future__ import annotations
 from collections.abc import Callable
 from dataclasses import dataclass
 from typing import Any
+from uuid import UUID
 
 from rest_framework import serializers
 
 from sentry.models.organization import Organization
 from sentry.notebooks.models import Notebook, NotebookSourceType
+
+# The leading colon keeps this namespace separate from registered producer names.
+WORKFLOW_BLOCK_PREFIX = ":workflow:"
+
+
+def workflow_block_key(run_id: UUID, key: str) -> str:
+    return f"{WORKFLOW_BLOCK_PREFIX}{run_id}:{key}"
+
+
+def split_workflow_block_key(stored_key: str) -> tuple[str | None, str]:
+    if stored_key.startswith(WORKFLOW_BLOCK_PREFIX):
+        run_id, separator, key = stored_key.removeprefix(WORKFLOW_BLOCK_PREFIX).partition(":")
+        if separator:
+            return run_id, key
+    return None, stored_key
 
 
 @dataclass(frozen=True)

@@ -7,6 +7,8 @@ from sentry.notebooks.models import (
     NotebookBlock,
     NotebookBlockExecutionStatus,
     NotebookBlockExecutor,
+    NotebookEvidenceProject,
+    WorkflowEvidenceScope,
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.features import with_feature
@@ -27,6 +29,9 @@ class OrganizationNotebooksDuplicateTest(APITestCase):
             title="Original",
             filters={"environments": ["production"]},
         )
+        source.update(workflow_evidence_scope=WorkflowEvidenceScope.PROJECTS)
+        NotebookEvidenceProject.objects.create(notebook=source, project=self.project)
+        NotebookEvidenceProject.objects.create(notebook=source, project=None)
         first = self.create_notebook_block(
             notebook=source,
             position=0,
@@ -81,6 +86,12 @@ class OrganizationNotebooksDuplicateTest(APITestCase):
             investigation_id=response.data["id"]
         ).exists()
         copied_first = NotebookBlock.objects.get(id=response.data["blocks"][0]["id"])
+        duplicate = copied_first.notebook
+        assert duplicate.workflow_evidence_scope == WorkflowEvidenceScope.PROJECTS
+        assert set(duplicate.evidence_project_links.values_list("project_id", flat=True)) == {
+            self.project.id,
+            None,
+        }
         assert copied_first.producer_revision is None
         assert copied_first.producer_key is None
         assert copied_first.producing_seer_run_id is None

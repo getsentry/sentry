@@ -142,6 +142,9 @@ class NotebookSerializerResponse(TypedDict):
         NotebookTitleGenerationSerializerResponse,
         ApiDescription("The state of automatic title generation"),
     ]
+    workflowStatus: NotRequired[
+        Annotated[str, ApiDescription("Status of the latest bound workflow run")]
+    ]
     orchestration: Annotated[
         NotebookOrchestrationSerializerResponse | None,
         ApiDescription("The agent's run for the notebook, if it has one"),
@@ -254,6 +257,11 @@ class NotebookSerializer(Serializer):
             "isFavorited": attrs["is_favorited"],
             "titleGeneration": {"status": obj.title_generation_status},
             "orchestration": attrs["orchestration"],
+            **(
+                {"workflowStatus": workflow_status}
+                if (workflow_status := getattr(obj, "workflow_run_status", None))
+                else {}
+            ),
         }
 
 

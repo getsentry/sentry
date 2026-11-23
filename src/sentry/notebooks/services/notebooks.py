@@ -20,6 +20,7 @@ from sentry.notebooks.models import (
     NotebookBlock,
     NotebookBlockExecution,
     NotebookBlockExecutionStatus,
+    NotebookEvidenceProject,
     NotebookProject,
     NotebookSourceType,
     NotebookStatus,
@@ -270,13 +271,19 @@ def duplicate_notebook(*, notebook: Notebook, creator: CreatorReference) -> Note
             **creator,
             title=_copy_title(source.title),
             filters=deepcopy(source.filters),
-            workflow_project_ids=source.workflow_project_ids,
+            workflow_evidence_scope=source.workflow_evidence_scope,
         )
         _create_project_links(
             duplicate,
             source.project_links.values_list("project_id", flat=True),
         )
 
+        NotebookEvidenceProject.objects.bulk_create(
+            [
+                NotebookEvidenceProject(notebook=duplicate, project_id=project_id)
+                for project_id in source.evidence_project_links.values_list("project_id", flat=True)
+            ]
+        )
         for block in source.blocks.filter(deleted_at__isnull=True).order_by("position", "id"):
             NotebookBlock.objects.create(
                 notebook=duplicate,
@@ -344,7 +351,7 @@ def update_notebook_row(
         for field, value in fields.items():
             setattr(locked, field, value)
         if project_ids is not None:
-            validate_evidence_scope(project_ids, locked.workflow_project_ids)
+            validate_evidence_scope(project_ids, locked.workflow_evidence_project_ids())
             NotebookProject.objects.filter(notebook=locked).delete()
             _create_project_links(locked, project_ids)
         bump_notebook_version(locked)
@@ -369,6 +376,9 @@ def archive_notebook_row(*, notebook: Notebook, expected_version: int) -> Notebo
             raise NotebookValidationError(
                 {"detail": "Stop active block runs before archiving this investigation."}
             )
+        from sentry.investigations.services.workflow_runtime import cancel_notebook_workflows
+
+        cancel_notebook_workflows(locked)
         locked.status = NotebookStatus.ARCHIVED
         bump_notebook_version(locked)
     return locked

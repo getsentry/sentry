@@ -398,9 +398,11 @@ def complete_action_requests(
             producer = get_producer(notebook.source_type)
             if producer is None:
                 continue
-            run = producer.lock_run(notebook, lock=True)
             for row in action_requests.filter(notebook=notebook).select_for_update():
                 if shared_cannot_apply_reason(notebook, row) is None:
+                    run = producer.lock_run(
+                        notebook, lock=True, workflow_binding_id=row.workflow_run_id
+                    )
                     _complete_action_request(run, row, applied_by=applied_by, details=details)
 
 
@@ -486,7 +488,9 @@ def _locked_context(
         raise ResourceDoesNotExist
     return ApplyContext(
         notebook=locked,
-        run=producer.lock_run(locked, lock=lock),
+        run=producer.lock_run(
+            locked, lock=lock, workflow_binding_id=action_request.workflow_run_id
+        ),
         action_request=action_requests.get(id=action_request.id),
         request=request,
         actor_id=actor_id,

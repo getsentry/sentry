@@ -580,9 +580,8 @@ class ActionRequestAnchorSerializer(StrictContractSerializer):
     id = StrictCharField(max_length=128)
 
 
-class ActionRequestSerializer(RelaxedContractSerializer):
+class ActionSuggestionSerializer(RelaxedContractSerializer):
     key = StrictCharField(max_length=64)
-    reportRevision = StrictIntegerField(min_value=0, max_value=I32_MAX)
     title = StrictCharField(max_length=200)
     rationale = StrictCharField(max_length=1_000)
     impact = OptionalStrictCharField(1_000)
@@ -607,6 +606,10 @@ class ActionRequestSerializer(RelaxedContractSerializer):
         return dict(validator.validated_data)
 
 
+class ActionRequestSerializer(ActionSuggestionSerializer):
+    reportRevision = StrictIntegerField(min_value=0, max_value=I32_MAX)
+
+
 def _log_extra(item: Any) -> dict[str, Any]:
     key = item.get("key") if isinstance(item, dict) else None
     action = item.get("action") if isinstance(item, dict) else None
@@ -617,7 +620,7 @@ def _log_extra(item: Any) -> dict[str, Any]:
     }
 
 
-def _trimmed(item: Any, *, log: bool) -> Any:
+def trim_action_request(item: Any, *, log: bool = False) -> Any:
     action = item.get("action") if isinstance(item, dict) else None
     serializer_cls = _payload_serializer(action)
     if serializer_cls is None or not isinstance(action, dict):
@@ -635,7 +638,7 @@ def valid_action_request(item: Any, *, log: bool = False) -> ActionRequestItem |
     request instead of rejecting its whole event. Only the apply path logs, so each drop is
     logged once.
     """
-    trimmed = _trimmed(item, log=log)
+    trimmed = trim_action_request(item, log=log)
     validator = ActionRequestSerializer(data=trimmed)
     if validator.is_valid():
         return cast(ActionRequestItem, dict(validator.validated_data))

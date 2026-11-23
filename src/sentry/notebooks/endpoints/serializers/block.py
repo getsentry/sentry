@@ -16,7 +16,10 @@ from sentry.notebooks.models import (
     NotebookBlockExecutionStatus,
     NotebookBlockKind,
 )
-from sentry.notebooks.services.producer_sources import get_producer_source_type
+from sentry.notebooks.services.producer_sources import (
+    get_producer_source_type,
+    split_workflow_block_key,
+)
 from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
@@ -97,6 +100,9 @@ class NotebookBlockSerializerResponse(TypedDict):
     producerKey: Annotated[
         str | None, ApiDescription("The producer's key for the block, if a producer wrote it")
     ]
+    workflowRunId: Annotated[
+        str | None, ApiDescription("The workflow run that owns this block, if any")
+    ]
     producerRevision: Annotated[
         int | None, ApiDescription("The producer's revision for the block, if a producer wrote it")
     ]
@@ -152,10 +158,14 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
             )
 
         producer_key = obj.producer_key
-        if producer_key and producer_key.startswith("workflow:"):
-            producer_key = producer_key.removeprefix("workflow:")
-        elif producer_key and attrs["source_type"] is not None:
-            producer_key = attrs["source_type"].caller_block_key(producer_key)
+        workflow_run_id = None
+        if producer_key:
+            workflow_run_id, producer_key = split_workflow_block_key(producer_key)
+            if workflow_run_id is None:
+                if producer_key.startswith("workflow:"):
+                    producer_key = producer_key.removeprefix("workflow:")
+                elif attrs["source_type"] is not None:
+                    producer_key = attrs["source_type"].caller_block_key(producer_key)
 
         return {
             "id": str(obj.id),
@@ -194,5 +204,6 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
             "producerKey": producer_key,
+            "workflowRunId": workflow_run_id,
             "producerRevision": obj.producer_revision,
         }

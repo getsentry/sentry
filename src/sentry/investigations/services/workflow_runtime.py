@@ -1,19 +1,33 @@
 """Sentry owns the checkpoint. Workers evaluate the graph against a versioned snapshot."""
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from typing import Any
-from uuid import UUID
+from uuid import NAMESPACE_URL, UUID, uuid5
 
 from django.db import router, transaction
+from django.db.models import Case, DateTimeField, Value, When
 from django.utils import timezone
+from django.utils.dateparse import parse_datetime
 from rest_framework import serializers
-from rest_framework.exceptions import APIException
+from rest_framework.exceptions import APIException, PermissionDenied
 
 from sentry.investigations.models import WorkflowNodeRun, WorkflowRun
+from sentry.investigations.services.actor_access import actor_can_investigate
+from sentry.investigations.services.breached_metrics import resolve_investigation_source
+from sentry.investigations.services.orchestration import (
+    get_or_create_metric_workflow_notebook,
+)
 from sentry.models.organization import Organization
-from sentry.notebooks.models import Notebook
-from sentry.notebooks.services import NotebookValidationError
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
+from sentry.notebooks.services import NotebookSourceNotFound, NotebookValidationError
 from sentry.notebooks.services.workflow import open_workflow_notebook
+from sentry.viewer_context import ActorId, ActorType
+
+PAUSED_RECOVERY_INTERVAL = timedelta(hours=1)
+
+
+def metric_workflow_request_id(notebook_id: int) -> UUID:
+    return uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{notebook_id}")
 
 
 class StaleWorkflow(APIException):
@@ -55,7 +69,7 @@ def save_nodes(run: WorkflowRun, values: list[dict[str, Any]]) -> None:
             raise serializers.ValidationError("Wrong workflow for node.")
         due = node.validated_data["next_check_at"]
         if value["status"] == "awaiting_input" and due is None and not value["state"].get("error"):
-            due = timezone.now() + timedelta(minutes=1)
+            due = timezone.now() + PAUSED_RECOVERY_INTERVAL
         if due and value.get("lease_expires_at"):
             due = max(due, serializers.DateTimeField().to_internal_value(value["lease_expires_at"]))
         WorkflowNodeRun.objects.update_or_create(
@@ -63,6 +77,58 @@ def save_nodes(run: WorkflowRun, values: list[dict[str, Any]]) -> None:
             uuid=node.validated_data["id"],
             defaults={"checkpoint": value, "next_check_at": due},
         )
+
+
+def _breach_source(
+    definition: dict[str, Any],
+    workflow_input: dict[str, Any],
+    destination: dict[str, Any] | None,
+) -> dict[str, Any] | None:
+    """Read the breach identity from Seer's normalized input when the caller chose no notebook."""
+    if (
+        definition["name"] != "breached_metrics"
+        or not definition.get("notebook")
+        or destination is None
+        or destination.get("notebookId") is not None
+    ):
+        return None
+    seed = workflow_input.get("seed", {})
+    if not isinstance(seed, dict):
+        return None
+    source = seed.get("sentrySource")
+    if source is None:
+        if seed.get("openPeriodId") is None or seed.get("metricIssueId") is None:
+            return None
+        source = {
+            "type": "metric_open_period",
+            "ref": {"groupId": seed["metricIssueId"], "openPeriodId": seed["openPeriodId"]},
+        }
+    if not isinstance(source, dict):
+        raise serializers.ValidationError({"source": "Expected a metric open period."})
+    return source
+
+
+def _breach_notebook(
+    organization: Organization,
+    source: dict[str, Any],
+    detector_id: int,
+    project_ids: list[int],
+    creator: ActorId,
+) -> tuple[Notebook, bool]:
+    resolved = resolve_investigation_source(
+        organization=organization, source=source, accessible_project_ids=set(project_ids)
+    )
+    if str(detector_id) != resolved.source["snapshot"]["monitor"]["id"]:
+        raise NotebookValidationError({"source": "The open period belongs to a different monitor."})
+    return get_or_create_metric_workflow_notebook(
+        organization=organization,
+        creator=creator,
+        title=None,
+        resolved_source=resolved,
+        # As on the monitor page, leave the selection open for related evidence.
+        project_ids=[],
+        filters={},
+    )
 
 
 def create_run(
@@ -80,6 +146,12 @@ def create_run(
         or identity["actor_type"] != "user"
     ):
         raise serializers.ValidationError("Invalid workflow owner.")
+    source = _breach_source(definition, checkpoint["input"], destination)
+    creator = ActorId(ActorType.USER, identity["actor_id"])
+    if source is not None and not actor_can_investigate(
+        organization=organization, actor=creator, project_ids=[]
+    ):
+        raise PermissionDenied
     with transaction.atomic(using=router.db_for_write(WorkflowRun)):
         run, created = WorkflowRun.objects.get_or_create(
             organization=organization,
@@ -97,16 +169,45 @@ def create_run(
                     raise serializers.ValidationError("Missing notebook destination.")
                 target = None
                 if destination.get("notebookId") is not None:
-                    target = Notebook.objects.filter(
-                        organization=organization, pk=destination["notebookId"], status="active"
-                    ).get_or_none()
+                    target = (
+                        Notebook.objects.select_for_update()
+                        .filter(
+                            organization=organization, pk=destination["notebookId"], status="active"
+                        )
+                        .get_or_none()
+                    )
                     if target is None:
                         raise serializers.ValidationError("Unknown notebook.")
+                    if previous := destination.get("previousRunId"):
+                        latest = (
+                            NotebookWorkflowRun.objects.filter(notebook=target)
+                            .order_by("-id")
+                            .values_list("run_id", flat=True)
+                            .first()
+                        )
+                        if latest != UUID(previous):
+                            raise StaleWorkflow("Another run has already taken over this notebook.")
                 try:
+                    new_breach_notebook = False
+                    if source is not None:
+                        target, new_breach_notebook = _breach_notebook(
+                            organization,
+                            source,
+                            checkpoint["input"]["detector_id"],
+                            destination["projectIds"],
+                            creator,
+                        )
                     notebook = open_workflow_notebook(
                         organization,
                         run.uuid,
                         destination=target,
+                        generate_placeholder_title=new_breach_notebook
+                        or (
+                            target is not None
+                            and target.source_type == NotebookSourceType.METRIC_OPEN_PERIOD
+                            and (target.source_key or "").startswith("v2:")
+                            and run.request_id == metric_workflow_request_id(target.id)
+                        ),
                         title=definition["name"],
                         project_ids=destination["projectIds"],
                         creator={
@@ -115,6 +216,10 @@ def create_run(
                             "created_by_service_account_id": None,
                         },
                     )
+                except NotebookSourceNotFound as exc:
+                    raise serializers.ValidationError(
+                        {"source": "Unknown metric open period."}
+                    ) from exc
                 except NotebookValidationError as exc:
                     raise serializers.ValidationError(exc.errors) from exc
                 run.checkpoint = {**checkpoint, "notebook_id": notebook.id}
@@ -126,6 +231,34 @@ def create_run(
         ):
             raise StaleWorkflow("Request ID already used for another workflow.")
         return run, created
+
+
+def cancel_notebook_workflows(notebook: Notebook) -> None:
+    """Fence pending writes and leave claimed Explorer children due for Seer's stop sweep."""
+    bindings = NotebookWorkflowRun.objects.filter(notebook=notebook).values("run_id")
+    runs = WorkflowRun.objects.select_for_update().filter(
+        organization_id=notebook.organization_id,
+        uuid__in=bindings,
+        checkpoint__status__in=["pending", "running", "awaiting_input"],
+    )
+    now = timezone.now()
+    for run in runs:
+        for node in run.nodes.exclude(checkpoint__status__in=["succeeded", "failed", "cancelled"]):
+            saved = node.checkpoint
+            if saved["state"].get("kind") == "llm":
+                saved.update(lease_token=None, lease_expires_at=None)
+                saved["state"]["dispatch_token"] = None
+                due = None
+            else:
+                due = now if saved["attempt"] else None
+            saved.update(status="cancelled", next_check_at=due.isoformat() if due else None)
+            node.update(checkpoint=saved, next_check_at=due)
+        if clock := run.checkpoint.get("active_clock"):
+            if since := clock.get("since"):
+                clock["seconds"] += max(0, (now - datetime.fromisoformat(since)).total_seconds())
+                clock["since"] = None
+        run.checkpoint.update(status="cancelled", finished_at=now.isoformat(), next_check_at=None)
+        run.update(checkpoint=run.checkpoint, version=run.version + 1)
 
 
 def worker_snapshot(run: WorkflowRun) -> dict[str, Any]:
@@ -154,7 +287,17 @@ def update_checkpoint(run: WorkflowRun, data: dict[str, Any]) -> None:
             )
             if expires <= timezone.now():
                 raise StaleWorkflow()
+        now = timezone.now()
+        previous = run.checkpoint
+        clock = previous.get("active_clock", {})
+        since = (
+            clock.get("since")
+            if clock
+            else (previous.get("started_at") if previous["status"] == "running" else None)
+        )
         mutable = {
+            "steering",
+            "followups",
             "started_at",
             "finished_at",
             "status",
@@ -170,6 +313,26 @@ def update_checkpoint(run: WorkflowRun, data: dict[str, Any]) -> None:
         if "usage" in data:
             run.checkpoint["usage"] = data["usage"]
         save_nodes(run, data["nodes"])
+        if any(
+            n["node_id"] == "notebook/metadata" and n["status"] == "succeeded"
+            for n in data["nodes"]
+        ):
+            run.checkpoint["report_ready"] = True
+        ticking = (
+            run.checkpoint["status"] == "running"
+            and run.checkpoint.get("started_at")
+            and not run.checkpoint.get("report_ready")
+        )
+        seconds = clock.get("seconds", 0)
+        if since and not ticking:
+            end = parse_datetime(run.checkpoint.get("finished_at") or "") or now
+            seconds += max(0, (end - datetime.fromisoformat(since)).total_seconds())
+        run.checkpoint["active_clock"] = {
+            "seconds": seconds,
+            "since": (since or (now.isoformat() if clock else run.checkpoint["started_at"]))
+            if ticking
+            else None,
+        }
         run.version += 1
         run.save(update_fields=("checkpoint", "version", "date_updated"))
 
@@ -254,7 +417,15 @@ def reserve_due_nodes(*, run: WorkflowRun | None = None) -> dict[int, list[str]]
             ]
         )
         WorkflowNodeRun.objects.filter(pk__in=[pk for pk, _, _ in rows]).update(
-            next_check_at=now + timedelta(minutes=1)
+            next_check_at=Case(
+                When(
+                    checkpoint__status="awaiting_input",
+                    checkpoint__next_check_at=None,
+                    then=Value(now + PAUSED_RECOVERY_INTERVAL),
+                ),
+                default=Value(now + timedelta(minutes=1)),
+                output_field=DateTimeField(),
+            )
         )
         for _, org, node in rows:
             batches.setdefault(org, []).append(str(node))

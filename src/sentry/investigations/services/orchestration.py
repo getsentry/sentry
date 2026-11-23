@@ -636,6 +636,37 @@ def agentic_breached_metric_source_key(source: dict[str, Any]) -> str:
     return f"metric_open_period:{ref['groupId']}:{ref['openPeriodId']}"
 
 
+def get_or_create_metric_workflow_notebook(
+    *,
+    organization: Organization,
+    creator: ActorId,
+    title: str | None,
+    resolved_source: BreachedMetricSource,
+    project_ids: list[int],
+    filters: dict[str, Any],
+) -> tuple[Notebook, bool]:
+    """Persist the canonical v2 notebook for an authorized actor and resolved breach."""
+    source_key = f"v2:{agentic_breached_metric_source_key(resolved_source.source)}"
+    return get_or_create_source_notebook(
+        organization=organization,
+        source_key=source_key,
+        create=lambda revision: create_notebook(
+            organization=organization,
+            created_by_id=creator.id if creator.type == ActorType.USER else None,
+            created_by_service_account_id=creator.id
+            if creator.type == ActorType.SERVICE_ACCOUNT
+            else None,
+            title=title or default_notebook_title(NotebookSourceType.METRIC_OPEN_PERIOD),
+            source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
+            source_key=source_key,
+            source=resolved_source.source,
+            source_revision=revision,
+            project_ids=project_ids,
+            filters=filters,
+        ),
+    )
+
+
 def create_agentic_breached_metric_investigation(
     *,
     organization: Organization,
@@ -650,28 +681,19 @@ def create_agentic_breached_metric_investigation(
     org_wide_workflow = use_workflow and not project_ids
     if not org_wide_workflow and resolved_source.project_id not in project_ids:
         raise NotebookValidationError({"projectIds": "The metric project must be selected."})
+    if use_workflow:
+        return get_or_create_metric_workflow_notebook(
+            organization=organization,
+            creator=creator,
+            title=title,
+            resolved_source=resolved_source,
+            project_ids=project_ids,
+            filters=filters,
+        )
     normalized_source = resolved_source.source
     source_key = agentic_breached_metric_source_key(normalized_source)
 
-    if use_workflow:
-        source_key = f"v2:{source_key}"
-
     def create(revision: int) -> Notebook:
-        if use_workflow:
-            return create_notebook(
-                organization=organization,
-                created_by_id=creator.id if creator.type == ActorType.USER else None,
-                created_by_service_account_id=creator.id
-                if creator.type == ActorType.SERVICE_ACCOUNT
-                else None,
-                title=title or default_notebook_title(NotebookSourceType.METRIC_OPEN_PERIOD),
-                source_type=NotebookSourceType.METRIC_OPEN_PERIOD,
-                source_key=source_key,
-                source=normalized_source,
-                source_revision=revision,
-                project_ids=project_ids,
-                filters=filters,
-            )
         investigation, _ = _create_agentic_investigation(
             organization=organization,
             creator=creator,

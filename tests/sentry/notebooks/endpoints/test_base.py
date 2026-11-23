@@ -62,6 +62,7 @@ class NotebookWriterTest(APITestCase):
         """An account linked to `project_ids`, or to every project when it's None."""
         service_account = self.create_service_account(
             organization=self.organization,
+            name="all-projects" if project_ids is None else "limited-projects",
             scope_list=["org:read"],
             project_ids=project_ids or (),
             all_projects=project_ids is None,
@@ -98,15 +99,33 @@ class NotebookWriterTest(APITestCase):
         self.create_notebook_project(self.notebook, self.project)
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
         assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
-        # Project deletion can remove a link after a workflow published its evidence.
-        NotebookProject.objects.filter(
-            notebook_id=opened.data["notebookId"], project=other
-        ).delete()
+        all_projects, _ = self.service_account_client()
+        assert all_projects.get(details).status_code == 200
+        other.delete()
+        published = Notebook.objects.get(pk=opened.data["notebookId"])
+        assert list(published.projects.values_list("id", flat=True)) == [self.project.id]
+        assert set(published.evidence_project_links.values_list("project_id", flat=True)) == {
+            self.project.id,
+            None,
+        }
+        assert all_projects.get(details).status_code == 200
         assert restricted.get(details).status_code == 403
         listing = restricted.get(self.url("sentry-api-0-organization-notebooks"))
         assert [item["id"] for item in listing.data] == [str(self.notebook.id)]
         self.login_as(self.user)
         assert self.client.get(url).status_code == 403
+
+    def test_project_limited_reads_exclude_unscoped_notebooks(self) -> None:
+        restricted, _ = self.service_account_client([self.project.id])
+        unrestricted, _ = self.service_account_client()
+        index = self.url("sentry-api-0-organization-notebooks")
+        detail = self.url(
+            "sentry-api-0-organization-notebook-details", notebook_id=self.notebook.id
+        )
+        assert restricted.get(index).data == []
+        assert restricted.get(detail).status_code == 403
+        assert [item["id"] for item in unrestricted.get(index).data] == [str(self.notebook.id)]
+        assert unrestricted.get(detail).status_code == 200
 
     def test_disabled_investigations_blocks_workflow_notebook_producer(self) -> None:
         url = self.url("sentry-api-0-organization-notebook-workflow", workflow_run_id=uuid4())
@@ -137,6 +156,9 @@ class NotebookWriterTest(APITestCase):
         other_org = self.viewer_client(actor, self.create_organization().id)
         assert other_org.put(writer_url, body).status_code == 403
         system = self.viewer_client(actor, self.organization.id)
+        with self.feature({"organizations:investigations": False}):
+            assert system.put(writer_url, body).status_code == 404
+        assert agent.get(url).data["writerRunUuid"] is None
         receipt = system.put(writer_url, body)
         assert receipt.status_code == 200, receipt.data
         assert system.put(writer_url, body).data == receipt.data

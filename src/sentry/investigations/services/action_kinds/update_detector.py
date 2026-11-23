@@ -431,6 +431,9 @@ class UpdateDetectorKind(ActionKind[UpdateDetectorAppliedDetails]):
             detector_id = _action_detector_id(item)
             investigation = notebooks[item.notebook_id]
             source_id = source_detector_ids.get(item.notebook_id)
+            if item.workflow_run_id:
+                monitor = (investigation.source.get("snapshot") or {}).get("monitor") or {}
+                source_id = str(monitor["id"]) if monitor.get("id") is not None else None
             key = (detector_id, source_id, investigation.organization_id)
             if key not in detector_reasons:
                 detector_reasons[key] = detector_cannot_apply_reason(
