@@ -48,33 +48,26 @@ import {
   type ProjectSelection,
 } from './serviceAccountAccess';
 
-/**
- * A scope with no projects is only valid for users who can't choose any
- */
-function getSchema({allowNoProjects}: {allowNoProjects: boolean}) {
-  return z.object({
-    name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
-    enabled: z.boolean(),
-    projects: z
-      .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
-      .refine(
-        projects =>
-          allowNoProjects || projects.allProjects || projects.projectIds.length > 0,
-        {message: t('Choose at least one project.')}
-      ),
-    /**
-     * Empty means all environments
-     */
-    environment: z.string(),
-    serviceAccountProjects: z.object({
-      allProjects: z.boolean(),
-      projectIds: z.array(z.string()),
+const schema = z.object({
+  name: z.string().trim().min(1, t('Give your automation a name.')).max(64),
+  enabled: z.boolean(),
+  projects: z
+    .object({allProjects: z.boolean(), projectIds: z.array(z.string())})
+    .refine(projects => projects.allProjects || projects.projectIds.length > 0, {
+      message: t('Choose at least one project.'),
     }),
-    scopes: z
-      .array(z.string())
-      .min(1, t('Give the service account at least one permission.')),
-  });
-}
+  /**
+   * Empty means all environments
+   */
+  environment: z.string(),
+  serviceAccountProjects: z.object({
+    allProjects: z.boolean(),
+    projectIds: z.array(z.string()),
+  }),
+  scopes: z
+    .array(z.string())
+    .min(1, t('Give the service account at least one permission.')),
+});
 
 const ENVIRONMENTS = ['production', 'staging', 'development'];
 
@@ -97,7 +90,6 @@ export function AgenticTriageForm(
     .filter(project => project.hasAccess)
     .sort((a, b) => a.slug.localeCompare(b.slug))[0];
 
-  const schema = getSchema({allowNoProjects: !hasAllProjectsAccess && !firstProject});
   // All projects when the user can grant them, otherwise their first project
   const defaultProjects: ProjectSelection =
     props.mode === 'edit'
@@ -121,7 +113,7 @@ export function AgenticTriageForm(
     configId: props.mode === 'edit' ? props.config.id : '',
   });
   const mutationError = props.mode === 'create' ? createConfig.error : updateConfig.error;
-  const saveConfig = async (value: z.infer<ReturnType<typeof getSchema>>) => {
+  const saveConfig = async (value: z.infer<typeof schema>) => {
     const fields = {
       projectIds: value.projects.allProjects
         ? [ALL_ACCESS_PROJECTS]

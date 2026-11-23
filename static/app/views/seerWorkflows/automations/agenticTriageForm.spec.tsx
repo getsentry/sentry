@@ -176,6 +176,27 @@ describe('AgenticTriageForm', () => {
       expect(create).not.toHaveBeenCalled();
     });
 
+    it('blocks users without any projects from creating an automation', async () => {
+      const create = MockApiClient.addMockResponse({
+        url: configsUrl,
+        method: 'POST',
+        body: config,
+      });
+      ProjectsStore.loadInitialData([]);
+      render(<AgenticTriageForm mode="create" />, {organization: memberOrganization});
+
+      // No all-project access and nothing to add, so the scope can't be filled
+      expect(getAllProjectsSwitches()[0]).toBeDisabled();
+      expect(
+        screen.getByText('You do not have access to any projects.')
+      ).toBeInTheDocument();
+
+      await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
+
+      expect(await screen.findByText('Choose at least one project.')).toBeInTheDocument();
+      expect(create).not.toHaveBeenCalled();
+    });
+
     it('shows the API error when creating fails', async () => {
       MockApiClient.addMockResponse({
         url: configsUrl,
