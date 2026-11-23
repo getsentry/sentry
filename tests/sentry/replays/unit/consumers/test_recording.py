@@ -10,7 +10,6 @@ _InternalServerError = InternalServerError
 _BadGateway = BadGateway
 
 from sentry import options
-from sentry.models.project import Project
 from sentry.replays.consumers.recording import (
     DropSilently,
     InvalidRecording,
@@ -195,15 +194,12 @@ def test_parse_headers_compressed_header() -> None:
     assert exc_info.value.reason == "invalid_headers_json"
 
 
-@django_db_all
-def test_process_message_compressed_header_reports_context(default_project: Project) -> None:
+def test_process_message_compressed_header_reports_context() -> None:
     """A dropped invalid recording is counted and logged with what we know about its sender."""
     replay_event = {
         "platform": "javascript",
         "environment": "production",
-        "release": "1.0.0",
         "replay_type": "buffer",
-        "segment_id": 3,
         "sdk": {"name": "sentry.javascript.react", "version": "10.0.0"},
         "contexts": {
             "browser": {"name": "Firefox", "version": "140.0"},
@@ -212,8 +208,8 @@ def test_process_message_compressed_header_reports_context(default_project: Proj
     }
     message = {
         "type": "replay_recording_not_chunked",
-        "org_id": default_project.organization_id,
-        "project_id": default_project.id,
+        "org_id": 3,
+        "project_id": 4,
         "replay_id": "1",
         "received": 2,
         "retention_days": 30,
@@ -238,21 +234,17 @@ def test_process_message_compressed_header_reports_context(default_project: Proj
     sdk_logger.warning.assert_called_once()
     assert sdk_logger.warning.call_args.kwargs["attributes"] == {
         "reason": "invalid_headers_json",
-        "org_id": default_project.organization_id,
-        "project_id": default_project.id,
+        "org_id": 3,
+        "project_id": 4,
         "key_id": 1,
         "replay_id": "1",
         "payload_size": 19,
         "payload_prefix": "789ced5d8fe33876",
-        "project_slug": default_project.slug,
-        "org_slug": default_project.organization.slug,
         "sdk_name": "sentry.javascript.react",
         "sdk_version": "10.0.0",
         "platform": "javascript",
         "environment": "production",
-        "release": "1.0.0",
         "replay_type": "buffer",
-        "replay_event_segment_id": 3,
         "browser": {"name": "Firefox", "version": "140.0"},
         "os": {"name": "Windows", "version": ">=10"},
     }
@@ -390,7 +382,6 @@ def test_parse_recording_event_with_replay_event() -> None:
     assert result == expected
 
 
-@django_db_all
 def test_parse_recording_event_missing_payload() -> None:
     """Test that missing payload cause DropSilently"""
     message = {
@@ -424,7 +415,6 @@ def test_parse_recording_event_invalid_compression() -> None:
         parse_recording_event(msgpack.packb(message))
 
 
-@django_db_all
 def test_parse_recording_event_invalid_headers() -> None:
     """Test that invalid headers in payload causes DropSilently"""
     message = {
@@ -622,7 +612,6 @@ def test_process_message_invalid_recording_json() -> None:
     assert process_message(kafka_message) is None
 
 
-@django_db_all
 def test_process_message_invalid_headers() -> None:
     """Test "process_message" function with invalid headers."""
     message = {
@@ -643,7 +632,6 @@ def test_process_message_invalid_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-@django_db_all
 def test_process_message_malformed_headers() -> None:
     """Test "process_message" function with malformed headers."""
     message = {
@@ -664,7 +652,6 @@ def test_process_message_malformed_headers() -> None:
     assert process_message(kafka_message) is None
 
 
-@django_db_all
 def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     """Test "process_message" function with malformed unicode codepoint in headers."""
     message = {
@@ -685,7 +672,6 @@ def test_process_message_malformed_headers_invalid_unicode_codepoint() -> None:
     assert process_message(kafka_message) is None
 
 
-@django_db_all
 def test_process_message_no_headers() -> None:
     """Test "process_message" function with no headers."""
     message = {

@@ -9,8 +9,6 @@ from sentry_sdk import set_tag, traces
 
 from sentry import options
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.models.organization import Organization
-from sentry.models.project import Project
 from sentry.replays.usecases.ingest import (
     DropEvent,
     Event,
@@ -201,19 +199,9 @@ def _report_invalid_recording(recording: ReplayRecording, reason: str) -> None:
             # Enough to tell what sits in the header slot, such as a zlib stream (78 9c),
             # without logging recording contents.
             "payload_prefix": payload[:8].hex(),
-            **_project_attributes(recording["project_id"]),
             **_replay_event_attributes(cast(bytes | None, recording.get("replay_event"))),
         },
     )
-
-
-def _project_attributes(project_id: int) -> dict[str, Any]:
-    try:
-        project = Project.objects.get_from_cache(id=project_id)
-        organization = Organization.objects.get_from_cache(id=project.organization_id)
-    except (Project.DoesNotExist, Organization.DoesNotExist):
-        return {}
-    return {"project_slug": project.slug, "org_slug": organization.slug}
 
 
 def _replay_event_attributes(replay_event_json: bytes | None) -> dict[str, Any]:
@@ -233,9 +221,7 @@ def _replay_event_attributes(replay_event_json: bytes | None) -> dict[str, Any]:
         "sdk_version": sdk.get("version"),
         "platform": replay_event.get("platform"),
         "environment": replay_event.get("environment"),
-        "release": replay_event.get("release"),
         "replay_type": replay_event.get("replay_type"),
-        "replay_event_segment_id": replay_event.get("segment_id"),
         "browser": contexts.get("browser"),
         "os": contexts.get("os"),
     }
