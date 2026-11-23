@@ -306,6 +306,53 @@ class TeamProjectsCreateTest(APITestCase, TestCase):
 
         assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
 
+    @with_feature({"organizations:team-roles": False})
+    @override_options({"api.permission-scope-audit.enabled": True})
+    @patch("sentry.auth.scope_declaration.capture_message")
+    def test_disabled_member_creation_checks_declared_scopes(
+        self, capture_message: MagicMock
+    ) -> None:
+        organization = self.create_organization(flags=256)
+        team = self.create_team(organization=organization)
+        user = self.create_user(is_superuser=False)
+        self.create_member(
+            user=user,
+            organization=organization,
+            role="member",
+            team_roles=[(team, "admin")],
+        )
+        self.login_as(user=user)
+
+        with patch("sentry.auth.scope_declaration.logger.warning") as warning:
+            self.get_success_response(
+                organization.slug,
+                team.slug,
+                **self.data,
+                status_code=201,
+            )
+
+        reported_scopes = {
+            call.kwargs["extra"]["scope"]
+            for call in warning.call_args_list
+            if call.kwargs["extra"]["endpoint"].endswith("TeamProjectsEndpoint")
+        }
+        assert "org:write" not in reported_scopes
+        assert "team:admin" not in reported_scopes
+
+    @with_feature({"organizations:team-roles": False})
+    def test_token_with_only_org_write_cannot_create_project(self) -> None:
+        user = self.create_user(is_superuser=False)
+        self.create_member(user=user, organization=self.organization, role="owner")
+        token = self.create_user_auth_token(user=user, scope_list=["org:write"])
+        self.client.credentials(HTTP_AUTHORIZATION=f"Bearer {token.plaintext_token}")
+
+        self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            **self.data,
+            status_code=403,
+        )
+
     @with_feature("organizations:team-roles")
     def test_disable_member_project_creation(self) -> None:
         test_org = self.create_organization(flags=256)

@@ -30,6 +30,7 @@ from sentry.apidocs.response_types import (
 )
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.principal import is_owned_by_acting_user, require_user
+from sentry.auth.scope_declaration import update_permission_scope_declaration
 from sentry.constants import PROJECT_SLUG_MAX_LENGTH, RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.issue_detection.detectors.disable_detectors import set_default_disabled_detectors
 from sentry.models.organization import Organization
@@ -134,6 +135,23 @@ class TeamProjectPermission(TeamPermission):
         "PUT": ["project:write", "project:admin"],
         "DELETE": ["project:admin"],
     }
+    # Scopes the handlers check themselves after admission (e.g. POST bypasses
+    # disable_member_project_creation with org:write or team:admin). These are
+    # declared to the scope audit only; they are deliberately NOT in scope_map,
+    # which is an any-of admission list and would broaden endpoint access.
+    handler_checked_scopes: dict[str, list[str]] = {
+        "POST": ["org:write", "team:admin"],
+    }
+
+    @classmethod
+    def declare_handler_checked_scopes(cls) -> None:
+        update_permission_scope_declaration(
+            cls,
+            {
+                method: [*scopes, *cls.handler_checked_scopes.get(method, [])]
+                for method, scopes in cls.scope_map.items()
+            },
+        )
 
     def has_permission(self, request: Request, view: APIView) -> bool:
         # Service accounts can't create projects for now, whatever their team access.
@@ -294,6 +312,7 @@ class TeamProjectsEndpoint(TeamEndpoint):
         if not serializer.is_valid():
             return Response(as_validation_errors(serializer), status=status.HTTP_400_BAD_REQUEST)
 
+        TeamProjectPermission.declare_handler_checked_scopes()
         if team.organization.flags.disable_member_project_creation and not (
             request.access.has_scope("org:write")
             or request.access.has_team_scope(team, "team:admin")
