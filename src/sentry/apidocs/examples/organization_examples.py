@@ -303,6 +303,7 @@ class OrganizationExamples:
                 "defaultCodingAgent": "seer",
                 "defaultCodingAgentIntegrationId": None,
                 "defaultAutomatedRunStoppingPoint": "code_changes",
+                "agenticTriageCohort": None,
                 "issueAlertsThreadFlag": True,
                 "metricAlertsThreadFlag": True,
                 "trustedRelays": [],
