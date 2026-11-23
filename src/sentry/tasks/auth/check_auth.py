@@ -10,6 +10,7 @@ from sentry_sdk import capture_exception
 
 from sentry.auth import find_providers_requiring_refresh
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.hybridcloud.models.outbox import outbox_context
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcOrganizationMember, organization_service
@@ -155,4 +156,5 @@ def check_single_auth_identity(auth_identity_id: int) -> None:
             organization_service.update_membership_flags(organization_member=om)
 
     now = timezone.now()
-    auth_identity.update(last_verified=now, last_synced=now)
+    with outbox_context(flush=False):
+        auth_identity.update(last_verified=now, last_synced=now)
