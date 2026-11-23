@@ -176,6 +176,13 @@ def _materialize_notebook_context(
                 item["result"] = _compact_query_context(
                     visible_execution.result, max_text_chars=max_text_chars
                 )
+        elif context_block.kind == NotebookBlockKind.EMBED:
+            # Reserve room for both the finding and the query within this block's context budget.
+            finding = (context_block.embed_summary or "").partition("\n")[0]
+            item["content"] = finding[: max_text_chars // 2]
+            item["source"] = (context_block.embed_source or "")[
+                : max_text_chars - len(item["content"])
+            ]
         else:
             item["content"] = context_block.content[:max_text_chars]
 
@@ -307,6 +314,8 @@ def create_block_execution(
     request_id: UUID | None = None,
 ) -> tuple[NotebookBlockExecution, bool]:
     """Create a new immutable execution, or return the same explicit request retry."""
+    if block.kind == NotebookBlockKind.EMBED:
+        raise NotebookValidationError({"detail": "A saved embed cannot be executed."})
     if request_id is not None:
         requested_execution = NotebookBlockExecution.objects.get_or_none(request_id=request_id)
         if requested_execution is not None:
@@ -327,6 +336,8 @@ def create_block_execution(
         locked.notebook = locked_notebook
         if locked.version != expected_block_version:
             raise NotebookConflictError("Block has changed.")
+        if locked.kind == NotebookBlockKind.EMBED:
+            raise NotebookValidationError({"detail": "A saved embed cannot be executed."})
         if locked.deleted_at is not None:
             raise NotebookValidationError({"detail": "The block has been deleted."})
         if locked.notebook.status != NotebookStatus.ACTIVE:

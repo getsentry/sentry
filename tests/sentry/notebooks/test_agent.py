@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 from django.utils import timezone
 
+from sentry.api.serializers import serialize
 from sentry.notebooks.agent import (
     InvestigationAgentCompletionHook,
     _maybe_start_title_generation,
@@ -16,11 +17,13 @@ from sentry.notebooks.agent import (
     synchronize_title,
     title_generation_preview,
 )
+from sentry.notebooks.endpoints.serializers.notebook import NotebookDetailsSerializer
 from sentry.notebooks.models import NotebookBlockExecutionStatus
 from sentry.notebooks.services.notebooks import (
     DEFAULT_NOTEBOOK_TITLE,
     default_notebook_title,
 )
+from sentry.notebooks.services.workflow import content_revision
 from sentry.notebooks.telemetry import (
     record_execution_completed,
     record_notebook_completed,
@@ -138,6 +141,7 @@ class NotebookAgentTest(TestCase):
         self.block.save(update_fields=["current_execution"])
 
     def test_completed_query_keeps_result_and_source_projects(self) -> None:
+        before = content_revision(self.notebook)
         run_state = state(
             blocks=[
                 MemoryBlock(
@@ -204,6 +208,11 @@ class NotebookAgentTest(TestCase):
         assert "stats_period" not in params
         assert list(self.execution.data_projects.all()) == [self.project]
         assert self.block.result_execution == self.execution
+        revision = serialize(self.notebook, self.user, NotebookDetailsSerializer())[
+            "contentRevision"
+        ]
+        assert revision == content_revision(self.notebook)
+        assert revision != before
 
     def test_completed_text_keeps_snapshotted_context_projects(self) -> None:
         self.block.kind = "text"

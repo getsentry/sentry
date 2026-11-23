@@ -13,7 +13,10 @@ from sentry.apidocs import constants
 from sentry.apidocs.examples.notebook_examples import NotebookExamples
 from sentry.apidocs.parameters import GlobalParams, NotebookParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
+from sentry.auth.access import ServiceAccountAccess
+from sentry.investigations.services.workflow_report import notebook_report
 from sentry.models.organization import Organization
+from sentry.notebooks.access import service_account_reaches
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebookEndpoint,
     organization_project_ids,
@@ -75,6 +78,13 @@ class OrganizationNotebookDetailsEndpoint(OrganizationNotebookEndpoint):
             request.user,
             NotebookDetailsSerializer(access=request.access),
         )
+        # An in-flight scan can discover evidence outside the initial project selection.
+        if notebook.workflow_project_ids is not None and (
+            not isinstance(request.access, ServiceAccountAccess)
+            or service_account_reaches(request.access, [])
+        ):
+            if report := notebook_report(notebook):
+                body["workflowReport"] = report
         return Response(body)
 
     @extend_schema(

@@ -3,16 +3,20 @@ from __future__ import annotations
 from datetime import timedelta
 from typing import Any
 from unittest import mock
+from uuid import UUID, uuid5
 
 from django.urls import reverse
 from django.utils import timezone
+from rest_framework.response import Response
 
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.utils.types import DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
 from sentry.investigations.models import InvestigationOrchestrationRun
+from sentry.investigations.services.workflow_runtime import create_run
 from sentry.models.groupopenperiod import GroupOpenPeriod
-from sentry.notebooks.models import Notebook, NotebookSourceType
+from sentry.notebooks.models import Notebook, NotebookSourceType, NotebookWorkflowRun
+from sentry.notebooks.services.workflow import open_workflow_notebook
 from sentry.seer.anomaly_detection.types import (
     AnomalyDetectionSeasonality,
     AnomalyDetectionSensitivity,
@@ -180,6 +184,110 @@ class OrganizationInvestigationCandidatesTest(APITestCase):
                 }
             ]
         }
+
+    def test_v2_uses_the_legacy_monitor_snapshot_and_reopens_its_own_notebook(self) -> None:
+        group, period = self.create_metric_open_period()
+        end = timezone.now() - timedelta(minutes=1)
+        period.update(date_started=end - timedelta(hours=1), date_ended=end)
+        payload = {
+            "source": {
+                "type": "metric_open_period",
+                "ref": {"groupId": str(group.id), "openPeriodId": str(period.id)},
+            }
+        }
+        legacy = self.client.post(self.start_url, payload, format="json")
+        assert legacy.status_code == 201
+        source = InvestigationOrchestrationRun.objects.get(
+            investigation_id=legacy.data["id"]
+        ).source
+        url = self.start_url + "?version=2"
+        assert self.client.post(url, payload, format="json").status_code == 404
+
+        def accept(method, path, *, operation, data):
+            assert (method, path, operation) == ("POST", "/runs", "runs")
+            assert data["workflow"] == "breached_metrics"
+            notebook_id = data["input"]["notebookId"]
+            assert data["input"] == {**source, "notebookId": notebook_id}
+            run_id = str(uuid5(UUID(data["requestId"]), str(self.organization.id)))
+            create_run(
+                self.organization,
+                {
+                    "id": run_id,
+                    "request_id": data["requestId"],
+                    "workflow_id": run_id,
+                    "organization_id": self.organization.id,
+                    "max_attempts": 1,
+                    "execution_identity": {
+                        "actor_type": "user",
+                        "actor_id": self.user.id,
+                        "organization_id": self.organization.id,
+                    },
+                    "input": data["input"],
+                    "status": "running",
+                },
+                {"name": "breached_metrics", "notebook": True},
+                [],
+                {"notebookId": notebook_id, "projectIds": [self.project.id]},
+            )
+            return Response({"id": run_id, "notebook": True})
+
+        with (
+            self.feature("organizations:investigations-v2"),
+            mock.patch(
+                "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request",
+                side_effect=accept,
+            ) as start,
+        ):
+            beta = self.client.post(url, payload, format="json")
+            assert beta.status_code == 201, beta.data
+            assert beta.data["id"] != legacy.data["id"]
+            assert beta.data["source"]["snapshot"] == legacy.data["source"]["snapshot"]
+            notebook = Notebook.objects.get(id=beta.data["id"])
+            related_project = self.create_project(organization=self.organization)
+            open_workflow_notebook(
+                self.organization,
+                NotebookWorkflowRun.objects.get(notebook=notebook).run_id,
+                destination=notebook,
+                creator={
+                    "created_by_id": self.user.id,
+                    "created_by_service_account_id": None,
+                    "created_by_org_auth_token_id": None,
+                },
+                title=notebook.title,
+                project_ids=[self.project.id, related_project.id],
+            )
+            second = self.client.post(url, payload, format="json")
+            assert second.status_code == 200
+            assert second.data["id"] == beta.data["id"]
+            start.assert_called_once()
+            detail = self.client.get(
+                f"/api/0/organizations/{self.organization.slug}/notebooks/{beta.data['id']}/"
+            )
+            assert detail.data["workflowReport"]["active"]
+            assert detail.data["orchestration"] is None
+
+    @with_feature("organizations:investigations-v2")
+    def test_retry_keeps_the_prepared_notebook_and_request_id(self) -> None:
+        group, period = self.create_metric_open_period()
+        payload = {
+            "source": {
+                "type": "metric_open_period",
+                "ref": {"groupId": str(group.id), "openPeriodId": str(period.id)},
+            }
+        }
+        url = self.start_url + "?version=2"
+        with mock.patch(
+            "sentry.investigations.endpoints.organization_investigation_start.forward_workflow_request",
+            side_effect=[Response(status=502), Response(status=202)],
+        ) as start:
+            assert self.client.post(url, payload, format="json").status_code == 502
+            # An accepted response without a persisted run cannot open a live notebook.
+            retry = self.client.post(url, payload, format="json")
+            assert retry.status_code == 502
+            assert retry.data["detail"] == "The workflow did not open its notebook."
+        first, second = (call.kwargs["data"] for call in start.call_args_list)
+        assert first == second
+        assert Notebook.objects.filter(organization=self.organization).count() == 1
 
     def test_metric_launch_rejects_an_inaccessible_extra_project(self) -> None:
         group, open_period = self.create_metric_open_period()

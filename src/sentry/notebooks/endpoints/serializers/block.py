@@ -44,11 +44,19 @@ class NotebookBlockSerializerResponse(TypedDict):
 
     id: Annotated[str, ApiDescription("The block ID")]
     position: Annotated[int, ApiDescription("The block's position in the notebook, starting at 0")]
-    kind: Annotated[str, ApiDescription("text for Markdown, or query for a data query")]
+    kind: Annotated[
+        str,
+        ApiDescription(
+            "text for Markdown, query for a data query, or embed for a Code Mode widget"
+        ),
+    ]
     title: Annotated[str, ApiDescription("The block title. May be empty")]
     content: Annotated[
         str, ApiDescription("The block's content: Markdown for text, the query for query")
     ]
+    embed: Annotated[JsonValue, ApiDescription("The saved Code Mode widget name and body")]
+    embedSource: Annotated[str | None, ApiDescription("The executed query or source reference")]
+    embedSummary: Annotated[str | None, ApiDescription("The finding and source for this widget")]
     generationPrompt: Annotated[str, ApiDescription("Instructions used when running the block")]
     generatedContent: Annotated[
         str, ApiDescription("The latest generated content, before anyone edited it")
@@ -143,12 +151,21 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
                 else execution.status
             )
 
+        producer_key = obj.producer_key
+        if producer_key and producer_key.startswith("workflow:"):
+            producer_key = producer_key.removeprefix("workflow:")
+        elif producer_key and attrs["source_type"] is not None:
+            producer_key = attrs["source_type"].caller_block_key(producer_key)
+
         return {
             "id": str(obj.id),
             "position": obj.position,
             "kind": obj.kind,
             "title": obj.title,
             "content": obj.content,
+            "embed": obj.embed,
+            "embedSource": obj.embed_source,
+            "embedSummary": obj.embed_summary,
             "generationPrompt": obj.prompt,
             "generatedContent": obj.generated_content,
             "output": output,
@@ -176,10 +193,6 @@ class NotebookBlockSerializer(Serializer[NotebookBlockSerializerResponse]):
             "lastEditedBy": (
                 str(obj.last_edited_by_id) if obj.last_edited_by_id is not None else None
             ),
-            "producerKey": (
-                attrs["source_type"].caller_block_key(obj.producer_key)
-                if attrs["source_type"] is not None and obj.producer_key is not None
-                else obj.producer_key
-            ),
+            "producerKey": producer_key,
             "producerRevision": obj.producer_revision,
         }

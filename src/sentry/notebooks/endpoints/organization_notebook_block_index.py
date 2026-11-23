@@ -94,7 +94,11 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
         Append a text or query block to an active investigation, using notebookVersion for
         concurrency. A producer sends key and revision instead to write its text block: the
         same key updates the block, overwriting user edits and bringing back a deleted block,
-        and a block with a newer revision returns 409. Returns 201 with the new block, or 200
+        and a block with a newer revision returns 409. A bound workflow sends workflowRunId,
+        its registered writerRunId, a key, and consecutive revisions starting at 1. It can write text or a block widget
+        with its original query or evidence reference. Replaying an identical workflow write
+        returns the saved block. Changing a removed workflow block requires a new key.
+        Returns 201 with the new block, or 200
         when a producer's write updates one; fetch investigation details for the updated
         notebook version. Requires a user or service account; key and revision require a
         service account or Seer agent token. Requires the
@@ -105,6 +109,7 @@ class OrganizationNotebookBlockIndexEndpoint(OrganizationNotebookEndpoint):
             data=request.data,
             context={
                 "notebook": notebook,
+                "request": request,
                 "user_id": actor_id,
                 "producer_writer": is_service_account_auth(request.auth)
                 or is_agent_auth(request.auth),

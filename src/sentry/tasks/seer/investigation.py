@@ -22,6 +22,7 @@ from sentry.investigations.models import (
     InvestigationOrchestrationRerun,
     InvestigationOrchestrationRun,
     InvestigationOrchestrationStatus,
+    WorkflowRun,
 )
 from sentry.investigations.seer_client import (
     CommandRejectionCode,
@@ -630,3 +631,61 @@ def mark_investigation_telemetry_connected(
         applied_by=user_id,
         details=ConnectTelemetryAppliedDetails(provider=provider),
     )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.recover_workflow_nodes",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def recover_workflow_nodes() -> None:
+    """Redeliver missed dispatches independently of the workers and connected browsers."""
+    import orjson
+    from urllib3.exceptions import HTTPError
+
+    from sentry.investigations.services.workflow_runtime import reserve_due_nodes
+    from sentry.seer.signed_seer_api import (
+        make_signed_seer_api_request,
+        seer_autofix_default_connection_pool,
+    )
+
+    for org, nodes in reserve_due_nodes().items():
+        with viewer_context_scope(
+            ViewerContext(actor=Actor(type=ActorType.SYSTEM), organization_id=org)
+        ):
+            try:
+                response = make_signed_seer_api_request(
+                    seer_autofix_default_connection_pool,
+                    "/v1/automation/investigation-workflows/recover",
+                    body=orjson.dumps({"nodes": nodes}),
+                    timeout=5,
+                    retries=False,
+                )
+            except HTTPError:
+                logger.exception(
+                    "workflow.node_recovery_unavailable", extra={"organization_id": org}
+                )
+            else:
+                if response.status >= 400:
+                    logger.error(
+                        "workflow.node_recovery_rejected",
+                        extra={"organization_id": org, "status": response.status},
+                    )
+
+
+@instrumented_task(
+    name="sentry.tasks.seer.investigation.expire_workflow_runs",
+    namespace=seer_tasks,
+    processing_deadline_duration=60,
+)
+def expire_workflow_runs() -> None:
+    """Expire run inputs and cascading node state 91 days after the run was created."""
+    cutoff = timezone.now() - timedelta(days=91)
+    with transaction.atomic(using=router.db_for_write(WorkflowRun)):
+        ids = list(
+            WorkflowRun.objects.select_for_update(skip_locked=True)
+            .filter(date_added__lt=cutoff)
+            .order_by("date_added", "id")
+            .values_list("id", flat=True)[:1000]
+        )
+        WorkflowRun.objects.filter(pk__in=ids).delete()

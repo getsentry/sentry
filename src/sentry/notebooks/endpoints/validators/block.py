@@ -25,6 +25,8 @@ from sentry.notebooks.services.producer_writes import (
     UNSET,
     write_api_producer_block,
 )
+from sentry.notebooks.services.workflow import validate_embed, write_workflow_block
+from sentry.seer.agent.embed_widgets import get_embed_widgets
 
 BLOCK_UPDATE_FIELDS = frozenset({"title", "content", "generation_prompt", "config", "display"})
 CHART_DISPLAY_TYPES = frozenset({"line", "bar", "area"})
@@ -154,6 +156,26 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
         required=False,
         help_text="Current notebook version from the latest detail response. Stale versions return 409. Send this, or key and revision.",
     )
+    workflow_run_id = serializers.UUIDField(
+        required=False, help_text="Workflow bound to this notebook."
+    )
+    writer_run_id = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Registered Seer writer attempt, required for workflow writes.",
+    )
+    block_version = serializers.IntegerField(
+        min_value=1,
+        required=False,
+        help_text="Saved block version before changing workflow content.",
+    )
+    embed = serializers.JSONField(required=False, help_text="A block widget's name and body.")
+    embed_source = serializers.CharField(
+        required=False,
+        max_length=8192,
+        trim_whitespace=False,
+        help_text="Original query or source reference for the widget.",
+    )
     key = serializers.CharField(
         max_length=128,
         required=False,
@@ -173,7 +195,7 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     )
     kind = serializers.ChoiceField(
         choices=NotebookBlockKind.choices,
-        help_text="Block kind: text for Markdown or query for an agent-generated data query. A producer's block must be text.",
+        help_text="Use text for Markdown, query for an executable query, or embed for a widget from a bound workflow.",
     )
     title = serializers.CharField(
         max_length=255, required=False, allow_blank=True, help_text="Block title. May be empty."
@@ -197,6 +219,48 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     )
 
     def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if "workflow_run_id" in attrs:
+            if not self.context["producer_writer"]:
+                raise PermissionDenied
+            required = {"workflow_run_id", "writer_run_id", "key", "revision", "kind"}
+            kind = attrs["kind"]
+            fields = required | (
+                {"embed", "embed_source"} if kind == NotebookBlockKind.EMBED else {"content"}
+            )
+            if (
+                kind not in {NotebookBlockKind.TEXT, NotebookBlockKind.EMBED}
+                or set(attrs) - {"block_version"} != fields
+            ):
+                raise serializers.ValidationError(
+                    {
+                        "detail": "Send writerRunId, key, revision and either text content or an embed and source."
+                    }
+                )
+            if (
+                len("workflow:" + attrs["key"]) > 128
+                or (
+                    kind == NotebookBlockKind.TEXT
+                    and not 0 < len(attrs["content"]) <= MAX_MARKDOWN_CHARS
+                )
+                or (kind == NotebookBlockKind.EMBED and not attrs["embed_source"].strip())
+            ):
+                raise serializers.ValidationError(
+                    {"detail": "Supply a valid key and nonempty text or widget source."}
+                )
+            if kind == NotebookBlockKind.EMBED:
+                validate_embed(
+                    attrs["embed"],
+                    get_embed_widgets(
+                        self.context["notebook"].organization, self.context["request"].user
+                    ),
+                )
+            return attrs
+        if {"embed", "embed_source", "block_version", "writer_run_id"}.intersection(attrs) or attrs[
+            "kind"
+        ] == NotebookBlockKind.EMBED:
+            raise serializers.ValidationError(
+                {"workflowRunId": "Open a workflow notebook before writing embeds."}
+            )
         producer_fields = {"key", "revision", "position"}.intersection(attrs)
         if "notebook_version" in attrs:
             if producer_fields:
@@ -252,6 +316,8 @@ class BlockCreateValidator(NotebookVersionValidator[tuple[NotebookBlock, bool]])
     def create(self, validated_data: dict[str, Any]) -> tuple[NotebookBlock, bool]:
         notebook: Notebook = self.context["notebook"]
         values = dict(validated_data)
+        if "workflow_run_id" in values:
+            return write_workflow_block(notebook, user_id=self.context["user_id"], **values)
         if "notebook_version" not in values:
             return write_api_producer_block(
                 notebook,
@@ -320,10 +386,25 @@ class BlockUpdateValidator(NotebookVersionValidator):
 
 
 class BlockDeleteValidator(NotebookVersionValidator):
+    workflow_run_id = serializers.UUIDField(
+        required=False, help_text="Parent workflow for a writer removal."
+    )
+    writer_run_id = serializers.IntegerField(
+        required=False,
+        min_value=1,
+        help_text="Registered Seer writer attempt.",
+    )
     version = serializers.IntegerField(
         min_value=1,
         help_text="Current block version from the latest block response. Stale versions return 409.",
     )
+
+    def validate(self, attrs: dict[str, Any]) -> dict[str, Any]:
+        if ("workflow_run_id" in attrs) != ("writer_run_id" in attrs):
+            raise serializers.ValidationError(
+                {"detail": "Send workflowRunId and writerRunId together."}
+            )
+        return attrs
 
 
 class BlockExecutionStartValidator(NotebookVersionValidator):

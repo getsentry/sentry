@@ -1,19 +1,25 @@
 from __future__ import annotations
 
+from uuid import NAMESPACE_URL, uuid5
+
 from drf_spectacular.utils import OpenApiExample, extend_schema
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import cell_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.apidocs import constants
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.investigations.endpoints.validators import InvestigationStartValidator
-from sentry.investigations.services import start_investigation
+from sentry.investigations.models import WorkflowRun
+from sentry.investigations.services import breached_metric_orchestration_source, start_investigation
+from sentry.investigations.services.workflow_client import forward_workflow_request
 from sentry.models.organization import Organization
 from sentry.notebooks.endpoints.base import (
     OrganizationNotebooksBaseEndpoint,
@@ -68,6 +74,11 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
         200 when a metric source reuses an active one.
         """
         require_authenticated_user(request)
+        use_workflow = request.query_params.get("version") == "2"
+        if use_workflow and not features.has(
+            "organizations:investigations-v2", organization, actor=request.user
+        ):
+            raise ResourceDoesNotExist
         validator = InvestigationStartValidator(data=request.data)
         if not validator.is_valid():
             return Response(validator.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -81,6 +92,7 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
                 project_ids=values.get("project_ids", []),
                 accessible_project_ids=organization_project_ids(organization),
                 filters=values.get("filters", {}),
+                use_workflow=use_workflow,
             )
         except Exception as error:
             response = service_error(error)
@@ -89,6 +101,34 @@ class OrganizationInvestigationStartEndpoint(OrganizationNotebooksBaseEndpoint):
             raise
         if created:
             record_notebook_started(investigation)
+        if use_workflow:
+            # The notebook owns the launch identity and snapshot, even when two viewers click.
+            request_id = uuid5(NAMESPACE_URL, f"sentry:metric-investigation-v2:{investigation.id}")
+            run = WorkflowRun.objects.filter(
+                organization=organization,
+                request_id=request_id,
+                checkpoint__notebook_id=investigation.id,
+            )
+            if not run.exists():
+                accepted = forward_workflow_request(
+                    "POST",
+                    "/runs",
+                    operation="runs",
+                    data={
+                        "workflow": "breached_metrics",
+                        "requestId": str(request_id),
+                        "input": {
+                            **breached_metric_orchestration_source(investigation.source),
+                            "notebookId": str(investigation.id),
+                        },
+                    },
+                )
+                if not run.exists():
+                    if accepted.status_code >= 400:
+                        return accepted
+                    return Response(
+                        {"detail": "The workflow did not open its notebook."}, status=502
+                    )
         return Response(
             serialize(
                 investigation,

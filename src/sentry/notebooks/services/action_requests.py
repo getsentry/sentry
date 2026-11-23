@@ -16,6 +16,7 @@ from sentry.notebooks.models import (
     NotebookActionRequest,
     NotebookActionRequestAnchorType,
     NotebookActionRequestState,
+    NotebookWorkflowRun,
 )
 from sentry.notebooks.services.action_kinds import get_action_kind, shared_cannot_apply_reason
 from sentry.notebooks.services.action_kinds.base import (
@@ -84,7 +85,7 @@ def supersede_action_requests_before(notebook: Notebook, report_revision: int) -
     """
 
     older = NotebookActionRequest.objects.filter(
-        notebook=notebook, producer_revision__lt=report_revision
+        notebook=notebook, workflow_run__isnull=True, producer_revision__lt=report_revision
     )
     _drop_stale(older)
     return _supersede(
@@ -99,9 +100,9 @@ def _replace_primary(notebook: Notebook, row: NotebookActionRequest) -> None:
     an anchor is superseded, and a stale one stops being listed.
     """
 
-    others = NotebookActionRequest.objects.filter(notebook=notebook, primary=True).exclude(
-        id=row.id
-    )
+    others = NotebookActionRequest.objects.filter(
+        notebook=notebook, workflow_run_id=row.workflow_run_id, primary=True
+    ).exclude(id=row.id)
     _drop_stale(others)
     others.filter(anchor_type__isnull=False, state__in=LIVE_STATES).update(
         primary=False, date_updated=timezone.now()
@@ -138,7 +139,9 @@ def upsert_action_request(notebook: Notebook, item: ActionRequestItem) -> Notebo
     return row
 
 
-def _upsert(notebook: Notebook, item: ActionRequestItem) -> tuple[NotebookActionRequest, bool]:
+def _upsert(
+    notebook: Notebook, item: ActionRequestItem, workflow_run: NotebookWorkflowRun | None = None
+) -> tuple[NotebookActionRequest, bool]:
     """Create or update the request with this key, and say whether Seer changed it."""
 
     anchor = item["anchor"]
@@ -152,11 +155,14 @@ def _upsert(notebook: Notebook, item: ActionRequestItem) -> tuple[NotebookAction
         "rationale": item["rationale"],
         "impact": item["impact"],
     }
-    row = NotebookActionRequest.objects.get_or_none(notebook=notebook, key=item["key"])
+    row = NotebookActionRequest.objects.get_or_none(
+        notebook=notebook, workflow_run=workflow_run, key=item["key"]
+    )
     changed = True
     if row is None:
         row = NotebookActionRequest.objects.create(
             notebook=notebook,
+            workflow_run=workflow_run,
             key=item["key"],
             action_kind=action["kind"] if action is not None else None,
             action_payload=action,
@@ -195,6 +201,7 @@ def _upsert(notebook: Notebook, item: ActionRequestItem) -> tuple[NotebookAction
         _drop_stale(
             NotebookActionRequest.objects.filter(
                 notebook=notebook,
+                workflow_run=workflow_run,
                 anchor_type=anchor["type"],
                 anchor_id=anchor["id"],
                 id__lt=row.id,
@@ -219,6 +226,7 @@ def withdraw_action_request(notebook: Notebook, key: str, reason: str) -> bool:
         NotebookActionRequest.objects.filter(
             Q(state=NotebookActionRequestState.SUGGESTED) | STALE,
             notebook=notebook,
+            workflow_run__isnull=True,
             key=key,
         ).update(
             state=NotebookActionRequestState.WITHDRAWN,
@@ -228,15 +236,18 @@ def withdraw_action_request(notebook: Notebook, key: str, reason: str) -> bool:
     )
 
 
-def sync_snapshot_action_requests(notebook: Notebook, items: Sequence[ActionRequestItem]) -> None:
-    """Treat the snapshot as the full list: any live request it leaves out is superseded, and
-    any stale one stops being listed.
-    """
+def sync_snapshot_action_requests(
+    notebook: Notebook,
+    items: Sequence[ActionRequestItem],
+    *,
+    workflow_run: NotebookWorkflowRun | None = None,
+) -> None:
+    """Replace this producer's suggestions. Legacy orchestration owns the unbound rows."""
 
     primaries: list[NotebookActionRequest] = []
     changed: list[NotebookActionRequest] = []
     for item in items:
-        row, row_changed = _upsert(notebook, item)
+        row, row_changed = _upsert(notebook, item, workflow_run)
         if item["primary"]:
             primaries.append(row)
         if row_changed:
@@ -256,7 +267,7 @@ def sync_snapshot_action_requests(notebook: Notebook, items: Sequence[ActionRequ
             ),
         )
     _supersede(
-        NotebookActionRequest.objects.filter(notebook=notebook).exclude(
+        NotebookActionRequest.objects.filter(notebook=notebook, workflow_run=workflow_run).exclude(
             key__in=[item["key"] for item in items]
         )
     )
