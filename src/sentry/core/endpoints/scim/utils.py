@@ -146,11 +146,11 @@ class OrganizationSCIMPermission(OrganizationPermission):
 
 class OrganizationSCIMMemberPermission(OrganizationSCIMPermission):
     scope_map = {
-        "GET": ["member:read", "member:write", "member:admin"],
-        "POST": ["member:write", "member:admin"],
-        "PATCH": ["member:write", "member:admin"],
-        "PUT": ["member:write", "member:admin"],
-        "DELETE": ["member:admin"],
+        "GET": ["member:read", "member:write", "member:admin", "membership:read"],
+        "POST": ["member:write", "member:admin", "membership:write"],
+        "PATCH": ["member:write", "member:admin", "membership:write"],
+        "PUT": ["member:write", "member:admin", "membership:write"],
+        "DELETE": ["member:admin", "membership:admin"],
     }
 
 

@@ -20,3 +20,25 @@ export interface ServiceAccountInput {
   projectIds: number[];
   scopes: string[];
 }
+
+export interface ServiceAccountToken {
+  dateCreated: string;
+  dateExpires: string | null;
+  dateLastUsed: string | null;
+  id: string;
+  name: string;
+  scopes: string[];
+  tokenLastCharacters: string;
+}
+
+/** Only the response that creates a token includes its value. */
+export interface NewServiceAccountToken extends ServiceAccountToken {
+  token: string;
+}
+
+export interface ServiceAccountTokenInput {
+  /** Null makes a token that never expires. */
+  expiresAt: string | null;
+  name: string;
+  scopes: string[];
+}

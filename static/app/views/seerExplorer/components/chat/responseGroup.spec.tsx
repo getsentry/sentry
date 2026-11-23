@@ -344,6 +344,26 @@ describe('ResponseGroup', () => {
     );
   });
 
+  it('ends the timer at the answer when given a later end time', () => {
+    const group = [
+      {...toolUseBlock('t1'), timestamp: '2024-01-01T00:00:00Z'},
+      {...assistantBlock('a1', 'Done'), timestamp: '2024-01-01T00:00:05Z'},
+    ];
+
+    render(
+      <ResponseGroup
+        group={group}
+        blockIndex={1}
+        latestTodos={findLatestTodos(group)}
+        showThinking
+        endedAt="2024-01-01T00:00:10Z"
+      />,
+      {organization}
+    );
+
+    expect(screen.getByText('5.0s')).toBeInTheDocument();
+  });
+
   it('spins inside the box while a tool works', () => {
     const group = [toolUseBlock('t1', {loading: true})];
 

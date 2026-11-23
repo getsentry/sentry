@@ -108,6 +108,7 @@ export function InvestigationCommentFixture(
       ip_address: '127.0.0.1',
     },
     body: 'A comment',
+    mentions: [],
     dateCreated: '2026-01-01T00:00:00Z',
     dateUpdated: '2026-01-01T00:00:00Z',
     ...overrides,
