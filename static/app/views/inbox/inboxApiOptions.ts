@@ -12,7 +12,7 @@ import {getApiUrl} from 'sentry/utils/api/getApiUrl';
 import type {ListItemCheckboxState} from 'sentry/utils/list/useListItemCheckboxState';
 import {fetchMutation} from 'sentry/utils/queryClient';
 
-import type {InboxFilters, InboxItem, InboxSubject} from './types';
+import type {InboxFilters, InboxItem, InboxSubjectRef} from './types';
 
 const INBOX_ITEMS_PER_PAGE = 25;
 
@@ -29,7 +29,7 @@ type InboxItemsUpdate = {
  * or by checkbox selection for bulk actions.
  */
 type InboxItemsTarget =
-  | {subject: InboxSubject}
+  | {subject: InboxSubjectRef}
   | {selection: ListItemCheckboxState['selectedIds']};
 
 type UpdateInboxItemsVariables = InboxItemsTarget & {update: InboxItemsUpdate};
@@ -73,10 +73,7 @@ export function inboxItemsApiOptions(organization: Organization, filters: InboxF
 
 function getTargetQuery(target: InboxItemsTarget) {
   if ('subject' in target) {
-    return {
-      subject_type: [target.subject.subjectType],
-      subject_id: target.subject.subjectId,
-    };
+    return {subject_type: [target.subject.type], subject_id: target.subject.id};
   }
   return target.selection === 'all' ? {} : {id: target.selection};
 }
@@ -84,8 +81,7 @@ function getTargetQuery(target: InboxItemsTarget) {
 function isTargetedItem(item: InboxItem, target: InboxItemsTarget) {
   if ('subject' in target) {
     return (
-      item.subjectType === target.subject.subjectType &&
-      item.subjectId === target.subject.subjectId
+      item.subject.type === target.subject.type && item.subject.id === target.subject.id
     );
   }
   return target.selection === 'all' || target.selection.includes(item.id);

@@ -671,7 +671,7 @@ describe('AutofixRef embed', () => {
 
       expect(
         screen.getByText(
-          "Seer couldn't open a pull request in getsentry/sentry because your organization is out of credits."
+          "Seer couldn't open a pull request in getsentry/sentry because your organization ran out of credits."
         )
       ).toBeInTheDocument();
       expect(screen.queryByText(/This one is on us/)).not.toBeInTheDocument();

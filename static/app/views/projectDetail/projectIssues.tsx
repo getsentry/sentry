@@ -39,7 +39,7 @@ enum IssuesType {
 }
 
 const ISSUE_QUERIES = {
-  [IssuesType.NEW]: 'is:unresolved is:for_review',
+  [IssuesType.NEW]: 'is:new',
   [IssuesType.UNHANDLED]: 'error.unhandled:true is:unresolved',
   [IssuesType.REGRESSED]: 'regressed_in_release:latest',
   [IssuesType.RESOLVED]: 'is:resolved',

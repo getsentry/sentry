@@ -51,15 +51,15 @@ export function Space() {
           as="div"
           width={value}
           height="16px"
-          borderLeft="accent"
-          borderRight="accent"
+          borderLeft="accent.vibrant"
+          borderRight="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Container
             as="div"
             width="100%"
             height="1px"
-            borderTop="accent"
+            borderTop="accent.vibrant"
             style={{boxSizing: 'border-box'}}
           />
         </Flex>
@@ -83,7 +83,7 @@ export function Radius() {
             height: '48px',
             background: theme.tokens.background.transparent.accent.muted,
           }}
-          border="accent"
+          border="accent.vibrant"
           radius={token}
         />
       )}
@@ -174,8 +174,8 @@ export function LineHeight() {
           justify="center"
           as="div"
           height={typeof value === 'number' ? `${value * 16}px` : value}
-          borderTop="accent"
-          borderBottom="accent"
+          borderTop="accent.vibrant"
+          borderBottom="accent.vibrant"
           style={{boxSizing: 'border-box'}}
         >
           <Text size="md" density={token} variant="accent">
@@ -224,7 +224,7 @@ export function ShadowOffset() {
             background: theme.tokens.background.primary,
             boxShadow: value,
           }}
-          border="accent"
+          border="accent.vibrant"
           radius="xs"
         />
       )}
@@ -271,7 +271,7 @@ export function BackgroundColors() {
             height: '48px',
             background: value,
           }}
-          border="muted"
+          border="secondary"
           radius="sm"
         />
       )}

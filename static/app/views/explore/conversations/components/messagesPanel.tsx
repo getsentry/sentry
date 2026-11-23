@@ -1,4 +1,4 @@
-import {Fragment, memo, useCallback, useMemo} from 'react';
+import {memo, useCallback, useMemo} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -192,6 +192,7 @@ function TranscriptMessages({
           return (
             <UserTurn
               key={message.id}
+              nodeId={message.nodeId}
               content={message.content}
               hasXmlTags={hasXmlTags}
             />
@@ -246,7 +247,12 @@ function TranscriptMessages({
 
         if (message.subAgent) {
           return (
-            <MessageRow key={message.id} from="assistant" density="line">
+            <MessageRow
+              key={message.id}
+              from="assistant"
+              density="line"
+              data-node-id={message.nodeId}
+            >
               <SubAgentRow
                 call={message.subAgent}
                 nodeMap={nodeMap}
@@ -299,26 +305,29 @@ const NestedMessageList = styled(Stack)`
 const UserTurn = memo(function UserTurnImpl({
   content,
   hasXmlTags,
+  nodeId,
 }: {
   content: string;
   hasXmlTags: boolean;
+  nodeId: string;
 }) {
-  if (content === NOT_REPORTED) {
-    return (
-      <UserMessageBlock>
-        <MessageText align="left" variant="muted">
-          {content}
-        </MessageText>
-      </UserMessageBlock>
-    );
-  }
-
   return (
-    <UserMessageBlock expand={hasXmlTags}>
-      <MessageText align="left">
-        <AIContentRenderer text={content} inline autoCollapseLimit={10} />
-      </MessageText>
-    </UserMessageBlock>
+    // Search finds the span a transcript block renders by its data-node-id.
+    <Container display="contents" data-node-id={nodeId}>
+      {content === NOT_REPORTED ? (
+        <UserMessageBlock>
+          <MessageText align="left" variant="muted">
+            {content}
+          </MessageText>
+        </UserMessageBlock>
+      ) : (
+        <UserMessageBlock expand={hasXmlTags}>
+          <MessageText align="left">
+            <AIContentRenderer text={content} inline autoCollapseLimit={10} />
+          </MessageText>
+        </UserMessageBlock>
+      )}
+    </Container>
   );
 });
 
@@ -350,7 +359,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   renderMessages,
 }: AssistantTurnProps) {
   const organization = useOrganization();
+  const theme = useTheme();
   const generationNode = nodeMap.get(message.nodeId);
+  // Without a bubble, the turn's first row shows the selection instead.
+  const isRowSelected = isSelected && message.content === '';
+  const selectedRowStyle = isRowSelected
+    ? {outline: `2px solid ${theme.tokens.focus.default}`, outlineOffset: '-2px'}
+    : undefined;
   // Spans often report `gen_ai.cost.total_tokens` as 0 when the API omits cost;
   // treat that as absent so we don't show `<$0.01`, matching the timeline.
   const cost = generationNode
@@ -368,7 +383,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
   };
 
   return (
-    <Fragment>
+    <Container display="contents" data-node-id={message.nodeId}>
       {message.toolCalls && message.toolCalls.length > 0 && (
         <MessageRow from="assistant" density="line">
           <MessageToolCalls
@@ -382,12 +397,19 @@ const AssistantTurn = memo(function AssistantTurnImpl({
       )}
       {message.reasoning && (
         <MessageRow from="assistant" density="line">
-          {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
-           * the turn's cost/duration in the thinking row's own meta column. */}
-          <ReasoningSection
-            reasoning={message.reasoning}
-            meta={message.content === '' && hasMeta ? meta : undefined}
-          />
+          <Container
+            width="100%"
+            radius="xs"
+            data-selected={isRowSelected}
+            style={selectedRowStyle}
+          >
+            {/* A reasoning-only turn (no assistant bubble to hang meta on) surfaces
+             * the turn's cost/duration in the thinking row's own meta column. */}
+            <ReasoningSection
+              reasoning={message.reasoning}
+              meta={message.content === '' && hasMeta ? meta : undefined}
+            />
+          </Container>
         </MessageRow>
       )}
       {message.content === '' ? (
@@ -398,7 +420,13 @@ const AssistantTurn = memo(function AssistantTurnImpl({
         hasMeta &&
         !message.reasoning && (
           <MessageRow from="assistant" density="line">
-            <Flex justify="end" width="100%">
+            <Flex
+              justify="end"
+              width="100%"
+              radius="xs"
+              data-selected={isRowSelected}
+              style={selectedRowStyle}
+            >
               {meta}
             </Flex>
           </MessageRow>
@@ -421,7 +449,7 @@ const AssistantTurn = memo(function AssistantTurnImpl({
           </MessageText>
         </AssistantMessageBlock>
       )}
-    </Fragment>
+    </Container>
   );
 });
 
@@ -457,7 +485,7 @@ const EmbeddingTurn = memo(function EmbeddingTurnImpl({
   const [isOpen, setIsOpen] = useSelectionOpenState(isSelected ? message.nodeId : null);
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <CollapsibleChatRow
         open={isOpen}
         title={
@@ -538,7 +566,7 @@ const EvaluationTurn = memo(function EvaluationTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -584,7 +612,7 @@ const ExtractionTurn = memo(function ExtractionTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}
@@ -624,7 +652,7 @@ const MemoryTurn = memo(function MemoryTurnImpl({
   };
 
   return (
-    <MessageRow from="assistant" density="line">
+    <MessageRow from="assistant" density="line" data-node-id={message.nodeId}>
       <TranscriptSpanRow
         node={node}
         isSelected={isSelected}

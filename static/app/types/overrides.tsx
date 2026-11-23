@@ -67,6 +67,7 @@ type RouteOverrides = {
   'routes:org-settings': RouteObjectOverride;
   'routes:project-settings': RouteObjectOverride;
   'routes:root': RouteObjectOverride;
+  'routes:stats': RouteObjectOverride;
   'routes:subscription-settings': RouteObjectOverride;
 };
 
