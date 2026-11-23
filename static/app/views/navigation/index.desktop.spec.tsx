@@ -2056,6 +2056,42 @@ describe('desktop navigation', () => {
         expect(await screen.findByRole('link', {name: 'Traces'})).toBeInTheDocument();
       });
 
+      it('hides the inbox overlay when hovering an item without a secondary navigation', async () => {
+        render(
+          <PrimaryNavigationContextProvider>
+            <Navigation />
+          </PrimaryNavigationContextProvider>,
+          navigationContext({
+            organization: universalInbox,
+            initialRouterConfig: {location: {pathname: '/organizations/org-slug/inbox/'}},
+          })
+        );
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+
+        await userEvent.hover(screen.getByRole('link', {name: 'Inbox'}));
+        await waitFor(() => {
+          expect(
+            screen.queryByTestId('collapsed-secondary-sidebar')
+          ).not.toBeInTheDocument();
+        });
+
+        // Moving on to an item with a secondary navigation shows it again.
+        await userEvent.hover(screen.getByRole('link', {name: 'Explore'}));
+        await waitFor(() => {
+          expect(screen.getByTestId('collapsed-secondary-sidebar')).toHaveAttribute(
+            'data-visible',
+            'true'
+          );
+        });
+      });
+
       it('previews hovered groups as an overlay on the inbox', async () => {
         const {router} = render(
           <PrimaryNavigationContextProvider>
