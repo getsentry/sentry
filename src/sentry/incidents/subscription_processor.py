@@ -132,20 +132,20 @@ class SubscriptionProcessor:
         count is just ignored
         - `crashed` represents the total sessions or user counts that crashed.
         """
-        aggregation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
+        evaluation_value = get_crash_rate_alert_metrics_aggregation_value_helper(
             subscription_update
         )
-        return aggregation_value
+        return evaluation_value
 
     def get_evaluation_value(
         self, subscription_update: QuerySubscriptionUpdate, comparison_delta: int | None = None
     ) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
-            aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
+            evaluation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
-            aggregation_value = get_comparison_aggregation_value(
+            evaluation_value = get_comparison_aggregation_value(
                 subscription_update=subscription_update,
                 snuba_query=self.subscription.snuba_query,
                 organization_id=self.subscription.project.organization.id,
@@ -154,7 +154,7 @@ class SubscriptionProcessor:
                 alert_rule_id=None,
             )
 
-        return aggregation_value
+        return evaluation_value
 
     def get_comparison_delta(self, detector: Detector) -> int | None:
         detector_cfg: MetricIssueDetectorConfig = detector.config
@@ -164,7 +164,7 @@ class SubscriptionProcessor:
         self,
         detector: Detector,
         subscription_update: QuerySubscriptionUpdate,
-        aggregation_value: float,
+        evaluation_value: float,
     ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
         detector_cfg: MetricIssueDetectorConfig = detector.config
         if detector_cfg["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
@@ -172,7 +172,7 @@ class SubscriptionProcessor:
                 entity=subscription_update.get("entity", ""),
                 subscription_id=subscription_update["subscription_id"],
                 values={
-                    "value": aggregation_value,
+                    "value": evaluation_value,
                     "source_id": str(self.subscription.id),
                     "subscription_id": subscription_update["subscription_id"],
                     "timestamp": self.last_update,
@@ -189,7 +189,7 @@ class SubscriptionProcessor:
             metric_packet = ProcessedSubscriptionUpdate(
                 entity=subscription_update.get("entity", ""),
                 subscription_id=subscription_update["subscription_id"],
-                values={"value": aggregation_value},
+                values={"value": evaluation_value},
                 timestamp=self.last_update,
             )
             metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
@@ -240,10 +240,10 @@ class SubscriptionProcessor:
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
             comparison_delta = self.get_comparison_delta(self.detector)
-            aggregation_value = self.get_evaluation_value(subscription_update, comparison_delta)
+            evaluation_value = self.get_evaluation_value(subscription_update, comparison_delta)
 
             # `get_evaluation_value` already normalizes Snuba values to float | None.
-            if aggregation_value is None or math.isnan(aggregation_value):
+            if evaluation_value is None or math.isnan(evaluation_value):
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
                 # We have an invalid aggregate, but we _did_ process the update, so we store
                 # last_update to reflect that and avoid reprocessing.
@@ -253,7 +253,7 @@ class SubscriptionProcessor:
                 return False
 
             self.process_results_workflow_engine(
-                self.detector, subscription_update, aggregation_value
+                self.detector, subscription_update, evaluation_value
             )
             # Ensure that we have last_update stored for all Detector evaluations.
             store_detector_last_update(

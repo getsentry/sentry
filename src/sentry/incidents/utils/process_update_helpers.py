@@ -60,9 +60,9 @@ def get_crash_rate_alert_metrics_aggregation_value_helper(
             metrics.incr("incidents.alert_rules.ignore_update_count_lower_than_min_threshold")
             return None
 
-    aggregation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
+    evaluation_value: int = round((1 - crash_count / total_session_count) * 100, 3)
 
-    return aggregation_value
+    return evaluation_value
 
 
 def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = False) -> float | None:
@@ -99,12 +99,12 @@ def coerce_aggregation_value(value: object, *, none_defaults_to_zero: bool = Fal
 
 
 def get_aggregation_value_helper(subscription_update: QuerySubscriptionUpdate) -> float | None:
-    aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
+    evaluation_value = list(subscription_update["values"]["data"][0].values())[0]
     # In some cases Snuba can return a None value for an aggregation. This means
     # there were no rows present when we made the query for certain types of aggregations
     # like avg. Defaulting this to 0 for now. It might turn out that we'd prefer to skip
     # the update in the future.
-    return coerce_aggregation_value(aggregation_value, none_defaults_to_zero=True)
+    return coerce_aggregation_value(evaluation_value, none_defaults_to_zero=True)
 
 
 def get_eap_aggregation_value(
@@ -229,11 +229,11 @@ def get_comparison_aggregation_value(
     alert_rule_id: int | None = None,
 ) -> float | None:
     # NOTE (mifu67): we create this helper because we also use it in the new detector processing flow
-    aggregation_value = get_aggregation_value_helper(subscription_update)
-    if aggregation_value is None:
+    evaluation_value = get_aggregation_value_helper(subscription_update)
+    if evaluation_value is None:
         return None
     if comparison_delta is None:
-        return aggregation_value
+        return evaluation_value
 
     # For comparison alerts run a query over the comparison period and use it to calculate the
     # % change.
@@ -273,7 +273,7 @@ def get_comparison_aggregation_value(
         metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
         return None
 
-    return (aggregation_value / comparison_aggregate) * 100
+    return (evaluation_value / comparison_aggregate) * 100
 
 
 def calculate_event_date_from_update_date(update_date: datetime, time_window: int) -> datetime:
