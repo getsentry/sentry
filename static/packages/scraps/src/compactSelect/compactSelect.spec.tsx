@@ -5,7 +5,7 @@ import {mergeProps, mergeRefs} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import {useListState} from '@react-stately/list';
 import {IconEllipsis} from '@sentry/icons/ellipsis';
-import {act, render, screen, waitFor} from '@testing-library/react';
+import {act, render, screen, waitFor, within} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import {expectTypeOf} from 'expect-type';
 
@@ -2189,6 +2189,65 @@ describe('CompactSelect', () => {
       const shown = await getSpaceBelowRows(true);
       const hidden = await getSpaceBelowRows(false);
       expect(shown).toBeGreaterThan(hidden);
+    });
+
+    it.each([
+      ['list box', undefined, 'group', 'option'],
+      ['grid', 'grid', 'rowgroup', 'row'],
+    ] as const)(
+      'windows a %s with sections and reaches the last section with the keyboard',
+      async (_, mode, sectionRole, optionRole) => {
+        render(
+          <CompactSelect
+            mode={mode}
+            menuWidth={300}
+            options={sections}
+            value={undefined}
+            onChange={jest.fn()}
+          />,
+          {wrapper: ThemeWrapper}
+        );
+
+        await userEvent.click(screen.getByRole('button'));
+
+        const sectionA = await screen.findByRole(sectionRole, {name: 'Section A'});
+        expect(within(sectionA).getByRole(optionRole, {name: 'A 0'})).toBeInTheDocument();
+        expect(screen.getAllByRole(optionRole).length).toBeLessThan(500);
+        expect(
+          screen.queryByRole(sectionRole, {name: 'Section B'})
+        ).not.toBeInTheDocument();
+
+        await waitFor(() =>
+          expect(screen.getByRole(optionRole, {name: 'A 0'})).toHaveFocus()
+        );
+        await userEvent.keyboard('{End}');
+
+        // The option renders inside its section, which keeps its heading.
+        await waitFor(() =>
+          expect(
+            within(screen.getByRole(sectionRole, {name: 'Section B'})).getByRole(
+              optionRole,
+              {name: 'B 249'}
+            )
+          ).toHaveFocus()
+        );
+      }
+    );
+
+    it('counts the options inside sections against the threshold', async () => {
+      render(
+        <CompactSelect
+          virtualizeThreshold={500}
+          options={sections}
+          value={undefined}
+          onChange={jest.fn()}
+        />,
+        {wrapper: ThemeWrapper}
+      );
+
+      await userEvent.click(screen.getByRole('button'));
+
+      expect(await screen.findAllByRole('option')).toHaveLength(500);
     });
   });
 });
