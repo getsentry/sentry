@@ -1,11 +1,43 @@
 import type {ReactNode} from 'react';
-import {useState} from 'react';
+import {createContext, useContext, useState} from 'react';
 import styled from '@emotion/styled';
 import {IconChevron} from '@sentry/icons/chevron';
 
 import {Container, Flex} from '@sentry/scraps/layout';
 
 import {TURN_META_WIDTH} from './turnMeta';
+
+export interface CollapsibleExpandAll {
+  /** Bumped on every expand or collapse all, so a repeated one applies again. */
+  generation: number;
+  open: boolean;
+}
+
+/**
+ * Opens or closes every collapsible section below it, e.g. a transcript's expand
+ * all. A section toggled by hand keeps its state until the next expand or collapse
+ * all.
+ */
+export const CollapsibleExpandAllContext = createContext<CollapsibleExpandAll | null>(
+  null
+);
+
+/**
+ * Open state for a collapsible section that follows expand and collapse all. It
+ * starts from the latest one, or `defaultOpen` without one.
+ */
+export function useCollapsibleOpenState(defaultOpen: boolean) {
+  const expandAll = useContext(CollapsibleExpandAllContext);
+  const [isOpen, setIsOpen] = useState(expandAll?.open ?? defaultOpen);
+  // Adjusted during render rather than in an effect, so every section changes in
+  // the same render.
+  const [generation, setGeneration] = useState(expandAll?.generation);
+  if (expandAll && expandAll.generation !== generation) {
+    setGeneration(expandAll.generation);
+    setIsOpen(expandAll.open);
+  }
+  return [isOpen, setIsOpen] as const;
+}
 
 interface CollapsibleContentProps {
   /** The rendered content revealed when expanded (markdown, nested blocks, etc.). */
@@ -42,7 +74,7 @@ export function CollapsibleContent({
   open,
   onOpenChange,
 }: CollapsibleContentProps) {
-  const [uncontrolledOpen, setUncontrolledOpen] = useState(defaultOpen);
+  const [uncontrolledOpen, setUncontrolledOpen] = useCollapsibleOpenState(defaultOpen);
   const isOpen = open ?? uncontrolledOpen;
 
   return (
