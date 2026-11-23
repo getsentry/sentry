@@ -250,7 +250,10 @@ export function AgenticTriageForm(
           <FormSection title={t('Trigger')}>
             <form.FieldGroup>
               {/* Not configurable yet, so this shows the fixed schedule */}
-              <DisplayField.Row label={t('Schedule')} hintText={t('Runs on a schedule.')}>
+              <DisplayField.Row
+                label={t('Schedule')}
+                hintText={t('(mock) Runs on a schedule.')}
+              >
                 <CompactSelect
                   value="twice-daily"
                   onChange={() => {}}
