@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import posixpath
 from collections.abc import Mapping, MutableMapping, Sequence
+from functools import partial
 from typing import Any
 
 import sentry_sdk
@@ -560,12 +561,18 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
         for attachment_index, payload in flamegraphs.get_flamegraphs():
             reason = "processing_error"
             try:
-                is_javascript = payload["platform"] in JAVASCRIPT_PLATFORMS
-                get_stacktraces = (
-                    javascript_processing.get_flamegraph_stacktraces
-                    if is_javascript
-                    else _get_flamegraph_stacktraces
-                )
+                if payload["platform"] not in JAVASCRIPT_PLATFORMS:
+                    get_stacktraces = _get_flamegraph_stacktraces
+                    process = symbolicator.process_payload
+                    merge_frames = _merge_flamegraph_frames
+                else:
+                    get_stacktraces = javascript_processing.get_flamegraph_stacktraces
+                    process = partial(
+                        symbolicator.with_function(SymbolicatorFunction.js).process_js,
+                        release=data.get("release"),
+                        dist=data.get("dist"),
+                    )
+                    merge_frames = javascript_processing.merge_flamegraph_frames
                 symbolication_input = get_stacktraces(payload)
                 if not symbolication_input.stacktraces:
                     metrics.incr(
@@ -573,24 +580,13 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     )
                     continue
                 reason = "request_error"
-                if is_javascript:
-                    response = symbolicator.with_function(SymbolicatorFunction.js).process_js(
-                        platform=payload["platform"],
-                        stacktraces=symbolication_input.stacktraces,
-                        modules=symbolication_input.modules,
-                        release=data.get("release"),
-                        dist=data.get("dist"),
-                        frame_order=FrameOrder.caller_first,
-                        apply_source_context=False,
-                    )
-                else:
-                    response = symbolicator.process_payload(
-                        platform=payload["platform"],
-                        stacktraces=symbolication_input.stacktraces,
-                        modules=symbolication_input.modules,
-                        frame_order=FrameOrder.caller_first,
-                        apply_source_context=False,
-                    )
+                response = process(
+                    platform=payload["platform"],
+                    stacktraces=symbolication_input.stacktraces,
+                    modules=symbolication_input.modules,
+                    frame_order=FrameOrder.caller_first,
+                    apply_source_context=False,
+                )
                 if not response or response.get("status") != "completed":
                     metrics.incr(
                         "process.native.flamegraph.skipped", tags={"reason": "request_error"}
@@ -603,11 +599,6 @@ def _process_flamegraphs(symbolicator: Symbolicator, data: Any) -> bool:
                     )
                     continue
                 reason = "merge_error"
-                merge_frames = (
-                    javascript_processing.merge_flamegraph_frames
-                    if is_javascript
-                    else _merge_flamegraph_frames
-                )
                 output = merge_frames(payload, symbolication_input.frame_ids, resolved_stacktraces)
                 reason = "save_error"
                 attachments_changed |= flamegraphs.save(attachment_index, output)
