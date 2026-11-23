@@ -1,3 +1,4 @@
+import re
 from collections.abc import Iterator, MutableMapping, Sequence
 from contextlib import contextmanager
 from types import SimpleNamespace
@@ -71,6 +72,19 @@ MAX_INPUT_PARAMS = 2
 MAX_GENERIC_PARAMS = 7
 MAX_REFERENCES = 5
 FORMULA_PREFIX = "formula."
+
+
+def saved_formula_regex(formula: str) -> str:
+    """
+    Match a saved formula call in stored query text.
+
+    The call may sit in JSON, a search condition (`formula.name(...):`), or on
+    its own as an aggregate.
+    """
+    if not formula.startswith(FORMULA_PREFIX):
+        raise ParseError(f"Formulas start with {FORMULA_PREFIX}")
+    escaped = re.escape(formula)
+    return rf'(^|[^\\]"|[[:space:]])(-)?{escaped}\([^")]*\)(:|"|$|[[:space:]])'
 
 
 class ExploreSavedReference(TypedDict):
