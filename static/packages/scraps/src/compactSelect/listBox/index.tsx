@@ -279,6 +279,7 @@ export function ListBox<T extends ListItemBase>({
             {overlayIsOpen && (
               <SelectRows
                 listItems={listItems}
+                listRef={listElementRef}
                 hiddenOptions={hiddenOptions}
                 virtualized={!!virtualized}
                 size={size}

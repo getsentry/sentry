@@ -1,4 +1,5 @@
 import type * as React from 'react';
+import {createContext, useContext} from 'react';
 import type {ListState} from '@react-stately/list';
 import type {Key, Node, SelectionMode} from '@react-types/shared';
 
@@ -16,6 +17,13 @@ import {
 import {SECTION_SEPARATOR_HEIGHT, SectionSeparator} from './styles';
 import type {ListItemBase} from './types';
 import {getVisibleOptionPositions, SectionToggle, type OptionPosition} from './utils';
+
+/**
+ * The element that several lists scroll in together, such as the regions of a
+ * CompositeSelect. A list inside it virtualizes against it instead of its own
+ * scroll area, which does not scroll.
+ */
+export const SharedScrollElementContext = createContext<HTMLElement | null>(null);
 
 /** What a section's own row holds, above the section's options. */
 interface SectionRowLayout {
@@ -48,6 +56,8 @@ interface SelectRowsProps<T extends ListItemBase> {
   hiddenOptions: ReadonlySet<Key>;
   /** The visible top-level nodes of the list's collection. */
   listItems: Array<Node<T>>;
+  /** The list element the rows render directly inside. */
+  listRef: React.RefObject<HTMLElement | null>;
   renderOption: (row: SelectOptionRow<T>) => React.ReactNode;
   renderSection: (
     section: SelectSectionRow<T>,
@@ -79,6 +89,7 @@ export function SelectRows<T extends ListItemBase>({
   focusedKey,
   hiddenOptions,
   listItems,
+  listRef,
   renderOption,
   renderSection,
   scrollElement,
@@ -98,7 +109,8 @@ export function SelectRows<T extends ListItemBase>({
     ? getWidestKey(flattenSections(listItems, hiddenOptions))
     : undefined;
 
-  const scrollRef = {current: scrollElement};
+  const sharedScrollElement = useContext(SharedScrollElementContext);
+  const scrollRef = {current: sharedScrollElement ?? scrollElement};
 
   const getSectionLayout = (section: Node<T>): SectionRowLayout => {
     const toggleAllButton =
@@ -127,6 +139,7 @@ export function SelectRows<T extends ListItemBase>({
       return separator + header;
     },
     focusedKey,
+    listRef,
     scrollRef,
     size,
     widestKey,

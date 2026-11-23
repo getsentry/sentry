@@ -64,6 +64,30 @@ function TestList({
   );
 }
 
+/** A list that scrolls in an element shared with content above it. */
+function ListBelowContent({contentHeight}: {contentHeight: number}) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
+  const virtual = useVirtualCollection({
+    collection: nodes,
+    enabled: true,
+    listRef,
+    scrollRef,
+  });
+
+  return (
+    <Container ref={scrollRef} overflowY="auto" data-test-id="scroller">
+      <Container height={`${contentHeight}px`} />
+      <Container as="ul" ref={listRef} aria-label="Rows">
+        <VirtualRows
+          virtual={virtual}
+          renderRow={({node, props}) => <ListItem label={String(node.key)} {...props} />}
+        />
+      </Container>
+    </Container>
+  );
+}
+
 /** Heights of the spacers standing in for unmounted rows. */
 function spacerHeights() {
   return screen
@@ -207,5 +231,31 @@ describe('useVirtualCollection', () => {
     expect(rows.length).toBeGreaterThan(0);
     expect(rows.length).toBeLessThan(ROW_COUNT);
     expect(rows[0]).toHaveTextContent('row-0');
+  });
+
+  it('places the rows below content that scrolls above the list', () => {
+    const contentHeight = 500;
+    // jsdom does not lay out: put the list below the content.
+    const rect = jest
+      .spyOn(Element.prototype, 'getBoundingClientRect')
+      .mockImplementation(function (this: Element) {
+        const top = this.getAttribute('aria-label') === 'Rows' ? contentHeight : 0;
+        return {top, bottom: top, left: 0, right: 0, height: 0, width: 0} as DOMRect;
+      });
+
+    render(<ListBelowContent contentHeight={contentHeight} />, {wrapper: ThemeWrapper});
+
+    const scroller = screen.getByTestId('scroller');
+    scroller.scrollTop = contentHeight + 100 * ROW_HEIGHT;
+    fireEvent.scroll(scroller);
+
+    // The window starts at the row at the top of the viewport, not one the
+    // content's height further down.
+    const keys = mountedKeys();
+    expect(keys).toContain('row-100');
+    // Spacers stand in for the list's rows only, not the content above it.
+    expect(sum(spacerHeights()) + keys.length * ROW_HEIGHT).toBe(ROW_COUNT * ROW_HEIGHT);
+
+    rect.mockRestore();
   });
 });

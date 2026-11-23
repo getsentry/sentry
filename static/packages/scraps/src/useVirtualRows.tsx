@@ -20,6 +20,12 @@ export interface UseVirtualRowsOptions {
   paddingEnd?: number;
   paddingStart?: number;
   rangeExtractor?: (range: Range) => number[];
+  /**
+   * Offset (px) of the first row from the top of the scroll element's content,
+   * when other content scrolls above the rows. Row starts include it;
+   * `paddingTop`, `paddingBottom` and `totalSize` do not.
+   */
+  scrollMargin?: number;
   scrollPaddingEnd?: number;
   scrollPaddingStart?: number;
   useAnimationFrameWithResizeObserver?: boolean;
@@ -42,14 +48,15 @@ export function useVirtualRows({
 
   const virtualItems = virtualizer.getVirtualItems();
   const totalSize = virtualizer.getTotalSize();
+  const scrollMargin = options.scrollMargin ?? 0;
   const first = virtualItems[0];
   const last = virtualItems[virtualItems.length - 1];
 
   return {
     virtualizer,
     virtualItems,
-    paddingTop: first ? Math.max(0, first.start) : 0,
-    paddingBottom: last ? Math.max(0, totalSize - last.end) : 0,
+    paddingTop: first ? Math.max(0, first.start - scrollMargin) : 0,
+    paddingBottom: last ? Math.max(0, totalSize - (last.end - scrollMargin)) : 0,
     totalSize,
   };
 }

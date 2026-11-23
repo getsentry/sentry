@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Fragment, useEffect} from 'react';
+import {Fragment, useEffect, useLayoutEffect, useState} from 'react';
 import {getInteractionModality} from '@react-aria/interactions';
 import type {Key, Node} from '@react-types/shared';
 import {
@@ -80,6 +80,66 @@ const observeViewportCappedRect: VirtualizerOptions<
     })
   );
 
+/**
+ * Offset of `listRef`'s element from the top of the scroll element's content,
+ * which is where the virtualizer's first row starts. Re-measured when an
+ * element in the scroll element resizes, mounts or unmounts: content above the
+ * list, such as another list sharing the scroll element, can change without
+ * this list rendering.
+ */
+function useListOffset({
+  enabled,
+  listRef,
+  scrollRef,
+}: {
+  enabled: boolean;
+  scrollRef: React.RefObject<HTMLElement | null>;
+  listRef?: React.RefObject<HTMLElement | null>;
+}) {
+  const [offset, setOffset] = useState(0);
+
+  useLayoutEffect(() => {
+    const scrollElement = scrollRef.current;
+    const list = listRef?.current;
+    if (!enabled || !scrollElement || !list) {
+      return () => {};
+    }
+    const measure = () => setOffset(getOffsetInScrollContent(list, scrollElement));
+    measure();
+    if (typeof ResizeObserver === 'undefined') {
+      return () => {};
+    }
+    const resizeObserver = new ResizeObserver(measure);
+    const observeChildren = () => {
+      resizeObserver.disconnect();
+      for (const child of scrollElement.children) {
+        resizeObserver.observe(child);
+      }
+    };
+    observeChildren();
+    const mutationObserver = new MutationObserver(() => {
+      observeChildren();
+      measure();
+    });
+    mutationObserver.observe(scrollElement, {childList: true});
+    return () => {
+      resizeObserver.disconnect();
+      mutationObserver.disconnect();
+    };
+  }, [enabled, scrollRef, listRef]);
+
+  return offset;
+}
+
+function getOffsetInScrollContent(element: Element, scrollElement: Element) {
+  return (
+    element.getBoundingClientRect().top -
+    scrollElement.getBoundingClientRect().top -
+    scrollElement.clientTop +
+    scrollElement.scrollTop
+  );
+}
+
 /** Props for the element that renders a row. Spread them onto the row's root element. */
 export interface VirtualRowProps {
   'data-index': number;
@@ -109,9 +169,7 @@ export interface UseVirtualCollectionOptions<T> {
   /** Whether to virtualize. When false, every node is returned as a row. */
   enabled: boolean;
   /**
-   * The element that scrolls. Rows and spacers must render inside it, with no
-   * vertical padding between it and the first row: rows are placed from its top.
-   * Put a list's inset outside it, as a margin, like DropdownMenu does.
+   * The element that scrolls. Rows and spacers must render inside it.
    */
   scrollRef: React.RefObject<HTMLElement | null>;
   /**
@@ -129,6 +187,13 @@ export interface UseVirtualCollectionOptions<T> {
   focusedKey?: Key | null;
   /** Keys of nodes to leave out, whether they are sections, their children or top-level items. */
   hiddenKeys?: ReadonlySet<Key>;
+  /**
+   * The element the rows and spacers render directly inside. Its offset in the
+   * scroll element's content is measured, so content that scrolls above the
+   * rows, such as padding or other lists sharing the scroll element, keeps the
+   * rows where the virtualizer places them. Defaults to the scroll element.
+   */
+  listRef?: React.RefObject<HTMLElement | null>;
   /**
    * Space (px) above each row in a section except the first, if the rows are
    * spaced that way. The virtualizer measures a row's border box, so the space
@@ -197,6 +262,7 @@ export function useVirtualCollection<T>({
   estimateSize,
   focusedKey,
   hiddenKeys,
+  listRef,
   sectionRowSpace = 0,
   size = 'md',
   widestKey,
@@ -211,6 +277,7 @@ export function useVirtualCollection<T>({
       ? nodes.findIndex(node => node.key === widestKey)
       : -1;
   const sectionIndexes = getSectionIndexes(nodes);
+  const scrollMargin = useListOffset({enabled, listRef, scrollRef});
 
   // Keep the focused row mounted when it scrolls out of view. If it unmounted,
   // DOM focus would fall back to the body and keyboard navigation would stop.
@@ -246,6 +313,7 @@ export function useVirtualCollection<T>({
     // unmeasured rows are still current: `getItemKey` is a new function on
     // every render, so the virtualizer rebuilds its offsets.
     estimateKey: `${size}-${sectionRowSpace}`,
+    scrollMargin,
     overscan: 1,
     rangeExtractor,
     observeElementRect: observeViewportCappedRect,
@@ -267,7 +335,7 @@ export function useVirtualCollection<T>({
         if (!node) {
           return [];
         }
-        const previousEnd = virtualItems[position - 1]?.end ?? 0;
+        const previousEnd = virtualItems[position - 1]?.end ?? scrollMargin;
         return [
           {
             node,
@@ -282,7 +350,12 @@ export function useVirtualCollection<T>({
   // without padding of its own would otherwise be 0px tall, and the
   // virtualizer mounts no rows into a viewport of 0px, so it would stay empty.
   const last = virtualItems.at(-1);
-  return {rows, spaceAfter: enabled ? Math.max(0, totalSize - (last?.end ?? 0)) : 0};
+  return {
+    rows,
+    spaceAfter: enabled
+      ? Math.max(0, totalSize - ((last?.end ?? scrollMargin) - scrollMargin))
+      : 0,
+  };
 }
 
 interface VirtualRowGroup<T> {

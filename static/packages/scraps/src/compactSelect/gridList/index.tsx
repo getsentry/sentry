@@ -87,7 +87,7 @@ function GridList<T extends ListItemBase>({
 }: GridListProps<T>) {
   const {t} = useTranslation();
   const ref = useRef<HTMLUListElement>(null);
-  const [scrollElement, setScrollElement] = useState<HTMLDivElement | null>(null);
+  const [scrollElement, setScrollElement] = useState<HTMLElement | null>(null);
   const labelId = useId();
   const {gridProps} = useGridList(
     {...props, 'aria-labelledby': label ? labelId : props['aria-labelledby']},
@@ -140,6 +140,7 @@ function GridList<T extends ListItemBase>({
           >
             <SelectRows
               listItems={listItems}
+              listRef={ref}
               hiddenOptions={hiddenOptions}
               virtualized={!!virtualized}
               size={size}

@@ -1996,6 +1996,30 @@ describe('CompactSelect', () => {
       [Element.prototype, 'scrollHeight', {get: () => 50_000}],
       [
         Element.prototype,
+        'getBoundingClientRect',
+        {
+          // Content moves up as its scroll element scrolls, like in a browser.
+          value(this: Element) {
+            let top = 0;
+            // oxlint-disable-next-line testing-library/no-node-access
+            for (let el = this.parentElement; el; el = el.parentElement) {
+              top -= el.scrollTop;
+            }
+            return {
+              top,
+              bottom: top,
+              y: top,
+              left: 0,
+              right: 0,
+              x: 0,
+              width: 0,
+              height: 0,
+            };
+          },
+        },
+      ],
+      [
+        Element.prototype,
         'scrollTo',
         {
           value(this: Element, options?: ScrollToOptions) {

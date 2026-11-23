@@ -1,5 +1,5 @@
 import type * as React from 'react';
-import {Children, isValidElement, useMemo} from 'react';
+import {Children, isValidElement, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
 import {Item} from '@react-stately/collections';
@@ -7,11 +7,13 @@ import type {DistributedOmit} from 'type-fest';
 
 import {type ButtonProps} from '@sentry/scraps/button';
 import {useTranslation} from '@sentry/scraps/translation';
+import {DEFAULT_VIRTUALIZE_THRESHOLD} from '@sentry/scraps/useVirtualCollection';
 
 import {ClearButton, Control} from './control';
 import type {ControlProps} from './control';
 import type {MultipleListProps, SingleListProps} from './list';
 import {List} from './list';
+import {SharedScrollElementContext} from './selectRows';
 import {EmptyMessage, ListScrollArea, ListWrap} from './styles';
 import type {SelectKey, SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
@@ -87,6 +89,7 @@ function CompositeSelect({
   ...controlProps
 }: CompositeSelectProps) {
   const {t} = useTranslation();
+  const [regionsElement, setRegionsElement] = useState<HTMLDivElement | null>(null);
   const items = useMemo(
     () =>
       Children.toArray(children).flatMap((child, regionIndex) => {
@@ -107,18 +110,20 @@ function CompositeSelect({
   return (
     <Control {...controlProps} mode={mode} size={size} disabled={disabled} items={items}>
       <FocusScope>
-        <RegionsWrap>
-          {Children.map(children, child => {
-            if (!child) {
-              return null;
-            }
+        <SharedScrollElementContext value={regionsElement}>
+          <RegionsWrap ref={setRegionsElement}>
+            {Children.map(children, child => {
+              if (!child) {
+                return null;
+              }
 
-            return <Region {...child.props} mode={mode} size={size} />;
-          })}
+              return <Region {...child.props} mode={mode} size={size} />;
+            })}
 
-          {/* Only displayed when all lists (regions) are empty */}
-          <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
-        </RegionsWrap>
+            {/* Only displayed when all lists (regions) are empty */}
+            <EmptyMessage>{emptyMessage ?? t('No options found')}</EmptyMessage>
+          </RegionsWrap>
+        </SharedScrollElementContext>
       </FocusScope>
     </Control>
   );
@@ -162,6 +167,7 @@ function Region<Value extends SelectKey>({
   isOptionDisabled,
   size,
   label,
+  virtualized,
   ...props
 }: RegionProps<Value>) {
   const itemsWithKey = useMemo(() => getItemsWithKeys(options), [options]);
@@ -174,6 +180,7 @@ function Region<Value extends SelectKey>({
       shouldFocusWrap={false}
       size={size}
       label={label}
+      virtualized={virtualized ?? options.length > DEFAULT_VIRTUALIZE_THRESHOLD}
     >
       {(opt: (typeof itemsWithKey)[number]) => (
         <Item {...opt} key={opt.key}>
