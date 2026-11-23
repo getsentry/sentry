@@ -161,9 +161,9 @@ const look = keyframes`
 
 const settle = keyframes`
   0% { transform: none; animation-timing-function: ease-out; }
-  22% { transform: scale(1.1, 0.86); animation-timing-function: ease-in-out; }
-  48% { transform: scale(0.95, 1.08); animation-timing-function: ease-in-out; }
-  72% { transform: scale(1.02, 0.97); animation-timing-function: ease-in-out; }
+  22% { transform: scale(1.035, 0.955); animation-timing-function: ease-in-out; }
+  48% { transform: scale(0.985, 1.025); animation-timing-function: ease-in-out; }
+  72% { transform: scale(1.006, 0.994); animation-timing-function: ease-in-out; }
   100% { transform: none; }
 `;
 
@@ -178,7 +178,7 @@ const boing = keyframes`
 
 const breathe = keyframes`
   from { transform: none; }
-  to { transform: scale(1.012, 1.03); }
+  to { transform: scale(1.004, 1.01); }
 `;
 
 const sway = keyframes`

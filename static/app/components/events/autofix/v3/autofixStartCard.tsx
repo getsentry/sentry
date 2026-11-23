@@ -157,7 +157,7 @@ export function AutofixStartCard({
                 {t('Add Context')}
               </Button>
             )}
-            {startButton}
+            <PeekingBug>{startButton}</PeekingBug>
           </Stack>
           {showContext ? (
             <ContextInput
