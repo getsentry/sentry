@@ -1,8 +1,9 @@
-import {Fragment, useContext, useMemo, useRef, useState} from 'react';
+import type * as React from 'react';
+import {Fragment, memo, useContext, useMemo, useRef, useState} from 'react';
 import type {AriaGridListItemOptions} from '@react-aria/gridlist';
 import {useGridListItem, useGridListSelectionCheckbox} from '@react-aria/gridlist';
 import {useFocusWithin, useHover} from '@react-aria/interactions';
-import {mergeProps} from '@react-aria/utils';
+import {mergeProps, mergeRefs} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 import {IconCheckmark} from '@sentry/icons/checkmark';
@@ -25,16 +26,21 @@ export interface GridListOptionProps<
   listState: ListState<T>;
   node: Node<T>;
   size: FormSize;
+  /** Set by a virtualized list, so the virtualizer can measure the option. */
+  'data-index'?: number;
+  ref?: React.Ref<HTMLLIElement>;
 }
 
 /**
  * A <li /> element with accessibile behaviors & attributes.
  * https://react-spectrum.adobe.com/react-aria/useGridList.html
  */
-export function GridListOption<T extends ListItemBase>({
+function GridListOptionImpl<T extends ListItemBase>({
   node,
   listState,
   size,
+  ref: refProp,
+  'data-index': dataIndex,
 }: GridListOptionProps<T>) {
   const ref = useRef<HTMLLIElement>(null);
   const {
@@ -146,7 +152,8 @@ export function GridListOption<T extends ListItemBase>({
   return (
     <ListItem
       {...rowPropsMerged}
-      ref={ref}
+      data-index={dataIndex}
+      ref={mergeRefs(ref, refProp)}
       size={size}
       label={renderedLabel}
       details={details}
@@ -171,3 +178,6 @@ export function GridListOption<T extends ListItemBase>({
     />
   );
 }
+
+// `memo` drops the type parameter, so restore the generic signature.
+export const GridListOption = memo(GridListOptionImpl) as typeof GridListOptionImpl;
