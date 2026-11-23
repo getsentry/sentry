@@ -94,7 +94,7 @@ function OnboardingSkipModal({
           `}
           trailingItems={
             <LinkButton
-              href="https://sandbox.sentry.io"
+              href={`https://sandbox.sentry.io/?utm_source=onboarding_skip&utm_content=${step}`}
               external
               icon={<IconOpen />}
               size="xs"
