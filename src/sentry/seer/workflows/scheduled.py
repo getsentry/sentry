@@ -17,7 +17,7 @@ from typing import Any, Literal, assert_never
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 from django.db.models import QuerySet
-from pydantic import BaseModel, validator
+from pydantic import BaseModel, Field, root_validator, validator
 
 from sentry import features
 from sentry.cadence.api import (
@@ -88,6 +88,23 @@ class ScheduleSettings(BaseModel):
         return value
 
 
+class ScheduledInvestigationSettings(BaseModel):
+    """What a scheduled investigation does: a user's prompt, or one of Seer's skills."""
+
+    prompt: str | None = Field(default=None, min_length=1, max_length=4096)
+    # Loads a Seer skill whose prompt we maintain, rather than storing it on the config.
+    skill: Literal["night_shift"] | None = None
+
+    class Config:
+        extra = "forbid"
+
+    @root_validator
+    def prompt_or_skill(cls, values: dict[str, Any]) -> dict[str, Any]:
+        if values.get("prompt") is not None and values.get("skill") is not None:
+            raise ValueError("Set a prompt or a skill, not both")
+        return values
+
+
 class ScheduledRunInputs(BaseModel):
     """The inputs of a scheduled run, recorded in its snapshot."""
 
@@ -142,9 +159,10 @@ def sync_schedule(config: SeerWorkflowConfig) -> None:
 class ScheduleDefinition(AutomationDefinition[ScheduledRunInputs]):
     """Runs on the config's schedule, over the projects the config selects."""
 
-    strategy = SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+    strategy = SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
     inputs_type = ScheduledRunInputs
     settings_type = ScheduleSettings
+    action_settings_type = ScheduledInvestigationSettings
     scoped_by: Literal["projects", "monitors"] = "projects"
 
     def projects(self, config: SeerWorkflowConfig) -> QuerySet[Project]:

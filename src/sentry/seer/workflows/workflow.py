@@ -5,7 +5,7 @@ from collections.abc import Iterator, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
 from functools import partial
-from typing import Literal, overload
+from typing import Any, Literal, overload
 
 from django.db import router, transaction
 from django.db.models import Count, Q, QuerySet
@@ -50,7 +50,11 @@ from sentry.service_accounts.services.service_account import (
 
 logger = logging.getLogger(__name__)
 
-SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,)
+SEER_DEFAULT_WORKFLOW_STRATEGIES = (SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,)
+# What each seeded default runs. Seer loads the night shift prompt from its skill.
+SEER_DEFAULT_ACTION_SETTINGS: dict[SeerWorkflowStrategy, dict[str, Any]] = {
+    SeerWorkflowStrategy.SCHEDULED_INVESTIGATION: {"skill": "night_shift"},
+}
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -67,13 +71,17 @@ class SeerWorkflow:
 
     @classmethod
     def ensure_defaults(cls, organization_id: int) -> None:
-        """Seed defaults for strategies with no config; disabled configs count as existing."""
+        """Seed each default that has no config; disabled configs count as existing.
+
+        A strategy's user-created configs don't count, so a user's own scheduled
+        investigation doesn't stop the default from being seeded.
+        """
         database = router.db_for_write(SeerWorkflowConfig)
         configs = SeerWorkflowConfig.objects.using(database).filter(
             organization_id=organization_id,
-            strategy__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
+            extras__seeded_default__in=[s.value for s in SEER_DEFAULT_WORKFLOW_STRATEGIES],
         )
-        existing = set(configs.values_list("strategy", flat=True))
+        existing = set(configs.values_list("extras__seeded_default", flat=True))
         if all(s.value in existing for s in SEER_DEFAULT_WORKFLOW_STRATEGIES):
             return
 
@@ -82,7 +90,7 @@ class SeerWorkflow:
             list(
                 Organization.objects.using(database).select_for_update().filter(id=organization_id)
             )
-            existing = set(configs.values_list("strategy", flat=True))
+            existing = set(configs.values_list("extras__seeded_default", flat=True))
             for strategy in SEER_DEFAULT_WORKFLOW_STRATEGIES:
                 if strategy.value in existing:
                     continue
@@ -90,9 +98,10 @@ class SeerWorkflow:
                     organization_id=organization_id,
                     strategy=strategy.value,
                     filters=SeerWorkflowFilters(all_projects=True).dict(),
-                    extras=SeerWorkflowConfigExtras(seeded_default=strategy).dict(
-                        exclude_none=True
-                    ),
+                    extras=SeerWorkflowConfigExtras(
+                        seeded_default=strategy,
+                        action_settings=SEER_DEFAULT_ACTION_SETTINGS.get(strategy),
+                    ).dict(exclude_none=True),
                 )
                 update = ConfigUpdate(LockedConfig(config), get_definition(strategy))
                 update.setup_backing_workflow(name=None, created_by_id=None, enabled=False)
@@ -121,7 +130,7 @@ class SeerWorkflow:
         cls,
         *,
         organization_id: int,
-        strategy: Literal[SeerWorkflowStrategy.AGENTIC_TRIAGE_V2],
+        strategy: Literal[SeerWorkflowStrategy.SCHEDULED_INVESTIGATION],
         enabled: bool = ...,
         schedule: SeerWorkflowSchedule = ...,
         scope: ProjectSelection,

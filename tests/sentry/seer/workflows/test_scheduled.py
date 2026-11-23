@@ -100,7 +100,7 @@ class RecordScheduledAutomationRunTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
         self.config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         enable(self.config)
 
@@ -162,7 +162,7 @@ class RecordScheduledAutomationRunTest(TestCase):
 
     def test_config_from_another_organization_is_ignored(self) -> None:
         other = Factories.create_seer_workflow_config(
-            self.create_organization(), strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+            self.create_organization(), strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
         )
         enable(other)
 
@@ -184,7 +184,7 @@ class ScheduledAutomationEndToEndTest(TestCase):
     ) -> None:
         with freeze_time(SCHEDULED_FOR - timedelta(hours=1)):
             config = Factories.create_seer_workflow_config(
-                self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2
+                self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION
             )
             enable(config)
         (scheduled,) = get_schedules(
@@ -228,14 +228,14 @@ class ScheduledAutomationEndToEndTest(TestCase):
 class ScheduleForTest(TestCase):
     def test_enabled_daily_config_runs_daily(self) -> None:
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
         )
         assert schedule_for(config) == cron("0 10 * * *")
 
     def test_config_cron_overrides_the_daily_schedule(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=True,
             extras={"trigger_settings": {"cron": "0 9 * * 1"}},
         )
@@ -244,7 +244,7 @@ class ScheduleForTest(TestCase):
     def test_config_cron_runs_in_its_timezone(self) -> None:
         config = Factories.create_seer_workflow_config(
             self.organization,
-            strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2,
+            strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION,
             enabled=True,
             extras={"trigger_settings": {"cron": "0 9 * * 1", "timezone": "America/New_York"}},
         )
@@ -252,7 +252,7 @@ class ScheduleForTest(TestCase):
 
     def test_disabled_config_is_unscheduled(self) -> None:
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=False
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=False
         )
         assert schedule_for(config) is None
 
@@ -269,7 +269,7 @@ class SyncScheduleTest(TestCase):
     @freeze_time("2024-03-09 12:00:00")
     def test_sets_and_clears(self) -> None:
         config = Factories.create_seer_workflow_config(
-            self.organization, strategy=SeerWorkflowStrategy.AGENTIC_TRIAGE_V2, enabled=True
+            self.organization, strategy=SeerWorkflowStrategy.SCHEDULED_INVESTIGATION, enabled=True
         )
 
         sync_schedule(config)
