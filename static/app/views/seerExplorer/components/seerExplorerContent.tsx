@@ -232,7 +232,6 @@ export function SeerExplorerContent({
     hasSentInterrupt,
     overrideBashModeEnabled,
     setOverrideBashModeEnabled,
-    setOverrideCodeModeEnable,
   } = useSeerExplorer();
 
   // Persist the input draft per-run so drawer closes / run switches
@@ -660,7 +659,6 @@ export function SeerExplorerContent({
       onFeedback: openFeedbackForm ? handleFeedback : undefined,
       onConversations: conversationsUrl ? handleOpenConversations : undefined,
       onBashMode: setOverrideBashModeEnabled,
-      onCodeMode: setOverrideCodeModeEnable,
     },
     inputAnchorRef: composerRef,
   });
