@@ -1,4 +1,5 @@
 from unittest import mock
+from uuid import uuid4
 
 from sentry import deletions
 from sentry.deletions.tasks.scheduled import run_scheduled_deletions
@@ -191,7 +192,7 @@ class DeleteProjectTest(BaseWorkflowTest, TransactionTestCase, HybridCloudTestMi
             project=project,
             snuba_query=snuba_query,
             status=0,
-            subscription_id="a-snuba-id-maybe",
+            subscription_id=f"0/{uuid4().hex}",
             query_extra="",
         )
 
@@ -282,7 +283,7 @@ class DeleteWorkflowEngineModelsTest(DeleteProjectTest):
         self.subscription = QuerySubscription.objects.create(
             project=self.workflow_engine_project,
             status=QuerySubscription.Status.ACTIVE.value,
-            subscription_id="123",
+            subscription_id=f"0/{uuid4().hex}",
             snuba_query=self.snuba_query,
         )
         self.data_source = self.create_data_source(

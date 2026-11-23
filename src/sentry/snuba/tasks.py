@@ -191,8 +191,6 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
     If the local subscription is marked for deletion (as opposed to disabled),
     then we delete the local subscription once we've successfully removed from Snuba.
     """
-    from sentry.incidents.models.alert_rule import AlertRule
-
     try:
         subscription = QuerySubscription.objects.get(id=query_subscription_id)
     except QuerySubscription.DoesNotExist:
@@ -206,34 +204,41 @@ def delete_subscription_from_snuba(query_subscription_id: int, **kwargs: Any) ->
         metrics.incr("snuba.subscriptions.delete.incorrect_status")
         return
 
-    if subscription.subscription_id is not None and subscription.snuba_query is not None:
-        query_dataset = Dataset(subscription.snuba_query.dataset)
-        if query_dataset == Dataset.PerformanceMetrics:
-            # Snuba dropped the generic_metrics dataset and its subscriptions, and the indexer
-            # can no longer resolve the tags these queries use, so only the local rows remain.
-            metrics.incr("snuba.subscriptions.delete.removed_dataset")
-        else:
-            entity_key = _get_entity_key_for_delete(subscription, "delete")
-            if entity_key is not None:
-                _delete_from_snuba(
-                    query_dataset,
-                    subscription.subscription_id,
-                    entity_key,
-                )
-
     if subscription.status == QuerySubscription.Status.DELETING.value:
-        snuba_query = subscription.snuba_query
-        subscription.delete()
-        # check that there are no subscriptions left related to the SnubaQuery before deleting
-        # add a check for the alert rule - in the snapshot case we could fall in here but the alert rule isn't deleted
-        if (
-            snuba_query
-            and not QuerySubscription.objects.filter(snuba_query=snuba_query.id).exists()
-            and not AlertRule.objects_with_snapshots.filter(snuba_query=snuba_query.id).exists()
-        ):
-            snuba_query.delete()
+        delete_query_subscription(subscription)
     else:
+        _remove_remote_subscription(subscription)
         subscription.update(subscription_id=None)
+
+
+def _remove_remote_subscription(subscription: QuerySubscription) -> None:
+    if subscription.subscription_id is None:
+        return
+    dataset = Dataset(subscription.snuba_query.dataset)
+    if dataset == Dataset.PerformanceMetrics:
+        # Snuba dropped the generic_metrics dataset and its subscriptions.
+        metrics.incr("snuba.subscriptions.delete.removed_dataset")
+        return
+    entity_key = _get_entity_key_for_delete(subscription, "delete")
+    if entity_key is not None:
+        _delete_from_snuba(dataset, subscription.subscription_id, entity_key)
+
+
+def delete_query_subscription(subscription: QuerySubscription) -> None:
+    from sentry.incidents.models.alert_rule import AlertRule
+
+    _remove_remote_subscription(subscription)
+    with transaction.atomic(using=router.db_for_write(SnubaQuery)):
+        # Serialize the last-subscription check when several subscriptions share a query.
+        query = SnubaQuery.objects.select_for_update().get_or_none(id=subscription.snuba_query_id)
+        if query is None:
+            return
+        subscription.delete()
+        if (
+            not query.subscriptions.exists()
+            and not AlertRule.objects_with_snapshots.filter(snuba_query_id=query.id).exists()
+        ):
+            query.delete()
 
 
 def _record_unresolved_entity_key(action: str) -> None:

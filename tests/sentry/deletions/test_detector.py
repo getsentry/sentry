@@ -2,13 +2,16 @@ from unittest import mock
 
 import pytest
 
+from sentry import deletions
 from sentry.constants import ObjectStatus
 from sentry.deletions.tasks.scheduled import reattempt_deletions, run_scheduled_deletions
 from sentry.incidents.grouptype import MetricIssue
 from sentry.incidents.models.alert_rule import AlertRule
+from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.uptime.models import UptimeSubscription, get_uptime_subscription
+from sentry.utils.snuba import SnubaError
 from sentry.workflow_engine.models import (
     AlertRuleDetector,
     AlertRuleWorkflow,
@@ -24,6 +27,9 @@ from tests.sentry.workflow_engine.test_base import BaseWorkflowTest
 
 class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
     def setUp(self) -> None:
+        self.delete_from_snuba = self.enterContext(
+            mock.patch("sentry.snuba.tasks._delete_from_snuba")
+        )
         self.data_condition_group = self.create_data_condition_group()
         self.data_condition = self.create_data_condition(condition_group=self.data_condition_group)
         self.snuba_query = self.create_snuba_query()
@@ -58,12 +64,31 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         with self.tasks():
             run_scheduled_deletions()
 
-        assert not Detector.objects.filter(id=self.detector.id).exists()
+        self.delete_from_snuba.assert_called_once_with(Dataset.Events, "123", EntityKey.Events)
+        assert not Detector.objects_for_deletion.filter(id=self.detector.id).exists()
         assert not DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
         assert not DetectorWorkflow.objects.filter(id=self.detector_workflow.id).exists()
         assert not DataConditionGroup.objects.filter(id=self.data_condition_group.id).exists()
         assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
         assert not DataSource.objects.filter(id=self.data_source.id).exists()
+        assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
+
+    def test_unsubscribe_failure_can_be_retried(self) -> None:
+        self.delete_from_snuba.side_effect = [SnubaError("unavailable"), None]
+        with pytest.raises(SnubaError):
+            deletions.exec_sync(self.detector)
+
+        self.subscription.refresh_from_db()
+        assert self.subscription.subscription_id == "123"
+        assert SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
+        assert DataSourceDetector.objects.filter(id=self.data_source_detector.id).exists()
+
+        deletions.exec_sync(self.detector)
+        assert self.delete_from_snuba.call_args_list == [
+            mock.call(Dataset.Events, "123", EntityKey.Events),
+            mock.call(Dataset.Events, "123", EntityKey.Events),
+        ]
         assert not QuerySubscription.objects.filter(id=self.subscription.id).exists()
         assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
@@ -103,10 +128,7 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             id__in=[self.snuba_query.id, snuba_query_2.id]
         ).exists()
 
-    def test_data_source_not_deleted(self) -> None:
-        """
-        Test that we do not delete a DataSource that is connected to another Detector
-        """
+    def test_shared_and_exclusive_data_sources(self) -> None:
         detector_2 = self.create_detector(
             project_id=self.project.id,
             name="Testy Detector",
@@ -115,6 +137,13 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         data_source_detector_2 = self.create_data_source_detector(
             data_source=self.data_source, detector=detector_2
         )
+        exclusive_subscription = self.create_snuba_query_subscription(
+            snuba_query_id=self.snuba_query.id, subscription_id="exclusive"
+        )
+        exclusive_source = self.create_data_source(
+            organization=self.organization, source_id=str(exclusive_subscription.id)
+        )
+        self.create_data_source_detector(data_source=exclusive_source, detector=self.detector)
         self.ScheduledDeletion.schedule(instance=self.detector, days=0)
 
         with self.tasks():
@@ -127,6 +156,18 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
         assert not DataCondition.objects.filter(id=self.data_condition.id).exists()
         assert DataSource.objects.filter(id=self.data_source.id).exists()
         assert DataSourceDetector.objects.filter(id=data_source_detector_2.id).exists()
+        self.delete_from_snuba.assert_called_once_with(
+            Dataset.Events, "exclusive", EntityKey.Events
+        )
+        assert not DataSource.objects.filter(id=exclusive_source.id).exists()
+        assert not QuerySubscription.objects.filter(id=exclusive_subscription.id).exists()
+        assert QuerySubscription.objects.filter(id=self.subscription.id).exists()
+        assert SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
+
+        self.delete_from_snuba.reset_mock()
+        deletions.exec_sync(detector_2)
+        self.delete_from_snuba.assert_called_once_with(Dataset.Events, "123", EntityKey.Events)
+        assert not SnubaQuery.objects.filter(id=self.snuba_query.id).exists()
 
     def test_dangling_fk_causes_stuck_deletion_loop(self) -> None:
         """Regression test for the infinite-retry failure mode this fix addresses.
@@ -268,7 +309,10 @@ class DeleteDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
 
 
 class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
-    def test_deleting_detector_deletes_associated_alert_rule(self) -> None:
+    @mock.patch("sentry.snuba.tasks._delete_from_snuba")
+    def test_deleting_detector_deletes_associated_alert_rule(
+        self, delete_from_snuba: mock.Mock
+    ) -> None:
         alert_rule = self.create_alert_rule(
             organization=self.organization,
             projects=[self.project],
@@ -292,6 +336,7 @@ class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
 
         snuba_query = alert_rule.snuba_query
         subscription = QuerySubscription.objects.get(snuba_query=snuba_query)
+        subscription.update(subscription_id="dual-written")
         detector = AlertRuleDetector.objects.get(alert_rule_id=alert_rule.id).detector
         data_source = DataSource.objects.get(source_id=str(subscription.id))
 
@@ -303,6 +348,7 @@ class DeleteDualWrittenDetectorTest(BaseWorkflowTest, HybridCloudTestMixin):
             run_scheduled_deletions()
 
         assert not Detector.objects.filter(id=detector.id).exists()
+        delete_from_snuba.assert_called_once_with(Dataset.Events, "dual-written", EntityKey.Events)
         assert not AlertRuleDetector.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRuleWorkflow.objects.filter(alert_rule_id=alert_rule.id).exists()
         assert not AlertRule.objects.filter(id=alert_rule.id).exists()

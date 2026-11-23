@@ -1,6 +1,10 @@
 import logging
 
+from django.db import router, transaction
+
 from sentry.deletions.base import BaseRelation, ModelDeletionTask, ModelRelation
+from sentry.workflow_engine.models.data_source import DataSource
+from sentry.workflow_engine.models.data_source_detector import DataSourceDetector
 from sentry.workflow_engine.models.detector import Detector
 
 logger = logging.getLogger(__name__)
@@ -14,7 +18,6 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         from sentry.workflow_engine.models import (
             AlertRuleDetector,
             DataConditionGroup,
-            DataSource,
         )
 
         model_relations: list[BaseRelation] = []
@@ -33,17 +36,9 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
         if alert_rule_ids:
             model_relations.append(ModelRelation(AlertRule, {"id__in": alert_rule_ids}))
 
-        # check that no other rows are related to the data source
-        data_source_ids = DataSource.objects.filter(detector=instance.id).values_list(
-            "id", flat=True
-        )
-        if data_source_ids:
-            # this ensures we're not deleting a data source that's connected to another detector
-            if (
-                Detector.objects_for_deletion.filter(data_sources__in=[data_source_ids[0]]).count()
-                == 1
-            ):
-                model_relations.append(ModelRelation(DataSource, {"detector": instance.id}))
+        owned_source_ids = self._detach_shared_sources(instance)
+        if owned_source_ids:
+            model_relations.append(ModelRelation(DataSource, {"id__in": owned_source_ids}))
 
         if instance.workflow_condition_group_id:
             model_relations.append(
@@ -51,6 +46,24 @@ class DetectorDeletionTask(ModelDeletionTask[Detector]):
             )
 
         return model_relations
+
+    def _detach_shared_sources(self, instance: Detector) -> set[int]:
+        # Concurrent deletions of the last two detectors must agree on which one
+        # owns cleanup. Keep exclusive links until the child deletion succeeds.
+        with transaction.atomic(using=router.db_for_write(DataSource)):
+            source_ids = set(
+                DataSource.objects.filter(detector=instance)
+                .order_by("id")
+                .select_for_update(of=("self",))
+                .values_list("id", flat=True)
+            )
+            links = DataSourceDetector.objects.filter(data_source_id__in=source_ids)
+            shared_ids = set(
+                links.exclude(detector=instance).values_list("data_source_id", flat=True)
+            )
+            if shared_ids:
+                links.filter(detector=instance, data_source_id__in=shared_ids).delete()
+            return source_ids - shared_ids
 
     def delete_instance(self, instance: Detector) -> None:
         from sentry.uptime.subscriptions.subscriptions import remove_uptime_seat

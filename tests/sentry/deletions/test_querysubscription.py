@@ -26,12 +26,7 @@ class DeleteQuerySubscriptionTest(BaseWorkflowTest, HybridCloudTestMixin):
         Test that we delete the related SnubaQuery when the QuerySubscription was linked from a DataSource
         """
         snuba_query = self.create_snuba_query()
-        subscription = QuerySubscription.objects.create(
-            project=self.project,
-            status=QuerySubscription.Status.ACTIVE.value,
-            subscription_id="123",
-            snuba_query=snuba_query,
-        )
+        subscription = self.create_snuba_query_subscription(snuba_query_id=snuba_query.id)
         self.create_data_source(organization=self.organization, source_id=subscription.id)
 
         self.ScheduledDeletion.schedule(instance=subscription, days=0)
