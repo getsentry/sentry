@@ -291,6 +291,9 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError({"config": ["`config` must be an object."]})
 
         detection_type = config.get("detection_type")
+        if not detection_type:
+            raise serializers.ValidationError({"config": ["`detectionType` is required."]})
+
         self._validate_comparison_delta(detection_type, config)
 
     def _validate_comparison_delta(
