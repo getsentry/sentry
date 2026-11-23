@@ -180,44 +180,21 @@ function isDrawableValue(value: unknown): value is string {
   return typeof value === 'string' && value.trim() !== '';
 }
 
-const warnedMessages = new Set<string>();
-
-function warnOnce(message: string) {
-  if (process.env.NODE_ENV === 'production' || warnedMessages.has(message)) {
-    return;
-  }
-  warnedMessages.add(message);
-  // eslint-disable-next-line no-console
-  console.warn(message);
-}
-
 /**
  * A value that draws nothing usually comes from mapping over data with a
- * missing name. It is left out like a `null` item, with a warning, since the
- * caller should not rely on that. A date is parsed with the parser that both
- * renderers use, so one it cannot read is left out rather than drawn as
- * "Invalid date", and the parsed instant is what they draw.
+ * missing name. It is left out like a `null` item. A date is parsed with the
+ * parser that both renderers use, so one it cannot read is left out rather
+ * than drawn as "Invalid date", and the parsed instant is what they draw.
  */
-function resolveMetadataValue(
-  entry: MetadataValueData,
-  name: string
-): ResolvedMetadataValue | null {
+function resolveMetadataValue(entry: MetadataValueData): ResolvedMetadataValue | null {
   if (entry.type === 'date') {
     const parsed = parseDate(entry.date, 'UTC');
-    if (parsed === null) {
-      warnOnce(`EntityHeader metadata ${name} has an empty value and was left out.`);
-      return null;
-    }
-    return {...entry, date: new Date(parsed.epochMilliseconds)};
+    return parsed === null ? null : {...entry, date: new Date(parsed.epochMilliseconds)};
   }
   if (!isDrawableValue(entry.value)) {
-    warnOnce(`EntityHeader metadata ${name} has an empty value and was left out.`);
     return null;
   }
   if (entry.secondary && !isDrawableValue(entry.secondary.value)) {
-    warnOnce(
-      `EntityHeader metadata ${name} has an empty or invalid secondary value and it was left out.`
-    );
     return {...entry, secondary: undefined};
   }
   return entry;
@@ -231,13 +208,10 @@ export function resolveMetadataItem(
   item: EntityHeaderMetadataItemProps
 ): ResolvedMetadataItem | null {
   if (item.type !== 'list') {
-    return resolveMetadataValue(item, `item "${item.label}"`);
+    return resolveMetadataValue(item);
   }
   const items = item.items.flatMap(entry => {
-    const resolved = resolveMetadataValue(
-      entry,
-      entry.label ? `item "${entry.label}"` : `entry of "${item.label}"`
-    );
+    const resolved = resolveMetadataValue(entry);
     return resolved ? [{...resolved, key: entry.key}] : [];
   });
   return items.length > 0 ? {...item, items} : null;

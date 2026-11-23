@@ -136,9 +136,9 @@ export function EntityHeader({
   // on a request has none of them on the first paint, and keying the row off
   // that would bring the whole row — and the height of the page below it — in
   // late. So every declared slot holds a skeleton, nulls included, and none is
-  // resolved: a value is often empty until its data lands, and resolving it
-  // would warn. Once loaded, each item is resolved here, once, so one that
-  // draws nothing never counts as the row's last item.
+  // resolved, since a value is often empty until its data lands. Once loaded,
+  // each item is resolved here, once, so one that draws nothing never counts
+  // as the row's last item.
   const metadataSlots: Array<{
     hasGraphic: boolean;
     index: number;

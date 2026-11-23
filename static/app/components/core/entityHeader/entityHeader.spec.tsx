@@ -1996,16 +1996,6 @@ describe('EntityHeader', () => {
     });
 
     describe('with an empty value', () => {
-      // Labels are unique to each test: the warning is deduplicated for the
-      // life of the module.
-      let warn: jest.SpyInstance;
-      beforeEach(() => {
-        warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
-      });
-      afterEach(() => {
-        warn.mockRestore();
-      });
-
       it('leaves out a label-less link entry, and does not count it in "+N more"', () => {
         renderRow([
           {
@@ -2029,10 +2019,6 @@ describe('EntityHeader', () => {
         ).toEqual(['search', 'fetch']);
         expect(within(list).getAllByRole('listitem')).toHaveLength(3);
         expect(within(list).getByRole('button', {name: '+1 more'})).toBeInTheDocument();
-        expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn).toHaveBeenCalledWith(
-          expect.stringContaining('entry of "Linked Tools"')
-        );
       });
 
       it.each<[string, DistributedOmit<EntityHeaderMetadataItemProps, 'label'>]>([
@@ -2059,7 +2045,6 @@ describe('EntityHeader', () => {
           expect(topLevelItems(row)).toHaveLength(1);
           expect(row).toHaveTextContent(/^Modelgpt-5$/);
           expect(pipesIn(row)).toHaveLength(0);
-          expect(warn).toHaveBeenCalledWith(expect.stringContaining(`"${label}"`));
         }
       );
 
@@ -2075,9 +2060,6 @@ describe('EntityHeader', () => {
         ]);
 
         expect(row).toHaveTextContent(/^Undefined Secondary BrowserChrome$/);
-        expect(warn).toHaveBeenCalledWith(
-          'EntityHeader metadata item "Undefined Secondary Browser" has an empty or invalid secondary value and it was left out.'
-        );
       });
 
       it('leaves out date entries the date formatter cannot read', () => {
@@ -2102,40 +2084,14 @@ describe('EntityHeader', () => {
         expect(within(list).getAllByRole('listitem')).toHaveLength(3);
         expect(row).not.toHaveTextContent('Invalid date');
         expect(pipesIn(row)).toHaveLength(0);
-        expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry of "Releases"'));
       });
 
-      it('warns once per label in development', () => {
-        const items: EntityHeaderMetadataItemProps[] = [
-          {label: 'Model', type: 'text', value: 'gpt-5'},
-          {label: 'Blank Browser', type: 'text', value: ''},
-        ];
-        const {rerender} = render(
-          <EntityHeader
-            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
-            metadata={{label: 'Conversation properties', items}}
-          />
-        );
-        rerender(
-          <EntityHeader
-            title={{type: 'text', label: 'Conversation', value: 'Trip planning'}}
-            metadata={{label: 'Conversation properties', items}}
-          />
-        );
-
-        expect(warn).toHaveBeenCalledTimes(1);
-        expect(warn).toHaveBeenCalledWith(
-          'EntityHeader metadata item "Blank Browser" has an empty value and was left out.'
-        );
-      });
-
-      it('does not warn while loading', () => {
+      it('keeps a skeleton for an empty item while loading', () => {
         renderRow([{label: 'Loading Browser', type: 'text', value: ''}], {
           isLoading: true,
         });
 
         expect(screen.getAllByTestId('loading-placeholder')).toHaveLength(2);
-        expect(warn).not.toHaveBeenCalled();
       });
 
       it('renders nothing for a list whose entries are all empty', () => {
