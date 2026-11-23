@@ -26,6 +26,7 @@ import {
 import type {ReplayListRecord} from 'sentry/views/explore/replays/types';
 
 import {BulkDeleteAlert} from './bulkDeleteAlert';
+import {ReplaySelectionSeerContext} from './replaySelectionSeerContext';
 import {useReplayIndexTableColumns} from './useReplayIndexTableColumns';
 
 interface Props {
@@ -95,6 +96,7 @@ export function ReplayIndexTable({
         knownIds={replays.map(replay => replay.id)}
         endpointOptions={endpointOptions}
       >
+        <ReplaySelectionSeerContext replays={replays} />
         {needsSDKUpdateForClickSearch ? (
           <Fragment>
             {t('Unindexed search field')}

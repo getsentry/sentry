@@ -68,6 +68,7 @@ import {IssueListCommandPaletteActions} from './issueListCommandPaletteActions';
 import {IssueListTable} from './issueListTable';
 import {IssuesDataConsentBanner} from './issuesDataConsentBanner';
 import {IssueSelectionProvider} from './issueSelectionContext';
+import {IssueSelectionSeerContext} from './issueSelectionSeerContext';
 import {IssueViewsHeader} from './issueViewsHeader';
 import type {IssueUpdateData} from './types';
 import {
@@ -917,6 +918,7 @@ function IssueListOverviewInner({
 
   return (
     <IssueSelectionProvider visibleGroupIds={groupIds}>
+      <IssueSelectionSeerContext groups={groups} queryCount={modifiedQueryCount} />
       <Stack flex={1}>
         <IssueListCommandPaletteActions
           groupIds={groupIds}

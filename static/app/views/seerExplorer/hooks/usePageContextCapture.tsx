@@ -9,6 +9,7 @@ import type {
   LLMContextNodeType,
   LLMContextSnapshot,
 } from 'sentry/views/seerExplorer/contexts/llmContextTypes';
+import {useAddSeerSelectionToSnapshot} from 'sentry/views/seerExplorer/contexts/seerSelection';
 
 import {useAsciiSnapshot} from './useAsciiSnapshot';
 
@@ -88,6 +89,7 @@ type CapturedPageContext = {
 export function usePageContextCapture() {
   const captureAsciiSnapshot = useAsciiSnapshot();
   const {getLLMContext} = useLLMContext();
+  const addSelection = useAddSeerSelectionToSnapshot();
 
   return useCallback(
     ({
@@ -101,7 +103,7 @@ export function usePageContextCapture() {
       // once here rather than only on the structured path.
       let snapshot: LLMContextSnapshot | undefined;
       try {
-        snapshot = getLLMContext();
+        snapshot = addSelection(getLLMContext());
       } catch (e) {
         Sentry.captureException(e);
       }
@@ -121,7 +123,7 @@ export function usePageContextCapture() {
         isStructured: false,
       };
     },
-    [captureAsciiSnapshot, getLLMContext]
+    [addSelection, captureAsciiSnapshot, getLLMContext]
   );
 }
 
