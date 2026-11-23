@@ -108,7 +108,7 @@ root.render(<App />);
 
 export const errorBoundarySnippet = `import * as Sentry from "@sentry/react";
 
-function App() {
+export default function App() {
   return (
     <Sentry.ErrorBoundary fallback={<p>An error has occurred</p>}>
       <YourAppContent />
