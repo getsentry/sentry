@@ -1404,13 +1404,14 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         assert get_response.status_code == 200
         assert post_response.status_code == 200
 
-    def _pending_scm_connect_state(self) -> SeerRunState:
+    def _pending_scm_connect_state(self, owner_user_id: int) -> SeerRunState:
         return SeerRunState(
             run_id=789,
             blocks=[],
             status="awaiting_user_input",
             updated_at="2024-01-01T00:00:00Z",
-            owner_user_id=self.user.id,
+            # Only the chat's owner is recorded as seeing the popup.
+            owner_user_id=owner_user_id,
             pending_user_input=PendingUserInput(
                 id="input-1",
                 input_type="connect_scm",
@@ -1422,12 +1423,14 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
     def test_scm_connect_popup_records_members_cannot_install_integrations(
         self, mock_client_class: MagicMock
     ) -> None:
-        self.create_seer_run(
-            organization=self.organization, seer_run_state_id=789, user_id=self.user.id
-        )
-        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state()
         member = self.create_user()
         self.create_member(user=member, organization=self.organization, role="member")
+        self.create_seer_run(
+            organization=self.organization, seer_run_state_id=789, user_id=member.id
+        )
+        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state(
+            owner_user_id=member.id
+        )
         self.login_as(member)
 
         with assert_analytics_events(
@@ -1454,7 +1457,9 @@ class OrganizationSeerAgentChatEndpointTest(APITestCase):
         self.create_seer_run(
             organization=self.organization, seer_run_state_id=789, user_id=self.user.id
         )
-        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state()
+        mock_client_class.return_value.get_run.return_value = self._pending_scm_connect_state(
+            owner_user_id=self.user.id
+        )
 
         with override_options({"api.permission-scope-audit.enabled": True}):
             response = self.client.get(f"{self.url}789/")
