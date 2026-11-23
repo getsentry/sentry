@@ -3,13 +3,11 @@ import {IconCalendar} from '@sentry/icons/calendar';
 import {PlatformIcon} from 'platformicons';
 
 import {Tag} from '@sentry/scraps/badge';
-import {DateTime} from '@sentry/scraps/dateTime';
 import {EntityHeader} from '@sentry/scraps/entityHeader';
 import type {EntityHeaderProps} from '@sentry/scraps/entityHeader';
 
 import {ReplayLoadingState} from 'sentry/components/replays/player/replayLoadingState';
 import {useLiveBadge} from 'sentry/components/replays/replayLiveIndicator';
-import {TimeSince} from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {EventView} from 'sentry/utils/discover/eventView';
@@ -159,13 +157,9 @@ export function ReplayDetailsEntityHeader({readerResult}: Props) {
             ? {
                 leadingGraphic: <IconCalendar size="md" variant="muted" />,
                 label: t('Started at'),
-                type: 'text',
-                value:
-                  prefs.timestampType === 'absolute' ? (
-                    <DateTime date={replayRecord.started_at} year="always" showTimezone />
-                  ) : (
-                    <TimeSince date={replayRecord.started_at} />
-                  ),
+                type: 'date',
+                date: replayRecord.started_at,
+                format: prefs.timestampType === 'absolute' ? 'absolute' : 'relative',
               }
             : null,
           replayRecord?.browser.name

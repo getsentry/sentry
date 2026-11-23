@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import {IconStar} from '@sentry/icons/star';
 import {UserFixture} from 'sentry-fixture/user';
+import type {DistributedOmit} from 'type-fest';
 
 import {
   isInaccessible,
@@ -11,6 +12,7 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import {Tag} from '@sentry/scraps/badge';
+import {DateTimeProvider} from '@sentry/scraps/dateTime';
 import type {
   EntityHeaderMetadataItemProps,
   EntityHeaderMetadataListEntry,
@@ -1351,6 +1353,128 @@ describe('EntityHeader', () => {
       });
     });
 
+    describe('dates', () => {
+      // 2025-06-09T04:05:09Z, which is the evening before in Los Angeles.
+      const date = new Date('2025-06-09T04:05:09Z');
+
+      function renderItems(items: EntityHeaderMetadataItemProps[]) {
+        render(
+          <EntityHeader
+            title={{type: 'text', label: 'Replay', value: 'Session'}}
+            metadata={{label: 'Replay properties', items}}
+          />
+        );
+      }
+
+      it.each([
+        ['12', 'Jun 8, 2025 9:05:09 PM PDT'],
+        ['24', 'Jun 8, 2025 21:05:09 PDT'],
+      ] as const)(
+        'draws an absolute date in the standard format on a %s hour clock',
+        (clock, expected) => {
+          render(
+            <DateTimeProvider value={{timezone: 'America/Los_Angeles', clock}}>
+              <EntityHeader
+                title={{type: 'text', label: 'Replay', value: 'Session'}}
+                metadata={{
+                  label: 'Replay properties',
+                  items: [{label: 'Started at', type: 'date', date}],
+                }}
+              />
+            </DateTimeProvider>
+          );
+
+          expect(screen.getByText(expected)).toBeInTheDocument();
+          expect(screen.getByText(expected).tagName).toBe('TIME');
+        }
+      );
+
+      it('heads a relative date card with the item label, as one tab stop', async () => {
+        renderItems([
+          {
+            label: 'Last seen',
+            type: 'date',
+            mode: 'full',
+            date: new Date(Date.now() - 5 * 60 * 1000),
+            format: 'relative',
+          },
+        ]);
+
+        const trigger = screen.getByText('5min ago');
+        expect(trigger.tagName).toBe('TIME');
+        await userEvent.tab();
+        expect(trigger).toHaveFocus();
+        expect(await screen.findByText('UTC')).toBeInTheDocument();
+        // The card reads label, relative time, then the timezone rows.
+        expect(trigger).toHaveAccessibleDescription(/^Last seen\s*5min ago.*UTC/);
+        await userEvent.tab();
+        expect(document.body).toHaveFocus();
+      });
+
+      it('takes no tooltip or value on a date', () => {
+        renderItems([
+          {label: 'Browser', type: 'text', value: 'Chrome', tooltip: 'Desktop'},
+          {
+            label: 'Started at',
+            type: 'date',
+            date,
+            // @ts-expect-error: a date explains itself, so it takes no tooltip.
+            tooltip: 'When the session began',
+          },
+          {
+            label: 'Last seen',
+            type: 'date',
+            date,
+            // @ts-expect-error: a date takes `date`, not a formatted `value`.
+            value: 'yesterday',
+          },
+          {
+            label: 'Deploys',
+            type: 'list',
+            items: [
+              {key: 'a', type: 'text', value: 'staging', tooltip: 'Pre-release'},
+              {
+                key: 'b',
+                type: 'date',
+                date,
+                // @ts-expect-error: a date entry takes no tooltip either.
+                tooltip: 'When it shipped',
+              },
+            ],
+          },
+        ]);
+
+        expect(screen.getByText('Chrome')).toBeInTheDocument();
+      });
+
+      it('takes data, not nodes', () => {
+        const warn = jest.spyOn(console, 'warn').mockImplementation(() => {});
+        renderItems([
+          // @ts-expect-error: a node would draw a date in its own format.
+          {label: 'Node Started at', type: 'text', value: <span>today</span>},
+          {
+            label: 'Nested Started at',
+            type: 'text',
+            // @ts-expect-error: a date is its own item type, not a text value.
+            value: {type: 'date', date},
+          },
+          {
+            label: 'Browser',
+            type: 'text',
+            value: 'Chrome',
+            // @ts-expect-error: a qualifier is text.
+            secondary: {label: 'version', value: <span>144</span>},
+          },
+        ]);
+
+        // One that slips past the types is left out, not drawn.
+        expect(screen.queryByText('today')).not.toBeInTheDocument();
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Node Started at"'));
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('"Nested Started at"'));
+        warn.mockRestore();
+      });
+    });
+
     it('renders a tooltip on a metadata item', async () => {
       render(
         <EntityHeader
@@ -1952,13 +2076,19 @@ describe('EntityHeader', () => {
         );
       });
 
-      it.each(['', '  ', null, undefined, false])(
-        'leaves out a text item whose value is %p, with no dangling pipe before it',
-        value => {
-          const label = `Empty Region ${JSON.stringify(value)}`;
+      it.each<[string, DistributedOmit<EntityHeaderMetadataItemProps, 'label'>]>([
+        ['an empty string', {type: 'text', value: ''}],
+        ['a blank string', {type: 'text', value: '  '}],
+        ['a date with an empty date', {type: 'date', date: ''}],
+        ['a date that does not parse', {type: 'date', date: 'not a date'}],
+        ['an invalid Date', {type: 'date', date: new Date(NaN), format: 'relative'}],
+      ])(
+        'leaves out an item that is %s, with no dangling pipe before it',
+        (name, item) => {
+          const label = `Empty Region ${name}`;
           const row = renderRow([
             {label: 'Model', type: 'text', value: 'gpt-5'},
-            {label, type: 'text', value},
+            {...item, label},
           ]);
 
           expect(topLevelItems(row)).toHaveLength(1);
@@ -1968,13 +2098,23 @@ describe('EntityHeader', () => {
         }
       );
 
-      it('keeps a component value', () => {
-        const row = renderRow([
-          {label: 'Started at', type: 'text', value: <span>today</span>},
+      it('leaves out a date entry whose date is missing', () => {
+        renderRow([
+          {
+            label: 'Deploys',
+            type: 'list',
+            items: [
+              // @ts-expect-error: a date needs its `date`; at runtime one can
+              // still arrive without it.
+              {key: 'a', type: 'date'},
+              {key: 'b', type: 'text', value: 'staging'},
+            ],
+          },
         ]);
 
-        expect(row).toHaveTextContent('Started attoday');
-        expect(warn).not.toHaveBeenCalled();
+        const list = screen.getByRole('list', {name: 'Deploys'});
+        expect(within(list).getAllByRole('listitem')).toHaveLength(1);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('entry of "Deploys"'));
       });
 
       it('warns once per label in development', () => {

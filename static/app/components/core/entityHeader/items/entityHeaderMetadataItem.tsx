@@ -6,6 +6,7 @@ import type {DistributedOmit} from 'type-fest';
 
 import type {UserAvatar} from '@sentry/scraps/avatar';
 import {Button} from '@sentry/scraps/button';
+import {DateTime} from '@sentry/scraps/dateTime';
 import {
   METADATA_ROW_HEIGHT,
   METADATA_TEXT_HEIGHT,
@@ -19,8 +20,13 @@ import {Text} from '@sentry/scraps/text';
 import {useTranslation} from '@sentry/scraps/translation/useTranslation';
 
 import {Placeholder} from 'sentry/components/placeholder';
+import {TimeSince} from 'sentry/components/timeSince';
 
-import type {EntityHeaderTextBehavior, EntityHeaderTextVariant} from './entityHeaderText';
+import type {
+  EntityHeaderTextBehavior,
+  EntityHeaderTextTypography,
+  EntityHeaderTextVariant,
+} from './entityHeaderText';
 import {EntityHeaderText, toLinkDestination} from './entityHeaderText';
 
 interface EntityHeaderMetadataItemShared {
@@ -55,7 +61,7 @@ interface EntityHeaderMetadataValueQualifiers {
    * child and composes with the parent's: "version" under "Browser" is read
    * "Browser version". A property needing a third value is two properties.
    */
-  secondary?: {label: string; value: React.ReactNode};
+  secondary?: {label: string; value: string};
   /**
    * Explains the value on hover or focus, underlined to signal it.
    */
@@ -63,17 +69,36 @@ interface EntityHeaderMetadataValueQualifiers {
 }
 
 type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
-  EntityHeaderMetadataValueQualifiers &
   (
-    | {
+    | (EntityHeaderMetadataValueQualifiers & {
         type: 'text';
-        value: React.ReactNode;
+        /**
+         * Data, not a node, so the header draws every value the same way.
+         */
+        value: string;
         /**
          * Colours the value, to call out a problem or a state.
          */
         variant?: EntityHeaderTextVariant;
+      })
+    | {
+        /**
+         * A date, drawn in the header's one format rather than formatted by
+         * the caller. A missing or unparseable `date` is an empty value.
+         */
+        date: string | Date;
+        type: 'date';
+        /**
+         * - `absolute`: "Jun 8, 2025 9:05:09 PM PDT", following the viewer's 12
+         *   or 24 hour preference.
+         * - `relative`: "5min ago", with the absolute time in every timezone in
+         *   its tooltip, headed by the item's `label`.
+         *
+         * @default 'absolute'
+         */
+        format?: 'absolute' | 'relative';
       }
-    | ({
+    | (EntityHeaderMetadataValueQualifiers & {
         type: 'link';
         /**
          * Text, not a node: the link is named from it and `label` together, so
@@ -84,7 +109,7 @@ type EntityHeaderMetadataValueProps = EntityHeaderMetadataItemShared &
   );
 
 /**
- * A text or link value whose `label` may be left out, as a list's entries
+ * A text, date or link value whose `label` may be left out, as a list's entries
  * may be.
  */
 type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'> & {
@@ -97,7 +122,7 @@ type MetadataValueData = DistributedOmit<EntityHeaderMetadataValueProps, 'label'
 };
 
 /**
- * One entry of a list: a text or link value, keyed. A list cannot hold a
+ * One entry of a list: a text, date or link value, keyed. A list cannot hold a
  * list.
  */
 export type EntityHeaderMetadataListEntry = MetadataValueData & {key: string};
@@ -129,16 +154,13 @@ export type EntityHeaderMetadataItemProps =
   | EntityHeaderMetadataListProps;
 
 /**
- * Whether the value draws nothing, so it is left out like a `null` item. A
- * component value is never empty.
+ * Whether the value draws nothing, so it is left out like a `null` item.
  */
-function isEmptyValue({value}: MetadataValueData) {
-  return (
-    value === null ||
-    value === undefined ||
-    value === false ||
-    (typeof value === 'string' && value.trim() === '')
-  );
+function isEmptyValue(entry: MetadataValueData) {
+  if (entry.type === 'date') {
+    return !entry.date || Number.isNaN(new Date(entry.date).getTime());
+  }
+  return typeof entry.value !== 'string' || entry.value.trim() === '';
 }
 
 /**
@@ -267,20 +289,66 @@ export function EntityHeaderMetadataItemSkeleton({
   );
 }
 
-function MetadataValue({value: props}: {value: MetadataValueData}) {
-  const {label, mode = 'compact', secondary} = props;
-  const isLink = props.type === 'link';
-  // A link names itself from `label`; text needs the label beside it.
-  const needsOwnLabel = Boolean(label) && (!isLink || mode === 'full');
+const VALUE_STYLES = {
+  size: 'md',
+  density: 'comfortable',
+  ellipsis: true,
+} as const satisfies EntityHeaderTextTypography;
+
+interface MetadataRelativeDateProps {
+  date: string | Date;
+  label?: string;
+}
+
+// The render prop puts the value's styles on `TimeSince`'s own trigger, so it
+// truncates without a clipping wrapper cutting off its focus ring.
+function MetadataRelativeDate({date, label}: MetadataRelativeDateProps) {
+  return (
+    <Text {...VALUE_STYLES}>
+      {textProps => (
+        <TimeSince
+          {...textProps}
+          date={date}
+          unitStyle="short"
+          tooltipShowSeconds
+          tooltipPrefix={label}
+        />
+      )}
+    </Text>
+  );
+}
+
+function MetadataDisplayValue({value: props}: {value: MetadataValueData}) {
+  if (props.type === 'date') {
+    return props.format === 'relative' ? (
+      <MetadataRelativeDate date={props.date} label={props.label} />
+    ) : (
+      <EntityHeaderText {...VALUE_STYLES} behavior={{type: 'text'}}>
+        <DateTime date={props.date} year="always" precision="second" showTimezone />
+      </EntityHeaderText>
+    );
+  }
   const behavior: EntityHeaderTextBehavior =
     props.type === 'link'
       ? {
           type: 'link',
           ...toLinkDestination(props),
-          'aria-label': label ? `${label} ${props.value}` : undefined,
+          'aria-label': props.label ? `${props.label} ${props.value}` : undefined,
           tooltip: props.tooltip,
         }
       : {type: 'text', variant: props.variant, tooltip: props.tooltip};
+  return (
+    <EntityHeaderText {...VALUE_STYLES} behavior={behavior}>
+      {props.value}
+    </EntityHeaderText>
+  );
+}
+
+function MetadataValue({value: props}: {value: MetadataValueData}) {
+  const {label, mode = 'compact'} = props;
+  const secondary = props.type === 'date' ? undefined : props.secondary;
+  // A link names itself from `label`; text and dates need the label beside it.
+  const needsOwnLabel = Boolean(label) && (props.type !== 'link' || mode === 'full');
   const secondaryLabel = secondary
     ? label
       ? `${label} ${secondary.label}`
@@ -303,9 +371,7 @@ function MetadataValue({value: props}: {value: MetadataValueData}) {
         ) : (
           <VisuallyHidden>{label}</VisuallyHidden>
         ))}
-      <EntityHeaderText behavior={behavior} size="md" density="comfortable" ellipsis>
-        {props.value}
-      </EntityHeaderText>
+      <MetadataDisplayValue value={props} />
       {secondary && (
         <Fragment>
           {/*
