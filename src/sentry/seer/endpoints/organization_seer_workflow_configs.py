@@ -55,6 +55,7 @@ from sentry.seer.workflows.breached_metrics import (
 )
 from sentry.seer.workflows.definitions import get_definition
 from sentry.seer.workflows.workflow import SeerWorkflow
+from sentry.service_accounts.audit import token_audit_log_data
 from sentry.service_accounts.models import (
     GRANTABLE_SCOPES,
     ServiceAccountProjectReplica,
@@ -805,9 +806,17 @@ class OrganizationSeerWorkflowConfigDetailsEndpoint(OrganizationEndpoint):
 
         workflow = SeerWorkflow(config_id=config.id, organization_id=organization.id)
         account = workflow.get_service_account()
-        workflow.delete()
+        tokens = workflow.delete()
         if account is not None:
             audit_service_account(self, request, organization, account, "SERVICE_ACCOUNT_REMOVE")
+            for token in tokens:
+                self.create_audit_entry(
+                    request,
+                    organization=organization,
+                    target_object=token.id,
+                    event=audit_log.get_event_id("SERVICE_ACCOUNT_TOKEN_REMOVE"),
+                    data=token_audit_log_data(account, token, account_deleted=True),
+                )
         return Response(status=204)
 
 
