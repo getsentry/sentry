@@ -56,8 +56,12 @@ from sentry.utils.registry import NoRegistrationExistsError
         ("issue.team_assigned", {"activity_id": 789, "assignment_source": None}, "#activity-789"),
         (
             "issue.pr_ready_for_review",
-            {"pr_url": "https://github.com/example/repo/pull/1", "seer_run_id": 123},
-            "",
+            {
+                "activity_id": 789,
+                "pr_urls": ["https://github.com/example/repo/pull/1"],
+                "seer_run_id": 123,
+            },
+            "#activity-789",
         ),
     ],
 )
@@ -66,7 +70,7 @@ def test_latest_event_url(
     default_group: Group,
     default_user: User,
     latest_type: str,
-    latest_data: dict[str, int | str | None],
+    latest_data: dict[str, object],
     expected_fragment: str,
 ) -> None:
     item = Factories.create_inbox_item(
@@ -380,7 +384,7 @@ class InboxItemEventSerializerTest(TestCase):
             inbox_item=item,
             actor=actor,
             type="issue.pr_ready_for_review",
-            data={"pr_url": "https://example.com/pr/1", "seer_run_id": 12},
+            data={"activity_id": 34, "pr_urls": ["https://example.com/pr/1"], "seer_run_id": 12},
         )
         system = self.create_inbox_item_event(
             inbox_item=item, data={"assignment_source": None, "activity_id": 1}
@@ -398,7 +402,11 @@ class InboxItemEventSerializerTest(TestCase):
         assert results[0]["actor"]["id"] == str(actor.id)
         assert results[0]["isUnread"] is False
         assert results[1]["isUnread"] is True
-        assert dict(results[1]["data"]) == {"prUrl": "https://example.com/pr/1", "seerRunId": "12"}
+        assert dict(results[1]["data"]) == {
+            "activityId": "34",
+            "prUrls": ["https://example.com/pr/1"],
+            "seerRunId": "12",
+        }
         assert results[2]["actor"] == {
             "type": "system",
             "id": None,
@@ -451,8 +459,8 @@ class InboxItemEventSerializerTest(TestCase):
         ),
         (
             "issue.pr_ready_for_review",
-            {"seer_run_id": 456, "pr_url": "https://example.com/pr/1"},
-            {"seerRunId": "456", "prUrl": "https://example.com/pr/1"},
+            {"activity_id": 123, "seer_run_id": 456, "pr_urls": ["https://example.com/pr/1"]},
+            {"activityId": "123", "seerRunId": "456", "prUrls": ["https://example.com/pr/1"]},
         ),
         (
             "notebook.completed",
@@ -518,7 +526,9 @@ def test_payload_response_types() -> None:
     )
     assert_type(IssueMentionedData(comment_id=123).serialize(), IssueMentionedDataResponse)
     assert_type(
-        IssuePRReadyForReviewData(pr_url="https://example.com/pr/1", seer_run_id=123).serialize(),
+        IssuePRReadyForReviewData(
+            activity_id=1, pr_urls=["https://example.com/pr/1"], seer_run_id=123
+        ).serialize(),
         IssuePRReadyForReviewDataResponse,
     )
     assert_type(

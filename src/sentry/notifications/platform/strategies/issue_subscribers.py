@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from sentry.models.activity import Activity
+from sentry.notifications.platform.inbox import get_inbox_notified_user_ids
 from sentry.notifications.platform.strategies.utils import get_targets_from_participant_map
 from sentry.notifications.platform.types import (
     NotificationStrategy,
@@ -24,7 +25,12 @@ class IssueSubscribersActivityStrategy(NotificationStrategy):
         group = self.activity.group
         if not group:
             return []
-        participant_map = get_participants_for_group(group=group, user_id=self.activity.user_id)
+        participant_map = get_participants_for_group(
+            group=group,
+            user_id=self.activity.user_id,
+            # TODO(ISWF-3771): Temporary, until inbox notifications replace this notification.
+            exclude_user_ids=get_inbox_notified_user_ids(self.activity),
+        )
         return get_targets_from_participant_map(
             participant_map, organization_id=group.project.organization_id, project=group.project
         )

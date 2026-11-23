@@ -28,6 +28,7 @@ from sentry.utils.safe import safe_execute
 
 if TYPE_CHECKING:
     from sentry.inbox.response_types import InboxSubjectResponse
+    from sentry.notifications.platform.types import NotificationData, NotificationTarget
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -117,6 +118,21 @@ class InboxEventSummary(StrEnum):
     NOTEBOOK_PARTICIPANT_ADDED = "Added you"
 
 
+class InboxNotifier[SubjectT, DataT: InboxEventData](ABC):
+    """Builds the email and Slack notification a recipient gets for a new inbox event."""
+
+    @abstractmethod
+    def get_notification_data(
+        self,
+        *,
+        subject: SubjectT,
+        data: DataT,
+        url: str,
+        target: NotificationTarget,
+    ) -> NotificationData:
+        """`url` links to the event in the recipient's inbox."""
+
+
 @dataclass(frozen=True, kw_only=True)
 class InboxEventType[SubjectT, DataT: InboxEventData]:
     """Keep event_type stable so retained events can be looked up."""
@@ -127,6 +143,8 @@ class InboxEventType[SubjectT, DataT: InboxEventData]:
     data_class: type[DataT]
     # Personal notification setting category that controls email and Slack for this event.
     notification_setting: NotificationSettingEnum
+    # Without a notifier, recipients see the event in their inbox but get no email or Slack message.
+    notifier: InboxNotifier[SubjectT, DataT] | None = None
     recipient: Literal["team", "user"] = "user"
 
     def get_idempotency_key(self, *, data: DataT) -> str:

@@ -1,12 +1,29 @@
-from collections.abc import Iterable
+from collections.abc import Iterable, Sequence
+from functools import partial
 
+from django.db import router, transaction
 from django.db.models import Q
 
 from sentry import features
 from sentry.inbox.event_data import InboxEventData
+from sentry.inbox.issue import ISSUE
 from sentry.inbox.types import InboxActor, InboxEventType
+from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
+from sentry.notifications.models.inboxitemevent import InboxItemEvent
+from sentry.notifications.platform.strategies.issue_owners import IssueOwnersActivityAlertStrategy
+from sentry.types.activity import ActivityType
+from sentry.types.actor import ActorType
+from sentry.utils.safe import safe_execute
+
+_INBOX_NOTIFIED_ACTIVITY_TYPES = frozenset(
+    {
+        ActivityType.ASSIGNED.value,
+        ActivityType.NOTE.value,
+        ActivityType.SEER_PR_READY_FOR_REVIEW.value,
+    }
+)
 
 
 def create_inbox_items[SubjectT, DataT: InboxEventData](
@@ -21,7 +38,8 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
     """
     Records one inbox event for each user and each active member of each team. Recipients outside
     the subject's organization or not allowed to see the subject are dropped, and a user reached
-    more than once gets one event.
+    more than once gets one event. Each user with a new event is then notified per their setting
+    for the event type.
     """
     organization = Organization.objects.get_from_cache(
         id=event_type.item_type.get_organization_id(subject)
@@ -35,10 +53,100 @@ def create_inbox_items[SubjectT, DataT: InboxEventData](
             organization_id=organization.id, user_ids=user_ids, team_ids=team_ids
         ),
     )
-    event_type.record(
+    events = event_type.record(
         subject=subject, data=data, recipient_user_ids=recipient_user_ids, actor=actor
     )
-    # TODO(ISWF-3737): Check notification settings and send accordingly.
+    if events and features.has("organizations:universal-inbox-notifications", organization):
+        transaction.on_commit(
+            partial(
+                safe_execute,
+                _send_notifications,
+                organization=organization,
+                event_type=event_type,
+                subject=subject,
+                data=data,
+                events=events,
+            ),
+            using=router.db_for_write(InboxItemEvent),
+        )
+
+
+def get_inbox_notified_user_ids(activity: Activity) -> set[int]:
+    """
+    Users who are notified about the activity through their inbox, and so shouldn't also get the
+    issue workflow notification or the workflow engine's issue owners notification for it.
+
+    Temporary: remove once inbox notifications replace those notifications (ISWF-3771).
+    """
+    if activity.type not in _INBOX_NOTIFIED_ACTIVITY_TYPES or activity.group is None:
+        return set()
+
+    organization = Organization.objects.get_from_cache(id=activity.project.organization_id)
+    if not features.has(
+        "organizations:universal-inbox-recording", organization
+    ) or not features.has("organizations:universal-inbox-notifications", organization):
+        return set()
+
+    data = activity.data or {}
+    match activity.type:
+        case ActivityType.ASSIGNED.value:
+            assignee_id = int(data["assignee"])
+            is_team = data.get("assigneeType") == "team"
+            user_ids: Iterable[int] = [] if is_team else [assignee_id]
+            team_ids: Iterable[int] = [assignee_id] if is_team else []
+        case ActivityType.NOTE.value:
+            mentions = data.get("mentions", [])
+            user_ids = [m["id"] for m in mentions if m["actor_type"] == ActorType.USER]
+            team_ids = [m["id"] for m in mentions if m["actor_type"] == ActorType.TEAM]
+        case ActivityType.SEER_PR_READY_FOR_REVIEW.value:
+            user_ids, team_ids = IssueOwnersActivityAlertStrategy(
+                group=activity.group
+            ).get_issue_owner_ids()
+        case _:
+            return set()
+
+    recipient_user_ids = set(
+        ISSUE.filter_recipients(
+            subject=activity.group,
+            user_ids=_get_recipient_user_ids(
+                organization_id=organization.id, user_ids=user_ids, team_ids=team_ids
+            ),
+        )
+    )
+    if activity.user_id is not None:
+        recipient_user_ids.discard(activity.user_id)
+    return recipient_user_ids
+
+
+def _send_notifications[SubjectT, DataT: InboxEventData](
+    *,
+    organization: Organization,
+    event_type: InboxEventType[SubjectT, DataT],
+    subject: SubjectT,
+    data: DataT,
+    events: Sequence[InboxItemEvent],
+) -> None:
+    from sentry.notifications.platform.service import NotificationService
+    from sentry.notifications.platform.strategies.actor_routing import InboxUserRoutingStrategy
+
+    notifier = event_type.notifier
+    if notifier is None:
+        return
+
+    url = event_type.get_url(
+        organization=organization,
+        subject_id=event_type.item_type.get_subject_id(subject),
+        data=data,
+    )
+    strategy = InboxUserRoutingStrategy(
+        organization_id=organization.id,
+        user_ids=[event.inbox_item.user_id for event in events],
+        settings_key=event_type.notification_setting,
+    )
+    for target in strategy.get_targets():
+        NotificationService(
+            data=notifier.get_notification_data(subject=subject, data=data, url=url, target=target)
+        ).notify_async(targets=[target])
 
 
 def _get_recipient_user_ids(
