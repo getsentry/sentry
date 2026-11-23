@@ -8,7 +8,7 @@ import partition from 'lodash/partition';
 
 import {Alert} from '@sentry/scraps/alert';
 import {Button, LinkButton} from '@sentry/scraps/button';
-import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
+import {Container, Flex, Grid, Stack, type GridProps} from '@sentry/scraps/layout';
 import {Text} from '@sentry/scraps/text';
 import {Tooltip} from '@sentry/scraps/tooltip';
 
@@ -65,8 +65,10 @@ interface TaskCardProps {
   title: React.ReactNode;
   actions?: React.ReactNode;
   className?: string;
+  columns?: GridProps['columns'];
   description?: React.ReactNode;
   onClick?: (e: React.MouseEvent) => void;
+  padding?: GridProps['padding'];
 }
 
 function TaskCard({
@@ -76,9 +78,16 @@ function TaskCard({
   actions,
   onClick,
   className,
+  columns = '22px minmax(0, 1fr) max-content',
+  padding = 'md 0',
 }: TaskCardProps) {
   return (
     <TaskCardWrapper
+      position="relative"
+      columns={columns}
+      gap="lg"
+      radius="md"
+      padding={padding}
       role={onClick ? 'button' : undefined}
       onClick={onClick}
       className={className}
@@ -268,7 +277,9 @@ function Task({task, hidePanel}: TaskProps) {
           opacity: 50%;
         `}
       >
-        <TaskListCard
+        <TaskCard
+          columns="subgrid"
+          padding="md 0 md md"
           icon={<TaskStatusIcon status={task.status} tooltipText={iconTooltipText} />}
           description={task.description}
           title={<strong>{<s>{task.title}</s>}</strong>}
@@ -279,7 +290,9 @@ function Task({task, hidePanel}: TaskProps) {
 
   return (
     <TaskWrapper>
-      <TaskListCard
+      <TaskCard
+        columns="subgrid"
+        padding="md 0 md md"
         onClick={handleClick}
         icon={
           task.skippable ? (
@@ -441,6 +454,7 @@ function TaskGroup({
   return (
     <Stack paddingBottom="0" gap="md">
       <TaskGroupHeader
+        padding="md"
         title={<strong>{title}</strong>}
         description={
           tasks.length > 1
@@ -545,9 +559,6 @@ export function OnboardingSidebarContent({onClose}: OnboardingSidebarContentProp
 }
 
 const TaskGroupHeader = styled(TaskCard)<{hasProgress: boolean}>`
-  padding-left: ${p => p.theme.space.md};
-  padding-right: ${p => p.theme.space.md};
-
   p {
     color: ${p =>
       p.hasProgress ? p.theme.tokens.content.accent : p.theme.tokens.content.secondary};
@@ -580,14 +591,8 @@ const TaskWrapper = styled('li')`
   }
 `;
 
-const TaskCardWrapper = styled('div')`
-  position: relative;
-  display: grid;
-  grid-template-columns: 22px minmax(0, 1fr) max-content;
-  gap: ${p => p.theme.space.lg};
+const TaskCardWrapper = styled(Grid)`
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
-  border-radius: ${p => p.theme.radius.md};
-  padding: ${p => p.theme.space.md} 0;
   p {
     margin: 0;
     font-size: ${p => p.theme.font.size.sm};
@@ -599,15 +604,6 @@ const TaskCardWrapper = styled('div')`
     button {
       visibility: visible;
     }
-  }
-`;
-
-const TaskListCard = styled(TaskCard)`
-  grid-column: 1 / -1;
-  grid-template-columns: subgrid;
-
-  > div:first-of-type {
-    margin-left: ${p => p.theme.space.md};
   }
 `;
 
