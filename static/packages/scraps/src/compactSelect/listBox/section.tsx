@@ -7,7 +7,6 @@ import type {ListItemBase} from '@sentry/scraps/compactSelect/types';
 import {SectionGroup, SectionList} from '@sentry/scraps/menu';
 
 interface ListBoxSectionProps<T extends ListItemBase> {
-  /** The section's options, rendered inside its group. */
   children: React.ReactNode;
   listState: ListState<T>;
   section: SelectSectionRow<T>;
