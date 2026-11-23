@@ -11,6 +11,7 @@ from sentry import features, options
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
 from sentry.models.groupenvironment import GroupEnvironment
+from sentry.models.organization import Organization
 from sentry.services.eventstore.models import GroupEvent
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.caches.action_filters import get_action_filters_by_workflows
@@ -18,7 +19,6 @@ from sentry.workflow_engine.caches.workflow import (
     get_activity_workflows_by_organization,
     get_workflows_by_detectors,
 )
-from sentry.workflow_engine.features import is_activity_workflow_enabled
 from sentry.workflow_engine.models import DataConditionGroup, Detector, Workflow
 from sentry.workflow_engine.models.data_condition import DataCondition
 from sentry.workflow_engine.processors.contexts.workflow_event_context import (
@@ -531,6 +531,11 @@ def _build_process_workflows_result(
         detector_id=detector.id if detector else None,
         detector_type=detector.type if detector else None,
     )
+
+
+def is_activity_workflow_enabled(organization: Organization) -> bool:
+    """Shared routing decision for activity processing, producers, and Inbox cutover."""
+    return bool(features.has("organizations:workflow-engine-activity-workflows", organization))
 
 
 def get_activity_workflows(

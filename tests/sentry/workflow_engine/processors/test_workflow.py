@@ -23,7 +23,6 @@ from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.workflow_engine.buffer.batch_client import DelayedWorkflowClient, DelayedWorkflowItem
 from sentry.workflow_engine.defaults.detectors import ensure_default_all_projects_detector
-from sentry.workflow_engine.features import is_activity_workflow_enabled
 from sentry.workflow_engine.models import Action, DataConditionGroup, Workflow
 from sentry.workflow_engine.models.data_condition import Condition
 from sentry.workflow_engine.models.workflow_fire_history import WorkflowFireHistory
@@ -46,6 +45,7 @@ from sentry.workflow_engine.processors.workflow import (
     evaluate_workflows_action_filters,
     get_activity_workflows,
     get_environment_by_event,
+    is_activity_workflow_enabled,
     process_workflows,
     select_workflows,
 )
