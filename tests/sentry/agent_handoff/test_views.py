@@ -62,7 +62,6 @@ class AgentHandoffViewTest(TestCase):
         context: ProjectSetupContext | None = None,
         *,
         ip_address: str | None = "127.0.0.1",
-        disable_ip_pinning: bool = False,
     ) -> str:
         issued = issue_handoff(
             flow=HandoffFlow.ONBOARDING,
@@ -71,7 +70,6 @@ class AgentHandoffViewTest(TestCase):
             application_id=self.application.id,
             scope_list=["org:read"],
             ip_address=ip_address,
-            disable_ip_pinning=disable_ip_pinning,
             context=context or self.onboarding_context,
         )
         self.handoff_id = issued.handoff_id
@@ -430,7 +428,15 @@ class AgentHandoffViewTest(TestCase):
         assert self.claim_api("sntryh_" + "a" * 2000).status_code == 400
 
     def test_legacy_opt_out_still_requires_device_auth(self) -> None:
-        code = self.issue(disable_ip_pinning=True)
+        code = self.issue()
+        client = _get_redis_client()
+        key = _handoff_key(code)
+        raw = client.get(key)
+        assert raw is not None
+        handoff = json.loads(raw)
+        handoff["disable_ip_pinning"] = True
+        client.set(key, json.dumps(handoff), ex=int(HANDOFF_LIFETIME.total_seconds()))
+
         response = self.claim_api(code, ip_address="192.0.2.2")
 
         assert response.status_code == 200

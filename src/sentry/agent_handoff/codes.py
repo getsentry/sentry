@@ -14,9 +14,9 @@ from pydantic import (
     BaseModel,
     Extra,
     Field,
-    StrictBool,
     StrictInt,
     StrictStr,
+    root_validator,
 )
 from sentry_redis_tools.clients import RedisCluster, StrictRedis
 
@@ -71,8 +71,13 @@ class _AgentHandoff(BaseModel):
     application_id: StrictInt
     scope_list: tuple[StrictStr, ...]
     ip_address: StrictStr | None = None
-    disable_ip_pinning: StrictBool = False
     expires_at: datetime
+
+    @root_validator(pre=True)
+    def discard_legacy_ip_pinning_option(cls, values: dict[str, object]) -> dict[str, object]:
+        # Handoffs issued before the option was removed may still be in Redis.
+        values.pop("disable_ip_pinning", None)
+        return values
 
     class Config:
         frozen = True
@@ -150,7 +155,6 @@ def issue_handoff(
     application_id: int,
     scope_list: Sequence[str],
     ip_address: str | None,
-    disable_ip_pinning: bool = False,
     context: HandoffContext = None,
 ) -> IssuedAgentHandoff:
     handoff_id = uuid.uuid4().hex
@@ -164,7 +168,6 @@ def issue_handoff(
             "application_id": application_id,
             "scope_list": tuple(scope_list),
             "ip_address": normalize_handoff_ip(ip_address),
-            "disable_ip_pinning": disable_ip_pinning,
             "context": context,
             "expires_at": expires_at,
         },
