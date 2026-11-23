@@ -7,7 +7,16 @@ from .row_set import RowSet
 
 DEFAULT_RETRY: Retry
 
+class _BigtableRetryableError(Exception): ...
+
 class Table:
+    def __init__(
+        self,
+        table_id: str,
+        instance: Any,
+        mutation_timeout: float | None = None,
+        app_profile_id: str | None = None,
+    ) -> None: ...
     def read_row(
         self, row_key: str, filter_: Any = None, retry: Any = None
     ) -> PartialRowData | None: ...

@@ -3,18 +3,32 @@ from sentry.testutils.cases import APITestCase
 
 
 class ListProjectServiceHooksTest(APITestCase):
+    def setUp(self) -> None:
+        super().setUp()
+        self.hook = self.create_service_hook(project=self.project)
+        self.path = f"/api/0/projects/{self.organization.slug}/{self.project.slug}/hooks/"
+
     def test_simple(self) -> None:
-        project = self.create_project()
-        hook = ServiceHook.objects.get_or_create(
-            project_id=project.id, actor_id=self.user.id, url="http://example.com"
-        )[0]
         self.login_as(user=self.user)
-        url = f"/api/0/projects/{project.organization.slug}/{project.slug}/hooks/"
         with self.feature("projects:servicehooks"):
-            response = self.client.get(url)
+            response = self.client.get(self.path)
         assert response.status_code == 200
         assert len(response.data) == 1
-        assert response.data[0]["id"] == hook.guid
+        assert response.data[0]["id"] == self.hook.guid
+        assert response.data[0]["secret"] == ""
+
+    def test_member_cannot_read_secret(self) -> None:
+        member = self.create_user()
+        self.create_member(
+            user=member, organization=self.organization, teams=[self.team], role="member"
+        )
+        self.login_as(user=member)
+        with self.feature("projects:servicehooks"):
+            response = self.client.get(self.path)
+        assert response.status_code == 200
+        assert len(response.data) == 1
+        assert response.data[0]["id"] == self.hook.guid
+        assert response.data[0]["secret"] == ""
 
 
 class CreateProjectServiceHookTest(APITestCase):
@@ -37,6 +51,7 @@ class CreateProjectServiceHookTest(APITestCase):
         assert hook.actor_id == self.user.id
         assert sorted(hook.events) == ["event.alert", "event.created"]
         assert hook.version == 0
+        assert resp.data["secret"] == hook.secret
 
         hook_project = ServiceHookProject.objects.get(project_id=self.project.id)
         assert hook_project.service_hook_id == hook.id
