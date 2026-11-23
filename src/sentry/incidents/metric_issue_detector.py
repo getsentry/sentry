@@ -247,8 +247,7 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
                 raise serializers.ValidationError("Too many conditions")
 
         if "data_sources" in attrs:
-            self.validate_eap_rule(attrs)
-            self._validate_metric_subscription_allowed(attrs)
+            self._validate_data_sources(attrs)
 
         if "config" in attrs:
             self._validate_config(attrs["config"])
@@ -281,6 +280,10 @@ class MetricIssueDetectorValidator(BaseDetectorTypeValidator):
             raise serializers.ValidationError(
                 f"{extrapolation_mode.name.lower()} extrapolation mode is not supported for new detectors. Allowed modes are: client_and_server_weighted, unknown."
             )
+
+    def _validate_data_sources(self, attrs: dict[str, Any]) -> None:
+        self.validate_eap_rule(attrs)
+        self._validate_metric_subscription_allowed(attrs)
 
     def _validate_config(self, config: Any) -> None:
         if not isinstance(config, dict):
