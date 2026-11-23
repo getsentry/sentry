@@ -6,10 +6,7 @@ import {Tooltip} from '@sentry/scraps/tooltip';
 import {tct} from 'sentry/locale';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 
-import {
-  formatClockDriftOffset,
-  type ClockDriftCorrection,
-} from './traceModels/clockDriftCorrection';
+import {formatClockDriftOffset} from './traceModels/clockDriftCorrection';
 
 /**
  * The clock drift icon is part of the span's duration label. The label placement makes room for it,
@@ -56,12 +53,8 @@ export function ClockDriftTooltip({
  * request. Only the root of the moved subtree gets one, its children moved along with it. The
  * label's tooltip explains it.
  */
-export function ClockDriftLabelIcon({
-  correction,
-}: {
-  correction: ClockDriftCorrection | null;
-}) {
-  if (!correction) {
+export function ClockDriftLabelIcon({visible}: {visible: boolean}) {
+  if (!visible) {
     return null;
   }
 

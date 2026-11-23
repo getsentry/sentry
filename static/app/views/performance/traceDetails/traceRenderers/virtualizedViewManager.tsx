@@ -2340,7 +2340,7 @@ export class VirtualizedViewManager {
  * The width of icons rendered inside the duration label, in addition to its text.
  */
 function getLabelIconWidthPx(node: BaseNode): number {
-  return node.clockDriftCorrection
+  return node.isClockDriftCorrectionRoot
     ? CLOCK_DRIFT_ICON_SIZE_PX + CLOCK_DRIFT_ICON_GAP_PX
     : 0;
 }

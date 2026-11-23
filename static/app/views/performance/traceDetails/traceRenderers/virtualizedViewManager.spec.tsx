@@ -397,12 +397,12 @@ describe('VirtualizedViewManger', () => {
   });
 
   describe('span text placement', () => {
-    function makeNode(clockDriftCorrection: BaseNode['clockDriftCorrection']): BaseNode {
+    function makeNode(clockDriftOffsetMs = 0): BaseNode {
       return {
         errors: new Set(),
         occurrences: new Set(),
-        clockDriftOffsetMs: clockDriftCorrection?.offsetMs ?? 0,
-        clockDriftCorrection,
+        clockDriftOffsetMs,
+        isClockDriftCorrectionRoot: clockDriftOffsetMs !== 0,
       } as unknown as BaseNode;
     }
 
@@ -420,7 +420,7 @@ describe('VirtualizedViewManger', () => {
       return manager;
     }
 
-    const shifted = makeNode({offsetMs: 100});
+    const shifted = makeNode(100);
 
     it('makes room for the clock drift icon when placing the text left of the span', () => {
       const manager = makeManager();
@@ -428,7 +428,7 @@ describe('VirtualizedViewManger', () => {
       const span: [number, number] = [800, 100];
 
       const [insideWithout, withoutIcon] = manager.computeSpanTextPlacement(
-        makeNode(null),
+        makeNode(),
         span,
         '100.00ms'
       );
@@ -451,7 +451,7 @@ describe('VirtualizedViewManger', () => {
       const span: [number, number] = [100, 100];
 
       expect(manager.computeSpanTextPlacement(shifted, span, '100.00ms')).toEqual(
-        manager.computeSpanTextPlacement(makeNode(null), span, '100.00ms')
+        manager.computeSpanTextPlacement(makeNode(), span, '100.00ms')
       );
     });
   });

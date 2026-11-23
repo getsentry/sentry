@@ -234,7 +234,8 @@ describe('clock drift correction', () => {
       );
 
       const server = findSpan(tree, 'server-1');
-      expect(server.clockDriftCorrection?.offsetMs).toBeCloseTo(121_056.4);
+      expect(server.clockDriftOffsetMs).toBeCloseTo(121_056.4);
+      expect(server.isClockDriftCorrectionRoot).toBe(true);
       expect(displayedGaps(tree, '1').start).toBeCloseTo(0);
       // The recorded timestamps are untouched
       expect(server.startTimestamp).toBeCloseTo(T - 121.0564);
@@ -253,9 +254,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(findSpan(tree, 'server-1').clockDriftCorrection?.offsetMs).toBeCloseTo(
-        -20_406.1
-      );
+      expect(findSpan(tree, 'server-1').clockDriftOffsetMs).toBeCloseTo(-20_406.1);
       expect(displayedGaps(tree, '1').end).toBeCloseTo(0);
     });
 
@@ -286,7 +285,7 @@ describe('clock drift correction', () => {
       );
 
       const offsets = recorded.map(
-        (_, index) => findSpan(tree, `server-${index}`).clockDriftCorrection?.offsetMs
+        (_, index) => findSpan(tree, `server-${index}`).clockDriftOffsetMs
       );
       // The tightest request decides the shift, and every request gets it
       for (const offset of offsets) {
@@ -333,13 +332,9 @@ describe('clock drift correction', () => {
 
       // Each request on host A alone would need a slightly different shift, they get the one
       // that fits both
-      expect(findSpan(tree, 'server-a1').clockDriftCorrection?.offsetMs).toBeCloseTo(
-        -297.4
-      );
-      expect(findSpan(tree, 'server-a2').clockDriftCorrection?.offsetMs).toBeCloseTo(
-        -297.4
-      );
-      expect(findSpan(tree, 'server-b1').clockDriftCorrection?.offsetMs).toBeCloseTo(150);
+      expect(findSpan(tree, 'server-a1').clockDriftOffsetMs).toBeCloseTo(-297.4);
+      expect(findSpan(tree, 'server-a2').clockDriftOffsetMs).toBeCloseTo(-297.4);
+      expect(findSpan(tree, 'server-b1').clockDriftOffsetMs).toBeCloseTo(150);
     });
 
     it('does not move a request that disagrees with the other requests of its segment', () => {
@@ -370,13 +365,9 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(findSpan(tree, 'server-1').clockDriftCorrection?.offsetMs).toBeCloseTo(
-        -297.4
-      );
-      expect(findSpan(tree, 'server-2').clockDriftCorrection?.offsetMs).toBeCloseTo(
-        -297.4
-      );
-      expect(findSpan(tree, 'server-3').clockDriftCorrection).toBeNull();
+      expect(findSpan(tree, 'server-1').clockDriftOffsetMs).toBeCloseTo(-297.4);
+      expect(findSpan(tree, 'server-2').clockDriftOffsetMs).toBeCloseTo(-297.4);
+      expect(findSpan(tree, 'server-3').isClockDriftCorrectionRoot).toBe(false);
       expect(findSpan(tree, 'server-3').clockDriftOffsetMs).toBe(0);
     });
 
@@ -407,9 +398,10 @@ describe('clock drift correction', () => {
       const server = findSpan(tree, 'server-1');
       const db = findSpan(tree, 'db');
 
-      expect(server.clockDriftCorrection?.offsetMs).toBeCloseTo(1366);
+      expect(server.clockDriftOffsetMs).toBeCloseTo(1366);
+      expect(server.isClockDriftCorrectionRoot).toBe(true);
       expect(db.clockDriftOffsetMs).toBeCloseTo(1366);
-      expect(db.clockDriftCorrection).toBeNull();
+      expect(db.isClockDriftCorrectionRoot).toBe(false);
       expect(db.space[0] - server.space[0]).toBeCloseTo(20);
     });
 
@@ -502,7 +494,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(findSpan(tree, 'server-1').clockDriftCorrection?.offsetMs).toBeCloseTo(
+      expect(findSpan(tree, 'server-1').clockDriftOffsetMs).toBeCloseTo(
         MIN_CLOCK_DRIFT_CORRECTION_MS
       );
     });
@@ -539,7 +531,7 @@ describe('clock drift correction', () => {
         ])
       );
 
-      expect(findSpan(tree, 'server-1').clockDriftCorrection?.offsetMs).toBeCloseTo(500);
+      expect(findSpan(tree, 'server-1').clockDriftOffsetMs).toBeCloseTo(500);
     });
 
     it('does not move server spans that do not start a new segment', () => {
@@ -595,10 +587,10 @@ describe('clock drift correction', () => {
       removeClockDriftCorrection(tree.root);
       expect(server.space[0]).toBe(recordedStart);
       expect(server.clockDriftOffsetMs).toBe(0);
-      expect(server.clockDriftCorrection).toBeNull();
+      expect(server.isClockDriftCorrectionRoot).toBe(false);
 
       expect(applyClockDriftCorrection(tree.root)).toBe(1);
-      expect(server.clockDriftCorrection?.offsetMs).toBeCloseTo(-20_406.1);
+      expect(server.clockDriftOffsetMs).toBeCloseTo(-20_406.1);
     });
 
     it('does not stretch the trace space to where misaligned spans were recorded', () => {
@@ -682,7 +674,7 @@ describe('clock drift correction', () => {
       const nested = findSpan(tree, 'server-nested');
       expect(nested.clockDriftOffsetMs).toBeCloseTo(1000);
       // Its own clock agrees with its caller, so it is not corrected on its own
-      expect(nested.clockDriftCorrection).toBeNull();
+      expect(nested.isClockDriftCorrectionRoot).toBe(false);
       expect(collectClockDriftCorrections(tree.root)).toHaveLength(1);
     });
   });

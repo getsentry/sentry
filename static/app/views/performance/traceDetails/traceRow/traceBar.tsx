@@ -171,7 +171,7 @@ export function TraceBar(props: TraceBarProps) {
       </div>
       <ClockDriftTooltip offsetMs={props.node.clockDriftOffsetMs}>
         <div ref={registerSpanBarTextRef} className="TraceBarDuration">
-          <ClockDriftLabelIcon correction={props.node.clockDriftCorrection} />
+          <ClockDriftLabelIcon visible={props.node.isClockDriftCorrectionRoot} />
           <span className="TraceBarDurationText">{duration}</span>
         </div>
       </ClockDriftTooltip>

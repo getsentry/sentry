@@ -32,13 +32,6 @@ export function formatClockDriftOffset(offsetMs: number): string {
   return `${sign}${formatTraceDuration(Math.abs(offsetMs))}`;
 }
 
-export type ClockDriftCorrection = {
-  /**
-   * How far the server subtree was moved, in milliseconds. Positive values move it later.
-   */
-  offsetMs: number;
-};
-
 type ClientServerPair = {client: EapSpanNode; server: EapSpanNode};
 
 /**
@@ -194,7 +187,7 @@ function shiftSubtree(server: BaseNode, offsetMs: number): void {
 
   shift(server);
   server.forEachChild(shift);
-  server.clockDriftCorrection = {offsetMs};
+  server.isClockDriftCorrectionRoot = true;
 }
 
 /**
@@ -251,7 +244,7 @@ export function applyClockDriftCorrection(root: BaseNode): number {
  */
 export function removeClockDriftCorrection(root: BaseNode): void {
   const restore = (node: BaseNode) => {
-    node.clockDriftCorrection = null;
+    node.isClockDriftCorrectionRoot = false;
     if (node.clockDriftOffsetMs !== 0) {
       node.space = [node.space[0] - node.clockDriftOffsetMs, node.space[1]];
       node.clockDriftOffsetMs = 0;
@@ -265,7 +258,7 @@ export function removeClockDriftCorrection(root: BaseNode): void {
 export function collectClockDriftCorrections(root: BaseNode): BaseNode[] {
   const corrected: BaseNode[] = [];
   root.forEachChild(node => {
-    if (node.clockDriftCorrection) {
+    if (node.isClockDriftCorrectionRoot) {
       corrected.push(node);
     }
   });
