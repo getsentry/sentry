@@ -145,7 +145,7 @@ describe('InboxIssuePreview', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('shows an error when every related issue type failed', async () => {
+  it('shows an error when every related issue type that applies failed', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/issues/${group.id}/related/`,
       body: {
@@ -155,6 +155,7 @@ describe('InboxIssuePreview', () => {
           types: [
             {type: 'similar_stacktrace', status: 'unavailable'},
             {type: 'same_trace', status: 'unavailable'},
+            {type: 'contributing', status: 'not_applicable'},
             {type: 'investigations', status: 'ok'},
           ],
         },

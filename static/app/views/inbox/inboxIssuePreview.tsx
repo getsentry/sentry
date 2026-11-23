@@ -292,10 +292,13 @@ function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
   ].slice(0, RELATED_SHOWN);
 
   if (rows.length === 0) {
-    // The request still succeeds when every issue type failed
-    const issueTypes = data.meta.types.filter(meta => meta.type !== 'investigations');
+    // If we have no related resources that means either every relation type failed or wasn't applicable OR
+    // at least one relation type worked but returned no results. Filter out investigations since they can't fail.
+    const issueStatuses = data.meta.types
+      .filter(meta => meta.type !== 'investigations')
+      .map(meta => meta.status);
     const issueTypesFailed =
-      issueTypes.length > 0 && issueTypes.every(meta => meta.status === 'unavailable');
+      issueStatuses.includes('unavailable') && !issueStatuses.includes('ok');
     return (
       <Text variant="muted">
         {issueTypesFailed
