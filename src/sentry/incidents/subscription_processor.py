@@ -16,6 +16,7 @@ from sentry.incidents.utils.query_helpers import (
 from sentry.incidents.utils.subscription_limits import is_metric_subscription_allowed
 from sentry.incidents.utils.types import (
     AnomalyDetectionUpdate,
+    MetricUpdate,
     ProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
 )
@@ -29,9 +30,7 @@ from sentry.utils.dates import to_datetime
 from sentry.utils.memory import track_memory_usage
 from sentry.workflow_engine.caches.detector import get_detectors_by_data_source
 from sentry.workflow_engine.models import DataPacket, Detector
-from sentry.workflow_engine.processors import DetectorEvaluation
 from sentry.workflow_engine.processors.data_packet import process_data_packet
-from sentry.workflow_engine.types import DetectorGroupKey
 
 logger = logging.getLogger(__name__)
 REDIS_TTL = int(timedelta(days=7).total_seconds())
@@ -189,13 +188,29 @@ class SubscriptionProcessor:
 
         return (current_value / baseline_value) * 100
 
-    def get_evaluation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
+    def _create_data_packet(
+        self, subscription_update: QuerySubscriptionUpdate
+    ) -> DataPacket[MetricUpdate] | None:
         extracted_value = self._extract_value_from_update(subscription_update)
+
         if extracted_value is None:
             return None
 
-        if self.detector.config["detection_type"] == AlertRuleDetectionType.PERCENT.value:
-            return (
+        entity = subscription_update.get("entity", "")
+        timestamp = subscription_update["timestamp"]
+        detection_type = self.detector.config["detection_type"]
+        processed_subscription_update: MetricUpdate
+
+        if detection_type == AlertRuleDetectionType.STATIC.value:
+            processed_subscription_update = ProcessedSubscriptionUpdate(
+                entity=entity,
+                subscription_id=self.snuba_subscription_id,
+                values={"value": extracted_value},
+                timestamp=timestamp,
+            )
+
+        elif detection_type == AlertRuleDetectionType.PERCENT.value:
+            percent_value = (
                 # TODO: We have a handful of (broken) crash rate detectors which are wrongly stored
                 # with `detection_type: 'percent'`. Once we fix those bad detectors (and add
                 # validation to make sure no such detectors ever reappear), we can remove this
@@ -205,47 +220,37 @@ class SubscriptionProcessor:
                 else self._get_percent_detector_value(extracted_value, subscription_update)
             )
 
-        # Static and dynamic detectors use the extracted value as is
-        return extracted_value
+            if percent_value is None:
+                return None
 
-    def _create_and_process_data_packet(
-        self,
-        detector: Detector,
-        subscription_update: QuerySubscriptionUpdate,
-        evaluation_value: float,
-    ) -> list[tuple[Detector, dict[DetectorGroupKey, DetectorEvaluation]]]:
-        timestamp = subscription_update["timestamp"]
-        if detector.config["detection_type"] == AlertRuleDetectionType.DYNAMIC.value:
-            anomaly_detection_packet = AnomalyDetectionUpdate(
-                entity=subscription_update.get("entity", ""),
+            processed_subscription_update = ProcessedSubscriptionUpdate(
+                entity=entity,
+                subscription_id=self.snuba_subscription_id,
+                values={"value": percent_value},
+                timestamp=timestamp,
+            )
+
+        elif detection_type == AlertRuleDetectionType.DYNAMIC.value:
+            processed_subscription_update = AnomalyDetectionUpdate(
+                entity=entity,
                 subscription_id=self.snuba_subscription_id,
                 values={
-                    "value": evaluation_value,
+                    "value": extracted_value,
                     "source_id": self.subscription_id,
                     "subscription_id": self.snuba_subscription_id,
                     "timestamp": timestamp,
                 },
                 timestamp=timestamp,
             )
-            anomaly_detection_data_packet = DataPacket[AnomalyDetectionUpdate](
-                source_id=self.subscription_id, packet=anomaly_detection_packet
-            )
-            results = process_data_packet(
-                anomaly_detection_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION
-            )
-        else:
-            metric_packet = ProcessedSubscriptionUpdate(
-                entity=subscription_update.get("entity", ""),
-                subscription_id=self.snuba_subscription_id,
-                values={"value": evaluation_value},
-                timestamp=timestamp,
-            )
-            metric_data_packet = DataPacket[ProcessedSubscriptionUpdate](
-                source_id=self.subscription_id, packet=metric_packet
-            )
-            results = process_data_packet(metric_data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
-        return results
+        else:
+            logger.error(
+                f"Unknown detection type: '{detection_type}'",
+                extra={"subscription_id": self.subscription_id, "detector_id": self.detector.id},
+            )
+            return None
+
+        return DataPacket(source_id=self.subscription_id, packet=processed_subscription_update)
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> bool:
         """
@@ -283,22 +288,21 @@ class SubscriptionProcessor:
             track_memory_usage("incidents.alert_rules.process_update_memory"),
         ):
             metrics.incr("incidents.alert_rules.process_update.start")
-            evaluation_value = self.get_evaluation_value(subscription_update)
+            data_packet = self._create_data_packet(subscription_update)
 
-            # `get_evaluation_value` will return None if there's no usable value
-            if evaluation_value is None:
+            # `_create_data_packet` will return None if there's no usable value for the detector to
+            # evaluate
+            if data_packet is None:
                 metrics.incr("incidents.alert_rules.skipping_update_invalid_aggregation_value")
             else:
-                self._create_and_process_data_packet(
-                    self.detector, subscription_update, evaluation_value
-                )
+                process_data_packet(data_packet, DATA_SOURCE_SNUBA_QUERY_SUBSCRIPTION)
 
         # Whether or not the value was valid, we processed the update, so bump the stored last
         # update time to avoid reprocessing it. This happens after processing, not before, so an
         # update interrupted partway through can still be redelivered and reprocessed.
         store_detector_last_update(self.detector, self.project.id, subscription_update["timestamp"])
 
-        return evaluation_value is not None
+        return data_packet is not None
 
 
 def build_detector_last_update_key(detector: Detector, project_id: int) -> str:
