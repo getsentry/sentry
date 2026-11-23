@@ -1,3 +1,4 @@
+from typing import Any
 from unittest.mock import Mock, patch
 
 from django.test import override_settings
@@ -25,8 +26,10 @@ from sentry.notifications.platform.slack.renderers.seer_agent_write_approval imp
     SeerAgentWriteApprovalSlackRenderer,
 )
 from sentry.notifications.platform.templates.seer import (
+    AGENT_DAILY_LIMIT_MESSAGE,
     AGENT_OUT_OF_CREDITS_MESSAGE,
     AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
+    AUTOFIX_DAILY_LIMIT_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_MESSAGE,
     AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE,
     SeerAgentError,
@@ -349,7 +352,7 @@ def assert_out_of_credits_message(renderable: SlackRenderable, message: str) -> 
     assert section.text.text == message
 
 
-def assert_configure_auto_reload_button(
+def assert_billing_button(
     renderable: SlackRenderable, *, organization_id: int, billing_slug: str
 ) -> None:
     blocks = renderable["blocks"]
@@ -369,16 +372,25 @@ def assert_configure_auto_reload_button(
 
 
 class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
-    def _render(self, **kwargs: bool) -> SlackRenderable:
+    def _render(self, **kwargs: Any) -> SlackRenderable:
         data = SeerAutofixOutOfCredits(organization_id=self.organization.id, **kwargs)
         return render_seer(
             data=data, rendered_template=SeerAutofixOutOfCreditsTemplate().render(data)
         )
 
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AUTOFIX_DAILY_LIMIT_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
     def test_links_to_auto_reload_settings(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_MESSAGE)
-        assert_configure_auto_reload_button(
+        assert_billing_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
@@ -387,7 +399,7 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
     def test_auto_reload_already_on(self) -> None:
         renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AUTOFIX_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
-        assert_configure_auto_reload_button(
+        assert_billing_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
@@ -403,16 +415,25 @@ class SeerSlackRendererAutofixOutOfCreditsTest(TestCase):
 
 
 class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
-    def _render(self, **kwargs: bool) -> SlackRenderable:
+    def _render(self, **kwargs: Any) -> SlackRenderable:
         data = SeerAgentOutOfCredits(organization_id=self.organization.id, **kwargs)
         return render_seer(
             data=data, rendered_template=SeerAgentOutOfCreditsTemplate().render(data)
         )
 
+    def test_daily_limit_links_to_billing(self) -> None:
+        renderable = self._render(denial_reason="daily_cap_exceeded")
+        assert_out_of_credits_message(renderable, AGENT_DAILY_LIMIT_MESSAGE)
+        assert_billing_button(
+            renderable,
+            organization_id=self.organization.id,
+            billing_slug=self.organization.slug,
+        )
+
     def test_links_to_auto_reload_settings(self) -> None:
         renderable = self._render()
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_MESSAGE)
-        assert_configure_auto_reload_button(
+        assert_billing_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
@@ -421,7 +442,7 @@ class SeerSlackRendererAgentOutOfCreditsTest(TestCase):
     def test_auto_reload_already_on(self) -> None:
         renderable = self._render(auto_reload_enabled=True)
         assert_out_of_credits_message(renderable, AGENT_OUT_OF_CREDITS_NO_RELOADS_MESSAGE)
-        assert_configure_auto_reload_button(
+        assert_billing_button(
             renderable,
             organization_id=self.organization.id,
             billing_slug=self.organization.slug,
