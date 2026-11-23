@@ -24,9 +24,9 @@ const CLAW_REACH = 28;
 const FINE_HOVER = '(hover: hover) and (pointer: fine)';
 
 const BUGS = [
-  {center: 1, hidden: 120, antennae: 86},
-  {center: -7.5, hidden: 136, antennae: 102},
-  {center: -11.5, hidden: 137, antennae: 103},
+  {center: 1, hidden: 120, antennae: 86, edge: 'right'},
+  {center: -7.5, hidden: 136, antennae: 102, edge: 'left'},
+  {center: -11.5, hidden: 137, antennae: 103, edge: 'right'},
 ] as const;
 
 let lastShownBug: number | undefined;
@@ -106,7 +106,7 @@ interface BugLayerProps {
 }
 
 function BugLayer({bug, hasHovered, side}: BugLayerProps) {
-  const {center, hidden, antennae} = BUGS[bug]!;
+  const {center, hidden, antennae, edge} = BUGS[bug]!;
   const style = {
     '--center': center,
     '--hidden': hidden,
@@ -115,7 +115,7 @@ function BugLayer({bug, hasHovered, side}: BugLayerProps) {
 
   return (
     <Layer
-      className={`layer ${side}`}
+      className={`layer ${side} ${edge}`}
       viewBox={`${VIEW_BOX.x} ${VIEW_BOX.y} ${VIEW_BOX.width} ${VIEW_BOX.height}`}
       style={style}
       aria-hidden
@@ -190,6 +190,12 @@ const Layer = styled('svg')`
   transition:
     visibility 0s 0.2s,
     translate ${p => p.theme.motion.snap.fast};
+
+  /* Keeps the art as far from the right edge as it would sit from the left. */
+  &.right {
+    left: auto;
+    right: calc(var(--center) * ${2 * SCALE}px);
+  }
 
   &.back {
     z-index: -1;
