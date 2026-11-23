@@ -636,15 +636,14 @@ describe('Onboarding', () => {
       expect(await screen.findByText('sntryh_****')).toBeInTheDocument();
       expect(agenticRunRequestMock.mock.calls[0]?.[1]?.data.origin).toBe('onboarding');
       expect(
-        screen.getByRole('heading', {name: 'Let your agent set up Sentry'})
+        screen.getByRole('heading', {name: 'Set up Sentry using your coding agent'})
       ).toBeInTheDocument();
       expect(
-        screen.getByText('Detects your stack and installs the Sentry CLI')
+        screen.getByText('Detects your stack and adds the right SDK')
       ).toBeInTheDocument();
-      expect(screen.getByRole('button', {name: 'Advanced options'})).toBeInTheDocument();
       expect(
-        screen.getByRole('link', {name: 'See the full instructions'})
-      ).toHaveAttribute('href', 'https://sentry.io/agent-handoff.md');
+        screen.getByRole('checkbox', {name: /Only allow this network/})
+      ).toBeChecked();
       expect(screen.getByRole('button', {name: /Set up manually/})).toBeInTheDocument();
       expect(screen.queryByTestId('onboarding-welcome-start')).not.toBeInTheDocument();
       expect(screen.queryByText('Error monitoring')).not.toBeInTheDocument();

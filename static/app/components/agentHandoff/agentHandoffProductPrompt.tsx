@@ -63,7 +63,6 @@ export function AgentHandoffProductPrompt({
 
         <Flex align="center" gap="md">
           <Button
-            busy={handoff.isPending}
             disabled={copyDisabled}
             icon={<IconCopy />}
             variant="primary"
