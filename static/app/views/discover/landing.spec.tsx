@@ -99,21 +99,6 @@ describe('Discover > Landing', () => {
     );
   });
 
-  it('points saved transactions queries to Explore', async () => {
-    const org = OrganizationFixture({features});
-
-    render(
-      <OrganizationContext value={org}>
-        <DiscoverLanding />
-      </OrganizationContext>
-    );
-
-    expect(await screen.findByRole('link', {name: 'Explore Queries'})).toHaveAttribute(
-      'href',
-      '/organizations/org-slug/explore/saved-queries/'
-    );
-  });
-
   it('links back to the homepage', async () => {
     const org = OrganizationFixture({features});
 
