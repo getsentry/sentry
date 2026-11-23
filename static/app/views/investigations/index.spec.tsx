@@ -124,7 +124,11 @@ describe('Explore Investigations', () => {
           id: '3',
           trigger: {
             type: 'automation',
-            automation: {id: '8', name: 'Telemetry audit', strategy: 'agentic_triage_v2'},
+            automation: {
+              id: '8',
+              name: 'Telemetry audit',
+              strategy: 'scheduled_investigation',
+            },
             runId: '43',
           },
         }),

@@ -76,7 +76,7 @@ const ENVIRONMENTS = ['production', 'staging', 'development'];
  */
 const ALL_ENVIRONMENTS = '__all__';
 
-export function AgenticTriageForm(
+export function ScheduledInvestigationForm(
   props: CreateAutomationFormProps | EditAutomationFormProps
 ) {
   const organization = useOrganization();
@@ -135,7 +135,7 @@ export function AgenticTriageForm(
         ...fields,
         environments,
         enabled: value.enabled,
-        strategy: 'agentic_triage_v2',
+        strategy: 'scheduled_investigation',
         name: value.name,
       });
       toast.success(t('Automation created.'));
@@ -159,8 +159,8 @@ export function AgenticTriageForm(
       enabled: props.mode === 'edit' ? props.config.enabled : false,
       name:
         props.mode === 'create'
-          ? t('Agentic Triage')
-          : (props.config.name ?? STRATEGY_META.agentic_triage_v2.label),
+          ? t('Scheduled Investigation')
+          : (props.config.name ?? STRATEGY_META.scheduled_investigation.label),
       projects: defaultProjects,
       environment: currEnvironment,
       serviceAccountProjects: getServiceAccountProjectSelection(serviceAccount),
@@ -234,7 +234,9 @@ export function AgenticTriageForm(
                 </form.AppField>
               )}
               <Container padding="lg xl">
-                <Text variant="muted">{STRATEGY_META.agentic_triage_v2.description}</Text>
+                <Text variant="muted">
+                  {STRATEGY_META.scheduled_investigation.description}
+                </Text>
               </Container>
             </form.FieldGroup>
           </FormSection>
@@ -264,7 +266,7 @@ export function AgenticTriageForm(
                 {field => (
                   <field.Layout.Stack
                     label={t('Projects')}
-                    hintText={t('Seer triages issues in these projects.')}
+                    hintText={t('Seer investigates issues in these projects.')}
                   >
                     <field.Base>
                       {() => (
@@ -291,7 +293,7 @@ export function AgenticTriageForm(
                           }}
                           emptyMessage={
                             firstProject
-                              ? t('Add projects for this automation to triage.')
+                              ? t('Add projects for this automation to investigate.')
                               : t('You do not have access to any projects.')
                           }
                         />

@@ -5,9 +5,9 @@ import {Alert} from '@sentry/scraps/alert';
 
 import {NotFound} from 'sentry/components/errors/notFound';
 import {t} from 'sentry/locale';
-import {AgenticTriageForm} from 'sentry/views/seerWorkflows/automations/agenticTriageForm';
 import type {AutomationFormHandle} from 'sentry/views/seerWorkflows/automations/baseForm';
 import {MetricAutomationForm} from 'sentry/views/seerWorkflows/automations/metricAutomationForm';
+import {ScheduledInvestigationForm} from 'sentry/views/seerWorkflows/automations/scheduledInvestigationForm';
 import type {SeerWorkflowConfigResponse} from 'sentry/views/seerWorkflows/types';
 
 export type AutomationDetailOutletContext = {
@@ -40,9 +40,9 @@ export default function AutomationConfiguration() {
     );
   }
 
-  if (context?.config.strategy === 'agentic_triage_v2') {
+  if (context?.config.strategy === 'scheduled_investigation') {
     return (
-      <AgenticTriageForm
+      <ScheduledInvestigationForm
         mode="edit"
         config={context.config}
         formId={context.formId}

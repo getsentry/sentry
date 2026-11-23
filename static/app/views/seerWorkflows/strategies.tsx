@@ -9,10 +9,6 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
     label: t('Agentic triage'),
     description: t('Automatically triage and fix the most fixable Issues.'),
   },
-  agentic_triage_v2: {
-    label: t('Agentic triage'),
-    description: t('Automatically triage and fix the most fixable Issues.'),
-  },
   breached_metric_investigation: {
     label: t('Breached metrics'),
     description: t(
@@ -20,6 +16,10 @@ export const STRATEGY_META: Record<WorkflowStrategy, StrategyMeta> = {
     ),
   },
   duplicate_monitors: {label: t('Duplicate monitors')},
+  scheduled_investigation: {
+    label: t('Scheduled investigation'),
+    description: t('Investigates issues in the selected projects on a schedule.'),
+  },
 };
 
 /**

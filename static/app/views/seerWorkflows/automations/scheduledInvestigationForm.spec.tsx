@@ -14,10 +14,10 @@ import {selectEvent} from 'sentry-test/selectEvent';
 import {ProjectsStore} from 'sentry/stores/projectsStore';
 
 import AutomationConfiguration from './detail/configuration';
-import {AgenticTriageForm} from './agenticTriageForm';
 import AutomationDetail from './detail';
+import {ScheduledInvestigationForm} from './scheduledInvestigationForm';
 
-describe('AgenticTriageForm', () => {
+describe('ScheduledInvestigationForm', () => {
   const access = [
     ...OrganizationFixture().access,
     'event:read',
@@ -41,7 +41,7 @@ describe('AgenticTriageForm', () => {
   const config = SeerWorkflowConfigFixture({
     id: '42',
     name: 'Checkout triage',
-    strategy: 'agentic_triage_v2',
+    strategy: 'scheduled_investigation',
     enabled: false,
     projects: [1],
     environments: ['production'],
@@ -87,7 +87,7 @@ describe('AgenticTriageForm', () => {
         method: 'POST',
         body: config,
       });
-      const {router} = render(<AgenticTriageForm mode="create" />, {
+      const {router} = render(<ScheduledInvestigationForm mode="create" />, {
         organization,
         initialRouterConfig: {
           location: {pathname: '/organizations/org-slug/seer/automations/new/'},
@@ -108,8 +108,8 @@ describe('AgenticTriageForm', () => {
         configsUrl,
         expect.objectContaining({
           data: {
-            strategy: 'agentic_triage_v2',
-            name: 'Agentic Triage',
+            strategy: 'scheduled_investigation',
+            name: 'Scheduled Investigation',
             enabled: false,
             projectIds: [-1],
             environments: [],
@@ -125,7 +125,7 @@ describe('AgenticTriageForm', () => {
         method: 'POST',
         body: config,
       });
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await addProject('checkout-api');
@@ -150,7 +150,9 @@ describe('AgenticTriageForm', () => {
     });
 
     it('defaults to the first accessible project without all-project access', () => {
-      render(<AgenticTriageForm mode="create" />, {organization: memberOrganization});
+      render(<ScheduledInvestigationForm mode="create" />, {
+        organization: memberOrganization,
+      });
 
       expect(getAllProjectsSwitches()[0]).not.toBeChecked();
       expect(getAllProjectsSwitches()[0]).toBeDisabled();
@@ -167,7 +169,7 @@ describe('AgenticTriageForm', () => {
         method: 'POST',
         body: config,
       });
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
@@ -183,7 +185,9 @@ describe('AgenticTriageForm', () => {
         body: config,
       });
       ProjectsStore.loadInitialData([]);
-      render(<AgenticTriageForm mode="create" />, {organization: memberOrganization});
+      render(<ScheduledInvestigationForm mode="create" />, {
+        organization: memberOrganization,
+      });
 
       // No all-project access and nothing to add, so the scope can't be filled
       expect(getAllProjectsSwitches()[0]).toBeDisabled();
@@ -204,7 +208,7 @@ describe('AgenticTriageForm', () => {
         statusCode: 400,
         body: {detail: 'Automations are limited to 10 per organization.'},
       });
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(screen.getByRole('button', {name: 'Create automation'}));
 
@@ -220,7 +224,7 @@ describe('AgenticTriageForm', () => {
 
   describe('scope and service account', () => {
     it('includes scope projects in the service account and locks them', async () => {
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await addProject('checkout-api');
@@ -238,7 +242,7 @@ describe('AgenticTriageForm', () => {
     });
 
     it('drops a project from the service account when it leaves the scope, even if it was added manually first', async () => {
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await addProject('checkout-api');
@@ -276,7 +280,7 @@ describe('AgenticTriageForm', () => {
         method: 'POST',
         body: config,
       });
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await userEvent.click(getAllProjectsSwitches()[0]!);
       await addProject('checkout-api');
@@ -309,7 +313,7 @@ describe('AgenticTriageForm', () => {
         method: 'POST',
         body: config,
       });
-      render(<AgenticTriageForm mode="create" />, {organization});
+      render(<ScheduledInvestigationForm mode="create" />, {organization});
 
       await openServiceAccount(/All projects · 5 permissions/);
 
@@ -336,7 +340,7 @@ describe('AgenticTriageForm', () => {
   describe('edit', () => {
     function EditForm({editConfig}: {editConfig: typeof config}) {
       return (
-        <AgenticTriageForm
+        <ScheduledInvestigationForm
           mode="edit"
           config={editConfig}
           formId="automation-form"

@@ -46,9 +46,13 @@ describe('AutomationConfiguration', () => {
     expect(screen.getByText('Page Not Found')).toBeInTheDocument();
   });
 
-  it('shows the Agentic Triage form for agentic triage automations', async () => {
+  it('shows the Scheduled Investigation form for scheduled investigation automations', async () => {
     mockConfig(
-      SeerWorkflowConfigFixture({id: '42', strategy: 'agentic_triage_v2', projects: [1]})
+      SeerWorkflowConfigFixture({
+        id: '42',
+        strategy: 'scheduled_investigation',
+        projects: [1],
+      })
     );
     render(<AutomationDetail />, {organization, initialRouterConfig: detailRouterConfig});
 

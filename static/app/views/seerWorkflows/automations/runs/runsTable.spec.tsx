@@ -19,7 +19,7 @@ function makeRun(overrides: Partial<SeerAutomationRun> = {}): SeerAutomationRun 
     id: '1',
     configId: '1',
     configName: null,
-    strategy: 'agentic_triage_v2',
+    strategy: 'scheduled_investigation',
     dateAdded: '2026-04-20T00:00:00Z',
     dateUpdated: '2026-04-20T00:01:00Z',
     dateCompleted: '2026-04-20T00:01:00Z',
@@ -115,7 +115,7 @@ describe('RunsTable', () => {
       'href',
       `/organizations/${organization.slug}/seer/automations/7/`
     );
-    expect(screen.getByRole('link', {name: 'Agentic triage'})).toHaveAttribute(
+    expect(screen.getByRole('link', {name: 'Scheduled investigation'})).toHaveAttribute(
       'href',
       `/organizations/${organization.slug}/seer/automations/8/`
     );

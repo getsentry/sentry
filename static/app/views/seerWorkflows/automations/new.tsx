@@ -18,13 +18,13 @@ import {
   useAutomationsEnabled,
 } from 'sentry/views/seerWorkflows/utils';
 
-import {AgenticTriageForm} from './agenticTriageForm';
 import {FormSection} from './baseForm';
 import {MetricAutomationForm} from './metricAutomationForm';
+import {ScheduledInvestigationForm} from './scheduledInvestigationForm';
 
 const STRATEGIES = [
   'breached_metric_investigation',
-  'agentic_triage_v2',
+  'scheduled_investigation',
 ] as const satisfies WorkflowStrategy[];
 
 const strategyParser = parseAsStringLiteral(STRATEGIES)
@@ -32,7 +32,7 @@ const strategyParser = parseAsStringLiteral(STRATEGIES)
   .withOptions({clearOnDefault: false});
 
 function getSubtitle(strategy: (typeof STRATEGIES)[number]): string {
-  if (strategy === 'agentic_triage_v2') {
+  if (strategy === 'scheduled_investigation') {
     return t('Configure Seer to periodically investigate your issues.');
   }
   return t('Connect metric monitors so Seer can investigate what caused a breach.');
@@ -83,15 +83,18 @@ export default function NewAutomationPage() {
                   onChange={option => setStrategy(option.value)}
                   options={[
                     {value: 'breached_metric_investigation', label: t('Breached Metric')},
-                    {value: 'agentic_triage_v2', label: t('Agentic Triage')},
+                    {
+                      value: 'scheduled_investigation',
+                      label: t('Scheduled Investigation'),
+                    },
                   ]}
                 />
               </DisplayField.Row>
             </FieldGroup>
           </FormSection>
         </Container>
-        {strategy === 'agentic_triage_v2' ? (
-          <AgenticTriageForm mode="create" />
+        {strategy === 'scheduled_investigation' ? (
+          <ScheduledInvestigationForm mode="create" />
         ) : (
           <MetricAutomationForm mode="create" />
         )}

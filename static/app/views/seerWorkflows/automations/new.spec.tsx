@@ -14,7 +14,7 @@ describe('NewAutomationPage', () => {
   const pathname = '/organizations/org-slug/seer/automations/new/';
   const metricSubtitle =
     'Connect metric monitors so Seer can investigate what caused a breach.';
-  const agenticSubtitle = 'Configure Seer to periodically investigate your issues.';
+  const scheduledSubtitle = 'Configure Seer to periodically investigate your issues.';
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -37,15 +37,19 @@ describe('NewAutomationPage', () => {
     expect(screen.queryByText('Environments')).not.toBeInTheDocument();
   });
 
-  it('shows the Agentic Triage form for its strategy param', () => {
+  it('shows the Scheduled Investigation form for its strategy param', () => {
     render(<NewAutomationPage />, {
       organization,
-      initialRouterConfig: {location: {pathname, query: {strategy: 'agentic_triage_v2'}}},
+      initialRouterConfig: {
+        location: {pathname, query: {strategy: 'scheduled_investigation'}},
+      },
     });
 
-    expect(screen.getByRole('button', {name: 'Agentic Triage'})).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', {name: 'Scheduled Investigation'})
+    ).toBeInTheDocument();
     expect(screen.getByText('Environments')).toBeInTheDocument();
-    expect(screen.getByText(agenticSubtitle)).toBeInTheDocument();
+    expect(screen.getByText(scheduledSubtitle)).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Connect monitors'})
     ).not.toBeInTheDocument();
@@ -58,17 +62,19 @@ describe('NewAutomationPage', () => {
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Breached Metric'}));
-    await userEvent.click(screen.getByRole('option', {name: 'Agentic Triage'}));
+    await userEvent.click(screen.getByRole('option', {name: 'Scheduled Investigation'}));
 
-    await waitFor(() => expect(router.location.query.strategy).toBe('agentic_triage_v2'));
+    await waitFor(() =>
+      expect(router.location.query.strategy).toBe('scheduled_investigation')
+    );
     expect(screen.getByText('Environments')).toBeInTheDocument();
-    expect(screen.getByText(agenticSubtitle)).toBeInTheDocument();
+    expect(screen.getByText(scheduledSubtitle)).toBeInTheDocument();
     expect(
       screen.queryByRole('button', {name: 'Connect monitors'})
     ).not.toBeInTheDocument();
 
     // Picking the default strategy keeps it in the URL
-    await userEvent.click(screen.getByRole('button', {name: 'Agentic Triage'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Scheduled Investigation'}));
     await userEvent.click(screen.getByRole('option', {name: 'Breached Metric'}));
 
     await waitFor(() =>
