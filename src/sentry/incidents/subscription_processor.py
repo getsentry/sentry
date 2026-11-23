@@ -18,6 +18,7 @@ from sentry.incidents.utils.types import (
     AnomalyDetectionProcessedSubscriptionUpdate,
     MetricDetectorDataPacket,
     MetricDetectorProcessedSubscriptionUpdate,
+    PercentDetectorEvaluationValues,
     PercentDetectorProcessedSubscriptionUpdate,
     QuerySubscriptionUpdate,
     StaticDetectorProcessedSubscriptionUpdate,
@@ -148,14 +149,14 @@ class SubscriptionProcessor:
             raw_value = list(raw_data.values())[0]
             return normalize_snuba_query_result(raw_value, none_defaults_to_zero=True)
 
-    def _get_percent_detector_value(
+    def _get_percent_detector_values(
         self, current_value: float, subscription_update: QuerySubscriptionUpdate
-    ) -> float | None:
+    ) -> PercentDetectorEvaluationValues | None:
         """
         Calculate the ratio between the query's current value and its value for the time window
         `comparison_delta` seconds earlier. Expressed as a percentage (so a 200% increase results in
-        a return value of 300, while a 75% decrease results in a return value of 25). Returns None
-        if the baseline is invalid or 0.
+        a `value` of 300, while a 75% decrease results in a `value` of 25). The raw current and
+        baseline values are included alongside it. Returns None if the baseline is invalid or 0.
 
         Note: Only the current value is included in the subscription update, so this requires a
         snuba query in order to get the baseline value.
@@ -180,7 +181,11 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_update_comparison_value_invalid")
             return None
 
-        return (current_value / baseline_value) * 100
+        return {
+            "value": (current_value / baseline_value) * 100,
+            "current": current_value,
+            "baseline": baseline_value,
+        }
 
     def _create_data_packet(
         self, subscription_update: QuerySubscriptionUpdate
@@ -204,23 +209,26 @@ class SubscriptionProcessor:
             )
 
         elif detection_type == AlertRuleDetectionType.PERCENT.value:
-            percent_value = (
+            percent_values = (
                 # TODO: We have a handful of (broken) crash rate detectors which are wrongly stored
-                # with `detection_type: 'percent'`. Once we fix those bad detectors (and add
-                # validation to make sure no such detectors ever reappear), we can remove this
-                # branch in the logic.
-                extracted_value
+                # with `detection_type: 'percent'`. Historically that's been fine (they don't work
+                # but they also don't crash), since they've just been evaluated against the
+                # crash-free rate like static detectors, but now percent detectors also get the raw
+                # `baseline` and `current` values, so we have to include some dummy values for those
+                # fields. Once we fix those bad detectors (and add validation to make sure no such
+                # detectors ever reappear), we can remove this branch in the logic.
+                {"value": extracted_value, "current": -1, "baseline": -1}
                 if self.dataset == Dataset.Metrics.value
-                else self._get_percent_detector_value(extracted_value, subscription_update)
+                else self._get_percent_detector_values(extracted_value, subscription_update)
             )
 
-            if percent_value is None:
+            if percent_values is None:
                 return None
 
             processed_subscription_update = PercentDetectorProcessedSubscriptionUpdate(
                 entity=entity,
                 subscription_id=self.snuba_subscription_id,
-                values={"value": percent_value},
+                values=percent_values,
                 timestamp=timestamp,
             )
 
