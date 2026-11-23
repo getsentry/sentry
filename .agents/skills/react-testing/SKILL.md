@@ -167,15 +167,14 @@ renderWidget(project);
 render(<Widget organization={organization} project={project} />, {organization});
 ```
 
-Only when the fixed JSX is large, such as long children, put it in a component
-declared at module scope so `rerender` keeps the same component type, and keep
-`render()` options at the call site:
+When the fixed JSX is large, such as many props, put the common props in an
+object and spread them in each `render()` call:
 
 ```tsx
-function ExampleWidget(props: Props) {
-  return <Widget {...props}>{/* long fixed children */}</Widget>;
-}
-render(<ExampleWidget isLoading />, {organization});
+const commonProps = {organization, project, isLast: true, onClickSetupLater: jest.fn()};
+
+render(<Widget {...commonProps} />, {organization});
+render(<Widget {...commonProps} isLoading />, {organization});
 ```
 
 Helpers that only register mocks, or that take the element as a parameter, are
