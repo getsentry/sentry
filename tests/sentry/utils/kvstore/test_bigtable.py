@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import functools
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
+from typing import Any
 from unittest import mock
 
 import pytest
 from google.api_core import exceptions
+from google.cloud.bigtable.table import Table
 from google.rpc.status_pb2 import Status
 
 from sentry.utils.kvstore.bigtable import (
@@ -265,3 +267,28 @@ def test_set_retries_once_and_records_metric() -> None:
 
     assert mock_table.mutate_rows.call_count == 2
     incr.assert_called_once_with("bigtable.set.retry", tags={"error": "ServiceUnavailable"})
+
+
+def _response_stream(*responses: Any, error: Exception | None = None) -> Iterator[Any]:
+    yield from responses
+    if error is not None:
+        raise error
+
+
+def test_set_retries_errors_raised_while_reading_response_stream() -> None:
+    store = BigtableKVStorage("test", "test", "test")
+    instance = mock.Mock()
+    table = Table("test", instance)
+    data_client = instance._client.table_data_client
+    data_client.mutate_rows.side_effect = [
+        _response_stream(error=exceptions.DeadlineExceeded("Stream removed (Deadline Exceeded)")),
+        _response_stream(mock.Mock(entries=[mock.Mock(index=0, status=Status(code=0))])),
+    ]
+    with (
+        mock.patch.object(store, "_get_table", return_value=table),
+        mock.patch("google.api_core.retry.retry_unary.time.sleep"),
+        cap_bigtable_operation_timeout(25.0),
+    ):
+        store.set("some-key", b"value")
+
+    assert data_client.mutate_rows.call_count == 2

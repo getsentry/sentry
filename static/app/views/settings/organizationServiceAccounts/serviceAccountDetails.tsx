@@ -29,6 +29,7 @@ import {
   ServiceAccountPermissionTable,
 } from './serviceAccountPermissionTable';
 import {ProjectAccessBadges} from './serviceAccountProjectAccess';
+import {ServiceAccountTokens} from './serviceAccountTokens';
 import type {ServiceAccount} from './types';
 import {useCannotManageReason} from './useServiceAccountAccess';
 
@@ -150,6 +151,8 @@ export default function ServiceAccountDetails() {
             </Text>
           </Detail>
         </Grid>
+
+        <ServiceAccountTokens account={account} />
 
         <Stack gap="lg">
           <Heading as="h3">{t('Permissions')}</Heading>

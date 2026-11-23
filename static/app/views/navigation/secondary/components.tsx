@@ -658,7 +658,7 @@ function SecondaryNavigationSeparator() {
     return (
       <SecondaryNavigationRow height="auto" padding="md" radius="0">
         <Container column="2" minWidth="0">
-          <Separator orientation="horizontal" border="muted" />
+          <Separator orientation="horizontal" border="secondary" />
         </Container>
       </SecondaryNavigationRow>
     );
@@ -666,7 +666,7 @@ function SecondaryNavigationSeparator() {
 
   return (
     <Container padding="0 xl">
-      <Separator orientation="horizontal" border="muted" />
+      <Separator orientation="horizontal" border="secondary" />
     </Container>
   );
 }

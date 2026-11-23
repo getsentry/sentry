@@ -211,20 +211,6 @@ ${
           ],
         },
         {
-          type: 'alert',
-          alertType: 'warning',
-          showIcon: true,
-          text: tct(
-            "If you can't use the [code:--import] flag (e.g. in serverless environments like Vercel or Netlify), follow the [link:TanStack Start React guide] for alternative setup instructions.",
-            {
-              code: <code />,
-              link: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/#without---import-flag-eg-vercel-netlify" />
-              ),
-            }
-          ),
-        },
-        {
           type: 'text',
           text: tct(
             'To capture server-side errors and traces, explicitly define a [serverEntryLink:server entry point] in your application and wrap your request handler with [code:wrapFetchWithSentry].',
@@ -238,9 +224,10 @@ ${
         },
         {
           type: 'text',
-          text: tct('Create a [code:src/server.ts] file in your project:', {
-            code: <code />,
-          }),
+          text: tct(
+            "Create a [code:src/server.ts] file in your project. Pass [code:opts] on to the handler, so the request context that TanStack Start passes to it isn't lost:",
+            {code: <code />}
+          ),
         },
         {
           type: 'code',
@@ -250,15 +237,18 @@ ${
               language: 'typescript',
               filename: 'src/server.ts',
               code: `import { wrapFetchWithSentry } from "@sentry/tanstackstart-react";
-import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
+import handler, {
+  createServerEntry,
+} from "@tanstack/react-start/server-entry";
+import type { ServerEntry } from "@tanstack/react-start/server-entry";
 
-export default createServerEntry(
-  wrapFetchWithSentry({
-    fetch(request: Request) {
-      return handler.fetch(request);
-    },
-  })
-);`,
+const requestHandler: ServerEntry = wrapFetchWithSentry({
+  fetch(request, opts) {
+    return handler.fetch(request, opts);
+  },
+});
+
+export default createServerEntry(requestHandler);`,
             },
           ],
         },
@@ -283,6 +273,7 @@ import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 export default defineConfig({
   plugins: [
     tanstackStart(),
+    // other plugins - sentryTanstackStart should be last
     sentryTanstackStart({
       org: "${params.organization.slug}",
       project: "${params.project.slug}",
@@ -296,41 +287,14 @@ export default defineConfig({
         {
           type: 'text',
           text: tct(
-            'For production monitoring, you need to move the Sentry server config file to your build output. Since [hostingLink:TanStack Start is designed to work with any hosting provider], the exact location will depend on where your build artifacts are deployed (for example, [code:/dist], [code:.output/server] or a platform-specific directory).',
-            {
-              code: <code />,
-              hostingLink: (
-                <ExternalLink href="https://tanstack.com/start/latest/docs/framework/react/guide/hosting" />
-              ),
-            }
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'For example, when using [nitroLink:Nitro], copy the instrumentation file to [code:.output/server]:',
+            'If your app builds with [nitroLink:Nitro] for a Node.js runtime, the [code:sentryTanstackStart] Vite plugin bundles [code:instrument.server.mjs] into the server build and loads it when the server starts. You start your production build as usual, without the [code:--import] flag.',
             {code: <code />, nitroLink: <ExternalLink href="https://nitro.build/" />}
           ),
         },
         {
-          type: 'code',
-          tabs: [
-            {
-              label: 'JSON',
-              language: 'json',
-              filename: 'package.json',
-              code: `{
-  "scripts": {
-     "build": "vite build && cp instrument.server.mjs .output/server",
-  }
-}`,
-            },
-          ],
-        },
-        {
           type: 'text',
           text: tct(
-            'Add a [code:--import] flag directly or to the [code:NODE_OPTIONS] environment variable wherever you run your application to import [code:instrument.server.mjs]:',
+            "[code:vite dev] doesn't create a server build, so in development, load the file with the [code:--import] flag in the [code:NODE_OPTIONS] environment variable:",
             {code: <code />}
           ),
         },
@@ -343,18 +307,31 @@ export default defineConfig({
               filename: 'package.json',
               code: `{
   "scripts": {
-     "build": "vite build && cp instrument.server.mjs .output/server",
+     "build": "vite build",
      "dev": "NODE_OPTIONS='--import ./instrument.server.mjs' vite dev --port 3000",
-     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
+     "start": "node .output/server/index.mjs",
   }
 }`,
             },
           ],
         },
         {
+          type: 'alert',
+          alertType: 'info',
+          showIcon: true,
+          text: tct(
+            "If you deploy to Node.js without Nitro, or to Cloudflare, the plugin doesn't load the server config for you. Follow the [link:TanStack Start React guide] for these setups.",
+            {
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/manual-setup/#load-the-server-config-when-the-server-starts" />
+              ),
+            }
+          ),
+        },
+        {
           type: 'text',
           text: tct(
-            "To capture server-side errors from HTTP requests and server function invocations, add Sentry's global middlewares to [code:createStart()] in your [code:src/start.ts] file:",
+            "To capture server-side errors from HTTP requests and server function invocations, add Sentry's global middlewares to [code:createStart()] in your [code:src/start.ts] file. A custom [code:src/start.ts] turns off the CSRF protection that TanStack Start adds to server functions by default, so the snippet adds it back with [code:createCsrfMiddleware]:",
             {code: <code />}
           ),
         },
@@ -369,11 +346,17 @@ export default defineConfig({
   sentryGlobalFunctionMiddleware,
   sentryGlobalRequestMiddleware,
 } from "@sentry/tanstackstart-react";
-import { createStart } from "@tanstack/react-start";
+import { createCsrfMiddleware, createStart } from "@tanstack/react-start";
+
+// Assign the middleware to a variable. Sentry's Vite plugin
+// doesn't instrument a middleware array that contains a function call.
+const csrfMiddleware = createCsrfMiddleware({
+  filter: (ctx) => ctx.handlerType === "serverFn",
+});
 
 export const startInstance = createStart(() => {
   return {
-    requestMiddleware: [sentryGlobalRequestMiddleware],
+    requestMiddleware: [sentryGlobalRequestMiddleware, csrfMiddleware],
     functionMiddleware: [sentryGlobalFunctionMiddleware],
   };
 });`,
@@ -385,67 +368,20 @@ export const startInstance = createStart(() => {
           alertType: 'info',
           showIcon: false,
           text: t(
-            'The Sentry middleware should be the first middleware in the arrays to ensure all errors are captured. SSR rendering exceptions are not captured by the middleware. Use captureException to manually capture those errors.'
+            'The Sentry middleware should be the first middleware in the arrays to ensure all errors are captured.'
           ),
         },
         {
           type: 'text',
           text: tct(
-            "Errors caught by your own error boundaries aren't captured unless you report them manually. Wrap your custom [code:ErrorBoundary] component with [code:withErrorBoundary]:",
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
+            'To capture errors from route loaders, error boundaries and [code:errorComponent]s, and to send events through a tunnel to avoid ad blockers, follow the [link:TanStack Start React guide].',
             {
-              label: 'TypeScript',
-              language: 'tsx',
-              code: `import React from "react";
-import * as Sentry from "@sentry/tanstackstart-react";
-
-class MyErrorBoundary extends React.Component {
-  // ...
-}
-
-export const MySentryWrappedErrorBoundary = withErrorBoundary(
-  MyErrorBoundary,
-  {
-    // ... sentry error wrapper options
-  },
-);`,
-            },
-          ],
-        },
-        {
-          type: 'text',
-          text: tct(
-            'If you defined [code:errorComponents] in your Code-Based TanStack Router routes, capture the [code:error] argument with [code:captureException] inside a [code:useEffect] hook:',
-            {code: <code />}
+              code: <code />,
+              link: (
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/tanstackstart-react/manual-setup/#capture-tanstack-start-react-errors" />
+              ),
+            }
           ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'TypeScript',
-              language: 'tsx',
-              code: `import { createRoute } from "@tanstack/react-router";
-import * as Sentry from "@sentry/tanstackstart-react";
-
-const route = createRoute({
-  errorComponent: ({ error }) => {
-    useEffect(() => {
-      Sentry.captureException(error)
-    }, [error])
-
-    return (
-      // ...
-    )
-  }
-})`,
-            },
-          ],
         },
       ],
     },
@@ -469,39 +405,6 @@ const route = createRoute({
               ),
             }
           ),
-        },
-      ],
-      collapsible: true,
-    },
-    {
-      title: t('Avoid Ad Blockers With Tunneling (Optional)'),
-      content: [
-        {
-          type: 'text',
-          text: tct(
-            'You can prevent ad blockers from blocking Sentry events using tunneling. Use the [code:tunnel] option to add an API endpoint in your application that forwards Sentry events to Sentry servers.',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'text',
-          text: tct(
-            'To enable tunneling, update [code:Sentry.init] with the following option:',
-            {code: <code />}
-          ),
-        },
-        {
-          type: 'code',
-          tabs: [
-            {
-              label: 'TypeScript',
-              language: 'tsx',
-              code: `Sentry.init({
-  dsn: "${params.dsn.public}",
-  tunnel: '/tunnel',
-});`,
-            },
-          ],
         },
       ],
       collapsible: true,
@@ -576,7 +479,7 @@ const route = createRoute({
                 {
                   label: 'TypeScript',
                   language: 'typescript',
-                  filename: 'src/app/routes/api/sentry-example-api.ts',
+                  filename: 'src/routes/api/sentry-example.ts',
                   code: `import { createFileRoute } from "@tanstack/react-router";
 import { json } from "@tanstack/react-start";
 
