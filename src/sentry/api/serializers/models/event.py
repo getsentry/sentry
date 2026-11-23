@@ -66,7 +66,10 @@ class EventTagOptional(TypedDict, total=False):
 
 class EventTag(EventTagOptional):
     key: Annotated[str, ApiDescription("Tag key")]
-    value: Annotated[str, ApiDescription("Tag value")]
+    value: Annotated[
+        str | None,
+        ApiDescription("Tag value, or null when ingestion rejected it (`_meta.tags` holds why)"),
+    ]
 
 
 class MeasurementValue(TypedDict):
@@ -944,7 +947,7 @@ def map_device_class_tags(tags: list[EventTag]) -> list[EventTag]:
     If device.class tag exists, set the value to high, medium, low
     """
     for tag in tags:
-        if tag["key"] == "device.class":
+        if tag["key"] == "device.class" and tag["value"] is not None:
             if device_class := map_device_class_level(tag["value"]):
                 tag["value"] = device_class
     return tags

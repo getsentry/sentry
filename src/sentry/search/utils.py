@@ -837,7 +837,7 @@ def parse_query(
     return results
 
 
-def convert_user_tag_to_query(key: str, value: str) -> str | None:
+def convert_user_tag_to_query(key: str, value: str | None) -> str | None:
     """
     Converts a user tag to a query string that can be used to search for that
     user. Returns None if not a user tag.

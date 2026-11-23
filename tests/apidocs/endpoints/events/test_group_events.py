@@ -53,6 +53,30 @@ class ProjectGroupEventDetailsDocs(ProjectGroupEventBase):
 
         self.validate_schema(request, response)
 
+    def test_get_with_null_tag_values(self) -> None:
+        # Ingestion keeps a tag whose value is missing or invalid, with a null value and the
+        # reason in `_meta`.
+        event = self.store_event(
+            data={
+                "fingerprint": ["1"],
+                "timestamp": before_now(seconds=1).isoformat(),
+                "tags": [["unset", None], ["empty", ""]],
+            },
+            project_id=self.project.id,
+            assert_no_errors=False,
+        )
+        url = (
+            f"/api/0/organizations/{self.organization.slug}/issues/{self.group_id}"
+            f"/events/{event.event_id}/"
+        )
+
+        response = self.client.get(url)
+        request = RequestFactory().get(url)
+
+        assert {"key": "unset", "value": None} in response.data["tags"]
+        assert {"key": "empty", "value": None} in response.data["tags"]
+        self.validate_schema(request, response)
+
     def test_get_collapse_adjacent_events(self) -> None:
         response = self.client.get(self.url, {"collapse": "adjacentEvents"})
         request = RequestFactory().get(self.url, {"collapse": "adjacentEvents"})
