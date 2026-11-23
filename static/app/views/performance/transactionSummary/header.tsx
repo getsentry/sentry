@@ -17,7 +17,6 @@ import {useReplayCountForTransaction} from 'sentry/utils/replayCount/useReplayCo
 import {projectSupportsReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {normalizeUrl} from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {deprecateTransactionAlerts} from 'sentry/views/insights/common/utils/hasEAPAlerts';
 import {useInsightsEap} from 'sentry/views/insights/common/utils/useEap';
 import {BackendHeader} from 'sentry/views/insights/pages/backend/backendPageHeader';
 import {BACKEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/backend/settings';
@@ -26,7 +25,6 @@ import {FRONTEND_LANDING_SUB_PATH} from 'sentry/views/insights/pages/frontend/se
 import {MobileHeader} from 'sentry/views/insights/pages/mobile/mobilePageHeader';
 import {MOBILE_LANDING_SUB_PATH} from 'sentry/views/insights/pages/mobile/settings';
 import {useDomainViewFilters} from 'sentry/views/insights/pages/useFilters';
-import {TopBar} from 'sentry/views/navigation/topBar';
 import {getTransactionSummaryParentCrumbs} from 'sentry/views/performance/breadcrumb';
 import {getSelectedProjectPlatforms} from 'sentry/views/performance/utils';
 
@@ -227,19 +225,6 @@ export function TransactionHeader({
         transactionName={transactionName}
         onChangeThreshold={onChangeThreshold}
       />
-      <TopBar.Slot name="actions">
-        {deprecateTransactionAlerts(organization) ? null : (
-          <CreateAlertFromViewButton
-            eventView={eventView}
-            organization={organization}
-            projects={projects}
-            onClick={handleCreateAlertSuccess}
-            referrer="performance"
-            alertType="trans_duration"
-            aria-label={t('Create Alert')}
-          />
-        )}
-      </TopBar.Slot>
       <HeaderTabList outerWrapStyles={{gridColumn: '1 / -1'}}>
         <HeaderTabList.Item key={Tab.TRANSACTION_SUMMARY}>
           {t('Overview')}

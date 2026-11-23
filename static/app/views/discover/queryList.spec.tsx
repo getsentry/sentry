@@ -222,7 +222,9 @@ describe('Discover > QueryList', () => {
       <QueryList
         savedQuerySearchQuery=""
         organization={organization}
-        savedQueries={savedQueries}
+        savedQueries={[
+          DiscoverSavedQueryFixture({queryDataset: SavedQueryDatasets.ERRORS}),
+        ]}
         pageLinks=""
         renderPrebuilt={false}
         location={location}
@@ -399,15 +401,11 @@ describe('Discover > QueryList', () => {
     );
   });
 
-  it('disabled duplicate for transaction queries with deprecation flag', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('disabled duplicate for transaction queries', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={organizationWithDeprecation}
+        organization={organization}
         savedQueries={[
           DiscoverSavedQueryFixture({
             display: DisplayModes.DEFAULT,
@@ -435,15 +433,11 @@ describe('Discover > QueryList', () => {
     expect(duplicateMenuItem).toHaveAttribute('aria-disabled', 'true');
   });
 
-  it('does not disable duplicate for error queries with deprecation flag', async () => {
-    const organizationWithDeprecation = OrganizationFixture({
-      features: ['discover-saved-queries-deprecation'],
-    });
-
+  it('does not disable duplicate for error queries', async () => {
     render(
       <QueryList
         savedQuerySearchQuery=""
-        organization={organizationWithDeprecation}
+        organization={organization}
         savedQueries={[
           DiscoverSavedQueryFixture({
             display: DisplayModes.DEFAULT,
@@ -484,6 +478,7 @@ describe('Discover > QueryList', () => {
               orderby: 'test',
               fields: ['test', 'count()'],
               yAxis: ['count()'],
+              queryDataset: SavedQueryDatasets.ERRORS,
             }),
           ]}
           pageLinks=""
@@ -526,7 +521,7 @@ describe('Discover > QueryList', () => {
                   },
                 ],
                 title: 'Saved query #1',
-                widgetType: 'transaction-like',
+                widgetType: 'error-events',
               },
             ],
           })
@@ -546,7 +541,7 @@ describe('Discover > QueryList', () => {
               orderby: 'count()',
               fields: ['test', 'count()'],
               yAxis: ['count()'],
-              queryDataset: SavedQueryDatasets.TRANSACTIONS,
+              queryDataset: SavedQueryDatasets.ERRORS,
             }),
           ]}
           pageLinks=""
@@ -589,7 +584,7 @@ describe('Discover > QueryList', () => {
                   },
                 ],
                 title: 'Saved query #1',
-                widgetType: 'transaction-like',
+                widgetType: 'error-events',
               },
             ],
           })
@@ -597,14 +592,11 @@ describe('Discover > QueryList', () => {
       });
     });
 
-    it('disables Add to Dashboard for transaction queries with deprecation flag', async () => {
-      const organizationWithDeprecation = OrganizationFixture({
-        features: ['discover-saved-queries-deprecation'],
-      });
+    it('disables Add to Dashboard for transaction queries', async () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          organization={organizationWithDeprecation}
+          organization={organization}
           renderPrebuilt={false}
           savedQueries={[
             DiscoverSavedQueryFixture({
@@ -633,14 +625,11 @@ describe('Discover > QueryList', () => {
       expect(addToDashboardMenuItem).toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('does not disable Add to Dashboard for error queries with deprecation flag', async () => {
-      const organizationWithDeprecation = OrganizationFixture({
-        features: ['discover-saved-queries-deprecation'],
-      });
+    it('does not disable Add to Dashboard for error queries', async () => {
       render(
         <QueryList
           savedQuerySearchQuery=""
-          organization={organizationWithDeprecation}
+          organization={organization}
           renderPrebuilt={false}
           savedQueries={[
             DiscoverSavedQueryFixture({
@@ -682,7 +671,7 @@ describe('Discover > QueryList', () => {
             orderby: 'count()',
             fields: ['test', 'count()'],
             yAxis: ['count()'],
-            queryDataset: SavedQueryDatasets.TRANSACTIONS,
+            queryDataset: SavedQueryDatasets.ERRORS,
           }),
         ]}
         pageLinks=""
@@ -725,7 +714,7 @@ describe('Discover > QueryList', () => {
                 },
               ],
               title: 'Saved query #1',
-              widgetType: 'transaction-like',
+              widgetType: 'error-events',
             },
           ],
         })

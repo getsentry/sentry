@@ -40,6 +40,24 @@ function invalid(
 ruleTester.run('prefer-primitives', preferPrimitives, {
   valid: [
     {
+      name: 'bindings passed as one of several styled arguments are not inlined (first)',
+      code:
+        emotion +
+        "const styles = {display:'flex'}; const A = styled.a(styles, other); const B = <div style={styles}/>;",
+    },
+    {
+      name: 'bindings passed as one of several styled arguments are not inlined (second)',
+      code:
+        emotion +
+        "const styles = {display:'flex'}; const A = styled.a(other, styles); const B = <div style={styles}/>;",
+    },
+    {
+      name: 'bindings passed as one of several css arguments are not inlined',
+      code:
+        emotion +
+        "const styles = {display:'flex'}; const A = <a css={css(styles, other)}/>; const B = <div style={styles}/>;",
+    },
+    {
       name: 'nested interpolations are not root declaration evidence',
       code: emotion + 'const C = styled.div`display:flex;&:hover {color:${color};}`;',
     },
@@ -198,11 +216,97 @@ ruleTester.run('prefer-primitives', preferPrimitives, {
       code: `${emotion} const C = styled.div\`display:flex;display:\${value};gap:8px;\`;`,
     },
     {
+      name: 'auto and negative margins are allowed',
+      code: `${emotion} const A = styled.div\`margin: 0 auto;\`; const B = styled(Button)\`margin-left: auto;\`; const N = styled.div\`margin-top: -\${p => p.theme.space.md};\`;`,
+    },
+    {
+      name: 'dynamic object margins are allowed',
+      code: `const C = <div style={{marginTop: offset}}/>;`,
+    },
+    {
+      name: 'margins on non-layout elements are allowed',
+      code: `${emotion} const C = styled.a\`margin: 8px 0;\`;`,
+    },
+    {
+      name: 'component styles beyond spacing are allowed',
+      code: `${emotion} const C = styled(Panel)\`margin-bottom: 0; color: red;\`;`,
+    },
+    {
       name: 'CSS syntax errors do not crash unrelated source',
       code: `${emotion} const C = styled.div\`padding 8px; broken: {;\`; const D = <div/>;`,
     },
+    {
+      name: 'conditional style expressions are not evaluated',
+      code: `const C = <div style={cond ? {display:'flex'} : undefined}/>;`,
+    },
+    {
+      name: 'self-referencing style constants do not recurse forever',
+      code: `const styles = styles; const C = <div style={styles}/>;`,
+    },
+    {
+      name: 'imported style objects are not resolved',
+      code: `import {styles} from './styles'; const C = <div style={styles}/>;`,
+    },
+    {
+      name: 'loop bindings without initializers are not resolved',
+      code: `for (const styles of list) { render(<div style={styles}/>); }`,
+    },
+    {
+      name: 'shared definitions must support every intrinsic tag in any order',
+      code: 'const styles = {display:"flex"}; const C = <><a style={styles}/><div style={styles}/></>;',
+    },
+    {
+      name: 'shared typography definitions must support every intrinsic tag',
+      code: 'const styles = {fontSize:12, color:"red"}; const C = <><span style={styles}/><input style={styles}/></>;',
+    },
+    {
+      name: 'styles shared with a custom component are not resolved',
+      code: 'const styles = {display:"flex"}; const C = <><div style={styles}/><Other style={styles}/></>;',
+    },
+    {
+      name: 'styles shared with a member-expression component are not resolved',
+      code: 'const styles = {display:"flex"}; const C = <><div style={styles}/><motion.div style={styles}/></>;',
+    },
+    {
+      name: 'a spread before css may set an overriding style',
+      code: `const C = <div {...props} css={{display:'flex'}}/>;`,
+    },
+    {
+      name: 'calls other than css are not evaluated',
+      code: `const C = <div css={makeStyles({display:'flex'})}/>;`,
+    },
+    {
+      name: 'css calls with several arguments can override styles',
+      code: `${emotion} const C = <div css={css({display:'flex'}, other)}/>;`,
+    },
+    {
+      name: 'styled calls with several arguments can override styles',
+      code: `${emotion} const C = styled.div({display:'flex'}, other);`,
+    },
+    {
+      name: 'template literal values with interpolations are dynamic',
+      code: 'const C = <div style={{display:`flex${suffix}`}}/>;',
+    },
   ],
   invalid: [
+    ...[
+      `${emotion} const C = styled('div')\`margin: \${p => p.theme.space.md} 0;\`;`,
+      `${emotion} const C = styled.section\`margin-top: 8px; margin-bottom: 16px;\`;`,
+      `<div style={{marginBottom: 8}}/>`,
+      `${emotion} const C = styled(Panel)\`margin-bottom: 0;\`;`,
+      `${emotion} const C = styled(PanelItem)\`align-items: center; gap: \${p => p.theme.space.md}; padding: \${p => p.theme.space.md};\`;`,
+      `${emotion} const C = styled(Flex)({gap: 8});`,
+    ].map(code => ({
+      name: `spacing-only styles: ${code.replace(emotion, '')}`,
+      code,
+      filename: 'example.tsx',
+      errors: [{messageId: 'preferLayoutProps'}],
+    })),
+    invalid(
+      'bare styled call used as a tag later is classified',
+      emotion + "const Base = styled('button'); const X = Base`color: red;`;",
+      'Button'
+    ),
     invalid(
       'nested important declarations do not override root styles',
       emotion + 'const C = styled.div`display:flex;&:hover {display:block!important;}`;',
@@ -349,6 +453,38 @@ ruleTester.run('prefer-primitives', preferPrimitives, {
       `${emotion} const shared = css\`display:flex;gap:8px;\`; const C = styled.div(shared); const x = <div css={shared}/>;`,
       'Flex'
     ),
+    invalid(
+      'style attribute after other attributes',
+      '<div id="box" style={{display:"flex"}}/>',
+      'Flex'
+    ),
+    invalid('static template literal values', '<div style={{display:`grid`}}/>', 'Grid'),
+    invalid(
+      'satisfies on a style object',
+      'const styles = {display:"flex"} satisfies object; const C = <div style={styles}/>;',
+      'Flex'
+    ),
+    invalid(
+      'type assertion on a style reference',
+      'const styles = {display:"flex"}; const C = <div style={styles as CSSProperties}/>;',
+      'Flex'
+    ),
+    invalid(
+      'non-null assertion on a style reference',
+      'const styles = {display:"flex"}; const C = <div style={styles!}/>;',
+      'Flex'
+    ),
+    {
+      name: 'angle-bracket type assertion on a style object',
+      code: "import styled from '@emotion/styled'; const styles = <const>{display:'flex'}; const C = styled.div(styles);",
+      filename: 'example.ts',
+      errors: [
+        {
+          messageId: 'preferPrimitive',
+          data: {primitive: 'Flex', source: '@sentry/scraps/layout'},
+        },
+      ],
+    },
     {
       name: 'copied declarations remain separate findings',
       code: 'const a = {display:"flex"}; const b = {display:"flex"}; const C = <><div style={a}/><div style={b}/></>;',

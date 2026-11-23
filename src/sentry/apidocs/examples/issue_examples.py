@@ -12,6 +12,7 @@ from sentry.apidocs.examples.release_examples import RELEASE
 from sentry.apidocs.formats import absolute_url, hex_id, numeric_id, slug
 from sentry.issues.related.types import (
     ContributingMeta,
+    InvestigationsMeta,
     RelatedIssuesResponse,
     RelationType,
     RelationTypeStatus,
@@ -348,6 +349,16 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
             ],
         }
     ],
+    "investigations": [
+        {
+            "investigation": {
+                "id": numeric_id("5172"),
+                "title": "Order form errors after the 2.4 release",
+            },
+            "hypothesisStatement": "The 2.4 release stopped validating quantity fields",
+            "reason": "Its errors start with the 2.4 deploy and parse the same quantity field.",
+        }
+    ],
     "meta": {
         "types": [
             SimilarStacktraceMeta(
@@ -379,6 +390,10 @@ RELATED_ISSUES_RESPONSE: RelatedIssuesResponse = {
                     "id": numeric_id("4821"),
                     "title": "Unvalidated quantity strings parsed as integers in order forms",
                 },
+            ),
+            InvestigationsMeta(
+                type=RelationType.INVESTIGATIONS,
+                status=RelationTypeStatus.OK,
             ),
         ],
     },

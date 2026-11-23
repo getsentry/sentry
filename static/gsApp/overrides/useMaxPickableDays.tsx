@@ -3,6 +3,7 @@ import moment from 'moment-timezone';
 
 import {MAX_PICKABLE_DAYS} from 'sentry/constants';
 import {DataCategory} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils/defined';
 import {
   ErrorsUpsellFooter,
@@ -32,7 +33,8 @@ export function useMaxPickableDays({
     function getMaxPickableDaysFor(dataCategory: DataCategory) {
       const maxPickableDays = getMaxPickableDaysBySubscription(
         dataCategory,
-        subscription
+        subscription,
+        organization
       );
       if (defined(maxPickableDays)) {
         return maxPickableDays;
@@ -46,7 +48,8 @@ export function useMaxPickableDays({
 
 function getMaxPickableDaysBySubscription(
   dataCategory: DataCategory,
-  subscription: Subscription | null
+  subscription: Subscription | null,
+  organization: Organization
 ): MaxPickableDaysOptions | undefined {
   switch (dataCategory) {
     case DataCategory.SPANS:
@@ -77,8 +80,11 @@ function getMaxPickableDaysBySubscription(
       };
     }
     case DataCategory.TRACE_METRICS: {
-      // TODO: undecided for now, fixed at 30 days
-      return {maxPickableDays: 30, maxUpgradableDays: 30, defaultPeriod: '24h'};
+      // Only flagged orgs get a range longer than 30 days.
+      const maxPickableDays = organization.features.includes('tracemetrics-90-day-range')
+        ? 90
+        : 30;
+      return {maxPickableDays, maxUpgradableDays: maxPickableDays, defaultPeriod: '24h'};
     }
     case DataCategory.LOG_BYTE:
     case DataCategory.LOG_ITEM: {

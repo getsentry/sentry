@@ -21,11 +21,11 @@ export type EntityHeaderTextVariant =
   | 'warning';
 
 /**
- * The typography header text takes from the item it belongs to. Style
- * constants should `satisfies` this, so a style the text would not apply
- * fails to type-check rather than being dropped.
+ * The typography header text takes from the item it belongs to, as `Text`
+ * props. Typography constants should `satisfies` this, so a prop the text
+ * would not apply fails to type-check rather than being dropped.
  */
-export type EntityHeaderTextStyles = DistributedPick<
+export type EntityHeaderTextTypography = DistributedPick<
   TextProps<'span'>,
   'bold' | 'density' | 'ellipsis' | 'size' | 'tabular' | 'wrap'
 >;
@@ -81,20 +81,23 @@ export function EntityHeaderDestinationLink({
   );
 }
 
-interface EntityHeaderTextProps {
+type EntityHeaderTextProps = EntityHeaderTextTypography & {
   behavior: EntityHeaderTextBehavior;
   children: React.ReactNode;
-  styles: EntityHeaderTextStyles;
-}
+};
 
 /**
  * A run of header text that may navigate and may explain. A link is accent,
  * a tooltip adds an underline, and one that does both is both.
  */
-export function EntityHeaderText({behavior, children, styles}: EntityHeaderTextProps) {
+export function EntityHeaderText({
+  behavior,
+  children,
+  ...typography
+}: EntityHeaderTextProps) {
   if (behavior.type === 'link') {
     return (
-      <Text {...styles} variant="accent">
+      <Text {...typography} variant="accent">
         {textProps => {
           const link = (
             <EntityHeaderDestinationLink
@@ -120,14 +123,14 @@ export function EntityHeaderText({behavior, children, styles}: EntityHeaderTextP
 
   if (behavior.tooltip) {
     return (
-      <InfoText title={behavior.tooltip} variant={behavior.variant} {...styles}>
+      <InfoText {...typography} title={behavior.tooltip} variant={behavior.variant}>
         {children}
       </InfoText>
     );
   }
 
   return (
-    <Text variant={behavior.variant} {...styles}>
+    <Text {...typography} variant={behavior.variant}>
       {children}
     </Text>
   );

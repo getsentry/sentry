@@ -991,11 +991,6 @@ urlpatterns += [
         react_page_view,
         name="releases",
     ),
-    re_path(
-        r"^release-thresholds/",
-        react_page_view,
-        name="release-thresholds",
-    ),
     # User Feedback
     re_path(
         r"^user-feedback/",
