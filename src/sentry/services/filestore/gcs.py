@@ -9,7 +9,6 @@ from collections.abc import Callable
 from datetime import datetime
 from tempfile import SpooledTemporaryFile
 from typing import IO, TYPE_CHECKING, TypeVar, cast
-from typing import cast as typing_cast
 
 from django.conf import settings
 from django.core.exceptions import ImproperlyConfigured
@@ -27,7 +26,7 @@ from google.auth.credentials import Credentials
 from google.auth.exceptions import RefreshError, TransportError
 from google.cloud.exceptions import NotFound
 
-_NotFound = typing_cast("Callable[[str], NotFound]", NotFound)
+_NotFound = NotFound
 from google.cloud.storage.blob import Blob
 from google.cloud.storage.bucket import Bucket
 from google.cloud.storage.client import Client

@@ -36,6 +36,7 @@ from sentry.seer.models.workflow import (
     SeerWorkflowSchedule,
     SeerWorkflowStrategy,
 )
+from sentry.seer.workflows.actions import SeerInvestigationActionHandler
 from sentry.seer.workflows.base import (
     AdmittedRunExtras,
     AllProjects,
@@ -45,7 +46,6 @@ from sentry.seer.workflows.base import (
 )
 from sentry.seer.workflows.breached_metrics import (
     MetricBreachInputs,
-    SeerInvestigationActionHandler,
     get_config_monitors_bulk,
 )
 from sentry.seer.workflows.slack_channel import SlackChannel, get_slack_channels
@@ -259,7 +259,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert self.config.backing_workflow is not None
         self.config.backing_workflow.update(enabled=False)
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr:
+        with mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr:
             self.execute(self.breach_event(detector_id=1))
 
         self.assert_ignored(incr, "config_disabled")
@@ -269,7 +269,7 @@ class BreachedMetricWorkflowAdmissionTest(BreachedMetricWorkflowTestCase):
         assert event.occurrence is not None
         event.occurrence = replace(event.occurrence, evidence_data={})
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr:
+        with mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr:
             self.execute(event)
 
         self.assert_ignored(incr, "invalid_source")
@@ -516,8 +516,8 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         self.config.update(filters={"all_projects": True, "environments": ["production"]})
         event = self.breach_event(detector_id=self.detector.id)
         with (
-            mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr,
-            mock.patch("sentry.seer.workflows.breached_metrics.logger") as logger,
+            mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr,
+            mock.patch("sentry.seer.workflows.actions.logger") as logger,
         ):
             self.process_breach_workflow(event)
             run = SeerWorkflowRun.objects.get(workflow_config=self.config)
@@ -591,7 +591,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
             dataconditiongroupaction__condition_group__workflowdataconditiongroup__workflow=other_config.backing_workflow
         )
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.logger") as logger:
+        with mock.patch("sentry.seer.workflows.actions.logger") as logger:
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
         assert set(SeerWorkflowRun.objects.values_list("workflow_config_id", flat=True)) == {
@@ -631,7 +631,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
         event = self.breach_event(detector_id=self.detector.id)
         with (
             self.feature({"organizations:seer-automations": False}),
-            mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr,
+            mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr,
         ):
             assert not is_action_permitted(Action.Type.SEER_INVESTIGATION, self.organization)
             self.process_breach_workflow(event)
@@ -649,7 +649,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     def test_cross_organization_config_is_ignored_before_admission(self) -> None:
         self.config.update(organization=self.create_organization())
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr:
+        with mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr:
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
         assert not SeerWorkflowRun.objects.exists()
@@ -688,7 +688,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
     ) -> None:
         self.config.update(filters={"all_projects": True, "environments": ["staging"]})
 
-        with mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr:
+        with mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr:
             self.process_breach_workflow(self.breach_event(detector_id=self.detector.id))
 
         assert not SeerWorkflowRun.objects.exists()
@@ -707,7 +707,7 @@ class BreachedMetricWorkflowWFEIntegrationTest(BreachedMetricWorkflowTestCase):
                 "sentry.seer.workflows.base.AutomationDefinition.has_quota_available",
                 return_value=False,
             ) as quota,
-            mock.patch("sentry.seer.workflows.breached_metrics.metrics.incr") as incr,
+            mock.patch("sentry.seer.workflows.actions.metrics.incr") as incr,
         ):
             self.process_breach_workflow(event)
             quota.assert_called_once()

@@ -1,6 +1,6 @@
 import abc
-from collections.abc import Callable, Collection, Sequence
-from typing import Any, cast
+from collections.abc import Callable, Sequence
+from typing import Any
 from unittest.mock import MagicMock, call, patch
 
 import pytest
@@ -346,7 +346,7 @@ def test_react_native_sdk_version_attributed_without_replacing_native_version(
     sdk_name: str,
     event_factory: Callable[[], dict[str, object]],
 ) -> None:
-    event_data = cast(dict[str, Collection[str]], event_factory())
+    event_data = event_factory()
     set_path(event_data, "sdk", "name", value=sdk_name)
     set_path(
         event_data,

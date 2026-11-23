@@ -783,11 +783,11 @@ register(
 )
 
 # Bound GitLab project webhook reconciliation independently in each cell region. Each
-# repository consumes three capacity tokens to leave room for repairs that make multiple
+# repository consumes five capacity tokens to leave room for repairs that make multiple
 # GitLab API requests.
 register(
     "gitlab.webhook-reconcile.rate-limit.burst",
-    default=3,
+    default=5,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -807,15 +807,8 @@ register(
 )
 
 register(
-    "gitlab.webhook-reconcile.rate-limit.retry-after-jitter-seconds",
-    default=300,
-    type=Int,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
     "gitlab.webhook-reconcile.forced-fanout-jitter-max-seconds",
-    default=1801,
+    default=601,
     type=Int,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1382,6 +1375,13 @@ register(
     "store.transactions.check-pending-attachments",
     type=Bool,
     default=True,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Killswitch for bounding Bigtable (nodestore) operations while saving events.
+register(
+    "store.save-event.bigtable-operation-timeout.disabled",
+    type=Bool,
+    default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -4103,13 +4103,6 @@ register(
     "workflow_engine.max_workflows_per_org",
     type=Int,
     default=1000,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Skip workflows that don't belong to the event's organization.
-register(
-    "workflow_engine.filter_cross_org_workflows",
-    type=Bool,
-    default=True,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 # Higher opt-in limit for workflows; intended for orgs we know are hitting limits legitimately,

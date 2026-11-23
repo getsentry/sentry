@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Iterable
-from typing import cast
 
 import sentry_sdk
 from django.db import models
@@ -147,7 +146,7 @@ class ProjectCodeOwners(Model):
 
 
 def modify_date_updated(instance: ProjectCodeOwners, **kwargs: object) -> None:
-    if cast("int | None", instance.id) is None:
+    if instance.id is None:
         return
     instance.date_updated = timezone.now()
 

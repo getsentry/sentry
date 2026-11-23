@@ -48,3 +48,13 @@ export interface TimeseriesAnnotation {
   startTimestamp: string;
   tags: Record<string, unknown> | null;
 }
+
+export function timeseriesAnnotationEnd({
+  intervalType,
+  endTimestamp,
+}: TimeseriesAnnotation): number | 'ongoing' | undefined {
+  if (endTimestamp) {
+    return new Date(endTimestamp).getTime();
+  }
+  return intervalType === 'range' ? 'ongoing' : undefined;
+}

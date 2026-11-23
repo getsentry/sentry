@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-from typing import cast
 
 import sentry_sdk
 from django.db import router, transaction
@@ -241,7 +240,7 @@ def sync_prebuilt_queries(organization: Organization) -> None:
                 }
             else:
                 continue
-            prebuilt_version = cast(int, prebuilt_query["prebuilt_version"])
+            prebuilt_version = prebuilt_query["prebuilt_version"]
             if prebuilt_query["prebuilt_id"] in saved_prebuilt_query_ids:
                 saved_prebuilt_query = saved_prebuilt_queries.get(
                     prebuilt_id=prebuilt_query["prebuilt_id"]

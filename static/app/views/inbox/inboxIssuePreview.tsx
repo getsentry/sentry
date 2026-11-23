@@ -1,12 +1,13 @@
 import {Fragment, useMemo, useState} from 'react';
 import {useParams} from 'react-router';
 import styled from '@emotion/styled';
+import {IconIssues} from '@sentry/icons/issues';
 import {useQuery} from '@tanstack/react-query';
 
 import {Container, Flex, Grid, Stack} from '@sentry/scraps/layout';
 import {Link} from '@sentry/scraps/link';
 import {Tabs} from '@sentry/scraps/tabs';
-import {Heading} from '@sentry/scraps/text';
+import {Heading, Text} from '@sentry/scraps/text';
 
 import {AnsiText} from 'sentry/components/ansiText';
 import {ErrorBoundary} from 'sentry/components/errorBoundary';
@@ -14,6 +15,7 @@ import {EventMessage} from 'sentry/components/events/eventMessage';
 import {LoadingError} from 'sentry/components/loadingError';
 import {LoadingIndicator} from 'sentry/components/loadingIndicator';
 import {PageFiltersContainer} from 'sentry/components/pageFilters/container';
+import {Placeholder} from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Group, TeamParticipant, UserParticipant} from 'sentry/types/group';
@@ -30,6 +32,7 @@ import {EventDetailsHeader} from 'sentry/views/issueDetails/eventDetailsHeader';
 import {GroupDataContextProvider} from 'sentry/views/issueDetails/groupDataContext';
 import GroupEventDetails from 'sentry/views/issueDetails/groupEventDetails/groupEventDetails';
 import {GroupPriority} from 'sentry/views/issueDetails/groupPriority';
+import {relatedIssuesApiOptions} from 'sentry/views/issueDetails/groupRelatedIssues/relatedIssuesApiOptions';
 import {GroupHeaderAssigneeSelector} from 'sentry/views/issueDetails/header/assigneeSelector';
 import {EventUserCounts} from 'sentry/views/issueDetails/header/eventUserCounts';
 import {
@@ -237,9 +240,66 @@ function InboxIssueSidebar({group, project, event}: InboxIssueSectionProps) {
         <FirstLastSeenSection group={group} event={event} />
       </ErrorBoundary>
       <ErrorBoundary mini>
+        <SidebarField label={t('Related')}>
+          <InboxIssueRelated group={group} />
+        </SidebarField>
+      </ErrorBoundary>
+      <ErrorBoundary mini>
         <InboxIssueExternalLinks group={group} event={event} />
       </ErrorBoundary>
     </Stack>
+  );
+}
+
+const RELATED_ISSUES_SHOWN = 3;
+
+function InboxIssueRelated({group}: Pick<InboxIssueSectionProps, 'group'>) {
+  const organization = useOrganization();
+  // The limit applies to each type. The endpoint lists issues matched by more types first.
+  const {data, isPending, isError} = useQuery(
+    relatedIssuesApiOptions({
+      organization,
+      groupId: group.id,
+      limit: RELATED_ISSUES_SHOWN,
+    })
+  );
+
+  if (isPending) {
+    return <Placeholder height="60px" />;
+  }
+  if (isError) {
+    return <Text variant="muted">{t('Unable to load related issues')}</Text>;
+  }
+  if (data.data.length === 0) {
+    return <Text variant="muted">{t('No related issues')}</Text>;
+  }
+
+  return (
+    <Stack gap="md">
+      {data.data.slice(0, RELATED_ISSUES_SHOWN).map(({issue}) => (
+        <InboxIssueRelatedRow key={issue.id} issue={issue} />
+      ))}
+    </Stack>
+  );
+}
+
+function InboxIssueRelatedRow({issue}: {issue: Group}) {
+  const organization = useOrganization();
+
+  return (
+    <Flex gap="sm" align="center" minWidth={0}>
+      {linkProps => (
+        <IssueTitleLink
+          {...linkProps}
+          to={normalizeUrl(`/organizations/${organization.slug}/issues/${issue.id}/`)}
+        >
+          <IconIssues size="sm" />
+          <Text ellipsis>
+            {issue.shortId} – {issue.title}
+          </Text>
+        </IssueTitleLink>
+      )}
+    </Flex>
   );
 }
 

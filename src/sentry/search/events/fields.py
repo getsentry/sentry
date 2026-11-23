@@ -1277,24 +1277,6 @@ class NumericColumn(ColumnArg):
         return "number"
 
 
-class DurationColumn(ColumnArg):
-    def normalize(self, value: str, params: ParamsType, combinator: Combinator | None) -> str:
-        snuba_column = SEARCH_MAP.get(value)
-        if not snuba_column and is_duration_measurement(value):
-            return value
-        if not snuba_column and is_span_op_breakdown(value):
-            return value
-        if not snuba_column:
-            raise InvalidFunctionArgument(f"{value} is not a valid column")
-        elif snuba_column != "duration":
-            raise InvalidFunctionArgument(f"{value} is not a duration column")
-
-        if self.validate_only:
-            return value
-        else:
-            return snuba_column
-
-
 class StringArrayColumn(ColumnArg):
     string_array_columns = {
         "tags.key",

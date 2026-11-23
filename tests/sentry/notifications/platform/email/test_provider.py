@@ -203,6 +203,16 @@ class EmailRendererTest(TestCase):
 
         assert email.subject == "[Project] Injected: Test subject"
 
+    def test_subject_removes_control_characters(self) -> None:
+        rendered_template = NotificationRenderedTemplate(
+            subject="Error: a\x00b\x1bc\x7fd",
+            body=[],
+        )
+
+        email = render_email(self.data, rendered_template)
+
+        assert email.subject == "Error: abcd"
+
     def test_subject_prefix_uses_project_option_with_global_fallback(self) -> None:
         with override_settings(EMAIL_SUBJECT_PREFIX="[Global]"):
             assert build_subject_prefix(self.project) == "[Global]"

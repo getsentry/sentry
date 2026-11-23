@@ -12,7 +12,12 @@ interface PathMappingEmptyStateProps {
 
 export function PathMappingEmptyState({onAdd}: PathMappingEmptyStateProps) {
   return (
-    <Container border="muted" radius="md" padding="2xl" style={{borderStyle: 'dashed'}}>
+    <Container
+      border="secondary"
+      radius="md"
+      padding="2xl"
+      style={{borderStyle: 'dashed'}}
+    >
       <Stack gap="xl" align="center">
         <Stack gap="xs" align="center">
           <Text bold>{t('No paths configured')}</Text>
