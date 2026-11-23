@@ -1,9 +1,4 @@
-import styled from '@emotion/styled';
-
-import {Flex, Stack} from '@sentry/scraps/layout';
-
-import {Panel} from 'sentry/components/panels/panel';
-import {PanelItem} from 'sentry/components/panels/panelItem';
+import {Container, Flex, Stack} from '@sentry/scraps/layout';
 
 interface SpanErrorCardProps {
   icon: React.ReactNode;
@@ -18,33 +13,23 @@ interface SpanErrorCardProps {
  */
 export function SpanErrorCard({icon, title, message, className}: SpanErrorCardProps) {
   return (
-    <Wrapper className={className}>
-      <StyledPanel>
-        <StyledPanelItem>
-          <Flex align="center" justify="center">
-            {icon}
-          </Flex>
-          <Stack gap="2xs" minWidth="0">
-            {title}
-            {message}
-          </Stack>
-        </StyledPanelItem>
-      </StyledPanel>
-    </Wrapper>
+    <Container className={className} padding="md 0">
+      <Flex
+        align="center"
+        gap="md"
+        padding="md xl lg md"
+        background="primary"
+        border="primary"
+        radius="md"
+      >
+        <Flex align="center" justify="center">
+          {icon}
+        </Flex>
+        <Stack gap="2xs" minWidth="0">
+          {title}
+          {message}
+        </Stack>
+      </Flex>
+    </Container>
   );
 }
-
-const Wrapper = styled('div')`
-  margin: ${p => p.theme.space.md} 0;
-`;
-
-const StyledPanel = styled(Panel)`
-  margin-bottom: 0;
-`;
-
-const StyledPanelItem = styled(PanelItem)`
-  align-items: center;
-  gap: ${p => p.theme.space.md};
-  padding: ${p => p.theme.space.md} ${p => p.theme.space.xl} ${p => p.theme.space.lg}
-    ${p => p.theme.space.md};
-`;
