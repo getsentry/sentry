@@ -6,16 +6,18 @@ import {PeekingBug} from './peekingBug';
 
 describe('PeekingBug', () => {
   beforeEach(() => {
-    jest.spyOn(window, 'matchMedia').mockImplementation(query => ({
-      matches: true,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    }));
+    jest
+      .spyOn(window, 'matchMedia')
+      .mockImplementation(query => ({
+        matches: true,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
   });
 
   afterEach(() => {
@@ -65,16 +67,18 @@ describe('PeekingBug', () => {
   });
 
   it('ignores hovers when the device has no fine hover pointer', async () => {
-    jest.mocked(window.matchMedia).mockImplementation(query => ({
-      matches: false,
-      media: query,
-      onchange: null,
-      addListener: jest.fn(),
-      removeListener: jest.fn(),
-      addEventListener: jest.fn(),
-      removeEventListener: jest.fn(),
-      dispatchEvent: jest.fn(),
-    }));
+    jest
+      .mocked(window.matchMedia)
+      .mockImplementation(query => ({
+        matches: false,
+        media: query,
+        onchange: null,
+        addListener: jest.fn(),
+        removeListener: jest.fn(),
+        addEventListener: jest.fn(),
+        removeEventListener: jest.fn(),
+        dispatchEvent: jest.fn(),
+      }));
     render(
       <PeekingBug>
         <Button>Start</Button>
